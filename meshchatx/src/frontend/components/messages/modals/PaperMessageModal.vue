@@ -10,7 +10,7 @@
         >
             <!-- header -->
             <div
-                class="px-6 py-5 border-b border-sem-border flex items-center justify-between bg-gray-50/50 dark:bg-zinc-900/50"
+                class="px-6 py-5 border-b border-sem-border flex items-center justify-between bg-sem-surface-muted/50 dark:bg-zinc-900/50"
             >
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-sem-accent rounded-xl">
@@ -20,7 +20,7 @@
                 </div>
                 <button
                     type="button"
-                    class="p-2 text-gray-400 hover:text-gray-600 hover:text-sem-fg hover:bg-sem-surface-muted rounded-full transition-all"
+                    class="p-2 text-sem-fg-muted hover:text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted rounded-full transition-all"
                     @click="close"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-6" />
@@ -29,12 +29,14 @@
 
             <div class="p-4 sm:p-6 flex flex-col items-center">
                 <div v-if="isLoading" class="flex flex-col items-center py-8">
-                    <div class="size-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                    <div
+                        class="size-12 border-4 border-sem-accent/20 border-t-blue-500 rounded-full animate-spin"
+                    ></div>
                     <p class="mt-4 text-xs text-sem-fg-muted font-medium">Generating Paper Message...</p>
                 </div>
                 <template v-else-if="uri">
                     <!-- QR code container -->
-                    <div class="p-3 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6 relative group">
+                    <div class="p-3 bg-white rounded-2xl shadow-inner border border-sem-border mb-6 relative group">
                         <div class="size-40 sm:size-48 flex items-center justify-center overflow-hidden">
                             <canvas ref="qrcode"></canvas>
                         </div>
@@ -44,15 +46,13 @@
                             <div
                                 class="p-2 bg-white/90 dark:bg-zinc-900/90 rounded-xl shadow-xl border border-sem-border"
                             >
-                                <MaterialDesignIcon icon-name="magnify-plus-outline" class="size-6 text-blue-500" />
+                                <MaterialDesignIcon icon-name="magnify-plus-outline" class="size-6 text-sem-accent" />
                             </div>
                         </div>
                     </div>
 
                     <div v-if="recipientHash" class="w-full space-y-3">
-                        <div
-                            class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
-                        >
+                        <div class="bg-sem-surface-muted/50 rounded-2xl p-3 border border-sem-border /50">
                             <label
                                 class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                             >
@@ -66,7 +66,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
+                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-sem-accent hover:border-blue-200 transition-all shadow-xs"
                                     title="Copy URI"
                                     @click="copyUri"
                                 >
@@ -78,7 +78,7 @@
                         <div class="flex gap-2 pt-1">
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
                                 @click="printQRCode"
                             >
                                 <MaterialDesignIcon icon-name="printer" class="size-4" />
@@ -104,9 +104,7 @@
                         </div>
                     </div>
                     <div v-else class="w-full space-y-3">
-                        <div
-                            class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
-                        >
+                        <div class="bg-sem-surface-muted/50 rounded-2xl p-3 border border-sem-border /50">
                             <label
                                 class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                             >
@@ -120,7 +118,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
+                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-sem-accent hover:border-blue-200 transition-all shadow-xs"
                                     title="Copy URI"
                                     @click="copyUri"
                                 >
@@ -132,7 +130,7 @@
                         <div class="flex gap-2 pt-1">
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
                                 @click="printQRCode"
                             >
                                 <MaterialDesignIcon icon-name="printer" class="size-4" />
@@ -140,7 +138,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-surface-muted hover:bg-gray-200 hover:bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-surface-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold transition-all active:scale-[0.98] text-sm"
                                 @click="downloadQRCode"
                             >
                                 <MaterialDesignIcon icon-name="download" class="size-4" />
@@ -160,7 +158,7 @@
                     </p>
                     <button
                         type="button"
-                        class="mt-6 py-2.5 px-6 bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold hover:bg-gray-200 hover:bg-sem-surface-muted transition-all"
+                        class="mt-6 py-2.5 px-6 bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-all"
                         @click="close"
                     >
                         Close

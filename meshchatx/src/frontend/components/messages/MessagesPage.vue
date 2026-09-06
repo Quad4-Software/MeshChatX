@@ -132,7 +132,7 @@
         <button
             v-if="!isPopoutMode && !destinationHash"
             type="button"
-            class="sm:hidden fixed z-65 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg ring-1 ring-white/10 transition active:scale-95 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-zinc-800 right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
+            class="sm:hidden fixed z-65 flex h-14 w-14 items-center justify-center rounded-full bg-sem-fg text-sem-canvas shadow-lg ring-1 ring-white/10 transition active:scale-95 right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
             :title="$t('app.compose')"
             @click="openMobileCompose"
         >
@@ -154,7 +154,7 @@
                     </h3>
                     <button
                         type="button"
-                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
+                        class="text-sem-fg-muted hover:text-sem-fg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
                         @click="isMobileComposeModalOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
@@ -216,7 +216,7 @@
                     <h3 class="text-lg font-bold text-sem-fg">Ingest Paper Message</h3>
                     <button
                         type="button"
-                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        class="text-sem-fg-muted hover:text-sem-fg transition-colors"
                         @click="isIngestModalOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />

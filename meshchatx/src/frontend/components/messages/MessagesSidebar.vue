@@ -9,7 +9,7 @@
             <div class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-sem-border px-2">
                 <button
                     type="button"
-                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors"
+                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                     @click="$emit('toggle-collapse')"
                 >
                     <MaterialDesignIcon :icon-name="collapsedStripChevronIcon" class="size-5" />
@@ -21,8 +21,8 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'conversations'
-                            ? 'bg-blue-600 text-white dark:bg-blue-500'
-                            : 'text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800'
+                            ? 'bg-sem-accent text-white'
+                            : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                     "
                     @click="tab = 'conversations'"
                 >
@@ -33,8 +33,8 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'announces'
-                            ? 'bg-blue-600 text-white dark:bg-blue-500'
-                            : 'text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800'
+                            ? 'bg-sem-accent text-white'
+                            : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                     "
                     @click="tab = 'announces'"
                 >
@@ -49,11 +49,11 @@
                     v-for="c in collapsedSidebarConversations"
                     :key="c.destination_hash"
                     type="button"
-                    class="shrink-0 p-0.5 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    class="shrink-0 p-0.5 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus"
                     :class="
                         selectedDestinationHash === c.destination_hash
-                            ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
-                            : 'hover:bg-white/10'
+                            ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-sem-surface'
+                            : 'hover:bg-sem-surface/10'
                     "
                     :title="c.custom_display_name ?? c.display_name"
                     @click="onConversationClick(c)"
@@ -78,8 +78,8 @@
                             class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-medium transition"
                             :class="[
                                 tab === 'conversations'
-                                    ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
-                                    : 'border-transparent text-sem-fg-muted hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
+                                    ? 'border-sem-accent text-sem-accent'
+                                    : 'border-transparent text-sem-fg-muted hover:border-sem-border hover:text-sem-fg',
                             ]"
                             @click="tab = 'conversations'"
                         >
@@ -89,8 +89,8 @@
                             class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-medium transition"
                             :class="[
                                 tab === 'announces'
-                                    ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
-                                    : 'border-transparent text-sem-fg-muted hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
+                                    ? 'border-sem-accent text-sem-accent'
+                                    : 'border-transparent text-sem-fg-muted hover:border-sem-border hover:text-sem-fg',
                             ]"
                             @click="tab = 'announces'"
                         >
@@ -99,7 +99,7 @@
                     </div>
                     <button
                         type="button"
-                        class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors"
+                        class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                         @click="$emit('toggle-collapse')"
                     >
                         <MaterialDesignIcon :icon-name="expandedTabBarChevronIcon" class="size-5" />
@@ -128,7 +128,7 @@
                         <div class="flex items-center gap-2">
                             <MaterialDesignIcon
                                 :icon-name="foldersExpanded ? 'chevron-down' : 'chevron-right'"
-                                class="size-4 text-gray-400"
+                                class="size-4 text-sem-fg-muted"
                             />
                             <span class="text-xs font-medium text-sem-fg-muted">
                                 {{ $t("messages.folders") }}
@@ -137,7 +137,7 @@
                         <div class="flex gap-1" @click.stop>
                             <button
                                 type="button"
-                                class="p-1 text-gray-400 hover:text-indigo-500 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                class="p-1 text-sem-fg-muted hover:text-indigo-500 hover:bg-sem-surface-muted/50 rounded-lg transition-colors"
                                 :title="$t('messages.create_folder')"
                                 @click="createFolder"
                             >
@@ -146,7 +146,7 @@
                             <div class="relative">
                                 <button
                                     type="button"
-                                    class="p-1 text-sem-fg-muted hover:text-sem-fg hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                    class="p-1 text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted/50 rounded-lg transition-colors"
                                     @click="folderMenu.show = !folderMenu.show"
                                 >
                                     <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
@@ -154,11 +154,11 @@
                                 <div
                                     v-if="folderMenu.show"
                                     v-click-outside="{ handler: () => (folderMenu.show = false), capture: true }"
-                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
                                 >
                                     <button
                                         type="button"
-                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
+                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                         @click="
                                             $emit('export-folders');
                                             folderMenu.show = false;
@@ -169,7 +169,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
+                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                         @click="
                                             $emit('import-folders');
                                             folderMenu.show = false;
@@ -190,10 +190,10 @@
                             class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === null
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === 'all'
-                                    ? 'ring-2 ring-blue-500 ring-inset bg-sem-surface-muted'
+                                    ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted'
                                     : '',
                             ]"
                             @click="$emit('folder-click', null)"
@@ -208,9 +208,9 @@
                             class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === 0
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
-                                dragOverFolderId === 0 ? 'ring-2 ring-blue-500 ring-inset bg-sem-surface-muted' : '',
+                                dragOverFolderId === 0 ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted' : '',
                             ]"
                             @click="$emit('folder-click', 0)"
                             @dragover="onDragOver($event, 0)"
@@ -226,10 +226,10 @@
                             class="group px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === folder.id
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === folder.id
-                                    ? 'ring-2 ring-blue-500 ring-inset bg-sem-surface-muted'
+                                    ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted'
                                     : '',
                             ]"
                             @click="$emit('folder-click', folder.id)"
@@ -242,14 +242,14 @@
                             <div class="hidden group-hover:flex items-center gap-0.5">
                                 <button
                                     type="button"
-                                    class="p-1 hover:text-blue-500 hover:bg-white hover:bg-sem-surface-muted rounded-lg transition-colors"
+                                    class="p-1 hover:text-sem-accent hover:bg-sem-surface-muted rounded-lg transition-colors"
                                     @click.stop="renameFolder(folder)"
                                 >
                                     <MaterialDesignIcon icon-name="pencil-outline" class="size-3.5" />
                                 </button>
                                 <button
                                     type="button"
-                                    class="p-1 hover:text-red-500 hover:bg-white hover:bg-sem-surface-muted rounded-lg transition-colors"
+                                    class="p-1 hover:text-sem-danger hover:bg-sem-surface-muted rounded-lg transition-colors"
                                     @click.stop="deleteFolder(folder)"
                                 >
                                     <MaterialDesignIcon icon-name="trash-can-outline" class="size-3.5" />
@@ -276,9 +276,9 @@
                     <div class="flex flex-wrap items-center gap-1">
                         <button
                             type="button"
-                            class="p-1 mr-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                            class="p-1 mr-1 text-sem-fg-muted hover:text-sem-accent transition-colors"
                             :title="$t('nomadnet.sidebar_selection_mode')"
-                            :class="{ 'text-blue-500 dark:text-blue-400': selectionMode }"
+                            :class="{ 'text-sem-accent ': selectionMode }"
                             @click="toggleSelectionMode"
                         >
                             <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
@@ -313,10 +313,10 @@
                             <input
                                 type="checkbox"
                                 :checked="allSelected"
-                                class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                                class="rounded-sm border-sem-border text-sem-accent focus:ring-sem-focus"
                                 @change="toggleSelectAll"
                             />
-                            <span class="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                            <span class="text-xs font-semibold text-blue-700">
                                 {{ $t("messages.bulk_selected_count", { count: selectedHashes.size }) }}
                             </span>
                         </div>
@@ -346,11 +346,11 @@
                                 <div
                                     v-if="moveMenu.show"
                                     v-click-outside="{ handler: () => (moveMenu.show = false), capture: true }"
-                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
                                 >
                                     <button
                                         type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
+                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                         @click="moveSelectedToFolder(null)"
                                     >
                                         {{ $t("messages.uncategorized") }}
@@ -359,7 +359,7 @@
                                         v-for="folder in folders"
                                         :key="folder.id"
                                         type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
+                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                         @click="moveSelectedToFolder(folder.id)"
                                     >
                                         {{ folder.name }}
@@ -410,7 +410,7 @@
                                         'flex cursor-pointer px-2 py-2 relative group conversation-item',
                                         selectionEdgeBorderClass,
                                         conversation.destination_hash === selectedDestinationHash
-                                            ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
+                                            ? 'bg-sem-info/15 border-sem-accent'
                                             : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                                         selectedHashes.has(conversation.destination_hash)
                                             ? 'bg-blue-50/50 dark:bg-blue-900/10'
@@ -430,7 +430,7 @@
                                         <input
                                             type="checkbox"
                                             :checked="selectedHashes.has(conversation.destination_hash)"
-                                            class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            class="rounded-sm border-sem-border text-sem-accent focus:ring-sem-focus"
                                             @click.stop
                                             @change="toggleSelectConversation(conversation.destination_hash)"
                                         />
@@ -475,7 +475,7 @@
                                     <div class="mr-auto w-full pr-2 min-w-0">
                                         <div class="flex justify-between gap-2 min-w-0">
                                             <div
-                                                class="text-gray-900 dark:text-gray-100 truncate min-w-0"
+                                                class="text-sem-fg truncate min-w-0"
                                                 :title="conversation.custom_display_name ?? conversation.display_name"
                                                 :class="{
                                                     'font-semibold':
@@ -491,7 +491,7 @@
                                                 {{ formatTimeAgo(conversation.updated_at) }}
                                             </div>
                                         </div>
-                                        <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
+                                        <div class="text-sem-fg-muted text-xs mt-0.5 truncate">
                                             {{
                                                 stripMarkdown(
                                                     conversation.latest_message_preview ??
@@ -504,15 +504,12 @@
                                         <div class="flex items-center space-x-1">
                                             <div
                                                 v-if="pinnedSet.has(conversation.destination_hash)"
-                                                class="text-blue-500 dark:text-blue-400"
+                                                class="text-sem-accent"
                                                 :title="$t('messages.pinned')"
                                             >
                                                 <MaterialDesignIcon icon-name="pin" class="w-4 h-4" />
                                             </div>
-                                            <div
-                                                v-if="conversation.has_attachments"
-                                                class="text-gray-500 dark:text-gray-300"
-                                            >
+                                            <div v-if="conversation.has_attachments" class="text-sem-fg-muted">
                                                 <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
                                             </div>
                                             <div
@@ -522,7 +519,7 @@
                                                 "
                                                 class="my-auto ml-1"
                                             >
-                                                <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
+                                                <div class="bg-sem-accent rounded-full p-1"></div>
                                             </div>
                                             <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
                                                 <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
@@ -530,12 +527,12 @@
                                         </div>
                                         <button
                                             type="button"
-                                            class="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-all"
+                                            class="p-1 opacity-0 group-hover:opacity-100 hover:bg-sem-surface-muted rounded-lg transition-all"
                                             @click.stop="onRightClick($event, conversation.destination_hash)"
                                         >
                                             <MaterialDesignIcon
                                                 icon-name="dots-vertical"
-                                                class="size-4 text-gray-400"
+                                                class="size-4 text-sem-fg-muted"
                                             />
                                         </button>
                                     </div>
@@ -564,7 +561,7 @@
                                     'flex cursor-pointer px-2 py-2 relative group conversation-item',
                                     selectionEdgeBorderClass,
                                     conversation.destination_hash === selectedDestinationHash
-                                        ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
+                                        ? 'bg-sem-info/15 border-sem-accent'
                                         : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                                     selectedHashes.has(conversation.destination_hash)
                                         ? 'bg-blue-50/50 dark:bg-blue-900/10'
@@ -583,7 +580,7 @@
                                     <input
                                         type="checkbox"
                                         :checked="selectedHashes.has(conversation.destination_hash)"
-                                        class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        class="rounded-sm border-sem-border text-sem-accent focus:ring-sem-focus"
                                         @click.stop
                                         @change="toggleSelectConversation(conversation.destination_hash)"
                                     />
@@ -625,7 +622,7 @@
                                 <div class="mr-auto w-full pr-2 min-w-0">
                                     <div class="flex justify-between gap-2 min-w-0">
                                         <div
-                                            class="text-gray-900 dark:text-gray-100 truncate min-w-0"
+                                            class="text-sem-fg truncate min-w-0"
                                             :title="conversation.custom_display_name ?? conversation.display_name"
                                             :class="{
                                                 'font-semibold':
@@ -640,7 +637,7 @@
                                             {{ formatTimeAgo(conversation.updated_at) }}
                                         </div>
                                     </div>
-                                    <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
+                                    <div class="text-sem-fg-muted text-xs mt-0.5 truncate">
                                         {{
                                             stripMarkdown(
                                                 conversation.latest_message_preview ?? conversation.latest_message_title
@@ -652,15 +649,12 @@
                                     <div class="flex items-center space-x-1">
                                         <div
                                             v-if="pinnedSet.has(conversation.destination_hash)"
-                                            class="text-blue-500 dark:text-blue-400"
+                                            class="text-sem-accent"
                                             :title="$t('messages.pinned')"
                                         >
                                             <MaterialDesignIcon icon-name="pin" class="w-4 h-4" />
                                         </div>
-                                        <div
-                                            v-if="conversation.has_attachments"
-                                            class="text-gray-500 dark:text-gray-300"
-                                        >
+                                        <div v-if="conversation.has_attachments" class="text-sem-fg-muted">
                                             <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
                                         </div>
                                         <div
@@ -670,7 +664,7 @@
                                             "
                                             class="my-auto ml-1"
                                         >
-                                            <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
+                                            <div class="bg-sem-accent rounded-full p-1"></div>
                                         </div>
                                         <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
                                             <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
@@ -678,10 +672,13 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-all"
+                                        class="p-1 opacity-0 group-hover:opacity-100 hover:bg-sem-surface-muted rounded-lg transition-all"
                                         @click.stop="onRightClick($event, conversation.destination_hash)"
                                     >
-                                        <MaterialDesignIcon icon-name="dots-vertical" class="size-4 text-gray-400" />
+                                        <MaterialDesignIcon
+                                            icon-name="dots-vertical"
+                                            class="size-4 text-sem-fg-muted"
+                                        />
                                     </button>
                                 </div>
                             </div>
@@ -696,17 +693,17 @@
                             panel-class="z-100"
                         >
                             <ContextMenuItem @click="bulkMarkAsRead">
-                                <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />
+                                <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-sem-fg-muted" />
                                 {{ $t("messages.mark_as_read") }}
                             </ContextMenuItem>
                             <ContextMenuItem @click="markAllAsRead">
-                                <MaterialDesignIcon icon-name="email-check-outline" class="size-4 text-gray-400" />
+                                <MaterialDesignIcon icon-name="email-check-outline" class="size-4 text-sem-fg-muted" />
                                 {{ $t("messages.mark_all_as_read") }}
                             </ContextMenuItem>
                             <ContextMenuItem v-if="contextMenu.targetHash" @click="togglePinFromContextMenu">
                                 <MaterialDesignIcon
                                     :icon-name="isContextTargetPinned ? 'pin-off' : 'pin'"
-                                    class="size-4 text-gray-400"
+                                    class="size-4 text-sem-fg-muted"
                                 />
                                 {{
                                     isContextTargetPinned
@@ -715,11 +712,11 @@
                                 }}
                             </ContextMenuItem>
                             <ContextMenuItem v-if="contextMenu.targetHash" @click="copyLxmfFromContextMenu">
-                                <MaterialDesignIcon icon-name="content-copy" class="size-4 text-gray-400" />
+                                <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-fg-muted" />
                                 {{ $t("messages.copy_lxmf") }}
                             </ContextMenuItem>
                             <ContextMenuItem @click="contextMenuIngestPaperMessage">
-                                <MaterialDesignIcon icon-name="qrcode-scan" class="size-4 text-gray-400" />
+                                <MaterialDesignIcon icon-name="qrcode-scan" class="size-4 text-sem-fg-muted" />
                                 {{ $t("messages.ingest_paper_message") }}
                             </ContextMenuItem>
                             <ContextMenuItem
@@ -743,8 +740,8 @@
                                     "
                                     :class="
                                         contextMenu.targetContact?.is_telemetry_trusted
-                                            ? 'size-4 text-blue-500'
-                                            : 'size-4 text-gray-400'
+                                            ? 'size-4 text-sem-accent'
+                                            : 'size-4 text-sem-fg-muted'
                                     "
                                 />
                                 {{
@@ -778,7 +775,7 @@
 
                         <!-- loading more spinner -->
                         <div v-if="isLoadingMore" class="p-4 text-center">
-                            <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
+                            <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-sem-fg-muted" />
                         </div>
                     </div>
                     <div v-else class="mx-auto mt-3 w-full text-center leading-5 px-3">
@@ -823,14 +820,14 @@
 
                 <div
                     v-if="messageImportDragOver"
-                    class="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-blue-500 bg-blue-500/10"
+                    class="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-sem-accent bg-sem-accent/10"
                 >
                     <div class="px-4 text-center">
                         <MaterialDesignIcon icon-name="import" class="mx-auto size-8 text-sem-accent" />
                         <p class="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
                             {{ $t("maintenance.import_messages") }}
                         </p>
-                        <p class="text-xs text-blue-600/80 dark:text-blue-400/80">
+                        <p class="text-xs text-sem-accent/80 /80">
                             {{ $t("maintenance.import_messages_desc") }}
                         </p>
                     </div>
@@ -858,7 +855,7 @@
                         />
                         <span
                             v-if="isSearchingAnnounces"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-sem-fg-muted"
                             :title="$t('messages.searching_announces')"
                         >
                             <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin" />
@@ -886,7 +883,7 @@
                                 'flex cursor-pointer p-2 relative',
                                 selectionEdgeBorderClass,
                                 peer.destination_hash === selectedDestinationHash
-                                    ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
+                                    ? 'bg-sem-info/15 border-sem-accent'
                                     : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                             ]"
                             @click="onPeerClick(peer)"
@@ -916,7 +913,7 @@
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div
-                                    class="text-gray-900 dark:text-gray-100 truncate"
+                                    class="text-sem-fg truncate"
                                     :title="peer.custom_display_name ?? peer.display_name"
                                 >
                                     {{ peer.custom_display_name ?? peer.display_name }}
@@ -930,7 +927,7 @@
                                     <!-- hops away -->
                                     <span
                                         v-if="peer.hops != null && peer.hops !== 128"
-                                        class="flex my-auto text-sm text-gray-500 space-x-1"
+                                        class="flex my-auto text-sm text-sem-fg-muted space-x-1"
                                     >
                                         <span>•</span>
                                         <span v-if="peer.hops === 0 || peer.hops === 1">{{
@@ -950,23 +947,23 @@
 
                         <!-- loading more spinner -->
                         <div v-if="isLoadingMoreAnnounces" class="p-4 text-center">
-                            <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
+                            <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-sem-fg-muted" />
                         </div>
                     </div>
                     <div
                         v-else-if="isSearchingAnnounces && peersSearchTerm.trim() !== ''"
                         class="mx-auto my-auto text-center leading-5"
                     >
-                        <div class="flex flex-col text-gray-900 dark:text-gray-100">
-                            <div class="mx-auto mb-1 text-gray-500">
+                        <div class="flex flex-col text-sem-fg">
+                            <div class="mx-auto mb-1 text-sem-fg-muted">
                                 <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin" />
                             </div>
                             <div class="font-semibold">{{ $t("messages.searching_announces") }}</div>
                         </div>
                     </div>
                     <div v-else-if="peersSearchTerm.trim() !== ''" class="mx-auto my-auto text-center leading-5">
-                        <div class="flex flex-col text-gray-900 dark:text-gray-100">
-                            <div class="mx-auto mb-1 text-gray-500">
+                        <div class="flex flex-col text-sem-fg">
+                            <div class="mx-auto mb-1 text-sem-fg-muted">
                                 <MaterialDesignIcon icon-name="account-off-outline" class="size-6" />
                             </div>
                             <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
@@ -974,8 +971,8 @@
                         </div>
                     </div>
                     <div v-else class="mx-auto my-auto text-center leading-5">
-                        <div class="flex flex-col text-gray-900 dark:text-gray-100">
-                            <div class="mx-auto mb-1 text-gray-500">
+                        <div class="flex flex-col text-sem-fg">
+                            <div class="mx-auto mb-1 text-sem-fg-muted">
                                 <MaterialDesignIcon icon-name="account-search-outline" class="size-6" />
                             </div>
                             <div class="font-semibold">{{ $t("messages.no_peers_discovered") }}</div>

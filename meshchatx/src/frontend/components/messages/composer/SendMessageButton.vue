@@ -110,28 +110,28 @@
                 <div class="py-1">
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap border-b border-sem-border"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap border-b border-sem-border"
                         @click="setDeliveryMethod(null)"
                     >
                         {{ $t("messages.send_automatically") }}
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="setDeliveryMethod('direct')"
                     >
                         {{ $t("messages.send_over_direct_link") }}
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="setDeliveryMethod('opportunistic')"
                     >
                         {{ $t("messages.send_opportunistically") }}
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="setDeliveryMethod('propagated')"
                     >
                         {{ $t("messages.send_to_propagation_node") }}
@@ -141,7 +141,7 @@
                     </div>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
                         :disabled="!canOpenSendMenu"
                         @click="emitCommandOrRequest"
                     >
@@ -149,7 +149,7 @@
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
                         :disabled="!canSendMessage"
                         @click="emitPaperCompose"
                     >
