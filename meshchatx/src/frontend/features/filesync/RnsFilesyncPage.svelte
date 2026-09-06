@@ -364,18 +364,18 @@
         });
     }
 
+    function onWebsocketReconnected() {
+        void refreshAll();
+    }
+
     onMount(() => {
         bindWs();
-        GlobalEmitter.on("websocket-reconnected", () => {
-            void refreshAll();
-        });
+        GlobalEmitter.on("websocket-reconnected", onWebsocketReconnected);
         void refreshAll();
     });
 
     onDestroy(() => {
-        GlobalEmitter.off("websocket-reconnected", () => {
-            void refreshAll();
-        });
+        GlobalEmitter.off("websocket-reconnected", onWebsocketReconnected);
         for (const [type, handler] of wsHandlers) {
             offWsEvent(type, handler);
         }

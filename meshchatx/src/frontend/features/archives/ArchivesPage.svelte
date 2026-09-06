@@ -14,6 +14,7 @@
     import { exportArchiveAsMu } from "./lib/archiveExport.js";
     import { handleArchiveContentClick, openInNomadnet, type RouterLike } from "./lib/archiveNavigation.js";
     import { renderFullContent, shortHash } from "./lib/archiveRender.js";
+    import { router as hashRouter } from "../../shell/hashRouter.js";
     import {
         API_NOMADNET_ARCHIVES,
         API_NOMADNET_ARCHIVES_RECRAWL,
@@ -38,6 +39,7 @@
     }
 
     let { routeQuery = {}, router }: Props = $props();
+    const activeRouter = $derived((router || hashRouter) as RouterLike);
 
     let archives = $state<ArchiveItem[]>([]);
     let isLoading = $state(false);
@@ -286,11 +288,11 @@
     }
 
     function handleOpenInNomadnet(archive: ArchiveItem): void {
-        openInNomadnet(archive, router);
+        openInNomadnet(archive, activeRouter);
     }
 
     function handleContentClick(event: MouseEvent): void {
-        handleArchiveContentClick(event, router);
+        handleArchiveContentClick(event, activeRouter);
     }
 
     onMount(() => {

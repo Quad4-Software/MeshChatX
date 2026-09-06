@@ -67,7 +67,7 @@
                 <a
                     href={String(action.href || "#")}
                     target={action.target ? String(action.target) : undefined}
-                    class="p-2 hover:bg-sem-surface-muted rounded-lg transition-colors text-gray-400 hover:text-blue-500"
+                    class="toolbar-icon-btn"
                     onclick={(e) => e.stopPropagation()}
                 >
                     <MaterialDesignIcon iconName={String(action.icon || "open-in-new")} class="size-5" />

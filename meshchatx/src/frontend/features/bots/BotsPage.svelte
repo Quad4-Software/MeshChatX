@@ -227,6 +227,10 @@
         }
     }
 
+    function onWebsocketReconnected() {
+        void loadStatus(true);
+    }
+
     onMount(() => {
         void loadStatus();
         pollInterval = setInterval(() => {
@@ -235,9 +239,7 @@
         relativeTimerInterval = setInterval(() => {
             relativeTimerTick = Date.now();
         }, 10000);
-        GlobalEmitter.on("websocket-reconnected", () => {
-            void loadStatus(true);
-        });
+        GlobalEmitter.on("websocket-reconnected", onWebsocketReconnected);
     });
 
     onDestroy(() => {
@@ -247,9 +249,7 @@
         if (relativeTimerInterval) {
             clearInterval(relativeTimerInterval);
         }
-        GlobalEmitter.off("websocket-reconnected", () => {
-            void loadStatus(true);
-        });
+        GlobalEmitter.off("websocket-reconnected", onWebsocketReconnected);
     });
 </script>
 
