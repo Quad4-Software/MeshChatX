@@ -19,7 +19,7 @@
                 <div class="p-8">
                     <div class="flex items-start mb-6">
                         <div
-                            class="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-sem-accent mr-4"
+                            class="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-sem-info/15 text-sem-accent mr-4"
                         >
                             <MaterialDesignIcon icon-name="form-textbox" class="w-6 h-6" />
                         </div>
@@ -37,24 +37,16 @@
                         ref="promptInput"
                         v-model="inputValue"
                         :type="inputType"
-                        class="w-full px-4 py-3 rounded-xl border border-sem-border bg-gray-50 dark:bg-zinc-800 text-sem-fg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                        class="w-full px-4 py-3 rounded-xl border border-sem-border bg-sem-surface-muted text-sem-fg text-sm focus:outline-hidden focus:ring-2 focus:ring-sem-focus/30 focus:border-sem-focus"
                         autocomplete="off"
                         @keydown="onInputKeydown"
                     />
 
                     <div class="flex flex-col sm:flex-row gap-3 sm:justify-end mt-8">
-                        <button
-                            type="button"
-                            class="px-6 py-3 text-sm font-bold text-sem-fg-muted bg-sem-surface-muted rounded-xl hover:bg-gray-200 hover:bg-sem-surface-muted transition-all active:scale-95"
-                            @click="cancel"
-                        >
+                        <button type="button" class="secondary-action" @click="cancel">
                             {{ $t("common.cancel") }}
                         </button>
-                        <button
-                            type="button"
-                            class="px-6 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95"
-                            @click="confirm"
-                        >
+                        <button type="button" class="primary-action" @click="confirm">
                             {{ $t("common.ok") }}
                         </button>
                     </div>

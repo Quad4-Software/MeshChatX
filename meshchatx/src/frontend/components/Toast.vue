@@ -9,7 +9,7 @@
                 v-for="toast in toasts"
                 :key="toast.id"
                 ref="toastRefs"
-                class="pointer-events-auto flex items-center p-4 w-full sm:min-w-[300px] sm:max-w-md rounded-xl shadow-lg border backdrop-blur-md transition-all duration-300 select-text touch-pan-y"
+                class="pointer-events-auto flex items-center p-4 w-full sm:min-w-[300px] sm:max-w-md rounded-xl shadow-lg border backdrop-blur-md bg-sem-glass transition-all duration-300 select-text touch-pan-y"
                 :class="[toastClass(toast.type), toast.swipeClass]"
                 :style="toastSwipeStyle(toast)"
                 @touchstart="onTouchStart($event, toast)"
@@ -22,24 +22,24 @@
                     <MaterialDesignIcon
                         v-if="toast.type === 'success'"
                         icon-name="check-circle"
-                        class="h-6 w-6 text-green-500"
+                        class="h-6 w-6 text-sem-success"
                     />
                     <MaterialDesignIcon
                         v-else-if="toast.type === 'error'"
                         icon-name="alert-circle"
-                        class="h-6 w-6 text-red-500"
+                        class="h-6 w-6 text-sem-danger"
                     />
                     <MaterialDesignIcon
                         v-else-if="toast.type === 'warning'"
                         icon-name="alert"
-                        class="h-6 w-6 text-amber-500"
+                        class="h-6 w-6 text-sem-warning"
                     />
                     <MaterialDesignIcon
                         v-else-if="toast.type === 'loading'"
                         icon-name="loading"
-                        class="h-6 w-6 text-blue-500 animate-spin"
+                        class="h-6 w-6 text-sem-info animate-spin"
                     />
-                    <MaterialDesignIcon v-else icon-name="information" class="h-6 w-6 text-blue-500" />
+                    <MaterialDesignIcon v-else icon-name="information" class="h-6 w-6 text-sem-info" />
                 </div>
 
                 <!-- content -->
@@ -177,13 +177,13 @@ export default {
         toastClass(type) {
             switch (type) {
                 case "success":
-                    return "bg-white/90 dark:bg-zinc-900/90 border-green-500/30";
+                    return "border-sem-success/30";
                 case "error":
-                    return "bg-white/90 dark:bg-zinc-900/90 border-red-500/30";
+                    return "border-sem-danger/30";
                 case "warning":
-                    return "bg-white/90 dark:bg-zinc-900/90 border-amber-500/30";
+                    return "border-sem-warning/30";
                 default:
-                    return "bg-white/90 dark:bg-zinc-900/90 border-blue-500/30";
+                    return "border-sem-info/30";
             }
         },
         toastSwipeStyle(toast) {

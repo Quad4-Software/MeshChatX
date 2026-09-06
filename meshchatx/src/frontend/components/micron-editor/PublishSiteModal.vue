@@ -14,13 +14,13 @@
                     <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
                         {{ $t("tools.micron_editor.publish_site_title") }}
                     </h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                    <p class="text-sm text-sem-fg-muted mt-0.5">
                         {{ $t("tools.micron_editor.publish_site_hint") }}
                     </p>
                 </div>
                 <button
                     type="button"
-                    class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 shrink-0"
+                    class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted shrink-0"
                     :disabled="busy"
                     @click="close"
                 >
@@ -35,7 +35,7 @@
                     </label>
                     <select
                         v-model="selectedNodeId"
-                        class="w-full rounded-lg border border-sem-border bg-sem-surface text-sem-fg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-sem-accent"
+                        class="w-full rounded-lg border border-sem-border bg-sem-surface text-sem-fg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-sem-focus"
                         :disabled="busy"
                     >
                         <option v-for="pn in pageNodes" :key="pn.node_id" :value="pn.node_id">
@@ -47,7 +47,7 @@
                         v-if="selectedNodeId === '__new'"
                         v-model="newServerName"
                         type="text"
-                        class="mt-2 w-full rounded-lg border border-sem-border bg-sem-surface text-sem-fg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-sem-accent"
+                        class="mt-2 w-full rounded-lg border border-sem-border bg-sem-surface text-sem-fg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-sem-focus"
                         :placeholder="$t('tools.micron_editor.publish_site_new_server_name')"
                         :disabled="busy"
                     />
@@ -77,7 +77,7 @@
                             <input
                                 v-model="entry.include"
                                 type="checkbox"
-                                class="size-4 shrink-0 accent-teal-600"
+                                class="size-4 shrink-0 accent-sem-accent"
                                 :disabled="busy"
                                 :title="$t('tools.micron_editor.publish_site_include')"
                             />
@@ -88,7 +88,7 @@
                                 v-model="entry.filename"
                                 type="text"
                                 spellcheck="false"
-                                class="flex-1 min-w-0 rounded-md border border-sem-border bg-sem-surface text-sem-fg px-2 py-1 text-xs font-mono focus:outline-hidden focus:ring-2 focus:ring-sem-accent"
+                                class="flex-1 min-w-0 rounded-md border border-sem-border bg-sem-surface text-sem-fg px-2 py-1 text-xs font-mono focus:outline-hidden focus:ring-2 focus:ring-sem-focus"
                                 :disabled="busy || !entry.include"
                                 @input="entry.filename = sanitizeFilename(entry.filename)"
                             />
@@ -118,7 +118,7 @@
                     <input
                         v-model="generateIndex"
                         type="checkbox"
-                        class="size-4 mt-0.5 shrink-0 accent-teal-600"
+                        class="size-4 mt-0.5 shrink-0 accent-sem-accent"
                         :disabled="busy"
                     />
                     <span>
