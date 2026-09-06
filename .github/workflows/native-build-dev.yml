@@ -1,6 +1,6 @@
 # Native Electron builds for Windows, macOS arm64, and macOS x86_64 on every push/PR to dev.
 # Kept separate from ci.yml so the main test suite can finish without waiting on
-# the macOS universal slice, while still always verifying both desktop targets.
+# the per-arch macOS builds, while still always verifying all desktop targets.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8

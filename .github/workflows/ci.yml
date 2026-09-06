@@ -99,6 +99,7 @@ jobs:
                     lint)
                       task lint
                       if [ "${{ github.event_name }}" = "pull_request" ]; then
+                        git fetch origin ${{ github.event.pull_request.base.ref }}
                         export COMMITLINT_FROM="origin/${{ github.event.pull_request.base.ref }}"
                         task check:commits
                       fi
@@ -341,7 +342,7 @@ jobs:
             - name: Upload Linux build-check artifacts
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
-                  name: meshchatx-linux-build-check-${{ github.ref_name }}-${{ github.run_id }}
+                  name: meshchatx-linux-build-check-${{ github.run_id }}
                   path: |
                       meshchatx/public/
                       build/exe/
@@ -367,9 +368,8 @@ jobs:
             - name: Download Linux build-check artifact
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
-                  pattern: meshchatx-linux-build-check-*-${{ github.run_id }}
+                  name: meshchatx-linux-build-check-${{ github.run_id }}
                   path: .artifacts/linux-build-check
-                  merge-multiple: true
 
             - name: Validate artifact contents
               run: |
