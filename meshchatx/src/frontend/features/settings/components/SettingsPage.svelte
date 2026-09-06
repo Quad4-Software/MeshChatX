@@ -101,6 +101,7 @@
         savePreferredPropagationNodeHash as savePreferredPropagationNodeHashHelper,
         flushArchivedPages as flushArchivedPagesHelper,
         revokeTelemetryTrust as revokeTelemetryTrustHelper,
+        saveWebUiIpAllowlist as saveWebUiIpAllowlistHelper,
     } from "../lib/settingsPageHelpers.js";
     import { exportStickers, importStickersFile, exportGifs, importGifsFile } from "../lib/maintenanceActions.js";
     import { fetchStickerCount, fetchGifCount } from "../../../js/settings/settingsMaintenanceClient.js";
@@ -327,6 +328,23 @@
         await flushArchivedPagesHelper();
     }
 
+    let webUiAllowlistSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    function onWebUiAllowlistChange(val: string) {
+        serverSecurity.web_ui_ip_allowlist = val;
+        if (webUiAllowlistSaveTimeout) clearTimeout(webUiAllowlistSaveTimeout);
+        webUiAllowlistSaveTimeout = setTimeout(async () => {
+            webUiAllowlistSaveTimeout = null;
+            const updated = await saveWebUiIpAllowlistHelper(
+                String(serverSecurity.web_ui_ip_allowlist || ""),
+                window.api
+            );
+            if (updated) {
+                serverSecurity = { ...serverSecurity, ...updated };
+            }
+        }, 800);
+    }
+
     async function revokeTelemetryTrust(contact: any) {
         const ok = await revokeTelemetryTrustHelper(contact, window.api);
         if (ok) {
@@ -443,10 +461,6 @@
         searchTabFilter = null;
     }
 
-    function onFilterTab(tabId: string | null) {
-        searchTabFilter = tabId;
-    }
-
     function onClearSearch() {
         searchQuery = "";
         searchTabFilter = null;
@@ -508,6 +522,7 @@
             GlobalEmitter.off("identity-switched", loadConfig);
             GlobalEmitter.off("identity-switched-apply", loadConfig);
             if (displayNameSaveTimeout) clearTimeout(displayNameSaveTimeout);
+            if (webUiAllowlistSaveTimeout) clearTimeout(webUiAllowlistSaveTimeout);
         };
     });
 </script>
@@ -832,10 +847,7 @@
                                 {exposureAckVpn}
                                 onackfirewallchange={(val) => (exposureAckFirewall = val)}
                                 onackvpnchange={(val) => (exposureAckVpn = val)}
-                                onallowlistchange={(val) => {
-                                    serverSecurity.web_ui_ip_allowlist = val;
-                                    updateConfigField("web_ui_ip_allowlist", val);
-                                }}
+                                onallowlistchange={onWebUiAllowlistChange}
                             />
                             <CspSettingsSection
                                 visible={showSection("csp")}
