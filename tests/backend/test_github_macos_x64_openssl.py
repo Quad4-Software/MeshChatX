@@ -1,34 +1,34 @@
 # SPDX-License-Identifier: 0BSD
-"""Warm macOS x64 venv cache still needs openssl@3 dylibs on the runner."""
+"""macOS x64 native dependencies include OpenSSL via MacPorts."""
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
-_OPENSSL_SCRIPT = Path("scripts/ci/github-ensure-macos-x64-openssl.sh")
-_WORKFLOWS = (
-    Path(".github/workflows/native-build-dev.yml"),
-    Path(".github/workflows/build-release.yml"),
+# The native-build-dev workflow now uses MacPorts on a GitHub-hosted
+# macos-15-intel runner because Homebrew no longer supports Intel macOS.
+_NATIVE_DEPS_SCRIPT = Path("scripts/ci/github-install-macos-x64-port-deps.sh")
+_NATIVE_BUILD_DEV = Path(".github/workflows/native-build-dev.yml")
+_DEPS_STEP = re.compile(
+    r"- name: Install x64 macOS native dependencies\n"
+    r"              if: matrix.label == 'macos-x64'\n"
+    r"              run: bash scripts/ci/github-install-macos-x64-port-deps.sh",
 )
-_OPENSSL_STEP = re.compile(
-    r"- name: Ensure openssl@3 for cx_Freeze x64 slice\n"
-    r"              if: (?P<when>[^\n]+)\n"
-    r"              run: bash scripts/ci/github-ensure-macos-x64-openssl.sh",
-)
 
 
-def test_openssl_script_requires_libssl_dylib() -> None:
-    text = _OPENSSL_SCRIPT.read_text(encoding="utf-8")
-    assert "/usr/local/opt/openssl@3/lib/libssl.3.dylib" in text
-    assert "github-ensure-macos-x86-64-homebrew.sh" in text
-    assert "--build-from-source" not in text
+def test_macos_x64_deps_script_installs_openssl() -> None:
+    """The x64 dependency script must install OpenSSL from MacPorts."""
+    text = _NATIVE_DEPS_SCRIPT.read_text(encoding="utf-8")
+    assert "sudo port -N install" in text, "expected MacPorts install command"
+    assert "openssl" in text, "expected openssl to be installed via MacPorts"
+    assert 'OPENSSL_DIR="/opt/local"' in text, "expected MacPorts OpenSSL prefix"
+    assert 'OPENSSL_LIB_DIR="/opt/local/lib"' in text, "expected MacPorts lib path"
+    assert 'OPENSSL_INCLUDE_DIR="/opt/local/include"' in text, "expected MacPorts include path"
 
 
-def test_macos_workflows_install_openssl_on_warm_venv_cache() -> None:
-    for path in _WORKFLOWS:
-        text = path.read_text(encoding="utf-8")
-        match = _OPENSSL_STEP.search(text)
-        assert match, f"missing openssl ensure step in {path}"
-        assert "x64_ready" not in match.group("when"), path
-        assert match.group("when") == "matrix.label == 'macos'"
+def test_macos_workflows_install_openssl_on_x64() -> None:
+    """The native-build-dev workflow must run the x64 MacPorts deps script."""
+    text = _NATIVE_BUILD_DEV.read_text(encoding="utf-8")
+    match = _DEPS_STEP.search(text)
+    assert match, "missing x64 macOS native dependency step"
