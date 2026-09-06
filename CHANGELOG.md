@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Reticulum config**: MeshChatX no longer overwrites an existing .reticulum/config on startup. Existing parseable configs are preserved and only missing [reticulum] or [interfaces] sections are added.
 - **Messages**: Coming back to an open chat marks it read and clears badges and desktop notifications.
 - **Messages (propagated)**: Propagated send waits for a path to the preferred propagation node. Missing node or path gets a clear error and delivery help tip. Failed pending bubbles stay visible with the error.
 - **NomadNet**: Opening a node while the app is still connecting no longer sticks on Loading. A stuck page no longer freezes the whole Nomad UI. Switching away and back no longer falsely claims the page renderer stopped.
