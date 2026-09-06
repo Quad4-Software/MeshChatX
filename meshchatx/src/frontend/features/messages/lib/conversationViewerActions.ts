@@ -125,22 +125,66 @@ function attachmentSize(attachment: unknown, kind: string): string {
     return "0 Bytes";
 }
 
+function isHex32(value: string): boolean {
+    if (value.length !== 32) return false;
+    for (let i = 0; i < value.length; i += 1) {
+        const code = value.charCodeAt(i);
+        const isDigit = code >= 48 && code <= 57;
+        const isUpper = code >= 65 && code <= 70;
+        const isLower = code >= 97 && code <= 102;
+        if (!isDigit && !isUpper && !isLower) return false;
+    }
+    return true;
+}
+
+function takeOptionalBracketField(rest: string, label: string): { value?: string; rest: string } {
+    const prefix = ` [${label}: `;
+    if (!rest.toLowerCase().startsWith(prefix.toLowerCase())) {
+        return { rest };
+    }
+    const after = rest.slice(prefix.length);
+    const close = after.indexOf("]");
+    if (close === -1) return { rest };
+    const value = after.slice(0, close);
+    if (!isHex32(value)) return { rest };
+    return { value, rest: after.slice(close + 1) };
+}
+
+function parseSharedContactContent(content: string): ParsedMessageItems["contact"] | undefined {
+    if (!content.toLowerCase().startsWith("contact:")) return undefined;
+    let rest = content.slice("contact:".length);
+    if (!rest || (rest[0] !== " " && rest[0] !== "\t")) return undefined;
+    rest = rest.replace(/^\s+/, "");
+    const angleStart = rest.indexOf("<");
+    if (angleStart <= 0) return undefined;
+    if (!/\s/.test(rest[angleStart - 1] || "")) return undefined;
+    const angleEnd = rest.indexOf(">", angleStart + 1);
+    if (angleEnd === -1) return undefined;
+    const hash = rest.slice(angleStart + 1, angleEnd);
+    if (!isHex32(hash)) return undefined;
+    const name = rest.slice(0, angleStart).trimEnd();
+    if (!name) return undefined;
+    rest = rest.slice(angleEnd + 1);
+    const lxmf = takeOptionalBracketField(rest, "LXMF");
+    rest = lxmf.rest;
+    const lxst = takeOptionalBracketField(rest, "LXST");
+    return {
+        name,
+        hash,
+        lxmf_address: lxmf.value,
+        lxst_address: lxst.value,
+    };
+}
+
 function parseBasicItems(chatItem: MessageChatItem): ParsedMessageItems {
     const content = String(chatItem.lxmf_message.content || "");
     if (!content) {
         return {};
     }
     const parsed: ParsedMessageItems = {};
-    const contact = content.match(
-        /^Contact:\s+(.+?)\s+<([a-fA-F0-9]{32})>(?:\s+\[LXMF:\s+([a-fA-F0-9]{32})\])?(?:\s+\[LXST:\s+([a-fA-F0-9]{32})\])?/i
-    );
+    const contact = parseSharedContactContent(content);
     if (contact) {
-        parsed.contact = {
-            name: contact[1],
-            hash: contact[2],
-            lxmf_address: contact[3],
-            lxst_address: contact[4],
-        };
+        parsed.contact = contact;
     }
     const paper = content.match(/(lxm|lxmf):\/\/[a-zA-Z0-9+/=._-]+/i)?.[0];
     if (paper) {

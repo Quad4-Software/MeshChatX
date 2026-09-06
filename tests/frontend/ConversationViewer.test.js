@@ -13,6 +13,19 @@ import {
     isTelemetryOnly,
 } from "@/features/messages/lib/conversationMessageHelpers.ts";
 import { loadDraft, saveDraft } from "@/features/messages/lib/conversationDrafts.ts";
+import {
+    formatPeerPathClickAlert,
+    formatSignalMetricsAlert,
+    formatStampInfoAlert,
+} from "@/features/messages/lib/conversationPathActions.ts";
+import { listFailedOrCancelledOutbound } from "@/features/messages/lib/conversationViewerMutations.ts";
+import {
+    initialImageLightboxState,
+    lightboxActiveChatItem,
+    navigateImageLightbox,
+    openImageLightbox,
+    openLightboxContextMenu,
+} from "@/features/messages/lib/conversationViewerLightbox.ts";
 
 const peerHash = "aa".repeat(16);
 const myHash = "bb".repeat(16);
@@ -106,6 +119,67 @@ describe("ConversationViewer message contracts", () => {
 
         expect(loadDraft(peerHash, "identity-a")).toBe("draft a");
         expect(loadDraft(peerHash, "identity-b")).toBe("draft b");
+    });
+
+    it("migrates legacy Vue meshchat.drafts into the modern compose draft key", () => {
+        localStorage.clear();
+        localStorage.setItem(
+            "meshchat.drafts",
+            JSON.stringify({
+                "identity-a": { [peerHash]: "legacy nested" },
+            })
+        );
+        expect(loadDraft(peerHash, "identity-a")).toBe("legacy nested");
+        expect(localStorage.getItem(`meshchatx.compose_draft.identity-a:${peerHash}`)).toBe("legacy nested");
+    });
+
+    it("formats path stamp and signal header dialogs", () => {
+        const t = (key, values) => {
+            if (key === "messages.path_stale_hint") return "stale";
+            if (key === "messages.path_unresponsive_hint") return "unresponsive";
+            if (key === "messages.path_hops_unknown_iface") return "unknown interface";
+            if (key === "messages.signal_quality") return `Signal Quality: ${values.quality}%`;
+            if (key === "messages.rssi_val") return `RSSI: ${values.rssi}dBm`;
+            if (key === "messages.snr_val") return `SNR: ${values.snr}dB`;
+            return key;
+        };
+        expect(formatPeerPathClickAlert({ hops: 2, next_hop_interface: "TCP" }, { path_stale: true }, t)).toContain(
+            "2 hops away via TCP"
+        );
+        expect(formatPeerPathClickAlert({ hops: 2, next_hop_interface: "TCP" }, { path_stale: true }, t)).toContain(
+            "stale"
+        );
+        expect(formatStampInfoAlert({ stamp_cost: 8 })).toContain("Time per message:");
+        expect(formatSignalMetricsAlert({ quality: 90, rssi: -40, snr: 12 }, t)).toBe(
+            "Signal Quality: 90%\nRSSI: -40dBm\nSNR: 12dB"
+        );
+    });
+
+    it("lists failed and cancelled outbound messages for retry-all", () => {
+        const rows = [
+            item({ hash: "ok", source_hash: myHash, destination_hash: peerHash, state: "delivered" }),
+            item({ hash: "fail", source_hash: myHash, destination_hash: peerHash, state: "failed" }),
+            item({ hash: "cancel", source_hash: myHash, destination_hash: peerHash, state: "cancelled" }),
+            item({ hash: "inbound-fail", state: "failed" }),
+        ];
+        expect(listFailedOrCancelledOutbound(rows).map((row) => row.lxmf_message.hash)).toEqual(["fail", "cancel"]);
+    });
+
+    it("resolves lightbox active chat item and clamps context menu position", () => {
+        const a = item({ hash: "img-a" });
+        const b = item({ hash: "img-b" });
+        const opened = openImageLightbox("url-b", ["url-a", "url-b"], [a, b]);
+        expect(lightboxActiveChatItem(opened)?.lxmf_message.hash).toBe("img-b");
+        expect(lightboxActiveChatItem(navigateImageLightbox(opened, 1))?.lxmf_message.hash).toBe("img-a");
+
+        const single = openImageLightbox("solo", [], [a]);
+        expect(lightboxActiveChatItem(single)?.lxmf_message.hash).toBe("img-a");
+        expect(lightboxActiveChatItem(initialImageLightboxState())).toBeNull();
+
+        const menu = openLightboxContextMenu({ clientX: 900, clientY: 700 }, { innerWidth: 800, innerHeight: 600 });
+        expect(menu.show).toBe(true);
+        expect(menu.x).toBeLessThanOrEqual(800 - 240 - 10);
+        expect(menu.y).toBeLessThanOrEqual(600 - 88 - 10);
     });
 
     it("renders a bubble for ordinary content", () => {
