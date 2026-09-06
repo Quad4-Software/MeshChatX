@@ -1,10 +1,10 @@
 {
-  "generated": "2026-09-06T06:05:30.679Z",
+  "generated": "2026-09-06T06:11:36.677Z",
   "totals": {
-    "raw_color": 3963,
+    "raw_color": 3758,
     "focus_raw": 202,
-    "dark_raw": 1345,
-    "white_black": 619,
+    "dark_raw": 1254,
+    "white_black": 582,
     "accent_raw": 10
   }
 }

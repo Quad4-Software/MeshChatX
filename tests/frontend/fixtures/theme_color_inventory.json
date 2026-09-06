@@ -1,10 +1,10 @@
 {
-  "generated": "2026-09-06T06:05:30.678Z",
+  "generated": "2026-09-06T06:11:36.676Z",
   "totals": {
-    "raw_color": 3963,
+    "raw_color": 3758,
     "focus_raw": 202,
-    "dark_raw": 1345,
-    "white_black": 619,
+    "dark_raw": 1254,
+    "white_black": 582,
     "accent_raw": 10
   },
   "perFile": {
@@ -471,10 +471,10 @@
       "accent_raw": 0
     },
     "meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue": {
-      "raw_color": 124,
+      "raw_color": 37,
       "focus_raw": 8,
-      "dark_raw": 57,
-      "white_black": 80,
+      "dark_raw": 19,
+      "white_black": 61,
       "accent_raw": 0
     },
     "meshchatx/src/frontend/components/messages/ConversationPeerHeader.vue": {
@@ -485,10 +485,10 @@
       "accent_raw": 0
     },
     "meshchatx/src/frontend/components/messages/ConversationViewer.vue": {
-      "raw_color": 164,
+      "raw_color": 46,
       "focus_raw": 7,
-      "dark_raw": 78,
-      "white_black": 60,
+      "dark_raw": 25,
+      "white_black": 42,
       "accent_raw": 0
     },
     "meshchatx/src/frontend/components/messages/InViewAnimatedImg.vue": {
@@ -1061,16 +1061,8 @@
   },
   "topFiles": [
     {
-      "path": "meshchatx/src/frontend/components/messages/ConversationViewer.vue",
-      "total": 309
-    },
-    {
       "path": "meshchatx/src/frontend/components/TutorialModal.vue",
       "total": 283
-    },
-    {
-      "path": "meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue",
-      "total": 269
     },
     {
       "path": "meshchatx/src/frontend/components/settings/SettingsPage.vue",
@@ -1113,8 +1105,16 @@
       "total": 133
     },
     {
+      "path": "meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue",
+      "total": 125
+    },
+    {
       "path": "meshchatx/src/frontend/components/network-visualiser/internal/NetworkVisualiserToolbar.vue",
       "total": 124
+    },
+    {
+      "path": "meshchatx/src/frontend/components/messages/ConversationViewer.vue",
+      "total": 120
     },
     {
       "path": "meshchatx/src/frontend/components/tools/RNPathPage.vue",
