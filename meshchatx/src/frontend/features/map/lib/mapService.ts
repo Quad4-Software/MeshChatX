@@ -150,7 +150,7 @@ export async function startExport(payload: MapExportStartPayload): Promise<unkno
 }
 
 export async function cancelExport(id: string | number): Promise<unknown> {
-    return window.api.post(`/api/v1/map/export/${id}/cancel`, {});
+    return window.api.delete(`/api/v1/map/export/${id}`);
 }
 
 export async function getExportStatus(id: string | number): Promise<MapExportStatus | null> {

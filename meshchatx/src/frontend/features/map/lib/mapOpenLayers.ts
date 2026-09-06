@@ -165,7 +165,7 @@ export function createOfflineMBTilesSource(): XYZ {
             const z = tileCoord[0];
             const x = tileCoord[1];
             const y = Math.max(0, -tileCoord[2] - 1);
-            return `/api/v1/map/tile/${z}/${x}/${y}.png`;
+            return `/api/v1/map/tiles/${z}/${x}/${y}`;
         },
         tileLoadFunction: (tile, src: string) => {
             const img = tileImageElement(tile as ImageTile);
