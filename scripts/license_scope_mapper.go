@@ -202,7 +202,7 @@ var commentStyleByExt = map[string]string{
 	".less":  "block",
 	".html":  "html",
 	".xml":   "html",
-	".vue":   "html",
+	".svelte": "html",
 	".md":    "html",
 }
 
@@ -368,8 +368,8 @@ func parseConfig() (config, error) {
 	flag.StringVar(&cfg.upstreamURL, "upstream-url", envString("UPSTREAM_URL", defaultUpstreamURL), "Upstream git URL")
 	flag.StringVar(&cfg.upstreamBranch, "upstream-branch", envString("UPSTREAM_BRANCH", "master"), "Upstream branch")
 	flag.DurationVar(&cfg.cloneTimeout, "clone-timeout", envDuration("CLONE_TIMEOUT", 2*time.Minute), "Timeout for upstream clone")
-	flag.StringVar(&cfg.scanExtsRaw, "scan-exts", envString("SCAN_EXTS", ".py,.vue"), "Comma-separated extensions for similarity analysis")
-	flag.StringVar(&cfg.headerExtsRaw, "header-exts", envString("HEADER_EXTS", ".py,.vue"), "Comma-separated extensions eligible for SPDX headers")
+	flag.StringVar(&cfg.scanExtsRaw, "scan-exts", envString("SCAN_EXTS", ".py,.svelte"), "Comma-separated extensions for similarity analysis")
+	flag.StringVar(&cfg.headerExtsRaw, "header-exts", envString("HEADER_EXTS", ".py,.svelte"), "Comma-separated extensions eligible for SPDX headers")
 	flag.StringVar(&cfg.excludeDirsRaw, "exclude-dirs", envString("EXCLUDE_DIRS", ".git,.idea,.vscode,.local,.pnpm-store,.flatpak-builder,node_modules,dist,build,.venv,venv,__pycache__,.pytest_cache,.mypy_cache,.ruff_cache"), "Comma-separated directories to skip")
 	flag.StringVar(&cfg.excludePathsRaw, "exclude-path-contains", envString("EXCLUDE_PATH_CONTAINS", ""), "Comma-separated path substrings to skip")
 	flag.Int64Var(&cfg.maxFileSizeBytes, "max-file-size-bytes", envInt64("MAX_FILE_SIZE_BYTES", 2_000_000), "Max file size for analysis")
