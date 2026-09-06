@@ -29,6 +29,7 @@
     import RelayHostModerationPage from "./RelayHostModerationPage.svelte";
     import RelayChatModals from "./RelayChatModals.svelte";
     import { MIN_VIRTUAL_RELAY_ENTRIES } from "../lib/constants.js";
+    import { orderedKnownRoomNames, roomUnreadCount } from "../lib/relayFormatters.js";
     import type {
         RrcDiscoveredHub,
         RrcHostedHub,
@@ -68,7 +69,11 @@
     let showRoomKeyModal = $state(false);
     let editingHub = $state<RrcHub | null>(null);
     let pendingKeyRoom = $state<{ hub: RrcHub; room: string } | null>(null);
-    let sidebarMenu = $state<{ show: boolean; x: number; y: number; hub?: RrcHub | null }>({ show: false, x: 0, y: 0 });
+    let sidebarMenu = $state<{ show: boolean; x: number; y: number; hub?: RrcHub | null; room?: string | null }>({
+        show: false,
+        x: 0,
+        y: 0,
+    });
     let messageMenu = $state<{ show: boolean; x: number; y: number; msg?: RrcMessage | null }>({
         show: false,
         x: 0,
@@ -92,13 +97,12 @@
 
     const selectedRoom = $derived.by((): RrcRoom | null => {
         if (!selectedHub || !selectedRoomName) return null;
-        if (Array.isArray(selectedHub.rooms)) {
-            return selectedHub.rooms.find((r) => r.name === selectedRoomName) || null;
-        }
-        if (selectedHub.rooms && typeof selectedHub.rooms === "object") {
-            return (selectedHub.rooms as Record<string, RrcRoom>)[selectedRoomName] || null;
-        }
-        return null;
+        const stored = Array.isArray(selectedHub.stored_key_rooms) ? selectedHub.stored_key_rooms : [];
+        return {
+            name: selectedRoomName,
+            unread: roomUnreadCount(selectedHub, selectedRoomName),
+            has_key: stored.includes(selectedRoomName),
+        };
     });
 
     const currentRoomKey = $derived.by(() => {
@@ -353,6 +357,107 @@
             await fetchHubs();
         }
     }
+
+    function onReorderRooms(hub: RrcHub, fromIdx: number, toIdx: number) {
+        if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) {
+            return;
+        }
+        const current = hubs.find((h) => h.hub_hash === hub.hub_hash);
+        if (!current) {
+            return;
+        }
+        const rooms = orderedKnownRoomNames(current);
+        if (fromIdx >= rooms.length || toIdx >= rooms.length) {
+            return;
+        }
+        const nextRooms = [...rooms];
+        const [moved] = nextRooms.splice(fromIdx, 1);
+        nextRooms.splice(toIdx, 0, moved);
+        hubs = hubs.map((h) => (h.hub_hash === hub.hub_hash ? { ...h, known_rooms: nextRooms } : h));
+    }
+
+    async function onPersistRoomOrder(hub: RrcHub) {
+        const current = hubs.find((h) => h.hub_hash === hub.hub_hash) || hub;
+        try {
+            await window.api.put(`/api/v1/rrc/hubs/${current.hub_hash}/rooms/order`, {
+                room_names: orderedKnownRoomNames(current),
+            });
+            await fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+            await fetchHubs();
+        }
+    }
+
+    async function leaveRoom(hubObj: RrcHub | null = selectedHub, roomName: string | null = selectedRoomName) {
+        const hubH = hubObj?.hub_hash || null;
+        const room = roomName || null;
+        if (!hubH || !room) {
+            return;
+        }
+        const confirmed = await DialogUtils.confirm(t("relay_chat.leave_room_confirm", { room }));
+        if (!confirmed) {
+            return;
+        }
+        try {
+            await window.api.delete(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(room)}`);
+            if (selectedHubHash === hubH && selectedRoomName === room) {
+                selectedRoomName = null;
+            }
+            delete messagesMap[`${hubH}:${room}`];
+            delete membersMap[`${hubH}:${room}`];
+            messagesMap = { ...messagesMap };
+            membersMap = { ...membersMap };
+            ToastUtils.success(t("relay_chat.left_room"));
+            await fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
+
+    async function clearMessages() {
+        if (!selectedHubHash || !selectedRoomName) {
+            return;
+        }
+        const confirmed = await DialogUtils.confirm(t("relay_chat.clear_messages_confirm"));
+        if (!confirmed) {
+            return;
+        }
+        const room = selectedRoomName;
+        const hubH = selectedHubHash;
+        try {
+            await window.api.delete(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(room)}/messages`);
+            messagesMap[`${hubH}:${room}`] = [];
+            messagesMap = { ...messagesMap };
+            ToastUtils.success(t("relay_chat.messages_cleared"));
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
+
+    async function connectHub(hubObj: RrcHub | null = selectedHub) {
+        if (!hubObj?.hub_hash) {
+            return;
+        }
+        try {
+            await window.api.post(`/api/v1/rrc/hubs/${hubObj.hub_hash}/connect`);
+            await fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
+
+    async function disconnectHub(hubObj: RrcHub | null = selectedHub) {
+        if (!hubObj?.hub_hash) {
+            return;
+        }
+        try {
+            await window.api.post(`/api/v1/rrc/hubs/${hubObj.hub_hash}/disconnect`);
+            await fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
 </script>
 
 <div class="flex flex-col flex-1 min-w-0 h-full bg-sem-canvas text-sem-fg">
@@ -420,12 +525,23 @@
                             showRoomKeyModal = true;
                         }}
                         onhubcontextmenu={(e, h) => {
-                            sidebarMenu = { show: true, x: e.clientX, y: e.clientY, hub: h };
+                            sidebarMenu = { show: true, x: e.clientX, y: e.clientY, hub: h, room: null };
+                        }}
+                        onroomcontextmenu={(e, h, roomObj) => {
+                            sidebarMenu = {
+                                show: true,
+                                x: e.clientX,
+                                y: e.clientY,
+                                hub: h,
+                                room: roomObj.name,
+                            };
                         }}
                         ontogglehubexpanded={(hHash) => {
                             expandedHubs[hHash] = !expandedHubs[hHash];
                         }}
                         onreorderhubs={onReorderHubs}
+                        onreorderrooms={onReorderRooms}
+                        onpersistroomorder={(h) => void onPersistRoomOrder(h)}
                     />
                 {/if}
 
@@ -463,20 +579,9 @@
                                 const target = `/popout/relay-chat/${selectedHubHash}/${selectedRoomName}`;
                                 window.open(target, "_blank", "width=960,height=720");
                             }}
-                            onleaveroom={async () => {
-                                if (
-                                    await DialogUtils.confirm(
-                                        t("relay_chat.leave_room_confirm", { room: selectedRoomName })
-                                    )
-                                ) {
-                                    WebSocketConnection.send({
-                                        type: "rrc.leave_room",
-                                        hub_hash: selectedHubHash,
-                                        room: selectedRoomName,
-                                    });
-                                    selectedRoomName = null;
-                                }
-                            }}
+                            onleaveroom={() => void leaveRoom()}
+                            onclearmessages={() => void clearMessages()}
+                            ondisconnecthub={() => void disconnectHub()}
                         />
 
                         {#if selectedHub?.motd}
@@ -701,6 +806,9 @@
                 ToastUtils.success(t("relay_chat.copied_share_link"));
             }
         }}
+        onconnecthub={(h) => void connectHub(h)}
+        ondisconnecthub={(h) => void disconnectHub(h)}
+        onleaveroom={(h, roomName) => void leaveRoom(h, roomName)}
         onkickmessageauthor={async (msg) => {
             if (!selectedHubHash || !selectedRoomName || !msg.src) return;
             const api = (window as any).api;

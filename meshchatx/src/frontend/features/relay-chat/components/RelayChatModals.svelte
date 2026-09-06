@@ -6,6 +6,7 @@
     import RelayHubSettingsModal from "./RelayHubSettingsModal.svelte";
     import { t } from "../../../js/i18n.js";
     import { BTN_PRIMARY, BTN_SECONDARY } from "../lib/constants.js";
+    import { isHubConnected } from "../lib/relayFormatters.js";
     import type { RrcHub, RrcMessage } from "../lib/types.js";
 
     interface Props {
@@ -14,7 +15,7 @@
         showHubSettingsModal?: boolean;
         showRoomKeyModal?: boolean;
         editingHub?: RrcHub | null;
-        sidebarMenu?: { show: boolean; x: number; y: number; hub?: RrcHub | null };
+        sidebarMenu?: { show: boolean; x: number; y: number; hub?: RrcHub | null; room?: string | null };
         messageMenu?: { show: boolean; x: number; y: number; msg?: RrcMessage | null };
         canModerateSelectedHub?: boolean;
         oncloseaddhub?: () => void;
@@ -30,6 +31,9 @@
         onclosemessagemenu?: () => void;
         oncopytext?: (text: string) => void;
         oncopylink?: (hub: RrcHub) => void;
+        onconnecthub?: (hub: RrcHub) => void;
+        ondisconnecthub?: (hub: RrcHub) => void;
+        onleaveroom?: (hub: RrcHub, room: string) => void;
         onkickmessageauthor?: (msg: RrcMessage) => void;
         onbanmessageauthor?: (msg: RrcMessage) => void;
     }
@@ -56,6 +60,9 @@
         onclosemessagemenu,
         oncopytext,
         oncopylink,
+        onconnecthub,
+        ondisconnecthub,
+        onleaveroom,
         onkickmessageauthor,
         onbanmessageauthor,
     }: Props = $props();
@@ -181,9 +188,39 @@
 
 {#if sidebarMenu.show && sidebarMenu.hub}
     <div
+        role="menu"
+        tabindex="-1"
         class="fixed z-100 min-w-44 rounded-xl border border-sem-border bg-sem-surface p-1 shadow-2xl text-xs text-sem-fg"
         style="top: {sidebarMenu.y}px; left: {sidebarMenu.x}px;"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.stopPropagation()}
     >
+        {#if !sidebarMenu.room && !isHubConnected(sidebarMenu.hub)}
+            <button
+                type="button"
+                class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-sem-surface-muted transition-colors cursor-pointer"
+                onclick={() => {
+                    if (sidebarMenu.hub) onconnecthub?.(sidebarMenu.hub);
+                    onclosesidebarmenu?.();
+                }}
+            >
+                <MaterialDesignIcon iconName="lan-connect" class="size-3.5 text-sem-fg-muted" />
+                <span>{t("relay_chat.ctx_connect_hub")}</span>
+            </button>
+        {/if}
+        {#if !sidebarMenu.room && isHubConnected(sidebarMenu.hub)}
+            <button
+                type="button"
+                class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-sem-surface-muted transition-colors cursor-pointer"
+                onclick={() => {
+                    if (sidebarMenu.hub) ondisconnecthub?.(sidebarMenu.hub);
+                    onclosesidebarmenu?.();
+                }}
+            >
+                <MaterialDesignIcon iconName="lan-disconnect" class="size-3.5 text-sem-fg-muted" />
+                <span>{t("relay_chat.ctx_disconnect_hub")}</span>
+            </button>
+        {/if}
         <button
             type="button"
             class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-sem-surface-muted transition-colors cursor-pointer"
@@ -195,6 +232,21 @@
             <MaterialDesignIcon iconName="link-variant" class="size-3.5 text-sem-fg-muted" />
             <span>{t("relay_chat.copy_hub_link")}</span>
         </button>
+        {#if sidebarMenu.room}
+            <button
+                type="button"
+                class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sem-danger hover:bg-sem-surface-muted transition-colors cursor-pointer"
+                onclick={() => {
+                    if (sidebarMenu.hub && sidebarMenu.room) {
+                        onleaveroom?.(sidebarMenu.hub, sidebarMenu.room);
+                    }
+                    onclosesidebarmenu?.();
+                }}
+            >
+                <MaterialDesignIcon iconName="logout" class="size-3.5" />
+                <span>{t("relay_chat.ctx_leave_room")}</span>
+            </button>
+        {/if}
     </div>
 {/if}
 

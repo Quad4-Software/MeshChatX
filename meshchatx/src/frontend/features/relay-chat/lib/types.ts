@@ -18,9 +18,14 @@ export interface RrcHub {
     display_name?: string;
     custom_display_name?: string | null;
     status?: "connected" | "connecting" | "disconnected" | "error" | string;
+    connected?: boolean;
     auto_reconnect?: boolean;
     icon?: string;
-    rooms?: Record<string, RrcRoom> | RrcRoom[];
+    rooms?: Record<string, RrcRoom> | RrcRoom[] | string[];
+    known_rooms?: string[];
+    unread_counts?: Record<string, number>;
+    total_unread?: number;
+    stored_key_rooms?: string[];
     unread?: number;
     mentions?: number;
     is_operator?: boolean;

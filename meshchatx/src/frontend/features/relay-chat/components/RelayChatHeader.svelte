@@ -20,6 +20,7 @@
         onshare?: () => void;
         onpopout?: () => void;
         onleaveroom?: () => void;
+        onclearmessages?: () => void;
         ondisconnecthub?: () => void;
     }
 
@@ -36,6 +37,7 @@
         onshare,
         onpopout,
         onleaveroom,
+        onclearmessages,
         ondisconnecthub,
     }: Props = $props();
 </script>
@@ -117,6 +119,14 @@
                     <MaterialDesignIcon iconName="open-in-new" class="size-4" />
                 </IconButton>
             {/if}
+
+            <IconButton
+                class="size-8 text-sem-fg-muted hover:text-sem-fg"
+                title={t("relay_chat.clear_messages")}
+                onclick={() => onclearmessages?.()}
+            >
+                <MaterialDesignIcon iconName="broom" class="size-4" />
+            </IconButton>
 
             <IconButton
                 class="size-8 text-sem-fg-muted hover:text-sem-danger"
