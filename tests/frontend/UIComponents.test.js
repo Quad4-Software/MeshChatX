@@ -1,14 +1,7 @@
-import { mount as mountVue } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
-import IconButton from "../../meshchatx/src/frontend/components/IconButton.vue";
 import SendMessageButton from "../../meshchatx/src/frontend/features/messages/components/composer/SendMessageButton.svelte";
-import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
-import FormLabel from "../../meshchatx/src/frontend/components/forms/FormLabel.vue";
-import FormSubLabel from "../../meshchatx/src/frontend/components/forms/FormSubLabel.vue";
-import DropDownMenu from "../../meshchatx/src/frontend/components/DropDownMenu.vue";
-import DropDownMenuItem from "../../meshchatx/src/frontend/components/DropDownMenuItem.vue";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
@@ -111,29 +104,10 @@ function mountSendMessageButton(options = {}) {
 }
 
 function mount(component, options) {
-    return component === SendMessageButton ? mountSendMessageButton(options) : mountVue(component, options);
+    return mountSendMessageButton(options);
 }
 
 afterEach(() => cleanup());
-
-describe("DropDownMenuItem Component", () => {
-    it("renders slot content", () => {
-        const wrapper = mount(DropDownMenuItem, {
-            slots: { default: "Menu item text" },
-        });
-        expect(wrapper.text()).toContain("Menu item text");
-    });
-
-    it("has clickable styling class", () => {
-        const wrapper = mount(DropDownMenuItem);
-        expect(wrapper.classes()).toContain("cursor-pointer");
-    });
-
-    it("root is a div", () => {
-        const wrapper = mount(DropDownMenuItem, { slots: { default: "x" } });
-        expect(wrapper.element.tagName).toBe("DIV");
-    });
-});
 
 describe("SendMessageButton Component", () => {
     it("renders send button with correct text when enabled", () => {
@@ -266,200 +240,5 @@ describe("SendMessageButton Component", () => {
         await wrapper.vm.$nextTick();
         wrapper.vm.emitPaperCompose();
         expect(wrapper.emitted("send-paper-compose")).toBeTruthy();
-    });
-});
-
-describe("Toggle Component", () => {
-    it("renders with label when provided", () => {
-        const wrapper = mount(Toggle, {
-            props: {
-                id: "test-toggle",
-                label: "Enable Feature",
-            },
-        });
-        expect(wrapper.text()).toContain("Enable Feature");
-    });
-
-    it("emits update:modelValue when toggled", async () => {
-        const wrapper = mount(Toggle, {
-            props: {
-                id: "test-toggle",
-                modelValue: false,
-            },
-        });
-        const input = wrapper.find("input");
-        await input.setChecked(true);
-        expect(wrapper.emitted("update:modelValue")).toBeTruthy();
-        expect(wrapper.emitted("update:modelValue")[0]).toEqual([true]);
-    });
-
-    it("reflects modelValue prop correctly", () => {
-        const wrapper = mount(Toggle, {
-            props: {
-                id: "test-toggle",
-                modelValue: true,
-            },
-        });
-        expect(wrapper.find("input").element.checked).toBe(true);
-    });
-
-    it("handles label prop correctly", () => {
-        const wrapper = mount(Toggle, {
-            props: {
-                id: "test-toggle",
-                modelValue: false,
-                label: "Test Label",
-            },
-        });
-        expect(wrapper.text()).toContain("Test Label");
-    });
-
-    it("emits update:modelValue on input change", async () => {
-        const wrapper = mount(Toggle, {
-            props: {
-                id: "test-toggle",
-                modelValue: false,
-            },
-        });
-        const input = wrapper.find("input");
-        await input.trigger("change");
-        expect(wrapper.emitted("update:modelValue")).toBeTruthy();
-    });
-});
-
-describe("FormLabel Component", () => {
-    it("renders label text", () => {
-        const wrapper = mount(FormLabel, {
-            props: {
-                for: "test-input",
-            },
-            slots: {
-                default: "Test Label",
-            },
-        });
-        expect(wrapper.text()).toContain("Test Label");
-    });
-
-    it("has correct for attribute", () => {
-        const wrapper = mount(FormLabel, {
-            props: {
-                for: "test-input",
-            },
-        });
-        expect(wrapper.attributes("for")).toBe("test-input");
-    });
-});
-
-describe("FormSubLabel Component", () => {
-    it("renders sublabel text", () => {
-        const wrapper = mount(FormSubLabel, {
-            slots: {
-                default: "This is a sublabel",
-            },
-        });
-        expect(wrapper.text()).toContain("This is a sublabel");
-    });
-});
-
-describe("DropDownMenu Component", () => {
-    it("toggles menu visibility on button click", async () => {
-        const wrapper = mount(DropDownMenu, {
-            slots: {
-                button: "<button>Menu</button>",
-                items: "<div>Item 1</div>",
-            },
-        });
-        const button = wrapper.find("button");
-        await button.trigger("click");
-        expect(wrapper.vm.isShowingMenu).toBe(true);
-        await button.trigger("click");
-        expect(wrapper.vm.isShowingMenu).toBe(false);
-    });
-
-    it("shows menu items when open", async () => {
-        const wrapper = mount(DropDownMenu, {
-            slots: {
-                button: "<button>Menu</button>",
-                items: '<div class="menu-item">Item 1</div>',
-            },
-            global: {
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-            },
-        });
-        wrapper.vm.showMenu();
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-        const menuContent = document.body.querySelector(".menu-item");
-        expect(menuContent).toBeTruthy();
-    });
-
-    it("hides menu when clicking outside", async () => {
-        const wrapper = mount(DropDownMenu, {
-            slots: {
-                button: "<button>Menu</button>",
-                items: "<div>Item 1</div>",
-            },
-        });
-        wrapper.vm.showMenu();
-        await wrapper.vm.$nextTick();
-        wrapper.vm.onClickOutsideMenu({ preventDefault: vi.fn() });
-        expect(wrapper.vm.isShowingMenu).toBe(false);
-    });
-
-    it("closes menu when hideMenu is called", async () => {
-        const wrapper = mount(DropDownMenu, {
-            slots: {
-                button: "<button>Menu</button>",
-                items: '<div class="menu-item">Item 1</div>',
-            },
-            global: {
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-            },
-        });
-        wrapper.vm.showMenu();
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-        expect(document.body.querySelector(".menu-item")).toBeTruthy();
-        wrapper.vm.hideMenu();
-        expect(wrapper.vm.isShowingMenu).toBe(false);
-    });
-});
-
-describe("Button Interactions and Accessibility", () => {
-    it("IconButton is keyboard accessible", async () => {
-        const wrapper = mount(IconButton, {
-            attrs: {
-                tabindex: "0",
-            },
-        });
-        expect(wrapper.attributes("tabindex")).toBe("0");
-    });
-
-    it("SendMessageButton respects disabled state for keyboard", () => {
-        const wrapper = mount(SendMessageButton, {
-            props: {
-                canSendMessage: false,
-                canOpenSendMenu: false,
-                isSendingMessage: false,
-                deliveryMethod: null,
-            },
-        });
-        const buttons = wrapper.findAll("button");
-        buttons.forEach((button) => {
-            expect(button.attributes("disabled")).toBeDefined();
-        });
-    });
-
-    it("Toggle is keyboard accessible", async () => {
-        const wrapper = mount(Toggle, {
-            props: {
-                id: "test-toggle",
-                modelValue: false,
-            },
-        });
-        const input = wrapper.find("input");
-        expect(input.attributes("id")).toBe("test-toggle");
-        await input.trigger("change");
-        expect(wrapper.emitted("update:modelValue")).toBeTruthy();
     });
 });

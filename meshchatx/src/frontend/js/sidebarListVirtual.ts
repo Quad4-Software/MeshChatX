@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-/** Minimum row count before sidebar lists use @tanstack/vue-virtual. */
+/** Minimum row count before sidebar lists use windowed virtualization. */
 export const MIN_VIRTUAL_SIDEBAR_ITEMS = 32;
 
 /** Default row height before measureElement runs. */

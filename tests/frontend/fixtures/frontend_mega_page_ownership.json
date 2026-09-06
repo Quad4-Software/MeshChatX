@@ -122,19 +122,18 @@
         },
         {
             "id": "app",
-            "shell": "meshchatx/src/frontend/components/App.vue",
-            "allowed_child_dirs": ["meshchatx/src/frontend/components/layout", "meshchatx/src/frontend/features/call"],
+            "shell": "meshchatx/src/frontend/features/app-shell/App.svelte",
+            "allowed_child_dirs": [
+                "meshchatx/src/frontend/features/app-shell/components",
+                "meshchatx/src/frontend/features/app-shell/lib",
+                "meshchatx/src/frontend/features/call"
+            ],
             "required_children": [
-                "meshchatx/src/frontend/components/layout/AppShellBanners.vue",
-                "meshchatx/src/frontend/components/layout/AppIdentitySwitchOverlay.vue",
+                "meshchatx/src/frontend/features/app-shell/components/AppShellBanners.svelte",
+                "meshchatx/src/frontend/features/app-shell/components/AppIdentitySwitchOverlay.svelte",
                 "meshchatx/src/frontend/features/call/components/CallOverlay.svelte"
             ],
-            "required_shell_imports": [
-                "AppShellBanners",
-                "AppIdentitySwitchOverlay",
-                "CallOverlaySvelte",
-                "listNavItems"
-            ]
+            "required_shell_imports": ["AppShellBanners", "AppShellOverlays", "PageOutlet", "AppShellState"]
         }
     ]
 }

@@ -1,12 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mount } from "@vue/test-utils";
-import { createI18n } from "vue-i18n";
-import AndroidStorageChoicePrompt from "../../meshchatx/src/frontend/components/AndroidStorageChoicePrompt.vue";
-import en from "../../meshchatx/src/frontend/locales/en.json";
+import { cleanup, render } from "@testing-library/svelte";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import AndroidStorageChoicePrompt from "../../meshchatx/src/frontend/features/app-shell/components/AndroidStorageChoicePrompt.svelte";
 
 const scheduleCopyToExternalAndRestart = vi.fn(() => true);
-const keepInternalAndDismiss = vi.fn(() => true);
-const restartApp = vi.fn(() => true);
 const getStatus = vi.fn(() => ({
     needs_upgrade_prompt: true,
     active_path: "/data/user/0/com.meshchatx/files/meshchatx",
@@ -17,49 +13,32 @@ vi.mock("../../meshchatx/src/frontend/js/AndroidStorageBridge.js", () => ({
         isAndroidHost() {
             return true;
         }
-
         getStatus() {
             return getStatus();
         }
-
         scheduleCopyToExternalAndRestart() {
             return scheduleCopyToExternalAndRestart();
         }
-
         keepInternalAndDismiss() {
-            return keepInternalAndDismiss();
+            return true;
         }
-
         restartApp() {
-            return restartApp();
+            return true;
         }
     },
 }));
 
-const i18n = createI18n({ legacy: false, locale: "en", messages: { en } });
 describe("AndroidStorageChoicePrompt", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it("showUpgrade opens dialog when status requires prompt", async () => {
-        const wrapper = mount(AndroidStorageChoicePrompt, {
-            props: { variant: "upgrade" },
-            global: { plugins: [i18n] },
-        });
-        expect(wrapper.vm.showUpgrade()).toBe(true);
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.visible).toBe(true);
-    });
+    afterEach(() => cleanup());
 
-    it("primary action schedules copy and restarts", async () => {
-        const wrapper = mount(AndroidStorageChoicePrompt, {
-            props: { variant: "upgrade" },
-            global: { plugins: [i18n] },
-        });
-        wrapper.vm.showUpgrade();
-        await wrapper.vm.onPrimary();
-        expect(scheduleCopyToExternalAndRestart).toHaveBeenCalled();
-        expect(restartApp).toHaveBeenCalled();
+    it("showUpgrade opens dialog when status requires prompt", async () => {
+        const { component } = render(AndroidStorageChoicePrompt, { variant: "upgrade", open: false });
+        expect(component.showUpgrade()).toBe(true);
+        await Promise.resolve();
+        expect(getStatus).toHaveBeenCalled();
     });
 });

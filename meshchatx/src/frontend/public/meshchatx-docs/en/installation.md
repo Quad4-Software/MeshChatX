@@ -221,7 +221,7 @@ task install
 task dev
 ```
 
-task dev starts the HTTPS backend on 127.0.0.1:8000 and Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173). Open that Vite URL. The [Vue DevTools](https://devtools.vuejs.org/) overlay is injected for this serve only. vite build / task run never ship it (**VUE_PROD_DEVTOOLS** is false). Set MESHCHAT_VUE_DEVTOOLS=0 to hide the overlay. Click a component in the inspector to open it in the editor (LAUNCH_EDITOR, default code).
+task dev starts the HTTPS backend on 127.0.0.1:8000 and Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173). Open that Vite URL for HMR during development. vite build / task run serve the production frontend bundle.
 
 Python breakpoints: task debug is the same stack with [debugpy](https://github.com/microsoft/debugpy) listening on 127.0.0.1:5678 (never 0.0.0.0). Run **MeshChatX: Vite + Python** from the debugger, or start task debug and attach **Backend: Attach debugpy**. task debug:wait pauses the backend until that attach happens.
 

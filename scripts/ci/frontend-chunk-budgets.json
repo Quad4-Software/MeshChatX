@@ -8,9 +8,7 @@
         { "prefix": "CallPage-", "maxKiB": 149 },
         { "prefix": "shared-async-", "maxKiB": 861 },
         { "prefix": "vendor-mdi-", "maxKiB": 3018 },
-        { "prefix": "vendor-vue-", "maxKiB": 100 },
-        { "prefix": "vendor-vue-router-", "maxKiB": 99 },
-        { "prefix": "vendor-svelte-", "maxKiB": 33 },
+        { "prefix": "vendor-svelte-", "maxKiB": 100 },
         { "prefix": "vendor-other-", "maxKiB": 1022 },
         { "prefix": "vendor-vis-", "maxKiB": 659 }
     ]

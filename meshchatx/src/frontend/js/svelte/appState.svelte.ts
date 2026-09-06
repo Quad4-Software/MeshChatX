@@ -2,7 +2,7 @@
 
 /**
  * Svelte-friendly reactive mirror of GlobalState via appState.subscribe.
- * Import from .svelte / .svelte.js modules only (not from kernel consumers that must stay Vue-free of runes).
+ * Import from .svelte / .svelte.js modules only (not from plain kernel .ts/.js).
  */
 
 import globalState from "../GlobalState.js";

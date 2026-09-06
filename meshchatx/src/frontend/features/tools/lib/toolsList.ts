@@ -5,7 +5,7 @@ import { listTools } from "../../../js/registries/toolsRegistry.js";
 
 export const TOOL_GROUP_ORDER = ["diagnostics", "transfer", "messaging", "network", "other"] as const;
 
-/** Route names whose vue-router path is under /tools/ */
+/** Route names whose hashRouter path is under /tools/ */
 const TOOLS_PREFIXED_ROUTE_NAMES = new Set([
     "paper-message",
     "sieve-filters",

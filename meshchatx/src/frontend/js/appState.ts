@@ -2,7 +2,7 @@
 
 /**
  * Framework-free subscription adapter over GlobalState.
- * Vue keeps using the reactive object. Svelte and plain JS use this API.
+ * Svelte and plain JS subscribe here. GlobalState itself notifies via Proxy.
  */
 
 const listeners = new Set<(snapshot: object) => void>();
@@ -16,7 +16,7 @@ function readSnapshot(globalState) {
 
 /**
  * Notify subscribers after an external mutation of GlobalState.
- * Call from code that patches state outside Vue's reactive tracking when needed.
+ * Call from code that patches state when the Proxy setter did not already notify.
  * @param {object} globalState
  */
 export function notifyAppStateListeners(globalState) {

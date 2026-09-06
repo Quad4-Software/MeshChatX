@@ -6,7 +6,8 @@
  */
 
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, statSync } from "node:fs";
+import { resolve, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(import.meta.dirname, "../..");
@@ -56,5 +57,19 @@ describe("svelte shell migration API regressions", () => {
         const host = src("meshchatx/src/frontend/js/plugins/PluginHost.ts");
         expect(host).toContain("featureLoad:");
         expect(host).not.toContain("FeaturePageHost.vue");
+    });
+
+    it("frontend tree has no remaining .vue sources", () => {
+        const root = resolve(ROOT, "meshchatx/src/frontend");
+        const vueFiles = [];
+        function walk(dir) {
+            for (const name of readdirSync(dir)) {
+                const p = join(dir, name);
+                if (statSync(p).isDirectory()) walk(p);
+                else if (name.endsWith(".vue")) vueFiles.push(p);
+            }
+        }
+        walk(root);
+        expect(vueFiles).toEqual([]);
     });
 });

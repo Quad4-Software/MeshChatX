@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createApp, defineComponent, nextTick } from "vue";
 import dayjs from "dayjs";
 
 import createEmitterDefault, { createEmitter } from "@/libs/emitter.js";
@@ -16,7 +15,7 @@ import {
     FROM_NOW_GOLDEN,
     SUPPORTED_FORMAT_TOKENS,
 } from "@/libs/datetime.js";
-import clickOutsidePlugin, {
+import {
     processDirectiveArguments,
     bindingsEqual,
     isClickOutsideElement,
@@ -564,40 +563,24 @@ describe("libs/clickOutside", () => {
         unmounted(el);
     });
 
-    it("vue: plugin install and real directive closes on outside click", async () => {
-        vi.useRealTimers();
+    it("lifecycle: beforeMount attaches listeners that fire on outside click", () => {
+        const el = document.createElement("div");
+        document.body.appendChild(el);
+        const outside = document.createElement("button");
+        document.body.appendChild(outside);
         const handler = vi.fn();
-        const Root = defineComponent({
-            template: `
-                <div>
-                    <div id="inside" v-click-outside="outsideOpts">inside</div>
-                    <button id="outside" type="button">out</button>
-                </div>
-            `,
-            data() {
-                return {
-                    outsideOpts: {
-                        handler,
-                        events: ["click"],
-                        detectIframe: false,
-                    },
-                };
-            },
-        });
-        const app = createApp(Root);
-        app.use(clickOutsidePlugin);
-        const root = document.createElement("div");
-        document.body.appendChild(root);
-        app.mount(root);
-        await nextTick();
-        await new Promise((r) => setTimeout(r, 20));
 
-        const outside = document.getElementById("outside");
-        const evt = new MouseEvent("click", { bubbles: true, cancelable: true });
-        outside.dispatchEvent(evt);
-        await nextTick();
+        beforeMount(el, { value: { handler, events: ["click"], detectIframe: false } });
+        vi.runAllTimers();
+        expect(el[HANDLERS_PROPERTY].length).toBe(1);
+
+        const clickEvent = new MouseEvent("click", { bubbles: true });
+        Object.defineProperty(clickEvent, "composedPath", {
+            value: () => [outside, document.body, document.documentElement],
+        });
+        document.documentElement.dispatchEvent(clickEvent);
         expect(handler).toHaveBeenCalled();
-        app.unmount();
+        unmounted(el);
     });
 
     it("unit: onOutsideEvent ignores inside clicks", () => {

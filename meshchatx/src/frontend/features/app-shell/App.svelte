@@ -2,7 +2,7 @@
 
 <script lang="ts">
     /**
-     * Svelte app shell. Replaces components/App.vue as the boot component.
+     * Svelte app shell. Boot component for the live UI.
      * Frame only: banners, auth gate, header, sidebar, page outlet, overlays.
      * Behaviour lives in lib/appShellState.svelte.ts and its helper modules.
      */
@@ -30,7 +30,7 @@
     const shell = new AppShellState();
 
     // t() is not reactive. Re-wrapping it when the locale changes makes every
-    // template expression that calls tr() re-evaluate, matching Vue $t.
+    // template expression that calls tr() re-evaluate when locale changes.
     const tr = $derived.by(() => {
         void shell.localeVersion;
         return (key: string, values?: Record<string, unknown>) => t(key, values);

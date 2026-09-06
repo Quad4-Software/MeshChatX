@@ -2,10 +2,9 @@
 
 /**
  * Framework-free hash router over routeRegistry.
- * Replaces vue-router for feature pages during the Svelte host flip.
  * Parses "#/path?query#fragment", matches registry paths with ":param" and
- * ":param?" segments, and exposes a small vue-router shaped shim for callers
- * that still take a router object (CallOverlay, FatalErrorPage, PluginHost).
+ * ":param?" segments, and exposes a small router facade for callers that take
+ * a router object (CallOverlay, FatalErrorPage, PluginHost).
  */
 
 import { listRoutes, registerRoute, unregisterRoute } from "../js/registries/routeRegistry.js";
@@ -43,7 +42,7 @@ interface PathSegment {
     optional: boolean;
 }
 
-/** Redirect table applied before matching. Mirrors the vue-router "/" record. */
+/** Redirect table applied before matching. Maps "/" and "" to /messages. */
 const REDIRECTS: Record<string, string> = {
     "/": "/messages",
     "": "/messages",
@@ -408,7 +407,7 @@ interface DynamicRouteRecord {
 }
 
 /**
- * vue-router shaped facade for callers that still accept a router object.
+ * Router facade for callers that accept a router object.
  * Only the members MeshChatX actually uses are implemented.
  */
 export const router = {

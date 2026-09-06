@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Framework-free message lookup over vue-i18n composer or a plain dictionary.
- * Svelte pages use t() from here. Vue keeps $t.
+ * Framework-free message lookup over svelte-i18n or a plain dictionary.
+ * Pages and kernel code use t() from here.
  */
 
 type TranslateFn = (key: string, values?: Record<string, unknown>) => string;

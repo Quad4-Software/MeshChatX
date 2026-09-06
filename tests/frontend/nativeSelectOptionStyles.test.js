@@ -103,7 +103,6 @@ function collectOptionRules(css) {
 describe("native select option theming", () => {
     const styleCss = readFileSync(STYLE_CSS, "utf8");
     const uiFiles = [
-        ...walkFiles(join(FRONTEND, "components"), [".vue", ".svelte"]),
         ...walkFiles(join(FRONTEND, "features"), [".svelte"]),
         ...walkFiles(join(FRONTEND, "ui"), [".svelte"]),
     ];
@@ -158,19 +157,17 @@ describe("native select option theming", () => {
         expect(styleCss).toMatch(/select\s+option\s*\{[^}]*background-color:\s*var\(--mc-surface\)/s);
     });
 
-    it("uses semantic dropdown-panel colors for shared DropDownMenu chrome", () => {
-        const menu = readFileSync(join(FRONTEND, "components/DropDownMenu.vue"), "utf8");
-        const item = readFileSync(join(FRONTEND, "components/DropDownMenuItem.vue"), "utf8");
+    it("uses semantic dropdown-panel colors for floating menus", () => {
         const visualiserMenu = readFileSync(
             join(FRONTEND, "features/network-visualiser/components/NetworkVisualiserToolbarEngineSelect.svelte"),
             "utf8"
         );
-        expect(menu).toContain("dropdown-panel");
-        expect(menu).not.toMatch(/class="[^"]*bg-white dark:bg-zinc-800[^"]*"/);
-        expect(item).toContain("text-sem-fg");
+        const language = readFileSync(join(FRONTEND, "ui/svelte/LanguageSelector.svelte"), "utf8");
         expect(visualiserMenu).toContain("bg-sem-surface");
         expect(visualiserMenu).toContain('role="listbox"');
         expect(visualiserMenu).not.toMatch(/bg-white[\s\S]{0,400}role="listbox"/);
+        expect(language).toContain("bg-sem-surface");
+        expect(language).toContain('role="menu"');
         expect(styleCss).toMatch(/\.dropdown-panel\s*\{[^}]*bg-sem-surface/s);
     });
 });

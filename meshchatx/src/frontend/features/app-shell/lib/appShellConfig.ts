@@ -46,7 +46,7 @@ export function onConfigUpdatedExternally(state: AppShellState, newConfig: Shell
 // Config and app info
 // ------------------------------------------------------------------
 /**
- * Apply a config object and run the side effects App.vue kept in its watcher.
+ * Apply a config object and run the side effects the shell config watcher owns.
  */
 export function setConfig(state: AppShellState, next: ShellConfig | null): void {
     state.config = next;

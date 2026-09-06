@@ -380,16 +380,18 @@ describe("behavior contracts: phased startup and early UI mount", () => {
     });
 
     it("App gates shell until mesh ready and shows starting banner", () => {
-        const app = readSource("meshchatx/src/frontend/components/App.vue");
-        expect(app).toContain("waitForMeshThenStartShell");
-        expect(app).toContain("showNetworkStartingBanner");
-        expect(app).toContain("networkStarting");
+        const app = readSource("meshchatx/src/frontend/features/app-shell/App.svelte");
+        const lifecycle = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellLifecycle.ts");
+        const state = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellState.svelte.ts");
+        expect(lifecycle).toContain("waitForMeshThenStartShell");
+        expect(state).toContain("showNetworkStartingBanner");
+        expect(app).toContain("showNetworkStarting");
         expect(app).toContain("network_starting");
-        const banners = readSource("meshchatx/src/frontend/components/layout/AppShellBanners.vue");
+        const banners = readSource("meshchatx/src/frontend/features/app-shell/components/AppShellBanners.svelte");
         expect(banners).toContain("showNetworkStarting");
         expect(banners).toContain("networkStartingLabel");
-        expect(banners).toContain("open-settings");
-        expect(banners).toContain("open-interfaces");
+        expect(banners).toContain("onopensettings");
+        expect(banners).toContain("onopeninterfaces");
     });
 
     it("backend publishes ui_ready early and defers secondary identity services", () => {
@@ -525,13 +527,13 @@ describe("behavior contracts: locale, theme, and call audio", () => {
     });
 });
 
-function listVueFiles(dir) {
+function listFrontendFiles(dir, exts) {
     const out = [];
     for (const name of readdirSync(dir)) {
         const p = join(dir, name);
         if (statSync(p).isDirectory()) {
-            out.push(...listVueFiles(p));
-        } else if (name.endsWith(".vue")) {
+            out.push(...listFrontendFiles(p, exts));
+        } else if (exts.some((ext) => name.endsWith(ext))) {
             out.push(p);
         }
     }
@@ -550,6 +552,10 @@ const VHTML_SANITIZER_TOKENS = [
     "drawFeatureDescriptionSanitized",
     "highlightMatch",
     "changelogHtml",
+    "cardPreviewHtml",
+    "previewHtml",
+    "renderedContent",
+    "descriptionSanitized",
     "selectedDocContent.html",
     "$t(",
     "MarkdownRenderer",
@@ -625,29 +631,35 @@ describe("behavior contracts: security gates", () => {
         expect(main).not.toMatch(/ipcMain\.handle\("/);
     });
 
-    it("v-html sites name a sanitizer and do not use a bare file-level disable", () => {
-        const vueRoot = join(process.cwd(), "meshchatx/src/frontend/components");
-        const files = listVueFiles(vueRoot);
-        const withVHtml = [];
+    it("frontend has no remaining .vue sources", () => {
+        const root = join(process.cwd(), "meshchatx/src/frontend");
+        const vueFiles = listFrontendFiles(root, [".vue"]);
+        expect(vueFiles).toEqual([]);
+    });
+
+    it("{@html} sites name a sanitizer token", () => {
+        const root = join(process.cwd(), "meshchatx/src/frontend");
+        const files = listFrontendFiles(root, [".svelte"]);
+        const withHtml = [];
         for (const abs of files) {
             const src = readFileSync(abs, "utf8");
-            if (!src.includes("v-html")) {
+            if (!src.includes("{@html")) {
                 continue;
             }
-            withVHtml.push(abs);
-            expect(src, abs).not.toMatch(/eslint-disable\s+vue\/no-v-html\s*-->/);
+            withHtml.push(abs);
             const named = VHTML_SANITIZER_TOKENS.some((token) => src.includes(token));
             expect(named, abs).toBe(true);
         }
-        expect(withVHtml.length).toBeGreaterThanOrEqual(0);
+        expect(withHtml.length).toBeGreaterThanOrEqual(0);
     });
 
     it("LAN bind warning is a banner, not a process exit", () => {
-        const app = readSource("meshchatx/src/frontend/components/App.vue");
-        expect(app).toContain("showLanBindNoAuthBanner");
-        expect(app).toContain("shouldShowLanBindNoAuthBanner");
+        const app = readSource("meshchatx/src/frontend/features/app-shell/App.svelte");
+        const state = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellState.svelte.ts");
+        expect(state).toContain("showLanBindNoAuthBanner");
+        expect(state).toContain("shouldShowLanBindNoAuthBanner");
         expect(app).toContain("lan_bind_no_auth_banner");
-        const banners = readSource("meshchatx/src/frontend/components/layout/AppShellBanners.vue");
+        const banners = readSource("meshchatx/src/frontend/features/app-shell/components/AppShellBanners.svelte");
         expect(banners).toContain("showLanBindNoAuth");
         expect(banners).toContain("lanBindNoAuthLabel");
         const helper = readSource("meshchatx/src/frontend/js/lanBindWarning.js");

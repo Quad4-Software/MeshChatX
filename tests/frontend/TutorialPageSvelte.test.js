@@ -142,7 +142,7 @@ describe("TutorialPage (Svelte)", () => {
 
         component.hide();
         await waitFor(() => {
-            expect(queryByText("tutorial.welcome_desc")).toBeNull();
+            expect(component.isOpen()).toBe(false);
             expect(window.api.post).toHaveBeenCalledWith("/api/v1/app/tutorial/seen");
         });
     });

@@ -369,7 +369,7 @@ export function buildFullGraph(req) {
             return got;
         }
     }
-    // Fallback: path graph only, caller still builds me/ifaces in Vue for older paths.
+    // Fallback: path graph only, caller still builds me/ifaces for older paths.
     const path = buildPathGraphJs({
         path_table: req.path_table,
         announces: req.announces,

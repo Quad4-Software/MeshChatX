@@ -20,22 +20,7 @@ describe("context menu styling", () => {
         expect(css).toContain("shadow-xl");
     });
 
-    it("ContextMenuPanel and ContextMenuItem components define the shared CSS classes", () => {
-        const panel = readProjectFile("meshchatx/src/frontend/components/contextmenu/ContextMenuPanel.vue");
-        const item = readProjectFile("meshchatx/src/frontend/components/contextmenu/ContextMenuItem.vue");
-        expect(panel).toContain("context-menu-panel");
-        expect(item).toContain("context-item");
-    });
-
-    it("ContextMenuPanel clamps position to the viewport via clampFloatingToViewport", () => {
-        const panel = readProjectFile("meshchatx/src/frontend/components/contextmenu/ContextMenuPanel.vue");
-        expect(panel).toContain("clampFloatingToViewport");
-        expect(panel).toContain('ref="panel"');
-        expect(panel).toContain("repositionToViewport");
-        expect(panel).toContain("resize");
-    });
-
-    it("uses ContextMenuPanel and ContextMenuItem on all right-click context menus", () => {
+    it("uses context-menu-panel classes on all right-click context menus", () => {
         const files = [
             "meshchatx/src/frontend/features/contacts/components/ContactsContextMenu.svelte",
             "meshchatx/src/frontend/features/messages/components/ConversationMessageContextMenu.svelte",
@@ -44,14 +29,9 @@ describe("context menu styling", () => {
         ];
         for (const f of files) {
             const src = readProjectFile(f);
-            if (f.endsWith(".svelte")) {
-                expect(src, f).toContain("context-menu-panel");
-                expect(src, f).toContain("context-item");
-                expect(src, f).toContain("clampFloatingToViewport");
-            } else {
-                expect(src, f).toContain("ContextMenuPanel");
-                expect(src, f).toContain("ContextMenuItem");
-            }
+            expect(src, f).toContain("context-menu-panel");
+            expect(src, f).toContain("context-item");
+            expect(src, f).toContain("clampFloatingToViewport");
         }
     });
 });

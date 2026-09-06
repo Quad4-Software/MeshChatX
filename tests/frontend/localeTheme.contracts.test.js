@@ -100,13 +100,14 @@ describe("localeTheme adversarial / fuzz", () => {
     });
 
     it("contract: App updateConfig prefers HTTP PATCH when window.api is available", () => {
-        const app = readSource("meshchatx/src/frontend/components/App.vue");
-        const body = extractMethodBody(app, "updateConfig");
-        expect(body).toContain("patchServerConfig");
-        expect(body).toMatch(/if\s*\(\s*window\.api\?\.patch\s*\)/);
-        const patchIdx = body.indexOf("patchServerConfig");
-        const wsIdx = body.indexOf("WebSocketConnection.send");
-        if (wsIdx >= 0) {
+        const appConfig = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellConfig.ts");
+        expect(appConfig).toContain("patchServerConfig");
+        expect(appConfig).toMatch(/if\s*\(\s*api\?\.patch\s*\)/);
+        const patchIdx = appConfig.indexOf("patchServerConfig");
+        const wsIdx = appConfig.indexOf("LiveTransport.sendQueued");
+        if (wsIdx < 0) {
+            expect(appConfig).toContain("LiveTransport.send");
+        } else {
             expect(patchIdx).toBeGreaterThan(-1);
             expect(patchIdx).toBeLessThan(wsIdx);
         }

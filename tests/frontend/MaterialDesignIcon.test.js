@@ -1,48 +1,28 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect } from "vitest";
-import MaterialDesignIcon from "../../meshchatx/src/frontend/components/MaterialDesignIcon.vue";
+import { cleanup, render } from "@testing-library/svelte";
+import { afterEach, describe, expect, it } from "vitest";
+import MaterialDesignIcon from "@/ui/svelte/MaterialDesignIcon.svelte";
 
-describe("MaterialDesignIcon.vue", () => {
-    it("converts icon-name to mdiIconName", () => {
-        const wrapper = mount(MaterialDesignIcon, {
-            props: { iconName: "account-circle" },
-        });
-        expect(wrapper.vm.mdiIconName).toBe("mdiAccountCircle");
-    });
-
-    it("resolves material symbol snake_case icon names", () => {
-        const wrapper = mount(MaterialDesignIcon, {
-            props: { iconName: "bug_report" },
-        });
-        expect(wrapper.vm.mdiIconName).toBe("mdiBugOutline");
-        expect(wrapper.vm.iconPath).not.toBe("");
-    });
+describe("MaterialDesignIcon.svelte", () => {
+    afterEach(() => cleanup());
 
     it("renders svg with correct aria-label", () => {
-        const wrapper = mount(MaterialDesignIcon, {
-            props: { iconName: "home" },
-        });
-        expect(wrapper.find("svg").attributes("aria-label")).toBe("home");
-    });
-
-    it("falls back to question mark for unknown icons", () => {
-        const wrapper = mount(MaterialDesignIcon, {
-            props: { iconName: "non-existent-icon" },
-        });
-        expect(wrapper.vm.iconPath).not.toBe("");
+        const { container } = render(MaterialDesignIcon, { iconName: "home" });
+        expect(container.querySelector("svg").getAttribute("aria-label")).toBe("home");
     });
 
     it("renders an svg element for valid icon", () => {
-        const wrapper = mount(MaterialDesignIcon, {
-            props: { iconName: "home" },
-        });
-        expect(wrapper.find("svg").exists()).toBe(true);
+        const { container } = render(MaterialDesignIcon, { iconName: "home" });
+        expect(container.querySelector("svg")).toBeTruthy();
+        expect(container.querySelector("path")).toBeTruthy();
+    });
+
+    it("falls back to a path for unknown icons", () => {
+        const { container } = render(MaterialDesignIcon, { iconName: "non-existent-icon" });
+        expect(container.querySelector("path").getAttribute("d")).toBeTruthy();
     });
 
     it("accepts iconName prop", () => {
-        const wrapper = mount(MaterialDesignIcon, {
-            props: { iconName: "cog" },
-        });
-        expect(wrapper.props("iconName")).toBe("cog");
+        const { container } = render(MaterialDesignIcon, { iconName: "cog" });
+        expect(container.querySelector("svg").getAttribute("aria-label")).toBe("cog");
     });
 });

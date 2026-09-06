@@ -23,7 +23,7 @@
             "http_route_module": ["auth/"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": ["test_csrf*", "test_access_attempts_*"],
-            "frontend_page": ["App.vue"]
+            "frontend_page": ["features/app-shell/App.svelte"]
         },
         {
             "domain": "Messages / LXMF",
@@ -58,7 +58,7 @@
             "http_route_module": ["map/"],
             "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["map/MapPage.vue"]
+            "frontend_page": ["features/map/MapPage.svelte"]
         },
         {
             "domain": "Plugins",

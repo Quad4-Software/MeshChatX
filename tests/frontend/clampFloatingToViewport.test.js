@@ -78,7 +78,6 @@ describe("clampFloatingToViewport", () => {
 
 describe("clampFloatingToViewport wiring", () => {
     it.each([
-        ["DropDownMenu.vue", "meshchatx/src/frontend/components/DropDownMenu.vue", 'ref="dropdownPanel"'],
         [
             "LanguageSelector.svelte",
             "meshchatx/src/frontend/ui/svelte/LanguageSelector.svelte",

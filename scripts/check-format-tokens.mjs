@@ -16,7 +16,7 @@ const DATETIME_LIB_JS = path.join(FRONTEND_ROOT, "libs", "datetime.js");
 const DATETIME_LIB_TS = path.join(FRONTEND_ROOT, "libs", "datetime.ts");
 const DATETIME_LIB = fs.existsSync(DATETIME_LIB_TS) ? DATETIME_LIB_TS : DATETIME_LIB_JS;
 
-const SCAN_EXTENSIONS = new Set([".js", ".mjs", ".cjs", ".vue", ".ts", ".tsx"]);
+const SCAN_EXTENSIONS = new Set([".js", ".mjs", ".cjs", ".ts", ".tsx", ".svelte"]);
 
 /** @type {RegExp[]} */
 const PATTERN_EXTRACTORS = [
