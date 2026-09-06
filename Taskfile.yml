@@ -247,7 +247,7 @@ tasks:
 
     lint:frontend:
         aliases: [lint:fe]
-        desc: Lint frontend (ESLint, Prettier, svelte-check, features strict check, knip, dpdm cycles, format-token and git-dep pins)
+        desc: Lint frontend (oxlint, ESLint, Prettier, svelte-check, features strict check, knip, dpdm cycles, format-token and git-dep pins)
         cmds:
             - "{{.NPM}} run lint"
             - "{{.NPM}} run format:check"
@@ -271,7 +271,7 @@ tasks:
 
     lint:backend:
         aliases: [lint:be]
-        desc: Lint Python code (Ruff + basedpyright)
+        desc: Lint Python code (Ruff D/B/UP + basedpyright)
         cmds:
             - uv run python scripts/ci/check_schema_migrations.py
             - uv run ruff check .
@@ -294,6 +294,21 @@ tasks:
         desc: Playwright E2E (starts MeshChat backend + Vite, requires uv, curl, pnpm exec playwright install chromium)
         cmds:
             - "{{.NPM}} run test:e2e"
+
+    test:e2e:electron:
+        desc: Playwright Electron shell smoke (harness window, no Python backend)
+        cmds:
+            - "{{.NPM}} run test:e2e:electron"
+
+    test:browser:
+        desc: Vitest browser-mode Svelte component smoke (Playwright Chromium)
+        cmds:
+            - "{{.NPM}} run test:browser"
+
+    test:openapi:
+        desc: OpenAPI core contract checks (optional live Schemathesis with MESHCHAT_OPENAPI_LIVE=1)
+        cmds:
+            - uv run pytest tests/backend/test_openapi_core_contract.py tests/backend/test_openapi_schemathesis.py -q --tb=short
 
     test:ui:all:
         desc: UI page smoke + Lighthouse audits with simulated data (Playwright)
