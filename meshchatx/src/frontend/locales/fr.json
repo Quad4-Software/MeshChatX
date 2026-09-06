@@ -4890,7 +4890,8 @@
         "login": "Connexion",
         "passwords_mismatch": "Les mots de passe ne correspondent pas",
         "status_check_failed": "Impossible de vérifier l'état d'authentification",
-        "failed": "Échec de l'authentification"
+        "failed": "Échec de l'authentification",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Activer la sécurité d’écran Windows ?",

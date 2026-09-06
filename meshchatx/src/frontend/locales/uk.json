@@ -4990,7 +4990,8 @@
         "login": "Увійти",
         "passwords_mismatch": "Паролі не збігаються",
         "status_check_failed": "Не вдалося перевірити статус автентифікації",
-        "failed": "Автентифікація не вдалася"
+        "failed": "Автентифікація не вдалася",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Увімкнути захист екрана Windows?",

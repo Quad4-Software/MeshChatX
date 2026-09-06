@@ -464,7 +464,7 @@
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full min-w-0 pl-3 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-sem-fg-muted min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full min-w-0 pl-3 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-sem-fg-muted min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="composeInputPlaceholder"

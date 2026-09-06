@@ -4990,7 +4990,8 @@
         "login": "Giriş Yap",
         "passwords_mismatch": "Parolalar eşleşmiyor",
         "status_check_failed": "Kimlik doğrulama durumu kontrol edilemedi",
-        "failed": "Kimlik doğrulama başarısız oldu"
+        "failed": "Kimlik doğrulama başarısız oldu",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Windows ekran güvenliği etkinleştirilsin mi?",

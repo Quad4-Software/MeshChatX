@@ -4890,7 +4890,8 @@
         "login": "Войти",
         "passwords_mismatch": "Пароли не совпадают",
         "status_check_failed": "Не удалось проверить состояние аутентификации",
-        "failed": "Ошибка аутентификации"
+        "failed": "Ошибка аутентификации",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Включить защиту экрана Windows?",
