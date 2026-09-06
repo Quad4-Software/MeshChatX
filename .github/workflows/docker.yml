@@ -34,6 +34,7 @@ on:
         branches:
             - master
             - dev
+            - next
         # Branch pushes rebuild only when image inputs change. Tag pushes still
         # run (GitHub does not apply path filters to tag pushes the same way).
         paths:

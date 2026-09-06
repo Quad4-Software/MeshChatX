@@ -21,10 +21,12 @@ on:
         branches:
             - master
             - dev
+            - next
     pull_request:
         branches:
             - master
             - dev
+            - next
     workflow_dispatch:
 
 permissions:

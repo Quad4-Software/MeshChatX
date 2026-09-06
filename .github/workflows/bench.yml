@@ -17,6 +17,7 @@ on:
         branches:
             - master
             - dev
+            - next
         paths:
             - "meshchatx/**"
             - "tests/backend/**"

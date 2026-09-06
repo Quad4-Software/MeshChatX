@@ -13,10 +13,12 @@ on:
         branches:
             - master
             - dev
+            - next
     pull_request:
         branches:
             - master
             - dev
+            - next
     schedule:
         - cron: "30 12 * * 1"
         - cron: "35 18 * * 3"
