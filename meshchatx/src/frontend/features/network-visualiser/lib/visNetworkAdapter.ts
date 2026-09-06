@@ -11,6 +11,7 @@ export interface CreateVisNetworkOptions {
     onZoom?: () => void;
     onDragStart?: () => void;
     onDragEnd?: () => void;
+    onDoubleClickNode?: (nodeId: string, node: Record<string, unknown> | null) => void;
 }
 
 export function createVisNetworkInstance(
@@ -71,6 +72,16 @@ export function createVisNetworkInstance(
     }
     if (options.onDragEnd) {
         network.on("dragEnd", options.onDragEnd);
+    }
+    if (options.onDoubleClickNode) {
+        network.on("doubleClick", (params: { nodes?: string[] }) => {
+            const clickedNodeId = params?.nodes?.[0];
+            if (!clickedNodeId) {
+                return;
+            }
+            const node = nodes.get(clickedNodeId) as Record<string, unknown> | null;
+            options.onDoubleClickNode?.(clickedNodeId, node);
+        });
     }
 
     return network;

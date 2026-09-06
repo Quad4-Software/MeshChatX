@@ -8,6 +8,7 @@ import { isVisualiserWasmReady } from "../../../js/VisualiserWasmLoader.js";
 import { resolveVisualiserIsDark } from "./visualiserPrefs.js";
 import { createVisNetworkInstance } from "./visNetworkAdapter.js";
 import { tryStartVisualiserWebGL, destroyVisualiserRenderer } from "./visualiserEngineManager.js";
+import { openAnnounceDestination } from "./visualiserNavigation.js";
 import type { PreferredRenderer, RendererMode, EngineMode, ViewMode } from "./types.js";
 
 export function destroyActiveRenderer(params: {
@@ -30,10 +31,9 @@ export async function tryStartWebGL(params: {
     const result = tryStartVisualiserWebGL(params.webglCanvas, {
         getEnablePhysics: () => params.enablePhysics === true,
         getIsDark: () => resolveVisualiserIsDark(),
-        onNodeActivate: (_id, meta) => {
-            if (meta?.hash && typeof window !== "undefined" && window.location) {
-                window.location.hash = `#/messages/${meta.hash}`;
-            }
+        onNodeActivate: (id, meta) => {
+            const announce = (meta?.announce as { aspect?: string; destination_hash?: string } | null) || null;
+            openAnnounceDestination(announce, String(id || ""));
         },
         onHover: (id, meta, x, y) => {
             if (!id || !meta?.title) {
@@ -124,6 +124,10 @@ export async function setupVisualiserRenderer(params: {
                 onZoom: params.onZoom,
                 onDragStart: params.onDragStart,
                 onDragEnd: params.onDragEnd,
+                onDoubleClickNode: (_nodeId, node) => {
+                    const announce = (node?._announce as { aspect?: string; destination_hash?: string } | null) || null;
+                    openAnnounceDestination(announce, String(node?.id || _nodeId || ""));
+                },
             });
         }
     }
