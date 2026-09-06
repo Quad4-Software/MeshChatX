@@ -14,6 +14,7 @@ allowBuilds:
     electron: true
     electron-winstaller: true
     esbuild: true
+    es5-ext: false
 
 overrides:
     "@electron/get": "3.1.0"
