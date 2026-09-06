@@ -18,6 +18,7 @@
         uploadStickerFile,
     } from "../lib/conversationStickersGifs.js";
     import { translateText, type LangOption } from "../lib/conversationTranslate.js";
+    import { EMOJI_PICKER_DATA_URL, emojiPickerThemeClass, unicodeFromEmojiClickEvent } from "../lib/emojiPicker.js";
 
     let {
         text = $bindable(""),
@@ -32,6 +33,9 @@
         isTranslatingMessage?: boolean;
         onaddimage?: (file: File) => void;
     } = $props();
+
+    const emojiPickerDataUrl = EMOJI_PICKER_DATA_URL;
+    const emojiTheme = $derived(emojiPickerThemeClass());
 
     let isEmojiPickerOpen = $state(false);
     let activePickerTab = $state<ComposerPickerTab>("emoji");
@@ -85,10 +89,7 @@
     }
 
     function onEmojiClick(event: CustomEvent) {
-        const char =
-            (event.detail as { unicode?: string })?.unicode ||
-            (event.detail as { emoji?: { unicode?: string } })?.emoji?.unicode ||
-            String(event.detail || "");
+        const char = unicodeFromEmojiClickEvent(event);
         if (char) {
             text += char;
         }
@@ -177,6 +178,8 @@
 <ComposerEmojiStickerGifPicker
     open={isEmojiPickerOpen}
     activeTab={activePickerTab}
+    {emojiPickerDataUrl}
+    emojiPickerThemeClass={emojiTheme}
     {stickers}
     {stickerPacks}
     {activeStickerPackId}

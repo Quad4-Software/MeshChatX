@@ -126,7 +126,7 @@
 
 {#if open}
     <div
-        class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-sem-border bg-sem-surface shadow-xl overflow-hidden {showDropRing
+        class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,calc(100vw-1.5rem))] max-h-[min(420px,50dvh)] flex flex-col rounded-2xl border border-sem-border bg-sem-surface shadow-xl overflow-hidden {showDropRing
             ? 'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900'
             : ''}"
         onclick={(event) => event.stopPropagation()}
@@ -179,7 +179,7 @@
             tabindex="0"
         >
             <emoji-picker
-                data-source={emojiPickerDataUrl}
+                data-source={emojiPickerDataUrl || undefined}
                 class="compose-emoji-picker {emojiPickerThemeClass}"
                 onemoji-click={(event: CustomEvent) => onemojiclick?.(event)}
             ></emoji-picker>
@@ -359,3 +359,12 @@
         </div>
     </div>
 {/if}
+
+<style>
+    :global(.compose-emoji-picker) {
+        width: 100%;
+        height: min(320px, 50vh);
+        min-height: 220px;
+        --border-radius: 0.75rem;
+    }
+</style>

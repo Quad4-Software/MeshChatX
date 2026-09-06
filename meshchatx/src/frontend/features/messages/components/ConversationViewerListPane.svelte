@@ -88,6 +88,10 @@
         </div>
     </div>
 
+    {#if !messagesViewportReady}
+        <div class="absolute inset-0 z-20 bg-sem-surface pointer-events-none select-none" aria-hidden="true"></div>
+    {/if}
+
     {#if !autoScrollOnNewMessage && messagesViewportReady}
         <button
             type="button"

@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { tick, untrack } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
 
     let {
@@ -44,15 +45,16 @@
         if (!ctx) return;
         const width = canvas.clientWidth;
         const height = canvas.clientHeight;
+        if (width < 2 || height < 2) return;
         canvas.width = width * window.devicePixelRatio;
         canvas.height = height * window.devicePixelRatio;
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
         const data = audioBuffer.getChannelData(0);
         const step = Math.ceil(data.length / width);
         const amp = height / 2;
         ctx.clearRect(0, 0, width, height);
         const dark = isDarkMode();
-        const waveBg = dark ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.2)";
+        const waveBg = dark ? "rgba(255, 255, 255, 0.35)" : "rgba(0, 0, 0, 0.25)";
         const waveFg = dark ? "#fff" : "#000";
         ctx.beginPath();
         ctx.strokeStyle = waveBg;
@@ -109,7 +111,7 @@
         if (!isPlaying || !audioContext) return;
         const elapsed = audioContext.currentTime - playbackStartTime;
         currentTime = Math.min(playbackStartOffset + elapsed, totalDuration);
-        progressPercent = (currentTime / totalDuration) * 100;
+        progressPercent = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
         drawWaveform();
         if (currentTime >= totalDuration) {
             isPlaying = false;
@@ -152,7 +154,7 @@
 
     function handleWaveformClick(e: MouseEvent) {
         const canvas = waveform;
-        if (!canvas) return;
+        if (!canvas || totalDuration <= 0) return;
         const rect = canvas.getBoundingClientRect();
         const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
         const time = (x / rect.width) * totalDuration;
@@ -170,35 +172,62 @@
         hoverPercent = (x / rect.width) * 100;
     }
 
-    async function loadAudio() {
-        if (!src) return;
+    async function loadAudio(url: string, cancelled: () => boolean) {
+        loading = true;
+        totalDuration = 0;
+        currentTime = 0;
+        progressPercent = 0;
+        audioBuffer = null;
+        untrack(() => stopPlayback());
         try {
-            loading = true;
-            stopPlayback();
-            const response = await fetch(src);
+            const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const arrayBuffer = await response.arrayBuffer();
-            if (!audioContext) {
+            if (cancelled()) return;
+            const copy = arrayBuffer.slice(0);
+            let ctx = untrack(() => audioContext);
+            if (!ctx || ctx.state === "closed") {
                 const AC =
                     window.AudioContext ||
                     (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-                audioContext = new AC();
+                ctx = new AC();
+                audioContext = ctx;
             }
-            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            totalDuration = audioBuffer.duration;
+            const decoded = await ctx.decodeAudioData(copy);
+            if (cancelled()) return;
+            audioBuffer = decoded;
+            totalDuration = decoded.duration;
             currentTime = 0;
             progressPercent = 0;
-            requestAnimationFrame(() => drawWaveform());
+            loading = false;
+            await tick();
+            if (!cancelled()) {
+                requestAnimationFrame(() => {
+                    if (!cancelled()) drawWaveform();
+                });
+            }
         } catch (e) {
             console.error("Failed to load audio for player:", e);
-        } finally {
-            loading = false;
+            if (!cancelled()) {
+                loading = false;
+            }
         }
     }
 
     $effect(() => {
-        void src;
-        void loadAudio();
+        const url = src;
+        let cancelled = false;
+        if (!url) {
+            loading = false;
+            totalDuration = 0;
+            audioBuffer = null;
+            return;
+        }
+        void loadAudio(url, () => cancelled);
+        return () => {
+            cancelled = true;
+            untrack(() => stopPlayback());
+        };
     });
 
     $effect(() => {
@@ -207,13 +236,15 @@
         const darkObserver = new MutationObserver(() => drawWaveform());
         darkObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
         return () => {
-            stopPlayback();
             window.removeEventListener("resize", onResize);
             darkObserver.disconnect();
-            if (audioContext) {
-                void audioContext.close();
-                audioContext = null;
-            }
+            untrack(() => {
+                stopPlayback();
+                if (audioContext) {
+                    void audioContext.close();
+                    audioContext = null;
+                }
+            });
         };
     });
 </script>
@@ -229,6 +260,7 @@
             ? 'bg-white/20 hover:bg-white/30 text-white'
             : 'bg-blue-500 hover:bg-blue-600 text-white'}"
         onclick={togglePlay}
+        disabled={loading || totalDuration <= 0}
     >
         <MaterialDesignIcon iconName={isPlaying ? "pause" : "play"} class="size-6" />
     </button>
@@ -250,7 +282,7 @@
                 ></div>
             </div>
         {/if}
-        <canvas bind:this={waveform} class="w-full h-full" hidden={loading}></canvas>
+        <canvas bind:this={waveform} class="w-full h-full" class:invisible={loading}></canvas>
         {#if !loading && (isPlaying || progressPercent > 0)}
             <div
                 class="absolute top-0 bottom-0 w-0.5 bg-blue-400 z-10 pointer-events-none transition-[left] duration-100 ease-linear"

@@ -21,6 +21,7 @@
         text = $bindable(""),
         deliveryMethod = $bindable(null as string | null),
         imageUrls = [] as string[],
+        imageFiles = [] as File[],
         files = [] as File[],
         audio = null as AudioAttachment | null,
         replyingTo = null as ReplyPreview | null,
@@ -56,6 +57,7 @@
         text?: string;
         deliveryMethod?: string | null;
         imageUrls?: string[];
+        imageFiles?: File[];
         files?: File[];
         audio?: AudioAttachment | null;
         replyingTo?: ReplyPreview | null;
@@ -117,6 +119,7 @@
 
         <ComposerAttachmentStrip
             {imageUrls}
+            {imageFiles}
             {files}
             {audio}
             {onremoveimage}
