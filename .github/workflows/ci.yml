@@ -83,6 +83,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -135,6 +136,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up Go
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -181,6 +183,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up Go
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -231,6 +234,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -263,6 +267,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -296,6 +301,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Smoke-test package bloat checker
               run: bash scripts/ci/verify-package-contents-smoke.sh
@@ -365,6 +371,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Download Linux build-check artifact
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
@@ -408,6 +415,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -446,6 +454,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -497,6 +506,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
