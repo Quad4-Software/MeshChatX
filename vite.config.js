@@ -256,11 +256,7 @@ export default defineConfig(({ command }) => {
             __GEO_WASM_SRI_WASM__: JSON.stringify(geoWasmIntegrity?.wasm || ""),
             __GEO_WASM_SRI_EXEC__: JSON.stringify(geoWasmIntegrity?.wasmExec || ""),
         },
-        plugins: [
-            tailwindcss(),
-            svelte(),
-            meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
-        ],
+        plugins: [tailwindcss(), svelte(), meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso })],
 
         css: {
             devSourcemap: true,
