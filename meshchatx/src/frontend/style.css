@@ -194,12 +194,18 @@ select option {
 @media (prefers-reduced-motion: reduce) {
     .primary-chip:hover,
     .secondary-chip:hover,
-    .danger-chip:hover {
+    .danger-chip:hover,
+    .primary-action:hover,
+    .secondary-action:hover,
+    .danger-action:hover {
         transform: none !important;
     }
     .primary-chip:active,
     .secondary-chip:active,
-    .danger-chip:active {
+    .danger-chip:active,
+    .primary-action:active,
+    .secondary-action:active,
+    .danger-action:active {
         transform: none !important;
     }
 }
@@ -241,6 +247,46 @@ select option {
 
 .dark .danger-chip:hover {
     @apply shadow-lg! dark:shadow-red-500/10!;
+}
+
+.primary-action {
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! text-white! shadow-md! transition-all! duration-200!;
+    background-color: var(--mc-action-primary) !important;
+}
+.primary-action:hover {
+    background-color: var(--mc-action-primary-hover) !important;
+    @apply -translate-y-0.5! shadow-lg!;
+}
+.primary-action:active {
+    @apply scale-95! translate-y-0! shadow-xs!;
+}
+
+.secondary-action {
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! shadow-md! transition-all! duration-200!;
+    background-color: var(--mc-secondary-chip-bg) !important;
+    color: var(--mc-secondary-chip-text) !important;
+    border: 1px solid var(--mc-secondary-chip-border) !important;
+}
+.secondary-action:hover {
+    background-color: var(--mc-secondary-chip-hover-bg) !important;
+    color: var(--mc-secondary-chip-hover-text) !important;
+    border-color: var(--mc-secondary-chip-hover-border) !important;
+    @apply -translate-y-0.5! shadow-lg!;
+}
+.secondary-action:active {
+    @apply scale-95! translate-y-0! shadow-xs!;
+}
+
+.danger-action {
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! text-white! shadow-md! transition-all! duration-200!;
+    background-color: var(--mc-danger-chip-bg) !important;
+}
+.danger-action:hover {
+    background-color: var(--mc-danger-chip-hover-bg) !important;
+    @apply -translate-y-0.5! shadow-lg!;
+}
+.danger-action:active {
+    @apply scale-95! translate-y-0! shadow-xs!;
 }
 
 .glass-label {

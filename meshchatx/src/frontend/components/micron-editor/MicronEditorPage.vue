@@ -11,7 +11,7 @@
             <template #actions>
                 <button
                     type="button"
-                    class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                    class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/10! dark:hover:bg-sem-danger/20!"
                     @click="resetAll"
                 >
                     <MaterialDesignIcon icon-name="refresh" class="w-3.5 h-3.5" />
@@ -29,7 +29,7 @@
                     <div
                         v-if="showPublishMenu"
                         v-click-outside="() => (showPublishMenu = false)"
-                        class="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border z-50 py-2"
+                        class="absolute right-0 top-full mt-1 w-72 bg-sem-surface rounded-xl shadow-xl border border-sem-border z-50 py-2"
                     >
                         <div class="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-sem-fg-muted">
                             {{ $t("tools.micron_editor.publish_to_mesh_server") }}
@@ -46,7 +46,7 @@
                             </button>
                             <router-link
                                 to="/mesh-server"
-                                class="inline-block text-blue-500 hover:underline"
+                                class="inline-block text-sem-accent hover:underline"
                                 @click="showPublishMenu = false"
                             >
                                 {{ $t("tools.micron_editor.publish_manage_servers") }}
@@ -57,13 +57,13 @@
                                 v-for="pn in pageNodes"
                                 :key="pn.node_id"
                                 type="button"
-                                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 hover:bg-sem-surface-muted flex items-center gap-2 transition-colors disabled:opacity-50"
+                                class="w-full text-left px-3 py-2 text-sm hover:bg-sem-surface-muted flex items-center gap-2 transition-colors disabled:opacity-50"
                                 :disabled="publishBusy"
                                 @click="publishToNode(pn)"
                             >
                                 <div
                                     class="w-2 h-2 rounded-full shrink-0"
-                                    :class="pn.running ? 'bg-green-500' : 'bg-gray-400'"
+                                    :class="pn.running ? 'bg-sem-success' : 'bg-sem-fg-muted'"
                                 ></div>
                                 <span class="truncate text-sem-fg">{{ pn.name }}</span>
                                 <span v-if="!pn.running" class="ml-auto text-[10px] text-sem-fg-muted shrink-0">{{
@@ -73,7 +73,7 @@
                             <div class="border-t border-sem-border mt-1 pt-1">
                                 <button
                                     type="button"
-                                    class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                                    class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
                                     :disabled="publishBusy"
                                     @click="createMeshServerAndPublish"
                                 >
@@ -81,7 +81,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                                    class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
                                     :disabled="publishBusy"
                                     @click="openPublishSite"
                                 >
@@ -92,7 +92,7 @@
                         <div v-if="lastPublished?.destinationHash" class="border-t border-sem-border mt-1 pt-1">
                             <button
                                 type="button"
-                                class="w-full text-left px-3 py-2 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors flex items-center gap-2"
+                                class="w-full text-left px-3 py-2 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-sem-surface-muted transition-colors flex items-center gap-2"
                                 @click="openPublishedInNomadNet"
                             >
                                 <MaterialDesignIcon icon-name="web" class="w-3.5 h-3.5" />
@@ -134,7 +134,7 @@
 
         <!-- Tab Bar -->
         <div
-            class="flex items-center px-3 sm:px-4 py-1 gap-1 border-b border-sem-border bg-slate-100 dark:bg-zinc-900 overflow-x-auto no-scrollbar shrink-0"
+            class="flex items-center px-3 sm:px-4 py-1 gap-1 border-b border-sem-border bg-sem-surface-muted overflow-x-auto no-scrollbar shrink-0"
         >
             <div
                 v-for="(tab, index) in tabs"
@@ -143,8 +143,8 @@
                 class="group flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
                 :class="[
                     activeTabIndex === index
-                        ? 'bg-white dark:bg-zinc-800 text-teal-600 dark:text-teal-400 shadow-xs'
-                        : 'text-gray-500 hover:bg-white/50 dark:hover:bg-zinc-800/50 hover:text-gray-700 dark:hover:text-zinc-300',
+                        ? 'bg-sem-surface text-teal-600 dark:text-teal-400 shadow-xs'
+                        : 'text-sem-fg-muted hover:bg-sem-surface/50 hover:text-sem-fg',
                     dragOverTabIndex === index && dragTabIndex !== index ? 'ring-2 ring-teal-500' : '',
                 ]"
                 @click="activeTabIndex = index"
@@ -170,14 +170,14 @@
                 <button
                     v-if="tabs.length > 1"
                     type="button"
-                    class="ml-1 inline-flex min-h-[28px] min-w-[28px] items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:text-red-500 transition-opacity"
+                    class="ml-1 inline-flex min-h-[28px] min-w-[28px] items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:text-sem-danger transition-opacity"
                     @click.stop="removeTab(index)"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-3" />
                 </button>
             </div>
             <button
-                class="flex items-center justify-center size-8 text-gray-400 hover:text-teal-500 transition-colors"
+                class="flex items-center justify-center size-8 text-sem-fg-muted hover:text-teal-500 transition-colors"
                 @click="addTab"
             >
                 <MaterialDesignIcon icon-name="plus" class="size-4" />
