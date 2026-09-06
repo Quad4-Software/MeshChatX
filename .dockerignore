@@ -85,9 +85,7 @@ Thumbs.db
 .gitignore
 
 # Docker files
-Dockerfile*
-docker-compose*.yml
-docker-compose.override.yml
+docker/
 .dockerignore
 meshchat-config/
 

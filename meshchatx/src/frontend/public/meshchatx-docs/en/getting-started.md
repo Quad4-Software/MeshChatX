@@ -94,7 +94,7 @@ Legacy upstream data may still exist under ~/.reticulum-meshchat/. Migration too
 ## Where to go next
 
 - **Installation and setup** covers Docker, wheels, desktop packages, and CLI flags.
-- **Building from source and packaging** covers offline builds, Dockerfile.build, and Android APKs.
+- **Building from source and packaging** covers offline builds, docker/Dockerfile.build, and Android APKs.
 - **Development** covers task/make, version sync, and adding locales.
 - **Architecture and design** explains backend managers, identity scoping, and the API model.
 - **LXMF messaging** and **Audio calls** describe day-to-day communication features.

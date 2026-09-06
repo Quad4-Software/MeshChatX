@@ -1,8 +1,8 @@
 services:
     reticulum-meshchatx:
         build:
-            context: .
-            dockerfile: Dockerfile
+            context: ..
+            dockerfile: docker/Dockerfile
         container_name: reticulum-meshchatx
         image: reticulum-meshchatx:local
         restart: unless-stopped

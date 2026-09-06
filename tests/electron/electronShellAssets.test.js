@@ -47,7 +47,7 @@ describe("electron shell static assets", () => {
     });
 
     it("Dockerfile frontend stage copies electron shell CSS build inputs", () => {
-        for (const dockerfile of ["Dockerfile", "Dockerfile.hardened"]) {
+        for (const dockerfile of ["docker/Dockerfile", "docker/Dockerfile.hardened"]) {
             const docker = readRepo(dockerfile);
             expect(docker, dockerfile).toContain("scripts/build-electron-shell-css.mjs");
             expect(docker, dockerfile).toContain("electron/assets/css/electron-shell.src.css");

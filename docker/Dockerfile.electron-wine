@@ -6,10 +6,10 @@
 # under Wine for cx_Freeze (same idea as task setup:wine / dist:win:wine).
 #
 # Build Windows portable + NSIS:
-#   docker build -f Dockerfile.electron-wine -t meshchatx-electron-wine:local .
+#   docker build -f docker/Dockerfile.electron-wine -t meshchatx-electron-wine:local .
 #
 # Toolchain smoke only (no Electron package):
-#   docker build -f Dockerfile.electron-wine \
+#   docker build -f docker/Dockerfile.electron-wine \
 #       --build-arg MESHCHATX_ELECTRON_WINE_TARGETS=smoke \
 #       -t meshchatx-electron-wine:smoke .
 #

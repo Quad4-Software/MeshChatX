@@ -24,7 +24,7 @@ Requirements for source builds: Python 3.11+, Node.js 24+, pnpm 11.1.2, UV. Web 
 ### Docker
 
 ```bash
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 ```bash
