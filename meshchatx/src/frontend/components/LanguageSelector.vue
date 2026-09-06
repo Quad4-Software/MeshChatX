@@ -52,8 +52,14 @@ const LANGUAGE_NAMES = {
     fi: "Suomi",
     fr: "Français",
     it: "Italiano",
+    ja: "日本語",
+    ko: "한국어",
     nl: "Nederlands",
+    pl: "Polski",
+    "pt-br": "Português (Brasil)",
     ru: "Русский",
+    tr: "Türkçe",
+    uk: "Українська",
     zh: "中文",
 };
 

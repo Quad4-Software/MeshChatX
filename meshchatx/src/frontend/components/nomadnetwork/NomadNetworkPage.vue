@@ -256,7 +256,6 @@
                     <IconButton
                         v-if="!isPrivate"
                         class="nomad-icon-btn shrink-0 lg:hidden"
-                        :class="selectedNodeIdentifiesOnConnect ? 'text-sem-accent' : 'text-sem-fg-muted'"
                         :title="
                             selectedNodeIdentifiesOnConnect
                                 ? $t('nomadnet.identify_on_connect_on')
@@ -265,14 +264,17 @@
                         :aria-pressed="selectedNodeIdentifiesOnConnect ? 'true' : 'false'"
                         @click="toggleIdentifyOnConnect(selectedNode.destination_hash)"
                     >
-                        <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
+                        <MaterialDesignIcon
+                            icon-name="fingerprint"
+                            class="size-5"
+                            :class="selectedNodeIdentifiesOnConnect ? 'text-sem-accent' : 'text-sem-fg-muted'"
+                        />
                     </IconButton>
 
                     <div class="hidden shrink-0 items-center gap-0 lg:flex">
                         <IconButton
                             v-if="!isPrivate"
                             class="nomad-icon-btn"
-                            :class="selectedNodeIdentifiesOnConnect ? 'text-sem-accent' : 'text-sem-fg-muted'"
                             :title="
                                 selectedNodeIdentifiesOnConnect
                                     ? $t('nomadnet.identify_on_connect_on')
@@ -281,7 +283,11 @@
                             :aria-pressed="selectedNodeIdentifiesOnConnect ? 'true' : 'false'"
                             @click="toggleIdentifyOnConnect(selectedNode.destination_hash)"
                         >
-                            <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
+                            <MaterialDesignIcon
+                                icon-name="fingerprint"
+                                class="size-5"
+                                :class="selectedNodeIdentifiesOnConnect ? 'text-sem-accent' : 'text-sem-fg-muted'"
+                            />
                         </IconButton>
                         <IconButton
                             v-if="!isPrivate"

@@ -608,7 +608,7 @@
                         <select
                             id="map-coord-format"
                             v-model="coordinateFormat"
-                            class="bg-transparent text-sem-fg text-[10px] font-medium border border-sem-border rounded pl-1.5 pr-5 py-0.5 max-w-[8.5rem] min-w-[5.5rem]"
+                            class="bg-transparent text-sem-fg text-[10px] font-medium border border-sem-border rounded pl-1.5 pr-5 py-1 h-6 max-w-[8.5rem] min-w-[5.5rem]"
                             @change="onCoordinateFormatChange"
                         >
                             <option value="wgs84">{{ $t("map.coord_format_wgs84") }}</option>
@@ -1098,6 +1098,7 @@ import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { publishPatchedConfig } from "../../js/settings/settingsConfigService.js";
 import {
+    COORD_FORMATS,
     ensureGeoCoordsReady,
     formatCoordinate,
     normalizeCoordinateFormat,
@@ -1421,6 +1422,27 @@ export default {
                 transform: `rotate(${-r}rad)`,
                 transformOrigin: "center center",
             };
+        },
+        contextMenuCoordRows() {
+            if (!this.contextMenuCoord) {
+                return [];
+            }
+            const [lon, lat] = this.contextMenuCoord;
+            const refLat = this.currentCenter?.[1] || lat;
+            const refLon = this.currentCenter?.[0] || lon;
+            return COORD_FORMATS.map((fmt) => {
+                const formatted = formatCoordinate(lon, lat, fmt, {
+                    hasRef: true,
+                    refLat,
+                    refLon,
+                });
+                const label = fmt === "olc" ? "Plus Code" : fmt.toUpperCase();
+                return {
+                    format: fmt,
+                    label,
+                    text: formatted?.text || "",
+                };
+            });
         },
         hasVectorDrawFeatures() {
             return Boolean(this.drawSource && this.drawSource.getFeatures().length > 0);
@@ -4165,14 +4187,20 @@ export default {
             }
             this.closeContextMenu();
         },
-        async contextCopyCoords() {
+        contextCopyCoords() {
+            this.contextCopyCoordFormat(this.coordinateFormat);
+        },
+        async contextCopyCoordFormat(format) {
             if (!this.contextMenuCoord) {
                 this.closeContextMenu();
                 return;
             }
             const [lon, lat] = this.contextMenuCoord;
-            await ensureGeoCoordsReady();
-            const formatted = formatCoordinate(lon, lat, this.coordinateFormat, {
+            const fmt = normalizeCoordinateFormat(format);
+            if (fmt !== "wgs84") {
+                await ensureGeoCoordsReady();
+            }
+            const formatted = formatCoordinate(lon, lat, fmt, {
                 hasRef: true,
                 refLat: this.currentCenter?.[1] || lat,
                 refLon: this.currentCenter?.[0] || lon,
@@ -5847,8 +5875,8 @@ export default {
     background: transparent;
     --ol-background-color: rgba(255, 255, 255, 0.14);
     --ol-partial-background-color: transparent;
-    --ol-foreground-color: #ffffff;
-    --ol-subtle-foreground-color: rgba(255, 255, 255, 0.4);
+    --ol-foreground-color: rgba(255, 255, 255, 0.8);
+    --ol-subtle-foreground-color: rgba(255, 255, 255, 0.3);
 }
 
 .ol-scale-line-host--dark-basemap :deep(.ol-scale-step-text),
