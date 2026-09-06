@@ -120,7 +120,7 @@
             >
                 <button
                     type="button"
-                    class="px-1.5 py-2 text-sem-fg-secondary transition-colors hover:bg-sem-surface-raised hover:text-sem-fg"
+                    class="m-1 rounded-lg p-1.5 text-sem-fg-muted transition-colors hover:bg-sem-surface-raised hover:text-sem-fg focus-visible:ring-2 focus-visible:ring-sem-accent focus-visible:outline-none"
                     :title="$t('messages.open_in_split')"
                     @click="addPane"
                 >

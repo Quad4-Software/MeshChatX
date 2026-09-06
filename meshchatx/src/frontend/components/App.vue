@@ -171,7 +171,7 @@
                             </button>
                             <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
                                 <span
-                                    class="flex text-sem-fg bg-sem-surface-raised border border-sem-border hover:border-sem-accent px-2.5 py-1 rounded-full shadow-xs transition"
+                                    class="flex items-center text-sem-fg bg-sem-surface-raised border border-sem-border hover:border-sem-accent px-2.5 py-1.5 rounded-full shadow-xs transition"
                                 >
                                     <MaterialDesignIcon
                                         icon-name="refresh"
@@ -190,7 +190,7 @@
                                 @click="cancelInboundDeliveries"
                             >
                                 <span
-                                    class="flex text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500/60 px-2.5 py-1 rounded-full shadow-xs transition"
+                                    class="flex items-center text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500/60 px-2.5 py-1.5 rounded-full shadow-xs transition"
                                 >
                                     <MaterialDesignIcon icon-name="close-circle-outline" class="size-5" />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
@@ -207,11 +207,9 @@
                                 @click="composeNewMessage"
                             >
                                 <span
-                                    class="flex rounded-full border border-sem-action-primary bg-sem-action-primary px-2.5 py-1 text-white shadow-xs transition hover:bg-sem-action-primary-hover"
+                                    class="flex items-center rounded-full border border-sem-action-primary bg-sem-action-primary px-2.5 py-1.5 text-white shadow-xs transition hover:bg-sem-action-primary-hover"
                                 >
-                                    <span>
-                                        <MaterialDesignIcon icon-name="email" class="w-5 h-5" />
-                                    </span>
+                                    <MaterialDesignIcon icon-name="email" class="size-5" />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-semibold">{{
                                         $t("app.compose")
                                     }}</span>
