@@ -90,7 +90,7 @@ class TelemetryDAO:
             return {}
         placeholders = ", ".join(["?"] * len(unique))
         rows = self.provider.fetchall(
-            f"SELECT destination_hash, is_tracking FROM telemetry_tracking "
+            f"SELECT destination_hash, is_tracking FROM telemetry_tracking "  # nosec: BAN-B608
             f"WHERE destination_hash IN ({placeholders})",
             tuple(unique),
         )

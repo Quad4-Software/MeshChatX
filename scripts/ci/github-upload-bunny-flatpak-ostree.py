@@ -108,7 +108,7 @@ def put_file(
             },
         )
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec: BAN-B310
                 code = resp.getcode()
         except urllib.error.HTTPError as e:
             code = e.code
@@ -138,7 +138,7 @@ def get_json(url: str, access_key: str, timeout: int = 120) -> object:
         method="GET",
         headers={"AccessKey": access_key},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec: BAN-B310
         body = resp.read()
     return json.loads(body.decode("utf-8"))
 
@@ -150,7 +150,7 @@ def delete_path(url: str, access_key: str, timeout: int = 120) -> None:
         headers={"AccessKey": access_key},
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec: BAN-B310
             code = resp.getcode()
     except urllib.error.HTTPError as e:
         code = e.code

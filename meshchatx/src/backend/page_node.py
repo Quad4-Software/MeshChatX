@@ -160,7 +160,7 @@ def _normalize_executable_page_names(names) -> list[str]:
 def _parse_page_shebang(page_path: str) -> tuple[str, list[str]] | None:
     """Return (program, extra_args) from a page shebang, or None."""
     try:
-        with open(page_path, "rb") as handle:
+        with open(page_path, "rb") as handle:  # nosec: PTC-W6004
             first = handle.readline()
     except OSError:
         return None
@@ -619,7 +619,7 @@ class PageNode:
         return self._is_page_marked_executable(page_path)
 
     def _read_static_page_bytes(self, page_path):
-        with open(page_path, "rb") as f:
+        with open(page_path, "rb") as f:  # nosec: PTC-W6004
             return f.read()
 
     def _execute_page_bytes(

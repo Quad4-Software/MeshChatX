@@ -237,7 +237,7 @@ class MessageDAO:
         )
 
         query = (
-            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
+            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "  # nosec: BAN-B608
             f"ON CONFLICT(hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"
         )
 
@@ -583,11 +583,11 @@ class MessageDAO:
             return
         placeholders = ", ".join(["?"] * len(message_hashes))
         peers = self.provider.fetchall(
-            f"SELECT DISTINCT peer_hash FROM lxmf_messages WHERE hash IN ({placeholders})",
+            f"SELECT DISTINCT peer_hash FROM lxmf_messages WHERE hash IN ({placeholders})",  # nosec: BAN-B608
             tuple(message_hashes),
         )
         self.provider.execute(
-            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",
+            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",  # nosec: BAN-B608
             tuple(message_hashes),
         )
         self.refresh_conversation_summaries_for_peers(
@@ -1051,7 +1051,7 @@ class MessageDAO:
             return {}
         placeholders = ", ".join(["?"] * len(destination_hashes))
         rows = self.provider.fetchall(
-            f"SELECT peer_hash, COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash IN ({placeholders}) GROUP BY peer_hash",
+            f"SELECT peer_hash, COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash IN ({placeholders}) GROUP BY peer_hash",  # nosec: BAN-B608
             tuple(destination_hashes),
         )
         return {row["peer_hash"]: row["count"] for row in rows}
@@ -1105,7 +1105,7 @@ class MessageDAO:
         ]
         columns = ", ".join(fields)
         placeholders = ", ".join(["?"] * len(fields))
-        query = f"INSERT INTO lxmf_forwarding_mappings ({columns}, created_at) VALUES ({placeholders}, ?)"
+        query = f"INSERT INTO lxmf_forwarding_mappings ({columns}, created_at) VALUES ({placeholders}, ?)"  # nosec: BAN-B608
         params = [data.get(f) for f in fields]
         params.append(datetime.now(UTC).isoformat())
         self.provider.execute(query, params)
@@ -1191,7 +1191,7 @@ class MessageDAO:
             return {}
         placeholders = ", ".join(["?"] * len(unique))
         rows = self.provider.fetchall(
-            "SELECT destination_hash, last_viewed_at FROM notification_viewed_state "
+            "SELECT destination_hash, last_viewed_at FROM notification_viewed_state "  # nosec: BAN-B608
             f"WHERE destination_hash IN ({placeholders})",
             unique,
         )
@@ -1251,7 +1251,7 @@ class MessageDAO:
             if folder_id is None:
                 placeholders = ", ".join(["?"] * len(peer_hashes))
                 self.provider.execute(
-                    f"DELETE FROM lxmf_conversation_folders WHERE peer_hash IN ({placeholders})",
+                    f"DELETE FROM lxmf_conversation_folders WHERE peer_hash IN ({placeholders})",  # nosec: BAN-B608
                     tuple(peer_hashes),
                 )
             else:
