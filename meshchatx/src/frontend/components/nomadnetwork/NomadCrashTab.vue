@@ -460,6 +460,7 @@ export default {
             const renderKey = this.contentRenderKey;
             if (renderKey === this.lastPostedRenderKey && this.status === "ready" && this.framePainted) {
                 this.pushChrome();
+                this.$emit("render-done");
                 return;
             }
             this.renderEpoch += 1;
