@@ -35,10 +35,8 @@ import {
     applyAppearanceTheme,
     resolveEffectiveTheme,
     shellCanvasBackgroundStyle,
-    subscribeSystemTheme,
     systemPrefersDark,
 } from "../../../theme/themeEngine.js";
-import { navigate, router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
 import type { ActiveRoute } from "../../../shell/hashRouter.js";
 import type { NavGroup, NavItem } from "./navTypes.js";
 import { electronBridge } from "./appShellShared.js";

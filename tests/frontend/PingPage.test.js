@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/svelte";
 import PingPage from "@/features/ping/PingPage.svelte";
-import DialogUtils from "@/js/DialogUtils";
+import ToastUtils from "@/js/ToastUtils";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 import { formatPingSuccess, isValidPingDestinationHash, isValidPingTimeout } from "@/features/ping/lib/pingFormat.ts";
 
-vi.mock("@/js/DialogUtils", () => ({
+vi.mock("@/js/ToastUtils", () => ({
     default: {
-        alert: vi.fn(),
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
     },
 }));
 
@@ -93,7 +96,7 @@ describe("PingPage.svelte", () => {
     it("shows alert for invalid hash when starting", async () => {
         render(PingPage);
         await fireEvent.click(screen.getByText("ping.start_ping"));
-        expect(DialogUtils.alert).toHaveBeenCalledWith("ping.invalid_hash");
+        expect(ToastUtils.error).toHaveBeenCalledWith("ping.invalid_hash");
     });
 
     it("pings and displays results", async () => {
@@ -159,6 +162,6 @@ describe("PingPage.svelte", () => {
         await fireEvent.click(screen.getByText("ping.drop_path"));
 
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/destination/${"a".repeat(32)}/drop-path`);
-        expect(DialogUtils.alert).toHaveBeenCalledWith("Path dropped");
+        expect(ToastUtils.success).toHaveBeenCalledWith("Path dropped");
     });
 });

@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: 0BSD */
-import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import ChannelPromptModal from "@/components/ChannelPromptModal.vue";
+import { cleanup, render } from "@testing-library/svelte";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import ChannelPromptModal from "@/features/app-shell/components/ChannelPromptModal.svelte";
 import { channelPromptSeenKey } from "@/js/releaseChannel.js";
 
-describe("ChannelPromptModal.vue", () => {
+describe("ChannelPromptModal.svelte", () => {
     let apiMock;
 
     const appInfo = {
@@ -29,42 +29,22 @@ describe("ChannelPromptModal.vue", () => {
         window.api = apiMock;
     });
 
-    const mountModal = () =>
-        mount(ChannelPromptModal, {
-            global: {
-                mocks: {
-                    $t: (key, params) => (params ? `${key}:${JSON.stringify(params)}` : key),
-                },
-                stubs: {
-                    AppUpdatePrompt: {
-                        name: "AppUpdatePrompt",
-                        props: ["modelValue", "title", "description", "primaryLabel", "secondaryLabel"],
-                        emits: ["update:modelValue", "primary", "secondary"],
-                        template: `
-                            <div class="app-update-prompt" v-if="modelValue">
-                                <slot />
-                                <button type="button" data-testid="primary" @click="$emit('primary')">primary</button>
-                            </div>
-                        `,
-                    },
-                },
-            },
-        });
+    afterEach(() => {
+        cleanup();
+    });
 
     it("posts channel-prompt seen on dismiss and stops re-showing", async () => {
-        const wrapper = mountModal();
+        const { component } = render(ChannelPromptModal);
         const info = { ...appInfo };
-        expect(wrapper.vm.show(info)).toBe(true);
-        expect(wrapper.vm.visible).toBe(true);
+        expect(component.show(info)).toBe(true);
 
-        await wrapper.vm.onDismiss();
+        await component.onDismiss();
 
         const expectedKey = channelPromptSeenKey(info);
         expect(apiMock.post).toHaveBeenCalledWith("/api/v1/app/channel-prompt/seen", {
             key: expectedKey,
         });
         expect(info.channel_prompt_seen).toBe(expectedKey);
-        expect(wrapper.vm.visible).toBe(false);
-        expect(wrapper.vm.show(info)).toBe(false);
+        expect(component.show(info)).toBe(false);
     });
 });

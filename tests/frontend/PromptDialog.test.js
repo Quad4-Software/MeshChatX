@@ -62,7 +62,9 @@ describe("PromptDialog UI", () => {
         render(PromptDialog);
         promptHandler()({ message: "Name?", defaultValue: "a", resolve });
         await tick();
-        await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+        const cancelBtns = screen.getAllByRole("button", { name: "Cancel" });
+        await fireEvent.click(cancelBtns[cancelBtns.length - 1]);
+        await tick();
         expect(resolve).toHaveBeenCalledWith(null);
         expect(screen.queryByRole("dialog")).toBeNull();
     });
@@ -87,6 +89,7 @@ describe("PromptDialog UI", () => {
         promptHandler()({ message: "Name?", defaultValue: "a", resolve });
         await tick();
         window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        await tick();
         expect(resolve).toHaveBeenCalledWith(null);
         expect(screen.queryByRole("dialog")).toBeNull();
     });
@@ -108,6 +111,7 @@ describe("PromptDialog UI", () => {
         promptHandler()({ message: "Name?", defaultValue: "a", resolve });
         await tick();
         confirmHandler()();
+        await tick();
         expect(resolve).toHaveBeenCalledWith(null);
         expect(screen.queryByRole("dialog")).toBeNull();
     });

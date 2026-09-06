@@ -133,7 +133,7 @@ describe("ConversationMessageEntry.svelte", () => {
         const actions = makeActions();
         renderEntry(chatItem, actions);
 
-        await fireEvent.click(screen.getByRole("button", { name: "messages.cancel_send" }));
+        await fireEvent.click(screen.getByRole("button", { name: "Cancel send" }));
         expect(actions.cancelSendingMessage).toHaveBeenCalledWith(chatItem);
     });
 
@@ -173,7 +173,7 @@ describe("ConversationMessageEntry.svelte", () => {
         });
         renderEntry(chatItem, actions);
 
-        await fireEvent.click(screen.getByRole("button", { name: "messages.paper_message_ingest" }));
+        await fireEvent.click(screen.getByRole("button", { name: "Ingest message" }));
         expect(actions.ingestPaperMessage).toHaveBeenCalledWith(uri, chatItem.lxmf_message.hash);
     });
 
@@ -193,7 +193,7 @@ describe("ConversationMessageEntry.svelte", () => {
         });
         renderEntry(chatItem, actions);
 
-        expect(screen.getByText("messages.paper_message_ingested")).toBeTruthy();
-        expect(screen.queryByRole("button", { name: "messages.paper_message_ingest" })).toBeNull();
+        expect(screen.getByText("Paper message ingested")).toBeTruthy();
+        expect(screen.queryByRole("button", { name: "Ingest message" })).toBeNull();
     });
 });

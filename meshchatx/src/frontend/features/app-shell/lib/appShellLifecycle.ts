@@ -47,8 +47,10 @@ import {
 import {
     applyAppearanceTheme,
     resolveEffectiveTheme,
+    subscribeSystemTheme,
     systemPrefersDark,
 } from "../../../theme/themeEngine.js";
+import { router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
 import { handleProtocolLink } from "./appShellLinks.js";
 import { apiClient, electronBridge } from "./appShellShared.js";
 import {

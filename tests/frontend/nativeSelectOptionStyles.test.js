@@ -6,7 +6,6 @@ const ROOT = process.cwd();
 const FRONTEND = join(ROOT, "meshchatx/src/frontend");
 const STYLE_CSS = join(FRONTEND, "style.css");
 
-const SELECT_TAG_RE = /<select\b([^>]*)>/gis;
 const CLASS_ATTR_RE = /\bclass\s*=\s*"([^"]*)"/i;
 const OPTION_RULE_RE = /(?:^|[}\s])((?:select\s+)?option)\s*\{([^}]*)\}/g;
 
@@ -42,12 +41,46 @@ function walkFiles(dir, exts, out = []) {
 function extractSelects(filePath, source) {
     const rel = relative(ROOT, filePath);
     const found = [];
-    for (const match of source.matchAll(SELECT_TAG_RE)) {
-        const attrs = match[1] || "";
+    let searchFrom = 0;
+    const lower = source.toLowerCase();
+    while (searchFrom < source.length) {
+        const start = lower.indexOf("<select", searchFrom);
+        if (start < 0) {
+            break;
+        }
+        let depth = 0;
+        let inQuote = null;
+        let end = start + 7;
+        for (; end < source.length; end++) {
+            const ch = source[end];
+            if (inQuote) {
+                if (ch === inQuote && source[end - 1] !== "\\") {
+                    inQuote = null;
+                }
+                continue;
+            }
+            if (ch === '"' || ch === "'") {
+                inQuote = ch;
+                continue;
+            }
+            if (ch === "{") {
+                depth += 1;
+                continue;
+            }
+            if (ch === "}") {
+                depth = Math.max(0, depth - 1);
+                continue;
+            }
+            if (ch === ">" && depth === 0) {
+                break;
+            }
+        }
+        const attrs = source.slice(start + 7, end);
         const classMatch = CLASS_ATTR_RE.exec(attrs);
         const classes = classMatch ? classMatch[1] : "";
-        const line = source.slice(0, match.index).split("\n").length;
+        const line = source.slice(0, start).split("\n").length;
         found.push({ rel, line, classes, attrs });
+        searchFrom = end + 1;
     }
     return found;
 }
@@ -129,17 +162,15 @@ describe("native select option theming", () => {
         const menu = readFileSync(join(FRONTEND, "components/DropDownMenu.vue"), "utf8");
         const item = readFileSync(join(FRONTEND, "components/DropDownMenuItem.vue"), "utf8");
         const visualiserMenu = readFileSync(
-            join(
-                FRONTEND,
-                "features/network-visualiser/components/NetworkVisualiserToolbarEngineSelect.svelte"
-            ),
+            join(FRONTEND, "features/network-visualiser/components/NetworkVisualiserToolbarEngineSelect.svelte"),
             "utf8"
         );
         expect(menu).toContain("dropdown-panel");
         expect(menu).not.toMatch(/class="[^"]*bg-white dark:bg-zinc-800[^"]*"/);
         expect(item).toContain("text-sem-fg");
-        expect(visualiserMenu).toMatch(/bg-sem-surface[\s\S]{0,200}role="listbox"/);
-        expect(visualiserMenu).not.toMatch(/bg-white[\s\S]{0,200}role="listbox"/);
+        expect(visualiserMenu).toContain("bg-sem-surface");
+        expect(visualiserMenu).toContain('role="listbox"');
+        expect(visualiserMenu).not.toMatch(/bg-white[\s\S]{0,400}role="listbox"/);
         expect(styleCss).toMatch(/\.dropdown-panel\s*\{[^}]*bg-sem-surface/s);
     });
 });

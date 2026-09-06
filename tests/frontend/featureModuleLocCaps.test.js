@@ -28,11 +28,7 @@ const LEGACY_LEAF_ALLOWLIST = new Set([
 const LEGACY_PAGE_ALLOWLIST = new Set(["MessagesPage.svelte", "MapPage.svelte", "SettingsPage.svelte"]);
 
 /** Pre-existing lib files over the cap. */
-const LEGACY_LIB_ALLOWLIST = new Set([
-    "defaultContent.ts",
-    "appShellLifecycle.ts",
-    "tutorialState.svelte.ts",
-]);
+const LEGACY_LIB_ALLOWLIST = new Set(["defaultContent.ts", "appShellLifecycle.ts", "tutorialState.svelte.ts"]);
 
 /** Viewer shell still above 800 after host split, fail if it grows past 1000. */
 const LEGACY_SHELL_ALLOWLIST = new Set(["ConversationViewer.svelte"]);

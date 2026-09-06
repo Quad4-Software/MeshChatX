@@ -34,6 +34,6 @@ describe("ConversationPeerHeader.svelte", () => {
             selectedPeerPath: null,
         });
 
-        expect(screen.getByText("messages.path_no_route")).toBeTruthy();
+        expect(screen.getByText("No path")).toBeTruthy();
     });
 });

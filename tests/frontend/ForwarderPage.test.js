@@ -107,7 +107,7 @@ describe("ForwarderPage.svelte", () => {
         await fireEvent.input(inputs[0], { target: { value: "Test Rule" } });
         await fireEvent.input(inputs[1], { target: { value: "a".repeat(32) } });
 
-        await fireEvent.click(container.querySelector("button.bg-blue-600"));
+        await fireEvent.click(container.querySelector("button.primary-chip"));
 
         expect(WebSocketConnection.send).toHaveBeenCalledWith(
             JSON.stringify({
@@ -155,7 +155,7 @@ describe("ForwarderPage.svelte", () => {
         const inputs = container.querySelectorAll('input[type="text"]');
         await fireEvent.input(inputs[0], { target: { value: "bad" } });
         await fireEvent.input(inputs[1], { target: { value: "not-a-hash" } });
-        await fireEvent.click(container.querySelector("button.bg-blue-600"));
+        await fireEvent.click(container.querySelector("button.primary-chip"));
         expect(ToastUtils.warning).toHaveBeenCalled();
         const addCalls = WebSocketConnection.send.mock.calls.filter((call) =>
             String(call[0]).includes("lxmf.forwarding.rule.add")

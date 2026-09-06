@@ -27,8 +27,8 @@ afterEach(cleanup);
 describe("MessagesSidebar.svelte", () => {
     it("renders conversation and announce tabs", () => {
         render(MessagesSidebar, props());
-        expect(screen.getByText("messages.conversations")).toBeTruthy();
-        expect(screen.getByText("messages.announces")).toBeTruthy();
+        expect(screen.getByText("Conversations")).toBeTruthy();
+        expect(screen.getByText("Announces")).toBeTruthy();
     });
 
     it("renders folders and calls the folder callback", async () => {
@@ -88,7 +88,7 @@ describe("MessagesSidebar.svelte", () => {
         const onannouncesTabActivated = vi.fn();
         render(MessagesSidebar, props({ onannouncesTabActivated }));
 
-        await fireEvent.click(screen.getByText("messages.announces"));
+        await fireEvent.click(screen.getByText("Announces"));
         expect(onannouncesTabActivated).toHaveBeenCalledOnce();
     });
 });
