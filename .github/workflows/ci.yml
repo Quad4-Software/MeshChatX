@@ -101,6 +101,7 @@ jobs:
                       if [ "${{ github.event_name }}" = "pull_request" ]; then
                         git fetch origin "+refs/heads/${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}"
                         export COMMITLINT_FROM="origin/${{ github.event.pull_request.base.ref }}"
+                        export COMMITLINT_TO="HEAD^2"
                         task check:commits
                       fi
                       ;;
