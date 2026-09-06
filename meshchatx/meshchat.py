@@ -266,6 +266,7 @@ from meshchatx.src.backend.reticulum_config_guard import (
     ensure_safe_reticulum_runtime_flags,
     repair_unparseable_reticulum_config,
     reticulum_config_has_required_sections,
+    reticulum_config_is_parseable,
 )
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.rns_link_manager import (
@@ -1716,17 +1717,39 @@ class ReticulumMeshChat:
             self._repair_reticulum_instance_name_corruption()
             self._reticulum_instance_name_startup_repair_done = True
         config_path = os.path.join(config_dir, "config")
-        needs_default = not reticulum_config_has_required_sections(config_path)
-        if not needs_default:
-            repair_unparseable_reticulum_config(
-                config_path,
-                write_default=self._write_rns_reticulum_default_config_file,
-            )
-            needs_default = not reticulum_config_has_required_sections(config_path)
-        if needs_default:
+        if not os.path.isfile(config_path):
             if not os.path.isdir(config_dir):
                 os.makedirs(config_dir, exist_ok=True)
             self._write_rns_reticulum_default_config_file(config_path)
+        else:
+            existing = reticulum_config_is_parseable(config_path)
+            if existing:
+                # Preserve existing user configuration; only add missing required
+                # sections so the rest of startup can safely edit runtime flags.
+                from RNS.vendor.configobj import ConfigObj
+
+                try:
+                    cfg = ConfigObj(config_path)
+                    changed = False
+                    for section in ("reticulum", "interfaces"):
+                        if section not in cfg:
+                            cfg[section] = {}
+                            changed = True
+                    if changed:
+                        cfg.write()
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to ensure required sections in %s: %s",
+                        config_path,
+                        exc,
+                    )
+            else:
+                repair_unparseable_reticulum_config(
+                    config_path,
+                    write_default=self._write_rns_reticulum_default_config_file,
+                )
+                if not reticulum_config_has_required_sections(config_path):
+                    self._write_rns_reticulum_default_config_file(config_path)
         try:
             from RNS.vendor.configobj import ConfigObj
 
