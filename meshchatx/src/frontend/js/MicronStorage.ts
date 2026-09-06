@@ -64,7 +64,7 @@ class MicronStorage {
                     return;
                 }
 
-                // Ensure we are storing plain objects, not Vue proxies or other non-cloneable objects.
+                // Ensure we are storing plain objects, not proxies or other non-cloneable objects.
                 // JSON.parse/stringify is a safe way to strip proxies and ensure serializability
                 // for these simple tab objects.
                 const plainTabs = JSON.parse(JSON.stringify(tabs));

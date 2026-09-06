@@ -109,7 +109,7 @@ export type ApplyPreviewInput = {
 
 /**
  * Optimistic sidebar bump for outbound compose enqueue or lxmf_message_created.
- * Mutates conversations in place (Vue array). Returns "updated" | "created".
+ * Mutates conversations in place. Returns "updated" | "created".
  */
 export function applyOutboundPreviewToConversations(input: ApplyPreviewInput): "updated" | "created" {
     const { conversations, peerHash, preview, title, timestampSec, peers, selectedPeer } = input;

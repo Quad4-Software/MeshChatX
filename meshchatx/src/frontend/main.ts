@@ -207,7 +207,7 @@ if (networkReady) {
     function bootstrap(): void {
         registerMeshchatServiceWorker();
         const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
-        // Svelte has no app level error handler like Vue did. Only uncaught
+        // Svelte has no app-level error handler. Only uncaught
         // exceptions carry event.error, so resource load failures stay silent.
         window.addEventListener("error", (event) => {
             if (!(event.error instanceof Error)) {
