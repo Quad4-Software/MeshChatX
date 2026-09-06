@@ -40,7 +40,7 @@ repos:
       rev: v4.0.0-alpha.8
       hooks:
           - id: prettier
-            types_or: [javascript, jsx, ts, tsx, vue, css, scss, json, yaml, markdown]
+            types_or: [javascript, jsx, ts, tsx, svelte, css, scss, json, yaml, markdown]
             exclude: ^(pnpm-lock\.yaml|uv\.lock|\.pre-commit-config\.yaml)$
 
     - repo: local
@@ -49,7 +49,7 @@ repos:
             name: eslint (staged)
             entry: scripts/ci/pre-commit-eslint.sh
             language: script
-            files: \.(js|mjs|cjs|ts|vue)$
+            files: \.(js|mjs|cjs|ts|svelte)$
           - id: meshchatx-rsm
             name: resign meshchatx.rsm
             entry: scripts/ci/pre-commit-tree-rsm.sh
