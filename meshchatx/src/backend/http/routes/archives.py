@@ -92,6 +92,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     normalize_identity_storage_hash,
     normalize_lxmf_sieve_filters,
     normalize_message_blocklist,
+    nomad_link_identity_kwargs,
     os,
     parse_bool_query_param,
     parse_import_document,
@@ -394,6 +395,11 @@ def register_archives_routes(routes, app):
             on_progress_update=lambda _p: None,
             timeout=120,
             reticulum=getattr(app, "reticulum", None),
+            **nomad_link_identity_kwargs(
+                app,
+                bytes.fromhex(destination_hash),
+                private=False,
+            ),
         )
 
         try:

@@ -738,6 +738,18 @@ class ConfigManager:
             None,
         )
 
+        # Experimental live transport (WebTransport sidecar). CSRF HTTP only.
+        self.live_transport_mode = self.StringConfig(
+            self,
+            "live_transport_mode",
+            "auto",
+        )
+        self.webtransport_sidecar_enabled = self.BoolConfig(
+            self,
+            "webtransport_sidecar_enabled",
+            False,
+        )
+
         self._migrate_legacy_announce_limit_keys()
         self._migrate_translator_from_legacy()
         self._migrate_invalid_telephone_audio_profile()

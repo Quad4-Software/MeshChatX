@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run Windows Python under Wine with a PATH that cx_Freeze can read.
-# Used by Dockerfile.electron-wine / task docker:dist:win.
+# Used by docker/Dockerfile.electron-wine / task docker:dist:win.
 set -euo pipefail
 
 export WINEDEBUG="${WINEDEBUG:--all}"

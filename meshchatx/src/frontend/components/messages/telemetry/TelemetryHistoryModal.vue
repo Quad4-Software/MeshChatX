@@ -12,14 +12,14 @@
             >
                 <div class="px-6 py-4 border-b border-sem-border flex items-center justify-between">
                     <div class="flex items-center gap-2 min-w-0">
-                        <MaterialDesignIcon icon-name="satellite-variant" class="size-6 text-blue-500 shrink-0" />
+                        <MaterialDesignIcon icon-name="satellite-variant" class="size-6 text-sem-accent shrink-0" />
                         <h3 class="text-lg font-bold text-sem-fg truncate">
                             {{ $t("messages.telemetry_history_modal_title") }}
                         </h3>
                     </div>
                     <button
                         type="button"
-                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors shrink-0"
+                        class="text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-zinc-300 transition-colors shrink-0"
                         @click="close"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
@@ -38,7 +38,7 @@
                     />
                 </div>
                 <div
-                    class="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/40 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/25"
+                    class="flex flex-col gap-3 border-t border-sem-border bg-sem-surface-muted/40 px-6 py-4 dark:bg-zinc-900/25"
                 >
                     <TelemetryBatteryChart
                         v-if="batteryHistory.length > 1"
@@ -48,25 +48,23 @@
 
                     <div
                         class="flex w-full items-center justify-between gap-3"
-                        :class="
-                            batteryHistory.length > 1 ? 'border-t border-gray-200/80 pt-3 dark:border-zinc-700/80' : ''
-                        "
+                        :class="batteryHistory.length > 1 ? 'border-t border-sem-border/80 pt-3' : ''"
                     >
                         <label class="flex items-center gap-2 cursor-pointer group min-w-0">
                             <input
                                 :checked="showTelemetryInChat"
                                 type="checkbox"
-                                class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+                                class="rounded-sm border-sem-border text-sem-accent focus:ring-sem-focus shrink-0"
                                 @change="onShowTelemetryChange"
                             />
                             <span
-                                class="text-xs font-medium text-sem-fg-muted group-hover:text-gray-900 dark:group-hover:text-zinc-200"
+                                class="text-xs font-medium text-sem-fg-muted group-hover:text-sem-fg dark:group-hover:text-zinc-200"
                                 >{{ $t("messages.telemetry_show_in_chat") }}</span
                             >
                         </label>
                         <button
                             type="button"
-                            class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-xs shrink-0"
+                            class="px-4 py-2 bg-sem-action-primary text-white text-xs font-bold rounded-lg hover:bg-sem-action-primary-hover transition-colors shadow-xs shrink-0"
                             @click="close"
                         >
                             {{ $t("messages.telemetry_history_done") }}

@@ -8,30 +8,26 @@
                     :value="contactsSearch"
                     type="text"
                     :placeholder="$t('contacts.search_placeholder')"
-                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                    class="input-field w-full pl-10"
                     @input="onSearchInput"
                 />
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                    <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
                 </div>
             </div>
-            <button
-                type="button"
-                class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-blue-500 transition-colors flex items-center gap-2"
-                @click="$emit('add')"
-            >
+            <button type="button" class="primary-chip rounded-lg! focus-ring-sem" @click="$emit('add')">
                 <MaterialDesignIcon icon-name="plus" class="size-5" />
                 {{ $t("common.add") }}
             </button>
         </div>
 
-        <div v-if="contacts.length === 0" class="my-auto text-center">
-            <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
-                <MaterialDesignIcon icon-name="account-multiple" class="size-12 text-gray-400" />
-            </div>
-            <h3 class="text-lg font-medium text-sem-fg">{{ $t("contacts.no_contacts") }}</h3>
-            <p class="text-sem-fg-muted">{{ $t("call.no_contacts_hint") }}</p>
-        </div>
+        <EmptyState
+            v-if="contacts.length === 0"
+            icon="account-multiple"
+            :title="$t('contacts.no_contacts')"
+            :description="$t('call.no_contacts_hint')"
+            root-class="my-auto"
+        />
 
         <div v-else class="space-y-4">
             <div class="border-b border-sem-border overflow-hidden">
@@ -149,12 +145,14 @@
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../../LxmfUserIcon.vue";
+import EmptyState from "../../EmptyState.vue";
 
 export default {
     name: "CallContactsTab",
     components: {
         MaterialDesignIcon,
         LxmfUserIcon,
+        EmptyState,
     },
     props: {
         active: {

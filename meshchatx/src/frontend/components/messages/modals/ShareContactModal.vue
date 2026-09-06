@@ -15,7 +15,7 @@
                 </h3>
                 <button
                     type="button"
-                    class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                    class="text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-zinc-300 transition-colors"
                     @click="$emit('close')"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-6" />
@@ -28,11 +28,11 @@
                             :value="search"
                             type="text"
                             :placeholder="$t('messages.share_contact_search_placeholder')"
-                            class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-sem-fg-muted focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                             @input="$emit('update:search', $event.target.value)"
                         />
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                            <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
                         </div>
                     </div>
                 </div>

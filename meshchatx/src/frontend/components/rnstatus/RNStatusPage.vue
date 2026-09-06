@@ -417,6 +417,7 @@ import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ToastUtils from "../../js/ToastUtils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 export default {
     name: "RNStatusPage",
@@ -510,12 +511,17 @@ export default {
     },
     mounted() {
         onWsEvent("reticulum_reload_status", this.onReloadStatus);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
         this.refreshStatus();
     },
     beforeUnmount() {
         offWsEvent("reticulum_reload_status", this.onReloadStatus);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
     },
     methods: {
+        onWebsocketReconnected() {
+            this.refreshStatus();
+        },
         formatInt(value) {
             if (value === null || value === undefined) {
                 return "";

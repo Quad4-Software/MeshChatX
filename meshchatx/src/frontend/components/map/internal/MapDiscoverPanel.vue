@@ -87,6 +87,7 @@
 
 <script>
 import ToastUtils from "../../../js/ToastUtils";
+import GlobalEmitter from "../../../js/GlobalEmitter";
 import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
 
 function errorMessage(t, code) {
@@ -153,14 +154,21 @@ export default {
             }
         };
         onWsEvent("announce", this.onAnnounce);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
     },
     beforeUnmount() {
         offWsEvent("announce", this.onAnnounce);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         if (this.reloadTimer) {
             clearTimeout(this.reloadTimer);
         }
     },
     methods: {
+        onWebsocketReconnected() {
+            if (this.listenEnabled) {
+                this.reload();
+            }
+        },
         catalogLoaded(hash) {
             return Object.prototype.hasOwnProperty.call(this.catalogs, hash);
         },

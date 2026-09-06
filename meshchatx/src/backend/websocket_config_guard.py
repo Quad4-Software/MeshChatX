@@ -22,6 +22,8 @@ WEBSOCKET_CONFIG_DENYLIST = frozenset(
     {
         "auth_enabled",
         "auth_password_hash",
+        # Clearnet outbound kill-switch. Must use CSRF-protected HTTP PATCH.
+        "privacy_mode_enabled",
     },
 )
 

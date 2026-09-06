@@ -4,11 +4,7 @@
 
 /** @typedef {{ source: string, tests: string[] }} MutationTarget */
 
-const LIBS_TESTS = [
-    "tests/frontend/libs.core.test.js",
-    "tests/frontend/libs.oracle.test.js",
-    "tests/frontend/libs.index.test.js",
-];
+const LIBS_TESTS = ["tests/frontend/libs.core.test.js", "tests/frontend/libs.oracle.test.js"];
 
 /** @type {MutationTarget[]} */
 export const DEFAULT_FRONTEND_TARGETS = [

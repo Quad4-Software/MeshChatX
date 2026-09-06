@@ -1,14 +1,14 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="p-3 rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/30">
+    <div class="p-3 rounded-xl border border-sem-border bg-sem-surface-muted/50 dark:bg-zinc-900/30">
         <div class="flex justify-between items-start mb-2">
             <span
-                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-gray-200 dark:bg-zinc-800 text-sem-fg-muted"
+                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-sem-surface-muted dark:bg-sem-surface-raised text-sem-fg-muted"
             >
                 {{ item.is_outbound ? $t("messages.telemetry_label_sent") : $t("messages.telemetry_label_received") }}
             </span>
-            <span class="text-[10px] text-gray-400">{{ formatTimeAgo(item.lxmf_message.created_at) }}</span>
+            <span class="text-[10px] text-sem-fg-muted">{{ formatTimeAgo(item.lxmf_message.created_at) }}</span>
         </div>
 
         <div v-if="item.lxmf_message.fields?.telemetry?.location" class="flex items-center gap-2 mb-2">

@@ -67,12 +67,12 @@ export async function purgeMessagesByAge(api, params) {
 }
 
 /**
- * @param {{ get: (path: string, config?: object) => Promise<{ data?: object }> }} api
+ * @param {{ post: (path: string, data?: object, config?: object) => Promise<{ data?: object }> }} api
  * @param {{ older_than_days?: number, before?: string }|null|undefined} [params]
  */
 export async function exportMessagesBundle(api, params) {
-    const config = params && Object.keys(params).length ? { params } : undefined;
-    const response = await api.get("/api/v1/maintenance/messages/export", config);
+    const body = params && typeof params === "object" ? { ...params } : {};
+    const response = await api.post("/api/v1/maintenance/messages/export", body);
     return response?.data;
 }
 

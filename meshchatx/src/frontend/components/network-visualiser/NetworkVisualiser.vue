@@ -337,6 +337,14 @@ export default {
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
+        if (this._websocketReconnectedHandler) {
+            GlobalEmitter.off("websocket-reconnected", this._websocketReconnectedHandler);
+            this._websocketReconnectedHandler = null;
+        }
+        if (typeof this._liveTransportReadyWatch === "function") {
+            this._liveTransportReadyWatch();
+            this._liveTransportReadyWatch = null;
+        }
         if (this._themeObserver) {
             this._themeObserver.disconnect();
             this._themeObserver = null;
@@ -424,6 +432,18 @@ export default {
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
 
+        this._websocketReconnectedHandler = () => {
+            void this.onAutoReload();
+        };
+        GlobalEmitter.on("websocket-reconnected", this._websocketReconnectedHandler);
+
+        this._liveTransportReadyWatch = this.$watch(
+            () => GlobalState.liveTransportReady,
+            () => {
+                this.restartAutoReloadInterval();
+            }
+        );
+
         if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
             this._themeObserver = new MutationObserver(() => {
                 this.webglEngine?.requestRedraw?.();
@@ -480,9 +500,12 @@ export default {
         restartAutoReloadInterval() {
             clearInterval(this.reloadInterval);
             this.reloadInterval = null;
-            const ms = effectiveVisualiserReloadMs(15000, this.batterySaverPrefs || loadBatterySaverPrefs());
+            let ms = effectiveVisualiserReloadMs(15000, this.batterySaverPrefs || loadBatterySaverPrefs());
             if (ms == null) {
                 return;
+            }
+            if (GlobalState.liveTransportReady === true) {
+                ms = Math.max(ms, 30000);
             }
             this.reloadInterval = setInterval(this.onAutoReload, ms);
         },

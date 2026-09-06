@@ -40,6 +40,46 @@ describe("pluginUiDescriptor", () => {
         expect(sanitizePluginAssetSrc(pluginId, `/api/v1/plugins/${pluginId}/asset/../secret`)).toBeNull();
     });
 
+    it("restricts html-frame src to plugin asset URLs", () => {
+        const pluginId = "com.meshchatx.mcx-bugs";
+        const evil = validateUiDescriptor(
+            { type: "html-frame", src: "https://evil.example/exfil" },
+            { allowHtmlFrame: true, pluginId }
+        );
+        expect(evil.ok).toBe(false);
+        expect(String(evil.error)).toMatch(/html-frame src must be a plugin asset URL/);
+
+        const asset = `/api/v1/plugins/${pluginId}/asset/frame.html`;
+        const ok = validateUiDescriptor({ type: "html-frame", src: asset }, { allowHtmlFrame: true, pluginId });
+        expect(ok.ok).toBe(true);
+        expect(ok.descriptor.src).toBe(asset);
+
+        const srcdocOnly = validateUiDescriptor(
+            { type: "html-frame", srcdoc: "<p>ok</p>" },
+            { allowHtmlFrame: true, pluginId }
+        );
+        expect(srcdocOnly.ok).toBe(true);
+        expect(srcdocOnly.descriptor.src || "").toBe("");
+    });
+
+    it("does not fall back to unsanitized html-frame src", async () => {
+        const PluginHtmlFrame = (await import("../../meshchatx/src/frontend/components/plugins/PluginHtmlFrame.vue"))
+            .default;
+        const wrapper = mount(PluginSlotNode, {
+            props: {
+                node: { type: "html-frame", src: "https://evil.example/x", srcdoc: "" },
+                pluginId: "com.example.test",
+                allowHtmlFrame: true,
+            },
+            global: {
+                stubs: { PluginHtmlFrame: false },
+            },
+        });
+        const frame = wrapper.findComponent(PluginHtmlFrame);
+        expect(frame.exists()).toBe(true);
+        expect(frame.props("src")).toBe("");
+    });
+
     it("knows reviewed host widgets", () => {
         expect(isKnownHostWidget("IssueStackView")).toBe(true);
         expect(isKnownHostWidget("EvilWidget")).toBe(false);

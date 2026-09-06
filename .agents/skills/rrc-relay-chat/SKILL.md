@@ -62,7 +62,7 @@ Without +n, non-members can MSG an existing room (IRC-like). Kick removes member
 ## Tests
 
 ```bash
-uv run pytest tests/backend/test_rrc_oracle_bugs.py tests/backend/test_rrc_room_keys.py tests/backend/test_rrc_server.py tests/backend/test_rrc_moderation.py -q --tb=short
+uv run pytest tests/backend/test_rrc_membership_acls.py tests/backend/test_rrc_room_keys.py tests/backend/test_rrc_server.py tests/backend/test_rrc_moderation.py -q --tb=short
 pnpm exec vitest run tests/frontend/RelayChatPage.test.js
 ```
 

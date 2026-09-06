@@ -16,7 +16,6 @@ const authI18n = {
     "auth.set_password": "Set Password",
     "auth.login": "Login",
     "auth.passwords_mismatch": "Passwords do not match",
-    "auth.altcha_required": "Complete the verification challenge first",
     "auth.status_check_failed": "Failed to check authentication status",
     "auth.failed": "Authentication failed",
     "app.demo_mode_active": "Demo mode active",
@@ -62,11 +61,6 @@ describe("AuthPage.vue", () => {
                 mocks: {
                     $router: routerMock,
                     $t: (key) => authI18n[key] || key,
-                },
-                config: {
-                    compilerOptions: {
-                        isCustomElement: (tag) => tag === "altcha-widget",
-                    },
                 },
             },
         });
@@ -235,33 +229,6 @@ describe("AuthPage.vue", () => {
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/auth/login", {
             password: "password123",
-        });
-    });
-
-    it("submits login with ALTCHA payload from the widget", async () => {
-        axiosMock.get.mockResolvedValue({
-            data: {
-                auth_enabled: true,
-                authenticated: false,
-                password_set: true,
-                altcha_enabled: true,
-            },
-        });
-
-        const wrapper = mountAuthPage();
-        await wrapper.vm.$nextTick();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.altchaEnabled).toBe(true);
-        wrapper.vm.password = "password123";
-        wrapper.vm.altchaPayload = "altcha-token";
-        await wrapper.vm.handleSubmit();
-        await wrapper.vm.$nextTick();
-
-        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/auth/login", {
-            password: "password123",
-            altcha: "altcha-token",
         });
     });
 

@@ -405,6 +405,7 @@ export default {
         onWsEvent("rnsh.session.change", this.onSessionChange);
         onWsEvent("rnsh.output", this.onOutputEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
     },
     beforeUnmount() {
         if (this.onWindowResize) {
@@ -417,6 +418,7 @@ export default {
         offWsEvent("rnsh.session.change", this.onSessionChange);
         offWsEvent("rnsh.output", this.onOutputEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
     },
     methods: {
         onIdentitySwitched() {
@@ -424,6 +426,9 @@ export default {
             this.outputsBySession = {};
             this.selectedSessionId = null;
             this.sessionFullscreen = false;
+            void this.loadSessions();
+        },
+        onWebsocketReconnected() {
             void this.loadSessions();
         },
         updateViewport() {

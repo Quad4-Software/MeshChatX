@@ -9,7 +9,7 @@ import re
 import zipfile
 from dataclasses import dataclass, field
 from io import BytesIO
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree as ET  # nosec: BAN-B405
 
 from meshchatx.src.backend.map_geo_validator import (
     ZIP_LOCAL_HEADER,
@@ -275,7 +275,7 @@ def sanitize_kml_bytes(data: bytes, *, zip_local_ok: bool = False) -> SanitizeRe
     if _looks_like_dtd(text):
         raise GeoValidationError("dtd_forbidden")
     try:
-        root = ET.fromstring(text)
+        root = ET.fromstring(text)  # nosec: BAN-B314
     except ET.ParseError as exc:
         raise GeoValidationError("invalid_kml") from exc
     if _strip_ns(root.tag).lower() != "kml":
@@ -369,7 +369,7 @@ def sanitize_kmz_bytes(data: bytes) -> SanitizeResult:
             raise GeoValidationError("kmz_missing_kml")
         kml_result = sanitize_kml_bytes(kept[kml_name], zip_local_ok=True)
         stripped.extend(kml_result.stripped)
-        root = ET.fromstring(kml_result.data)
+        root = ET.fromstring(kml_result.data)  # nosec: BAN-B314
         referenced: set[str] = set()
         _retain_kmz_local_hrefs(
             root,

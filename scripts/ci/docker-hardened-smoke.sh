@@ -12,9 +12,9 @@ TIMEOUT_SEC="${MESHCHAT_DOCKER_SMOKE_TIMEOUT:-180}"
 CONFIG_DIR="${MESHCHAT_DOCKER_SMOKE_CONFIG:-$(mktemp -d)}"
 
 cleanup() {
-    docker compose -f docker-compose.yml down >/dev/null 2>&1 || true
-    docker compose -f docker-compose.dev.yml down >/dev/null 2>&1 || true
-    docker compose -f docker-compose.coolify.yml down >/dev/null 2>&1 || true
+    docker compose -f docker/docker-compose.yml down >/dev/null 2>&1 || true
+    docker compose -f docker/docker-compose.dev.yml down >/dev/null 2>&1 || true
+    docker compose -f docker/docker-compose.coolify.yml down >/dev/null 2>&1 || true
     docker rm -f "$RUN_CONTAINER" >/dev/null 2>&1 || true
     if [ "${MESHCHAT_DOCKER_SMOKE_KEEP_CONFIG:-0}" != "1" ] && [ -n "${TMP_CONFIG_CREATED:-}" ]; then
         rm -rf "$CONFIG_DIR"
@@ -62,26 +62,26 @@ wait_container_healthy() {
 }
 
 echo "Building Docker image ${IMAGE}..."
-docker build -f Dockerfile -t "$IMAGE" .
+docker build -f docker/Dockerfile -t "$IMAGE" .
 
-echo "=== docker-compose.yml (hardened) ==="
-MESHCHAT_IMAGE="$IMAGE" docker compose -f docker-compose.yml up -d --pull never
+echo "=== docker/docker-compose.yml (hardened) ==="
+MESHCHAT_IMAGE="$IMAGE" docker compose -f docker/docker-compose.yml up -d --pull never
 wait_container_healthy reticulum-meshchatx
 wait_https 8000 >/dev/null
-docker compose -f docker-compose.yml down
+docker compose -f docker/docker-compose.yml down
 
-echo "=== docker-compose.dev.yml (hardened) ==="
-docker compose -f docker-compose.dev.yml up -d --pull never
+echo "=== docker/docker-compose.dev.yml (hardened) ==="
+docker compose -f docker/docker-compose.dev.yml up -d --pull never
 wait_container_healthy reticulum-meshchatx
 wait_https 8000 >/dev/null
-docker compose -f docker-compose.dev.yml down
+docker compose -f docker/docker-compose.dev.yml down
 
-echo "=== docker-compose.coolify.yml (hardened) ==="
-MESHCHAT_IMAGE="$IMAGE" docker compose -f docker-compose.coolify.yml up -d --pull never
-coolify_cid=$(docker compose -f docker-compose.coolify.yml ps -q meshchatx)
+echo "=== docker/docker-compose.coolify.yml (hardened) ==="
+MESHCHAT_IMAGE="$IMAGE" docker compose -f docker/docker-compose.coolify.yml up -d --pull never
+coolify_cid=$(docker compose -f docker/docker-compose.coolify.yml ps -q meshchatx)
 wait_container_healthy "$coolify_cid"
 docker exec "$coolify_cid" python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/status').read().decode())" >/dev/null
-docker compose -f docker-compose.coolify.yml down
+docker compose -f docker/docker-compose.coolify.yml down
 
 echo "=== docker run (hardened) ==="
 docker run -d --name "$RUN_CONTAINER" \

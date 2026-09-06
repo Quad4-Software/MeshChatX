@@ -27,7 +27,7 @@ describe("layout UX oracle-light", () => {
         expect(cv).toContain("composerChromeStyle");
         expect(cv).toContain("updateKeyboardInset");
         expect(cv).toContain("env(safe-area-inset-bottom");
-        expect(cv).toContain("flex-col gap-3 text-sm sm:flex-row sm:items-center");
+        expect(cv).toContain("flex-col gap-2 text-xs sm:flex-row sm:items-center");
         // Non-virtual list must use oldest-first normal flow. Nested flex-col-reverse
         // caused attachment image loads to yank scroll on wide viewports.
         expect(cv).toContain("data-message-list-mode=\"useVirtualMessageList ? 'virtual' : 'flow'\"");

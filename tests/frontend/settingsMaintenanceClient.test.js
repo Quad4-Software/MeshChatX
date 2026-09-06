@@ -54,13 +54,13 @@ describe("settingsMaintenanceClient message age helpers", () => {
 
     it("exportMessagesBundle passes optional filter params", async () => {
         const api = {
-            get: vi.fn().mockResolvedValue({ data: { messages: [] } }),
+            post: vi.fn().mockResolvedValue({ data: { messages: [] } }),
         };
         await exportMessagesBundle(api);
-        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", undefined);
+        expect(api.post).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", {});
         await exportMessagesBundle(api, { older_than_days: 14 });
-        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", {
-            params: { older_than_days: 14 },
+        expect(api.post).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", {
+            older_than_days: 14,
         });
     });
 });

@@ -68,7 +68,6 @@ from meshchatx.src.backend.active_sessions import (
     ActiveSessionTracker,
     should_warn_multi_session,
 )
-from meshchatx.src.backend.altcha_auth import altcha_enabled_from_env
 from meshchatx.src.backend.announce_manager import (
     filter_announced_dicts_by_search_query,
 )
@@ -240,7 +239,9 @@ from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetFileDownloader,
     NomadnetPageDownloader,
     clear_all_nomadnet_cached_links,
+    drop_cached_link,
     get_cached_active_link,
+    nomad_link_identity_kwargs,
 )
 from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
@@ -585,6 +586,8 @@ _HTTP_LIVE_NAME_ANCHORS = (
     import_messages_export_bundle,
     NomadnetFileDownloader,
     get_cached_active_link,
+    drop_cached_link,
+    nomad_link_identity_kwargs,
     convert_nomadnet_field_data_to_map,
     convert_nomadnet_string_data_to_map,
     PluginSecurityError,
@@ -625,12 +628,10 @@ class ReticulumMeshChat:
         defer_network_setup: bool = False,
         headless: bool = False,
         demo_mode: bool = False,
-        altcha_enabled: bool = False,
     ):
         self.running = True
         self.plugins_enabled = plugins_enabled
         self.demo_mode = bool(demo_mode)
-        self.altcha_enabled = bool(altcha_enabled)
         self.auth_page_hint = auth_page_hint_from_env()
         self._memory_diag_enabled = memory_diag_enabled
         self._mem_diag = None
@@ -687,6 +688,9 @@ class ReticulumMeshChat:
         self.ws_counters = WsRuntimeCounters()
         self.ws_seq_state = BroadcastSeqState()
         self._ws_coalesce = CoalesceBuffer(self._websocket_broadcast_coalesced)
+        from meshchatx.src.backend.webtransport_sidecar import WebTransportSidecarState
+
+        self.webtransport_state = WebTransportSidecarState()
         self._identity_hotswap_lock = asyncio.Lock()
         self.listen_host: str | None = None
         self.listen_port: int | None = None
@@ -1588,7 +1592,7 @@ class ReticulumMeshChat:
         def restart():
             time.sleep(delay)
             try:
-                os.execv(sys.executable, [sys.executable] + sys.argv)
+                os.execv(sys.executable, [sys.executable] + sys.argv)  # nosec: BAN-B606
             except Exception as e:
                 print(f"Failed to restart: {e}")
                 os._exit(0)
@@ -1830,7 +1834,6 @@ class ReticulumMeshChat:
     def _startup_status_payload(self) -> dict:
         demo_fields = {
             "demo_mode": self.demo_mode,
-            "altcha_enabled": self.altcha_enabled,
             "auth_page_hint": self.auth_page_hint,
         }
         if self._startup_stage == "failed" or self._startup_error:
@@ -1847,6 +1850,7 @@ class ReticulumMeshChat:
                 "plugins_enabled": self.plugins_enabled,
                 **demo_fields,
                 **self._landlock_status_dict(),
+                "webtransport": self._webtransport_status_dict(),
             }
             if self._startup_error:
                 payload["error"] = self._startup_error
@@ -1870,7 +1874,19 @@ class ReticulumMeshChat:
             "plugins_enabled": self.plugins_enabled,
             **demo_fields,
             **self._landlock_status_dict(),
+            "webtransport": self._webtransport_status_dict(),
         }
+
+    def _webtransport_status_dict(self) -> dict:
+        state = getattr(self, "webtransport_state", None)
+        if state is None:
+            from meshchatx.src.backend.webtransport_sidecar import (
+                WebTransportSidecarState,
+            )
+
+            state = WebTransportSidecarState()
+            self.webtransport_state = state
+        return state.status_dict()
 
     def wait_until_network_ready(self, timeout: float | None = None) -> bool:
         if (
@@ -2802,7 +2818,7 @@ class ReticulumMeshChat:
                                                     # Match IP and port for IPv4
                                                     if conn.laddr.port == addr[1] and (
                                                         conn.laddr.ip == addr[0]
-                                                        or addr[0] == "0.0.0.0"
+                                                        or addr[0] == "0.0.0.0"  # nosec: BAN-B104
                                                     ):
                                                         match = True
                                                 elif family_str == "AF_UNIX":
@@ -3966,6 +3982,11 @@ class ReticulumMeshChat:
             on_progress_update=on_progress,
             timeout=120,
             reticulum=getattr(self, "reticulum", None),
+            **nomad_link_identity_kwargs(
+                self,
+                bytes.fromhex(destination_hash),
+                private=False,
+            ),
         )
 
         try:
@@ -5694,6 +5715,15 @@ class ReticulumMeshChat:
             if self._mem_diag and self._mem_diag.enabled:
                 asyncio.create_task(self._memory_diag_snapshot_loop())
 
+            try:
+                from meshchatx.src.backend.webtransport_sidecar import (
+                    try_start_webtransport_sidecar,
+                )
+
+                await try_start_webtransport_sidecar(self)
+            except Exception:
+                print("webtransport sidecar startup failed (non-fatal)")
+
         # create and run web app
         app = web.Application(
             client_max_size=1024 * 1024 * 256,
@@ -6732,6 +6762,25 @@ class ReticulumMeshChat:
             self.config.ui_glass_enabled.set(
                 self._parse_bool(data["ui_glass_enabled"]),
             )
+
+        if "live_transport_mode" in data:
+            mode = str(data["live_transport_mode"] or "auto").strip().lower()
+            if mode not in ("auto", "websocket", "webtransport"):
+                mode = "auto"
+            self.config.live_transport_mode.set(mode)
+
+        if "webtransport_sidecar_enabled" in data:
+            self.config.webtransport_sidecar_enabled.set(
+                self._parse_bool(data["webtransport_sidecar_enabled"]),
+            )
+            try:
+                from meshchatx.src.backend.webtransport_sidecar import (
+                    try_start_webtransport_sidecar,
+                )
+
+                AsyncUtils.run_async(try_start_webtransport_sidecar(self))
+            except Exception:
+                pass
 
         if "messages_multi_pane_enabled" in data:
             self.config.messages_multi_pane_enabled.set(
@@ -7815,6 +7864,8 @@ class ReticulumMeshChat:
             "message_icon_size": ctx.config.message_icon_size.get(),
             "ui_transparency": ctx.config.ui_transparency.get(),
             "ui_glass_enabled": ctx.config.ui_glass_enabled.get(),
+            "live_transport_mode": ctx.config.live_transport_mode.get(),
+            "webtransport_sidecar_enabled": ctx.config.webtransport_sidecar_enabled.get(),
             "message_outbound_bubble_color": ctx.config.message_outbound_bubble_color.get(),
             "message_inbound_bubble_color": ctx.config.message_inbound_bubble_color.get(),
             "message_failed_bubble_color": ctx.config.message_failed_bubble_color.get(),
@@ -9935,8 +9986,9 @@ class ReticulumMeshChat:
             destination_hash_bytes,
         )
 
-        # Direct/opportunistic need a live peer path. Propagated uses the
-        # propagation node, so skip the peer path wait (still record outcome).
+        # Direct/opportunistic need a live peer path. Propagated needs a path to
+        # the preferred propagation node (not the peer).
+        prop_node_bytes = None
         if is_local_self:
             path_outcome = reticulum_pathfinding.OutboundPathOutcome(
                 True,
@@ -9944,28 +9996,60 @@ class ReticulumMeshChat:
                 False,
             )
         elif wants_propagated:
-            path_outcome = reticulum_pathfinding.OutboundPathOutcome(
-                False,
-                "skipped_for_propagated",
-                False,
+            router = ctx.message_router
+            with contextlib.suppress(Exception):
+                prop_node_bytes = (
+                    router.get_outbound_propagation_node() if router else None
+                )
+            if (
+                not isinstance(prop_node_bytes, (bytes, bytearray))
+                or not prop_node_bytes
+            ):
+                msg = (
+                    "No preferred propagation node configured. "
+                    "Set one in Settings or Propagation Nodes, then try again."
+                )
+                raise ValueError(msg)
+            prop_node_bytes = bytes(prop_node_bytes)
+            local_propagation_destination = getattr(
+                router,
+                "propagation_destination",
+                None,
             )
+            local_propagation_hash = getattr(
+                local_propagation_destination,
+                "hash",
+                None,
+            )
+            if (
+                isinstance(local_propagation_hash, (bytes, bytearray))
+                and bytes(local_propagation_hash) == prop_node_bytes
+            ):
+                path_outcome = reticulum_pathfinding.OutboundPathOutcome(
+                    True,
+                    "local_propagation_node",
+                    False,
+                )
+            else:
+                path_outcome = await self._await_transport_path(prop_node_bytes)
         else:
             # Reticulum keeps a live path table, and entries expire when peers move or links drop.
             # We cannot replay "old" paths from the app layer. Transport.request_path refreshes discovery.
             # Wait on lxmf.delivery, not an identity hash or some other aspect dest.
             path_outcome = await self._await_transport_path(delivery_hash_bytes)
 
-        # Direct/opportunistic delivery needs a live transport path. Propagated
-        # delivery can proceed without a peer path (it uses the propagation node).
-        if (
-            not is_local_self
-            and not wants_propagated
-            and not path_outcome.path_available
-        ):
-            msg = (
-                "No path to destination. "
-                "Use Path Finder or wait for a route, then try again."
-            )
+        # Direct/opportunistic: peer path. Propagated: preferred propagation node path.
+        if not is_local_self and not path_outcome.path_available:
+            if wants_propagated:
+                msg = (
+                    "No path to preferred propagation node. "
+                    "Open Propagation Nodes or Path Finder, wait for a route, then try again."
+                )
+            else:
+                msg = (
+                    "No path to destination. "
+                    "Use Path Finder or wait for a route, then try again."
+                )
             raise TimeoutError(msg)
 
         # create destination for recipients lxmf delivery address
@@ -10176,15 +10260,19 @@ class ReticulumMeshChat:
 
         # upsert lxmf message to database
         if not no_display:
+            path_row_hex = None
+            if path_outcome.path_available:
+                if wants_propagated and isinstance(prop_node_bytes, (bytes, bytearray)):
+                    path_row_hex = bytes(prop_node_bytes).hex()
+                else:
+                    path_row_hex = delivery_hash_bytes.hex()
             self.db_upsert_lxmf_message(
                 lxmf_message,
                 context=ctx,
                 path_finding_measure=reticulum_pathfinding.format_outbound_path_finding_measure(
                     path_outcome,
                 ),
-                path_row_hash_hex=delivery_hash_bytes.hex()
-                if path_outcome.path_available
-                else None,
+                path_row_hash_hex=path_row_hex,
             )
 
         # tell all websocket clients that old failed message was deleted so it can remove from ui
@@ -10309,16 +10397,18 @@ class ReticulumMeshChat:
             print(f"Error processing incoming telemetry: {e}")
 
     def _resolve_location_for_telemetry(self):
+        """Return coords for mesh telemetry auto-reply, or (None, None).
+
+        Only explicit manual coordinates may be answered over LXMF. Browser
+        geolocation is client-side only. Map default center must never be
+        shipped as if it were the operator's location.
+        """
         location_source = self.config.location_source.get()
-        if location_source == "disabled":
-            return None, None
         if location_source == "manual":
             lat = self.config.location_manual_lat.get()
             lon = self.config.location_manual_lon.get()
-        else:
-            lat = self.database.config.get("map_default_lat")
-            lon = self.database.config.get("map_default_lon")
-        return lat, lon
+            return lat, lon
+        return None, None
 
     def handle_telemetry_request(self, to_addr_hash: str):
         lat, lon = self._resolve_location_for_telemetry()
@@ -11553,7 +11643,6 @@ def main():
         )
 
     demo_mode = bool(args.demo)
-    altcha_on = altcha_enabled_from_env()
 
     reticulum_meshchat = ReticulumMeshChat(
         identity,
@@ -11574,7 +11663,6 @@ def main():
         defer_network_setup=not needs_immediate_network,
         headless=bool(args.headless),
         demo_mode=demo_mode,
-        altcha_enabled=altcha_on,
     )
 
     # store recovery on app for wiring with identity context

@@ -1,0 +1,10 @@
+package:
+    name: aioquic
+    version: "1.3.0"
+
+requirements:
+    host:
+        - openssl
+
+build:
+    number: 0

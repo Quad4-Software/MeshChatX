@@ -69,6 +69,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     filter_announced_dicts_by_search_query,
     fresh_storage_at_target,
     get_cached_active_link,
+    drop_cached_link,
     get_file_path,
     get_session,
     get_trusted_proxy_cidrs,
@@ -87,6 +88,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     load_app_security_settings,
     logger,
     logging,
+    nomad_link_identity_kwargs,
     lxmf_sidebar_preview_for_conversation_latest_row,
     memory_log_handler,
     message_fields_have_attachments,
@@ -424,6 +426,95 @@ def register_favourites_routes(routes, app):
             },
         )
 
+    @routes.post("/api/v1/favourites/{destination_hash}/identify-on-connect")
+    async def favourites_identify_on_connect(request):
+        destination_hash = request.match_info.get("destination_hash", "")
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response(
+                {"message": "Invalid request body"},
+                status=400,
+            )
+        if not isinstance(data, dict):
+            return web.json_response(
+                {"message": "Invalid request body"},
+                status=400,
+            )
+
+        enabled = bool(data.get("enabled"))
+        aspect = data.get("aspect") or "nomadnetwork.node"
+        if not isinstance(aspect, str) or not aspect.strip():
+            aspect = "nomadnetwork.node"
+        else:
+            aspect = aspect.strip()
+
+        raw_name = data.get("display_name")
+        if isinstance(raw_name, str):
+            display_name = raw_name.strip()
+        elif raw_name is None:
+            display_name = ""
+        else:
+            display_name = str(raw_name).strip()
+
+        existing = app.database.announces.get_favourite_by_destination_hash(
+            destination_hash,
+        )
+        if existing is not None:
+            if not display_name:
+                display_name = existing["display_name"] or ""
+            if data.get("aspect") is None:
+                aspect = existing["aspect"] or aspect
+
+        if not display_name:
+            display_name = "Unknown Node"
+
+        app.database.announces.upsert_favourite(
+            destination_hash,
+            display_name,
+            aspect,
+            identify_on_connect=enabled,
+        )
+
+        identified_now = False
+        cache_dropped = False
+        try:
+            dest_bytes = bytes.fromhex(destination_hash)
+        except ValueError:
+            dest_bytes = None
+
+        if dest_bytes is not None:
+            if enabled:
+                link = get_cached_active_link(dest_bytes)
+                identity = getattr(app, "identity", None)
+                if link is not None and identity is not None:
+                    try:
+                        link.identify(identity)
+                        identified_now = True
+                    except Exception:
+                        logger.exception(
+                            "favourites_identify_on_connect identify failed",
+                        )
+            else:
+                cache_dropped = bool(drop_cached_link(dest_bytes))
+
+        favourite = app.database.announces.get_favourite_by_destination_hash(
+            destination_hash,
+        )
+        return web.json_response(
+            {
+                "message": "Identify on connect updated",
+                "identify_on_connect": enabled,
+                "identified_now": identified_now,
+                "cache_dropped": cache_dropped,
+                "favourite": (
+                    convert_db_favourite_to_dict(favourite)
+                    if favourite is not None
+                    else None
+                ),
+            },
+        )
+
     # delete favourite
 
     # delete favourite
@@ -473,11 +564,16 @@ def register_favourites_routes(routes, app):
                 if not dest_hash or not aspect:
                     skipped += 1
                     continue
+                identify_raw = entry.get("identify_on_connect")
+                identify_on_connect = None
+                if identify_raw is not None:
+                    identify_on_connect = bool(identify_raw)
                 try:
                     app.database.announces.upsert_favourite(
                         dest_hash,
                         display_name,
                         aspect,
+                        identify_on_connect=identify_on_connect,
                     )
                     imported += 1
                 except Exception:

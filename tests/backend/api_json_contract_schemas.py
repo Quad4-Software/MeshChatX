@@ -201,8 +201,36 @@ _SERVER_BIND_STATUS_SCHEMA: dict = {
 
 _DEMO_PUBLIC_STATUS_FIELDS: dict = {
     "demo_mode": {"type": "boolean"},
-    "altcha_enabled": {"type": "boolean"},
     "auth_page_hint": {"type": ["string", "null"]},
+}
+
+_WEBTRANSPORT_STATUS_SCHEMA: dict = {
+    "webtransport": {
+        "type": "object",
+        "required": [
+            "experimental",
+            "server_available",
+            "url",
+            "cert_sha256_b64",
+            "reason",
+            "enabled_intent",
+            "listen_host",
+            "listen_port",
+            "client_probe_supported",
+        ],
+        "properties": {
+            "experimental": {"type": "boolean"},
+            "server_available": {"type": "boolean"},
+            "url": {"type": ["string", "null"]},
+            "cert_sha256_b64": {"type": ["string", "null"]},
+            "reason": {"type": ["string", "null"]},
+            "enabled_intent": {"type": "boolean"},
+            "listen_host": {"type": ["string", "null"]},
+            "listen_port": {"type": ["integer", "null"]},
+            "client_probe_supported": {"type": "boolean"},
+        },
+        "additionalProperties": False,
+    },
 }
 
 API_V1_STATUS_SCHEMA: dict = {
@@ -220,6 +248,7 @@ API_V1_STATUS_SCHEMA: dict = {
         "error": {"type": "string"},
         **_SERVER_BIND_STATUS_SCHEMA,
         **_DEMO_PUBLIC_STATUS_FIELDS,
+        **_WEBTRANSPORT_STATUS_SCHEMA,
     },
     "additionalProperties": False,
 }
@@ -351,22 +380,6 @@ AUTH_STATUS_SCHEMA: dict = {
     "additionalProperties": False,
 }
 
-ALTCHA_CHALLENGE_SCHEMA: dict = {
-    "type": "object",
-    "required": ["parameters", "signature"],
-    "properties": {
-        "parameters": {
-            "type": "object",
-            "required": ["algorithm"],
-            "properties": {
-                "algorithm": {"type": "string"},
-            },
-            "additionalProperties": True,
-        },
-        "signature": {"type": "string"},
-    },
-    "additionalProperties": True,
-}
 
 TELEPHONE_VOICEMAIL_STATUS_SCHEMA: dict = {
     "type": "object",

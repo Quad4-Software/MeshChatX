@@ -2,7 +2,6 @@
 
 Philosophy: https://reticulum.network/manual/zen.html
 Checklist: `.agents/skills/reticulum-design-gates/SKILL.md`.
-Always-on: `.cursor/rules/reticulum-zen-gates.mdc`.
 
 ## Mental model
 

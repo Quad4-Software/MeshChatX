@@ -1,7 +1,7 @@
 # .agents index
 
 Agent guidance only. End-user docs: `docs/en/`.
-Entry: root `AGENTS.md`. Always-on rules: `.cursor/rules/`.
+Entry: root `AGENTS.md`.
 
 ## Open by need
 
@@ -54,6 +54,7 @@ Skills: one file each at `skills/<name>/SKILL.md`. Open the matching skill befor
 | focused test loops                       | [test-loop](skills/test-loop/SKILL.md)                                       |
 | property / fuzz oracles                  | [test-oracles](skills/test-oracles/SKILL.md)                                 |
 | exploratory bug hunt                     | [exploratory-testing](skills/exploratory-testing/SKILL.md)                   |
+| experimental WebTransport live           | [webtransport-experimental](skills/webtransport-experimental/SKILL.md)       |
 
 Zen philosophy: https://reticulum.network/manual/zen.html
 

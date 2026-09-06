@@ -117,6 +117,38 @@ def sweep_stale_links():
     _teardown_links(to_teardown)
 
 
+def drop_cached_link(destination_hash: bytes) -> bool:
+    """Tear down and remove a single cached Nomad link (e.g. after clearing identify)."""
+    with _nomadnet_links_lock:
+        link = nomadnet_cached_links.pop(destination_hash, None)
+        _nomadnet_link_last_used.pop(destination_hash, None)
+    if link is None:
+        return False
+    _teardown_links([link])
+    return True
+
+
+def nomad_link_identity_kwargs(
+    app, destination_hash: bytes, *, private: bool = False
+) -> dict:
+    """Resolve local_identity / identify_on_connect for Nomad downloaders."""
+    if private:
+        return {"local_identity": None, "identify_on_connect": False}
+    identify = False
+    try:
+        db = getattr(app, "database", None)
+        if db is not None:
+            identify = bool(
+                db.announces.should_identify_on_connect(destination_hash.hex()),
+            )
+    except Exception:
+        identify = False
+    return {
+        "local_identity": getattr(app, "identity", None),
+        "identify_on_connect": identify,
+    }
+
+
 def _cache_link_if_active(destination_hash: bytes, link) -> None:
     if link is None or link.status is not RNS.Link.ACTIVE:
         return
@@ -163,6 +195,8 @@ class NomadnetDownloader:
         on_phase: Callable[[str], None] | None = None,
         reticulum: ReticulumLike | None = None,
         private: bool = False,
+        local_identity=None,
+        identify_on_connect: bool = False,
     ):
         self.app_name = "nomadnetwork"
         self.aspects = "node"
@@ -178,6 +212,8 @@ class NomadnetDownloader:
         # Private browse: no shared link cache, tear down after the request.
         # Does not spin IdentityContext. Nomad links stay unidentified.
         self.private = bool(private)
+        self.local_identity = local_identity
+        self.identify_on_connect = bool(identify_on_connect) and not self.private
         self.request_receipt = None
         self.is_cancelled = False
         self.link = None
@@ -189,6 +225,16 @@ class NomadnetDownloader:
             self._on_phase(phase)
         except Exception:
             pass
+
+    def _maybe_identify(self, link) -> None:
+        if not self.identify_on_connect or self.local_identity is None:
+            return
+        if link is None or link.status is not RNS.Link.ACTIVE:
+            return
+        try:
+            link.identify(self.local_identity)
+        except Exception as exc:
+            print(f"[NomadnetDownloader] identify failed: {exc}")
 
     def cancel(self):
         self.is_cancelled = True
@@ -382,6 +428,8 @@ class NomadnetDownloader:
         if not self.private:
             _cache_link_if_active(self.destination_hash, link)
 
+        self._maybe_identify(link)
+
         self.request_receipt = link.request(
             self.path,
             data=self.data,
@@ -421,6 +469,8 @@ class NomadnetPageDownloader(NomadnetDownloader):
         on_phase: Callable[[str], None] | None = None,
         reticulum: ReticulumLike | None = None,
         private: bool = False,
+        local_identity=None,
+        identify_on_connect: bool = False,
     ):
         self.on_page_download_success = on_page_download_success
         self.on_page_download_failure = on_page_download_failure
@@ -435,6 +485,8 @@ class NomadnetPageDownloader(NomadnetDownloader):
             on_phase=on_phase,
             reticulum=reticulum,
             private=private,
+            local_identity=local_identity,
+            identify_on_connect=identify_on_connect,
         )
 
     def on_download_success(self, request_receipt: RNS.RequestReceipt):
@@ -468,6 +520,8 @@ class NomadnetFileDownloader(NomadnetDownloader):
         reticulum: ReticulumLike | None = None,
         max_bytes: int | None = None,
         private: bool = False,
+        local_identity=None,
+        identify_on_connect: bool = False,
     ):
         self.on_file_download_success = on_file_download_success
         self.on_file_download_failure = on_file_download_failure
@@ -484,6 +538,8 @@ class NomadnetFileDownloader(NomadnetDownloader):
             on_phase=on_phase,
             reticulum=reticulum,
             private=private,
+            local_identity=local_identity,
+            identify_on_connect=identify_on_connect,
         )
 
     @staticmethod

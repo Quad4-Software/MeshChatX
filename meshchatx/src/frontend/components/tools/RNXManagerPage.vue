@@ -323,6 +323,7 @@ import ToastUtils from "../../js/ToastUtils";
 import { loadRnxLayout, saveRnxLayout } from "../../js/browserLayoutStore";
 import { renderTerminalOutput } from "../../js/terminalRender";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 const EMPTY_LAYOUT = {
     selectedSessionId: null,
@@ -451,6 +452,7 @@ export default {
         await this.loadSessions();
         onWsEvent("rnx.session.change", this.onSessionChange);
         onWsEvent("rnx.output", this.onOutputEvent);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
     },
     beforeUnmount() {
         if (this.onWindowResize) {
@@ -462,8 +464,12 @@ export default {
         document.body.style.overflow = "";
         offWsEvent("rnx.session.change", this.onSessionChange);
         offWsEvent("rnx.output", this.onOutputEvent);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
     },
     methods: {
+        onWebsocketReconnected() {
+            void this.loadSessions();
+        },
         updateViewport() {
             const narrow = typeof window !== "undefined" && window.innerWidth < NARROW_BREAKPOINT_PX;
             this.isNarrowScreen = narrow;

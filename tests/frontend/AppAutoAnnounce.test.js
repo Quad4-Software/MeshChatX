@@ -17,6 +17,9 @@ vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
         on: vi.fn(),
         off: vi.fn(),
         destroy: vi.fn(),
+        setLiveSendBridge: vi.fn(),
+        isOpen: vi.fn(() => false),
+        reconnect: vi.fn(),
     },
 }));
 

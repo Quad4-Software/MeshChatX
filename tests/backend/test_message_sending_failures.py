@@ -114,12 +114,15 @@ async def test_send_message_blocks_when_path_unavailable(mock_app):
 
 
 @pytest.mark.asyncio
-async def test_send_message_propagated_allows_missing_peer_path(mock_app):
+async def test_send_message_propagated_awaits_prop_node_path(mock_app):
     destination_hash = "aa" * 16
+    prop_node = b"\xbb" * 16
     fake_identity = MagicMock()
     mock_app.recall_identity = MagicMock(return_value=fake_identity)
+    mock_app.message_router.get_outbound_propagation_node.return_value = prop_node
+    mock_app.message_router.propagation_destination = MagicMock(hash=b"\xcc" * 16)
     mock_app._await_transport_path = AsyncMock(
-        return_value=OutboundPathOutcome(False, "new_path_requested", True),
+        return_value=OutboundPathOutcome(True, "reused_valid_path", False),
     )
     mock_app.config.auto_send_failed_messages_to_propagation_node.get.return_value = (
         False
@@ -146,7 +149,41 @@ async def test_send_message_propagated_allows_missing_peer_path(mock_app):
         )
     assert result is mock_msg
     mock_app.message_router.handle_outbound.assert_called_once()
+    mock_app._await_transport_path.assert_called_once_with(prop_node)
+
+
+@pytest.mark.asyncio
+async def test_send_message_propagated_blocks_without_prop_node_path(mock_app):
+    destination_hash = "aa" * 16
+    prop_node = b"\xbb" * 16
+    mock_app.recall_identity = MagicMock(return_value=MagicMock())
+    mock_app.message_router.get_outbound_propagation_node.return_value = prop_node
+    mock_app.message_router.propagation_destination = MagicMock(hash=b"\xcc" * 16)
+    mock_app._await_transport_path = AsyncMock(
+        return_value=OutboundPathOutcome(False, "new_path_requested", True),
+    )
+    with pytest.raises(TimeoutError, match="propagation node"):
+        await mock_app.send_message(
+            destination_hash=destination_hash,
+            content="hi",
+            delivery_method="propagated",
+        )
+    mock_app.message_router.handle_outbound.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_send_message_propagated_requires_preferred_node(mock_app):
+    destination_hash = "aa" * 16
+    mock_app.recall_identity = MagicMock(return_value=MagicMock())
+    mock_app.message_router.get_outbound_propagation_node.return_value = None
+    with pytest.raises(ValueError, match="preferred propagation node"):
+        await mock_app.send_message(
+            destination_hash=destination_hash,
+            content="hi",
+            delivery_method="propagated",
+        )
     mock_app._await_transport_path.assert_not_called()
+    mock_app.message_router.handle_outbound.assert_not_called()
 
 
 @pytest.mark.asyncio

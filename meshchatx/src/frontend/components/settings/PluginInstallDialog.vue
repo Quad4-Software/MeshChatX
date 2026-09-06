@@ -15,63 +15,53 @@
             aria-modal="true"
             aria-labelledby="plugin-install-title"
         >
-            <h2 id="plugin-install-title" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h2 id="plugin-install-title" class="text-lg font-semibold text-sem-fg">
                 {{
                     preview.requires_network_fetch
                         ? $t("plugins.install_dialog.network_title")
                         : $t("plugins.install_dialog.title")
                 }}
             </h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-sem-fg-muted">
                 {{ $t("plugins.install_dialog.message", { name: preview.name, id: preview.id }) }}
             </p>
 
             <div class="space-y-1">
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <p class="text-sm font-medium text-sem-fg">
                     {{ preview.name }}
-                    <span class="text-xs font-normal text-gray-500">v{{ preview.version }}</span>
+                    <span class="text-xs font-normal text-sem-fg-muted">v{{ preview.version }}</span>
                 </p>
-                <p v-if="preview.description" class="text-sm text-gray-600 dark:text-gray-400">
+                <p v-if="preview.description" class="text-sm text-sem-fg-muted">
                     {{ preview.description }}
                 </p>
             </div>
 
             <section class="space-y-2">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <h3 class="text-sm font-semibold text-sem-fg">
                     {{ $t("plugins.install_dialog.signature") }}
                 </h3>
                 <p class="text-sm" :class="signatureClass">
                     {{ signatureLabel }}
                 </p>
-                <p
-                    v-if="preview.signature?.signer"
-                    class="text-xs font-mono break-all text-gray-600 dark:text-gray-400"
-                >
+                <p v-if="preview.signature?.signer" class="text-xs font-mono break-all text-sem-fg-muted">
                     {{ preview.signature.signer }}
                     <span v-if="preview.signature.signer_name"> ({{ preview.signature.signer_name }})</span>
                 </p>
                 <p v-if="preview.signature?.error" class="text-xs text-red-600 dark:text-red-400">
                     {{ preview.signature.error }}
                 </p>
-                <label
-                    v-if="canTrustPublisher"
-                    class="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300"
-                >
-                    <input v-model="trustPublisher" type="checkbox" class="rounded border-gray-300" />
+                <label v-if="canTrustPublisher" class="inline-flex items-center gap-2 text-xs text-sem-fg">
+                    <input v-model="trustPublisher" type="checkbox" class="rounded border-sem-border" />
                     {{ $t("plugins.install_dialog.trust_publisher") }}
                 </label>
             </section>
 
             <section v-if="(preview.security_findings || []).length" class="space-y-2">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <h3 class="text-sm font-semibold text-sem-fg">
                     {{ $t("plugins.install_dialog.security_findings") }}
                 </h3>
                 <ul class="space-y-1 rounded-md border border-sem-border p-3">
-                    <li
-                        v-for="finding in preview.security_findings"
-                        :key="finding.id"
-                        class="text-xs text-gray-700 dark:text-gray-300"
-                    >
+                    <li v-for="finding in preview.security_findings" :key="finding.id" class="text-xs text-sem-fg">
                         <span class="font-semibold uppercase">{{ finding.severity }}</span>
                         {{ finding.message }}
                     </li>
@@ -79,7 +69,7 @@
             </section>
 
             <section v-if="(preview.permissions || []).length" class="space-y-2">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <h3 class="text-sm font-semibold text-sem-fg">
                     {{ $t("plugins.install_dialog.permissions") }}
                 </h3>
                 <p class="text-xs text-sem-fg-muted">
@@ -91,9 +81,9 @@
                         :key="perm"
                         class="flex items-center justify-between gap-3 rounded-md border border-sem-border px-3 py-2"
                     >
-                        <span class="text-sm text-gray-800 dark:text-gray-200">{{ labelFor(perm) }}</span>
-                        <label class="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                            <input v-model="grantedMap[perm]" type="checkbox" class="rounded border-gray-300" />
+                        <span class="text-sm text-sem-fg">{{ labelFor(perm) }}</span>
+                        <label class="inline-flex items-center gap-2 text-xs text-sem-fg-muted">
+                            <input v-model="grantedMap[perm]" type="checkbox" class="rounded border-sem-border" />
                             {{ $t("plugins.install_dialog.grant") }}
                         </label>
                     </li>
@@ -101,7 +91,7 @@
             </section>
 
             <section v-if="preview.requires_network_fetch" class="space-y-2">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <h3 class="text-sm font-semibold text-sem-fg">
                     {{ $t("plugins.install_dialog.network_endpoints") }}
                 </h3>
                 <p v-if="!networkFetchGranted" class="text-xs text-amber-700 dark:text-amber-300">
@@ -114,7 +104,7 @@
                     <li
                         v-for="endpoint in preview.network_endpoints"
                         :key="endpoint"
-                        class="text-xs font-mono break-all text-gray-700 dark:text-gray-300"
+                        class="text-xs font-mono break-all text-sem-fg"
                     >
                         {{ endpoint }}
                     </li>
@@ -127,7 +117,7 @@
             <div class="flex justify-end gap-2 pt-2">
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 text-sm"
+                    class="px-3 py-1.5 rounded-md border border-sem-border text-sm"
                     :disabled="confirming"
                     @click="onCancel"
                 >
@@ -199,7 +189,7 @@ export default {
             if (signature.valid) {
                 return "text-sky-700 dark:text-sky-300";
             }
-            return "text-gray-600 dark:text-gray-400";
+            return "text-sem-fg-muted";
         },
     },
     watch: {

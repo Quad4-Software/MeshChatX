@@ -31,7 +31,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 57
+    LATEST_VERSION = 58
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -216,6 +216,7 @@ class DatabaseSchema:
                     destination_hash TEXT UNIQUE,
                     display_name TEXT,
                     aspect TEXT,
+                    identify_on_connect INTEGER NOT NULL DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
@@ -1824,4 +1825,11 @@ class DatabaseSchema:
             self._safe_execute(
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
                 ("channel_prompt_seen", ""),
+            )
+
+        if current_version < 58 and target_version >= 58:
+            self._ensure_column(
+                "favourite_destinations",
+                "identify_on_connect",
+                "INTEGER NOT NULL DEFAULT 0",
             )

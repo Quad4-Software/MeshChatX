@@ -291,6 +291,15 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "settings.battery.apply_interface_bitrate_limits",
         "settings.battery.apply_bitrates_reload",
     ],
+    experimentalLive: [
+        "experimental",
+        "webtransport",
+        "websocket",
+        "live transport",
+        "settings.experimental.title",
+        "settings.experimental.live_transport_mode",
+        "settings.experimental.webtransport_sidecar",
+    ],
     language: [
         "i18n",
         "app.language",

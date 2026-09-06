@@ -2,19 +2,25 @@
 
 <template>
     <div class="flex flex-col h-full w-full bg-sem-surface overflow-hidden">
-        <!-- header -->
+        <!-- Title only for standalone / pop-out (embedded tabs already name the map) -->
         <div
-            class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative"
+            v-if="!embedded"
+            class="flex items-center gap-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative"
         >
-            <div class="hidden sm:flex items-center min-w-0 gap-2">
-                <MaterialDesignIcon icon-name="map" class="size-6 text-blue-500 dark:text-blue-400 shrink-0" />
-                <h1 class="text-lg sm:text-xl font-black text-sem-fg truncate">
-                    {{ embedded && tabTitle ? tabTitle : $t("map.title") }}
-                </h1>
-            </div>
+            <MaterialDesignIcon icon-name="map" class="size-6 text-blue-500 dark:text-blue-400 shrink-0" />
+            <h1 class="text-lg sm:text-xl font-black text-sem-fg truncate">
+                {{ tabTitle || $t("map.title") }}
+            </h1>
+        </div>
 
+        <!-- Controls: teleports into the tab strip on wide embedded layouts -->
+        <Teleport v-if="showMapToolbar" :disabled="!useTabToolbar" to="#map-browser-toolbar-host">
             <div
-                class="flex flex-wrap items-center gap-x-1.5 gap-y-2 sm:ml-auto sm:flex-nowrap sm:gap-2 sm:justify-end min-w-0"
+                :class="
+                    useTabToolbar
+                        ? 'flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 justify-end'
+                        : 'flex flex-wrap items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative sm:justify-end min-w-0'
+                "
             >
                 <!-- offline/online toggle -->
                 <div class="flex items-center bg-sem-surface-muted rounded-lg p-0.5 sm:p-1 min-w-0 max-w-full">
@@ -92,7 +98,7 @@
                     <MaterialDesignIcon icon-name="cog" class="size-[18px] sm:size-5" />
                 </button>
             </div>
-        </div>
+        </Teleport>
 
         <!-- map container (h-full so absolute overlays can use max-h-full / inset height) -->
         <div ref="mapViewOverlayRoot" class="relative flex-1 min-h-0 h-full">
@@ -412,7 +418,7 @@
                 </ContextMenuItem>
                 <ContextMenuItem @click="contextCopyCoords">
                     <MaterialDesignIcon icon-name="crosshairs-gps" class="size-4" />
-                    Copy coords
+                    {{ $t("map.copy_coords") }}
                 </ContextMenuItem>
                 <ContextMenuItem @click="contextPingHere">
                     <MaterialDesignIcon icon-name="send" class="size-4" />
@@ -422,6 +428,25 @@
                     <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
                     Clear drawings
                 </ContextMenuItem>
+                <ContextMenuDivider />
+                <div class="px-3 py-2 border-t border-sem-border space-y-1 max-w-[18rem]">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted mb-1">
+                        {{ $t("map.context_coords") }}
+                    </div>
+                    <button
+                        v-for="row in contextMenuCoordRows"
+                        :key="row.format"
+                        type="button"
+                        class="w-full text-left rounded-md px-1.5 py-1 hover:bg-sem-surface-muted transition-colors"
+                        :title="$t('map.copy_coords_format', { format: row.label })"
+                        @click="contextCopyCoordFormat(row.format)"
+                    >
+                        <div class="text-[9px] uppercase tracking-wider text-sem-fg-muted">{{ row.label }}</div>
+                        <div class="text-[11px] font-mono text-sem-fg tabular-nums break-all leading-snug">
+                            {{ row.text || "…" }}
+                        </div>
+                    </button>
+                </div>
             </ContextMenuPanel>
 
             <!-- loading skeleton for map -->
@@ -583,7 +608,7 @@
                         <select
                             id="map-coord-format"
                             v-model="coordinateFormat"
-                            class="bg-transparent text-sem-fg text-[10px] font-medium border border-sem-border rounded px-1 py-0.5 max-w-[7rem]"
+                            class="bg-transparent text-sem-fg text-[10px] font-medium border border-sem-border rounded pl-1.5 pr-5 py-0.5 max-w-[8.5rem] min-w-[5.5rem]"
                             @change="onCoordinateFormatChange"
                         >
                             <option value="wgs84">{{ $t("map.coord_format_wgs84") }}</option>
@@ -1063,6 +1088,7 @@ import {
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
+import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
 import DOMPurify from "dompurify";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
@@ -1140,6 +1166,7 @@ export default {
     components: {
         ContextMenuItem,
         ContextMenuPanel,
+        ContextMenuDivider,
         MaterialDesignIcon,
         MapClusterPanel,
         MapMarkerPanel,
@@ -1177,6 +1204,8 @@ export default {
     data() {
         return {
             map: null,
+            showMapToolbar: true,
+            useTabToolbar: false,
             offlineEnabled: true,
             hasOfflineMap: false,
             metadata: null,
@@ -1587,8 +1616,10 @@ export default {
                 this.fetchTelemetryMarkers();
             }
         }, 30000);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
     },
     beforeUnmount() {
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         if (this.map && this.map.getViewport()) {
             this.map.getViewport().removeEventListener("contextmenu", this.onContextMenu);
         }
@@ -1646,6 +1677,11 @@ export default {
         }
     },
     methods: {
+        onWebsocketReconnected() {
+            if (this.shouldPollTelemetry()) {
+                this.fetchTelemetryMarkers();
+            }
+        },
         shouldPollTelemetry() {
             return shouldPollKeepAliveEmbedded(this.embedded, this.isActiveTab);
         },
@@ -1929,6 +1965,8 @@ export default {
             this.drawSource = new VectorSource();
             this.drawLayer = new VectorLayer({
                 source: this.drawSource,
+                updateWhileAnimating: false,
+                updateWhileInteracting: false,
                 style: (feature, resolution) => {
                     const own = feature.getStyle();
                     if (own != null) {
@@ -1937,7 +1975,7 @@ export default {
                         }
                         return own;
                     }
-                    const fromProps = styleFromMcxProperties(feature);
+                    const fromProps = styleFromMcxProperties(feature, resolution);
                     if (fromProps) {
                         return fromProps;
                     }

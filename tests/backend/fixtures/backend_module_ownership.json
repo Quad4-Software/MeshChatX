@@ -22,7 +22,12 @@
             "manager_modules": ["csrf.py", "app_security_settings.py", "ip_allowlist.py"],
             "http_route_module": ["http/routes/auth.py"],
             "ws_module": ["http/ws/dispatch.py"],
-            "primary_tests": ["test_csrf*", "test_access_attempts_*"],
+            "primary_tests": [
+                "test_http_auth_security.py",
+                "test_app_security_features.py",
+                "test_sanitizer_auth_ws_oracles.py",
+                "test_access_attempts_*"
+            ],
             "frontend_page": ["App.vue"]
         },
         {

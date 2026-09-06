@@ -10,7 +10,7 @@
             :style="{ background: (GlobalState?.config?.banished_color || '#dc2626') + '33' }"
         >
             <span
-                class="banished-text opacity-100! text-white! shadow-lg! bg-red-600! px-4! py-2! rounded-xl! border-2! tracking-widest!"
+                class="banished-text opacity-100! text-sem-canvas! shadow-lg! bg-sem-danger! px-4! py-2! rounded-xl! border-2! tracking-widest!"
                 :style="{
                     'background-color': GlobalState?.config?.banished_color || '#dc2626',
                     'border-color': GlobalState?.config?.banished_color || '#dc2626',
@@ -78,35 +78,32 @@
         >
             <div
                 v-show="composerImageDropActive"
-                class="pointer-events-none absolute inset-0 z-5 border-2 border-dashed border-blue-400/70 bg-blue-500/6 dark:bg-blue-400/8"
+                class="pointer-events-none absolute inset-0 z-5 border-2 border-dashed border-sem-accent/70 bg-sem-accent/5"
                 aria-hidden="true"
             />
 
             <!-- stranger trust banner -->
             <div
                 v-if="isStrangerPeer && !strangerBannerDismissed && showUnknownContactBanner"
-                class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex flex-col gap-3 text-sm sm:flex-row sm:items-center"
+                class="mx-3 mt-2 mb-0 px-3 py-2 bg-sem-warning/5 border border-sem-warning rounded-lg flex flex-col gap-2 text-xs sm:flex-row sm:items-center"
             >
-                <div class="flex items-start gap-3 min-w-0 flex-1">
-                    <MaterialDesignIcon
-                        icon-name="alert-circle-outline"
-                        class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
-                    />
-                    <span class="flex-1 text-amber-900 dark:text-amber-200">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                    <MaterialDesignIcon icon-name="alert-circle-outline" class="w-4 h-4 text-sem-warning shrink-0" />
+                    <span class="flex-1 text-sem-warning">
                         {{ $t("messages.stranger_banner_text") }}
                     </span>
                 </div>
-                <div class="flex items-center gap-2 shrink-0 sm:justify-end">
+                <div class="flex items-center gap-1.5 shrink-0 sm:justify-end">
                     <button
                         type="button"
-                        class="min-h-[44px] flex-1 sm:flex-none px-3 py-2 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                        class="min-h-[36px] sm:min-h-0 flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium rounded-md bg-sem-warning hover:bg-sem-warning/80 text-white transition-colors"
                         @click="addStrangerAsContact"
                     >
                         {{ $t("messages.add_to_contacts") }}
                     </button>
                     <button
                         type="button"
-                        class="min-h-[44px] px-3 py-2 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors"
+                        class="min-h-[36px] sm:min-h-0 px-2.5 py-1 text-xs text-sem-warning hover:text-sem-warning dark:hover:text-amber-200 transition-colors"
                         @click="strangerBannerDismissed = true"
                     >
                         {{ $t("messages.dismiss") }}
@@ -169,7 +166,7 @@
                                 v-show="!isLoadingPrevious && hasMorePrevious"
                                 id="load-previous"
                                 type="button"
-                                class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border border-sem-border px-4 py-2 hover:bg-sem-surface-muted rounded-full shadow-xs text-sm font-medium text-sem-fg-muted transition-colors"
+                                class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-sem-surface/95 dark:bg-sem-canvas/95 backdrop-blur-sm border border-sem-border px-4 py-2 hover:bg-sem-surface-muted rounded-full shadow-xs text-sm font-medium text-sem-fg-muted transition-colors"
                                 @click="loadPrevious"
                             >
                                 <svg
@@ -211,7 +208,7 @@
                 >
                     <button
                         type="button"
-                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-sem-border shadow-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
+                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-sem-surface/90 backdrop-blur-sm border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:text-sem-fg hover:text-sem-fg transition-colors"
                         title="Scroll to bottom"
                         @click="scrollMessagesToBottom()"
                     >
@@ -260,7 +257,7 @@
                     <!-- banished user notification -->
                     <div
                         v-if="isSelectedPeerBlocked"
-                        class="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-2"
+                        class="mb-3 p-3 bg-sem-warning/5 border border-sem-warning/20 rounded-lg flex items-center gap-2"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -268,7 +265,7 @@
                             viewBox="0 0 24 24"
                             stroke-width="2"
                             stroke="currentColor"
-                            class="w-5 h-5 text-yellow-600 dark:text-yellow-400 shrink-0"
+                            class="w-5 h-5 text-sem-warning shrink-0"
                         >
                             <path
                                 stroke-linecap="round"
@@ -276,9 +273,7 @@
                                 d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
                             />
                         </svg>
-                        <span class="text-sm text-yellow-800 dark:text-yellow-200">{{
-                            $t("messages.banished_peer_notice")
-                        }}</span>
+                        <span class="text-sm text-sem-warning">{{ $t("messages.banished_peer_notice") }}</span>
                     </div>
 
                     <!-- message composer -->
@@ -287,23 +282,23 @@
                             <!-- image attachments (mosaic, separate from text field) -->
                             <div
                                 v-if="newMessageImages.length > 0"
-                                class="w-full max-w-[min(280px,100%)] rounded-xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-xs bg-black/5 dark:bg-white/5"
+                                class="w-full max-w-[min(280px,100%)] rounded-xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-xs bg-black/5 dark:bg-sem-surface/5"
                             >
                                 <div v-if="newMessageImages.length === 1" class="relative group">
                                     <button
                                         type="button"
-                                        class="block w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                        class="block w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                         @click.stop="openImage(newMessageImageUrls[0], newMessageImageUrls)"
                                     >
                                         <img
                                             v-if="newMessageImageUrls[0]"
                                             :src="newMessageImageUrls[0]"
-                                            class="max-h-52 w-full object-contain object-center bg-black/5 dark:bg-white/5"
+                                            class="max-h-52 w-full object-contain object-center bg-black/5 dark:bg-sem-surface/5"
                                         />
                                     </button>
                                     <button
                                         type="button"
-                                        class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-sem-surface border border-sem-border text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
+                                        class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-sem-surface border border-sem-border text-sem-fg-muted hover:bg-sem-danger/10 hover:text-sem-danger shadow-md"
                                         @click.stop="removeImageAttachment(0)"
                                     >
                                         <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -313,7 +308,7 @@
                                     <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                             @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
                                         >
                                             <img
@@ -335,7 +330,7 @@
                                     <div v-for="index in [0, 1]" :key="index" class="relative group">
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                             @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
                                         >
                                             <img
@@ -355,7 +350,7 @@
                                     <div class="relative group col-span-2">
                                         <button
                                             type="button"
-                                            class="relative block aspect-2/1 max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-2/1 max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                             @click.stop="openImage(newMessageImageUrls[2], newMessageImageUrls)"
                                         >
                                             <img
@@ -381,7 +376,7 @@
                                     >
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                             @click.stop="openImage(newMessageImageUrls[slot - 1], newMessageImageUrls)"
                                         >
                                             <img
@@ -433,11 +428,8 @@
                                     class="attachment-chip"
                                 >
                                     <div class="flex items-center gap-2">
-                                        <MaterialDesignIcon
-                                            icon-name="paperclip"
-                                            class="w-4 h-4 text-gray-500 dark:text-gray-300"
-                                        />
-                                        <div class="text-sm text-gray-800 dark:text-gray-200 truncate max-w-[160px]">
+                                        <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4 text-sem-fg-muted" />
+                                        <div class="text-sm text-sem-fg truncate max-w-[160px]">
                                             {{ file.name }}
                                         </div>
                                         <span class="text-xs text-sem-fg-muted">{{ formatBytes(file.size) }}</span>
@@ -464,7 +456,7 @@
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full min-w-0 pl-3 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-sem-fg-muted min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="composeInputPlaceholder"
@@ -488,7 +480,7 @@
                                     </AddAudioButton>
                                     <button
                                         type="button"
-                                        class="inline-flex shrink-0 items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
+                                        class="inline-flex shrink-0 items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
                                         :title="$t('stickers.picker_tooltip')"
                                         @click.stop="toggleStickerPicker"
                                     >
@@ -499,7 +491,7 @@
                                     v-if="isStickerPickerOpen"
                                     class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-sem-border bg-sem-surface shadow-xl overflow-hidden"
                                     :class="{
-                                        'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
+                                        'ring-2 ring-sem-focus/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
                                             (stickerDropActive && emojiStickerTab === 'stickers') ||
                                             (gifDropActive && emojiStickerTab === 'gifs'),
                                     }"
@@ -513,7 +505,7 @@
                                             class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
                                             :class="
                                                 emojiStickerTab === 'emoji'
-                                                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
+                                                    ? 'bg-sem-info/10 text-sem-info'
                                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                                             "
                                             @click="emojiStickerTab = 'emoji'"
@@ -527,7 +519,7 @@
                                             class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
                                             :class="
                                                 emojiStickerTab === 'stickers'
-                                                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
+                                                    ? 'bg-sem-info/10 text-sem-info'
                                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                                             "
                                             @click="emojiStickerTab = 'stickers'"
@@ -541,7 +533,7 @@
                                             class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
                                             :class="
                                                 emojiStickerTab === 'gifs'
-                                                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
+                                                    ? 'bg-sem-info/10 text-sem-info'
                                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                                             "
                                             @click="onGifsTabSelected"
@@ -586,7 +578,7 @@
                                                 class="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium border"
                                                 :class="
                                                     activeStickerPackId === null
-                                                        ? 'bg-blue-100 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+                                                        ? 'bg-sem-info/10 border-sem-info text-sem-info'
                                                         : 'border-transparent text-sem-fg-muted hover:bg-sem-surface-muted'
                                                 "
                                                 @click="activeStickerPackId = null"
@@ -600,7 +592,7 @@
                                                 class="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium border max-w-[120px] truncate"
                                                 :class="
                                                     activeStickerPackId === pack.id
-                                                        ? 'bg-blue-100 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+                                                        ? 'bg-sem-info/10 border-sem-info text-sem-info'
                                                         : 'border-transparent text-sem-fg-muted hover:bg-sem-surface-muted'
                                                 "
                                                 :title="pack.title"
@@ -614,7 +606,7 @@
                                                 v-for="s in visibleStickers"
                                                 :key="s.id"
                                                 type="button"
-                                                class="aspect-square rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-blue-500/50 bg-gray-50 dark:bg-zinc-800"
+                                                class="aspect-square rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-sem-focus/50 bg-sem-surface-muted"
                                                 :title="s.name || s.emoji || 'Sticker'"
                                                 @click="addStickerFromLibrary(s)"
                                             >
@@ -629,17 +621,13 @@
                                         </div>
                                         <button
                                             type="button"
-                                            class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-2 py-2 text-xs hover:border-blue-400"
-                                            :class="
-                                                stickerDropActive
-                                                    ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
-                                                    : ''
-                                            "
+                                            class="w-full rounded-xl border-2 border-dashed border-sem-border px-2 py-2 text-xs hover:border-sem-accent"
+                                            :class="stickerDropActive ? 'border-sem-accent bg-sem-info/5' : ''"
                                             :disabled="isStickerUploading"
                                             @click="triggerStickerUploadInput"
                                         >
                                             <div class="flex items-center justify-center gap-1">
-                                                <MaterialDesignIcon icon-name="upload" class="size-4 text-blue-500" />
+                                                <MaterialDesignIcon icon-name="upload" class="size-4 text-sem-accent" />
                                                 {{ $t("stickers.upload_short") }}
                                             </div>
                                         </button>
@@ -665,14 +653,14 @@
                                                 v-for="g in userGifs"
                                                 :key="g.id"
                                                 type="button"
-                                                class="relative aspect-video rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-blue-500/50 group"
+                                                class="relative aspect-video rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-sem-focus/50 group"
                                                 :title="g.name || 'GIF'"
                                                 @click="addGifFromLibrary(g)"
                                             >
                                                 <InViewAnimatedImg
                                                     :src="gifImageUrl(g.id)"
                                                     fit-parent
-                                                    img-class="w-full h-full object-contain bg-gray-50 dark:bg-zinc-800"
+                                                    img-class="w-full h-full object-contain bg-sem-surface-muted"
                                                 />
                                                 <span
                                                     v-if="g.usage_count > 0"
@@ -690,17 +678,15 @@
                                         </div>
                                         <button
                                             type="button"
-                                            class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-3 py-3 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
-                                            :class="
-                                                gifDropActive ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40' : ''
-                                            "
+                                            class="w-full rounded-xl border-2 border-dashed border-sem-border px-3 py-3 text-left transition-colors hover:border-sem-accent hover:hover:bg-sem-info/10"
+                                            :class="gifDropActive ? 'border-sem-accent bg-sem-info/5' : ''"
                                             :disabled="isGifUploading"
                                             @click="triggerGifUploadInput"
                                         >
                                             <div class="flex items-start gap-2">
                                                 <MaterialDesignIcon
                                                     icon-name="upload"
-                                                    class="size-5 shrink-0 text-blue-500 mt-0.5"
+                                                    class="size-5 shrink-0 text-sem-accent mt-0.5"
                                                 />
                                                 <div class="min-w-0">
                                                     <div class="text-xs font-medium text-sem-fg">
@@ -738,9 +724,9 @@
                         <!-- reply preview -->
                         <div
                             v-if="replyingTo"
-                            class="mt-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-sem-border/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
+                            class="mt-2 p-2 rounded-xl bg-sem-surface-muted/50 border border-sem-border/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
                         >
-                            <div class="flex-1 min-w-0 border-l-2 border-blue-500 pl-3">
+                            <div class="flex-1 min-w-0 border-l-2 border-sem-accent pl-3">
                                 <div class="flex items-center gap-1 text-[11px] font-medium text-sem-accent mb-0.5">
                                     <MaterialDesignIcon icon-name="reply" class="size-3" />
                                     {{ $t("messages.replying_to") }}
@@ -751,7 +737,7 @@
                             </div>
                             <button
                                 type="button"
-                                class="p-1.5 hover:bg-gray-200 hover:bg-sem-surface-muted rounded-lg transition-colors text-gray-400 hover:text-gray-600 hover:text-sem-fg"
+                                class="p-1.5 hover:bg-sem-surface-muted hover:bg-sem-surface-muted rounded-lg transition-colors text-sem-fg-muted hover:text-sem-fg-muted hover:text-sem-fg"
                                 @click="cancelReply"
                             >
                                 <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
@@ -761,19 +747,18 @@
                         <!-- inline translate: target language (compose) -->
                         <div
                             v-show="translateTargetBarOpen && translateTargetModalContext?.type === 'compose'"
-                            class="mt-2 flex flex-wrap items-stretch sm:items-center gap-2 rounded-xl border border-indigo-200/60 dark:border-indigo-500/30 bg-indigo-50/80 dark:bg-indigo-950/25 px-2.5 py-2"
+                            class="mt-2 flex flex-wrap items-stretch sm:items-center gap-2 rounded-xl border border-sem-info/20 bg-sem-info/5 px-2.5 py-2"
                         >
                             <MaterialDesignIcon
                                 icon-name="translate"
-                                class="size-4 text-indigo-600 dark:text-indigo-400 shrink-0 self-center"
+                                class="size-4 text-sem-info shrink-0 self-center"
                             />
-                            <label
-                                class="text-xs font-semibold text-indigo-900/90 dark:text-indigo-200/90 shrink-0 self-center"
-                                >{{ $t("messages.translate_select_target") }}</label
-                            >
+                            <label class="text-xs font-semibold text-sem-info shrink-0 self-center">{{
+                                $t("messages.translate_select_target")
+                            }}</label>
                             <select
                                 v-model="translateTargetModalValue"
-                                class="flex-1 min-w-0 min-h-[2.25rem] sm:min-h-0 text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-sem-surface px-2.5 py-1.5 text-sem-fg"
+                                class="flex-1 min-w-0 min-h-[2.25rem] sm:min-h-0 text-sm rounded-lg border border-sem-border/90 bg-sem-surface px-2.5 py-1.5 text-sem-fg"
                                 :aria-label="$t('messages.translate_select_target')"
                             >
                                 <option
@@ -798,7 +783,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="p-1.5 shrink-0 rounded-lg text-zinc-500 hover:bg-black/5 dark:hover:bg-white/10 self-center"
+                                class="p-1.5 shrink-0 rounded-lg text-sem-fg-muted hover:bg-sem-fg/5 dark:hover:bg-sem-canvas/10 self-center"
                                 :title="$t('common.close')"
                                 :disabled="isTranslateTargetModalWorking"
                                 @click="closeTranslateTargetModal"
@@ -807,7 +792,7 @@
                             </button>
                             <p
                                 v-if="!translateTargetSelectOptions.length"
-                                class="w-full text-xs text-amber-700/90 dark:text-amber-300/90 -mt-0.5"
+                                class="w-full text-xs text-sem-warning -mt-0.5"
                             >
                                 {{ $t("messages.translate_no_languages") }}
                             </p>
@@ -832,7 +817,7 @@
                                 </button>
                                 <div
                                     v-if="showLocationActionMenu"
-                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[220px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[220px] overflow-hidden rounded-xl border border-sem-border bg-sem-surface shadow-lg dark:bg-sem-surface"
                                 >
                                     <button
                                         type="button"
@@ -888,7 +873,7 @@
                 panel-class="z-200"
             >
                 <ContextMenuItem @click="replyToMessage(messageContextMenu.chatItem)">
-                    <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
+                    <MaterialDesignIcon icon-name="reply" class="size-4 text-sem-info" />
                     {{ $t("messages.reply") }}
                 </ContextMenuItem>
                 <ContextMenuItem
@@ -902,12 +887,12 @@
                     v-if="hasTranslator && canTranslateMessageBubbleFromMenu(messageContextMenu.chatItem)"
                     @click="openBubbleTranslateFromContextMenu"
                 >
-                    <MaterialDesignIcon icon-name="translate" class="size-4 text-indigo-500" />
+                    <MaterialDesignIcon icon-name="translate" class="size-4 text-sem-info" />
                     {{ $t("messages.translate_message") }}
                 </ContextMenuItem>
                 <div
                     v-if="messageContextMenu.chatItem && !messageContextMenu.chatItem.lxmf_message?.is_reaction"
-                    class="px-3 py-2 border-t border-gray-100 dark:border-zinc-700"
+                    class="px-3 py-2 border-t border-sem-border"
                 >
                     <div class="text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted mb-1.5">
                         {{ $t("messages.react") }}
@@ -917,7 +902,7 @@
                             v-for="(emo, emi) in lxmfReactionEmojis"
                             :key="emi"
                             type="button"
-                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
+                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors"
                             :title="emo"
                             @click="sendReactionEmojiFromMenu(messageContextMenu.chatItem, emo)"
                         >
@@ -925,7 +910,7 @@
                         </button>
                         <button
                             type="button"
-                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors text-sem-fg-muted"
+                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors text-sem-fg-muted"
                             :title="$t('messages.react')"
                             @click="
                                 openReactionPicker(messageContextMenu.chatItem);
@@ -942,40 +927,40 @@
                         messageContextMenu.show = false;
                     "
                 >
-                    <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
+                    <MaterialDesignIcon icon-name="code-json" class="size-4 text-sem-fg-muted" />
                     {{ $t("messages.view_raw_lxm") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
                     @click="downloadMessageImage(messageContextMenu.chatItem)"
                 >
-                    <MaterialDesignIcon icon-name="download" class="size-4 text-blue-500" />
+                    <MaterialDesignIcon icon-name="download" class="size-4 text-sem-accent" />
                     {{ $t("messages.save_image_to_device") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
                     @click="copyMessageImageToClipboard(messageContextMenu.chatItem)"
                 >
-                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-blue-500" />
+                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-accent" />
                     {{ $t("messages.copy_image_to_clipboard") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
                     @click="saveMessageImageToStickers(messageContextMenu.chatItem)"
                 >
-                    <MaterialDesignIcon icon-name="bookmark-plus-outline" class="size-4 text-teal-500" />
+                    <MaterialDesignIcon icon-name="bookmark-plus-outline" class="size-4 text-sem-info" />
                     {{ $t("stickers.save_to_library") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="canSaveMessageImageAsGif(messageContextMenu.chatItem)"
                     @click="saveMessageImageToGifs(messageContextMenu.chatItem)"
                 >
-                    <MaterialDesignIcon icon-name="file-gif-box" class="size-4 text-pink-500" />
+                    <MaterialDesignIcon icon-name="file-gif-box" class="size-4 text-sem-danger" />
                     {{ $t("gifs.save_to_library") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="canCancelOutboundSend(messageContextMenu.chatItem)"
-                    item-class="text-amber-600 dark:text-amber-400"
+                    item-class="text-sem-warning"
                     @click="cancelSendingMessage(messageContextMenu.chatItem)"
                 >
                     <MaterialDesignIcon icon-name="close-circle-outline" class="size-4" />
@@ -986,7 +971,7 @@
                         messageContextMenu.chatItem?.is_outbound &&
                         ['failed', 'cancelled'].includes(messageContextMenu.chatItem?.lxmf_message?.state)
                     "
-                    item-class="text-amber-600 dark:text-amber-400"
+                    item-class="text-sem-warning"
                     @click="
                         retrySendingMessage(messageContextMenu.chatItem);
                         messageContextMenu.show = false;
@@ -997,7 +982,7 @@
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="isSelectedPeerBlocked && selectedPeer"
-                    item-class="text-emerald-600 dark:text-emerald-400"
+                    item-class="text-sem-success"
                     @click="liftBanishmentFromMessageMenu"
                 >
                     <MaterialDesignIcon icon-name="check-circle" class="size-4" />
@@ -1005,7 +990,7 @@
                 </ContextMenuItem>
                 <ContextMenuDivider />
                 <ContextMenuItem
-                    item-class="text-red-600 dark:text-red-400"
+                    item-class="text-sem-danger dark:text-red-400"
                     @click="
                         deleteChatItem(messageContextMenu.chatItem);
                         messageContextMenu.show = false;
@@ -1019,11 +1004,11 @@
     </div>
 
     <!-- no peer selected -->
-    <div v-else class="flex flex-col h-full overflow-y-auto bg-gray-50/50 dark:bg-zinc-950/50">
+    <div v-else class="flex flex-col h-full overflow-y-auto bg-sem-canvas/50">
         <div class="max-w-2xl mx-auto w-full px-4 py-8 sm:py-10 flex flex-col items-center">
             <div class="text-center mb-8">
                 <div
-                    class="inline-flex items-center justify-center size-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-sem-accent mb-4"
+                    class="inline-flex items-center justify-center size-12 rounded-2xl bg-sem-info/5 text-sem-accent mb-4"
                 >
                     <MaterialDesignIcon icon-name="message-text-outline" class="size-6" />
                 </div>
@@ -1038,7 +1023,7 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mb-8">
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="focusComposeInput"
                 >
                     <MaterialDesignIcon icon-name="plus" class="size-5 text-sem-accent" />
@@ -1047,7 +1032,7 @@
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="syncPropagationNode"
                 >
                     <MaterialDesignIcon
@@ -1063,7 +1048,7 @@
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="copyMyAddress"
                 >
                     <MaterialDesignIcon icon-name="content-copy" class="size-5 text-sem-accent" />
@@ -1072,7 +1057,7 @@
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="$router.push({ name: 'identities' })"
                 >
                     <MaterialDesignIcon icon-name="account-multiple" class="size-5 text-sem-accent" />
@@ -1088,7 +1073,7 @@
                     <div
                         v-for="chat in latestConversations"
                         :key="chat.destination_hash"
-                        class="group cursor-pointer p-3 bg-sem-surface border border-sem-border rounded-xl hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors flex items-center gap-3"
+                        class="group cursor-pointer p-3 bg-sem-surface border border-sem-border rounded-xl hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors flex items-center gap-3"
                         @click="$emit('update:selectedPeer', chat)"
                     >
                         <div class="shrink-0">
@@ -1134,7 +1119,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MaterialDesignIcon
                             icon-name="at"
-                            class="size-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
+                            class="size-5 text-sem-fg-muted group-focus-within:text-sem-accent transition-colors"
                         />
                     </div>
                     <input
@@ -1143,7 +1128,7 @@
                         v-model="composeAddress"
                         :readonly="isTranslatingMessage"
                         type="text"
-                        class="w-full bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 pl-10 pr-4 py-2.5 transition-colors placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                        class="w-full bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus/30 focus:border-sem-focus pl-10 pr-4 py-2.5 transition-colors placeholder:text-sem-fg-muted dark:placeholder:text-sem-fg-muted"
                         :placeholder="$t('messages.compose_address_placeholder')"
                         @keydown.enter.exact.prevent="onComposeEnterPressed"
                         @keydown.up.prevent="handleComposeInputUp"
@@ -1163,7 +1148,7 @@
                                 class="px-3 py-2 flex items-center gap-3 cursor-pointer rounded-lg transition-colors"
                                 :class="[
                                     index === selectedComposeSuggestionIndex
-                                        ? 'bg-blue-600 text-white'
+                                        ? 'bg-sem-action-primary text-white'
                                         : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                 ]"
                                 @mousedown.prevent="selectComposeSuggestion(suggestion)"
@@ -1172,10 +1157,10 @@
                                     class="shrink-0 size-8 rounded-lg flex items-center justify-center"
                                     :class="[
                                         index === selectedComposeSuggestionIndex
-                                            ? 'bg-white/20'
+                                            ? 'bg-sem-surface/20'
                                             : suggestion.type === 'contact'
-                                              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
-                                              : 'bg-sem-surface-muted text-gray-500',
+                                              ? 'bg-sem-info/15 text-sem-accent'
+                                              : 'bg-sem-surface-muted text-sem-fg-muted',
                                     ]"
                                 >
                                     <MaterialDesignIcon :icon-name="suggestion.icon" class="size-4" />
@@ -1228,11 +1213,11 @@
             panel-class="z-200"
         >
             <ContextMenuItem @click="downloadImageModalCurrent">
-                <MaterialDesignIcon icon-name="download" class="size-4 text-blue-500" />
+                <MaterialDesignIcon icon-name="download" class="size-4 text-sem-accent" />
                 {{ $t("messages.save_image_to_device") }}
             </ContextMenuItem>
             <ContextMenuItem @click="copyImageModalCurrentToClipboard">
-                <MaterialDesignIcon icon-name="content-copy" class="size-4 text-blue-500" />
+                <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-accent" />
                 {{ $t("messages.copy_image_to_clipboard") }}
             </ContextMenuItem>
         </ContextMenuPanel>
@@ -1273,9 +1258,9 @@
                 class="translate-bubble-bar fixed z-200 w-[min(calc(100%-1.25rem),24rem)] left-1/2 -translate-x-1/2 bottom-4 sm:bottom-5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pointer-events-auto"
             >
                 <div
-                    class="flex flex-col gap-2 rounded-2xl border border-indigo-200/60 dark:border-indigo-500/30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl shadow-indigo-900/5 dark:shadow-black/30 px-3 py-2.5"
+                    class="flex flex-col gap-2 rounded-2xl border border-sem-info/20 bg-sem-surface/95 dark:bg-sem-surface/95 backdrop-blur-md shadow-xl shadow-sem-info/5 dark:shadow-black/30 px-3 py-2.5"
                 >
-                    <div class="flex items-center gap-1.5 text-indigo-700/90 dark:text-indigo-300/90">
+                    <div class="flex items-center gap-1.5 text-sem-info">
                         <MaterialDesignIcon icon-name="translate" class="size-4 shrink-0" />
                         <span class="text-sm font-semibold leading-none">{{
                             $t("messages.translate_select_target")
@@ -1284,7 +1269,7 @@
                     <div class="flex flex-wrap sm:flex-nowrap items-stretch gap-2">
                         <select
                             v-model="translateTargetModalValue"
-                            class="flex-1 min-w-0 min-h-[2.5rem] text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-sem-surface/90 px-2.5 py-1.5 text-sem-fg"
+                            class="flex-1 min-w-0 min-h-[2.5rem] text-sm rounded-lg border border-sem-border/90 bg-sem-surface/90 px-2.5 py-1.5 text-sem-fg"
                             :aria-label="$t('messages.translate_select_target')"
                         >
                             <option
@@ -1310,7 +1295,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="p-2 rounded-lg text-zinc-500 hover:bg-black/5 dark:hover:bg-white/10"
+                                class="p-2 rounded-lg text-sem-fg-muted hover:bg-sem-fg/5 dark:hover:bg-sem-canvas/10"
                                 :title="$t('common.close')"
                                 :disabled="isTranslateTargetModalWorking"
                                 @click="closeTranslateTargetModal"
@@ -1319,10 +1304,7 @@
                             </button>
                         </div>
                     </div>
-                    <p
-                        v-if="!translateTargetSelectOptions.length"
-                        class="text-xs text-amber-700/90 dark:text-amber-300/90 -mt-0.5"
-                    >
+                    <p v-if="!translateTargetSelectOptions.length" class="text-xs text-sem-warning -mt-0.5">
                         {{ $t("messages.translate_no_languages") }}
                     </p>
                 </div>
@@ -1351,13 +1333,13 @@
                     <h3 class="text-lg font-bold text-sem-fg">Raw LXMF Message</h3>
                     <button
                         type="button"
-                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        class="text-sem-fg-muted hover:text-sem-fg-muted transition-colors"
                         @click="isRawMessageModalOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                 </div>
-                <div class="p-0 overflow-y-auto bg-gray-50 dark:bg-zinc-950 grow">
+                <div class="p-0 overflow-y-auto bg-sem-surface-muted dark:bg-sem-canvas grow">
                     <div class="p-6 space-y-6">
                         <!-- header / status info -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1365,7 +1347,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Message ID</label
                                 >
-                                <div class="text-sm font-mono text-gray-900 text-sem-fg">
+                                <div class="text-sm font-mono text-sem-fg">
                                     {{ rawMessageData.id }}
                                 </div>
                             </div>
@@ -1379,15 +1361,15 @@
                                         :class="
                                             rawMessageData.state === 'delivered'
                                                 ? 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400'
-                                                : 'bg-blue-50 text-blue-700 ring-blue-700/10 dark:bg-blue-900/30 dark:text-blue-400'
+                                                : 'bg-sem-info/5 text-sem-info ring-blue-700/10 dark:bg-blue-900/30 dark:text-sem-info'
                                         "
                                     >
                                         {{ rawMessageData.state }}
                                     </span>
-                                    <span v-if="rawMessageData.is_incoming" class="text-[10px] text-gray-400"
+                                    <span v-if="rawMessageData.is_incoming" class="text-[10px] text-sem-fg-muted"
                                         >Incoming</span
                                     >
-                                    <span v-else class="text-[10px] text-gray-400">Outbound</span>
+                                    <span v-else class="text-[10px] text-sem-fg-muted">Outbound</span>
                                 </div>
                             </div>
                         </div>
@@ -1397,7 +1379,7 @@
                                 >Message Hash</label
                             >
                             <div
-                                class="text-sm font-mono break-all text-gray-900 text-sem-fg bg-sem-surface p-2 rounded-sm border border-sem-border"
+                                class="text-sm font-mono break-all text-sem-fg bg-sem-surface p-2 rounded-sm border border-sem-border"
                             >
                                 {{ rawMessageData.hash }}
                             </div>
@@ -1408,7 +1390,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Source Hash</label
                                 >
-                                <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
+                                <div class="text-xs font-mono break-all text-sem-fg">
                                     {{ rawMessageData.source_hash }}
                                 </div>
                             </div>
@@ -1416,7 +1398,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Destination Hash</label
                                 >
-                                <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
+                                <div class="text-xs font-mono break-all text-sem-fg">
                                     {{ rawMessageData.destination_hash }}
                                 </div>
                             </div>
@@ -1427,7 +1409,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
                                     $t("messages.raw_path_interface_at_send")
                                 }}</label>
-                                <div class="text-sm text-gray-900 text-sem-fg wrap-break-word">
+                                <div class="text-sm text-sem-fg wrap-break-word">
                                     {{
                                         rawMessageData.path_interface_at_send != null &&
                                         rawMessageData.path_interface_at_send !== ""
@@ -1440,7 +1422,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
                                     $t("messages.raw_path_hops_at_send")
                                 }}</label>
-                                <div class="text-sm text-gray-900 text-sem-fg">
+                                <div class="text-sm text-sem-fg">
                                     {{
                                         rawMessageData.path_hops_at_send != null
                                             ? rawMessageData.path_hops_at_send
@@ -1458,7 +1440,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
                                     $t("messages.raw_path_finding_measure")
                                 }}</label>
-                                <div class="text-sm font-mono text-gray-900 text-sem-fg wrap-break-word">
+                                <div class="text-sm font-mono text-sem-fg wrap-break-word">
                                     {{ rawMessageData.path_finding_measure || $t("messages.raw_path_value_unknown") }}
                                 </div>
                             </div>
@@ -1467,7 +1449,7 @@
                                     $t("messages.raw_path_row_hash_rnpath")
                                 }}</label>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
+                                    <div class="text-xs font-mono break-all text-sem-fg">
                                         {{ rawMessageData.path_row_hash_hex || $t("messages.raw_path_value_unknown") }}
                                     </div>
                                     <button
@@ -1490,7 +1472,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Method</label
                                 >
-                                <div class="text-sm text-gray-900 text-sem-fg capitalize">
+                                <div class="text-sm text-sem-fg capitalize">
                                     {{ rawMessageData.method }}
                                 </div>
                             </div>
@@ -1498,7 +1480,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >RSSI</label
                                 >
-                                <div class="text-sm text-gray-900 text-sem-fg">
+                                <div class="text-sm text-sem-fg">
                                     {{ rawMessageData.rssi || "N/A" }}
                                 </div>
                             </div>
@@ -1506,7 +1488,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >SNR</label
                                 >
-                                <div class="text-sm text-gray-900 text-sem-fg">
+                                <div class="text-sm text-sem-fg">
                                     {{ rawMessageData.snr || "N/A" }}
                                 </div>
                             </div>
@@ -1514,7 +1496,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Attempts</label
                                 >
-                                <div class="text-sm text-gray-900 text-sem-fg">
+                                <div class="text-sm text-sem-fg">
                                     {{ rawMessageData.delivery_attempts }}
                                 </div>
                             </div>
@@ -1530,11 +1512,8 @@
                             >
                                 {{ rawMessageData.content }}
                             </div>
-                            <div
-                                v-else
-                                class="rounded-lg border border-amber-200/90 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-950/25 p-3 space-y-2"
-                            >
-                                <p class="text-xs text-amber-950 dark:text-amber-100/90 leading-relaxed">
+                            <div v-else class="rounded-lg border border-sem-warning/20 bg-sem-warning/5 p-3 space-y-2">
+                                <p class="text-xs text-sem-warning leading-relaxed">
                                     {{
                                         $t("messages.oversized_body_notice", {
                                             count: rawMessageBodyCharCount,
@@ -1543,7 +1522,7 @@
                                 </p>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-2 rounded-lg bg-amber-700 hover:bg-amber-800 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
+                                    class="inline-flex items-center gap-2 rounded-lg bg-sem-warning hover:bg-sem-warning/80 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
                                     @click="copyRawMessageModalContent"
                                 >
                                     <MaterialDesignIcon icon-name="content-copy" class="size-4 shrink-0" />
@@ -1566,7 +1545,7 @@
                         <!-- JSON fallback for full detail -->
                         <details class="group">
                             <summary
-                                class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                                class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted hover:text-sem-fg-muted transition-colors"
                             >
                                 <MaterialDesignIcon
                                     icon-name="chevron-right"
@@ -1585,7 +1564,7 @@
                 <div class="px-6 py-4 border-t border-sem-border flex justify-end shrink-0">
                     <button
                         type="button"
-                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors"
+                        class="px-4 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-lg text-sm font-bold transition-colors"
                         @click="isRawMessageModalOpen = false"
                     >
                         Close
@@ -1984,11 +1963,6 @@ export default {
                 const isFailed = ["cancelled", "failed"].includes(m.state);
 
                 if (isFailed) {
-                    if (m.state === "failed" && m.method === "opportunistic") {
-                        styles["background-color"] = "#b45309";
-                        styles["color"] = "#ffffff";
-                        return styles;
-                    }
                     const color = cfg?.message_failed_bubble_color || "#ef4444";
                     styles["background-color"] = color;
                     styles["color"] = "#ffffff";
@@ -2384,6 +2358,8 @@ export default {
 
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
 
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+
         this.reloadIngestedPaperMessageHashes();
 
         // check translator
@@ -2445,6 +2421,7 @@ export default {
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
         GlobalEmitter.off("contact-updated", this.onContactUpdatedForBanner);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         if (this.propagationStatusInterval) {
             clearInterval(this.propagationStatusInterval);
         }
@@ -3537,6 +3514,70 @@ export default {
                 await this.getPeerSignalMetrics();
             }
         },
+        async onWebsocketReconnected() {
+            if (!this.selectedPeer?.destination_hash) {
+                return;
+            }
+            await this.softResyncOpenConversation();
+            await this.refreshPeerPath({ warm: false });
+            await this.getPeerSignalMetrics();
+            await this.getPeerLxmfStampInfo();
+        },
+        async softResyncOpenConversation() {
+            const peerHash = this.selectedPeer?.destination_hash;
+            if (!peerHash) {
+                return;
+            }
+            try {
+                const seq = ++this.lxmfMessagesRequestSequence;
+                const pageSize = CONVERSATION_MESSAGES_PAGE_SIZE;
+                const response = await window.api.get(`/api/v1/lxmf-messages/conversation/${peerHash}`, {
+                    params: {
+                        count: pageSize,
+                        order: "desc",
+                    },
+                });
+                if (seq !== this.lxmfMessagesRequestSequence) {
+                    return;
+                }
+                if (!this._hexEqual(this.selectedPeer?.destination_hash, peerHash)) {
+                    return;
+                }
+                const rawList = response.data?.lxmf_messages;
+                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(Array.isArray(rawList) ? rawList : []);
+                const myHash = (this.myLxmfAddressHash || "").toLowerCase();
+                let added = false;
+                // API returns newest-first; apply oldest-first so append order stays chronological.
+                for (let i = lxmfMessages.length - 1; i >= 0; i--) {
+                    const lxmfMessage = lxmfMessages[i];
+                    if (!lxmfMessage?.hash) {
+                        continue;
+                    }
+                    if (lxmfMessage.is_reaction && lxmfMessage.reaction_to) {
+                        this.applyIncomingReaction(lxmfMessage);
+                        continue;
+                    }
+                    if (this.isLxmfMessageInUi(lxmfMessage.hash)) {
+                        this.onLxmfMessageUpdated(lxmfMessage);
+                        continue;
+                    }
+                    const src = (lxmfMessage.source_hash || "").toLowerCase();
+                    const isOutbound = myHash !== "" && myHash === src;
+                    if (isOutbound) {
+                        this.onLxmfMessageCreated(lxmfMessage);
+                    } else {
+                        this.onLxmfMessageReceived(lxmfMessage);
+                    }
+                    added = true;
+                }
+                this.reconcileOutboundPendingPlaceholders();
+                if (added && this.autoScrollOnNewMessage) {
+                    this.scrollMessagesToBottom();
+                }
+            } catch {
+                // REST resync is best-effort; next delivery/WS event will catch up.
+            }
+        },
         async onLxmfDeliveryEvent(json) {
             this.onLxmfMessageReceived(json.lxmf_message);
             await this.refreshPeerPath({ warm: false });
@@ -4211,9 +4252,9 @@ export default {
             const el = document.getElementById(`message-${hash}`);
             if (el) {
                 el.scrollIntoView({ behavior: "smooth", block: "center" });
-                el.classList.add("ring-2", "ring-blue-500", "ring-offset-2");
+                el.classList.add("ring-2", "ring-sem-focus", "ring-offset-2");
                 setTimeout(() => {
-                    el.classList.remove("ring-2", "ring-blue-500", "ring-offset-2");
+                    el.classList.remove("ring-2", "ring-sem-focus", "ring-offset-2");
                 }, 2000);
                 return;
             }
@@ -4223,9 +4264,9 @@ export default {
                     requestAnimationFrame(() => {
                         const el2 = document.getElementById(`message-${hash}`);
                         if (el2) {
-                            el2.classList.add("ring-2", "ring-blue-500", "ring-offset-2");
+                            el2.classList.add("ring-2", "ring-sem-focus", "ring-offset-2");
                             setTimeout(() => {
-                                el2.classList.remove("ring-2", "ring-blue-500", "ring-offset-2");
+                                el2.classList.remove("ring-2", "ring-sem-focus", "ring-offset-2");
                             }, 2000);
                         }
                     });
@@ -4833,6 +4874,29 @@ export default {
             this.chatItems = this.chatItems.filter((item) => !this._hexEqual(item.lxmf_message?.hash, hash));
             this._invalidateDisplayGroupsCache();
         },
+        _failPendingOutboundPlaceholder(job, error) {
+            const hash = job?.pendingHash;
+            if (!hash) {
+                return;
+            }
+            const item = this.chatItems.find(
+                (chatItem) => chatItem.is_outbound && this._hexEqual(chatItem.lxmf_message?.hash, hash)
+            );
+            if (!item?.lxmf_message) {
+                this.removePendingOutboundPlaceholder(hash);
+                return;
+            }
+            const method = job?.deliveryMethod || item.lxmf_message.method || "unknown";
+            item.lxmf_message.state = "failed";
+            item.lxmf_message.method = method;
+            item.lxmf_message.progress = 0;
+            item.lxmf_message._pendingPathfinding = false;
+            const detail = error?.response?.data?.message || error?.message;
+            if (detail) {
+                item.lxmf_message._send_error = String(detail);
+            }
+            this._invalidateDisplayGroupsCache();
+        },
         removeAllPendingOutboundPlaceholdersForPeer(destinationHash) {
             if (!destinationHash) {
                 return;
@@ -5123,7 +5187,7 @@ export default {
             if (!this.usesThemeOutboundBubbleColor) {
                 return "shadow-xs";
             }
-            return "shadow-xs bg-sky-100 text-slate-900 border border-sky-200/90 dark:bg-sky-950/45 dark:text-sky-50 dark:border-sky-800/55";
+            return "shadow-xs bg-sky-100 text-slate-900 border border-sem-info/20/90 dark:bg-sky-950/45 dark:text-sky-50 dark:border-sky-800/55";
         },
         outboundBubbleFooterTimeClass(chatItem) {
             if (!chatItem.is_outbound) {
@@ -5148,13 +5212,13 @@ export default {
         },
         outboundReplySnippetTitleClass(chatItem) {
             if (!chatItem.is_outbound) {
-                return "text-indigo-500/80";
+                return "text-sem-info/80";
             }
             if (this.isOutboundWaitingBubble(chatItem)) {
-                return "text-gray-700 dark:text-gray-300";
+                return "text-sem-fg";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-800 dark:text-sky-200";
+                return "text-sem-info dark:text-sky-200";
             }
             return "text-white/80";
         },
@@ -5166,7 +5230,7 @@ export default {
                 return "text-sem-fg-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-800 dark:text-sky-200";
+                return "text-sem-info dark:text-sky-200";
             }
             return "text-white";
         },
@@ -5193,16 +5257,16 @@ export default {
                 return "";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "bg-sky-900/10 text-sky-900 border-sky-300/45 hover:bg-sky-900/14 dark:bg-white/10 dark:text-sky-50 dark:border-sky-700/45 dark:hover:bg-white/15";
+                return "bg-sky-900/10 text-sky-900 border-sky-300/45 hover:bg-sky-900/14 dark:bg-sem-surface/10 dark:text-sky-50 dark:border-sky-700/45 dark:hover:bg-sem-surface/15";
             }
-            return "bg-white/20 text-white border-white/20 hover:bg-white/30";
+            return "bg-sem-surface/20 text-white border-white/20 hover:bg-sem-surface/30";
         },
         outboundEmbeddedSecondaryTextClass(chatItem) {
             if (!chatItem?.is_outbound) {
                 return "";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-800/75 dark:text-sky-200/75";
+                return "text-sem-info/75 dark:text-sky-200/75";
             }
             return "text-white/60";
         },
@@ -5211,9 +5275,9 @@ export default {
                 return "border-sem-border bg-sem-surface-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "border-sky-200/70 dark:border-sky-800/50 bg-sky-50/40 dark:bg-sky-950/35";
+                return "border-sem-info/20/70 dark:border-sky-800/50 bg-sem-info/5/40 dark:bg-sky-950/35";
             }
-            return "border-white/20 bg-white/10";
+            return "border-white/20 bg-sem-surface/10";
         },
         outboundMessageMenuButtonClass(chatItem) {
             if (!chatItem?.is_outbound) {
@@ -5226,12 +5290,12 @@ export default {
         },
         outboundMessageMenuButtonHoverClass(chatItem) {
             if (!chatItem?.is_outbound) {
-                return "hover:bg-gray-200 hover:bg-sem-surface-muted";
+                return "hover:bg-sem-surface-muted hover:bg-sem-surface-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "hover:bg-sky-900/10 dark:hover:bg-white/10";
+                return "hover:bg-sky-900/10 dark:hover:bg-sem-canvas/10";
             }
-            return "hover:bg-white/20";
+            return "hover:bg-sem-surface/20";
         },
         outboundBubbleStatusHoverTitle(lxmfMessage) {
             if (!lxmfMessage) {
@@ -5846,8 +5910,17 @@ export default {
                 }
 
                 // Warm a stale/missing path before the blocking backend path wait.
-                // Propagated delivery does not require a peer path.
-                if (job.deliveryMethod !== "propagated") {
+                // Propagated delivery needs the preferred propagation node path.
+                if (job.deliveryMethod === "propagated") {
+                    const propHash = GlobalState?.config?.lxmf_preferred_propagation_node_destination_hash;
+                    if (propHash && typeof propHash === "string" && propHash.length === 32) {
+                        try {
+                            await warmPathIfNeeded(window.api, propHash, null);
+                        } catch (pathError) {
+                            console.error(pathError);
+                        }
+                    }
+                } else {
                     try {
                         await warmPathIfNeeded(window.api, job.destinationHash, this.peerPathSnapshot);
                         await this.refreshPeerPath({ warm: false });
@@ -5944,8 +6017,7 @@ export default {
                 this.scrollMessagesToBottom();
                 this.refreshPeerPath({ warm: false });
             } catch (e) {
-                this.removePendingOutboundPlaceholder(job.pendingHash);
-                this.removeAllPendingOutboundPlaceholdersForPeer(job.destinationHash);
+                this._failPendingOutboundPlaceholder(job, e);
                 const message = e.response?.data?.message ?? "failed to send message";
                 DialogUtils.alert(message);
                 await this._maybeShowDeliveryHelptips(job.destinationHash, "send_failed", {
@@ -7418,13 +7490,13 @@ export default {
     @apply flex-1;
 }
 .attachment-card__title {
-    @apply text-sm font-semibold text-gray-800 dark:text-gray-100;
+    @apply text-sm font-semibold text-gray-800;
 }
 .attachment-card__meta {
     @apply text-xs text-sem-fg-muted;
 }
 .attachment-card__remove {
-    @apply absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40;
+    @apply absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-sem-surface-muted dark:bg-sem-surface-muted text-sem-fg-muted  hover:bg-sem-danger/10 hover:text-sem-danger;
 }
 .attachment-chip {
     @apply flex items-center justify-between gap-2 border border-sem-border rounded-full px-3 py-1 text-xs shadow-sm;
@@ -7434,7 +7506,7 @@ export default {
     background-color: rgb(24 24 27);
 }
 .attachment-chip__remove {
-    @apply inline-flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-red-500;
+    @apply inline-flex items-center justify-center text-sem-fg-muted hover:text-sem-danger;
 }
 .attachment-action-button {
     @apply inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors;

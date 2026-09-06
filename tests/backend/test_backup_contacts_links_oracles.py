@@ -194,7 +194,7 @@ async def test_database_backup_download_streams_file(tmp_path):
     for route in routes:
         if (
             getattr(route, "path", None) == "/api/v1/database/backup/download"
-            and getattr(route, "method", None) == "GET"
+            and getattr(route, "method", None) == "POST"
         ):
             handler = route.handler
             break
