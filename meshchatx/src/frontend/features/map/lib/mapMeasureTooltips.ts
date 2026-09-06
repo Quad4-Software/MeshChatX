@@ -5,10 +5,14 @@ import { unByKey } from "ol/Observable";
 import LineString from "ol/geom/LineString";
 import Polygon from "ol/geom/Polygon";
 import Circle from "ol/geom/Circle";
+import type Geometry from "ol/geom/Geometry";
+import type Feature from "ol/Feature";
 import type Map from "ol/Map";
+import type MapBrowserEvent from "ol/MapBrowserEvent";
+import type { EventsKey } from "ol/events";
 import { formatLength, formatArea } from "./mapActions.js";
 
-export function measureOutputForGeometry(geom: any): { output: string; tooltipCoord: number[] } | null {
+export function measureOutputForGeometry(geom: Geometry): { output: string; tooltipCoord: number[] } | null {
     if (geom instanceof Polygon) {
         return {
             output: formatArea(geom),
@@ -40,8 +44,8 @@ export class MapMeasureTooltipManager {
     private measureTooltipElement: HTMLDivElement | null = null;
     private helpTooltip: Overlay | null = null;
     private helpTooltipElement: HTMLDivElement | null = null;
-    private drawListenerKey: any = null;
-    private pointerMoveHandler: ((evt: any) => void) | null = null;
+    private drawListenerKey: EventsKey | EventsKey[] | null = null;
+    private pointerMoveHandler: ((evt: MapBrowserEvent<PointerEvent>) => void) | null = null;
 
     constructor(map: Map) {
         this.map = map;
@@ -92,11 +96,15 @@ export class MapMeasureTooltipManager {
         this.helpTooltipElement = null;
     }
 
-    attachDrawMeasureListener(sketch: any): void {
+    attachDrawMeasureListener(sketch: Feature): void {
         this.cleanupDrawListener();
         this.createMeasureTooltip();
-        this.drawListenerKey = sketch.getGeometry().on("change", (e: any) => {
-            const result = measureOutputForGeometry(e.target);
+        const geom = sketch.getGeometry();
+        if (!geom) return;
+        this.drawListenerKey = geom.on("change", (e) => {
+            const target = (e as { target?: Geometry }).target;
+            if (!target) return;
+            const result = measureOutputForGeometry(target);
             if (result && this.measureTooltipElement && this.measureTooltip) {
                 this.measureTooltipElement.innerHTML = result.output;
                 this.measureTooltip.setPosition(result.tooltipCoord);
@@ -113,7 +121,7 @@ export class MapMeasureTooltipManager {
 
     enablePointerHelp(onSketch: () => boolean): void {
         this.createHelpTooltip();
-        this.pointerMoveHandler = (evt: any) => {
+        this.pointerMoveHandler = (evt) => {
             if (evt.dragging || !this.helpTooltipElement || !this.helpTooltip) return;
             let helpMsg = "Click to start drawing";
             if (onSketch()) {
@@ -123,12 +131,12 @@ export class MapMeasureTooltipManager {
             this.helpTooltip.setPosition(evt.coordinate);
             this.helpTooltipElement.classList.remove("hidden");
         };
-        this.map.on("pointermove", this.pointerMoveHandler);
+        this.map.on("pointermove", this.pointerMoveHandler as any);
     }
 
     disablePointerHelp(): void {
         if (this.pointerMoveHandler) {
-            this.map.un("pointermove", this.pointerMoveHandler);
+            this.map.un("pointermove", this.pointerMoveHandler as any);
             this.pointerMoveHandler = null;
         }
         this.cleanupHelpTooltip();
@@ -146,7 +154,7 @@ export class MapMeasureTooltipManager {
         this.createMeasureTooltip();
     }
 
-    updateLiveMeasure(geom: any, coord: number[]): void {
+    updateLiveMeasure(geom: Geometry, coord: number[]): void {
         const result = measureOutputForGeometry(geom);
         if (!result) return;
         if (!this.measureTooltipElement || !this.measureTooltip) {

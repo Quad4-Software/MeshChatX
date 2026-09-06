@@ -35,15 +35,23 @@
     import MapContextMenu from "./components/MapContextMenu.svelte";
     import MapMobileNoteModal from "./components/MapMobileNoteModal.svelte";
     import MapLoadingOverlay from "./components/MapLoadingOverlay.svelte";
+    import MapPingModal from "./components/MapPingModal.svelte";
+    import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
+    import Point from "ol/geom/Point";
 
     import { t } from "../../js/i18n.js";
     import ToastUtils from "../../js/ToastUtils.js";
     import GlobalState from "../../js/GlobalState.js";
+    import GlobalEmitter from "../../js/GlobalEmitter.js";
     import TileCache from "../../js/TileCache.js";
+    import { publishPatchedConfig } from "../../js/settings/settingsConfigService.js";
     import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
     import { mapViewStateKey } from "../../js/mapStateKeys.js";
     import { formatCoordinate, ensureGeoCoordsReady, parseCoordinateQuery } from "../../js/mapGeoCoords.js";
     import { computeSegmentMetrics, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
+    import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.js";
+    import { buildNominatimSearchUrl } from "../../js/mapTileNetwork.js";
+    import { getCurrentRoute, subscribe as subscribeRoute } from "../../shell/hashRouter.js";
 
     import {
         createDrawingStyle,
@@ -51,7 +59,7 @@
         createOnlineTileSource,
         createOfflineMBTilesSource,
     } from "./lib/mapOpenLayers.js";
-    import { resolveMyLocationWgs84, calculateAzimuth } from "./lib/mapActions.js";
+    import { resolveMyLocationWgs84, calculateAzimuth, handleRemoteOverlaysChanged } from "./lib/mapActions.js";
     import { MapMeasureTooltipManager } from "./lib/mapMeasureTooltips.js";
     import {
         exportDrawFeaturesGeoJson,
@@ -62,6 +70,13 @@
         downloadBlobFile,
         exportFilename,
     } from "./lib/mapVectorExchange.js";
+    import {
+        ensureRemoteOverlayLayer,
+        removeRemoteOverlayLayer,
+        exportRemoteOverlay,
+        copyRemoteOverlayToDrawings,
+        type RemoteOverlayEntry,
+    } from "./lib/mapRemoteOverlays.js";
     import { MAX_EXPORT_TILES, EXPORT_REGION_PRESETS } from "./lib/constants.js";
     import { lonToTile, latToTile } from "./lib/mapTileUtils.js";
     import {
@@ -81,13 +96,20 @@
         getExportStatus,
         sendMapPing,
         uploadMbtilesFile,
+        toggleTelemetryTracking,
+        fetchTelemetryHistory,
+        patchAnnounceStoreMapData,
     } from "./lib/mapService.js";
     import {
         createPeerFeatures,
         createDiscoveredFeatures,
         getContextMenuCoordRows,
         extractDrawFeaturePayload,
+        markerPanelPayloadFromFeature,
     } from "./lib/mapPageHelpers.js";
+    import { classifyMapDropFiles, isMbtilesFile, readDroppedGeoFileToFeatures } from "./lib/mapDropImport.js";
+    import { buildTelemetryHistoryTrailFeature, createTelemetryHistoryStyle } from "./lib/mapTelemetryHistory.js";
+    import { getPeerMarkerStyle } from "./lib/markerStyles.js";
     import type { DrawingTool, DrawingEntry, MBTilesEntry, MapExportStatus, SearchResult } from "./lib/types.js";
 
     interface Props {
@@ -117,11 +139,19 @@
     let discoveredVisible = $state(false);
     let clusterMarkersEnabled = $state(false);
     let tileServerUrl = $state("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
-    let nominatimApiUrl = $state("https://nominatim.openstreetmap.org/search");
+    let nominatimApiUrl = $state("https://nominatim.openstreetmap.org");
     let coordinateFormat = $state("wgs84");
     let currentZoom = $state(2);
     let centerCoords = $state<[number, number]>([0, 0]);
     let _rotation = $state(0);
+    let showMapPingModal = $state(false);
+    let mapPingLat = $state(0);
+    let mapPingLon = $state(0);
+    let mapPingZoom = $state(10);
+    let remoteOverlayLayers: Record<string, RemoteOverlayEntry> = {};
+    let remoteOverlayLoadGeneration = 0;
+    let queryMarker: Feature | null = null;
+    let unsubscribeRoute: (() => void) | null = null;
 
     let drawSource = $state<VectorSource | null>(null);
     let drawLayer = $state<VectorLayer<VectorSource> | null>(null);
@@ -131,6 +161,8 @@
     let discoveredLayer = $state<VectorLayer<VectorSource> | null>(null);
     let measureSource = $state<VectorSource | null>(null);
     let measureLayer = $state<VectorLayer<VectorSource> | null>(null);
+    let historySource = $state<VectorSource | null>(null);
+    let historyLayer = $state<VectorLayer<VectorSource> | null>(null);
     let tileLayer = $state<TileLayer<any> | null>(null);
 
     let drawInteraction = $state<Draw | null>(null);
@@ -194,15 +226,30 @@
     let editingFeature = $state<any>(null);
     let noteDraft = $state("");
     let drawFeatureInfoPayload = $state<any>(null);
+    let isMiniChatOpen = $state(false);
+    let isMapDropTarget = $state(false);
+    let announceListenEnabled = $state(false);
+    let announceListenBusy = $state(false);
+    let geoWasmEpoch = $state(0);
 
     let peers = $state<Record<string, any>>({});
     let telemetryList = $state<any[]>([]);
     let trackedHashes = $state<string[]>([]);
+
+    let conversationOptions = $derived(
+        Object.values(peers)
+            .filter((p: any) => p?.destination_hash)
+            .map((p: any) => ({
+                hash: p.destination_hash,
+                label: p.display_name || p.destination_hash.substring(0, 8),
+            }))
+    );
+
+    let mapPingSummary = $derived(`${mapPingLat.toFixed(5)}, ${mapPingLon.toFixed(5)} @ z${Math.round(mapPingZoom)}`);
     let mbtilesList = $state<MBTilesEntry[]>([]);
     let mbtilesDir = $state("");
     let drawingsList = $state<DrawingEntry[]>([]);
     let saveDrawingNameDraft = $state("");
-    let pingDestinationHash = $state("");
 
     let saveStateTimer: ReturnType<typeof setTimeout> | null = null;
     let telemetryPollTimer: ReturnType<typeof setInterval> | null = null;
@@ -297,6 +344,13 @@
         measureSource = new VectorSource();
         measureLayer = new VectorLayer({ source: measureSource, style: createMeasureStyle(), zIndex: 12 });
 
+        historySource = new VectorSource();
+        historyLayer = new VectorLayer({
+            source: historySource,
+            style: createTelemetryHistoryStyle(),
+            zIndex: 40,
+        });
+
         tileLayer = new TileLayer({
             source: offlineEnabled
                 ? createOfflineMBTilesSource()
@@ -312,7 +366,7 @@
 
         map = new Map({
             target: mapContainer,
-            layers: [tileLayer, drawLayer, discoveredLayer, markersLayer, measureLayer],
+            layers: [tileLayer, drawLayer, discoveredLayer, markersLayer, measureLayer, historyLayer],
             view,
             controls: [],
         });
@@ -372,27 +426,44 @@
             return true;
         });
         if (clickedFeature) {
-            const peer = clickedFeature.get("peer");
             const cluster = clickedFeature.get("cluster");
             if (cluster) {
                 selectedCluster = cluster;
                 selectedMarker = null;
                 selectedFeature = null;
+                isMiniChatOpen = false;
+                clearTelemetryPath();
                 return;
             }
-            if (peer) {
-                selectedMarker = peer;
+            const markerPayload = markerPanelPayloadFromFeature(clickedFeature);
+            if (markerPayload) {
+                const prevHash = selectedMarker?.telemetry?.destination_hash;
+                const nextHash = markerPayload?.telemetry?.destination_hash;
+                if (!nextHash || prevHash !== nextHash) {
+                    isMiniChatOpen = false;
+                }
+                selectedMarker = markerPayload;
                 selectedCluster = null;
                 selectedFeature = null;
+                if (markerPayload.telemetry?.destination_hash) {
+                    void drawTelemetryPath(markerPayload.telemetry.destination_hash);
+                } else {
+                    clearTelemetryPath();
+                }
                 return;
             }
             selectedFeature = clickedFeature;
             drawFeatureInfoPayload = extractDrawFeaturePayload(clickedFeature);
+            selectedMarker = null;
+            isMiniChatOpen = false;
+            clearTelemetryPath();
         } else {
             selectedMarker = null;
             selectedCluster = null;
             selectedFeature = null;
             drawFeatureInfoPayload = null;
+            isMiniChatOpen = false;
+            clearTelemetryPath();
         }
     }
 
@@ -589,12 +660,320 @@
         telemetryList = await fetchTelemetryMarkers();
         peers = await fetchPeers();
         updatePeerMarkers();
+        const selectedHash = selectedMarker?.telemetry?.destination_hash;
+        if (selectedHash) {
+            void drawTelemetryPath(selectedHash);
+        }
     }
 
     function updatePeerMarkers() {
         if (!markersSource) return;
         markersSource.clear();
-        markersSource.addFeatures(createPeerFeatures(telemetryList));
+        if (queryMarker) {
+            markersSource.addFeature(queryMarker);
+        }
+        markersSource.addFeatures(createPeerFeatures(telemetryList, peers));
+    }
+
+    function clearTelemetryPath() {
+        historySource?.clear();
+    }
+
+    async function drawTelemetryPath(hash: string) {
+        clearTelemetryPath();
+        if (!hash || !historySource) return;
+        try {
+            const history = await fetchTelemetryHistory(hash, 50);
+            const feature = buildTelemetryHistoryTrailFeature(history);
+            if (feature) {
+                historySource.addFeature(feature);
+            }
+        } catch (e) {
+            console.error("Failed to draw telemetry path", e);
+        }
+    }
+
+    function onMapDragOver(ev: DragEvent) {
+        ev.preventDefault();
+        if (ev.dataTransfer && Array.from(ev.dataTransfer.types || []).includes("Files")) {
+            isMapDropTarget = true;
+        }
+    }
+
+    function onMapDragLeave() {
+        isMapDropTarget = false;
+    }
+
+    async function onMapDrop(ev: DragEvent) {
+        ev.preventDefault();
+        isMapDropTarget = false;
+        const files = Array.from(ev.dataTransfer?.files || []);
+        if (!files.length) return;
+
+        const { mbtilesFiles, geoFiles } = classifyMapDropFiles(files);
+        if (!mbtilesFiles.length && !geoFiles.length) {
+            ToastUtils.warning(t("map.drop_no_supported_files"));
+            return;
+        }
+
+        for (const file of mbtilesFiles) {
+            if (file instanceof File) {
+                await uploadDroppedMbtiles(file);
+            }
+        }
+
+        for (const file of geoFiles) {
+            if (!(file instanceof File)) continue;
+            try {
+                const features = await readDroppedGeoFileToFeatures(file, "EPSG:3857");
+                if (!features) {
+                    ToastUtils.warning(t("map.drop_no_supported_files"));
+                    continue;
+                }
+                onVectorExchangeImport({ features, merge: true });
+            } catch (e) {
+                console.error("Map drop import failed:", e);
+                ToastUtils.error(`${t("map.vector_import_failed")} - ${file.name}`);
+            }
+        }
+    }
+
+    async function uploadDroppedMbtiles(file: File) {
+        if (!isMbtilesFile(file)) {
+            ToastUtils.error(t("map.select_mbtiles_error"));
+            return;
+        }
+        isUploading = true;
+        try {
+            const response: any = await uploadMbtilesFile(file);
+            const metadata = response?.metadata || response?.data?.metadata;
+            hasOfflineMap = true;
+            offlineEnabled = true;
+            await loadMBTiles();
+            if (tileLayer) {
+                tileLayer.setSource(createOfflineMBTilesSource());
+            }
+            ToastUtils.success(t("map.upload_success"));
+            if (metadata?.bounds && map) {
+                const bounds = String(metadata.bounds).split(",").map(parseFloat);
+                if (bounds.length === 4) {
+                    const extent = [...fromLonLat([bounds[0], bounds[1]]), ...fromLonLat([bounds[2], bounds[3]])];
+                    map.getView().fit(extent, { padding: [20, 20, 20, 20] });
+                }
+            }
+        } catch (e: any) {
+            ToastUtils.error(`${t("map.upload_failed")}: ${e?.response?.data?.error || e?.message || ""}`);
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    async function onToggleAnnounceListen(enabled: boolean) {
+        if (announceListenBusy) return;
+        announceListenBusy = true;
+        const next = Boolean(enabled);
+        try {
+            const response: any = await patchAnnounceStoreMapData(next);
+            const cfg = response?.config || response?.data?.config;
+            if (cfg) {
+                publishPatchedConfig(cfg);
+            } else {
+                publishPatchedConfig({ announce_store_map_data: next });
+            }
+            announceListenEnabled = next;
+            ToastUtils.success(next ? t("map.data_listen_enabled_toast") : t("map.data_listen_disabled_toast"));
+        } catch (e) {
+            console.error(e);
+            ToastUtils.error(t("common.save_failed"));
+        } finally {
+            announceListenBusy = false;
+        }
+    }
+
+    function onConfigUpdatedExternally(cfg: any) {
+        if (!cfg || typeof cfg !== "object") return;
+        if (Object.prototype.hasOwnProperty.call(cfg, "announce_store_map_data")) {
+            announceListenEnabled = Boolean(cfg.announce_store_map_data);
+        }
+    }
+
+    function layersTagForShare() {
+        return discoveredVisible ? "discovered" : "";
+    }
+
+    async function shareMapView() {
+        if (!map) return;
+        const view = map.getView();
+        const c = toLonLat(view.getCenter() || [0, 0]);
+        const z = view.getZoom() || currentZoom;
+        const layers = layersTagForShare();
+        const mesh = buildMeshchatMapUri({ lat: c[1], lon: c[0], zoom: z, layers });
+        const web = buildWebHashMapUrl({ lat: c[1], lon: c[0], zoom: z, layers });
+        const text = `${t("map.share_message_prefix")} ${mesh}\n${web}`;
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+                ToastUtils.success(t("map.share_copied"));
+            } else {
+                ToastUtils.info(text);
+            }
+        } catch {
+            ToastUtils.warning(web);
+        }
+    }
+
+    function openPingModalAt(lat: number, lon: number, zoom: number) {
+        mapPingLat = lat;
+        mapPingLon = lon;
+        mapPingZoom = zoom;
+        showMapPingModal = true;
+    }
+
+    async function handleSendMapPing(destinationHash: string) {
+        try {
+            await sendMapPing({
+                destinationHash,
+                lat: mapPingLat,
+                lon: mapPingLon,
+                zoom: mapPingZoom,
+                layers: layersTagForShare(),
+                contentPrefix: t("map.ping_message_prefix"),
+            });
+            ToastUtils.success(t("map.ping_sent"));
+            showMapPingModal = false;
+        } catch (e: any) {
+            if (e?.message === "invalid_destination") {
+                ToastUtils.error(t("map.ping_invalid_destination"));
+                return;
+            }
+            ToastUtils.error(t("map.ping_failed"));
+        }
+    }
+
+    async function handleToggleTracking(hash: string) {
+        const entry = telemetryList.find((tEntry) => tEntry.destination_hash === hash);
+        const currentlyTracking = Boolean(entry?.is_tracking || selectedMarker?.telemetry?.is_tracking);
+        const next = await toggleTelemetryTracking(hash, !currentlyTracking);
+        if (next == null) {
+            ToastUtils.error(t("map.failed_update_tracking"));
+            return;
+        }
+        if (entry) entry.is_tracking = next;
+        const selectedHash = selectedMarker?.telemetry?.destination_hash;
+        if (selectedHash && selectedHash === hash) {
+            selectedMarker = {
+                ...selectedMarker,
+                telemetry: { ...selectedMarker.telemetry, is_tracking: next },
+            };
+        }
+        if (next) {
+            if (!trackedHashes.includes(hash)) trackedHashes = [...trackedHashes, hash];
+        } else {
+            trackedHashes = trackedHashes.filter((h) => h !== hash);
+        }
+        updatePeerMarkers();
+        ToastUtils.success(next ? t("map.tracking_enabled") : t("map.tracking_disabled"));
+    }
+
+    async function onRemoteOverlaysChanged(overlays?: any[]) {
+        if (!map) return;
+        const ctx = {
+            map,
+            remoteOverlayLoadGeneration,
+            remoteOverlayLayers,
+            removeRemoteOverlayLayer(id: string) {
+                removeRemoteOverlayLayer(map, remoteOverlayLayers, id);
+            },
+            async ensureRemoteOverlayLayer(overlay: any) {
+                await ensureRemoteOverlayLayer(map, remoteOverlayLayers, overlay);
+            },
+        };
+        await handleRemoteOverlaysChanged(ctx, overlays || []);
+        remoteOverlayLoadGeneration = ctx.remoteOverlayLoadGeneration;
+    }
+
+    async function onRemoteOverlayExport(detail: { id: string | number; format: string }) {
+        try {
+            await exportRemoteOverlay(detail.id, detail.format);
+            ToastUtils.success(t("map.remote_overlays_export_ok"));
+        } catch {
+            ToastUtils.error(t("map.remote_overlays_export_failed"));
+        }
+    }
+
+    async function onRemoteOverlayCopyToDrawings(overlay: any) {
+        try {
+            const count = await copyRemoteOverlayToDrawings(drawSource, overlay);
+            if (count > 0) {
+                ToastUtils.success(t("map.remote_overlays_copied"));
+            }
+        } catch {
+            ToastUtils.error(t("map.remote_overlays_error"));
+        }
+    }
+
+    function applyLayersFromRouteString(layersStr: string) {
+        if (!layersStr) return;
+        const parts = layersStr
+            .split(",")
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean);
+        if (parts.includes("discovered") && !discoveredVisible) {
+            void toggleDiscovered();
+        }
+    }
+
+    function applyMapViewFromRoute() {
+        if (!map || !markersSource) return;
+        const route = getCurrentRoute();
+        const q = route?.query || {};
+        const latRaw = q.lat;
+        const lonRaw = q.lon;
+        if (latRaw == null || lonRaw == null || latRaw === "" || lonRaw === "") {
+            if (q.layers) applyLayersFromRouteString(String(q.layers));
+            return;
+        }
+        const lat = parseFloat(latRaw);
+        const lon = parseFloat(lonRaw);
+        const zRaw = q.zoom != null && q.zoom !== "" ? q.zoom : q.z;
+        let zoom = parseFloat(zRaw != null && zRaw !== "" ? zRaw : "15");
+        if (!Number.isFinite(zoom)) zoom = 15;
+        zoom = Math.max(0, Math.min(22, zoom));
+        const label = (q.label != null && String(q.label)) || "Target";
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+        if (queryMarker) {
+            markersSource.removeFeature(queryMarker);
+            queryMarker = null;
+        }
+
+        map.getView().setCenter(fromLonLat([lon, lat]));
+        map.getView().setZoom(zoom);
+        currentZoom = zoom;
+        centerCoords = [lon, lat];
+
+        const coord = fromLonLat([lon, lat]);
+        const feature = new Feature({
+            geometry: new Point(coord),
+            originalCoord: coord,
+        });
+        feature.setStyle(
+            getPeerMarkerStyle(
+                {
+                    display_name: String(label),
+                    background_colour: "#2563eb",
+                    foreground_colour: "#ffffff",
+                },
+                true
+            )
+        );
+        queryMarker = feature;
+        markersSource.addFeature(feature);
+
+        if (q.layers) applyLayersFromRouteString(String(q.layers));
+        if (q.view === "discovered" && !discoveredVisible) {
+            void toggleDiscovered();
+        }
     }
 
     async function toggleDiscovered() {
@@ -663,7 +1042,7 @@
                 searchError = t("map.search_offline_coordinates_only");
                 return;
             }
-            const res = await fetch(`${nominatimApiUrl}?format=json&q=${encodeURIComponent(q)}&limit=5`);
+            const res = await fetch(buildNominatimSearchUrl(nominatimApiUrl, q, 5));
             if (res.ok) {
                 searchResults = await res.json();
             }
@@ -809,33 +1188,7 @@
         const file = input.files?.[0];
         input.value = "";
         if (!file) return;
-        if (!file.name.toLowerCase().endsWith(".mbtiles")) {
-            ToastUtils.error(t("map.select_mbtiles_error"));
-            return;
-        }
-        isUploading = true;
-        try {
-            const response: any = await uploadMbtilesFile(file);
-            const metadata = response?.metadata || response?.data?.metadata;
-            hasOfflineMap = true;
-            offlineEnabled = true;
-            await loadMBTiles();
-            if (tileLayer) {
-                tileLayer.setSource(createOfflineMBTilesSource());
-            }
-            ToastUtils.success(t("map.upload_success"));
-            if (metadata?.bounds && map) {
-                const bounds = String(metadata.bounds).split(",").map(parseFloat);
-                if (bounds.length === 4) {
-                    const extent = [...fromLonLat([bounds[0], bounds[1]]), ...fromLonLat([bounds[2], bounds[3]])];
-                    map.getView().fit(extent, { padding: [20, 20, 20, 20] });
-                }
-            }
-        } catch (e: any) {
-            ToastUtils.error(`${t("map.upload_failed")}: ${e?.response?.data?.error || e?.message || ""}`);
-        } finally {
-            isUploading = false;
-        }
+        await uploadDroppedMbtiles(file);
     }
 
     function dismissTileConnectivityBanner() {
@@ -950,7 +1303,11 @@
     onMount(async () => {
         setupTabToolbarHostWatcher();
         initOpenLayers();
-        void ensureGeoCoordsReady();
+        void ensureGeoCoordsReady().then(() => {
+            geoWasmEpoch += 1;
+        });
+        announceListenEnabled = Boolean((GlobalState.config as any)?.announce_store_map_data);
+        GlobalEmitter.on("config-updated", onConfigUpdatedExternally);
         await loadSavedState();
         await reloadTelemetry();
         await loadMBTiles();
@@ -960,8 +1317,12 @@
         setTimeout(refreshTabToolbarHost, 100);
 
         telemetryPollTimer = setInterval(() => reloadTelemetry(), 10000);
-        onWsEvent("telemetry", reloadTelemetry);
+        onWsEvent("lxmf.telemetry", reloadTelemetry);
         onWsEvent("announce", reloadTelemetry);
+        applyMapViewFromRoute();
+        unsubscribeRoute = subscribeRoute(() => {
+            applyMapViewFromRoute();
+        });
 
         if (map) {
             map.on("pointermove", (evt: any) => {
@@ -997,8 +1358,14 @@
         if (saveStateTimer) clearTimeout(saveStateTimer);
         if (tileConnectivityBannerTimer) clearTimeout(tileConnectivityBannerTimer);
         measureTooltipManager?.destroy();
-        offWsEvent("telemetry", reloadTelemetry);
+        GlobalEmitter.off("config-updated", onConfigUpdatedExternally);
+        offWsEvent("lxmf.telemetry", reloadTelemetry);
         offWsEvent("announce", reloadTelemetry);
+        unsubscribeRoute?.();
+        unsubscribeRoute = null;
+        for (const id of Object.keys(remoteOverlayLayers)) {
+            removeRemoteOverlayLayer(map, remoteOverlayLayers, id);
+        }
         if (map) {
             map.setTarget(undefined);
             map = null;
@@ -1017,6 +1384,7 @@
                 ontoggleoffline={toggleOffline}
                 ontogglemotools={() => (isMapToolsOpen = !isMapToolsOpen)}
                 ontogglesettings={() => (isSettingsOpen = !isSettingsOpen)}
+                onshare={shareMapView}
             />
         </MapPortal>
     {:else}
@@ -1029,6 +1397,7 @@
             ontoggleoffline={toggleOffline}
             ontogglemotools={() => (isMapToolsOpen = !isMapToolsOpen)}
             ontogglesettings={() => (isSettingsOpen = !isSettingsOpen)}
+            onshare={shareMapView}
         />
     {/if}
 
@@ -1123,20 +1492,40 @@
             />
         </div>
 
-        <div bind:this={mapContainer} class="absolute inset-0 {isExportMode ? 'cursor-crosshair' : ''}"></div>
+        <div
+            bind:this={mapContainer}
+            class="absolute inset-0 {isExportMode ? 'cursor-crosshair' : ''}"
+            ondragover={onMapDragOver}
+            ondragleave={onMapDragLeave}
+            ondrop={onMapDrop}
+            role="presentation"
+        ></div>
+
+        {#if isMapDropTarget}
+            <div
+                class="absolute inset-0 z-40 flex flex-col items-center justify-center bg-blue-500/20 backdrop-blur-sm border-4 border-blue-500 border-dashed m-4 rounded-2xl pointer-events-none transition-opacity"
+            >
+                <MaterialDesignIcon iconName="map-plus" class="w-16 h-16 text-sem-accent mb-4" />
+                <h3 class="text-lg font-bold text-blue-700 dark:text-blue-300">{t("map.drop_geo_files")}</h3>
+                <p class="text-sm text-sem-accent mt-1">{t("map.drop_map_files_hint")}</p>
+            </div>
+        {/if}
 
         {#if selectedMarker}
             <MapMarkerPanel
                 marker={selectedMarker}
                 {coordinateFormat}
-                onclose={() => (selectedMarker = null)}
-                ontoggletracking={(hash) => {
-                    if (trackedHashes.includes(hash)) {
-                        trackedHashes = trackedHashes.filter((h) => h !== hash);
-                    } else {
-                        trackedHashes = [...trackedHashes, hash];
-                    }
+                {geoWasmEpoch}
+                refLon={centerCoords[0]}
+                refLat={centerCoords[1]}
+                miniChatOpen={isMiniChatOpen}
+                onclose={() => {
+                    selectedMarker = null;
+                    isMiniChatOpen = false;
+                    clearTelemetryPath();
                 }}
+                ontoggletracking={handleToggleTracking}
+                ontoggleminichat={() => (isMiniChatOpen = !isMiniChatOpen)}
             />
         {/if}
 
@@ -1164,7 +1553,7 @@
             {isMobileScreen}
             onclose={() => (isSettingsOpen = false)}
             onsetasdefaultview={saveState}
-            ontoggletracking={(hash) => (trackedHashes = trackedHashes.filter((h) => h !== hash))}
+            ontoggletracking={handleToggleTracking}
         />
 
         <MapToolsDrawer
@@ -1177,6 +1566,8 @@
             {mbtilesDir}
             {hasOfflineMap}
             mapReady={isMapLoaded}
+            {announceListenEnabled}
+            {announceListenBusy}
             ontoggleoffline={toggleOffline}
             ontogglecaching={toggleCaching}
             onsetactivembtiles={(name) => setActiveMBTiles(name).then(loadMBTiles)}
@@ -1193,6 +1584,11 @@
             onexportkml={exportVectorKml}
             onexportkmz={exportVectorKmz}
             onexportgpx={exportVectorGpx}
+            onoverlayschanged={onRemoteOverlaysChanged}
+            onexportoverlay={onRemoteOverlayExport}
+            oncopyoverlaytodrawings={onRemoteOverlayCopyToDrawings}
+            onoverlayerror={() => ToastUtils.error(t("map.remote_overlays_error"))}
+            ontoggleannouncelisten={onToggleAnnounceListen}
             onclose={() => (isMapToolsOpen = false)}
         />
 
@@ -1220,13 +1616,21 @@
                 }
             }}
             onpinghere={() => {
-                if (contextMenuMapCoord) {
+                if (contextMenuMapCoord && map) {
                     const lonLat = toLonLat(contextMenuMapCoord);
-                    sendMapPing(pingDestinationHash, lonLat[1], lonLat[0], currentZoom);
+                    openPingModalAt(lonLat[1], lonLat[0], map.getView().getZoom() || currentZoom);
                 }
             }}
             onclearmap={() => drawSource?.clear()}
             onclose={() => (showContextMenu = false)}
+        />
+
+        <MapPingModal
+            show={showMapPingModal}
+            summary={mapPingSummary}
+            {conversationOptions}
+            onclose={() => (showMapPingModal = false)}
+            onsend={handleSendMapPing}
         />
 
         <MapSaveDrawingModal

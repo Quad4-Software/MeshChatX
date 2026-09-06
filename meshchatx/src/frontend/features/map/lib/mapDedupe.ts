@@ -1,29 +1,10 @@
 // SPDX-License-Identifier: 0BSD
 
+import type { DiscoveredMapNode, MapPeer, TelemetryPeer } from "./types.js";
+
 interface Coordinate {
     latitude: number;
     longitude: number;
-}
-
-interface TelemetryEntry {
-    destination_hash?: string;
-    updated_at?: string;
-    timestamp?: number;
-    telemetry?: {
-        location?: Coordinate;
-    };
-    [key: string]: unknown;
-}
-
-interface PeerDetails {
-    display_name?: string;
-    [key: string]: unknown;
-}
-
-interface DiscoveredMapNode extends Coordinate {
-    name?: string;
-    last_heard?: number;
-    [key: string]: unknown;
 }
 
 const NEARBY_DEGREE_THRESHOLD = 0.005;
@@ -36,26 +17,26 @@ function nearByDegrees(a: Coordinate, b: Coordinate): boolean {
 }
 
 export function dedupeTelemetryMarkersForMap(
-    telemetryList: TelemetryEntry[],
-    peers: Record<string, PeerDetails> = {}
-): TelemetryEntry[] {
+    telemetryList: TelemetryPeer[],
+    peers: Record<string, MapPeer> = {}
+): TelemetryPeer[] {
     if (!Array.isArray(telemetryList)) return [];
     const sorted = [...telemetryList].sort((a, b) => {
         const ta = a.updated_at ? new Date(a.updated_at).getTime() : (a.timestamp || 0) * 1000;
         const tb = b.updated_at ? new Date(b.updated_at).getTime() : (b.timestamp || 0) * 1000;
         return tb - ta;
     });
-    const labelName = (t: TelemetryEntry): string => {
+    const labelName = (t: TelemetryPeer): string => {
         const p = t.destination_hash ? peers[t.destination_hash] : undefined;
         return (p?.display_name || t.destination_hash?.substring(0, 8) || "").trim().toLowerCase();
     };
-    const near = (a: TelemetryEntry, b: TelemetryEntry): boolean => {
+    const near = (a: TelemetryPeer, b: TelemetryPeer): boolean => {
         const la = a.telemetry?.location;
         const lb = b.telemetry?.location;
         if (!la || !lb || la.latitude == null || lb.latitude == null) return false;
         return nearByDegrees(la, lb);
     };
-    const out: TelemetryEntry[] = [];
+    const out: TelemetryPeer[] = [];
     for (const t of sorted) {
         const nn = labelName(t);
         if (!nn) {
@@ -73,7 +54,18 @@ export function dedupeDiscoveredMapNodes(nodes: DiscoveredMapNode[]): Discovered
     const sorted = [...nodes].sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
     const norm = (n: DiscoveredMapNode): string => (n.name || "").trim().toLowerCase();
     const near = (a: DiscoveredMapNode, b: DiscoveredMapNode): boolean =>
-        Boolean(a && b && a.latitude != null && b.latitude != null && nearByDegrees(a, b));
+        Boolean(
+            a &&
+            b &&
+            a.latitude != null &&
+            b.latitude != null &&
+            a.longitude != null &&
+            b.longitude != null &&
+            nearByDegrees(
+                { latitude: a.latitude, longitude: a.longitude },
+                { latitude: b.latitude, longitude: b.longitude }
+            )
+        );
     const out: DiscoveredMapNode[] = [];
     for (const n of sorted) {
         const nn = norm(n);

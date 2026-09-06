@@ -7,6 +7,14 @@ import {
 } from "@/features/map/lib/clusterUtils.js";
 import { getDiscoveredIconName } from "@/features/map/lib/discoveredIcons.js";
 import { dedupeDiscoveredMapNodes, dedupeTelemetryMarkersForMap } from "@/features/map/lib/mapDedupe.js";
+import { markerPanelPayloadFromFeature } from "@/features/map/lib/mapPageHelpers.js";
+import {
+    classifyMapDropFiles,
+    isGeoDropFile,
+    isMbtilesFile,
+    looksLikeGeoJsonText,
+} from "@/features/map/lib/mapDropImport.js";
+import { buildTelemetryHistoryTrailFeature } from "@/features/map/lib/mapTelemetryHistory.js";
 
 function feature(props, coord) {
     const geom = coord ? { getCoordinates: () => coord } : null;
@@ -18,6 +26,65 @@ function feature(props, coord) {
         getGeometry: () => geom,
     };
 }
+
+describe("mapPageHelpers.markerPanelPayloadFromFeature", () => {
+    it("builds Vue-parity marker panel payloads from feature props", () => {
+        const telemetry = { destination_hash: "deadbeef", is_tracking: true };
+        const peer = { display_name: "Alice" };
+        const discovered = { name: "RNode" };
+        const feat = feature({ telemetry, peer, discovered });
+        expect(markerPanelPayloadFromFeature(feat)).toEqual({ telemetry, peer, discovered });
+        expect(markerPanelPayloadFromFeature(feature({}))).toBeNull();
+        expect(markerPanelPayloadFromFeature(null)).toBeNull();
+    });
+});
+
+describe("mapDropImport", () => {
+    it("classifies mbtiles and geo drop files", () => {
+        expect(isMbtilesFile({ name: "tiles.mbtiles" })).toBe(true);
+        expect(isMbtilesFile({ name: "route.gpx" })).toBe(false);
+        expect(isGeoDropFile({ name: "route.gpx" })).toBe(true);
+        expect(isGeoDropFile({ name: "layer.kmz" })).toBe(true);
+        expect(isGeoDropFile({ name: "notes.txt" })).toBe(false);
+        const classified = classifyMapDropFiles([
+            { name: "a.mbtiles" },
+            { name: "b.geojson" },
+            { name: "c.txt" },
+            { name: "d.KML" },
+        ]);
+        expect(classified.mbtilesFiles.map((f) => f.name)).toEqual(["a.mbtiles"]);
+        expect(classified.geoFiles.map((f) => f.name)).toEqual(["b.geojson", "d.KML"]);
+    });
+
+    it("detects GeoJSON text payloads", () => {
+        expect(looksLikeGeoJsonText('{"type":"FeatureCollection","features":[]}')).toBe(true);
+        expect(looksLikeGeoJsonText('{"type":"Point","coordinates":[0,0]}')).toBe(true);
+        expect(looksLikeGeoJsonText('{"hello":"world"}')).toBe(false);
+        expect(looksLikeGeoJsonText("not-json")).toBe(false);
+    });
+});
+
+describe("mapTelemetryHistory.buildTelemetryHistoryTrailFeature", () => {
+    it("returns null without at least two located points", () => {
+        expect(buildTelemetryHistoryTrailFeature(null)).toBeNull();
+        expect(buildTelemetryHistoryTrailFeature([])).toBeNull();
+        expect(
+            buildTelemetryHistoryTrailFeature([{ telemetry: { location: { latitude: 1, longitude: 2 } } }])
+        ).toBeNull();
+    });
+
+    it("builds a history_trail LineString from located history", () => {
+        const feat = buildTelemetryHistoryTrailFeature([
+            { telemetry: { location: { latitude: 10, longitude: 20 } } },
+            { telemetry: { location: { latitude: 11, longitude: 21 } } },
+            { telemetry: {} },
+        ]);
+        expect(feat).toBeTruthy();
+        expect(feat.get("type")).toBe("history_trail");
+        expect(feat.getGeometry().getType()).toBe("LineString");
+        expect(feat.getGeometry().getCoordinates()).toHaveLength(2);
+    });
+});
 
 describe("clusterUtils.extentDiagonal", () => {
     it("returns 0 for invalid extents", () => {

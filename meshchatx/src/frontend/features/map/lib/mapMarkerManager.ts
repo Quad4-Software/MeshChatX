@@ -6,26 +6,26 @@ import Point from "ol/geom/Point.js";
 import { fromLonLat } from "ol/proj.js";
 import { dedupeDiscoveredMapNodes, dedupeTelemetryMarkersForMap } from "./mapDedupe.js";
 import { peerBadgeStyle } from "./markerStyles.js";
-import type { MapAnnounceItem } from "./types.js";
+import type { DiscoveredMapNode, MapAnnounceItem, MapMarkerItem, TelemetryPeer } from "./types.js";
 
 export interface MarkerManagerConfig {
     markerSource: VectorSource;
-    onNodeSelect?: (node: any) => void;
+    onNodeSelect?: (node: MapMarkerItem) => void;
 }
 
 export class MapMarkerManager {
     private markerSource: VectorSource;
     private announces: MapAnnounceItem[] = [];
-    private telemetry: any[] = [];
-    private markers: any[] = [];
-    private onNodeSelectCallback?: (node: any) => void;
+    private telemetry: TelemetryPeer[] = [];
+    private markers: MapMarkerItem[] = [];
+    private onNodeSelectCallback?: (node: MapMarkerItem) => void;
 
     constructor(config: MarkerManagerConfig) {
         this.markerSource = config.markerSource;
         this.onNodeSelectCallback = config.onNodeSelect;
     }
 
-    public updateData(announces: MapAnnounceItem[], telemetry: any[], markers: any[]) {
+    public updateData(announces: MapAnnounceItem[], telemetry: TelemetryPeer[], markers: MapMarkerItem[]) {
         this.announces = announces || [];
         this.telemetry = telemetry || [];
         this.markers = markers || [];
@@ -43,16 +43,22 @@ export class MapMarkerManager {
                 !isNaN(a.longitude)
         );
 
-        const dedupedNodes = dedupeDiscoveredMapNodes(validAnnounces as any);
+        const announceNodes: DiscoveredMapNode[] = validAnnounces.map((a) => ({
+            ...a,
+            latitude: a.latitude,
+            longitude: a.longitude,
+            name: a.name || a.display_name || a.custom_display_name,
+        }));
+        const dedupedNodes = dedupeDiscoveredMapNodes(announceNodes);
         const dedupedTelemetry = dedupeTelemetryMarkersForMap(this.telemetry);
 
-        const allItems = [...dedupedNodes, ...dedupedTelemetry, ...this.markers];
+        const allItems: MapMarkerItem[] = [...dedupedNodes, ...dedupedTelemetry, ...this.markers];
         for (const item of allItems) {
             this.addSingleMarker(item, zoom);
         }
     }
 
-    private addSingleMarker(item: any, zoom: number) {
+    private addSingleMarker(item: MapMarkerItem, zoom: number) {
         const lat = item.latitude ?? item.lat;
         const lon = item.longitude ?? item.lon;
         if (typeof lat !== "number" || typeof lon !== "number") return;
