@@ -23,7 +23,7 @@
 
     const keepAliveCache = new Map<string, MountedPage>();
     let transient: MountedPage | null = null;
-    let renderToken = 0;
+    let renderGeneration = 0;
     let pendingRoute = $state<ActiveRoute | null>(getCurrentRoute());
 
     const unsubscribe = subscribe((route) => {
@@ -108,7 +108,7 @@
         return container;
     }
 
-    async function mountPage(page: MountedPage, route: ActiveRoute, token: number): Promise<void> {
+    async function mountPage(page: MountedPage, route: ActiveRoute, generation: number): Promise<void> {
         const load = route.featureLoad;
         if (typeof load !== "function") {
             console.error("PageOutlet: route has no featureLoad", route.name);
@@ -119,7 +119,7 @@
             return;
         }
         const module = await load();
-        if (token !== renderToken) {
+        if (generation !== renderGeneration) {
             return;
         }
         const resolved = module as { default?: unknown } | null;
@@ -138,7 +138,7 @@
         if (!root) {
             return;
         }
-        const token = ++renderToken;
+        const generation = ++renderGeneration;
         if (!route || !route.matched) {
             destroyPage(transient);
             transient = null;
@@ -190,7 +190,7 @@
                 root.appendChild(entry.container);
             }
             entry.container.style.display = "";
-            await mountPage(entry, route, token);
+            await mountPage(entry, route, generation);
             return;
         }
 
@@ -209,8 +209,8 @@
         transient = page;
         // eslint-disable-next-line svelte/no-dom-manipulating -- PageOutlet mounts feature hosts
         root.appendChild(page.container);
-        await mountPage(page, route, token);
-        if (token !== renderToken && transient === page) {
+        await mountPage(page, route, generation);
+        if (generation !== renderGeneration && transient === page) {
             destroyPage(page);
             transient = null;
         }
