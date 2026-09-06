@@ -170,14 +170,7 @@
     }
 
     async function fetchDiscoveredHubs() {
-        const api = (window as any).api;
-        if (!api) return;
-        try {
-            const res = await api.get("/api/v1/rrc/discovery");
-            discoveredHubs = res.data?.hubs || [];
-        } catch {
-            discoveredHubs = [];
-        }
+        discoveredHubs = [];
     }
 
     async function loadRoomMessages(hubH: string, rName: string) {
@@ -198,7 +191,7 @@
         const api = (window as any).api;
         if (!api) return;
         try {
-            const res = await api.get(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(rName)}/members`);
+            const res = await api.get(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(rName)}/messages`);
             membersMap[`${hubH}:${rName}`] = res.data?.members || [];
         } catch {
             // failed
@@ -545,7 +538,11 @@
                     />
                 {/if}
 
-                <div class="flex-1 flex flex-col min-h-0 bg-sem-canvas overflow-hidden">
+                <div
+                    class="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden bg-sem-canvas {selectedRoom
+                        ? ''
+                        : 'max-md:hidden'}"
+                >
                     {#if selectedRoom}
                         <RelayChatHeader
                             {selectedHub}
@@ -576,8 +573,11 @@
                                 }
                             }}
                             onpopout={() => {
-                                const target = `/popout/relay-chat/${selectedHubHash}/${selectedRoomName}`;
-                                window.open(target, "_blank", "width=960,height=720");
+                                if (!selectedHubHash || !selectedRoomName) return;
+                                const hub = encodeURIComponent(selectedHubHash);
+                                const room = encodeURIComponent(selectedRoomName);
+                                const url = `${window.location.origin}${window.location.pathname}#/popout/relay-chat/${hub}/${room}`;
+                                window.open(url, "_blank", "width=960,height=720,noopener");
                             }}
                             onleaveroom={() => void leaveRoom()}
                             onclearmessages={() => void clearMessages()}
@@ -596,7 +596,7 @@
                             </div>
                         {/if}
 
-                        <div class="flex flex-1 min-h-0 overflow-hidden">
+                        <div class="relative flex flex-1 min-h-0 overflow-hidden">
                             <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
                                 <div bind:this={scrollContainerEl} class="flex-1 overflow-y-auto p-3 space-y-1">
                                     {#if useVirtualMessageList}
@@ -639,6 +639,14 @@
                             </div>
 
                             {#if showMembersPanel}
+                                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                <div
+                                    class="absolute inset-0 z-30 bg-black/40 md:hidden"
+                                    onclick={() => {
+                                        showMembersPanel = false;
+                                    }}
+                                ></div>
                                 <RelayMembersPanel
                                     members={currentMembers}
                                     messages={currentMessages}
@@ -650,6 +658,14 @@
                             {/if}
 
                             {#if showSearchPanel}
+                                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                <div
+                                    class="absolute inset-0 z-30 bg-black/40 md:hidden"
+                                    onclick={() => {
+                                        showSearchPanel = false;
+                                    }}
+                                ></div>
                                 <RelaySearchPanel
                                     messages={currentMessages}
                                     onclose={() => {

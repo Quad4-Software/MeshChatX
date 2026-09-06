@@ -2,7 +2,6 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
-    import IconButton from "../../../ui/svelte/IconButton.svelte";
     import { t } from "../../../js/i18n.js";
     import { hubDisplayName } from "../lib/relayFormatters.js";
     import type { RrcHub, RrcRoom } from "../lib/types.js";
@@ -40,6 +39,10 @@
         onclearmessages,
         ondisconnecthub,
     }: Props = $props();
+
+    const iconBtn = "toolbar-icon-btn focus-ring-sem cursor-pointer";
+    const iconBtnActive = "toolbar-icon-btn text-sem-accent focus-ring-sem cursor-pointer";
+    const iconBtnDanger = "toolbar-icon-btn hover:text-sem-danger focus-ring-sem cursor-pointer";
 </script>
 
 <div
@@ -48,8 +51,9 @@
     <div class="flex items-center gap-2 min-w-0 flex-1">
         <button
             type="button"
-            class="md:hidden p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+            class="md:hidden {iconBtn}"
             title={t("relay_chat.back_to_hubs")}
+            aria-label={t("relay_chat.back_to_hubs")}
             onclick={() => onback?.()}
         >
             <MaterialDesignIcon iconName="arrow-left" class="size-5" />
@@ -79,70 +83,80 @@
 
     <div class="flex items-center gap-1 shrink-0">
         {#if selectedRoom}
-            <IconButton
-                class="size-8 {showSearchPanel
-                    ? 'bg-sem-surface-muted text-sem-accent'
-                    : 'text-sem-fg-muted hover:text-sem-fg'}"
+            <button
+                type="button"
+                class={showSearchPanel ? iconBtnActive : iconBtn}
                 title={t("relay_chat.search_messages")}
+                aria-label={t("relay_chat.search_messages")}
                 onclick={() => ontogglesearch?.()}
             >
-                <MaterialDesignIcon iconName="magnify" class="size-4" />
-            </IconButton>
+                <MaterialDesignIcon iconName="magnify" class="size-5" />
+            </button>
 
             <button
                 type="button"
-                class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors {showMembersPanel
-                    ? 'bg-sem-surface-muted text-sem-accent'
-                    : 'text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted'}"
+                class="toolbar-label-chip min-h-11 sm:min-h-8 border transition-colors focus-ring-sem cursor-pointer {showMembersPanel
+                    ? 'border-sem-border bg-sem-surface-muted text-sem-accent'
+                    : 'border-transparent text-sem-fg-muted hover:border-sem-border hover:bg-sem-surface-muted hover:text-sem-fg'}"
                 title={t("relay_chat.members_list")}
                 onclick={() => ontogglemembers?.()}
             >
-                <MaterialDesignIcon iconName="account-group" class="size-4" />
-                <span>{memberCount}</span>
+                <MaterialDesignIcon iconName="account-group" class="size-5 shrink-0" />
+                <span class="leading-none">{memberCount}</span>
             </button>
 
-            <IconButton
-                class="size-8 text-sem-fg-muted hover:text-sem-fg"
+            <button
+                type="button"
+                class={iconBtn}
                 title={t("relay_chat.share_relay_link")}
+                aria-label={t("relay_chat.share_relay_link")}
                 onclick={() => onshare?.()}
             >
-                <MaterialDesignIcon iconName="share-variant" class="size-4" />
-            </IconButton>
+                <MaterialDesignIcon iconName="share-variant" class="size-5" />
+            </button>
 
             {#if !isPopoutMode}
-                <IconButton
-                    class="size-8 text-sem-fg-muted hover:text-sem-fg hidden sm:inline-flex"
+                <button
+                    type="button"
+                    class="hidden sm:inline-flex {iconBtn}"
                     data-testid="relay-popout"
                     title={t("relay_chat.popout_window")}
+                    aria-label={t("relay_chat.popout_window")}
                     onclick={() => onpopout?.()}
                 >
-                    <MaterialDesignIcon iconName="open-in-new" class="size-4" />
-                </IconButton>
+                    <MaterialDesignIcon iconName="open-in-new" class="size-5" />
+                </button>
             {/if}
 
-            <IconButton
-                class="size-8 text-sem-fg-muted hover:text-sem-fg"
+            <button
+                type="button"
+                class={iconBtn}
                 title={t("relay_chat.clear_messages")}
+                aria-label={t("relay_chat.clear_messages")}
                 onclick={() => onclearmessages?.()}
             >
-                <MaterialDesignIcon iconName="broom" class="size-4" />
-            </IconButton>
+                <MaterialDesignIcon iconName="broom" class="size-5" />
+            </button>
 
-            <IconButton
-                class="size-8 text-sem-fg-muted hover:text-sem-danger"
+            <button
+                type="button"
+                class={iconBtnDanger}
                 title={t("relay_chat.leave_room")}
+                aria-label={t("relay_chat.leave_room")}
                 onclick={() => onleaveroom?.()}
             >
-                <MaterialDesignIcon iconName="logout" class="size-4" />
-            </IconButton>
+                <MaterialDesignIcon iconName="logout" class="size-5" />
+            </button>
         {:else if selectedHub}
-            <IconButton
-                class="size-8 text-sem-fg-muted hover:text-sem-danger"
+            <button
+                type="button"
+                class={iconBtnDanger}
                 title={t("relay_chat.disconnect_hub")}
+                aria-label={t("relay_chat.disconnect_hub")}
                 onclick={() => ondisconnecthub?.()}
             >
-                <MaterialDesignIcon iconName="lan-disconnect" class="size-4" />
-            </IconButton>
+                <MaterialDesignIcon iconName="lan-disconnect" class="size-5" />
+            </button>
         {/if}
     </div>
 </div>
