@@ -35,9 +35,9 @@
             }
         }
         const extra = (iconClass || "").trim();
-        const sizeMatch = extra.match(/\bsize-(\d+(?:\.\d+)?)\b/);
+        const sizeMatch = extra.match(/\bsize-(\d+\.\d+)\b/) || extra.match(/\bsize-(\d+)\b/);
         if (sizeMatch) return Number(sizeMatch[1]) * 4;
-        const wMatch = extra.match(/\bw-(\d+(?:\.\d+)?)\b/);
+        const wMatch = extra.match(/\bw-(\d+\.\d+)\b/) || extra.match(/\bw-(\d+)\b/);
         if (wMatch) return Number(wMatch[1]) * 4;
         return 24;
     });
