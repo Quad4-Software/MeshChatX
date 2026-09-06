@@ -85,28 +85,28 @@
             <!-- stranger trust banner -->
             <div
                 v-if="isStrangerPeer && !strangerBannerDismissed && showUnknownContactBanner"
-                class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex flex-col gap-3 text-sm sm:flex-row sm:items-center"
+                class="mx-3 mt-2 mb-0 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex flex-col gap-2 text-xs sm:flex-row sm:items-center"
             >
-                <div class="flex items-start gap-3 min-w-0 flex-1">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
                     <MaterialDesignIcon
                         icon-name="alert-circle-outline"
-                        class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
+                        class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0"
                     />
                     <span class="flex-1 text-amber-900 dark:text-amber-200">
                         {{ $t("messages.stranger_banner_text") }}
                     </span>
                 </div>
-                <div class="flex items-center gap-2 shrink-0 sm:justify-end">
+                <div class="flex items-center gap-1.5 shrink-0 sm:justify-end">
                     <button
                         type="button"
-                        class="min-h-[44px] flex-1 sm:flex-none px-3 py-2 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                        class="min-h-[36px] sm:min-h-0 flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors"
                         @click="addStrangerAsContact"
                     >
                         {{ $t("messages.add_to_contacts") }}
                     </button>
                     <button
                         type="button"
-                        class="min-h-[44px] px-3 py-2 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors"
+                        class="min-h-[36px] sm:min-h-0 px-2.5 py-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors"
                         @click="strangerBannerDismissed = true"
                     >
                         {{ $t("messages.dismiss") }}
