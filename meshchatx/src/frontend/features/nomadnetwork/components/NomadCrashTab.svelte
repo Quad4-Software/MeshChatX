@@ -177,6 +177,7 @@
         const renderKey = contentRenderKey;
         if (renderKey === lastPostedRenderKey && status === "ready" && framePainted) {
             pushChrome();
+            onrenderdone?.();
             return;
         }
         renderEpoch += 1;

@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Nomad crash tab**: Calls onrenderdone when the render finishes and is posted.
+
 ## [4.8.5] - 2026-08-21 [released]
 
 ### Changed
