@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { render, cleanup, screen, waitFor } from "@testing-library/svelte";
+import { render, cleanup, screen, waitFor, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import RnsFilesyncPage from "@/features/filesync/RnsFilesyncPage.svelte";
 import ToastUtils from "@/js/ToastUtils";
@@ -22,9 +22,15 @@ vi.mock("@/js/ToastUtils", () => ({
     },
 }));
 
+const wsHandlers = new Map();
+
 vi.mock("@/js/registries/wsEventRegistry.js", () => ({
-    onWsEvent: vi.fn(),
-    offWsEvent: vi.fn(),
+    onWsEvent: vi.fn((type, handler) => {
+        wsHandlers.set(type, handler);
+    }),
+    offWsEvent: vi.fn((type) => {
+        wsHandlers.delete(type);
+    }),
 }));
 
 vi.mock("@/js/ElectronUtils", () => ({
@@ -107,6 +113,7 @@ describe("RnsFilesyncPage.svelte", () => {
     let apiMock;
 
     beforeEach(() => {
+        wsHandlers.clear();
         registerTranslator(null);
         registerFallbackMessages({
             app: {
@@ -137,6 +144,19 @@ describe("RnsFilesyncPage.svelte", () => {
                 stop: "Stop",
                 announce: "Announce",
                 refresh: "Refresh",
+                manager_help: "Local files",
+                manager_root: "root",
+                manager_loading: "loading",
+                manager_empty: "empty",
+                browser_up: "Up",
+                upload: "Upload",
+                open_folder: "Open",
+                browser_new: "New",
+                browser_new_placeholder: "folder name",
+                download_local: "Download",
+                delete: "Delete",
+                file_updated: "updated",
+                file_deleted: "deleted",
             },
         });
 
@@ -168,6 +188,15 @@ describe("RnsFilesyncPage.svelte", () => {
             if (url === "/api/v1/filesync/acl") {
                 return Promise.resolve({ data: { enforce: false, rules: {} } });
             }
+            if (url === "/api/v1/filesync/tree") {
+                return Promise.resolve({
+                    data: {
+                        entries: [{ path: "a.txt", name: "a.txt", type: "file", size: 10 }],
+                        current: "",
+                        parent: null,
+                    },
+                });
+            }
             return Promise.resolve({ data: {} });
         });
         apiMock.post.mockResolvedValue({ data: { ok: true } });
@@ -179,6 +208,7 @@ describe("RnsFilesyncPage.svelte", () => {
         cleanup();
         delete window.api;
         vi.clearAllMocks();
+        wsHandlers.clear();
     });
 
     it("renders and loads status and default tab", async () => {
@@ -186,6 +216,21 @@ describe("RnsFilesyncPage.svelte", () => {
         await waitFor(() => {
             expect(screen.getByText("FileSync")).toBeTruthy();
             expect(screen.getByText("Stopped")).toBeTruthy();
+        });
+    });
+
+    it("loads Files tab tree and refreshes on filesync.file.updated", async () => {
+        render(RnsFilesyncPage);
+        await waitFor(() => expect(screen.getByText("Files")).toBeTruthy());
+        await fireEvent.click(screen.getByText("Files"));
+        await waitFor(() => expect(screen.getByText("a.txt")).toBeTruthy());
+        expect(apiMock.get.mock.calls.some((c) => c[0] === "/api/v1/filesync/tree")).toBe(true);
+        const handler = wsHandlers.get("filesync.file.updated");
+        expect(handler).toBeTypeOf("function");
+        apiMock.get.mockClear();
+        await handler({});
+        await waitFor(() => {
+            expect(apiMock.get.mock.calls.some((c) => c[0] === "/api/v1/filesync/tree")).toBe(true);
         });
     });
 });

@@ -60,6 +60,16 @@ vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
     },
 }));
 
+const navigateMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../../meshchatx/src/frontend/shell/hashRouter.js", async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        navigate: navigateMock,
+    };
+});
+
 async function renderSettings(serverConfig = buildFullServerConfig(), router = { push: vi.fn() }) {
     const serverConfigRef = { current: serverConfig };
     const api = createWindowApi(serverConfigRef);
@@ -84,6 +94,7 @@ async function selectTab(container, tabName) {
 describe("SettingsPage: config persistence (PATCH and related)", () => {
     beforeEach(() => {
         registerCoreContributions();
+        navigateMock.mockClear();
     });
 
     afterEach(() => {
@@ -570,6 +581,34 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         expect(toggle).not.toBeNull();
         await fireEvent.click(toggle);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { auth_enabled: false });
+        expect(navigateMock).not.toHaveBeenCalled();
+    });
+
+    it("enabling auth navigates to /auth for setup or login", async () => {
+        navigateMock.mockClear();
+        const { view, api } = await renderSettings(buildFullServerConfig({ auth_enabled: false }));
+        await selectTab(view.container, "Privacy");
+
+        const toggle = view.container.querySelector("#auth-enabled");
+        expect(toggle).not.toBeNull();
+        await fireEvent.click(toggle);
+        await waitFor(() => {
+            expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { auth_enabled: true });
+        });
+        expect(navigateMock).toHaveBeenCalledWith({ name: "auth" });
+    });
+
+    it("onTelephoneEnabledChange PATCHes and toasts LXST status", async () => {
+        const { view, api } = await renderSettings(buildFullServerConfig({ telephone_enabled: false }));
+        await selectTab(view.container, "Network");
+
+        const toggle = view.container.querySelector("#telephone-enabled-toggle");
+        expect(toggle).not.toBeNull();
+        await fireEvent.click(toggle);
+        await waitFor(() => {
+            expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { telephone_enabled: true });
+        });
+        expect(ToastUtils.success).toHaveBeenCalledWith(t("call.telephony_enabled"));
     });
 
     it("onGiteaConfigChange PATCHes", async () => {
@@ -843,7 +882,7 @@ describe("SettingsPage: maintenance, exports, telemetry trust, RNS reload", () =
         );
         expect(exportBtn).not.toBeNull();
         await fireEvent.click(exportBtn);
-        expect(api.get).toHaveBeenCalledWith("/api/v1/messages/export");
+        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/export");
     });
 
     it("purgeOldMessages DELETEs with older_than_days", async () => {
