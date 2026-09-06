@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- **Micron WASM**: PUA/Nerd Font icon glyphs now render with `Roboto Mono Nerd Font` by wrapping them in a span. Bumped `micron-parser-go` to v1.1.1.
+- **Micron WASM**: PUA/Nerd Font icon glyphs now render with `Roboto Mono Nerd Font` by wrapping them in a span. Bumped `micron-parser-go` to v1.1.2.
 
 ### Added
 
