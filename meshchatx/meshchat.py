@@ -8128,7 +8128,7 @@ class ReticulumMeshChat:
         lxmf_names_for_telephony = {}
         if other_user_hashes:
             db_custom_names = self.database.provider.fetchall(
-                f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",
+                f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",  # nosec: BAN-B608
                 other_user_hashes,
             )
             for row in db_custom_names:
@@ -8140,7 +8140,7 @@ class ReticulumMeshChat:
                 )
                 if identity_hashes:
                     lxmf_results = self.database.announces.provider.fetchall(
-                        f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",
+                        f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",  # nosec: BAN-B608
                         identity_hashes,
                     )
                     for row in lxmf_results:

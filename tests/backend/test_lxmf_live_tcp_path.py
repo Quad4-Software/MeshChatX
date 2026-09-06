@@ -48,7 +48,7 @@ def _tcp_reachable(host: str, port: int, timeout: float = 4.0) -> bool:
 
 
 def _fetch_recipe_tcp_nodes() -> list[tuple[str, int, str]]:
-    with urllib.request.urlopen(DIRECTORY_URL, timeout=20) as resp:
+    with urllib.request.urlopen(DIRECTORY_URL, timeout=20) as resp:  # nosec: BAN-B310
         payload = json.loads(resp.read().decode("utf-8"))
     rows = payload.get("data", payload) if isinstance(payload, dict) else payload
     if not isinstance(rows, list):

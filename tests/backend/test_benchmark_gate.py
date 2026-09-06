@@ -97,7 +97,7 @@ class TestBenchmarkStats(unittest.TestCase):
 
 class TestCompareBenchmarks(unittest.TestCase):
     def _write(self, path, entries):
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8") as f:  # nosec: PTC-W6004
             json.dump(entries, f)
 
     def test_compare_flags_real_regression_only(self):

@@ -1,0 +1,50 @@
+version = 1
+
+exclude_patterns = [
+    "tests/**",
+    "test_*.py",
+    "tests_*.py",
+    "*_test.py",
+    "vendor/**",
+    "meshchatx/public/**",
+    "meshchatx/src/frontend/public/**",
+    "android/app/src/main/python/meshchatx/**",
+    ".pnpm-store/**",
+    "node_modules/**",
+    "build/**",
+    "dist/**",
+    ".venv/**",
+    "**/migrations/**",
+    "**/__snapshots__/**",
+    "**/*.min.js",
+    "**/*.umd.js",
+    "meshchatx/src/frontend/public/assets/js/codec2-emscripten/**",
+]
+
+test_patterns = [
+    "tests/**",
+    "test_*.py",
+    "tests_*.py",
+    "*_test.py",
+]
+
+[[analyzers]]
+name = "python"
+enabled = true
+runtime_version = "3.12"
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+[[analyzers]]
+name = "java"
+enabled = true
+
+[[analyzers]]
+name = "docker"
+enabled = true
+
+[[analyzers]]
+name = "shell"
+enabled = true

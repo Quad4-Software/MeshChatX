@@ -97,9 +97,12 @@ def _copy_file(src: Path, dest: Path) -> None:
 
 
 def _darwin_load_commands(ext_so: Path) -> list[str]:
+    otool = shutil.which("otool")
+    if not otool:
+        return []
     try:
         result = subprocess.run(
-            ["otool", "-L", str(ext_so)],
+            [otool, "-L", str(ext_so)],
             check=False,
             capture_output=True,
             text=True,

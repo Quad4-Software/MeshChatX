@@ -33,7 +33,7 @@ def _argos_cli_needs_network() -> bool:
         headers={"User-Agent": "MeshChatX-Tests/1"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec: BAN-B310
             code = getattr(resp, "status", resp.getcode())
             return code is not None and int(code) < 500
     except urllib.error.HTTPError as e:
