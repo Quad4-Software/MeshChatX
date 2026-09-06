@@ -286,7 +286,7 @@ describe("RNPathPage.svelte", () => {
         const actionsTab = screen.getByText("Actions");
         await fireEvent.click(actionsTab);
 
-        const input = screen.getByPlaceholderText(/destination hash/i);
+        const input = screen.getAllByPlaceholderText(/destination hash/i)[0];
         await fireEvent.input(input, { target: { value: "d".repeat(32) } });
 
         const requestBtn = screen.getByRole("button", { name: /Request/i });

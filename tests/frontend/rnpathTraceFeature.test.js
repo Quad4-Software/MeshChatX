@@ -88,6 +88,8 @@ describe("RNPathTracePage.svelte", () => {
             common: {
                 copy_to_clipboard: "Copy",
                 copied: "Copied",
+                error: "Error",
+                refresh: "Refresh",
             },
             tools: {
                 back_to_tools: "Back",
@@ -165,7 +167,7 @@ describe("RNPathTracePage.svelte", () => {
         await fireEvent.click(traceBtn);
 
         await waitFor(() => {
-            expect(screen.getByText("Trace Error")).toBeTruthy();
+            expect(screen.getByText("Error")).toBeTruthy();
             expect(screen.getByText("Path not found after timeout")).toBeTruthy();
         });
     });

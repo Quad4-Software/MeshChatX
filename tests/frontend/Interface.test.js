@@ -37,7 +37,7 @@ describe("InterfaceCard.svelte", () => {
         const { container } = render(InterfaceCard, {
             props: { iface: defaultIface, isReticulumRunning: true, ondisable },
         });
-        const disableBtn = container.querySelector('button[title="interface.disable"]');
+        const disableBtn = container.querySelector('button[title="Disable"]');
         expect(disableBtn).toBeTruthy();
         if (disableBtn) {
             await fireEvent.click(disableBtn);
@@ -50,7 +50,7 @@ describe("InterfaceCard.svelte", () => {
         const { container } = render(InterfaceCard, {
             props: { iface: { ...defaultIface, enabled: false }, isReticulumRunning: true, onenable },
         });
-        const enableBtn = container.querySelector('button[title="interface.enable"]');
+        const enableBtn = container.querySelector('button[title="Enable"]');
         expect(enableBtn).toBeTruthy();
         if (enableBtn) {
             await fireEvent.click(enableBtn);
@@ -107,7 +107,7 @@ describe("InterfaceCard.svelte", () => {
         );
         expect(actionsCol).toBeTruthy();
         expect(actionsCol?.classList.contains("sm:shrink-0")).toBe(true);
-        const btn = container.querySelector('button[title="interface.disable"]');
+        const btn = container.querySelector('button[title="Disable"]');
         expect(btn?.classList.contains("shrink-0")).toBe(true);
         const dropdown = container.querySelector(".relative.z-50.shrink-0");
         expect(dropdown).toBeTruthy();
@@ -174,6 +174,10 @@ describe("InterfaceCard.svelte overflow at different viewports", () => {
     it("icon and chips have shrink-0 so they do not collapse", () => {
         const { container } = renderInterface();
         expect(container.querySelector(".interface-card__icon")?.classList.contains("shrink-0")).toBe(true);
-        expect(container.querySelector(".type-chip")?.classList.contains("shrink-0")).toBe(true);
+        expect(
+            [...container.querySelectorAll("span")].some(
+                (el) => el.classList.contains("shrink-0") && el.textContent?.includes("AutoInterface")
+            )
+        ).toBe(true);
     });
 });

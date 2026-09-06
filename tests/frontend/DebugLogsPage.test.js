@@ -37,7 +37,7 @@ describe("DebugLogsPage.svelte", () => {
         registerFallbackMessages({
             app: { tools: "Tools" },
             tools: { back_to_tools: "Back" },
-            common: { search: "Search", all: "All", refresh: "Refresh" },
+            common: { search: "Search", all: "All", refresh: "Refresh", next: "Next", previous: "Previous" },
             debug: {
                 logs_title: "Logs",
                 logs_description: "desc",

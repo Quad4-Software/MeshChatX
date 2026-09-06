@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mount } from "@vue/test-utils";
-import { createI18n } from "vue-i18n";
-import PostInstallPromptHost from "../../meshchatx/src/frontend/components/PostInstallPromptHost.vue";
+import { cleanup, render, screen } from "@testing-library/svelte";
+import { tick } from "svelte";
+import PostInstallPromptHost from "../../meshchatx/src/frontend/features/app-shell/components/PostInstallPromptHost.svelte";
 import {
     POST_INSTALL_PROMPTS_STORAGE_KEY,
     clearPromptSeenState,
@@ -20,26 +20,20 @@ import {
     listPostInstallPrompts,
     listPostInstallPromptsByPriority,
 } from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
+import { registerFallbackMessages, registerTranslator } from "../../meshchatx/src/frontend/js/i18n.js";
 
-const i18n = createI18n({
-    legacy: false,
-    locale: "en",
-    messages: {
-        en: {
-            common: { continue: "Continue" },
-            post_install: {
-                demo_title: "Demo title",
-                demo_desc: "Demo body",
-                demo_primary: "Got it",
-                demo_secondary: "Later",
-            },
-        },
-    },
-});
 function mountHost() {
-    return mount(PostInstallPromptHost, {
-        global: { plugins: [i18n] },
+    registerTranslator(null);
+    registerFallbackMessages({
+        common: { continue: "Continue" },
+        post_install: {
+            demo_title: "Demo title",
+            demo_desc: "Demo body",
+            demo_primary: "Got it",
+            demo_secondary: "Later",
+        },
     });
+    return render(PostInstallPromptHost);
 }
 
 describe("postInstallPromptState", () => {
@@ -163,6 +157,7 @@ describe("PostInstallPromptHost", () => {
     });
 
     afterEach(() => {
+        cleanup();
         clearPromptSeenState();
         postInstallPromptRegistry.clear();
     });
@@ -185,14 +180,13 @@ describe("PostInstallPromptHost", () => {
             primaryLabelKey: "post_install.demo_primary",
         });
 
-        const wrapper = mountHost();
-        expect(await wrapper.vm.showNext()).toBe(true);
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.visible).toBe(true);
-        expect(wrapper.vm.activeEntry?.id).toBe("high");
-        expect(wrapper.vm.resolvedTitle).toBe("Demo title");
-        expect(wrapper.vm.resolvedDescription).toBe("Demo body");
-        expect(wrapper.vm.resolvedPrimaryLabel).toBe("Got it");
+        const { component } = mountHost();
+        expect(await component.showNext()).toBe(true);
+        await tick();
+        expect(await component.findNextPending()).toMatchObject({ id: "high" });
+        expect(screen.getByText("Demo title")).toBeTruthy();
+        expect(screen.getByText("Demo body")).toBeTruthy();
+        expect(screen.getByText("Got it")).toBeTruthy();
     });
 
     it("showNext returns true without switching when already visible", async () => {
@@ -201,14 +195,15 @@ describe("PostInstallPromptHost", () => {
             revision: 1,
             titleKey: "post_install.demo_title",
         });
-        const wrapper = mountHost();
-        expect(await wrapper.vm.showNext()).toBe(true);
-        expect(await wrapper.vm.showNext()).toBe(true);
-        expect(wrapper.vm.activeEntry?.id).toBe("once");
+        const { component } = mountHost();
+        expect(await component.showNext()).toBe(true);
+        expect(await component.showNext()).toBe(true);
+        expect(screen.getByText("Demo title")).toBeTruthy();
     });
 
     it("primary dismisses and marks the revision seen", async () => {
         const onPrimary = vi.fn();
+        const oncompleted = vi.fn();
         registerPostInstallPrompt({
             id: "once",
             revision: 3,
@@ -217,14 +212,27 @@ describe("PostInstallPromptHost", () => {
             onPrimary,
         });
 
-        const wrapper = mountHost();
-        await wrapper.vm.showNext();
-        await wrapper.vm.onPrimary();
+        const { component } = mountHost();
+        // Re-render with completed callback
+        cleanup();
+        registerTranslator(null);
+        registerFallbackMessages({
+            common: { continue: "Continue" },
+            post_install: {
+                demo_title: "Demo title",
+                demo_desc: "Demo body",
+                demo_primary: "Got it",
+                demo_secondary: "Later",
+            },
+        });
+        const view = render(PostInstallPromptHost, { oncompleted });
+        await view.component.showNext();
+        await view.component.onPrimary();
+        await tick();
         expect(onPrimary).toHaveBeenCalled();
-        expect(wrapper.vm.visible).toBe(false);
         expect(getSeenRevision("once")).toBe(3);
-        expect(await wrapper.vm.showNext()).toBe(false);
-        expect(wrapper.emitted("completed")?.[0]?.[0]).toEqual({ id: "once", revision: 3 });
+        expect(await view.component.showNext()).toBe(false);
+        expect(oncompleted).toHaveBeenCalledWith({ id: "once", revision: 3 });
     });
 
     it("keeps the dialog open when onPrimary returns false", async () => {
@@ -234,10 +242,11 @@ describe("PostInstallPromptHost", () => {
             titleKey: "post_install.demo_title",
             onPrimary: () => false,
         });
-        const wrapper = mountHost();
-        await wrapper.vm.showNext();
-        await wrapper.vm.onPrimary();
-        expect(wrapper.vm.visible).toBe(true);
+        const { component } = mountHost();
+        await component.showNext();
+        await component.onPrimary();
+        await tick();
+        expect(screen.getByText("Demo title")).toBeTruthy();
         expect(getSeenRevision("keep")).toBe(0);
     });
 
@@ -250,13 +259,15 @@ describe("PostInstallPromptHost", () => {
             secondaryLabelKey: "post_install.demo_secondary",
             onSecondary,
         });
-        const wrapper = mountHost();
-        await wrapper.vm.showNext();
-        expect(wrapper.vm.resolvedSecondaryLabel).toBe("Later");
-        await wrapper.vm.onSecondary();
+        const { component } = mountHost();
+        await component.showNext();
+        await tick();
+        expect(screen.getByText("Later")).toBeTruthy();
+        await component.onSecondary();
+        await tick();
         expect(onSecondary).toHaveBeenCalled();
-        expect(wrapper.vm.visible).toBe(false);
         expect(getSeenRevision("two_btn")).toBe(1);
+        expect(await component.showNext()).toBe(false);
     });
 
     it("ignores secondary when no secondary label is configured", async () => {
@@ -265,26 +276,39 @@ describe("PostInstallPromptHost", () => {
             revision: 1,
             titleKey: "post_install.demo_title",
         });
-        const wrapper = mountHost();
-        await wrapper.vm.showNext();
-        await wrapper.vm.onSecondary();
-        expect(wrapper.vm.visible).toBe(true);
+        const { component } = mountHost();
+        await component.showNext();
+        await component.onSecondary();
+        expect(screen.getByText("Demo title")).toBeTruthy();
         expect(getSeenRevision("primary_only")).toBe(0);
     });
 
     it("does not mark seen when dismissOnPrimary is false", async () => {
+        const oncompleted = vi.fn();
         registerPostInstallPrompt({
             id: "no_dismiss",
             revision: 1,
             titleKey: "post_install.demo_title",
             dismissOnPrimary: false,
         });
-        const wrapper = mountHost();
-        await wrapper.vm.showNext();
-        await wrapper.vm.onPrimary();
-        expect(wrapper.vm.visible).toBe(false);
+        cleanup();
+        registerTranslator(null);
+        registerFallbackMessages({
+            common: { continue: "Continue" },
+            post_install: {
+                demo_title: "Demo title",
+                demo_desc: "Demo body",
+                demo_primary: "Got it",
+                demo_secondary: "Later",
+            },
+        });
+        const view = render(PostInstallPromptHost, { oncompleted });
+        await view.component.showNext();
+        await view.component.onPrimary();
+        await tick();
         expect(getSeenRevision("no_dismiss")).toBe(0);
-        expect(wrapper.emitted("completed")?.[0]?.[0]).toEqual({ id: "no_dismiss", revision: 1 });
+        expect(oncompleted).toHaveBeenCalledWith({ id: "no_dismiss", revision: 1 });
+        expect(await view.component.showNext()).toBe(true);
     });
 
     it("skips prompts when shouldShow returns false", async () => {
@@ -294,8 +318,8 @@ describe("PostInstallPromptHost", () => {
             titleKey: "post_install.demo_title",
             shouldShow: () => false,
         });
-        const wrapper = mountHost();
-        expect(await wrapper.vm.showNext()).toBe(false);
+        const { component } = mountHost();
+        expect(await component.showNext()).toBe(false);
     });
 
     it("skips prompts when shouldShow throws and continues to the next", async () => {
@@ -315,9 +339,9 @@ describe("PostInstallPromptHost", () => {
             priority: 1,
             titleKey: "post_install.demo_title",
         });
-        const wrapper = mountHost();
-        expect(await wrapper.vm.showNext()).toBe(true);
-        expect(wrapper.vm.activeEntry?.id).toBe("ok");
+        const { component } = mountHost();
+        expect(await component.showNext()).toBe(true);
+        expect(await component.findNextPending()).toMatchObject({ id: "ok" });
         errSpy.mockRestore();
     });
 
@@ -328,22 +352,34 @@ describe("PostInstallPromptHost", () => {
             titleKey: "post_install.demo_title",
             shouldShow: async () => true,
         });
-        const wrapper = mountHost();
-        expect(await wrapper.vm.showNext()).toBe(true);
-        expect(wrapper.vm.activeEntry?.id).toBe("async_ok");
+        const { component } = mountHost();
+        expect(await component.showNext()).toBe(true);
+        expect(await component.findNextPending()).toMatchObject({ id: "async_ok" });
     });
 
     it("emits dismissed when visibility is cleared", async () => {
+        const ondismissed = vi.fn();
         registerPostInstallPrompt({
             id: "dismiss_emit",
             revision: 1,
             titleKey: "post_install.demo_title",
         });
-        const wrapper = mountHost();
-        await wrapper.vm.showNext();
-        wrapper.vm.onVisibleUpdate(false);
-        expect(wrapper.emitted("dismissed")).toBeTruthy();
-        expect(wrapper.vm.activeEntry).toBeNull();
+        cleanup();
+        registerTranslator(null);
+        registerFallbackMessages({
+            common: { continue: "Continue" },
+            post_install: {
+                demo_title: "Demo title",
+                demo_desc: "Demo body",
+                demo_primary: "Got it",
+                demo_secondary: "Later",
+            },
+        });
+        const view = render(PostInstallPromptHost, { ondismissed });
+        await view.component.showNext();
+        view.component.hide();
+        await tick();
+        expect(ondismissed).toHaveBeenCalled();
     });
 
     it("defaults primary label to common.continue", async () => {
@@ -352,8 +388,9 @@ describe("PostInstallPromptHost", () => {
             revision: 1,
             titleKey: "post_install.demo_title",
         });
-        const wrapper = mountHost();
-        await wrapper.vm.showNext();
-        expect(wrapper.vm.resolvedPrimaryLabel).toBe("Continue");
+        const { component } = mountHost();
+        await component.showNext();
+        await tick();
+        expect(screen.getByText("Continue")).toBeTruthy();
     });
 });

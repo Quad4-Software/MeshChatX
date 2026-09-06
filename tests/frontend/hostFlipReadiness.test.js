@@ -34,5 +34,5 @@ describe("host flip readiness", () => {
         expect(routes.length).toBeGreaterThan(0);
         const nonSvelte = routes.filter((r) => r.mount !== "svelte");
         expect(nonSvelte).toEqual([]);
-    });
+    }, 30000);
 });

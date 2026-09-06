@@ -30,6 +30,7 @@
     let { open = $bindable(false) }: Props = $props();
 
     let appInfo = $state<AppInfo | null>(null);
+    let sourceInfo: AppInfo | null = null;
 
     const channel = $derived(normalizeReleaseChannel(appInfo?.build_channel));
 
@@ -78,6 +79,7 @@
         if (!shouldShowChannelPrompt(info)) {
             return false;
         }
+        sourceInfo = info;
         appInfo = info;
         open = true;
         return true;
@@ -116,6 +118,9 @@
                 .api;
             if (api) {
                 await api.post("/api/v1/app/channel-prompt/seen", { key });
+            }
+            if (sourceInfo) {
+                sourceInfo.channel_prompt_seen = key;
             }
             if (appInfo) {
                 appInfo.channel_prompt_seen = key;

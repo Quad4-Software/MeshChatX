@@ -181,7 +181,7 @@ describe("InterfacesPage discovery actions", () => {
             await fireEvent.click(reloadBtn);
         }
 
-        expect(ToastUtils.loading).toHaveBeenCalledWith("app.reloading_rns", 0, "interfaces-rns-reload");
+        expect(ToastUtils.loading).toHaveBeenCalledWith("Reloading RNS...", 0, "interfaces-rns-reload");
         expect(mockAxios.post).toHaveBeenCalledWith("/api/v1/reticulum/reload");
         expect(ToastUtils.dismiss).toHaveBeenCalledWith("interfaces-rns-reload");
     });

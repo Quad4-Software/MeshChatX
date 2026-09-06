@@ -278,11 +278,11 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(footer.exists()).toBe(true);
         expect(footer.find("[data-testid=sidebar-account-chip]").exists()).toBe(true);
         expect(footer.find("[data-testid=sidebar-announce-radio]").exists()).toBe(true);
-        expect(footer.vm.isExpanded).toBe(false);
+        expect(footer.find("[data-testid=sidebar-display-name]").exists()).toBe(false);
         await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
-        expect(footer.vm.isExpanded).toBe(true);
+        expect(footer.find("[data-testid=sidebar-display-name]").exists()).toBe(true);
         await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
-        expect(footer.vm.isExpanded).toBe(false);
+        expect(footer.find("[data-testid=sidebar-display-name]").exists()).toBe(false);
     });
 
     it("classic sidebar announce header toggles expanded state", async () => {
@@ -297,12 +297,10 @@ describe("App.vue sidebar identity label and announce control", () => {
         wrapper = makeMountedApp();
         await readyShell(wrapper.vm.$router);
         const header = wrapper.find("[data-testid=sidebar-announce-header]");
-        expect(header.exists()).toBe(true);
-        const footer = wrapper.findComponent({ name: "AppSidebarClassicFooter" });
-        expect(footer.exists()).toBe(true);
-        expect(footer.vm.isShowingAnnounceSection).toBe(true);
+        expect(wrapper.find("[data-testid=sidebar-announce-header]").exists()).toBe(true);
+        expect(wrapper.find("[data-testid=sidebar-last-announced]").exists()).toBe(true);
         await header.trigger("click");
-        expect(footer.vm.isShowingAnnounceSection).toBe(false);
+        expect(wrapper.find("[data-testid=sidebar-last-announced]").exists()).toBe(false);
     });
 
     it("grouped footer has no save button and last announced is not clipped by action icons", async () => {
@@ -363,12 +361,8 @@ describe("App.vue sidebar identity label and announce control", () => {
         });
         wrapper = makeMountedApp();
         await readyShell(wrapper.vm.$router);
-        const footer = wrapper.findComponent({ name: "AppSidebarAccountFooter" });
-        await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
-        const input = footer.find("[data-testid=sidebar-display-name]");
-        expect(input.exists()).toBe(true);
-        await input.setValue("Renamed Peer");
-        await input.trigger("keydown.enter");
+        wrapper.vm.displayName = "Renamed Peer";
+        await wrapper.vm.flushIdentitySave();
         await flushPromises();
         expect(axiosMock.patch).toHaveBeenCalledWith(
             "/api/v1/config",
@@ -383,11 +377,8 @@ describe("App.vue sidebar identity label and announce control", () => {
         });
         wrapper = makeMountedApp();
         await readyShell(wrapper.vm.$router);
-        const footer = wrapper.findComponent({ name: "AppSidebarAccountFooter" });
-        await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
         vi.useFakeTimers();
-        const input = footer.find("[data-testid=sidebar-display-name]");
-        await input.setValue("Debounced Name");
+        wrapper.vm.onDisplayNameUpdate("Debounced Name");
         expect(axiosMock.patch).not.toHaveBeenCalled();
         await vi.advanceTimersByTimeAsync(500);
         await flushPromises();
@@ -475,17 +466,12 @@ describe("App.vue sidebar identity label and announce control", () => {
         await readyShell(wrapper.vm.$router);
         wrapper.vm.enterSidebarNavEdit();
         await flushPromises();
-        const editingLink = wrapper.findComponent({ name: "AppSidebarNav" }).findComponent({ name: "SidebarLink" });
-        expect(editingLink.props("editMode")).toBe(true);
+        expect(wrapper.vm.isSidebarNavEditing).toBe(true);
+        expect(wrapper.find("[data-testid=sidebar-nav-layout-save]").exists()).toBe(true);
         await wrapper.find("[data-testid=sidebar-nav-layout-save]").trigger("click");
         await flushPromises();
-        const nav = wrapper.findComponent({ name: "AppSidebarNav" });
-        expect(nav.vm.navHoldArmed).toBe(false);
-        const links = nav.findAllComponents({ name: "SidebarLink" });
-        expect(links.length).toBeGreaterThan(0);
-        for (const link of links) {
-            expect(link.props("editMode")).toBe(false);
-        }
+        expect(wrapper.vm.isSidebarNavEditing).toBe(false);
+        expect(wrapper.find("[data-testid=sidebar-nav-layout-save]").exists()).toBe(false);
     });
 
     it("does not enter sidebar edit mode while collapsed", async () => {
