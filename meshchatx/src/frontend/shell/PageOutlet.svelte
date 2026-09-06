@@ -4,7 +4,7 @@
     /**
      * Mounts the Svelte feature page for the active hashRouter route.
      * Routes with meta.keepAlive keep their container in the DOM, hidden, so
-     * the page keeps its state across navigation the way Vue KeepAlive did.
+     * the page keeps its state across navigation.
      */
     import { mount, onDestroy, unmount } from "svelte";
     import { getCurrentRoute, subscribe } from "./hashRouter.js";
@@ -57,8 +57,8 @@
     }
 
     /**
-     * Remount identity. Mirrors the old Vue keying: keepAlive and stableKey
-     * routes remount only on param change, everything else on full path change.
+     * Remount identity. keepAlive and stableKey routes remount only on param
+     * change, everything else on full path change.
      */
     function mountKeyFor(route: ActiveRoute): string {
         if (route.meta?.keepAlive || route.meta?.stableKey) {

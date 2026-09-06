@@ -50,7 +50,7 @@ export function mergePeerFromConversation(existing: Peer | null | undefined, con
 }
 
 /**
- * Apply announce merge into a peers map keyed by destination_hash. Mutates map (Vue-friendly).
+ * Apply announce merge into a peers map keyed by destination_hash. Mutates map.
  */
 export function updatePeerFromAnnounce(peers: Record<string, Peer>, announce: Peer | null | undefined): Peer | null {
     if (!announce?.destination_hash || !peers || typeof peers !== "object") {
@@ -63,7 +63,7 @@ export function updatePeerFromAnnounce(peers: Record<string, Peer>, announce: Pe
 }
 
 /**
- * Apply conversation-row merge into a peers map. Mutates map (Vue-friendly).
+ * Apply conversation-row merge into a peers map. Mutates map.
  */
 export function updatePeerFromConversation(
     peers: Record<string, Peer>,

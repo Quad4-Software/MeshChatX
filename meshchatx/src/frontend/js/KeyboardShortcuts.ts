@@ -61,10 +61,7 @@ class KeyboardShortcuts {
                 const activeElement = document.activeElement as HTMLElement | null;
                 const isInput =
                     !!activeElement &&
-                    (["INPUT", "TEXTAREA"].includes(activeElement.tagName) ||
-                        activeElement.isContentEditable ||
-                        activeElement.closest(".v-input")); // Better Vuetify detection
-
+                    (["INPUT", "TEXTAREA"].includes(activeElement.tagName) || activeElement.isContentEditable);
                 const hasModifier = shortcut.keys.some((k) => ["control", "alt", "meta"].includes(k));
 
                 // If it's an input, only allow shortcuts with modifiers (like Alt+1, Ctrl+K)

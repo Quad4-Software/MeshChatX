@@ -13,7 +13,7 @@ export function isKnownHostWidget(name) {
 }
 
 /**
- * Host widgets are rendered by PluginSlotNode (Svelte), not Vue SFCs.
+ * Host widgets are rendered by PluginSlotNode.svelte.
  * Kept as a name allowlist only.
  * @param {string} name
  * @returns {string | null}
