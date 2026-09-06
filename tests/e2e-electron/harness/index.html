@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>MeshChatX Electron shell e2e harness</title>
+    </head>
+    <body>
+        <main>
+            <h1 id="title">MeshChatX Electron shell harness</h1>
+            <p id="ready">booting</p>
+        </main>
+        <script>
+            document.getElementById("ready").textContent =
+                window.electronE2e && window.electronE2e.ready ? "ok" : "missing-preload";
+        </script>
+    </body>
+</html>
