@@ -1,6 +1,6 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-09-05T15:10:07.166624Z
-Frontend source: node_modules
+Generated at: 2026-09-06T00:38:18.050143Z
+Frontend source: pnpm
 
 Python dependencies
 -------------------
@@ -141,7 +141,7 @@ Node dependencies
 -----------------
 @ampproject/remapping 2.3.0
   License: Apache-2.0
-  Author: Justin Ridgewell <jridgewell@google.com>
+  Author: Justin Ridgewell
 @asamuzakjp/css-color 5.1.11
   License: MIT
   Author: asamuzaK
@@ -153,208 +153,109 @@ Node dependencies
   Author: asamuzaK
 @asamuzakjp/nwsapi 2.3.9
   License: MIT
-  Author: Diego Perini <diego.perini@gmail.com>
-@babel/code-frame 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/code-frame 7.27.1
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
+  Author: Diego Perini
 @babel/code-frame 7.0.0
   License: MIT
-  Author: Sebastian McKenzie <sebmck@gmail.com>
-@babel/compat-data 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/core 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/generator 7.29.8
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-annotate-as-pure 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-compilation-targets 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-create-class-features-plugin 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-globals 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-member-expression-to-functions 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-module-imports 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-module-transforms 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-optimise-call-expression 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-plugin-utils 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-replace-supers 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-skip-transparent-expression-wrappers 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
+  Author: The Babel Team
 @babel/helper-string-parser 7.29.7
   License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-string-parser 7.27.1
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-validator-identifier 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
+  Author: The Babel Team
 @babel/helper-validator-identifier 7.27.1
   License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helper-validator-option 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/helpers 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
+  Author: The Babel Team
 @babel/highlight 7.0.0
   License: MIT
-  Author: suchipi <me@suchipi.com>
-@babel/parser 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
+  Author: suchipi
 @babel/parser 7.29.8
   License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/parser 7.28.0
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/plugin-proposal-decorators 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/plugin-syntax-decorators 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/plugin-syntax-import-attributes 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/plugin-syntax-import-meta 7.10.4
-  License: MIT
-  Author: -
-@babel/plugin-syntax-jsx 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/plugin-syntax-typescript 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/plugin-transform-typescript 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
+  Author: The Babel Team
 @babel/runtime 7.12.5
   License: MIT
-  Author: Sebastian McKenzie <sebmck@gmail.com>
-@babel/template 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/traverse 7.29.8
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
+  Author: Sebastian McKenzie
 @babel/types 7.29.8
   License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/types 7.29.7
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
-@babel/types 7.28.2
-  License: MIT
-  Author: The Babel Team (https://babel.dev/team)
+  Author: The Babel Team
 @bcoe/v8-coverage 1.0.2
   License: MIT
-  Author: Charles Samborski <demurgos@demurgos.net> (https://demurgos.net)
+  Author: Charles Samborski
 @bramus/specificity 2.4.2
   License: MIT
-  Author: Bramus Van Damme <bramus@bram.us>
+  Author: Bramus Van Damme
 @commitlint/cli 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/config-conventional 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/config-validator 21.2.0
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/ensure 21.2.0
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/execute-rule 21.0.1
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/format 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/is-ignored 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/lint 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/load 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/message 21.2.0
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/parse 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/read 21.2.1
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/resolve-extends 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/rules 21.2.2
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/to-lines 21.0.1
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/top-level 21.2.0
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @commitlint/types 21.2.0
   License: MIT
-  Author: Mario Nebl <hello@herebecode.com>
+  Author: Mario Nebl
 @conventional-changelog/git-client 3.1.2
   License: MIT
-  Author: Dan Onoshko <danon0404@gmail.com>
+  Author: Dan Onoshko
 @conventional-changelog/template 1.4.0
   License: MIT
-  Author: Dan Onoshko <danon0404@gmail.com>
+  Author: Dan Onoshko
 @csstools/color-helpers 6.1.1
   License: MIT-0
-  Author: Antonio Laguna <antonio@laguna.es>
+  Author: -
 @csstools/css-calc 3.3.0
   License: MIT
-  Author: Antonio Laguna <antonio@laguna.es>
+  Author: -
 @csstools/css-color-parser 4.2.1
   License: MIT
-  Author: Antonio Laguna <antonio@laguna.es>
+  Author: -
 @csstools/css-parser-algorithms 4.0.0
   License: MIT
-  Author: Antonio Laguna <antonio@laguna.es>
+  Author: -
 @csstools/css-syntax-patches-for-csstree 1.1.9
   License: MIT-0
-  Author: Antonio Laguna <antonio@laguna.es>
+  Author: -
 @csstools/css-tokenizer 4.0.0
   License: MIT
-  Author: Antonio Laguna <antonio@laguna.es>
+  Author: -
 @egjs/hammerjs 2.0.17
   License: MIT
   Author: -
@@ -384,10 +285,13 @@ Node dependencies
   Author: Samuel Attard
 @electron/windows-sign 1.1.2
   License: BSD-2-Clause
-  Author: Felix Rieseberg <felix@felixrieseberg.com>
+  Author: Felix Rieseberg
 @epic-web/invariant 1.0.0
   License: MIT
-  Author: Kent C. Dodds <me@kentcdodds.com> (https://kentcdodds.com/)
+  Author: Kent C. Dodds
+@esbuild/linux-x64 0.19.2
+  License: MIT
+  Author: -
 @eslint-community/eslint-utils 4.10.1
   License: MIT
   Author: Toru Nagashima
@@ -423,10 +327,10 @@ Node dependencies
   Author: Google Inc.
 @formatjs/ecma402-abstract 2.3.6
   License: MIT
-  Author: Long Ho <holevietlong@gmail.com
+  Author: Long Ho
 @formatjs/fast-memoize 2.2.7
   License: MIT
-  Author: Long Ho <holevietlong@gmail.com>
+  Author: Long Ho
 @formatjs/icu-messageformat-parser 2.11.4
   License: MIT
   Author: -
@@ -435,7 +339,7 @@ Node dependencies
   Author: -
 @formatjs/intl-localematcher 0.6.2
   License: MIT
-  Author: Long Ho <holevietlong@gmail.com>
+  Author: Long Ho
 @humanfs/core 0.19.2
   License: Apache-2.0
   Author: Nicholas C. Zakas
@@ -451,90 +355,45 @@ Node dependencies
 @humanwhocodes/retry 0.4.3
   License: Apache-2.0
   Author: Nicholas C. Zaks
-@intlify/core-base 11.4.10
-  License: MIT
-  Author: kazuya kawaguchi <kawakazu80@gmail.com>
-@intlify/devtools-types 11.4.10
-  License: MIT
-  Author: kazuya kawaguchi <kawakazu80@gmail.com>
-@intlify/message-compiler 11.4.10
-  License: MIT
-  Author: kazuya kawaguchi <kawakazu80@gmail.com>
-@intlify/shared 11.4.10
-  License: MIT
-  Author: kazuya kawaguchi <kawakazu80@gmail.com>
 @isaacs/cliui 8.0.2
   License: ISC
-  Author: Ben Coe <ben@npmjs.com>
+  Author: Ben Coe
 @isaacs/fs-minipass 4.0.1
   License: ISC
   Author: Isaac Z. Schlueter
-@jridgewell/gen-mapping 0.3.12
-  License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
 @jridgewell/gen-mapping 0.3.5
   License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
-@jridgewell/gen-mapping 0.3.13
-  License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
+  Author: Justin Ridgewell
 @jridgewell/remapping 2.3.5
   License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
-@jridgewell/resolve-uri 3.1.0
-  License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
+  Author: Justin Ridgewell
 @jridgewell/resolve-uri 3.0.3
   License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
-@jridgewell/resolve-uri 3.1.2
-  License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
+  Author: Justin Ridgewell
 @jridgewell/set-array 1.2.1
   License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
+  Author: Justin Ridgewell
 @jridgewell/source-map 0.3.3
   License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
-@jridgewell/sourcemap-codec 1.4.14
-  License: MIT
-  Author: Rich Harris
+  Author: Justin Ridgewell
 @jridgewell/sourcemap-codec 1.4.10
   License: MIT
-  Author: Rich Harris
-@jridgewell/sourcemap-codec 1.5.0
-  License: MIT
-  Author: Rich Harris
-@jridgewell/sourcemap-codec 1.6.0
-  License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
-@jridgewell/sourcemap-codec 1.4.15
-  License: MIT
-  Author: Rich Harris
-@jridgewell/trace-mapping 0.3.24
-  License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
-@jridgewell/trace-mapping 0.3.28
-  License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
+  Author: Justin Ridgewell
 @jridgewell/trace-mapping 0.3.9
   License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
-@jridgewell/trace-mapping 0.3.31
-  License: MIT
-  Author: Justin Ridgewell <justin@ridgewell.name>
+  Author: Justin Ridgewell
 @keyv/serialize 1.1.1
   License: MIT
-  Author: Jared Wray <me@jaredwray.com> (https://jaredwray.com)
+  Author: Jared Wray
 @malept/cross-spawn-promise 2.0.0
   License: Apache-2.0
   Author: Mark Lee
 @malept/flatpak-bundler 0.4.0
   License: MIT
-  Author: Matt Watson <mattdangerw@gmail.com>
+  Author: Matt Watson
 @mapbox/jsonlint-lines-primitives 2.0.3
   License: MIT
-  Author: Zach Carter <zach@carter.name> (http://zaa.ch)
+  Author: Zach Carter
 @mapbox/unitbezier 1.0.0
   License: BSD-2-Clause
   Author: -
@@ -544,31 +403,16 @@ Node dependencies
 @mdi/js 7.4.47
   License: Apache-2.0
   Author: Austin Andrews
-@my-scope/package-a 0.0.0
-  License: MIT
-  Author: -
-@my-scope/package-b 0.0.0
-  License: MIT
-  Author: -
-@noble/hashes 2.4.0
-  License: MIT
-  Author: Paul Miller (https://paulmillr.com)
 @noble/hashes 1.4.0
   License: MIT
-  Author: Paul Miller (https://paulmillr.com)
+  Author: Paul Miller
 @npmcli/agent 3.0.0
   License: ISC
   Author: GitHub Inc.
 @npmcli/fs 4.0.0
   License: ISC
   Author: GitHub Inc.
-@one-ini/wasm 0.2.1
-  License: MIT
-  Author: -
 @opentelemetry/api 1.9.1
-  License: Apache-2.0
-  Author: OpenTelemetry Authors
-@opentelemetry/api-logs 0.203.0
   License: Apache-2.0
   Author: OpenTelemetry Authors
 @opentelemetry/api-logs 0.57.2
@@ -578,9 +422,6 @@ Node dependencies
   License: Apache-2.0
   Author: OpenTelemetry Authors
 @opentelemetry/core 2.11.0
-  License: Apache-2.0
-  Author: OpenTelemetry Authors
-@opentelemetry/instrumentation 0.203.0
   License: Apache-2.0
   Author: OpenTelemetry Authors
 @opentelemetry/instrumentation 0.57.2
@@ -664,9 +505,6 @@ Node dependencies
 @opentelemetry/sdk-trace-base 2.11.0
   License: Apache-2.0
   Author: OpenTelemetry Authors
-@opentelemetry/semantic-conventions 1.43.0
-  License: Apache-2.0
-  Author: OpenTelemetry Authors
 @opentelemetry/semantic-conventions 1.28.0
   License: Apache-2.0
   Author: OpenTelemetry Authors
@@ -677,9 +515,6 @@ Node dependencies
   License: MIT
   Author: Boshen and oxc contributors
 @oxc-project/types 0.144.0
-  License: MIT
-  Author: Boshen and oxc contributors
-@oxc-project/types 0.147.0
   License: MIT
   Author: Boshen and oxc contributors
 @oxc-resolver/binding-linux-x64-gnu 11.24.2
@@ -708,19 +543,19 @@ Node dependencies
   Author: PeculiarVentures
 @petamoriken/float16 3.9.3
   License: MIT
-  Author: Kenta Moriuchi <moriken@kimamass.com> (https://moriken.dev)
+  Author: Kenta Moriuchi
 @pkgjs/parseargs 0.11.0
   License: MIT
   Author: -
 @pkgr/core 0.3.6
   License: MIT
-  Author: JounQin <admin@1stg.me> (https://www.1stG.me)
+  Author: JounQin
 @playwright/test 1.62.1
   License: Apache-2.0
   Author: Microsoft Corporation
 @polka/url 1.0.0-next.24
   License: MIT
-  Author: Luke Edwards <luke@lukeed.com>
+  Author: Luke Edwards
 @prisma/instrumentation 6.12.0
   License: Apache-2.0
   Author: -
@@ -731,9 +566,6 @@ Node dependencies
   License: MIT
   Author: -
 @rolldown/pluginutils 1.0.0
-  License: MIT
-  Author: -
-@rolldown/pluginutils 1.0.1
   License: MIT
   Author: -
 @sec-ant/readable-stream 0.4.1
@@ -753,13 +585,13 @@ Node dependencies
   Author: Sentry
 @simple-libs/child-process-utils 2.0.0
   License: MIT
-  Author: Dan Onoshko <danon0404@gmail.com>
+  Author: Dan Onoshko
 @simple-libs/stream-utils 2.0.0
   License: MIT
-  Author: Dan Onoshko <danon0404@gmail.com>
+  Author: Dan Onoshko
 @sindresorhus/is 8.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 @standard-schema/spec 1.1.0
   License: MIT
   Author: Colin McDonnell
@@ -787,15 +619,9 @@ Node dependencies
 @tailwindcss/vite 4.3.3
   License: MIT
   Author: -
-@tanstack/virtual-core 3.17.8
-  License: MIT
-  Author: Tanner Linsley
-@tanstack/vue-virtual 3.13.36
-  License: MIT
-  Author: Tanner Linsley
 @testing-library/dom 10.4.1
   License: MIT
-  Author: Kent C. Dodds <me@kentcdodds.com> (https://kentcdodds.com)
+  Author: Kent C. Dodds
 @testing-library/svelte 5.4.2
   License: MIT
   Author: -
@@ -804,70 +630,61 @@ Node dependencies
   Author: -
 @types/aria-query 5.0.4
   License: MIT
-  Author: Sebastian Silbermann
+  Author: -
 @types/chai 5.2.2
   License: MIT
-  Author: Bart van der Schoor
+  Author: -
 @types/connect 3.4.38
   License: MIT
-  Author: Maxime LUCE
+  Author: -
 @types/debug 4.1.13
   License: MIT
-  Author: Seon-Wook Park
+  Author: -
 @types/deep-eql 4.0.0
   License: MIT
-  Author: Rodrigo Pietnechuk
-@types/estree 1.0.6
-  License: MIT
-  Author: RReverser
+  Author: -
 @types/estree 1.0.0
   License: MIT
-  Author: RReverser
+  Author: -
 @types/fs-extra 9.0.13
   License: MIT
-  Author: Alan Agius
+  Author: -
 @types/hammerjs 2.0.46
   License: MIT
-  Author: Han Lin Yap
+  Author: -
 @types/http-cache-semantics 4.2.0
   License: MIT
-  Author: BendingBender
+  Author: -
 @types/json-schema 7.0.15
   License: MIT
-  Author: Boris Cherny
+  Author: -
 @types/ms 2.1.0
   License: MIT
-  Author: Zhiyuan Wang
+  Author: -
 @types/mysql 2.15.27
   License: MIT
-  Author: William Johnston
+  Author: -
 @types/node 0.0.0
   License: MIT
-  Author: Microsoft TypeScript <http://typescriptlang.org>, DefinitelyTyped <https://github.com/DefinitelyTyped/DefinitelyTyped>
-@types/node 24.13.3
-  License: MIT
-  Author: Microsoft TypeScript
-@types/pg 8.15.4
-  License: MIT
-  Author: Phips Peter
+  Author: -
 @types/pg 8.6.1
   License: MIT
-  Author: Phips Peter
+  Author: -
 @types/pg-pool 2.0.6
   License: MIT
-  Author: Leo Liang
+  Author: -
 @types/rbush 4.0.0
   License: MIT
-  Author: Dan Vanderkam
+  Author: -
 @types/shimmer 1.2.0
   License: MIT
-  Author: Kelvin Jin
+  Author: -
 @types/tedious 4.0.14
   License: MIT
-  Author: Rogier Schouten
+  Author: -
 @types/trusted-types 2.0.7
   License: MIT
-  Author: Jakub Vrana
+  Author: -
 @typescript-eslint/eslint-plugin 8.69.0
   License: MIT
   Author: -
@@ -898,12 +715,9 @@ Node dependencies
 @typescript-eslint/visitor-keys 8.69.0
   License: MIT
   Author: -
-@vitejs/plugin-vue 6.0.8
-  License: MIT
-  Author: Evan You
 @vitest/coverage-v8 4.1.11
   License: MIT
-  Author: Anthony Fu <anthonyfu117@hotmail.com>
+  Author: Anthony Fu
 @vitest/expect 4.1.11
   License: MIT
   Author: -
@@ -928,96 +742,21 @@ Node dependencies
 @vitest/utils 4.1.11
   License: MIT
   Author: -
-@volar/language-core 2.4.28
-  License: MIT
-  Author: -
-@volar/source-map 2.4.28
-  License: MIT
-  Author: -
-@volar/typescript 2.4.28
-  License: MIT
-  Author: -
-@vue/babel-helper-vue-transform-on 1.5.0
-  License: MIT
-  Author: Amour1688 <lcz_1996@foxmail.com>
-@vue/babel-plugin-jsx 1.5.0
-  License: MIT
-  Author: Amour1688 <lcz_1996@foxmail.com>
-@vue/babel-plugin-resolve-type 1.5.0
-  License: MIT
-  Author: 三咲智子 Kevin Deng <sxzz@sxzz.moe>
-@vue/compiler-core 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/compiler-dom 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/compiler-sfc 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/compiler-ssr 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/devtools-api 6.6.4
-  License: MIT
-  Author: Guillaume Chau
-@vue/devtools-core 8.2.1
-  License: MIT
-  Author: webfansplz
-@vue/devtools-kit 8.2.1
-  License: MIT
-  Author: webfansplz
-@vue/devtools-shared 8.2.1
-  License: MIT
-  Author: webfansplz
-@vue/language-core 3.3.11
-  License: MIT
-  Author: -
-@vue/reactivity 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/runtime-core 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/runtime-dom 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/server-renderer 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/shared 3.5.18
-  License: MIT
-  Author: Evan You
-@vue/shared 3.5.42
-  License: MIT
-  Author: Evan You
-@vue/test-utils 2.5.0
-  License: MIT
-  Author: Lachlan Miller <lachlan.miller.1990@outlook.com>
 @xmldom/xmldom 0.9.12
   License: MIT
   Author: -
 @zarrita/storage 0.2.0
   License: MIT
   Author: -
-abbrev 5.0.0
-  License: ISC
-  Author: GitHub Inc.
 abbrev 4.0.0
   License: ISC
   Author: GitHub Inc.
 acorn 8.14.0
   License: MIT
   Author: -
-acorn 8.15.0
-  License: MIT
-  Author: -
-acorn 8.18.0
-  License: MIT
-  Author: -
 acorn-import-attributes 1.9.5
   License: MIT
-  Author: Sven Sauleau <sven@sauleau.com>
+  Author: Sven Sauleau
 acorn-jsx 5.3.2
   License: MIT
   Author: -
@@ -1026,55 +765,19 @@ acorn-typescript 1.4.13
   Author: tyrealhu
 agent-base 7.1.0
   License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
-agent-base 7.1.4
-  License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
-agent-base 7.1.1
-  License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
+  Author: Nathan Rajlich
 ajv 6.14.0
   License: MIT
   Author: Evgeny Poberezkin
-ajv 8.18.0
-  License: MIT
-  Author: Evgeny Poberezkin
-alien-signals 3.2.1
-  License: MIT
-  Author: -
 ansi-colors 4.1.3
   License: MIT
-  Author: Brian Woodward (https://github.com/doowb)
+  Author: Brian Woodward
 ansi-regex 5.0.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-ansi-regex 6.0.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 ansi-styles 3.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-ansi-styles 6.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-ansi-styles 4.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-ansi-styles 4.3.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-ansi-styles 4.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-ansi-styles 5.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-ansi-styles 6.2.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-ansis 4.3.1
-  License: ISC
-  Author: webdiscus
+  Author: Sindre Sorhus
 app-builder-lib 26.15.3
   License: MIT
   Author: Vladimir Krivosheev
@@ -1086,106 +789,67 @@ argue-cli 3.1.0
   Author: dangreen
 aria-query 5.3.0
   License: Apache-2.0
-  Author: Jesse Beach <splendidnoise@gmail.com>
-aria-query 5.3.1
-  License: Apache-2.0
-  Author: Jesse Beach <splendidnoise@gmail.com>
+  Author: Jesse Beach
 array-buffer-byte-length 1.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 arraybuffer.prototype.slice 1.0.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 asn1js 3.0.10
   License: BSD-3-Clause
-  Author: Yury Strozhevsky <yury@strozhevsky.com>
+  Author: Yury Strozhevsky
 ast-v8-to-istanbul 1.0.0
   License: MIT
-  Author: Ari Perkkiö <ari.perkkio@gmail.com>
+  Author: Ari Perkkiö
 async-exit-hook 2.0.1
   License: MIT
-  Author: Tapani Moilanen <moilanen.tapani@gmail.com>
+  Author: Tapani Moilanen
 asynckit 0.4.0
   License: MIT
-  Author: Alex Indigo <iam@alexindigo.com>
+  Author: Alex Indigo
 at-least-node 1.0.0
   License: ISC
-  Author: Ryan Zimmerman <opensrc@ryanzim.com>
+  Author: Ryan Zimmerman
 atomically 2.1.1
   License: MIT
   Author: -
 available-typed-arrays 1.0.7
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 aws4 1.13.2
   License: MIT
-  Author: Michael Hart <michael.hart.au@gmail.com> (https://github.com/mhart)
+  Author: Michael Hart
 axe-core 4.13.0
   License: MPL-2.0
-  Author: David Sturley
+  Author: -
 axobject-query 4.1.0
   License: Apache-2.0
-  Author: Jesse Beach <splendidnoise@gmail.com>
+  Author: Jesse Beach
 balanced-match 1.0.0
-  License: MIT
-  Author: Julian Gruber <mail@juliangruber.com>
-balanced-match 4.0.4
   License: MIT
   Author: -
 base64-js 1.5.1
   License: MIT
-  Author: T. Jameson Little <t.jameson.little@gmail.com>
-baseline-browser-mapping 2.11.12
-  License: Apache-2.0
-  Author: -
-baz ?
-  License: -
-  Author: -
-benchmark 1.0.0
-  License: ISC
-  Author: -
+  Author: T. Jameson Little
 bidi-js 1.0.3
   License: MIT
   Author: Jason Johnston
-bin 1.0.0
-  License: BSD-2-Clause
-  Author: -
-birpc 2.9.0
-  License: MIT
-  Author: Anthony Fu <anthonyfu117@hotmail.com>
-birpc 4.0.0
-  License: MIT
-  Author: Anthony Fu <anthonyfu117@hotmail.com>
 bluebird 3.7.2
   License: MIT
-  Author: Petka Antonov <petka_antonov@hotmail.com>
+  Author: Petka Antonov
 blueimp-canvas-to-blob 3.29.0
   License: MIT
   Author: Sebastian Tschan
-boolbase 1.0.0
-  License: ISC
-  Author: Felix Boehm <me@feedic.com>
 boolean 3.2.0
   License: MIT
-  Author: Golo Roden <golo.roden@thenativeweb.io>
+  Author: -
 brace-expansion 1.1.18
-  License: MIT
-  Author: Julian Gruber <mail@juliangruber.com>
-brace-expansion 5.0.8
   License: MIT
   Author: -
 braces 3.0.3
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
-browser_field ?
-  License: -
-  Author: -
-browserslist 4.28.8
-  License: MIT
-  Author: Andrey Sitnik <andrey@sitnik.es>
-buffer-from 1.1.2
-  License: MIT
-  Author: -
+  Author: Jon Schlinkert
 buffer-from 1.0.0
   License: MIT
   Author: -
@@ -1195,15 +859,12 @@ builder-util 26.15.3
 builder-util-runtime 9.7.0
   License: MIT
   Author: Vladimir Krivosheev
-bundle-name 4.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
 byte-counter 0.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 bytestreamjs 2.0.1
   License: BSD-3-Clause
-  Author: Yury Strozhevsky <yury@strozhevsky.com>
+  Author: Yury Strozhevsky
 cacache 20.0.0
   License: ISC
   Author: GitHub Inc.
@@ -1212,46 +873,31 @@ cacheable-lookup 7.0.0
   Author: Szymon Marczak
 cacheable-request 13.0.19
   License: MIT
-  Author: Jared Wray <me@jaredwray.com> (http://jaredwray.com)
+  Author: Jared Wray
 call-bind 1.0.9
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-call-bind-apply-helpers 1.0.2
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 call-bind-apply-helpers 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 call-bound 1.0.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-callsites 3.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Jordan Harband
 callsites 3.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-caniuse-lite 1.0.30001810
-  License: CC-BY-4.0
-  Author: Ben Briggs <beneb.info@gmail.com>
+  Author: Sindre Sorhus
 chai 6.2.2
   License: MIT
-  Author: Jake Luer <jake@alogicalparadox.com>
+  Author: Jake Luer
 chalk 2.0.0
-  License: MIT
-  Author: -
-chalk 4.1.2
-  License: MIT
-  Author: -
-chalk 4.0.0
   License: MIT
   Author: -
 chokidar 4.0.1
   License: MIT
-  Author: Paul Miller (https://paulmillr.com)
+  Author: Paul Miller
 chownr 3.0.0
   License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 chrome-launcher 1.2.1
   License: Apache-2.0
   Author: The Chromium Authors
@@ -1263,58 +909,40 @@ chromium-pickle-js 0.2.0
   Author: -
 chunk-data 0.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 ci-info 4.3.1
   License: MIT
-  Author: Thomas Watson Steen <w@tson.dk> (https://twitter.com/wa7son)
-ci-info 4.4.0
-  License: MIT
-  Author: Thomas Watson Steen <w@tson.dk> (https://twitter.com/wa7son)
+  Author: Thomas Watson Steen
 cjs-module-lexer 1.4.3
   License: MIT
   Author: Guy Bedford
+cli-color 2.0.4
+  License: ISC
+  Author: Mariusz Nowak
+cli-cursor 5.0.0
+  License: MIT
+  Author: Sindre Sorhus
+cli-spinners 3.2.0
+  License: MIT
+  Author: Sindre Sorhus
 cliui 6.0.0
   License: ISC
-  Author: Ben Coe <ben@npmjs.com>
-cliui 8.0.1
-  License: ISC
-  Author: Ben Coe <ben@npmjs.com>
-cliui 7.0.2
-  License: ISC
-  Author: Ben Coe <ben@npmjs.com>
-cliui 9.0.1
-  License: ISC
-  Author: Ben Coe <ben@npmjs.com>
+  Author: Ben Coe
 color-convert 1.0.0
   License: MIT
-  Author: Heather Arthur <fayearthur@gmail.com>
-color-convert 2.0.0
-  License: MIT
-  Author: Heather Arthur <fayearthur@gmail.com>
-color-convert 2.0.1
-  License: MIT
-  Author: Heather Arthur <fayearthur@gmail.com>
+  Author: Heather Arthur
 color-name 1.1.4
   License: MIT
-  Author: DY <dfcreative@gmail.com>
+  Author: DY
 combined-stream 1.0.8
   License: MIT
-  Author: Felix Geisendörfer <felix@debuggable.com> (http://debuggable.com/)
-commander 5.0.0
-  License: MIT
-  Author: TJ Holowaychuk <tj@vision-media.ca>
+  Author: Felix Geisendörfer
 commander 2.20.3
   License: MIT
-  Author: TJ Holowaychuk <tj@vision-media.ca>
-commander 14.0.3
-  License: MIT
-  Author: TJ Holowaychuk <tj@vision-media.ca>
-commander 9.4.0
-  License: MIT
-  Author: TJ Holowaychuk <tj@vision-media.ca>
+  Author: TJ Holowaychuk
 compare-version 0.1.2
   License: MIT
-  Author: Kevin Mårtensson <kevinmartensson@gmail.com>
+  Author: Kevin Mårtensson
 component-emitter 2.0.0
   License: MIT
   Author: -
@@ -1323,13 +951,10 @@ compressorjs 1.3.0
   Author: Chen Fengyuan
 concat-map 0.0.1
   License: MIT
-  Author: James Halliday <mail@substack.net>
-config-chain 1.1.13
-  License: MIT
-  Author: Dominic Tarr <dominic.tarr@gmail.com> (http://dominictarr.com)
+  Author: James Halliday
 configstore 7.1.0
   License: BSD-2-Clause
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 conventional-changelog-angular 9.4.0
   License: ISC
   Author: Steve Mao
@@ -1338,128 +963,95 @@ conventional-changelog-conventionalcommits 10.4.0
   Author: Ben Coe
 conventional-commits-parser 7.0.0
   License: MIT
-  Author: Steve Mao <maochenyan@gmail.com>
-conventional-commits-parser 7.1.2
-  License: MIT
-  Author: Steve Mao <maochenyan@gmail.com>
+  Author: Steve Mao
 convert-source-map 2.0.0
   License: MIT
-  Author: Thorsten Lorenz <thlorenz@gmx.de>
-core-util-is 1.0.3
-  License: MIT
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Thorsten Lorenz
 core-util-is 1.0.0
   License: MIT
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 cosmiconfig 9.0.1
   License: MIT
-  Author: Daniel Fischer <daniel@d-fischer.dev>
+  Author: Daniel Fischer
 cosmiconfig-typescript-loader 6.3.0
   License: MIT
-  Author: Alex Miller <codex.nz@gmail.com>
+  Author: Alex Miller
 cross-dirname 0.1.0
   License: MIT
   Author: -
 cross-env 10.1.0
   License: MIT
-  Author: Kent C. Dodds <me@kentcdodds.com> (https://kentcdodds.com)
-cross-spawn 7.0.6
-  License: MIT
-  Author: André Cruz <andre@moxy.studio>
+  Author: Kent C. Dodds
 cross-spawn 7.0.5
   License: MIT
-  Author: André Cruz <andre@moxy.studio>
+  Author: André Cruz
 csp_evaluator 1.1.8
   License: Apache-2.0
-  Author: Lukas Weichselbaum <lwe@google.com>
+  Author: Lukas Weichselbaum
 css-tree 3.2.1
   License: MIT
-  Author: Roman Dvornov <rdvornov@gmail.com> (https://github.com/lahmatiy)
+  Author: Roman Dvornov
 cssesc 3.0.0
   License: MIT
   Author: Mathias Bynens
-csstype 3.2.3
-  License: MIT
-  Author: Fredrik Nicol <fredrik.nicol@gmail.com>
+d 1.0.2
+  License: ISC
+  Author: Mariusz Nowak
 data-urls 7.0.0
   License: MIT
-  Author: Domenic Denicola <d@domenic.me> (https://domenic.me/)
+  Author: Domenic Denicola
 data-view-buffer 1.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 data-view-byte-length 1.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 data-view-byte-offset 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 dayjs 1.11.23
   License: MIT
   Author: iamkun
-debug 4.4.3
-  License: MIT
-  Author: Josh Junon (https://github.com/qix-)
 debug 4.3.1
   License: MIT
-  Author: TJ Holowaychuk <tj@vision-media.ca>
+  Author: Josh Junon
 decamelize 1.2.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 decimal.js 10.4.3
   License: MIT
-  Author: Michael Mclaughlin <M8ch88l@gmail.com>
-decimal.js 10.6.0
-  License: MIT
-  Author: Michael Mclaughlin <M8ch88l@gmail.com>
+  Author: Michael Mclaughlin
 decompress-response 10.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 deep-is 0.1.4
   License: MIT
-  Author: Thorsten Lorenz <thlorenz@gmx.de>
+  Author: Thorsten Lorenz
 deepmerge 4.3.1
   License: MIT
   Author: -
-default-browser 5.5.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-default-browser-id 5.0.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
 define-data-property 1.1.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 define-lazy-prop 2.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-define-lazy-prop 3.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 define-properties 1.2.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 delayed-stream 1.0.0
   License: MIT
-  Author: Felix Geisendörfer <felix@debuggable.com> (http://debuggable.com/)
+  Author: Felix Geisendörfer
 dequal 2.0.3
   License: MIT
-  Author: Luke Edwards <luke.edwards05@gmail.com>
+  Author: Luke Edwards
 detect-libc 1.0.3
   License: Apache-2.0
-  Author: Lovell Fuller <npm@lovell.info>
-detect-libc 2.0.3
-  License: Apache-2.0
-  Author: Lovell Fuller <npm@lovell.info>
-detect-libc 2.1.2
-  License: Apache-2.0
-  Author: Lovell Fuller <npm@lovell.info>
+  Author: Lovell Fuller
 detect-node 2.1.0
   License: MIT
   Author: Ilya Kantor
 devtools-protocol 0.0.1638949
-  License: BSD-3-Clause
-  Author: The Chromium Authors
-devtools-protocol 0.0.1663043
   License: BSD-3-Clause
   Author: The Chromium Authors
 dijkstrajs 1.0.3
@@ -1468,9 +1060,6 @@ dijkstrajs 1.0.3
 dir-compare 4.2.0
   License: MIT
   Author: Liviu Grigorescu
-dist 1.0.0
-  License: BSD-2-Clause
-  Author: -
 dmg-builder 26.15.3
   License: MIT
   Author: Vladimir Krivosheev
@@ -1479,34 +1068,34 @@ dom-accessibility-api 0.5.16
   Author: -
 dompurify 3.4.14
   License: (MPL-2.0 OR Apache-2.0)
-  Author: Dr.-Ing. Mario Heiderich, Cure53 <mario@cure53.de> (https://cure53.de/)
+  Author: Dr.-Ing. Mario Heiderich, Cure53
 dot-prop 9.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 dotenv 16.6.1
   License: BSD-2-Clause
   Author: -
 dotenv-expand 11.0.7
   License: BSD-2-Clause
   Author: motdotla
+dpdm 4.3.0
+  License: MIT
+  Author: acrazing
 dunder-proto 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 duplexer2 0.1.4
   License: BSD-3-Clause
-  Author: Conrad Pankoff <deoxxa@fknsrs.biz> (http://www.fknsrs.biz/)
+  Author: Conrad Pankoff
 earcut 3.0.0
   License: ISC
   Author: Vladimir Agafonkin
 eastasianwidth 0.2.0
   License: MIT
   Author: Masaki Komagata
-editorconfig 3.0.2
-  License: MIT
-  Author: EditorConfig Team
 ejs 6.0.1
   License: Apache-2.0
-  Author: Matthew Eernisse <matthew.eernisse@gmail.com>
+  Author: Matthew Eernisse
 electron 42.4.0
   License: MIT
   Author: Electron Community
@@ -1518,29 +1107,20 @@ electron-builder-squirrel-windows 26.15.3
   Author: Vladimir Krivosheev
 electron-prompt 1.7.0
   License: MIT
-  Author: p-sam <p-sam@users.noreply.github.com>
+  Author: p-sam
 electron-publish 26.15.3
   License: MIT
   Author: Vladimir Krivosheev
-electron-to-chromium 1.5.416
-  License: ISC
-  Author: Kilian Valkhof
 electron-winstaller 5.4.0
   License: MIT
   Author: -
 emoji-picker-element 1.29.1
   License: Apache-2.0
-  Author: Nolan Lawson <nolan@nolanlawson.com>
+  Author: Nolan Lawson
 emoji-picker-element-data 1.8.0
   License: Apache-2.0
-  Author: Nolan Lawson <nolan@nolanlawson.com>
-emoji-regex 9.2.2
-  License: MIT
-  Author: Mathias Bynens
+  Author: Nolan Lawson
 emoji-regex 8.0.0
-  License: MIT
-  Author: Mathias Bynens
-emoji-regex 10.3.0
   License: MIT
   Author: Mathias Bynens
 encoding 0.1.13
@@ -1551,82 +1131,76 @@ enhanced-resolve 5.24.5
   Author: Tobias Koppers @sokra
 enquirer 2.4.1
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
-entities 7.0.1
-  License: BSD-2-Clause
-  Author: Felix Boehm <me@feedic.com>
+  Author: Jon Schlinkert
 entities 8.0.0
   License: BSD-2-Clause
-  Author: Felix Boehm <me@feedic.com>
-env-paths 2.2.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Felix Boehm
 env-paths 2.2.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 err-code 2.0.3
   License: MIT
-  Author: IndigoUnited <hello@indigounited.com> (http://indigounited.com)
+  Author: IndigoUnited
 error-ex 1.3.1
-  License: MIT
-  Author: -
-error-stack-parser-es 1.0.5
   License: MIT
   Author: -
 es-abstract 1.24.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 es-abstract-get 1.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-es-define-property 1.0.1
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 es-define-property 1.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 es-errors 1.3.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 es-module-lexer 2.0.0
   License: MIT
   Author: Guy Bedford
-es-object-atoms 1.1.2
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
 es-object-atoms 1.1.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 es-set-tostringtag 2.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 es-to-primitive 1.3.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 es-toolkit 1.46.0
   License: MIT
   Author: -
-es-toolkit 1.52.0
-  License: MIT
-  Author: -
+es5-ext 0.10.64
+  License: ISC
+  Author: Mariusz Nowak
 es6-error 4.1.1
   License: MIT
   Author: Ben Youngblood
+es6-iterator 2.0.3
+  License: MIT
+  Author: Mariusz Nowak
+es6-symbol 3.1.1
+  License: MIT
+  Author: Mariusz Nowak
+es6-symbol 3.1.4
+  License: ISC
+  Author: Mariusz Nowak
+es6-weak-map 2.0.3
+  License: ISC
+  Author: Mariusz Nowak
+esbuild 0.19.2
+  License: MIT
+  Author: -
 escalade 3.1.1
   License: MIT
-  Author: Luke Edwards <luke.edwards05@gmail.com>
-escalade 3.2.0
-  License: MIT
-  Author: Luke Edwards <luke.edwards05@gmail.com>
+  Author: Luke Edwards
 escape-string-regexp 1.0.5
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-escape-string-regexp 4.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 eslint 9.39.5
   License: MIT
-  Author: Nicholas C. Zakas <nicholas+npm@nczconsulting.com>
+  Author: Nicholas C. Zakas
 eslint-config-prettier 10.1.8
   License: MIT
   Author: Simon Lydell
@@ -1638,43 +1212,25 @@ eslint-plugin-security 3.0.1
   Author: Node Security Project
 eslint-plugin-svelte 3.23.0
   License: MIT
-  Author: Yosuke Ota (https://github.com/ota-meshi)
-eslint-plugin-vue 10.10.0
-  License: MIT
-  Author: Toru Nagashima (https://github.com/mysticatea)
+  Author: Yosuke Ota
 eslint-scope 8.2.0
-  License: BSD-2-Clause
-  Author: -
-eslint-scope 8.4.0
   License: BSD-2-Clause
   Author: -
 eslint-visitor-keys 3.4.3
   License: Apache-2.0
-  Author: Toru Nagashima (https://github.com/mysticatea)
-eslint-visitor-keys 5.0.1
-  License: Apache-2.0
-  Author: Toru Nagashima (https://github.com/mysticatea)
-eslint-visitor-keys 4.2.0
-  License: Apache-2.0
-  Author: Toru Nagashima (https://github.com/mysticatea)
-eslint-visitor-keys 4.2.1
-  License: Apache-2.0
-  Author: Toru Nagashima (https://github.com/mysticatea)
+  Author: Toru Nagashima
 esm-env 1.0.0
   License: MIT
-  Author: Ben McCann (https://www.benmccann.com)
-espree 10.4.0
-  License: BSD-2-Clause
-  Author: Nicholas C. Zakas <nicholas+npm@nczconsulting.com>
+  Author: Ben McCann
+esniff 2.0.1
+  License: ISC
+  Author: Mariusz Nowak
 espree 10.3.0
   License: BSD-2-Clause
-  Author: Nicholas C. Zakas <nicholas+npm@nczconsulting.com>
+  Author: Nicholas C. Zakas
 esquery 1.7.0
   License: BSD-3-Clause
-  Author: Joel Feenstra <jrfeenst+esquery@gmail.com>
-esquery 1.6.0
-  License: BSD-3-Clause
-  Author: Joel Feenstra <jrfeenst+esquery@gmail.com>
+  Author: Joel Feenstra
 esrap 1.2.2
   License: MIT
   Author: -
@@ -1684,415 +1240,274 @@ esrecurse 4.3.0
 estraverse 5.2.0
   License: BSD-2-Clause
   Author: -
-estraverse 5.3.0
-  License: BSD-2-Clause
-  Author: -
-estraverse 5.1.0
-  License: BSD-2-Clause
-  Author: -
-estree-walker 3.0.3
-  License: MIT
-  Author: Rich Harris
 estree-walker 2.0.2
   License: MIT
   Author: Rich Harris
-esutils 2.0.2
-  License: BSD
-  Author: -
 esutils 2.0.3
   License: BSD-2-Clause
   Author: -
+esutils 2.0.2
+  License: BSD
+  Author: -
+event-emitter 0.3.5
+  License: MIT
+  Author: Mariusz Nowak
 expect-type 1.3.0
   License: Apache-2.0
   Author: -
 exponential-backoff 3.1.3
   License: Apache-2.0
   Author: Sami Sayegh
+ext 1.7.0
+  License: ISC
+  Author: Mariusz Nowak
 fake-indexeddb 6.2.5
   License: Apache-2.0
-  Author: Jeremy Scheff <jdscheff@gmail.com> (https://dumbmatter.com/)
-false_main ?
-  License: -
-  Author: -
+  Author: Jeremy Scheff
 fast-deep-equal 3.1.3
   License: MIT
   Author: Evgeny Poberezkin
 fast-diff 1.3.0
   License: Apache-2.0
-  Author: Jason Chen <jhchen7@gmail.com>
+  Author: Jason Chen
 fast-json-stable-stringify 2.1.0
   License: MIT
-  Author: James Halliday <mail@substack.net>
+  Author: James Halliday
 fast-levenshtein 2.0.6
   License: MIT
-  Author: Ramesh Nair <ram@hiddentao.com> (http://www.hiddentao.com/)
+  Author: Ramesh Nair
 fast-uri 4.1.4
   License: BSD-3-Clause
-  Author: Vincent Le Goff <vince.legoff@gmail.com> (https://github.com/zekth)
+  Author: Vincent Le Goff
 fd-package-json 2.0.0
   License: MIT
-  Author: James Garbutt (https://github.com/43081j)
-fdir 6.5.0
-  License: MIT
-  Author: thecodrr <thecodrr@protonmail.com>
+  Author: James Garbutt
 fdir 6.4.3
   License: MIT
-  Author: thecodrr <thecodrr@protonmail.com>
+  Author: thecodrr
 fflate 0.8.3
   License: MIT
-  Author: Arjun Barrett <arjunbarrett@gmail.com>
+  Author: Arjun Barrett
 file-entry-cache 8.0.0
   License: MIT
   Author: Jared Wray
 fill-range 7.1.1
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
-find-up 5.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Jon Schlinkert
 find-up 4.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 flat-cache 4.0.1
   License: MIT
   Author: Jared Wray
 flatted 3.4.2
   License: ISC
   Author: Andrea Giammarchi
-flatted 3.4.4
-  License: ISC
-  Author: Andrea Giammarchi
 for-each 0.3.5
   License: MIT
-  Author: Raynos <raynos2@gmail.com>
+  Author: Raynos
 foreground-child 3.3.1
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 form-data 4.0.6
   License: MIT
-  Author: Felix Geisendörfer <felix@debuggable.com> (http://debuggable.com/)
+  Author: Felix Geisendörfer
 formatly 0.7.0
   License: MIT
-  Author: Josh Goldberg ✨ <npm@joshuakgoldberg.com>
+  Author: Josh Goldberg ✨
 forwarded-parse 2.1.2
   License: MIT
   Author: Luigi Pinca
-fs-extra 9.1.0
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
-fs-extra 8.1.0
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
-fs-extra 9.0.1
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
-fs-extra 11.1.1
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
-fs-extra 9.0.0
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
 fs-extra 7.0.1
   License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
-fs-extra 10.1.0
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
-fs-extra 11.3.1
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
+  Author: JP Richardson
 fs-minipass 3.0.0
   License: ISC
   Author: GitHub Inc.
 fs.realpath 1.0.0
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 function-bind 1.1.1
   License: MIT
-  Author: Raynos <raynos2@gmail.com>
-function-bind 1.1.2
-  License: MIT
-  Author: Raynos <raynos2@gmail.com>
+  Author: Raynos
 function.prototype.name 1.1.8
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 functions-have-names 1.2.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-gensync 1.0.0-beta.2
-  License: MIT
-  Author: Logan Smyth <loganfsmyth@gmail.com>
+  Author: Jordan Harband
 geotiff 3.1.0-beta.0
   License: MIT
   Author: Fabian Schindler
-get-caller-file 2.0.5
-  License: ISC
-  Author: Stefan Penner
 get-caller-file 2.0.1
   License: ISC
   Author: Stefan Penner
 get-east-asian-width 1.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-get-east-asian-width 1.6.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 get-intrinsic 1.1.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-get-intrinsic 1.3.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-get-intrinsic 1.2.4
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 get-proto 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 get-stream 9.0.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 get-symbol-description 1.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 get-tsconfig 4.14.3
   License: MIT
-  Author: Hiroki Osame <hiroki.osame@gmail.com>
+  Author: Hiroki Osame
 glob 7.2.3
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-glob 10.5.0
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (https://blog.izs.me/)
-glob 13.0.6
-  License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (https://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 glob-parent 6.0.2
   License: ISC
-  Author: Gulp Team <team@gulpjs.com> (https://gulpjs.com/)
+  Author: Gulp Team
 global-agent 3.0.0
   License: BSD-3-Clause
-  Author: Gajus Kuizinas <gajus@gajus.com>
+  Author: Gajus Kuizinas
 global-directory 5.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 globals 14.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-globals 16.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-globals 17.11.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 globalthis 1.0.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
+globalyzer 0.1.0
+  License: MIT
+  Author: Terkel Gjervig
+globrex 0.1.2
+  License: MIT
+  Author: Terkel Gjervig
 gopd 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-gopd 1.2.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 got 15.1.0
   License: MIT
-  Author: -
-graceful-fs 4.2.11
-  License: ISC
-  Author: -
-graceful-fs 4.1.6
-  License: ISC
   Author: -
 graceful-fs 4.1.2
   License: ISC
   Author: -
-graceful-fs 4.2.4
-  License: ISC
-  Author: -
-graceful-fs 4.2.0
-  License: ISC
-  Author: -
-graceful-fs 4.2.6
-  License: ISC
-  Author: -
-graceful-fs 4.2.2
-  License: ISC
-  Author: -
 has 1.0.4
   License: MIT
-  Author: Thiago de Arruda <tpadilha84@gmail.com>
+  Author: Thiago de Arruda
 has-bigints 1.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 has-flag 2.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-has-flag 4.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 has-property-descriptors 1.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 has-proto 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-has-proto 1.2.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 has-symbols 1.0.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-has-symbols 1.1.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-has-tostringtag 1.0.2
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 has-tostringtag 1.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-hasown 2.0.4
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 hasown 2.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-hasown 2.0.2
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-hasown 2.0.3
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-hookable 5.5.3
-  License: MIT
-  Author: -
+  Author: Jordan Harband
 hosted-git-info 10.1.1
   License: ISC
   Author: GitHub Inc.
 html-encoding-sniffer 6.0.0
   License: MIT
-  Author: Domenic Denicola <d@domenic.me> (https://domenic.me/)
+  Author: Domenic Denicola
 html-escaper 2.0.0
   License: MIT
   Author: Andrea Giammarchi
-http-cache-semantics 4.2.0
-  License: BSD-2-Clause
-  Author: Kornel Lesiński <npms2@geekhood.net> (https://kornel.ski/)
 http-cache-semantics 4.1.1
   License: BSD-2-Clause
-  Author: Kornel Lesiński <kornel@geekhood.net> (https://kornel.ski/)
+  Author: Kornel Lesiński
 http-link-header 1.1.4
   License: MIT
-  Author: Jonas Hermsmeier <jhermsmeier@gmail.com> (https://jhermsmeier.de)
+  Author: Jonas Hermsmeier
 http-proxy-agent 7.0.0
   License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
-http-proxy-agent 7.0.2
-  License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
+  Author: Nathan Rajlich
 http2-wrapper 2.2.1
   License: MIT
   Author: Szymon Marczak
 https-proxy-agent 7.0.1
   License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
-https-proxy-agent 7.0.6
-  License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
+  Author: Nathan Rajlich
 iconv-lite 0.6.2
   License: MIT
-  Author: Alexander Shtuchkin <ashtuchkin@gmail.com>
-ignore 7.0.5
-  License: MIT
-  Author: kael
+  Author: Alexander Shtuchkin
 ignore 5.3.2
   License: MIT
   Author: kael
 image-ssim 0.2.0
   License: MIT
-  Author: Jan Forst <ensonador@gmail.com>
+  Author: Jan Forst
 immediate 3.0.6
   License: MIT
-  Author: Domenic Denicola <domenic@domenicdenicola.com> (http://domenicdenicola.com)
+  Author: -
 import-fresh 3.2.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-import-fresh 3.3.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 import-in-the-middle 1.15.0
   License: Apache-2.0
-  Author: Bryan English <bryan.english@datadoghq.com>
+  Author: Bryan English
 imurmurhash 0.1.4
   License: MIT
-  Author: Jens Taylor <jensyt@gmail.com>
+  Author: Jens Taylor
 inflight 1.0.6
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-inherits 2.0.0
-  License: WTFPL2
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 inherits 2.0.1
   License: ISC
   Author: -
-inherits 2.0.4
-  License: ISC
-  Author: -
-ini 7.0.0
-  License: ISC
-  Author: GitHub Inc.
+inherits 2.0.0
+  License: WTFPL2
+  Author: Isaac Z. Schlueter
 ini 1.3.6
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 internal-slot 1.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 intl-messageformat 10.7.18
   License: BSD-3-Clause
-  Author: Eric Ferraiuolo <eferraiuolo@gmail.com>
-invalid_main ?
-  License: -
-  Author: -
+  Author: Eric Ferraiuolo
 ip-address 10.3.1
   License: MIT
-  Author: Beau Gunderson <beau@beaugunderson.com> (https://beaugunderson.com/)
+  Author: Beau Gunderson
 is-array-buffer 3.0.5
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-arrayish 0.2.1
   License: MIT
-  Author: Qix (http://github.com/qix-)
+  Author: Qix
 is-async-function 2.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-is-bigint 1.1.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-bigint 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-blob 2.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-is-boolean-object 1.2.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Sindre Sorhus
 is-boolean-object 1.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-is-boolean-object 1.2.1
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-callable 1.2.7
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-core-module 2.16.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-data-view 1.0.2
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-is-date-object 1.1.0
   License: MIT
   Author: Jordan Harband
 is-date-object 1.0.5
@@ -2100,238 +1515,166 @@ is-date-object 1.0.5
   Author: Jordan Harband
 is-docker 2.2.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-is-docker 3.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 is-extglob 2.1.1
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
-is-finalizationregistry 1.1.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jon Schlinkert
 is-finalizationregistry 1.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-fullwidth-code-point 3.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 is-generator-function 1.0.10
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-glob 4.0.3
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
-is-in-ssh 1.0.0
+  Author: Jon Schlinkert
+is-interactive 2.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-is-inside-container 1.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-is-map 2.0.3
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Sindre Sorhus
 is-map 2.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-negative-zero 2.0.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-number 7.0.0
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
-is-number-object 1.1.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jon Schlinkert
 is-number-object 1.0.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-is-number-object 1.1.1
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-plain-obj 4.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 is-potential-custom-element-name 1.0.1
   License: MIT
   Author: Mathias Bynens
+is-promise 2.2.2
+  License: MIT
+  Author: ForbesLindesay
 is-reference 3.0.2
   License: MIT
   Author: Rich Harris
 is-regex 1.2.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-set 2.0.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-shared-array-buffer 1.0.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-stream 4.0.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 is-string 1.1.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-is-symbol 1.1.1
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-is-symbol 1.1.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-symbol 1.0.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-typed-array 1.1.15
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-is-weakmap 2.0.2
+  Author: Jordan Harband
+is-unicode-supported 2.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Sindre Sorhus
 is-weakmap 2.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-weakref 1.1.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-is-weakset 2.0.3
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-weakset 2.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 is-wsl 2.2.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-is-wsl 3.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 isarray 0.0.1
   License: MIT
-  Author: Julian Gruber <mail@juliangruber.com>
-isarray 2.0.5
-  License: MIT
-  Author: Julian Gruber <mail@juliangruber.com>
-isarray 1.0.0
-  License: MIT
-  Author: Julian Gruber <mail@juliangruber.com>
+  Author: Julian Gruber
 isbinaryfile 4.0.8
   License: MIT
   Author: -
-isbinaryfile 5.0.7
-  License: MIT
-  Author: -
-isexe 3.1.1
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
 isexe 2.0.0
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 istanbul-lib-coverage 3.2.2
   License: BSD-3-Clause
-  Author: Krishnan Anantheswaran <kananthmail-github@yahoo.com>
+  Author: Krishnan Anantheswaran
 istanbul-lib-report 3.0.1
   License: BSD-3-Clause
-  Author: Krishnan Anantheswaran <kananthmail-github@yahoo.com>
+  Author: Krishnan Anantheswaran
 istanbul-reports 3.2.0
   License: BSD-3-Clause
-  Author: Krishnan Anantheswaran <kananthmail-github@yahoo.com>
+  Author: Krishnan Anantheswaran
 jackspeak 3.4.3
   License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me>
+  Author: Isaac Z. Schlueter
 jiti 2.4.2
-  License: MIT
-  Author: -
-jiti 2.6.1
-  License: MIT
-  Author: -
-jiti 2.7.0
   License: MIT
   Author: -
 jpeg-js 0.4.4
   License: BSD-3-Clause
-  Author: Eugene Ware <eugene@noblesamurai.com>
-js-beautify 2.0.3
-  License: MIT
-  Author: Einar Lielmanis <einar@beautifier.io>
-js-cookie 3.0.8
-  License: MIT
-  Author: Klaus Hartl
+  Author: Eugene Ware
 js-library-detector 6.7.0
   License: MIT
-  Author: John Michel <johnmichel@gmail.com>
-js-tokens 10.0.0
-  License: MIT
-  Author: Simon Lydell
+  Author: John Michel
 js-tokens 4.0.0
   License: MIT
   Author: Simon Lydell
 js-yaml 5.2.2
   License: MIT
-  Author: Vladimir Zapparov <dervus.grim@gmail.com>
+  Author: Vladimir Zapparov
 jsdom 29.1.1
   License: MIT
   Author: -
-jsesc 3.1.0
-  License: MIT
-  Author: Mathias Bynens
 json-buffer 3.0.1
   License: MIT
-  Author: Dominic Tarr <dominic.tarr@gmail.com> (http://dominictarr.com)
+  Author: Dominic Tarr
 json-parse-even-better-errors 2.3.0
   License: MIT
-  Author: Kat Marchán <kzm@zkat.tech>
+  Author: Kat Marchán
 json-schema-traverse 0.4.1
-  License: MIT
-  Author: Evgeny Poberezkin
-json-schema-traverse 1.0.0
   License: MIT
   Author: Evgeny Poberezkin
 json-stable-stringify-without-jsonify 1.0.1
   License: MIT
-  Author: James Halliday <mail@substack.net>
+  Author: James Halliday
 json-stringify-pretty-compact 4.0.0
   License: MIT
   Author: Simon Lydell
 json-stringify-safe 5.0.1
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
+  Author: Isaac Z. Schlueter
 json5 2.2.3
   License: MIT
-  Author: Aseem Kishore <aseem.kishore@gmail.com>
-jsonfile 6.2.1
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
+  Author: Aseem Kishore
 jsonfile 4.0.0
   License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
-jsonfile 6.0.1
-  License: MIT
-  Author: JP Richardson <jprichardson@gmail.com>
+  Author: JP Richardson
 jsqr 1.4.0
   License: Apache-2.0
-  Author: Cosmo Wolfe <cosmo.wolfe@gmail.com>
+  Author: -
 jszip 3.10.1
   License: (MIT OR GPL-3.0-or-later)
-  Author: Stuart Knightley <stuart@stuartk.com>
+  Author: Stuart Knightley
 keycharm 0.4.0
   License: (Apache-2.0 OR MIT)
-  Author: Alex de Mulder <alex almende org>
+  Author: Alex de Mulder
 keyv 4.5.4
   License: MIT
-  Author: Jared Wray <me@jaredwray.com> (http://jaredwray.com)
-keyv 5.6.0
-  License: MIT
-  Author: Jared Wray <me@jaredwray.com> (http://jaredwray.com)
+  Author: Jared Wray
 knip 6.33.0
   License: ISC
-  Author: Lars Kappert <lars@webpro.nl>
+  Author: Lars Kappert
 known-css-properties 0.37.0
   License: MIT
-  Author: Viorel Cojocaru <vio@beanon.com>
-kolorist 1.8.0
-  License: MIT
-  Author: Marvin Hagemeister <hello@marvinh.dev>
+  Author: Viorel Cojocaru
 lazy-val 1.0.5
   License: MIT
   Author: Vladimir Krivosheev
@@ -2340,10 +1683,10 @@ legacy-javascript 0.0.1
   Author: Google LLC
 lerc 3.0.0
   License: Apache-2.0
-  Author: Esri <dev_tools@esri.com> (http://developers.arcgis.com)
+  Author: Esri
 levn 0.4.1
   License: MIT
-  Author: George Zahariev <z@georgezahariev.com>
+  Author: George Zahariev
 lie 3.3.0
   License: MIT
   Author: -
@@ -2359,13 +1702,7 @@ lighthouse-stack-packs 1.12.3
 lightningcss 1.32.0
   License: MPL-2.0
   Author: -
-lightningcss 1.33.0
-  License: MPL-2.0
-  Author: -
 lightningcss-linux-x64-gnu 1.32.0
-  License: MPL-2.0
-  Author: -
-lightningcss-linux-x64-gnu 1.33.0
   License: MPL-2.0
   Author: -
 lilconfig 2.0.5
@@ -2373,68 +1710,44 @@ lilconfig 2.0.5
   Author: antonk52
 lines-and-columns 1.1.6
   License: MIT
-  Author: Brian Donovan <me@brian-donovan.com>
-ljharb-monorepo-symlink-test 0.0.0
-  License: MIT
-  Author: -
+  Author: Brian Donovan
 locate-character 3.0.0
   License: MIT
   Author: Rich Harris
-locate-path 6.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
 locate-path 5.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 lodash 4.18.0
   License: MIT
-  Author: John-David Dalton <john.david.dalton@gmail.com>
+  Author: John-David Dalton
 lodash-es 4.18.1
   License: MIT
-  Author: John-David Dalton <john.david.dalton@gmail.com>
+  Author: John-David Dalton
 lodash.merge 4.6.2
   License: MIT
-  Author: John-David Dalton <john.david.dalton@gmail.com>
+  Author: John-David Dalton
+log-symbols 7.0.1
+  License: MIT
+  Author: Sindre Sorhus
 lookup-closest-locale 6.2.0
   License: MIT
-  Author: Andy VanWagoner <andy@vanwago.net>
-lowercase-keys 4.0.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Andy VanWagoner
 lowercase-keys 3.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-lru-cache 5.1.1
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me>
-lru-cache 10.0.1
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me>
-lru-cache 10.2.0
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me>
-lru-cache 11.5.2
-  License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me>
-lru-cache 11.1.0
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me>
-lru-cache 11.0.0
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me>
+  Author: Sindre Sorhus
 lru-cache 6.0.0
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me>
+  Author: Isaac Z. Schlueter
+lru-cache 11.5.2
+  License: BlueOak-1.0.0
+  Author: Isaac Z. Schlueter
+lru-queue 0.1.0
+  License: MIT
+  Author: Mariusz Nowak
 lz-string 1.5.0
   License: MIT
-  Author: pieroxy <pieroxy@pieroxy.net>
-magic-string 1.0.0
-  License: MIT
-  Author: Rich Harris
+  Author: pieroxy
 magic-string 0.30.21
-  License: MIT
-  Author: Rich Harris
-magic-string 0.30.4
   License: MIT
   Author: Rich Harris
 magicast 0.5.2
@@ -2442,7 +1755,7 @@ magicast 0.5.2
   Author: -
 make-dir 4.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 make-fetch-happen 15.0.0
   License: ISC
   Author: GitHub Inc.
@@ -2454,187 +1767,148 @@ marked 18.0.11
   Author: Christopher Jeffrey
 marky 1.3.0
   License: Apache-2.0
-  Author: Nolan Lawson <nolan@nolanlawson.com>
+  Author: Nolan Lawson
 matcher 3.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 math-intrinsics 1.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 mdn-data 2.27.1
   License: CC0-1.0
   Author: Mozilla Developer Network
+memoizee 0.4.17
+  License: ISC
+  Author: Mariusz Nowak
 meow 14.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 micromatch 4.0.8
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
+  Author: Jon Schlinkert
 micron-parser 0.0.0
-  License: -
+  License: Unknown
   Author: -
 mime 2.6.0
   License: MIT
-  Author: Robert Kieffer <robert@broofa.com>
+  Author: Robert Kieffer
 mime-db 1.52.0
   License: MIT
-  Author: Douglas Christopher Wilson <doug@somethingdoug.com>
+  Author: -
 mime-types 2.1.35
   License: MIT
-  Author: Douglas Christopher Wilson <doug@somethingdoug.com>
+  Author: -
+mimic-function 5.0.0
+  License: MIT
+  Author: Sindre Sorhus
 mimic-response 4.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 mini-svg-data-uri 1.4.4
   License: MIT
-  Author: Taylor “Tigt” Hunt <holla@ti.gt> (https://ti.gt/)
-minimatch 10.2.3
-  License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
+  Author: Taylor “Tigt” Hunt
 minimatch 3.1.4
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
-minimatch 10.2.6
+  Author: Isaac Z. Schlueter
+minimatch 10.2.3
   License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
+  Author: Isaac Z. Schlueter
 minimist 1.2.8
   License: MIT
-  Author: James Halliday <mail@substack.net>
-minipass 7.0.3
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-minipass 4.0.0
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-minipass 7.1.2
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-minipass 7.0.2
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-minipass 7.0.4
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: James Halliday
 minipass 3.0.0
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 minipass 7.1.3
   License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 minipass-collect 2.0.1
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (https://izs.me)
+  Author: Isaac Z. Schlueter
 minipass-fetch 4.0.0
   License: MIT
   Author: GitHub Inc.
 minipass-flush 1.0.5
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (https://izs.me)
+  Author: Isaac Z. Schlueter
 minipass-pipeline 1.2.4
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (https://izs.me)
+  Author: Isaac Z. Schlueter
 minipass-sized 1.0.3
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (https://izs.me)
+  Author: Isaac Z. Schlueter
 minizlib 3.0.1
   License: MIT
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-minizlib 3.1.0
-  License: MIT
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 mitt 3.0.1
   License: MIT
   Author: -
 mkdirp 0.5.1
   License: MIT
-  Author: James Halliday <mail@substack.net> (http://substack.net)
+  Author: James Halliday
 modern-tar 0.7.7
   License: MIT
-  Author: Ayuhito <hello@ayuhito.com>
-module-details-from-path 1.0.4
-  License: MIT
-  Author: Thomas Watson <w@tson.dk> (https://wa.tson.dk/)
+  Author: Ayuhito
 module-details-from-path 1.0.3
   License: MIT
-  Author: Thomas Watson Steen <w@tson.dk> (https://twitter.com/wa7son)
+  Author: Thomas Watson
 mri 1.2.0
   License: MIT
-  Author: Luke Edwards <luke.edwards05@gmail.com>
+  Author: Luke Edwards
 mrmime 2.0.0
   License: MIT
-  Author: Luke Edwards <luke.edwards05@gmail.com>
-ms 2.1.3
-  License: MIT
-  Author: -
+  Author: Luke Edwards
 ms 2.0.0
   License: MIT
   Author: -
-muggle-string 0.4.1
-  License: MIT
-  Author: -
-mylib 0.0.0
-  License: ISC
-  Author: -
 nanoid 3.3.18
   License: MIT
-  Author: Andrey Sitnik <andrey@sitnik.ru>
+  Author: Andrey Sitnik
 natural-compare 1.4.0
   License: MIT
-  Author: Lauri Rooden (https://github.com/litejs/natural-compare-lite)
+  Author: Lauri Rooden
 negotiator 1.0.0
   License: MIT
-  Author: Douglas Christopher Wilson <doug@somethingdoug.com>
+  Author: -
+next-tick 1.1.0
+  License: ISC
+  Author: Mariusz Nowak
 node-abi 4.2.0
   License: MIT
   Author: Lukas Geiger
 node-addon-api 7.1.1
   License: MIT
-  Author: Abhishek Kumar Singh
+  Author: -
 node-api-version 0.2.1
   License: MIT
-  Author: Tim Fish <tim@timfish.uk>
+  Author: Tim Fish
 node-gyp 12.2.0
   License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://tootallnate.net)
+  Author: Nathan Rajlich
 node-int64 0.4.0
   License: MIT
-  Author: Robert Kieffer <robert@broofa.com>
-node-releases 2.0.54
-  License: MIT
-  Author: Sergey Rubanov <chi187@gmail.com>
+  Author: Robert Kieffer
 nopt 9.0.0
-  License: ISC
-  Author: GitHub Inc.
-nopt 10.0.1
   License: ISC
   Author: GitHub Inc.
 normalize-url 8.1.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-nth-check 2.1.1
-  License: BSD-2-Clause
-  Author: Felix Boehm <me@feedic.com>
+  Author: Sindre Sorhus
 numcodecs 0.3.2
   License: MIT
   Author: Trevor Manz
 object-inspect 1.13.4
   License: MIT
-  Author: James Halliday <mail@substack.net>
+  Author: James Halliday
 object-keys 1.1.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 object.assign 4.1.7
   License: MIT
   Author: Jordan Harband
-obug 2.1.4
-  License: MIT
-  Author: Kevin Deng <sxzz@sxzz.moe>
 obug 2.1.1
   License: MIT
-  Author: Kevin Deng <sxzz@sxzz.moe>
-ohash 2.0.11
-  License: MIT
-  Author: -
+  Author: Kevin Deng
 ol 10.10.0
   License: BSD-2-Clause
   Author: -
@@ -2643,94 +1917,79 @@ ol-mapbox-style 13.4.3
   Author: -
 once 1.4.0
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
+onetime 7.0.0
+  License: MIT
+  Author: Sindre Sorhus
 open 8.4.2
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-open 11.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 optionator 0.9.4
   License: MIT
-  Author: George Zahariev <z@georgezahariev.com>
+  Author: George Zahariev
+ora 9.1.0
+  License: MIT
+  Author: Sindre Sorhus
 own-keys 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 oxc-parser 0.147.0
   License: MIT
   Author: Boshen and oxc contributors
 oxc-resolver 11.24.2
   License: MIT
   Author: -
-p-limit 3.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
 p-limit 2.2.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-p-locate 5.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 p-locate 4.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 p-map 7.0.2
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 p-try 2.2.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 package-json-from-dist 1.0.1
   License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (https://izs.me)
+  Author: Isaac Z. Schlueter
 package-manager-detector 1.8.0
   License: MIT
-  Author: Anthony Fu <anthonyfu117@hotmail.com>
-pako 2.0.4
-  License: (MIT AND Zlib)
-  Author: Andrei Tuputcyn (https://github.com/andr83)
+  Author: Anthony Fu
 pako 1.0.2
   License: MIT
-  Author: Andrei Tuputcyn (https://github.com/andr83)
-parent-module 1.0.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: -
+pako 2.0.4
+  License: (MIT AND Zlib)
+  Author: -
 parent-module 1.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 parse-headers 2.0.2
   License: MIT
-  Author: David Björklund <david.bjorklund@gmail.com> (http://davidbjorklund.com/)
+  Author: David Björklund
 parse-json 5.2.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 parse5 8.0.1
   License: MIT
-  Author: Ivan Nikulin <ifaaan@gmail.com> (https://github.com/inikulin)
-path-browserify 1.0.1
-  License: MIT
-  Author: James Halliday <mail@substack.net>
+  Author: Ivan Nikulin
 path-exists 4.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 path-is-absolute 1.0.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 path-key 3.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-path-key 3.1.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 path-parse 1.0.7
   License: MIT
-  Author: Javier Blanco <http://jbgutierrez.info>
+  Author: Javier Blanco
 path-scurry 1.11.1
   License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (https://blog.izs.me)
-path-scurry 2.0.2
-  License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (https://blog.izs.me)
+  Author: Isaac Z. Schlueter
 pathe 2.0.3
   License: MIT
   Author: -
@@ -2740,9 +1999,6 @@ pbf 5.1.2
 pe-library 0.4.1
   License: MIT
   Author: jet
-perfect-debounce 2.1.0
-  License: MIT
-  Author: -
 pg-int8 1.0.1
   License: ISC
   Author: -
@@ -2755,15 +2011,12 @@ pg-types 2.2.0
 picocolors 1.1.1
   License: ISC
   Author: Alexey Raspopov
-picomatch 4.0.7
-  License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
 picomatch 4.0.4
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
+  Author: Jon Schlinkert
 pkijs 3.4.0
   License: BSD-3-Clause
-  Author: Yury Strozhevsky <yury@strozhevsky.com>
+  Author: Yury Strozhevsky
 playwright 1.62.1
   License: Apache-2.0
   Author: Microsoft Corporation
@@ -2772,88 +2025,73 @@ playwright-core 1.62.1
   Author: Microsoft Corporation
 plist 3.1.1
   License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net>
+  Author: Nathan Rajlich
 pngjs 5.0.0
   License: MIT
-  Author: Alexandre Paré
+  Author: -
 possible-typed-array-names 1.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 postcss 8.5.23
   License: MIT
-  Author: Andrey Sitnik <andrey@sitnik.es>
-postcss 8.5.26
-  License: MIT
-  Author: Andrey Sitnik <andrey@sitnik.es>
+  Author: Andrey Sitnik
 postcss-load-config 3.1.4
   License: MIT
-  Author: Michael Ciniawky <michael.ciniawsky@gmail.com>
+  Author: Michael Ciniawky
 postcss-safe-parser 7.1.0
   License: MIT
-  Author: Andrey Sitnik <andrey@sitnik.es>
+  Author: Andrey Sitnik
 postcss-scss 4.0.9
   License: MIT
-  Author: Andrey Sitnik <andrey@sitnik.ru>
+  Author: Andrey Sitnik
 postcss-selector-parser 7.1.5
   License: MIT
-  Author: Maxime Thirouin
+  Author: -
 postgres-array 2.0.0
   License: MIT
-  Author: Ben Drucker <bvdrucker@gmail.com>
+  Author: Ben Drucker
 postgres-bytea 1.0.1
   License: MIT
-  Author: Ben Drucker <bvdrucker@gmail.com>
+  Author: Ben Drucker
 postgres-date 1.0.7
   License: MIT
-  Author: Ben Drucker <bvdrucker@gmail.com>
+  Author: Ben Drucker
 postgres-interval 1.2.0
   License: MIT
-  Author: Ben Drucker <bvdrucker@gmail.com>
+  Author: Ben Drucker
 postject 1.0.0-alpha.6
   License: MIT
   Author: -
-powershell-utils 0.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
 prelude-ls 1.2.1
   License: MIT
-  Author: George Zahariev <z@georgezahariev.com>
+  Author: George Zahariev
 prettier 3.9.6
   License: MIT
   Author: James Long
 prettier-linter-helpers 1.0.1
   License: MIT
-  Author: Ben Scott
+  Author: -
 prettier-plugin-svelte 4.1.1
   License: MIT
-  Author: James Birtles <jameshbirtles@gmail.com>
+  Author: James Birtles
 pretty-format 27.5.1
   License: MIT
-  Author: James Kyle <me@thejameskyle.com>
+  Author: James Kyle
 proc-log 5.0.0
-  License: ISC
-  Author: GitHub Inc.
-proc-log 6.1.0
   License: ISC
   Author: GitHub Inc.
 process-nextick-args 1.0.0
   License: MIT
   Author: -
-process-nextick-args 2.0.1
-  License: MIT
-  Author: -
 progress 2.0.3
   License: MIT
-  Author: TJ Holowaychuk <tj@vision-media.ca>
+  Author: TJ Holowaychuk
 promise-retry 2.0.1
   License: MIT
-  Author: IndigoUnited <hello@indigounited.com> (http://indigounited.com)
+  Author: IndigoUnited
 proper-lockfile 4.1.2
   License: MIT
-  Author: André Cruz <andre@moxy.studio>
-proto-list 1.2.1
-  License: MIT
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: André Cruz
 protocol-buffers-schema 3.6.1
   License: MIT
   Author: Mathias Buus
@@ -2868,19 +2106,13 @@ pvtsutils 1.3.6
   Author: PeculiarVentures
 pvutils 1.2.0
   License: MIT
-  Author: Yury Strozhevsky <yury@strozhevsky.com>
+  Author: Yury Strozhevsky
 qrcode 1.5.4
   License: MIT
-  Author: Ryan Day <soldair@gmail.com>
+  Author: Ryan Day
 quick-lru 5.1.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-quick-lru 6.1.2
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-quickselect 3.0.0
-  License: ISC
-  Author: Vladimir Agafonkin
+  Author: Sindre Sorhus
 quickselect 2.0.0
   License: ISC
   Author: Vladimir Agafonkin
@@ -2896,208 +2128,181 @@ read-binary-file-arch 1.0.6
 readable-stream 2.0.2
   License: MIT
   Author: -
-readable-stream 2.3.8
-  License: MIT
-  Author: -
 readdirp 4.0.1
   License: MIT
-  Author: Thorsten Lorenz <thlorenz@gmx.de> (thlorenz.com)
+  Author: Thorsten Lorenz
 reference-spec-reader 0.2.0
   License: MIT
-  Author: manzt <trevor.j.manz@gmail.com>
-reflect.getprototypeof 1.0.9
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: manzt
 reflect.getprototypeof 1.0.6
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 regenerator-runtime 0.13.11
   License: MIT
-  Author: Ben Newman <bn@cs.stanford.edu>
+  Author: Ben Newman
 regexp-tree 0.1.27
   License: MIT
   Author: Dmitry Soshnikov
 regexp.prototype.flags 1.5.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 require-directory 2.1.1
   License: MIT
-  Author: Troy Goode <troygoode@gmail.com> (http://github.com/troygoode/)
+  Author: Troy Goode
 require-from-string 2.0.2
   License: MIT
-  Author: Vsevolod Strukchinsky <floatdrop@gmail.com>
+  Author: Vsevolod Strukchinsky
 require-in-the-middle 7.5.2
   License: MIT
-  Author: Thomas Watson Steen <w@tson.dk> (https://twitter.com/wa7son)
+  Author: Thomas Watson Steen
 require-main-filename 2.0.0
   License: ISC
-  Author: Ben Coe <ben@npmjs.com>
+  Author: Ben Coe
 resedit 1.7.0
   License: MIT
   Author: jet
 resolve 1.22.12
   License: MIT
-  Author: James Halliday <mail@substack.net>
+  Author: James Halliday
 resolve-alpn 1.2.1
   License: MIT
   Author: Szymon Marczak
-resolve-from 5.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
 resolve-from 4.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 resolve-pkg-maps 1.0.0
   License: MIT
-  Author: Hiroki Osame <hiroki.osame@gmail.com>
+  Author: Hiroki Osame
 resolve-protobuf-schema 2.1.0
   License: MIT
-  Author: Mathias Buus (@mafintosh)
+  Author: Mathias Buus
 responselike 4.0.2
   License: MIT
   Author: -
+restore-cursor 5.1.0
+  License: MIT
+  Author: Sindre Sorhus
 retry 0.12.0
   License: MIT
-  Author: Tim Koschützki <tim@debuggable.com> (http://debuggable.com/)
-rimraf 5.0.5
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Tim Koschützki
 rimraf 2.6.3
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 roarr 2.15.4
   License: BSD-3-Clause
-  Author: Gajus Kuizinas <gajus@gajus.com>
+  Author: Gajus Kuizinas
 robots-parser 3.0.1
   License: MIT
-  Author: Sam Clarke <sam@samclarke.com>
+  Author: Sam Clarke
 rolldown 1.2.4
   License: MIT
   Author: -
-run-applescript 7.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
 sade 1.7.4
   License: MIT
-  Author: Luke Edwards <luke.edwards05@gmail.com>
+  Author: Luke Edwards
 safe-array-concat 1.1.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 safe-buffer 5.1.2
   License: MIT
-  Author: Feross Aboukhadijeh <feross@feross.org>
+  Author: Feross Aboukhadijeh
 safe-push-apply 1.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 safe-regex 2.1.1
   License: MIT
-  Author: James C. (Jamie) Davis <davisjam@vt.edu>
+  Author: James C.
 safe-regex-test 1.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 safer-buffer 2.1.2
   License: MIT
-  Author: Nikita Skovoroda <chalkerx@gmail.com>
+  Author: Nikita Skovoroda
 sanitize-filename 1.6.4
   License: WTFPL OR ISC
   Author: Parsha Pourkhomami
 sax 1.6.1
   License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 saxes 6.0.0
   License: ISC
-  Author: Louis-Dominique Dubeau <ldd@lddubeau.com>
-semver 7.8.5
-  License: ISC
-  Author: GitHub Inc.
+  Author: Louis-Dominique Dubeau
 semver 7.5.2
   License: ISC
   Author: GitHub Inc.
 semver-compare 1.0.0
   License: MIT
-  Author: James Halliday <mail@substack.net>
+  Author: James Halliday
 serialize-error 7.0.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 set-blocking 2.0.0
   License: ISC
-  Author: Ben Coe <ben@npmjs.com>
+  Author: Ben Coe
 set-function-length 1.2.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 set-function-name 2.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 set-proto 1.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 setimmediate 1.0.5
   License: MIT
   Author: YuzuJS
 shebang-command 2.0.0
   License: MIT
-  Author: Kevin Mårtensson <kevinmartensson@gmail.com>
+  Author: Kevin Mårtensson
 shebang-regex 3.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 shimmer 1.2.1
   License: BSD-2-Clause
-  Author: Forrest L Norvell <ogd@aoaioxxysz.net>
+  Author: Forrest L Norvell
 side-channel 1.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 side-channel-list 1.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 side-channel-map 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 side-channel-weakmap 1.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 siginfo 2.0.0
   License: ISC
-  Author: Emil Bay <github@tixz.dk>
-signal-exit 4.0.1
-  License: ISC
-  Author: Ben Coe <ben@npmjs.com>
+  Author: Emil Bay
 signal-exit 3.0.7
   License: ISC
-  Author: Ben Coe <ben@npmjs.com>
+  Author: Ben Coe
 simple-update-notifier 2.0.0
   License: MIT
   Author: alexbrazier
 sirv 3.0.2
   License: MIT
-  Author: Luke Edwards <luke@lukeed.com>
+  Author: Luke Edwards
 smart-buffer 4.2.0
   License: MIT
   Author: Josh Glazebrook
 smol-toml 1.8.0
   License: BSD-3-Clause
-  Author: Cynthia Rey <cynthia@cynthia.dev>
+  Author: Cynthia Rey
 socks 2.8.0
   License: MIT
   Author: Josh Glazebrook
 socks-proxy-agent 8.0.3
   License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net>
+  Author: Nathan Rajlich
 source-map 0.6.0
   License: BSD-3-Clause
-  Author: Nick Fitzgerald <nfitzgerald@mozilla.com>
-source-map 0.6.1
-  License: BSD-3-Clause
-  Author: Nick Fitzgerald <nfitzgerald@mozilla.com>
-source-map-js 1.0.2
-  License: BSD-3-Clause
-  Author: Valentin 7rulnik Semirulnik <v7rulnik@gmail.com>
+  Author: Nick Fitzgerald
 source-map-js 1.2.1
   License: BSD-3-Clause
-  Author: Valentin 7rulnik Semirulnik <v7rulnik@gmail.com>
+  Author: Valentin 7rulnik Semirulnik
 source-map-support 0.5.19
-  License: MIT
-  Author: -
-source-map-support 0.5.21
   License: MIT
   Author: -
 speedline-core 1.4.3
@@ -3105,88 +2310,61 @@ speedline-core 1.4.3
   Author: -
 sprintf-js 1.1.3
   License: BSD-3-Clause
-  Author: Alexandru Mărășteanu <hello@alexei.ro>
+  Author: Alexandru Mărășteanu
 ssri 12.0.0
   License: ISC
   Author: GitHub Inc.
 stackback 0.0.2
   License: MIT
-  Author: Roman Shtylman <shtylman@gmail.com>
+  Author: Roman Shtylman
 stat-mode 1.0.0
   License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
-std-env 4.2.0
-  License: MIT
-  Author: -
+  Author: Nathan Rajlich
 std-env 4.0.0-rc.1
   License: MIT
   Author: -
+stdin-discarder 0.2.2
+  License: MIT
+  Author: Sindre Sorhus
 stop-iteration-iterator 1.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-string-width 5.1.2
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-string-width 4.2.3
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Jordan Harband
 string-width 4.2.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-string-width 7.2.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-string-width 8.2.2
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 string.prototype.trim 1.2.11
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 string.prototype.trimend 1.0.9
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 string.prototype.trimstart 1.0.8
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 string_decoder 0.10.24
   License: MIT
   Author: -
-string_decoder 1.1.1
-  License: MIT
-  Author: -
-string_decoder-build 0.0.0
-  License: -
-  Author: -
 strip-ansi 6.0.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-strip-json-comments 5.0.3
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 strip-json-comments 3.1.1
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 stubborn-fs 2.0.0
   License: MIT
   Author: -
 stubborn-utils 1.0.1
-  License: -
+  License: Unknown
   Author: -
 sumchecker 3.0.1
   License: Apache-2.0
   Author: Mark Lee
 supports-color 4.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-supports-color 7.2.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-supports-color 7.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 supports-preserve-symlinks-flag 1.0.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 svelte 5.0.0
   License: MIT
   Author: -
@@ -3195,16 +2373,19 @@ svelte-check 4.7.6
   Author: The Svelte Community
 svelte-eslint-parser 1.8.1
   License: MIT
-  Author: Yosuke Ota (https://github.com/ota-meshi)
+  Author: Yosuke Ota
+svelte-i18n 4.0.1
+  License: MIT
+  Author: Christian Kaisermann
 symbol-tree 3.2.4
   License: MIT
-  Author: Joris van der Wel <joris@jorisvanderwel.com>
+  Author: Joris van der Wel
 synckit 0.11.13
   License: MIT
-  Author: JounQin <admin@1stg.me> (https://www.1stG.me)
+  Author: JounQin
 tagged-tag 1.0.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 tailwindcss 4.3.3
   License: MIT
   Author: -
@@ -3216,45 +2397,36 @@ tar 7.5.22
   Author: Isaac Z. Schlueter
 temp 0.9.4
   License: MIT
-  Author: Bruce Williams <brwcodes@gmail.com>
+  Author: Bruce Williams
 temp-file 3.4.0
   License: MIT
   Author: Vladimir Krivosheev
 terser 5.51.2
   License: BSD-2-Clause
-  Author: Mihai Bazon <mihai.bazon@gmail.com> (http://lisperator.net/)
-test-fixtures ?
-  License: -
-  Author: -
+  Author: Mihai Bazon
 third-party-web 0.29.2
   License: MIT
-  Author: Patrick Hulce <patrick.hulce@gmail.com>
+  Author: Patrick Hulce
+timers-ext 0.1.8
+  License: ISC
+  Author: Mariusz Nowak
 tiny-async-pool 1.3.0
   License: MIT
   Author: Rafael Xavier de Souza
+tiny-glob 0.2.9
+  License: MIT
+  Author: Terkel Gjervig
 tinybench 2.9.0
   License: MIT
   Author: -
-tinyexec 1.3.0
-  License: MIT
-  Author: James Garbutt (https://github.com/43081j)
 tinyexec 1.0.2
   License: MIT
-  Author: James Garbutt (https://github.com/43081j)
-tinyglobby 0.2.15
-  License: MIT
-  Author: Superchupu
+  Author: James Garbutt
 tinyglobby 0.2.12
-  License: MIT
-  Author: Superchupu
-tinyglobby 0.2.17
   License: MIT
   Author: Superchupu
 tinyqueue 3.0.0
   License: ISC
-  Author: -
-tinyrainbow 3.1.1
-  License: MIT
   Author: -
 tinyrainbow 3.1.0
   License: MIT
@@ -3270,59 +2442,56 @@ tldts-icann 7.4.11
   Author: Rémi Berson
 tmp 0.2.7
   License: MIT
-  Author: KARASZI István <github@spam.raszi.hu>
+  Author: KARASZI István
 tmp-promise 3.0.3
   License: MIT
   Author: Benjamin Gruenbaum and Collaborators.
 to-regex-range 5.0.1
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
+  Author: Jon Schlinkert
 totalist 3.0.0
   License: MIT
-  Author: Luke Edwards <luke.edwards05@gmail.com>
+  Author: Luke Edwards
 tough-cookie 6.0.2
   License: BSD-3-Clause
-  Author: Jeremy Stashewsky <jstash@gmail.com>
+  Author: Jeremy Stashewsky
 tr46 6.0.0
   License: MIT
-  Author: Sebastian Mayr <npm@smayr.name>
+  Author: Sebastian Mayr
 truncate-utf8-bytes 1.0.2
   License: WTFPL
-  Author: Carl Xiong <xiongc05@gmail.com>
+  Author: Carl Xiong
 ts-api-utils 2.5.0
   License: MIT
-  Author: JoshuaKGoldberg <npm@joshuakgoldberg.com>
+  Author: JoshuaKGoldberg
 tslib 2.8.1
   License: 0BSD
   Author: Microsoft Corp.
+type 2.7.2
+  License: ISC
+  Author: Mariusz Nowak
 type-check 0.4.0
   License: MIT
-  Author: George Zahariev <z@georgezahariev.com>
-type-fest 4.18.2
-  License: (MIT OR CC0-1.0)
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: George Zahariev
 type-fest 0.13.1
   License: (MIT OR CC0-1.0)
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-type-fest 5.8.0
-  License: (MIT OR CC0-1.0)
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 typed-array-buffer 1.0.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 typed-array-byte-length 1.0.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 typed-array-byte-offset 1.0.4
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 typed-array-length 1.0.7
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 typed-query-selector 2.12.2
   License: MIT
-  Author: Pig Fang <g-plane@hotmail.com>
-typescript 6.0.3
+  Author: Pig Fang
+typescript 5.9.3
   License: Apache-2.0
   Author: Microsoft Corp.
 typescript-eslint 8.69.0
@@ -3330,124 +2499,70 @@ typescript-eslint 8.69.0
   Author: -
 uint8array-extras 1.5.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 unbash 4.0.10
   License: ISC
-  Author: Lars Kappert <lars@webpro.nl>
+  Author: Lars Kappert
 unbox-primitive 1.1.0
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 undici 7.29.0
   License: MIT
-  Author: Daniele Belardi
+  Author: -
 undici-types 7.18.2
   License: MIT
-  Author: Daniele Belardi
+  Author: -
 unique-filename 4.0.0
   License: ISC
   Author: GitHub Inc.
 unique-slug 5.0.0
   License: ISC
   Author: GitHub Inc.
-universalify 2.0.1
-  License: MIT
-  Author: Ryan Zimmerman <opensrc@ryanzim.com>
 universalify 0.1.0
   License: MIT
-  Author: Ryan Zimmerman <opensrc@ryanzim.com>
-universalify 1.0.0
-  License: MIT
-  Author: Ryan Zimmerman <opensrc@ryanzim.com>
-universalify 2.0.0
-  License: MIT
-  Author: Ryan Zimmerman <opensrc@ryanzim.com>
-unplugin-utils 0.3.2
-  License: MIT
-  Author: Kevin Deng <sxzz@sxzz.moe>
+  Author: Ryan Zimmerman
 unzipit 2.0.0
   License: MIT
   Author: -
 unzipper 0.12.5
   License: MIT
-  Author: Ziggy Jonsson <ziggy.jonsson.nyc@gmail.com>
-update-browserslist-db 1.3.0
-  License: MIT
-  Author: Andrey Sitnik <andrey@sitnik.es>
+  Author: Ziggy Jonsson
 uri-js 4.4.1
   License: BSD-2-Clause
-  Author: Gary Court <gary.court@gmail.com>
+  Author: Gary Court
 utf8-byte-length 1.0.5
   License: (WTFPL OR MIT)
-  Author: Carl Xiong <xiongc05@gmail.com>
-util-deprecate 1.0.2
-  License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
+  Author: Carl Xiong
 util-deprecate 1.0.1
   License: MIT
-  Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
+  Author: Nathan Rajlich
 uuid 14.0.1
   License: MIT
   Author: -
 vis-data 7.1.10
   License: (Apache-2.0 OR MIT)
-  Author: jos <wjosdejong@gmail.com>
+  Author: -
 vis-network 9.1.13
   License: (Apache-2.0 OR MIT)
   Author: -
 vis-util 5.0.7
   License: (Apache-2.0 OR MIT)
-  Author: Alex de Mulder <alexdemulder@gmail.com>
+  Author: Alex de Mulder
 vite 8.2.2
   License: MIT
   Author: Evan You
-vite-dev-rpc 2.0.0
-  License: MIT
-  Author: Anthony Fu <anthonyfu117@hotmail.com>
-vite-hot-client 2.2.0
-  License: MIT
-  Author: Anthony Fu <anthonyfu117@hotmail.com>
-vite-plugin-inspect 11.4.1
-  License: MIT
-  Author: Anthony Fu <anthonyfu117@hotmail.com>
-vite-plugin-vue-devtools 8.2.1
-  License: MIT
-  Author: webfansplz
-vite-plugin-vue-inspector 6.0.0
-  License: MIT
-  Author: webfansplz
 vitefu 1.1.2
   License: MIT
   Author: -
 vitest 4.1.11
   License: MIT
-  Author: Anthony Fu <anthonyfu117@hotmail.com>
-vscode-uri 3.2.0
-  License: MIT
-  Author: Microsoft
-vue 3.5.42
-  License: MIT
-  Author: Evan You
-vue-component-type-helpers 3.3.11
-  License: MIT
-  Author: -
-vue-eslint-parser 10.4.1
-  License: MIT
-  Author: Toru Nagashima
-vue-i18n 11.4.10
-  License: MIT
-  Author: kazuya kawaguchi <kawakazu80@gmail.com>
-vue-router 4.6.4
-  License: MIT
-  Author: Eduardo San Martin Morote <posva13@gmail.com>
-vue-tsc 3.3.11
-  License: MIT
-  Author: -
+  Author: Anthony Fu
 w3c-xmlserializer 5.0.0
   License: MIT
   Author: -
 walk-up-path 4.0.0
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (https://izs.me)
+  Author: Isaac Z. Schlueter
 web-features 3.37.0
   License: Apache-2.0
   Author: -
@@ -3462,142 +2577,91 @@ webdriver-bidi-protocol 0.4.2
   Author: The Chromium Authors
 webidl-conversions 8.0.1
   License: BSD-2-Clause
-  Author: Domenic Denicola <d@domenic.me> (https://domenic.me/)
+  Author: Domenic Denicola
 whatwg-mimetype 5.0.0
   License: MIT
-  Author: Domenic Denicola <d@domenic.me> (https://domenic.me/)
+  Author: Domenic Denicola
 whatwg-url 16.0.1
   License: MIT
-  Author: Sebastian Mayr <github@smayr.name>
+  Author: Sebastian Mayr
 when-exit 2.1.5
   License: MIT
   Author: -
-which 5.0.0
-  License: ISC
-  Author: GitHub Inc.
 which 2.0.1
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
-which 6.0.0
-  License: ISC
   Author: GitHub Inc.
-which 2.0.2
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
-which-boxed-primitive 1.1.0
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
 which-boxed-primitive 1.0.2
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-which-boxed-primitive 1.1.1
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-which-builtin-type 1.2.1
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 which-builtin-type 1.1.3
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
-which-collection 1.0.2
-  License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 which-collection 1.0.1
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 which-module 2.0.1
   License: ISC
   Author: nexdrew
 which-typed-array 1.1.19
   License: MIT
-  Author: Jordan Harband <ljharb@gmail.com>
+  Author: Jordan Harband
 why-is-node-running 2.3.0
   License: MIT
-  Author: Mathias Buus (@mafintosh)
+  Author: Mathias Buus
 word-wrap 1.2.5
   License: MIT
-  Author: Jon Schlinkert (https://github.com/jonschlinkert)
-wrap-ansi 8.1.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Jon Schlinkert
 wrap-ansi 6.2.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-wrap-ansi 7.0.0
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
-wrap-ansi 9.0.2
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 wrappy 1.0.2
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
 ws 7.5.13
   License: MIT
-  Author: Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)
-ws 8.21.0
-  License: MIT
-  Author: Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)
-wsl-utils 0.3.1
-  License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Einar Otto Stangvik
 xdg-basedir 5.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
 xml-name-validator 5.0.0
   License: Apache-2.0
-  Author: Domenic Denicola <d@domenic.me> (https://domenic.me/)
+  Author: Domenic Denicola
 xml-utils 1.10.2
   License: CC0-1.0
   Author: Daniel J. Dufour
 xmlbuilder 15.1.1
   License: MIT
-  Author: Ozgur Ozcitak <oozcitak@gmail.com>
+  Author: Ozgur Ozcitak
 xmlchars 2.2.0
   License: MIT
-  Author: Louis-Dominique Dubeau <ldd@lddubeau.com>
+  Author: Louis-Dominique Dubeau
 xtend 4.0.2
   License: MIT
-  Author: Raynos <raynos2@gmail.com>
+  Author: Raynos
 y18n 5.0.5
   License: ISC
-  Author: Ben Coe <bencoe@gmail.com>
-y18n 5.0.8
-  License: ISC
-  Author: Ben Coe <bencoe@gmail.com>
-yallist 3.0.2
-  License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-yallist 5.0.0
-  License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Ben Coe
 yallist 4.0.0
   License: ISC
-  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+  Author: Isaac Z. Schlueter
+yallist 5.0.0
+  License: BlueOak-1.0.0
+  Author: Isaac Z. Schlueter
 yaml 1.10.2
   License: ISC
-  Author: Eemeli Aro <eemeli@gmail.com>
-yaml 2.9.0
-  License: ISC
-  Author: Eemeli Aro <eemeli@gmail.com>
-yargs 17.7.3
-  License: MIT
-  Author: Yargs Contributors
-yargs 17.3.1
-  License: MIT
-  Author: Yargs Contributors
+  Author: Eemeli Aro
 yargs 15.3.1
   License: MIT
-  Author: Yargs Contributors
-yargs 18.1.0
-  License: MIT
-  Author: Yargs Contributors
+  Author: -
 yargs-parser 21.1.1
   License: ISC
-  Author: Ben Coe <ben@npmjs.com>
+  Author: Ben Coe
 yocto-queue 0.1.0
   License: MIT
-  Author: Sindre Sorhus <sindresorhus@gmail.com>
+  Author: Sindre Sorhus
+yoctocolors 2.2.0
+  License: MIT
+  Author: Sindre Sorhus
 zarrita 0.7.1
   License: MIT
   Author: -
@@ -3606,10 +2670,7 @@ zimmerframe 1.1.2
   Author: -
 zod 3.24.1
   License: MIT
-  Author: Colin McDonnell <colin@colinhacks.com>
-zod 4.5.4
-  License: MIT
-  Author: Colin McDonnell <zod@colinhacks.com>
+  Author: Colin McDonnell
 zstddec 0.2.0
   License: MIT AND BSD-3-Clause
-  Author: Don McCurdy <dm@donmccurdy.com>
+  Author: Don McCurdy
