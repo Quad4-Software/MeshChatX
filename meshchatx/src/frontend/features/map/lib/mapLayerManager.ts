@@ -47,7 +47,7 @@ export function createMapLayers(offlineEnabled: boolean, providerId = "osm"): Ma
 
 export function createTileSource(offlineEnabled: boolean, providerId = "osm"): XYZ {
     const url = offlineEnabled
-        ? "/api/v1/map/tiles/{z}/{x}/{y}.png"
+        ? "/api/v1/map/tiles/{z}/{x}/{y}"
         : TILE_PROVIDER_URLS[providerId] || DEFAULT_TILE_SERVER_URL;
 
     const source = new XYZ({
