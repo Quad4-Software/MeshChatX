@@ -83,9 +83,9 @@
                                     type="button"
                                     class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
                                     :disabled="publishBusy"
-                                    @click="publishAllToNode"
+                                    @click="openPublishSite"
                                 >
-                                    {{ $t("tools.micron_editor.publish_all_tabs") }}
+                                    {{ $t("tools.micron_editor.publish_site") }}
                                 </button>
                             </div>
                         </template>
@@ -139,13 +139,23 @@
             <div
                 v-for="(tab, index) in tabs"
                 :key="tab.id"
+                draggable="true"
                 class="group flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
                 :class="[
                     activeTabIndex === index
                         ? 'bg-white dark:bg-zinc-800 text-teal-600 dark:text-teal-400 shadow-xs'
                         : 'text-gray-500 hover:bg-white/50 dark:hover:bg-zinc-800/50 hover:text-gray-700 dark:hover:text-zinc-300',
+                    dragOverTabIndex === index && dragTabIndex !== index ? 'ring-2 ring-teal-500' : '',
                 ]"
                 @click="activeTabIndex = index"
+                @dragstart="onTabDragStart(index)"
+                @dragover.prevent="dragOverTabIndex = index"
+                @dragleave="dragOverTabIndex = -1"
+                @drop.prevent="onTabDrop(index)"
+                @dragend="
+                    dragTabIndex = -1;
+                    dragOverTabIndex = -1;
+                "
             >
                 <span v-if="editingTabIndex !== index" @dblclick="startEditingTab(index)">{{ tab.name }}</span>
                 <input
@@ -210,6 +220,15 @@
                 <!-- eslint-enable vue/no-v-html -->
             </div>
         </div>
+
+        <PublishSiteModal
+            :show="showPublishSiteModal"
+            :tabs="tabs"
+            :page-nodes="pageNodes"
+            :busy="publishBusy"
+            @close="showPublishSiteModal = false"
+            @publish="publishSite"
+        />
     </div>
 </template>
 
@@ -223,6 +242,7 @@ import ToastUtils from "../../js/ToastUtils";
 import LinkUtils from "../../js/LinkUtils.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import PublishSiteModal from "./PublishSiteModal.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 
 const NOMAD_DESTINATION_HASH = /^[a-fA-F0-9]{32}$/;
@@ -237,6 +257,7 @@ export default {
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        PublishSiteModal,
     },
     data() {
         return {
@@ -249,6 +270,9 @@ export default {
             editingTabIndex: -1,
             editingTabName: "",
             showPublishMenu: false,
+            showPublishSiteModal: false,
+            dragTabIndex: -1,
+            dragOverTabIndex: -1,
             pageNodes: [],
             publishBusy: false,
             lastPublished: null,
@@ -446,6 +470,33 @@ export default {
             };
             this.tabs.push(newTab);
             this.activeTabIndex = this.tabs.length - 1;
+            this.saveContent();
+        },
+        onTabDragStart(index) {
+            this.dragTabIndex = index;
+        },
+        onTabDrop(index) {
+            const from = this.dragTabIndex;
+            this.dragTabIndex = -1;
+            this.dragOverTabIndex = -1;
+            if (from < 0 || from === index) {
+                return;
+            }
+            this.moveTab(from, index);
+        },
+        moveTab(from, to) {
+            if (from === to || from < 0 || to < 0 || from >= this.tabs.length || to >= this.tabs.length) {
+                return;
+            }
+            const [moved] = this.tabs.splice(from, 1);
+            this.tabs.splice(to, 0, moved);
+            if (this.activeTabIndex === from) {
+                this.activeTabIndex = to;
+            } else if (from < this.activeTabIndex && to >= this.activeTabIndex) {
+                this.activeTabIndex -= 1;
+            } else if (from > this.activeTabIndex && to <= this.activeTabIndex) {
+                this.activeTabIndex += 1;
+            }
             this.saveContent();
         },
         async removeTab(index) {
@@ -1293,61 +1344,97 @@ ${b}=
                 }
             }
         },
-        async publishAllToNode() {
-            if (this.pageNodes.length === 0 || this.publishBusy) {
+        async openPublishSite() {
+            this.showPublishMenu = false;
+            this.showPublishSiteModal = true;
+            try {
+                const response = await window.api.get("/api/v1/page-nodes");
+                this.pageNodes = response.data;
+            } catch {
+                this.pageNodes = [];
+            }
+        },
+        buildSiteIndexPage(destinationHash, pages) {
+            const lines = [`>Links`, ""];
+            for (const page of pages) {
+                const label = String(page.label || page.name || "")
+                    .replace(/[`[\]]/g, "")
+                    .trim();
+                const pageName = String(page.name || "").trim();
+                if (!pageName) {
+                    continue;
+                }
+                lines.push(`[${label || pageName}\`${destinationHash}:/page/${pageName}]`);
+            }
+            lines.push("");
+            return lines.join("\n");
+        },
+        async publishSite(payload) {
+            if (this.publishBusy) {
                 return;
             }
-
-            const nodeNames = this.pageNodes.map((n) => n.name);
-            const nodeName = await DialogUtils.prompt(
-                this.$t("tools.micron_editor.publish_all_prompt_server", { servers: nodeNames.join(", ") })
-            );
-            if (!nodeName) return;
-
-            const node = this.pageNodes.find((n) => n.name === nodeName);
-            if (!node) {
-                DialogUtils.alert(this.$t("tools.micron_editor.publish_server_not_found", { server: nodeName }));
+            const pages = payload?.pages || [];
+            if (pages.length === 0) {
                 return;
             }
-
             this.publishBusy = true;
             try {
-                const running = await this.ensureNodeRunning(node);
-                let existingPages = await this.fetchNodePages(running);
-                let published = 0;
-                let lastSavedName = null;
-                for (const tab of this.tabs) {
-                    const pageBase = await this.resolvePublishPageBase(tab, existingPages, running.name);
-                    if (!pageBase) {
-                        continue;
+                let node = payload.nodeId ? this.pageNodes.find((n) => n.node_id === payload.nodeId) : null;
+                if (!node) {
+                    if (!payload.newServerName) {
+                        DialogUtils.alert(this.$t("tools.micron_editor.publish_site_no_server"));
+                        return;
                     }
-                    const publishName = this.pageBaseWithExtension(pageBase, tab);
-                    try {
-                        const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
-                            name: publishName,
-                            content: tab.content,
-                        });
-                        const savedName = response.data?.name || publishName;
-                        lastSavedName = savedName;
-                        const pageNames = pageNamesFromList(existingPages);
-                        existingPages = [...new Set([...pageNames, savedName])];
-                        published++;
-                    } catch {
-                        console.error(`Failed to publish tab: ${tab.name}`);
+                    const createRes = await window.api.post("/api/v1/page-nodes", { name: payload.newServerName });
+                    node = createRes.data || {};
+                    if (!node.node_id) {
+                        throw new Error("create_failed");
                     }
                 }
-                this.showPublishMenu = false;
+                const running = await this.ensureNodeRunning(node);
+                this.pageNodes = [...this.pageNodes.filter((n) => n.node_id !== running.node_id), running];
+                let published = 0;
+                let lastSavedName = null;
+                for (const page of pages) {
+                    try {
+                        const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
+                            name: page.name,
+                            content: page.content,
+                        });
+                        lastSavedName = response.data?.name || page.name;
+                        published++;
+                    } catch {
+                        console.error(`Failed to publish page: ${page.name}`);
+                    }
+                }
+                if (payload.generateIndex && running.destination_hash && published > 0) {
+                    try {
+                        const indexContent = this.buildSiteIndexPage(running.destination_hash, pages);
+                        const indexRes = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
+                            name: "index.mu",
+                            content: indexContent,
+                        });
+                        lastSavedName = indexRes.data?.name || "index.mu";
+                    } catch {
+                        console.error("Failed to publish generated index page");
+                    }
+                }
+                this.showPublishSiteModal = false;
                 if (lastSavedName) {
                     this.rememberPublished(running, lastSavedName);
                 }
-                DialogUtils.alert(
-                    this.$t("tools.micron_editor.publish_all_done", {
+                if (published === 0) {
+                    DialogUtils.alert(this.$t("tools.micron_editor.publish_failed"));
+                    return;
+                }
+                ToastUtils.success(
+                    this.$t("tools.micron_editor.publish_site_done", {
                         published,
-                        total: this.tabs.length,
+                        total: pages.length,
                         server: running.name,
                     })
                 );
-                if (published > 0 && this.lastPublished?.destinationHash) {
+                if (this.lastPublished?.destinationHash) {
                     const open = await DialogUtils.confirm(
                         this.$t("tools.micron_editor.publish_open_nomadnet_confirm", {
                             page: lastSavedName,
@@ -1359,7 +1446,7 @@ ${b}=
                     }
                 }
             } catch (e) {
-                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed_start"));
+                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed"));
             } finally {
                 this.publishBusy = false;
             }

@@ -3471,7 +3471,6 @@
             "publish_create_and_publish": "Create mesh server and publish...",
             "publish_manage_servers": "Manage mesh servers",
             "publish_will_start": "will start",
-            "publish_all_tabs": "Publish all tabs to server...",
             "publish_create_prompt_name": "Name for the new mesh server:",
             "publish_failed_create": "Failed to create mesh server",
             "publish_failed_start": "Failed to start mesh server",
@@ -3480,9 +3479,21 @@
             "publish_prompt_name": "index.mu already exists on \"{server}\". Enter a page name (without .mu):",
             "publish_published": "Published \"{page}\" to {server}",
             "publish_failed": "Failed to publish page",
-            "publish_all_prompt_server": "Enter server name to publish all tabs to:\n\nAvailable: {servers}",
-            "publish_server_not_found": "Server not found: {server}",
-            "publish_all_done": "Published {published}/{total} tabs to {server}"
+            "publish_site": "Publish site...",
+            "publish_site_title": "Publish site",
+            "publish_site_hint": "Publish several tabs as pages in one go. Drag or use the arrows to set the page order.",
+            "publish_site_server": "Mesh server",
+            "publish_site_new_server": "Create a new mesh server",
+            "publish_site_new_server_name": "New server name",
+            "publish_site_pages": "Pages",
+            "publish_site_include": "Include this page",
+            "publish_site_move_up": "Move page up",
+            "publish_site_move_down": "Move page down",
+            "publish_site_index": "Write index.mu with links to all pages",
+            "publish_site_index_hint": "Overwrites index.mu on the server with a link list to the selected pages.",
+            "publish_site_publish": "Publish {count} pages",
+            "publish_site_done": "Published {published}/{total} pages to {server}",
+            "publish_site_no_server": "Select a mesh server or enter a name for a new one."
         },
         "reticulum_config_editor": {
             "title": "Reticulum Config Editor",
@@ -4990,8 +5001,7 @@
         "login": "Login",
         "passwords_mismatch": "Passwords do not match",
         "status_check_failed": "Failed to check authentication status",
-        "failed": "Authentication failed",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Authentication failed"
     },
     "post_install": {
         "windows_screen_security_title": "Enable Windows screen security?",
