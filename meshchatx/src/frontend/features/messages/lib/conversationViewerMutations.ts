@@ -3,13 +3,205 @@
 import DialogUtils from "../../../js/DialogUtils.js";
 import DownloadUtils from "../../../js/DownloadUtils.js";
 import ToastUtils from "../../../js/ToastUtils.js";
+import Utils from "../../../js/Utils.js";
 import WebSocketConnection from "../../../js/WebSocketConnection.js";
+import { copyImageBlobToClipboard } from "../../../js/clipboardUtils.js";
 import { t } from "../../../js/i18n.js";
 import { applyWsMessage, deleteWsMessage, updateWsMessage } from "./conversationViewerMessages.js";
 import { cancelOutbound, executeOutboundJob, type OutboundJob } from "./conversationViewerSend.js";
 import type { ApiClient } from "../../../js/apiClient.js";
 import type { LxmfMessage, ViewerChatItem } from "./conversationViewerCtx.js";
 import type { MessageChatItem } from "./viewerActions.js";
+
+function base64ToArrayBuffer(base64: string): Uint8Array {
+    return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+}
+
+function sameHash(a: unknown, b: unknown): boolean {
+    return String(a || "").toLowerCase() === String(b || "").toLowerCase();
+}
+
+export function listFailedOrCancelledOutbound(items: ViewerChatItem[] | null | undefined): ViewerChatItem[] {
+    return (items || []).filter(
+        (item) => item.is_outbound && ["failed", "cancelled"].includes(String(item.lxmf_message?.state || ""))
+    );
+}
+
+export async function resolveMessageImageBlob(
+    api: ApiClient,
+    item: ViewerChatItem | MessageChatItem | null | undefined
+): Promise<Blob | null> {
+    const msg = item?.lxmf_message;
+    const img = msg?.fields?.image as { image_type?: string; image_bytes?: string } | undefined;
+    if (!msg?.hash || !img) {
+        return null;
+    }
+    const rawType = String(img.image_type || "png")
+        .replace(/^image\//, "")
+        .toLowerCase();
+    const mimeExt = rawType === "jpg" ? "jpeg" : rawType || "png";
+    const mime = `image/${mimeExt}`;
+    if (img.image_bytes) {
+        return new Blob([base64ToArrayBuffer(img.image_bytes).buffer as ArrayBuffer], { type: mime });
+    }
+    const response = await api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+        responseType: "arraybuffer",
+    });
+    const headers = (response as unknown as { headers?: Record<string, string> })?.headers || {};
+    const headerType = headers["content-type"] || headers["Content-Type"];
+    const type = typeof headerType === "string" && headerType.startsWith("image/") ? headerType.split(";")[0] : mime;
+    return new Blob([response.data as ArrayBuffer], { type });
+}
+
+export async function copyMessageImageToClipboard(
+    api: ApiClient,
+    item: ViewerChatItem | MessageChatItem | null | undefined
+): Promise<boolean> {
+    try {
+        const blob = await resolveMessageImageBlob(api, item);
+        if (!blob) {
+            return false;
+        }
+        const ok = await copyImageBlobToClipboard(blob);
+        if (!ok) {
+            ToastUtils.error(t("messages.clipboard_write_unavailable"));
+            return false;
+        }
+        ToastUtils.success(t("messages.image_copied_to_clipboard"));
+        return true;
+    } catch {
+        ToastUtils.error(t("common.error"));
+        return false;
+    }
+}
+
+async function resolveImageBytesBase64(
+    api: ApiClient,
+    msg: LxmfMessage | Record<string, unknown>
+): Promise<{ b64: string; imageType: string } | null> {
+    const fields = msg.fields as { image?: { image_type?: string; image_bytes?: string } } | undefined;
+    const img = fields?.image;
+    if (!img) {
+        return null;
+    }
+    let b64 = img.image_bytes || "";
+    if (!b64) {
+        const res = await api.get(`/api/v1/lxmf-messages/attachment/${String(msg.hash || "")}/image`, {
+            responseType: "arraybuffer",
+        });
+        b64 = Utils.arrayBufferToBase64(res.data as ArrayBuffer);
+    }
+    const imageType = String(img.image_type || "png").replace(/^image\//, "");
+    return { b64, imageType };
+}
+
+export async function saveMessageImageToStickers(
+    api: ApiClient,
+    item: ViewerChatItem | MessageChatItem | null | undefined
+): Promise<void> {
+    const msg = item?.lxmf_message;
+    if (!msg) {
+        return;
+    }
+    try {
+        const resolved = await resolveImageBytesBase64(api, msg);
+        if (!resolved) {
+            return;
+        }
+        await api.post("/api/v1/stickers", {
+            image_bytes: resolved.b64,
+            image_type: resolved.imageType,
+            source_message_hash: msg.hash,
+            name: null,
+        });
+        ToastUtils.success(t("stickers.saved"));
+    } catch (error) {
+        const err = (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
+        if (err === "duplicate_sticker") {
+            ToastUtils.info(t("stickers.duplicate"));
+        } else {
+            ToastUtils.error(t("stickers.save_failed"));
+        }
+    }
+}
+
+export async function saveMessageImageToGifs(
+    api: ApiClient,
+    item: ViewerChatItem | MessageChatItem | null | undefined
+): Promise<void> {
+    const msg = item?.lxmf_message;
+    if (!msg) {
+        return;
+    }
+    try {
+        const resolved = await resolveImageBytesBase64(api, msg);
+        if (!resolved) {
+            return;
+        }
+        await api.post("/api/v1/gifs", {
+            image_bytes: resolved.b64,
+            image_type: resolved.imageType || "gif",
+            source_message_hash: msg.hash,
+            name: null,
+        });
+        ToastUtils.success(t("gifs.saved"));
+    } catch (error) {
+        const err = (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
+        if (err === "duplicate_gif") {
+            ToastUtils.info(t("gifs.duplicate"));
+        } else {
+            ToastUtils.error(t("gifs.save_failed"));
+        }
+    }
+}
+
+/**
+ * Delete then re-POST the original LXMF payload (preserves attachments and fields).
+ */
+export async function retryOutboundMessageItem(opts: {
+    api: ApiClient;
+    item: ViewerChatItem;
+    currentItems: ViewerChatItem[];
+    replyQuotedContent?: string | null;
+}): Promise<ViewerChatItem[] | null> {
+    const { api, item, currentItems, replyQuotedContent = null } = opts;
+    const msg = item.lxmf_message;
+    const hash = msg?.hash;
+    if (!hash) {
+        return null;
+    }
+    let next = currentItems;
+    const deleted = await deleteMessageItem({ api, item, currentItems, skipConfirm: true });
+    if (deleted) {
+        next = deleted;
+    }
+    try {
+        const response = await api.post(`/api/v1/lxmf-messages/send`, {
+            lxmf_message: {
+                destination_hash: msg.destination_hash,
+                content: msg.content,
+                reply_to_hash: msg.reply_to_hash || null,
+                reply_quoted_content: replyQuotedContent || null,
+                fields: msg.fields,
+            },
+        });
+        const sent = (response.data as { lxmf_message?: LxmfMessage } | undefined)?.lxmf_message;
+        if (sent?.hash && !next.some((candidate) => sameHash(candidate.lxmf_message.hash, sent.hash))) {
+            next = next.concat({
+                type: "lxmf_message",
+                is_outbound: true,
+                lxmf_message: sent,
+            });
+        }
+        return next;
+    } catch (error) {
+        const message =
+            (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+            t("messages.failed_to_send");
+        await DialogUtils.alert(message);
+        return next;
+    }
+}
 
 type OutboundQueueLike = {
     cancelJob: (predicate: { pendingHash?: string }) => void;

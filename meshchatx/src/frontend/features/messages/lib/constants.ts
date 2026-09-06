@@ -41,6 +41,9 @@ export const AUTO_IMAGE_CAPTION_MAX_CHARS = 240;
 /** localStorage prefix for per-peer compose drafts. */
 export const COMPOSE_DRAFT_STORAGE_PREFIX = "meshchatx.compose_draft.";
 
+/** Legacy Vue drafts root (identity-scoped nested JSON object). */
+export const LEGACY_COMPOSE_DRAFTS_STORAGE_KEY = "meshchat.drafts";
+
 /** localStorage key for ingested paper-message hashes. */
 export const PAPER_INGESTED_HASHES_STORAGE_KEY = "meshchatx.paper_ingested_hashes";
 

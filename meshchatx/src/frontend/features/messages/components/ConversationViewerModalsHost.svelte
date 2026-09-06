@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import ConversationImageLightbox from "./ConversationImageLightbox.svelte";
+    import ConversationLightboxContextMenu from "./ConversationLightboxContextMenu.svelte";
     import ConversationMessageContextMenu from "./ConversationMessageContextMenu.svelte";
     import ConversationReactionPicker from "./ConversationReactionPicker.svelte";
     import ConversationRawMessageModal from "./ConversationRawMessageModal.svelte";
@@ -12,6 +13,7 @@
     import { MESSAGE_BODY_MAX_DISPLAY_CHARS } from "../lib/constants.js";
     import { fromNow } from "../../../libs/datetime.js";
     import type { LxmfMessage, ViewerChatItem } from "../lib/conversationViewerCtx.js";
+    import type { LightboxContextMenuState } from "../lib/conversationViewerLightbox.js";
     import type { MessageChatItem } from "../lib/viewerActions.js";
     import type { LangOption } from "../lib/conversationTranslate.js";
 
@@ -41,9 +43,13 @@
         lightboxGallery = null as string[] | null,
         lightboxIndex = 0,
         lightboxItems: _lightboxItems = null as MessageChatItem[] | null,
+        lightboxContextMenu = { show: false, x: 0, y: 0 } as LightboxContextMenuState,
         oncloselightbox,
         onnavigatelightbox,
         ondownloadlightbox,
+        oncontextmenulightbox,
+        oncopylightbox,
+        oncloselightboxcontextmenu,
         contextMenu = { show: false, x: 0, y: 0, chatItem: null, justOpened: false } as ContextMenuState,
         canLiftBanishment = false,
         reactionEmojis = [] as string[],
@@ -100,9 +106,13 @@
         lightboxGallery?: string[] | null;
         lightboxIndex?: number;
         lightboxItems?: MessageChatItem[] | null;
+        lightboxContextMenu?: LightboxContextMenuState;
         oncloselightbox?: () => void;
         onnavigatelightbox?: (delta: number) => void;
         ondownloadlightbox?: () => void;
+        oncontextmenulightbox?: (event: MouseEvent) => void;
+        oncopylightbox?: () => void;
+        oncloselightboxcontextmenu?: () => void;
         contextMenu?: ContextMenuState;
         canLiftBanishment?: boolean;
         reactionEmojis?: string[];
@@ -166,6 +176,16 @@
     onclose={() => oncloselightbox?.()}
     onnavigate={(delta) => onnavigatelightbox?.(delta)}
     ondownload={() => ondownloadlightbox?.()}
+    oncontextmenu={(event) => oncontextmenulightbox?.(event)}
+/>
+
+<ConversationLightboxContextMenu
+    show={lightboxContextMenu.show}
+    x={lightboxContextMenu.x}
+    y={lightboxContextMenu.y}
+    ondownload={() => ondownloadlightbox?.()}
+    oncopy={() => oncopylightbox?.()}
+    onclose={() => oncloselightboxcontextmenu?.()}
 />
 
 <ConversationMessageContextMenu

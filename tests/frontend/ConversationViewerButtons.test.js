@@ -31,4 +31,16 @@ describe("ConversationViewer button wiring", () => {
         expect(composer).toContain("onsendcommandorrequest");
         expect(composer).toContain("onsendpapercompose");
     });
+
+    it("wires stamp signal path dialogs and image context menu actions", () => {
+        const viewer = source("components/ConversationViewer.svelte");
+        const header = source("components/ConversationViewerHeaderHost.svelte");
+        expect(header).toContain("{onstampinfoclick}");
+        expect(header).toContain("{onsignalmetricsclick}");
+        expect(viewer).toContain("formatStampInfoAlert");
+        expect(viewer).toContain("retryAllFailedOrCancelledMessages");
+        expect(viewer).toContain("oncopyimage=");
+        expect(viewer).toContain("onsavesticker=");
+        expect(viewer).toContain("onsavegif=");
+    });
 });

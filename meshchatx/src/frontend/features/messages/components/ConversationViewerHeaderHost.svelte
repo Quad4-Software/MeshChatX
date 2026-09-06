@@ -22,6 +22,8 @@
         oneditdisplayname,
         oncopyhash,
         ondestinationpathclick,
+        onsignalmetricsclick,
+        onstampinfoclick,
         onpathfinderquick,
         onpathfinderforce,
         onpathfinderdrop,
@@ -53,6 +55,8 @@
         oneditdisplayname?: () => void;
         oncopyhash?: (hash: string) => void;
         ondestinationpathclick?: (path: unknown) => void;
+        onsignalmetricsclick?: (metrics: any) => void;
+        onstampinfoclick?: (info: any) => void;
         onpathfinderquick?: () => void;
         onpathfinderforce?: () => void;
         onpathfinderdrop?: () => void;
@@ -88,6 +92,8 @@
     {oneditdisplayname}
     {oncopyhash}
     {ondestinationpathclick}
+    {onsignalmetricsclick}
+    {onstampinfoclick}
     {onpathfinderquick}
     {onpathfinderforce}
     {onpathfinderdrop}

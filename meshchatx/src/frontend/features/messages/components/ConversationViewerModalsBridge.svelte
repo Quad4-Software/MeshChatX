@@ -8,7 +8,7 @@
     import type { LxmfMessage, ViewerChatItem } from "../lib/conversationViewerCtx.js";
     import type { LangOption } from "../lib/conversationTranslate.js";
     import type { Conversation } from "../lib/types.js";
-    import type { ImageLightboxState } from "../lib/conversationViewerLightbox.js";
+    import type { ImageLightboxState, LightboxContextMenuState } from "../lib/conversationViewerLightbox.js";
 
     type ContextMenuState = {
         show: boolean;
@@ -33,6 +33,7 @@
 
     let {
         imageLightbox,
+        lightboxContextMenu = $bindable({ show: false, x: 0, y: 0 } as LightboxContextMenuState),
         contextMenu = $bindable({ show: false, x: 0, y: 0, chatItem: null, justOpened: false } as ContextMenuState),
         reactionPicker = $bindable({ open: false, style: "", chatItem: null } as ReactionPickerState),
         bubbleTranslate = $bindable({
@@ -60,12 +61,17 @@
         oncloselightbox,
         onnavigatelightbox,
         ondownloadlightbox,
+        oncontextmenulightbox,
+        oncopylightbox,
         onreply,
         oncopy,
         onreact,
         onopenreactionpicker,
         onviewraw,
         ondownloadimage,
+        oncopyimage,
+        onsavesticker,
+        onsavegif,
         oncancelsend,
         onretry,
         onliftbanishment,
@@ -76,6 +82,7 @@
         onconfirmbubbletranslate,
     }: {
         imageLightbox: ImageLightboxState;
+        lightboxContextMenu?: LightboxContextMenuState;
         contextMenu?: ContextMenuState;
         reactionPicker?: ReactionPickerState;
         bubbleTranslate?: BubbleTranslateState;
@@ -98,12 +105,17 @@
         oncloselightbox?: () => void;
         onnavigatelightbox?: (delta: number) => void;
         ondownloadlightbox?: () => void;
+        oncontextmenulightbox?: (event: MouseEvent) => void;
+        oncopylightbox?: () => void;
         onreply?: () => void;
         oncopy?: () => void;
         onreact?: (emoji: string) => void;
         onopenreactionpicker?: () => void;
         onviewraw?: () => void;
         ondownloadimage?: () => void;
+        oncopyimage?: () => void;
+        onsavesticker?: () => void;
+        onsavegif?: () => void;
         oncancelsend?: () => void;
         onretry?: () => void;
         onliftbanishment?: () => void;
@@ -120,9 +132,15 @@
     lightboxGallery={imageLightbox.gallery}
     lightboxIndex={imageLightbox.index}
     lightboxItems={imageLightbox.items}
+    {lightboxContextMenu}
     oncloselightbox={() => oncloselightbox?.()}
     onnavigatelightbox={(delta) => onnavigatelightbox?.(delta)}
     ondownloadlightbox={() => ondownloadlightbox?.()}
+    oncontextmenulightbox={(event) => oncontextmenulightbox?.(event)}
+    oncopylightbox={() => oncopylightbox?.()}
+    oncloselightboxcontextmenu={() => {
+        lightboxContextMenu = { ...lightboxContextMenu, show: false };
+    }}
     {contextMenu}
     canLiftBanishment={isSelectedPeerBlocked}
     reactionEmojis={LXMF_REACTION_EMOJIS}
@@ -141,15 +159,9 @@
     onopenreactionpickercontextmenu={() => onopenreactionpicker?.()}
     onviewrawcontextmenu={() => onviewraw?.()}
     ondownloadimagecontextmenu={() => ondownloadimage?.()}
-    oncopyimagecontextmenu={() => {
-        contextMenu.show = false;
-    }}
-    onsavestickercontextmenu={() => {
-        contextMenu.show = false;
-    }}
-    onsavegifcontextmenu={() => {
-        contextMenu.show = false;
-    }}
+    oncopyimagecontextmenu={() => oncopyimage?.()}
+    onsavestickercontextmenu={() => onsavesticker?.()}
+    onsavegifcontextmenu={() => onsavegif?.()}
     oncancelsendcontextmenu={() => oncancelsend?.()}
     onretrycontextmenu={() => onretry?.()}
     onliftbanishmentcontextmenu={() => onliftbanishment?.()}

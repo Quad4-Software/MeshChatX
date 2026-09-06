@@ -59,7 +59,17 @@
         formatSharedContactString,
         buildMapLocationHash,
         executeOutboundSendJob,
+        copyMessageImageToClipboard,
+        saveMessageImageToStickers,
+        saveMessageImageToGifs,
+        retryOutboundMessageItem,
+        listFailedOrCancelledOutbound,
     } from "../lib/conversationViewerMutations.js";
+    import {
+        formatPeerPathClickAlert,
+        formatSignalMetricsAlert,
+        formatStampInfoAlert,
+    } from "../lib/conversationPathActions.js";
     import {
         markConversationAsRead as markConversationAsReadSession,
         fetchTelephoneContacts,
@@ -73,6 +83,9 @@
     } from "../lib/conversationViewerSession.js";
     import {
         initialImageLightboxState,
+        initialLightboxContextMenuState,
+        lightboxActiveChatItem,
+        openLightboxContextMenu,
         openImageLightbox as openImageLightboxState,
         navigateImageLightbox as navigateImageLightboxState,
     } from "../lib/conversationViewerLightbox.js";
@@ -153,6 +166,7 @@
     let isRawMessageModalOpen = $state(false);
     let rawMessageData = $state<LxmfMessage>({});
     let imageLightbox = $state(initialImageLightboxState());
+    let lightboxContextMenu = $state(initialLightboxContextMenuState());
     let contextMenu = $state({
         show: false,
         x: 0,
@@ -191,8 +205,7 @@
             openReactionPicker,
             replyToMessage,
             retrySendingMessage: (item) => {
-                contextMenu.chatItem = item as ViewerChatItem;
-                void retryMessage();
+                void retryMessage(item as ViewerChatItem);
             },
             cancelSendingMessage: (item) => {
                 contextMenu.chatItem = item as ViewerChatItem;
@@ -642,15 +655,37 @@
     }
 
     function openImage(src: string, gallery: string[] = [], items: MessageChatItem[] = []) {
+        lightboxContextMenu = initialLightboxContextMenuState();
         imageLightbox = openImageLightboxState(src, gallery, items);
     }
 
     function navigateImageLightbox(delta: number) {
+        lightboxContextMenu = initialLightboxContextMenuState();
         imageLightbox = navigateImageLightboxState(imageLightbox, delta);
     }
 
     function closeImageLightbox() {
+        lightboxContextMenu = initialLightboxContextMenuState();
         imageLightbox = initialImageLightboxState();
+    }
+
+    function onImageLightboxContextMenu(event: MouseEvent) {
+        if (!lightboxActiveChatItem(imageLightbox)) {
+            return;
+        }
+        lightboxContextMenu = openLightboxContextMenu(event);
+    }
+
+    function downloadLightboxImage() {
+        const item = lightboxActiveChatItem(imageLightbox);
+        lightboxContextMenu = initialLightboxContextMenuState();
+        if (item) void downloadMessageImage(item);
+    }
+
+    function copyLightboxImage() {
+        const item = lightboxActiveChatItem(imageLightbox);
+        lightboxContextMenu = initialLightboxContextMenuState();
+        if (item) void copyMessageImageToClipboard(window.api, item);
     }
 
     async function downloadMessageImage(item: MessageChatItem) {
@@ -683,17 +718,39 @@
         if (next) chatItems = next;
     }
 
-    async function retryMessage() {
-        const item = contextMenu.chatItem;
+    async function retryMessage(itemOverride: ViewerChatItem | null = null) {
+        const item = itemOverride || contextMenu.chatItem;
         contextMenu.show = false;
         if (!item) return;
-        newMessageText = String(item.lxmf_message.content || "");
-        replyingTo = item.lxmf_message.reply_to_hash
-            ? chatItems.find((candidate) => sameHash(candidate.lxmf_message.hash, item.lxmf_message.reply_to_hash)) ||
-              null
+        const replyHash = item.lxmf_message.reply_to_hash;
+        const replied = replyHash
+            ? chatItems.find((candidate) => sameHash(candidate.lxmf_message.hash, replyHash))?.lxmf_message
             : null;
-        await deleteMessage();
-        await composerHost?.sendNow?.();
+        const replyQuoted =
+            (item.lxmf_message.fields as { reply_quoted_content?: string } | undefined)?.reply_quoted_content ||
+            replied?.content ||
+            null;
+        const next = await retryOutboundMessageItem({
+            api: window.api,
+            item,
+            currentItems: chatItems,
+            replyQuotedContent: replyQuoted,
+        });
+        if (next) {
+            chatItems = next;
+            void scrollMessagesToBottom();
+        }
+    }
+
+    async function retryAllFailedOrCancelledMessages() {
+        const failedItems = listFailedOrCancelledOutbound(selectedMessages);
+        if (failedItems.length === 0) return;
+        if (!(await DialogUtils.confirm(t("messages.retry_failed_confirm", { count: failedItems.length })))) {
+            return;
+        }
+        for (const item of failedItems) {
+            await retryMessage(item);
+        }
     }
 
     async function cancelSending() {
@@ -810,7 +867,13 @@
             oneditdisplayname={updateCustomDisplayName}
             oncopyhash={(hash) => void copyTextToClipboard(hash)}
             ondestinationpathclick={(path) => {
-                location.hash = `#/interfaces?highlight=${encodeURIComponent(String((path as { next_hop_interface?: string })?.next_hop_interface || path || ""))}`;
+                void DialogUtils.alert(formatPeerPathClickAlert(path as never, peerPathSnapshot, t));
+            }}
+            onsignalmetricsclick={(metrics) => {
+                void DialogUtils.alert(formatSignalMetricsAlert(metrics as never, t));
+            }}
+            onstampinfoclick={(info) => {
+                void DialogUtils.alert(formatStampInfoAlert(info as never));
             }}
             onpathfinderquick={() => void runPathAction("quick")}
             onpathfinderforce={() => void runPathAction("force")}
@@ -824,13 +887,7 @@
             onbanish={() => void banishSelectedPeer()}
             onunbanish={() => void unbanishSelectedPeer()}
             onconversationdeleted={() => void deleteMessageHistory()}
-            onretryfailed={() => {
-                const failed = selectedMessages.find((m) => m.is_outbound && m.lxmf_message.state === "failed");
-                if (failed) {
-                    contextMenu.chatItem = failed;
-                    void retryMessage();
-                }
-            }}
+            onretryfailed={() => void retryAllFailedOrCancelledMessages()}
             onclose={() => onclose?.()}
             onaddstranger={() => void addStrangerAsContact()}
             ondismissstranger={() => {
@@ -885,6 +942,7 @@
 
 <ConversationViewerModalsBridge
     {imageLightbox}
+    bind:lightboxContextMenu
     bind:contextMenu
     bind:reactionPicker
     bind:bubbleTranslate
@@ -906,10 +964,9 @@
     emojiPickerThemeClass=""
     oncloselightbox={closeImageLightbox}
     onnavigatelightbox={navigateImageLightbox}
-    ondownloadlightbox={() => {
-        const item = imageLightbox.items?.[imageLightbox.index] || imageLightbox.items?.[0];
-        if (item) void downloadMessageImage(item);
-    }}
+    ondownloadlightbox={downloadLightboxImage}
+    oncontextmenulightbox={onImageLightboxContextMenu}
+    oncopylightbox={copyLightboxImage}
     onreply={() => {
         replyingTo = contextMenu.chatItem;
         contextMenu.show = false;
@@ -930,6 +987,18 @@
     }}
     ondownloadimage={() => {
         if (contextMenu.chatItem) void downloadMessageImage(contextMenu.chatItem as MessageChatItem);
+        contextMenu.show = false;
+    }}
+    oncopyimage={() => {
+        if (contextMenu.chatItem) void copyMessageImageToClipboard(window.api, contextMenu.chatItem);
+        contextMenu.show = false;
+    }}
+    onsavesticker={() => {
+        if (contextMenu.chatItem) void saveMessageImageToStickers(window.api, contextMenu.chatItem);
+        contextMenu.show = false;
+    }}
+    onsavegif={() => {
+        if (contextMenu.chatItem) void saveMessageImageToGifs(window.api, contextMenu.chatItem);
         contextMenu.show = false;
     }}
     oncancelsend={() => void cancelSending()}
