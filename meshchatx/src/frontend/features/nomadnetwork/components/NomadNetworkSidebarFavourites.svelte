@@ -3,6 +3,7 @@
 <script lang="ts">
     import { onMount, tick, untrack } from "svelte";
     import GlobalState from "../../../js/GlobalState.js";
+    import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import { t } from "../../../js/i18n.js";
     import {
         DEFAULT_SECTION_ID,
@@ -280,6 +281,13 @@
 
     onMount(() => {
         void reloadFromStore();
+        const onLayoutImported = () => {
+            void reloadFromStore();
+        };
+        GlobalEmitter.on("nomadnet-favourites-layout-imported", onLayoutImported);
+        return () => {
+            GlobalEmitter.off("nomadnet-favourites-layout-imported", onLayoutImported);
+        };
     });
 </script>
 

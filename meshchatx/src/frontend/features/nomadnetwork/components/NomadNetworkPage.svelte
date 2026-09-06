@@ -2,12 +2,18 @@
 
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
-    import GlobalState from "../../../js/GlobalState.js";
+    import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import DialogUtils from "../../../js/DialogUtils.js";
     import LinkUtils from "../../../js/LinkUtils.js";
     import ToastUtils from "../../../js/ToastUtils.js";
     import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
+    import { isMicronWasmBundled, preloadNomadMicronWasm } from "../../../js/MicronWasmLoader.js";
+    import {
+        getEffectiveMicronWasmReleaseLabel,
+        resolveMicronWasmReleaseLabel,
+    } from "../../../js/micronWasmVersion.js";
+    import { patchServerConfig } from "../../../js/settings/settingsConfigService.js";
     import DestinationPathModal from "./DestinationPathModal.svelte";
     import { t } from "../../../js/i18n.js";
     import NomadPageHeader from "./NomadPageHeader.svelte";
@@ -31,8 +37,15 @@
         sendNomadWs,
         relativePagePathFromCombined,
         isCancelledPageContent,
+        isFailedPageContent,
         type NomadChunkBuffers,
     } from "../lib/nomadPageDownloads.js";
+    import {
+        shouldShowCrashTabHost,
+        resolveCrashTabPageContent,
+        canRetryCrashTabRender as resolveCanRetryCrashTabRender,
+        resolveNomadCrashTabContentClass,
+    } from "../lib/nomadCrashTabHost.js";
     import {
         onNomadDownloadCancelledEvent,
         onNomadFileDownloadEvent,
@@ -42,6 +55,7 @@
         type NomadPageDownloadAccess,
     } from "../lib/nomadPageDownloadEvents.js";
     import { runNomadPathFinder } from "../lib/nomadPagePathFinder.js";
+    import { buildNomadBrowserRendererChip, shouldShowMicronRendererInMobileMenu } from "../lib/nomadRendererChip.js";
     import type {
         NomadContextMenuState,
         NomadDestinationPath,
@@ -49,7 +63,6 @@
         NomadNavigateEvent,
         NomadNode,
         NomadPageArchive,
-        NomadPageRendererChip,
         NomadPageStats,
         NomadTab,
     } from "../lib/types.js";
@@ -114,11 +127,9 @@
     let selectedNodePath = $state<NomadDestinationPath | null>(null);
     let nodeContainerShellStyle = $state("");
     let nomadShellDark = $state(false);
-    let nomadCrashTabColor = $state("");
-    let nomadCrashTabBackground = $state("#000000");
     let nomadRenderedShellFullBleed = $state(false);
-    let nomadCrashTabContentClass = $state("");
     let pageRenderAborted = $state(false);
+    let isCrashTabRendering = $state(false);
     let multilineHintVisible = $state(false);
     let pagePartials = $state<Record<string, string>>({});
     let downloadBytesReceived = $state(0);
@@ -131,6 +142,8 @@
     let lastAppliedRouteKey = $state("");
     let lastLoadedKey = $state("");
     let nodePageCache = $state<Record<string, string>>({});
+    let nomadMicronWasmReady = $state(false);
+    let micronWasmReleaseLabel = $state(resolveMicronWasmReleaseLabel() || "");
     let nomadPageDownloadChunkBuffers: NomadChunkBuffers = {};
     let nomadFileDownloadChunkBuffers: NomadChunkBuffers = {};
 
@@ -168,30 +181,55 @@
         return { duration, sizeLabel };
     });
 
-    const nomadBrowserRendererChip = $derived.by((): NomadPageRendererChip | null => {
-        const engine = GlobalState.config?.nomad_micron_default_engine || "js";
-        const wasmEnabled = !!GlobalState.config?.nomad_micron_wasm_enabled;
-        return {
-            label: engine === "wasm" && wasmEnabled ? "Micron WASM" : "Micron JS",
-            popoverVariant: engine === "wasm" && wasmEnabled ? "wasm_active" : "js_active",
-            micronGoRelease: "v0.1.0",
-            tooltipBody: t("nomadnet.renderer_tooltip"),
-        };
-    });
+    const nomadMicronWasmFeatureEffective = $derived(
+        Boolean(isMicronWasmBundled()) && GlobalState.config?.nomad_micron_wasm_enabled === true
+    );
 
-    const showMicronRendererInMobileMenu = $derived(!!GlobalState.config?.nomad_micron_wasm_enabled);
+    const nomadMicronWasmActive = $derived(
+        Boolean(
+            nomadMicronWasmFeatureEffective &&
+            nomadMicronWasmReady &&
+            typeof globalThis.micronConvert === "function" &&
+            (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm"
+        )
+    );
+
+    const nomadBrowserRendererChip = $derived(
+        buildNomadBrowserRendererChip({
+            selectedNode,
+            relativePagePath,
+            isShowingNodePageSource,
+            nomadMicronWasmActive,
+            nomadMicronWasmFeatureEffective,
+            nomadMicronWasmReady,
+            defaultEngine: String(GlobalState.config?.nomad_micron_default_engine || "js"),
+            micronGoRelease: micronWasmReleaseLabel,
+            t,
+        })
+    );
+
+    const showMicronRendererInMobileMenu = $derived(
+        shouldShowMicronRendererInMobileMenu({
+            wasmBundled: isMicronWasmBundled(),
+            selectedNode,
+            relativePagePath,
+            isShowingNodePageSource,
+        })
+    );
 
     const nomadRenderOptions = $derived({
-        engine: GlobalState.config?.nomad_micron_default_engine || "js",
-        wasmEnabled: !!GlobalState.config?.nomad_micron_wasm_enabled,
+        renderMarkdown: GlobalState.config?.nomad_render_markdown_enabled !== false,
+        renderHtml: GlobalState.config?.nomad_render_html_enabled !== false,
+        renderPlaintext: GlobalState.config?.nomad_render_plaintext_enabled !== false,
+        nomadDestinationHash: selectedNode?.destination_hash || null,
+        nomad_micron_wasm_use: Boolean(nomadMicronWasmActive),
     });
 
-    const showPageBusyBanner = $derived(isLoadingNodePage && !nodePageContent);
-    const pageBusyBannerLine = $derived(
-        downloadTotalBytes > 0
-            ? `${t("nomadnet.loading_page")} (${downloadBytesReceived}/${downloadTotalBytes} bytes)`
-            : t("nomadnet.loading_page")
-    );
+    const nodePagePathIsMicronMu = $derived.by(() => {
+        const [p] = String(relativePagePath || "").split("`");
+        return (p || "").toLowerCase().endsWith(".mu");
+    });
+
     const showCancelledPageState = $derived(
         pageRenderAborted ||
             isCancelledPageContent(nodePageContent) ||
@@ -199,8 +237,68 @@
     );
     const showEmptyPageState = $derived(!isLoadingNodePage && !isDownloadingNodeFile && nodePageContent === "");
     const showCrashTabHost = $derived(
-        !!nodePageContent && !isLoadingNodePage && !showCancelledPageState && !isCancelledPageContent(nodePageContent)
+        shouldShowCrashTabHost({
+            selectedNode,
+            nodePagePath,
+            showCancelledPageState,
+            nodePageContent,
+            showEmptyPageState,
+        })
     );
+    const crashTabPageContent = $derived(
+        resolveCrashTabPageContent({
+            isLoadingNodePage,
+            nodePageContent,
+        })
+    );
+    const canRetryCrashTabRender = $derived(
+        resolveCanRetryCrashTabRender({
+            pageRenderAborted,
+            nodePageContent,
+        })
+    );
+    const nomadCrashTabContentClass = $derived(
+        resolveNomadCrashTabContentClass({
+            nodePagePath,
+            isShowingNodePageSource,
+            nomadRenderedShellFullBleed,
+            nomadShellDark,
+        })
+    );
+    const nomadCrashTabColor = $derived.by(() => {
+        if (isShowingNodePageSource) {
+            return "#dddddd";
+        }
+        if (nomadRenderedShellFullBleed) {
+            return nomadShellDark ? "#f3f4f6" : "#111827";
+        }
+        if (!nodePagePath) {
+            return "#dddddd";
+        }
+        const [p] = nodePagePath.split("`");
+        const pl = (p || "").toLowerCase();
+        if (pl.endsWith(".mu")) {
+            return "#dddddd";
+        }
+        return "#f3f4f6";
+    });
+    // Do not feed shell-background postMessage into the iframe background prop.
+    const nomadCrashTabBackground = "#000000";
+    const showPageBusyBanner = $derived(isLoadingNodePage || isCrashTabRendering);
+    const pageBusyBannerLine = $derived.by(() => {
+        if (isLoadingNodePage) {
+            return downloadTotalBytes > 0
+                ? `${t("nomadnet.loading_page")} (${downloadBytesReceived}/${downloadTotalBytes} bytes)`
+                : t("nomadnet.loading_page");
+        }
+        return t("nomadnet.load_phase_default");
+    });
+
+    function beginCrashTabRenderWait() {
+        if (nodePageContent && !isFailedPageContent(nodePageContent) && !isCancelledPageContent(nodePageContent)) {
+            isCrashTabRendering = true;
+        }
+    }
 
     function clearPageLoadTimeout() {
         if (pageLoadTimeout) {
@@ -242,6 +340,7 @@
                 pageRequestSequence += 1;
                 pendingPageCancelWithoutId = false;
                 pageRenderAborted = false;
+                isCrashTabRendering = false;
                 isLoadingNodePage = false;
                 isShowingArchivedVersion = false;
                 archivedAt = null;
@@ -255,6 +354,7 @@
                 nodePagePathUrlInput = nodePagePath;
                 lastLoadedKey = loadKey;
                 clearPageLoadTimeout();
+                beginCrashTabRenderWait();
                 requestPageArchives(destHash, relativePath);
                 return;
             }
@@ -269,6 +369,7 @@
         const seq = pageRequestSequence;
         pendingPageCancelWithoutId = false;
         pageRenderAborted = false;
+        isCrashTabRendering = false;
         isLoadingNodePage = true;
         isShowingArchivedVersion = false;
         archivedAt = null;
@@ -348,6 +449,13 @@
             if (patch.nodeFileDownloadSpeed !== undefined) nodeFileDownloadSpeed = patch.nodeFileDownloadSpeed;
             if (patch.pageRenderAborted !== undefined) pageRenderAborted = patch.pageRenderAborted;
             if (patch.pageArchives !== undefined) pageArchives = patch.pageArchives;
+            if (
+                patch.nodePageContent !== undefined &&
+                patch.isLoadingNodePage === false &&
+                typeof patch.nodePageContent === "string"
+            ) {
+                beginCrashTabRenderWait();
+            }
         },
         clearPageLoadTimeout,
         get ontabtitlechange() {
@@ -433,24 +541,40 @@
     }
 
     function handleCancel() {
-        if (currentPageDownloadId != null) {
-            discardDownloadChunks(nomadPageDownloadChunkBuffers, currentPageDownloadId);
-            sendNomadWs(createCancelDownloadPayload(currentPageDownloadId));
-            currentPageDownloadId = null;
-        } else if (isLoadingNodePage) {
-            pendingPageCancelWithoutId = true;
+        const cancellingDownload =
+            isLoadingNodePage ||
+            currentPageDownloadId != null ||
+            pendingPageCancelWithoutId ||
+            isDownloadingNodeFile ||
+            currentFileDownloadId != null;
+
+        if (cancellingDownload) {
+            if (currentPageDownloadId != null) {
+                discardDownloadChunks(nomadPageDownloadChunkBuffers, currentPageDownloadId);
+                sendNomadWs(createCancelDownloadPayload(currentPageDownloadId));
+                currentPageDownloadId = null;
+            } else if (isLoadingNodePage) {
+                pendingPageCancelWithoutId = true;
+            }
+            if (currentFileDownloadId != null) {
+                discardDownloadChunks(nomadFileDownloadChunkBuffers, currentFileDownloadId);
+                sendNomadWs(createCancelDownloadPayload(currentFileDownloadId));
+                currentFileDownloadId = null;
+            }
+            clearPageLoadTimeout();
+            isLoadingNodePage = false;
+            isDownloadingNodeFile = false;
+            isCrashTabRendering = false;
+            pageRenderAborted = false;
+            if (!nodePageContent) {
+                nodePageContent = "nomadnet.page_download_cancelled";
+            }
+            return;
         }
-        if (currentFileDownloadId != null) {
-            discardDownloadChunks(nomadFileDownloadChunkBuffers, currentFileDownloadId);
-            sendNomadWs(createCancelDownloadPayload(currentFileDownloadId));
-            currentFileDownloadId = null;
-        }
-        clearPageLoadTimeout();
-        isLoadingNodePage = false;
-        isDownloadingNodeFile = false;
-        pageRenderAborted = true;
-        if (!nodePageContent) {
-            nodePageContent = "nomadnet.page_download_cancelled";
+
+        if (isCrashTabRendering) {
+            rendererHost?.abortRender();
+            isCrashTabRendering = false;
         }
     }
 
@@ -593,6 +717,37 @@
         }, 50);
     }
 
+    function forceMicronPageRerender() {
+        if (!nodePageContent || !nodePagePathIsMicronMu) return;
+        const content = nodePageContent;
+        nodePageContent = null;
+        queueMicrotask(() => {
+            nodePageContent = content;
+        });
+    }
+
+    async function applyNomadMicronDefaultEngine(engine: string) {
+        if (!isMicronWasmBundled()) return;
+        if (!GlobalState.config?.nomad_micron_wasm_enabled) return;
+        const next = engine === "wasm" ? "wasm" : "js";
+        if ((GlobalState.config?.nomad_micron_default_engine || "js") === next) return;
+        try {
+            const cfg = await patchServerConfig({ nomad_micron_default_engine: next }, window.api);
+            mergeGlobalConfig(cfg);
+            forceMicronPageRerender();
+        } catch (e) {
+            console.error("Failed to update Micron default engine", e);
+            ToastUtils.error(t("nomadnet.renderer_setting_failed"));
+        }
+    }
+
+    function openNomadnetPopout() {
+        if (isPrivate || !selectedNode?.destination_hash) return;
+        const encodedHash = encodeURIComponent(selectedNode.destination_hash);
+        const url = `${window.location.origin}${window.location.pathname}#/popout/nomadnetwork/${encodedHash}`;
+        window.open(url, "_blank", "width=1100,height=800,noopener");
+    }
+
     $effect(() => {
         if (!active) return;
         const nextHash = destinationHash || "";
@@ -615,6 +770,15 @@
         onWsEvent("nomadnet.download.cancelled", onDownloadCancelledEvent);
         onWsEvent("nomadnet.page.archives", onPageArchivesEvent);
         onWsEvent("nomadnet.page.archive.added", onPageArchiveAddedEvent);
+        if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
+            void preloadNomadMicronWasm().then((ok) => {
+                nomadMicronWasmReady = ok === true;
+                if (ok) forceMicronPageRerender();
+            });
+        }
+        void getEffectiveMicronWasmReleaseLabel().then((label) => {
+            if (label) micronWasmReleaseLabel = label;
+        });
     });
 
     onDestroy(() => {
@@ -627,7 +791,10 @@
     });
 </script>
 
-<div class="flex-1 min-h-0 flex flex-col bg-black text-white relative" class:hidden={!active}>
+<div
+    class="flex-1 min-h-0 flex flex-col bg-black text-white relative {!destinationHash ? 'max-sm:hidden' : ''}"
+    class:hidden={!active}
+>
     {#if selectedNode}
         <NomadPageHeader
             {selectedNode}
@@ -663,18 +830,19 @@
             onmanualarchive={handleManualArchive}
             onloadarchivedpage={(id) => handleLoadArchivedPage(id)}
             ontoggleidentifyonconnect={() => void toggleIdentifyOnConnect()}
-            onpopout={() => {
-                const target = `/popout/nomadnetwork/${selectedNode?.destination_hash}`;
-                window.open(target, "_blank", "width=960,height=720");
+            onpopout={() => openNomadnetPopout()}
+            onclosenode={() => {
+                selectedNode = null;
+                lastAppliedRouteKey = "";
+                nodePageContent = null;
+                nodePagePath = "";
+                onnavigate?.("", DEFAULT_PAGE_PATH, isPrivate);
             }}
-            onclosenode={() => onclose?.()}
             ontogglesource={() => {
                 isShowingNodePageSource = !isShowingNodePageSource;
             }}
             onapplymicronengine={(eng) => {
-                if (GlobalState.config) {
-                    GlobalState.config.nomad_micron_default_engine = eng;
-                }
+                void applyNomadMicronDefaultEngine(eng);
             }}
         />
 
@@ -738,12 +906,12 @@
             {pageBusyBannerLine}
             {showCancelledPageState}
             {pageRenderAborted}
-            canRetryCrashTabRender={true}
+            {canRetryCrashTabRender}
             hasArchivesForCurrentPage={pageArchives.length > 0}
             {isPrivate}
             {showEmptyPageState}
             {showCrashTabHost}
-            crashTabPageContent={nodePageContent || ""}
+            {crashTabPageContent}
             {isShowingNodePageSource}
             {pagePartials}
             {nomadRenderOptions}
@@ -760,6 +928,8 @@
             }}
             oncancelbusy={handleCancel}
             onretrycrashtab={() => {
+                pageRenderAborted = false;
+                isCrashTabRendering = true;
                 rendererHost?.reloadFrame();
             }}
             ontogglearchive={() => {
@@ -773,8 +943,20 @@
             onviewsource={() => {
                 isShowingNodePageSource = !isShowingNodePageSource;
             }}
-            oncrashtabshellbackground={(bg) => {
-                nomadCrashTabBackground = bg || "#000000";
+            oncrashtabhung={() => {
+                isCrashTabRendering = false;
+                ToastUtils.warning(t("nomadnet.crash_tab_hung_toast"));
+            }}
+            oncrashtabrenderstarted={() => {
+                isCrashTabRendering = true;
+            }}
+            oncrashtabrenderdone={() => {
+                isCrashTabRendering = false;
+            }}
+            oncrashtababorted={() => {
+                isCrashTabRendering = false;
+                pageRenderAborted = true;
+                ToastUtils.info(t("nomadnet.crash_tab_render_cancelled"));
             }}
         />
     {:else}

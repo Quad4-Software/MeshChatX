@@ -63,9 +63,14 @@
     const effectiveCollapsed = $derived(collapsed && smUp);
 
     const sidebarRootClass = $derived(
-        effectiveCollapsed
-            ? "flex flex-col w-16 min-w-16 max-w-16 h-full min-h-0 bg-sem-surface border-r border-sem-border"
-            : "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0 bg-sem-surface border-r border-sem-border"
+        [
+            effectiveCollapsed
+                ? "flex flex-col w-16 min-w-16 max-w-16 h-full min-h-0 bg-sem-surface border-r border-sem-border"
+                : "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0 bg-sem-surface border-r border-sem-border",
+            selectedDestinationHash ? "max-sm:hidden" : "",
+        ]
+            .filter(Boolean)
+            .join(" ")
     );
 
     const collapsedFavouritesPreview = $derived(favourites.slice(0, 5));
