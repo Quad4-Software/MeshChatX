@@ -1,5 +1,0 @@
-mac:
-    target:
-        - target: dmg
-          arch:
-              - x64
