@@ -42,7 +42,7 @@ def _make_self_signed_cert_and_key(cert_path: str, key_path: str) -> None:
         .sign(private_key, hashes.SHA256(), default_backend())
     )
     os.makedirs(os.path.dirname(cert_path) or ".", exist_ok=True)
-    with open(cert_path, "wb") as f:
+    with open(cert_path, "wb") as f:  # nosec: PTC-W6004
         f.write(cert.public_bytes(serialization.Encoding.PEM))
     with open(key_path, "wb") as f:
         f.write(

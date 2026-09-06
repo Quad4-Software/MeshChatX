@@ -42,7 +42,7 @@ def test_repair_unparseable_reticulum_config_rewrites_file(tmp_path):
 
     def write_default(path: str) -> None:
         written.append(path)
-        with open(path, "w", encoding="utf-8") as handle:
+        with open(path, "w", encoding="utf-8") as handle:  # nosec: PTC-W6004
             handle.write("[reticulum]\n[interfaces]\nfixed = true\n")
 
     assert (
