@@ -84,19 +84,19 @@
 
     <div class="flex shrink-0 items-center gap-0.5 ml-1">
         <IconButton
-            class="nomad-icon-btn size-7 text-sem-fg-muted hover:text-sem-fg"
+            class="nomad-icon-btn text-sem-fg-muted hover:text-sem-fg"
             title={t("nomadnet.new_tab")}
             onclick={() => onnewtab?.()}
         >
-            <MaterialDesignIcon iconName="plus" class="size-4" />
+            <MaterialDesignIcon iconName="plus" class="size-5" />
         </IconButton>
 
         <IconButton
-            class="nomad-icon-btn size-7 text-purple-400 hover:text-purple-300"
+            class="nomad-icon-btn text-purple-400 hover:text-purple-300"
             title={t("nomadnet.new_private_tab")}
             onclick={() => onnewprivatetab?.()}
         >
-            <MaterialDesignIcon iconName="incognito" class="size-4" />
+            <MaterialDesignIcon iconName="incognito" class="size-5" />
         </IconButton>
     </div>
 </div>

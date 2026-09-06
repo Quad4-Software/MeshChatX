@@ -299,7 +299,12 @@
         <div class="relative flex-1 min-h-0 min-w-0 overflow-hidden">
             {#each tabs as tab (tab.id)}
                 {#if mountedTabIds[tab.id]}
-                    <div class="absolute inset-0 flex min-h-0 min-w-0 flex-col" class:hidden={tab.id !== selectedTabId}>
+                    <div
+                        class="absolute inset-0 flex min-h-0 min-w-0 flex-col {!tab.destinationHash
+                            ? 'max-sm:pointer-events-none max-sm:invisible'
+                            : ''}"
+                        class:hidden={tab.id !== selectedTabId}
+                    >
                         <NomadNetworkPage
                             destinationHash={tab.destinationHash}
                             pagePath={tab.path || DEFAULT_PAGE_PATH}
