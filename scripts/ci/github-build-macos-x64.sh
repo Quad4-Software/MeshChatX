@@ -34,7 +34,7 @@ bash scripts/ci/github-install-macos-x64-port-deps.sh
 export UV_PROJECT_ENVIRONMENT="${ROOT}/.venv-x64"
 export PYTHON_CMD_X64="${UV_PROJECT_ENVIRONMENT}/bin/python"
 
-cross-env ARCH=x64 PYTHON_CMD="${PYTHON_CMD_X64}" pnpm run build-backend
+ARCH=x64 PYTHON_CMD="${PYTHON_CMD_X64}" pnpm run build-backend
 
 bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-x64"

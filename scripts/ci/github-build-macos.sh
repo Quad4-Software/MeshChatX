@@ -25,7 +25,7 @@ else
     echo "Reusing prebuilt frontend assets in meshchatx/public/."
 fi
 
-cross-env ARCH=arm64 pnpm run build-backend
+ARCH=arm64 pnpm run build-backend
 
 bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-arm64"
 bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-arm64"
