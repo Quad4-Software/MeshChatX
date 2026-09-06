@@ -4,9 +4,10 @@
     import { onMount, onDestroy } from "svelte";
     import GlobalState from "../../../js/GlobalState.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
-    import WebSocketConnection from "../../../js/WebSocketConnection.js";
     import DialogUtils from "../../../js/DialogUtils.js";
     import LinkUtils from "../../../js/LinkUtils.js";
+    import ToastUtils from "../../../js/ToastUtils.js";
+    import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
     import DestinationPathModal from "./DestinationPathModal.svelte";
     import { t } from "../../../js/i18n.js";
     import NomadPageHeader from "./NomadPageHeader.svelte";
@@ -15,18 +16,32 @@
     import NomadPageRendererHost from "./NomadPageRendererHost.svelte";
     import NomadBrowserContextMenu from "./NomadBrowserContextMenu.svelte";
     import { DEFAULT_PAGE_PATH, PAGE_LOAD_TIMEOUT_MS } from "../lib/constants.js";
+    import { parseNomadUrl, resolveRelativeNomadPath, encodeNomadFormQuery } from "../lib/nomadPageNavigation.js";
     import {
-        parseNomadUrl,
-        buildNomadUrl,
-        resolveRelativeNomadPath,
-        encodeNomadFormQuery,
-    } from "../lib/nomadPageNavigation.js";
-    import { fetchPageArchives, createManualArchive, fetchArchiveContent } from "../lib/nomadPageArchives.js";
+        requestPageArchives,
+        requestArchiveLoad,
+        requestManualArchive,
+        fetchArchiveContent,
+    } from "../lib/nomadPageArchives.js";
     import {
         createPageDownloadRequestPayload,
         createFileDownloadRequestPayload,
         createCancelDownloadPayload,
+        discardDownloadChunks,
+        sendNomadWs,
+        relativePagePathFromCombined,
+        isCancelledPageContent,
+        type NomadChunkBuffers,
     } from "../lib/nomadPageDownloads.js";
+    import {
+        onNomadDownloadCancelledEvent,
+        onNomadFileDownloadEvent,
+        onNomadPageArchiveAddedEvent,
+        onNomadPageArchivesEvent,
+        onNomadPageDownloadEvent,
+        type NomadPageDownloadAccess,
+    } from "../lib/nomadPageDownloadEvents.js";
+    import { runNomadPathFinder } from "../lib/nomadPagePathFinder.js";
     import type {
         NomadContextMenuState,
         NomadDestinationPath,
@@ -48,10 +63,12 @@
         tabState?: NomadTab | null;
         favourites?: NomadFavourite[];
         nodes?: Record<string, NomadNode>;
+        bootstrapArchiveId?: string | number | null;
         onnavigate?: (hash: string, path?: string, isPrivate?: boolean) => void;
         ontabtitlechange?: (title: string) => void;
         onclose?: () => void;
         ontabactivity?: () => void;
+        onfavouriteschanged?: () => void;
     }
 
     let {
@@ -63,10 +80,12 @@
         tabState: _tabState = null,
         favourites = [],
         nodes = {},
+        bootstrapArchiveId = null,
         onnavigate,
         ontabtitlechange,
         onclose,
         ontabactivity,
+        onfavouriteschanged,
     }: Props = $props();
 
     let rendererHost = $state<any>(null);
@@ -87,10 +106,12 @@
     let isArchiveDropdownOpen = $state(false);
     let archivedAt = $state<string | null>(null);
     let pageLoadTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
-    let downloadRequestId = $state<string | null>(null);
+    let currentPageDownloadId = $state<number | string | null>(null);
+    let currentFileDownloadId = $state<number | string | null>(null);
+    let pageRequestSequence = $state(0);
+    let pendingPageCancelWithoutId = $state(false);
     let pathfinderInProgress = $state(false);
     let selectedNodePath = $state<NomadDestinationPath | null>(null);
-    let selectedNodeIdentifiesOnConnect = $state(false);
     let nodeContainerShellStyle = $state("");
     let nomadShellDark = $state(false);
     let nomadCrashTabColor = $state("");
@@ -107,6 +128,11 @@
     let destinationPathModalShowing = $state(false);
     let selectedDestinationPathHash = $state("");
     let selectedDestinationPathHops = $state(0);
+    let lastAppliedRouteKey = $state("");
+    let lastLoadedKey = $state("");
+    let nodePageCache = $state<Record<string, string>>({});
+    let nomadPageDownloadChunkBuffers: NomadChunkBuffers = {};
+    let nomadFileDownloadChunkBuffers: NomadChunkBuffers = {};
 
     let contextMenu = $state<NomadContextMenuState>({
         show: false,
@@ -121,6 +147,14 @@
         if (!hash) return false;
         return favourites.some((f) => f.destination_hash === hash);
     });
+
+    const selectedNodeIdentifiesOnConnect = $derived.by(() => {
+        const hash = selectedNode?.destination_hash;
+        if (!hash || isPrivate) return false;
+        return favourites.some((f) => f.destination_hash === hash && Boolean(f.identify_on_connect));
+    });
+
+    const relativePagePath = $derived(relativePagePathFromCombined(nodePagePath));
 
     const navbarPageStats = $derived.by((): NomadPageStats | null => {
         if (!nodePageContent && !isLoadingNodePage) return null;
@@ -160,10 +194,31 @@
     );
     const showCancelledPageState = $derived(
         pageRenderAborted ||
+            isCancelledPageContent(nodePageContent) ||
             (nodePageContent === null && !isLoadingNodePage && !isDownloadingNodeFile && !!selectedNode)
     );
     const showEmptyPageState = $derived(!isLoadingNodePage && !isDownloadingNodeFile && nodePageContent === "");
-    const showCrashTabHost = $derived(!!nodePageContent && !isLoadingNodePage && !showCancelledPageState);
+    const showCrashTabHost = $derived(
+        !!nodePageContent && !isLoadingNodePage && !showCancelledPageState && !isCancelledPageContent(nodePageContent)
+    );
+
+    function clearPageLoadTimeout() {
+        if (pageLoadTimeout) {
+            clearTimeout(pageLoadTimeout);
+            pageLoadTimeout = null;
+        }
+    }
+
+    function armPageLoadTimeout() {
+        clearPageLoadTimeout();
+        pageLoadTimeout = setTimeout(() => {
+            if (isLoadingNodePage) {
+                isLoadingNodePage = false;
+                currentPageDownloadId = null;
+                nodePageContent = t("nomadnet.failed_to_load_page");
+            }
+        }, PAGE_LOAD_TIMEOUT_MS);
+    }
 
     async function setDestination(destHash: string, pPath: string = DEFAULT_PAGE_PATH) {
         if (!destHash) return;
@@ -171,74 +226,168 @@
             destination_hash: destHash,
             display_name: destHash.substring(0, 16),
         };
-        nodePagePath = pPath || DEFAULT_PAGE_PATH;
-        nodePagePathUrlInput = buildNomadUrl(destHash, nodePagePath);
-        await loadPage(destHash, nodePagePath);
+        await loadPage(destHash, pPath || DEFAULT_PAGE_PATH, { loadFromCache: true });
     }
 
-    async function loadPage(destHash: string, pPath: string) {
+    async function loadPage(destHash: string, pPath: string, options: { loadFromCache?: boolean } = {}) {
         if (!destHash) return;
-        isLoadingNodePage = true;
+        const loadFromCache = options.loadFromCache !== false;
+        const relativePath = pPath || DEFAULT_PAGE_PATH;
+        const cacheKey = `${destHash}:${relativePath}`;
+        const loadKey = `${destHash}:${relativePath}:${isPrivate ? 1 : 0}`;
+
+        if (loadFromCache && !isPrivate) {
+            const cached = nodePageCache[cacheKey];
+            if (cached != null) {
+                pageRequestSequence += 1;
+                pendingPageCancelWithoutId = false;
+                pageRenderAborted = false;
+                isLoadingNodePage = false;
+                isShowingArchivedVersion = false;
+                archivedAt = null;
+                nodePageContent = cached;
+                pageArchives = [];
+                downloadStartTime = Date.now();
+                downloadBytesReceived = 0;
+                downloadTotalBytes = new TextEncoder().encode(cached).length;
+                currentPageDownloadId = null;
+                nodePagePath = cacheKey;
+                nodePagePathUrlInput = nodePagePath;
+                lastLoadedKey = loadKey;
+                clearPageLoadTimeout();
+                requestPageArchives(destHash, relativePath);
+                return;
+            }
+        }
+
+        if (loadKey === lastLoadedKey && nodePageContent && !isLoadingNodePage && loadFromCache) {
+            return;
+        }
+        lastLoadedKey = loadKey;
+
+        pageRequestSequence += 1;
+        const seq = pageRequestSequence;
+        pendingPageCancelWithoutId = false;
         pageRenderAborted = false;
+        isLoadingNodePage = true;
+        isShowingArchivedVersion = false;
+        archivedAt = null;
         nodePageContent = null;
+        pageArchives = [];
         downloadStartTime = Date.now();
         downloadBytesReceived = 0;
         downloadTotalBytes = 0;
+        if (currentPageDownloadId != null) {
+            discardDownloadChunks(nomadPageDownloadChunkBuffers, currentPageDownloadId);
+        }
+        currentPageDownloadId = null;
+        nodePagePath = `${destHash}:${relativePath}`;
+        nodePagePathUrlInput = nodePagePath;
 
-        if (pageLoadTimeout) clearTimeout(pageLoadTimeout);
-        pageLoadTimeout = setTimeout(() => {
-            if (isLoadingNodePage) {
-                isLoadingNodePage = false;
-                nodePageContent = t("nomadnet.failed_to_load_page");
-            }
-        }, PAGE_LOAD_TIMEOUT_MS);
+        armPageLoadTimeout();
 
         if (!isPrivate) {
-            fetchArchives(destHash, pPath);
+            requestPageArchives(destHash, relativePath);
         }
 
-        const payload = createPageDownloadRequestPayload(destHash, pPath, isPrivate);
-        downloadRequestId = payload.request_id;
-        WebSocketConnection.send(payload);
+        const payload = createPageDownloadRequestPayload(destHash, relativePath, isPrivate);
+        const sent = sendNomadWs(payload);
+        if (!sent) {
+            if (seq !== pageRequestSequence) return;
+            clearPageLoadTimeout();
+            isLoadingNodePage = false;
+            nodePageContent = t("nomadnet.failed_to_load_page");
+            ToastUtils.error(t("nomadnet.websocket_not_connected"));
+            return;
+        }
         ontabactivity?.();
     }
 
-    async function fetchArchives(destHash: string, pPath: string) {
-        const api = (window as any).api;
-        if (!api) return;
-        try {
-            pageArchives = await fetchPageArchives(api, destHash, pPath);
-        } catch {
-            pageArchives = [];
+    function reloadCurrentPage() {
+        if (selectedNode?.destination_hash && relativePagePath) {
+            lastLoadedKey = "";
+            void loadPage(selectedNode.destination_hash, relativePagePath, { loadFromCache: false });
         }
     }
 
-    function handleWsMessage(event: CustomEvent) {
-        const data = event.detail;
-        if (!data) return;
+    const downloadAccess: NomadPageDownloadAccess = {
+        get: () => ({
+            active,
+            isPrivate,
+            currentPageDownloadId,
+            pendingPageCancelWithoutId,
+            currentFileDownloadId,
+            nodeFilePath,
+            selectedNode,
+            relativePagePath,
+            nodePagePath,
+            nodePageCache,
+            nomadPageDownloadChunkBuffers,
+            nomadFileDownloadChunkBuffers,
+        }),
+        apply(patch) {
+            if (patch.currentPageDownloadId !== undefined) currentPageDownloadId = patch.currentPageDownloadId;
+            if (patch.pendingPageCancelWithoutId !== undefined) {
+                pendingPageCancelWithoutId = patch.pendingPageCancelWithoutId;
+            }
+            if (patch.currentFileDownloadId !== undefined) currentFileDownloadId = patch.currentFileDownloadId;
+            if (patch.downloadTotalBytes !== undefined) downloadTotalBytes = patch.downloadTotalBytes;
+            if (patch.downloadBytesReceived !== undefined) downloadBytesReceived = patch.downloadBytesReceived;
+            if (patch.nodePagePath !== undefined) nodePagePath = patch.nodePagePath;
+            if (patch.nodePagePathUrlInput !== undefined) nodePagePathUrlInput = patch.nodePagePathUrlInput;
+            if (patch.isShowingArchivedVersion !== undefined) {
+                isShowingArchivedVersion = patch.isShowingArchivedVersion;
+            }
+            if (patch.archivedAt !== undefined) archivedAt = patch.archivedAt;
+            if (patch.nodePageContent !== undefined) nodePageContent = patch.nodePageContent;
+            if (patch.isLoadingNodePage !== undefined) isLoadingNodePage = patch.isLoadingNodePage;
+            if (patch.nodePageCache !== undefined) nodePageCache = patch.nodePageCache;
+            if (patch.isDownloadingNodeFile !== undefined) isDownloadingNodeFile = patch.isDownloadingNodeFile;
+            if (patch.nodeFilePath !== undefined) nodeFilePath = patch.nodeFilePath;
+            if (patch.nodeFileProgress !== undefined) nodeFileProgress = patch.nodeFileProgress;
+            if (patch.nodeFileDownloadSpeed !== undefined) nodeFileDownloadSpeed = patch.nodeFileDownloadSpeed;
+            if (patch.pageRenderAborted !== undefined) pageRenderAborted = patch.pageRenderAborted;
+            if (patch.pageArchives !== undefined) pageArchives = patch.pageArchives;
+        },
+        clearPageLoadTimeout,
+        get ontabtitlechange() {
+            return ontabtitlechange;
+        },
+    };
 
-        if (data.type === "nomadnet.page_download_progress" && data.request_id === downloadRequestId) {
-            downloadBytesReceived = data.bytes_received || 0;
-            downloadTotalBytes = data.total_bytes || 0;
-        } else if (data.type === "nomadnet.page_download_completed" && data.request_id === downloadRequestId) {
-            if (pageLoadTimeout) clearTimeout(pageLoadTimeout);
-            isLoadingNodePage = false;
-            nodePageContent = data.content || "";
-            isShowingArchivedVersion = false;
-            ontabtitlechange?.(selectedNode?.custom_display_name || selectedNode?.display_name || "Nomad");
-        } else if (data.type === "nomadnet.page_download_failed" && data.request_id === downloadRequestId) {
-            if (pageLoadTimeout) clearTimeout(pageLoadTimeout);
-            isLoadingNodePage = false;
-            nodePageContent = data.error || t("nomadnet.failed_to_load_page");
-        } else if (data.type === "nomadnet.file_download_progress" && data.request_id === downloadRequestId) {
-            isDownloadingNodeFile = true;
-            nodeFileProgress = data.progress || 0;
-            nodeFilePath = data.file_path || "";
-            nodeFileDownloadSpeed = data.speed || null;
-        } else if (data.type === "nomadnet.file_download_completed" && data.request_id === downloadRequestId) {
-            isDownloadingNodeFile = false;
-            DialogUtils.alert(t("nomadnet.file_download_complete", { path: data.file_path }));
+    async function runPathFinder(mode: "quick" | "force" | "drop_then_request") {
+        const hash = selectedNode?.destination_hash;
+        if (!hash || pathfinderInProgress) return;
+        pathfinderInProgress = true;
+        try {
+            await runNomadPathFinder({
+                destinationHash: hash,
+                mode,
+                onReload: reloadCurrentPage,
+            });
+        } finally {
+            pathfinderInProgress = false;
         }
+    }
+
+    function onPageDownloadEvent(json: Record<string, unknown>) {
+        onNomadPageDownloadEvent(downloadAccess, json);
+    }
+
+    function onFileDownloadEvent(json: Record<string, unknown>) {
+        onNomadFileDownloadEvent(downloadAccess, json);
+    }
+
+    function onDownloadCancelledEvent(json: Record<string, unknown>) {
+        onNomadDownloadCancelledEvent(downloadAccess, json);
+    }
+
+    function onPageArchivesEvent(json: Record<string, unknown>) {
+        onNomadPageArchivesEvent(downloadAccess, json);
+    }
+
+    function onPageArchiveAddedEvent(json: Record<string, unknown>) {
+        onNomadPageArchiveAddedEvent(downloadAccess, json);
     }
 
     function handleNavigate(e: NomadNavigateEvent) {
@@ -251,18 +400,22 @@
         if (dHash) {
             const targetPath = pPath || DEFAULT_PAGE_PATH;
             if (nodePagePath) pathHistory.push(nodePagePath);
-            setDestination(dHash, targetPath);
+            selectedNode = nodes[dHash] || {
+                destination_hash: dHash,
+                display_name: dHash.substring(0, 16),
+            };
+            void loadPage(dHash, targetPath, { loadFromCache: false });
             onnavigate?.(dHash, targetPath, isPrivate);
         } else if (selectedNode?.destination_hash && pPath) {
-            const resolved = resolveRelativeNomadPath(nodePagePath || "/", pPath);
+            const resolved = resolveRelativeNomadPath(relativePagePath || "/", pPath);
             if (e.fields && Object.keys(e.fields).length > 0) {
                 const query = encodeNomadFormQuery(e.fields);
                 const full = `${resolved}?${query}`;
                 if (nodePagePath) pathHistory.push(nodePagePath);
-                loadPage(selectedNode.destination_hash, full);
+                void loadPage(selectedNode.destination_hash, full, { loadFromCache: false });
             } else {
                 if (nodePagePath) pathHistory.push(nodePagePath);
-                loadPage(selectedNode.destination_hash, resolved);
+                void loadPage(selectedNode.destination_hash, resolved, { loadFromCache: false });
             }
         }
     }
@@ -270,50 +423,160 @@
     function handleUrlSubmit(url: string) {
         const { destinationHash: dHash, pagePath: pPath } = parseNomadUrl(url);
         if (dHash) {
-            setDestination(dHash, pPath || DEFAULT_PAGE_PATH);
+            selectedNode = nodes[dHash] || {
+                destination_hash: dHash,
+                display_name: dHash.substring(0, 16),
+            };
+            void loadPage(dHash, pPath || DEFAULT_PAGE_PATH, { loadFromCache: false });
             onnavigate?.(dHash, pPath || DEFAULT_PAGE_PATH, isPrivate);
         }
     }
 
     function handleCancel() {
-        if (downloadRequestId) {
-            WebSocketConnection.send(createCancelDownloadPayload({ downloadId: downloadRequestId }));
+        if (currentPageDownloadId != null) {
+            discardDownloadChunks(nomadPageDownloadChunkBuffers, currentPageDownloadId);
+            sendNomadWs(createCancelDownloadPayload(currentPageDownloadId));
+            currentPageDownloadId = null;
+        } else if (isLoadingNodePage) {
+            pendingPageCancelWithoutId = true;
         }
-        if (pageLoadTimeout) clearTimeout(pageLoadTimeout);
+        if (currentFileDownloadId != null) {
+            discardDownloadChunks(nomadFileDownloadChunkBuffers, currentFileDownloadId);
+            sendNomadWs(createCancelDownloadPayload(currentFileDownloadId));
+            currentFileDownloadId = null;
+        }
+        clearPageLoadTimeout();
         isLoadingNodePage = false;
         isDownloadingNodeFile = false;
+        pageRenderAborted = true;
+        if (!nodePageContent) {
+            nodePageContent = "nomadnet.page_download_cancelled";
+        }
     }
 
     function handleBack() {
-        if (pathHistory.length > 0 && selectedNode?.destination_hash) {
+        if (pathHistory.length > 0) {
             const prev = pathHistory.pop();
-            if (prev) loadPage(selectedNode.destination_hash, prev);
-        }
-    }
-
-    async function handleManualArchive() {
-        const api = (window as any).api;
-        if (!api || !selectedNode?.destination_hash || !nodePagePath || !nodePageContent) return;
-        const res = await createManualArchive(api, selectedNode.destination_hash, nodePagePath, nodePageContent);
-        if (res) {
-            DialogUtils.alert(t("nomadnet.archive_created"));
-            void fetchArchives(selectedNode.destination_hash, nodePagePath);
-        }
-    }
-
-    async function handleLoadArchivedPage(archiveId: string | number) {
-        const api = (window as any).api;
-        if (!api) return;
-        isArchiveDropdownOpen = false;
-        const arch = pageArchives.find((a) => String(a.id) === String(archiveId));
-        if (arch) {
-            const result = await fetchArchiveContent(api, arch.id);
-            if (result !== null) {
-                nodePageContent = typeof result === "string" ? result : result.content;
-                isShowingArchivedVersion = true;
-                archivedAt = typeof result === "object" && result.created_at ? result.created_at : arch.created_at;
+            if (!prev) return;
+            const { destinationHash: dHash, pagePath: pPath } = parseNomadUrl(
+                prev.includes("://") ? prev : `nomadnet://${prev}`
+            );
+            if (dHash) {
+                void loadPage(dHash, pPath || DEFAULT_PAGE_PATH, { loadFromCache: true });
+            } else if (selectedNode?.destination_hash) {
+                const relative = relativePagePathFromCombined(prev) || prev;
+                void loadPage(selectedNode.destination_hash, relative, { loadFromCache: true });
             }
         }
+    }
+
+    function handleManualArchive() {
+        if (isPrivate) {
+            ToastUtils.info(t("nomadnet.private_browsing_hint"));
+            return;
+        }
+        if (!selectedNode?.destination_hash || !relativePagePath || !nodePageContent) return;
+        ToastUtils.info(t("nomadnet.archiving_page"));
+        requestManualArchive(selectedNode.destination_hash, relativePagePath, nodePageContent);
+    }
+
+    function handleLoadArchivedPage(archiveId: string | number) {
+        if (isPrivate) {
+            ToastUtils.info(t("nomadnet.private_browsing_hint"));
+            return;
+        }
+        isArchiveDropdownOpen = false;
+        isLoadingNodePage = true;
+        isShowingArchivedVersion = false;
+        archivedAt = null;
+        pageRenderAborted = false;
+        armPageLoadTimeout();
+
+        const archive = pageArchives.find((a) => String(a.id) === String(archiveId));
+        if (archive) {
+            nodePagePath = `${archive.destination_hash}:${archive.page_path}`;
+            nodePagePathUrlInput = nodePagePath;
+        }
+
+        // Own the reply even when the local archive list is empty or stale.
+        const downloadId = Math.floor(Math.random() * 1000000);
+        currentPageDownloadId = downloadId;
+        const sent = requestArchiveLoad(archiveId, downloadId);
+        if (!sent) {
+            clearPageLoadTimeout();
+            isLoadingNodePage = false;
+            currentPageDownloadId = null;
+            ToastUtils.error(t("nomadnet.tab_restore_failed"));
+        }
+    }
+
+    async function toggleIdentifyOnConnect() {
+        if (isPrivate) {
+            ToastUtils.info(t("nomadnet.private_browsing_hint"));
+            return;
+        }
+        const destinationHashValue = selectedNode?.destination_hash;
+        if (!destinationHashValue) return;
+        const api = (window as any).api;
+        if (!api) return;
+        const currentlyOn = selectedNodeIdentifiesOnConnect;
+        const enable = !currentlyOn;
+        try {
+            if (enable) {
+                if (!(await DialogUtils.confirm(t("nomadnet.identify_confirm")))) {
+                    return;
+                }
+            }
+            const existing = favourites.find((f) => f.destination_hash === destinationHashValue);
+            const displayName =
+                selectedNode?.custom_display_name ||
+                selectedNode?.display_name ||
+                existing?.custom_display_name ||
+                existing?.display_name ||
+                t("nomadnet.unknown_node");
+            await api.post(`/api/v1/favourites/${destinationHashValue}/identify-on-connect`, {
+                enabled: enable,
+                display_name: displayName,
+                aspect: "nomadnetwork.node",
+            });
+            onfavouriteschanged?.();
+            GlobalEmitter.emit("nomadnet-favourites-changed");
+            if (enable && relativePagePath) {
+                lastLoadedKey = "";
+                await loadPage(destinationHashValue, relativePagePath, { loadFromCache: false });
+            }
+        } catch (e: any) {
+            ToastUtils.error(e?.response?.data?.message ?? t("nomadnet.identify_on_connect_failed"));
+        }
+    }
+
+    async function applyBootstrapArchive(archiveId: string | number) {
+        const api = (window as any).api;
+        if (!api) {
+            handleLoadArchivedPage(archiveId);
+            return;
+        }
+        try {
+            const result = await fetchArchiveContent(api, archiveId);
+            if (result && result.content) {
+                if (result.page_path && selectedNode?.destination_hash) {
+                    nodePagePath = `${selectedNode.destination_hash}:${result.page_path}`;
+                    nodePagePathUrlInput = nodePagePath;
+                }
+                nodePageContent = result.content;
+                isShowingArchivedVersion = true;
+                archivedAt = result.created_at || null;
+                isLoadingNodePage = false;
+                clearPageLoadTimeout();
+                if (selectedNode?.destination_hash && relativePagePath) {
+                    requestPageArchives(selectedNode.destination_hash, relativePagePath);
+                }
+                return;
+            }
+        } catch {
+            // fall through to WS load
+        }
+        handleLoadArchivedPage(archiveId);
     }
 
     function handleContextMenu(e: MouseEvent) {
@@ -331,25 +594,40 @@
     }
 
     $effect(() => {
-        if (destinationHash && destinationHash !== selectedNode?.destination_hash) {
-            setDestination(destinationHash, pagePath || DEFAULT_PAGE_PATH);
-        }
+        if (!active) return;
+        const nextHash = destinationHash || "";
+        const nextPath = pagePath || DEFAULT_PAGE_PATH;
+        const archiveId = bootstrapArchiveId;
+        const routeKey = `${nextHash}|${nextPath}|${archiveId ?? ""}|${isPrivate ? 1 : 0}`;
+        if (!nextHash || routeKey === lastAppliedRouteKey) return;
+        lastAppliedRouteKey = routeKey;
+        void (async () => {
+            await setDestination(nextHash, nextPath);
+            if (archiveId != null) {
+                await applyBootstrapArchive(archiveId);
+            }
+        })();
     });
 
     onMount(() => {
-        GlobalEmitter.on("ws-message", handleWsMessage);
-        if (destinationHash) {
-            setDestination(destinationHash, pagePath || DEFAULT_PAGE_PATH);
-        }
+        onWsEvent("nomadnet.page.download", onPageDownloadEvent);
+        onWsEvent("nomadnet.file.download", onFileDownloadEvent);
+        onWsEvent("nomadnet.download.cancelled", onDownloadCancelledEvent);
+        onWsEvent("nomadnet.page.archives", onPageArchivesEvent);
+        onWsEvent("nomadnet.page.archive.added", onPageArchiveAddedEvent);
     });
 
     onDestroy(() => {
-        GlobalEmitter.off("ws-message", handleWsMessage);
-        if (pageLoadTimeout) clearTimeout(pageLoadTimeout);
+        offWsEvent("nomadnet.page.download", onPageDownloadEvent);
+        offWsEvent("nomadnet.file.download", onFileDownloadEvent);
+        offWsEvent("nomadnet.download.cancelled", onDownloadCancelledEvent);
+        offWsEvent("nomadnet.page.archives", onPageArchivesEvent);
+        offWsEvent("nomadnet.page.archive.added", onPageArchiveAddedEvent);
+        clearPageLoadTimeout();
     });
 </script>
 
-<div class="flex-1 min-h-0 flex flex-col bg-black text-white relative">
+<div class="flex-1 min-h-0 flex flex-col bg-black text-white relative" class:hidden={!active}>
     {#if selectedNode}
         <NomadPageHeader
             {selectedNode}
@@ -382,11 +660,9 @@
             ontogglearchivedropdown={() => {
                 isArchiveDropdownOpen = !isArchiveDropdownOpen;
             }}
-            onmanualarchive={() => void handleManualArchive()}
-            onloadarchivedpage={(id) => void handleLoadArchivedPage(id)}
-            ontoggleidentifyonconnect={() => {
-                selectedNodeIdentifiesOnConnect = !selectedNodeIdentifiesOnConnect;
-            }}
+            onmanualarchive={handleManualArchive}
+            onloadarchivedpage={(id) => handleLoadArchivedPage(id)}
+            ontoggleidentifyonconnect={() => void toggleIdentifyOnConnect()}
             onpopout={() => {
                 const target = `/popout/nomadnetwork/${selectedNode?.destination_hash}`;
                 window.open(target, "_blank", "width=960,height=720");
@@ -412,13 +688,12 @@
             {isPrivate}
             onhome={() => {
                 if (selectedNode?.destination_hash) {
-                    loadPage(selectedNode.destination_hash, DEFAULT_PAGE_PATH);
+                    lastLoadedKey = "";
+                    void loadPage(selectedNode.destination_hash, DEFAULT_PAGE_PATH, { loadFromCache: true });
                 }
             }}
             onrefresh={() => {
-                if (selectedNode?.destination_hash && nodePagePath) {
-                    loadPage(selectedNode.destination_hash, nodePagePath);
-                }
+                reloadCurrentPage();
             }}
             ontogglesource={() => {
                 isShowingNodePageSource = !isShowingNodePageSource;
@@ -429,28 +704,13 @@
                 nodePagePathUrlInput = v;
             }}
             onpathfinderquick={() => {
-                if (selectedNode?.destination_hash) {
-                    WebSocketConnection.send({
-                        type: "path_probe.request_path",
-                        destination_hash: selectedNode.destination_hash,
-                    });
-                }
+                void runPathFinder("quick");
             }}
             onpathfinderforce={() => {
-                if (selectedNode?.destination_hash) {
-                    WebSocketConnection.send({
-                        type: "path_probe.force_path",
-                        destination_hash: selectedNode.destination_hash,
-                    });
-                }
+                void runPathFinder("force");
             }}
             onpathfinderdrop={() => {
-                if (selectedNode?.destination_hash) {
-                    WebSocketConnection.send({
-                        type: "path_probe.drop_path",
-                        destination_hash: selectedNode.destination_hash,
-                    });
-                }
+                void runPathFinder("drop_then_request");
             }}
             onloadlatestarchive={() => {
                 if (pageArchives.length > 0) {
@@ -496,9 +756,7 @@
             {nomadShellDark}
             {nodeContainerShellStyle}
             onreload={() => {
-                if (selectedNode?.destination_hash && nodePagePath) {
-                    loadPage(selectedNode.destination_hash, nodePagePath);
-                }
+                reloadCurrentPage();
             }}
             oncancelbusy={handleCancel}
             onretrycrashtab={() => {
@@ -511,9 +769,7 @@
             }}
             oncontentcontextmenu={handleContextMenu}
             oncrashtabnavigate={handleNavigate}
-            oncrashtabpartials={(_p) => {
-                // handle partial updates
-            }}
+            oncrashtabpartials={(_p) => {}}
             onviewsource={() => {
                 isShowingNodePageSource = !isShowingNodePageSource;
             }}
@@ -536,9 +792,9 @@
         y={contextMenu.y}
         justOpened={contextMenu.justOpened}
         hasActivePage={!!nodePageContent}
-        canFavourite={!!selectedNode}
+        canFavourite={!!selectedNode && !isPrivate}
         isFavourite={isFavouriteNode}
-        canDownloadPage={!!nodePageContent}
+        canDownloadPage={!!nodePageContent && !isPrivate}
         showTabActions={false}
         contextTabIsPrivate={isPrivate}
         onclose={() => {
@@ -548,9 +804,7 @@
             isShowingNodePageSource = !isShowingNodePageSource;
         }}
         onreload={() => {
-            if (selectedNode?.destination_hash && nodePagePath) {
-                loadPage(selectedNode.destination_hash, nodePagePath);
-            }
+            reloadCurrentPage();
         }}
         onfavorite={() => {
             if (selectedNode) {
@@ -558,9 +812,10 @@
             }
         }}
         ondownloadpage={() => {
-            if (selectedNode?.destination_hash && nodePagePath) {
-                const payload = createFileDownloadRequestPayload(selectedNode.destination_hash, nodePagePath);
-                WebSocketConnection.send(payload);
+            if (selectedNode?.destination_hash && relativePagePath) {
+                sendNomadWs(
+                    createFileDownloadRequestPayload(selectedNode.destination_hash, relativePagePath, isPrivate)
+                );
             }
         }}
         onnewprivatetab={() => {

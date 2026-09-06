@@ -45,7 +45,7 @@ export function restoreTabsFromStorage(
         .map((tab) => {
             const rawHash = typeof tab.destinationHash === "string" ? tab.destinationHash : "";
             const validHash = /^[0-9a-fA-F]{32}$/.test(rawHash) ? rawHash : "";
-            const cleanPath = sanitizeNomadTabPath(tab.path);
+            const cleanPath = sanitizeNomadTabPath(typeof tab.path === "string" ? tab.path : null);
             return {
                 id: nextId++,
                 destinationHash: validHash,

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import WebSocketConnection from "../../../js/WebSocketConnection.js";
+
 export function isFailedPageContent(content: string | null | undefined): boolean {
     if (!content || typeof content !== "string") {
         return false;
@@ -7,6 +9,7 @@ export function isFailedPageContent(content: string | null | undefined): boolean
     const lower = content.toLowerCase();
     return (
         lower.includes("failed to load page") ||
+        lower.includes("failed loading page") ||
         lower.includes("page load timed out") ||
         lower.includes("page load failed") ||
         lower.includes("nomadnet.failed_to_load_page")
@@ -58,27 +61,26 @@ export function formatDuration(ms: number | null | undefined): string {
 export interface PageDownloadOptions {
     destinationHash: string;
     pagePath: string;
-    sequence?: number;
+    fieldData?: unknown;
     isPrivate?: boolean;
-    identifyOnConnect?: boolean;
 }
 
+/** Build outbound nomadnet.page.download payload (backend expects page_path). */
 export function createPageDownloadPayload(
     optionsOrHash: string | PageDownloadOptions,
     pagePath = "/page/index.mu",
     isPrivate = false,
-    sequence = 1,
-    identifyOnConnect = false
+    _sequence = 1,
+    fieldData: unknown = null
 ) {
     if (typeof optionsOrHash === "string") {
         return {
             type: "nomadnet.page.download",
             nomadnet_page_download: {
                 destination_hash: optionsOrHash,
-                path: pagePath,
-                sequence: sequence ?? 1,
+                page_path: pagePath,
+                field_data: fieldData,
                 private: Boolean(isPrivate),
-                identify: Boolean(identifyOnConnect),
             },
         };
     }
@@ -86,10 +88,9 @@ export function createPageDownloadPayload(
         type: "nomadnet.page.download",
         nomadnet_page_download: {
             destination_hash: optionsOrHash.destinationHash,
-            path: optionsOrHash.pagePath,
-            sequence: optionsOrHash.sequence ?? 1,
-            private: Boolean(optionsOrHash.isPrivate),
-            identify: Boolean(optionsOrHash.identifyOnConnect),
+            page_path: optionsOrHash.pagePath,
+            field_data: optionsOrHash.fieldData ?? fieldData,
+            private: Boolean(optionsOrHash.isPrivate ?? isPrivate),
         },
     };
 }
@@ -99,23 +100,15 @@ export function createPageDownloadRequestPayload(
     pagePath = "/page/index.mu",
     isPrivate = false,
     sequence = 1,
-    identifyOnConnect = false
+    fieldData: unknown = null
 ) {
-    const payload = createPageDownloadPayload(optionsOrHash, pagePath, isPrivate, sequence, identifyOnConnect);
-    const destHash = typeof optionsOrHash === "string" ? optionsOrHash : optionsOrHash.destinationHash;
-    const pPath = typeof optionsOrHash === "string" ? pagePath : optionsOrHash.pagePath;
-    const seq = typeof optionsOrHash === "string" ? (sequence ?? 1) : (optionsOrHash.sequence ?? 1);
-    return {
-        ...payload,
-        request_id: `${destHash}:${pPath}:${seq}`,
-    };
+    return createPageDownloadPayload(optionsOrHash, pagePath, isPrivate, sequence, fieldData);
 }
 
 export interface FileDownloadOptions {
     destinationHash: string;
     filePath: string;
     isPrivate?: boolean;
-    identifyOnConnect?: boolean;
     data?: string | null;
 }
 
@@ -123,15 +116,14 @@ export function createFileDownloadPayload(
     optionsOrHash: string | FileDownloadOptions,
     filePath = "",
     isPrivate = false,
-    identifyOnConnect = false,
+    _identifyOnConnect = false,
     data: string | null = null
 ) {
     if (typeof optionsOrHash === "string") {
         const payload: Record<string, unknown> = {
             destination_hash: optionsOrHash,
-            path: filePath,
+            file_path: filePath,
             private: Boolean(isPrivate),
-            identify: Boolean(identifyOnConnect),
         };
         if (data) {
             payload.data = data;
@@ -143,9 +135,8 @@ export function createFileDownloadPayload(
     }
     const payload: Record<string, unknown> = {
         destination_hash: optionsOrHash.destinationHash,
-        path: optionsOrHash.filePath,
+        file_path: optionsOrHash.filePath,
         private: Boolean(optionsOrHash.isPrivate),
-        identify: Boolean(optionsOrHash.identifyOnConnect),
     };
     if (optionsOrHash.data) {
         payload.data = optionsOrHash.data;
@@ -166,29 +157,129 @@ export function createFileDownloadRequestPayload(
     return createFileDownloadPayload(optionsOrHash, filePath, isPrivate, identifyOnConnect, data);
 }
 
-export function createCancelDownloadPayload(
-    optionsOrId?:
-        | string
-        | {
-              downloadId?: string | null;
-              destinationHash?: string | null;
-          }
-        | null
-) {
-    if (typeof optionsOrId === "string") {
-        return {
-            type: "nomadnet.download.cancel",
-            nomadnet_download_cancel: {
-                download_id: optionsOrId,
-                destination_hash: undefined,
-            },
-        };
-    }
+export function createCancelDownloadPayload(downloadId: string | number | null | undefined) {
     return {
         type: "nomadnet.download.cancel",
-        nomadnet_download_cancel: {
-            download_id: optionsOrId?.downloadId || undefined,
-            destination_hash: optionsOrId?.destinationHash || undefined,
-        },
+        download_id: downloadId,
     };
+}
+
+export function createArchivesGetPayload(destinationHash: string, pagePath: string) {
+    return {
+        type: "nomadnet.page.archives.get",
+        destination_hash: destinationHash,
+        page_path: pagePath,
+    };
+}
+
+export function createArchiveLoadPayload(archiveId: string | number, downloadId: number) {
+    return {
+        type: "nomadnet.page.archive.load",
+        archive_id: archiveId,
+        download_id: downloadId,
+    };
+}
+
+export function createArchiveAddPayload(destinationHash: string, pagePath: string, content: string) {
+    return {
+        type: "nomadnet.page.archive.add",
+        destination_hash: destinationHash,
+        page_path: pagePath,
+        content,
+    };
+}
+
+/** Send a Nomad WS payload as a JSON string (raw WebSocket requires a string). */
+export function sendNomadWs(payload: Record<string, unknown>): boolean {
+    try {
+        return Boolean(WebSocketConnection.send(JSON.stringify(payload)));
+    } catch {
+        return false;
+    }
+}
+
+export type NomadChunkBuffers = Record<string | number, { chunks: Uint8Array[] }>;
+
+export function decodeBase64ToBytes(base64: string | null | undefined): Uint8Array {
+    const binary = atob(base64 || "");
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+export function appendDownloadChunk(
+    chunkBuffers: NomadChunkBuffers,
+    downloadId: string | number | null | undefined,
+    chunkPayload: { chunk_b64?: string | null } | null | undefined
+): void {
+    if (downloadId == null) {
+        return;
+    }
+    const entry = chunkBuffers[downloadId] || { chunks: [] };
+    entry.chunks.push(decodeBase64ToBytes(chunkPayload?.chunk_b64));
+    chunkBuffers[downloadId] = entry;
+}
+
+export function consumeDownloadChunkBytes(
+    chunkBuffers: NomadChunkBuffers,
+    downloadId: string | number | null | undefined
+): Uint8Array {
+    if (downloadId == null) {
+        return new Uint8Array(0);
+    }
+    const entry = chunkBuffers[downloadId];
+    delete chunkBuffers[downloadId];
+    const chunks = entry?.chunks || [];
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const merged = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.length;
+    }
+    return merged;
+}
+
+export function consumeDownloadChunksAsText(
+    chunkBuffers: NomadChunkBuffers,
+    downloadId: string | number | null | undefined
+): string {
+    return new TextDecoder("utf-8").decode(consumeDownloadChunkBytes(chunkBuffers, downloadId));
+}
+
+export function consumeDownloadChunksAsBase64(
+    chunkBuffers: NomadChunkBuffers,
+    downloadId: string | number | null | undefined
+): string {
+    return bytesToBase64(consumeDownloadChunkBytes(chunkBuffers, downloadId));
+}
+
+export function discardDownloadChunks(
+    chunkBuffers: NomadChunkBuffers,
+    downloadId: string | number | null | undefined | unknown
+): void {
+    if (downloadId == null || (typeof downloadId !== "string" && typeof downloadId !== "number")) {
+        return;
+    }
+    delete chunkBuffers[downloadId];
+}
+
+export function relativePagePathFromCombined(nodePagePath: string | null | undefined): string {
+    if (!nodePagePath) {
+        return "";
+    }
+    if (nodePagePath.includes(":")) {
+        return nodePagePath.split(":").slice(1).join(":");
+    }
+    return nodePagePath;
 }

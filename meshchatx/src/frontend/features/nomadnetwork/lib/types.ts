@@ -43,6 +43,7 @@ export interface NomadPageArchive {
     size?: number;
     destination_hash?: string;
     path?: string;
+    page_path?: string;
 }
 
 export interface NomadNavigateEvent {

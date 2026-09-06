@@ -1,59 +1,49 @@
 // SPDX-License-Identifier: 0BSD
 
 import type { NomadPageArchive } from "./types.js";
+import {
+    createArchiveAddPayload,
+    createArchivesGetPayload,
+    createArchiveLoadPayload,
+    sendNomadWs,
+} from "./nomadPageDownloads.js";
 
 interface ApiClient {
     get: (url: string, config?: Record<string, unknown>) => Promise<{ data?: any }>;
-    post: (url: string, body?: unknown, config?: Record<string, unknown>) => Promise<{ data?: any }>;
 }
 
-export async function fetchPageArchives(
-    api: ApiClient,
-    destinationHash: string,
-    pagePath: string
-): Promise<NomadPageArchive[]> {
-    if (!api || !destinationHash || !pagePath) {
-        return [];
+/** Request archives list over WS. Reply arrives as nomadnet.page.archives. */
+export function requestPageArchives(destinationHash: string, pagePath: string): boolean {
+    if (!destinationHash || !pagePath) {
+        return false;
     }
-    try {
-        const res = await api.get("/api/v1/nomadnet/archives", {
-            params: {
-                destination_hash: destinationHash,
-                path: pagePath,
-            },
-        });
-        const items = res.data?.archives || res.data || [];
-        return Array.isArray(items) ? items : [];
-    } catch {
-        return [];
-    }
+    return sendNomadWs(createArchivesGetPayload(destinationHash, pagePath));
 }
 
-export async function createManualArchive(
-    api: ApiClient,
-    destinationHash: string,
-    pagePath: string,
-    content: string
-): Promise<NomadPageArchive | null> {
-    if (!api || !destinationHash || !pagePath || !content) {
-        return null;
+/** Ask the backend to load an archived page (reply is nomadnet.page.download). */
+export function requestArchiveLoad(archiveId: string | number, downloadId: number): boolean {
+    if (archiveId == null || downloadId == null) {
+        return false;
     }
-    try {
-        const res = await api.post("/api/v1/nomadnet/archives", {
-            destination_hash: destinationHash,
-            path: pagePath,
-            content,
-        });
-        return res.data?.archive || res.data || null;
-    } catch {
-        return null;
-    }
+    return sendNomadWs(createArchiveLoadPayload(archiveId, downloadId));
 }
 
+/** Persist the current page as a manual archive. Reply is nomadnet.page.archive.added. */
+export function requestManualArchive(destinationHash: string, pagePath: string, content: string): boolean {
+    if (!destinationHash || !pagePath || !content) {
+        return false;
+    }
+    return sendNomadWs(createArchiveAddPayload(destinationHash, pagePath, content));
+}
+
+/**
+ * HTTP fallback for a single archive body (Archives page handoff / tests).
+ * Browser list + manual add must use WS so path filtering matches Vue.
+ */
 export async function fetchArchiveContent(
     api: ApiClient,
     archiveId: string | number
-): Promise<{ content: string; hash: string; created_at: string } | null> {
+): Promise<{ content: string; hash: string; created_at: string; page_path?: string } | null> {
     if (!api || !archiveId) {
         return null;
     }
@@ -65,6 +55,7 @@ export async function fetchArchiveContent(
                 content: typeof data.content === "string" ? data.content : "",
                 hash: typeof data.hash === "string" ? data.hash : "",
                 created_at: typeof data.created_at === "string" ? data.created_at : "",
+                page_path: typeof data.page_path === "string" ? data.page_path : undefined,
             };
         }
         if (typeof data === "string") {
@@ -79,3 +70,5 @@ export async function fetchArchiveContent(
         return null;
     }
 }
+
+export type { NomadPageArchive };
