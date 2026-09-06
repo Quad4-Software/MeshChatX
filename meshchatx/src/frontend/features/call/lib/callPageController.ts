@@ -134,6 +134,30 @@ export class CallAudioPlayerManager {
         }
     }
 
+    public async playVoicemail(voicemail: { id: string | number }): Promise<boolean> {
+        if (this.state.playingVoicemailId === voicemail.id) {
+            this.stopAll();
+            return false;
+        }
+        this.stopAll();
+        this.state.playingVoicemailId = voicemail.id;
+        const audio = new Audio(`/api/v1/telephone/voicemails/${encodeURIComponent(String(voicemail.id))}/audio`);
+        audio.onended = () => this.stopAll();
+        audio.onerror = () => {
+            ToastUtils.error(t("call.failed_to_play_voicemail"));
+            this.stopAll();
+        };
+        this.player = audio;
+        try {
+            await audio.play();
+            return true;
+        } catch {
+            ToastUtils.error(t("call.failed_to_play_voicemail"));
+            this.stopAll();
+            return false;
+        }
+    }
+
     public async playRecording(recording: Recording, side: "rx" | "tx"): Promise<void> {
         if (this.state.playingRecordingId === recording.id && this.state.playingSide === side) {
             this.stopAll();

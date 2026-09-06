@@ -60,6 +60,10 @@ export function createCallPageHandlers(runtime: CallPageRuntime) {
     }
 
     async function onCall(destination: string): Promise<void> {
+        pageState.isCallEnded = false;
+        pageState.wasDeclined = false;
+        pageState.wasVoicemail = false;
+        pageState.lastCall = null;
         pageState.initiationStatus = t("call.initiating");
         pageState.initiationTargetHash = destination;
         const res = await executeCall({
@@ -374,8 +378,15 @@ export function createCallPageHandlers(runtime: CallPageRuntime) {
         if (target && typeof window !== "undefined") window.location.hash = `#/messages/${target}`;
     }
 
-    function onPlayLatestVoicemail(): void {
-        if (pageState.voicemails.length > 0) onMarkVoicemailRead(pageState.voicemails[0]);
+    async function onPlayLatestVoicemail(): Promise<void> {
+        if (pageState.voicemails.length === 0) {
+            return;
+        }
+        const voicemail = pageState.voicemails[0];
+        const started = await controller.audioPlayer.playVoicemail(voicemail);
+        if (started) {
+            await onMarkVoicemailRead(voicemail);
+        }
     }
 
     return {
