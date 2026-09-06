@@ -136,3 +136,18 @@ export async function revokeTelemetryTrust(contact: any, api = window.api): Prom
         return false;
     }
 }
+
+/** Persist web UI IP allowlist via app security settings (not mesh config). */
+export async function saveWebUiIpAllowlist(allowlist: string, api = window.api): Promise<Record<string, any> | null> {
+    try {
+        const response = await api.patch("/api/v1/server/security", {
+            web_ui_ip_allowlist: allowlist,
+        });
+        ToastUtils.success(t("app.setting_auto_saved", { label: t("app.web_ui_ip_allowlist") }));
+        return (response?.data as Record<string, any>) || null;
+    } catch (e) {
+        ToastUtils.error(t("common.save_failed"));
+        console.error("Failed to save web UI IP allowlist", e);
+        return null;
+    }
+}
