@@ -56,8 +56,8 @@
         };
     });
 
-    function onCommandPaletteNavigate(route: unknown): void {
-        void navigate(route as never);
+    function onCommandPaletteNavigate(route: unknown): Promise<void> {
+        return navigate(route as never);
     }
 </script>
 

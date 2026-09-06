@@ -59,7 +59,7 @@
                 onclick={() => (isShowingMyIdentitySection = !isShowingMyIdentitySection)}
             >
                 <div class={isCollapsed ? "shrink-0" : "my-auto mr-2 shrink-0"}>
-                    <a href="#/settings/profile-icon" onclick={(e) => e.stopPropagation()}>
+                    <a href="#/profile/icon" onclick={(e) => e.stopPropagation()}>
                         <LxmfUserIcon
                             iconName={config.lxmf_user_icon_name}
                             iconForegroundColour={config.lxmf_user_icon_foreground_colour}
@@ -117,14 +117,14 @@
                             </button>
                             <button
                                 type="button"
-                                class="shrink-0 rounded-lg p-1 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                class="toolbar-icon-btn shrink-0"
                                 title={t("app.show_qr")}
                                 onclick={(e) => {
                                     e.stopPropagation();
                                     onopenlxmfqr?.();
                                 }}
                             >
-                                <MaterialDesignIcon iconName="qrcode" class="size-4" />
+                                <MaterialDesignIcon iconName="qrcode" class="size-5" />
                             </button>
                         </div>
                     </div>
@@ -161,7 +161,7 @@
                     <div class="ml-auto shrink-0">
                         <button
                             type="button"
-                            class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white hover:bg-sem-surface-muted dark:focus-visible:outline-zinc-500"
+                            class="toolbar-label-chip border border-sem-border bg-sem-surface-muted text-sem-fg shadow-xs hover:border-sem-accent"
                             onclick={(e) => {
                                 e.stopPropagation();
                                 onsendannounce?.();

@@ -30,7 +30,7 @@
 </script>
 
 <div
-    class="z-100 flex shrink-0 bg-sem-canvas border-sem-border border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
+    class="z-100 flex shrink-0 bg-sem-canvas border-sem-border border-b min-h-12 sm:min-h-14 shadow-xs pt-[env(safe-area-inset-top,0px)]"
 >
     <div
         class="flex w-full min-h-12 sm:min-h-14 items-center gap-0 overflow-x-auto no-scrollbar pl-2 pr-2 sm:ps-0 sm:pe-3"
@@ -68,33 +68,33 @@
         <div class="flex ml-auto shrink-0 items-center mr-0 sm:mr-2 space-x-1 sm:space-x-2">
             <button
                 type="button"
-                class="relative hidden sm:inline-flex rounded-full p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                class="relative hidden sm:inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised"
                 title={shell.themeToggleTitle}
                 onclick={() => void toggleTheme(shell)}
             >
-                <MaterialDesignIcon iconName={shell.themeToggleIcon} class="w-5 h-5" />
+                <MaterialDesignIcon iconName={shell.themeToggleIcon} class="size-5" />
             </button>
             <LanguageSelector class="hidden sm:block" onlanguagechange={(code) => void onLanguageChange(shell, code)} />
             <button
                 type="button"
-                class="hidden sm:inline-flex rounded-full p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                class="hidden sm:inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised"
                 title={tr("command_palette.open_hint")}
                 aria-label={tr("command_palette.open_hint")}
                 data-testid="header-command-palette"
                 onclick={() => openCommandPalette(shell)}
             >
-                <MaterialDesignIcon iconName="magnify" class="w-5 h-5" />
+                <MaterialDesignIcon iconName="magnify" class="size-5" />
             </button>
             {#if shell.rrcEnabled}
                 <button
                     type="button"
-                    class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                    class="relative inline-flex size-11 sm:size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised"
                     title={tr("app.relay_chat")}
                     aria-label={tr("app.relay_chat")}
                     data-testid="header-relay-chat"
                     onclick={() => void navigate({ name: "relay-chat" })}
                 >
-                    <MaterialDesignIcon iconName="forum" class="w-5 h-5" />
+                    <MaterialDesignIcon iconName="forum" class="size-5" />
                     {#if shell.global.relayChatUnreadCount > 0}
                         <span
                             class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
@@ -106,13 +106,13 @@
             {/if}
             <button
                 type="button"
-                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                class="relative inline-flex size-11 sm:size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised"
                 title={tr("app.audio_calls")}
                 aria-label={tr("app.audio_calls")}
                 data-testid="header-telephone"
                 onclick={() => void navigate({ name: "call" })}
             >
-                <MaterialDesignIcon iconName="phone" class="w-5 h-5" />
+                <MaterialDesignIcon iconName="phone" class="size-5" />
                 {#if shell.global.missedCallsCount > 0}
                     <span
                         class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
@@ -123,34 +123,38 @@
             </button>
             <button
                 type="button"
-                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                class="sm:hidden inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised"
                 title={shell.isSyncingPropagationNode ? tr("app.syncing") : tr("app.sync_messages")}
                 onclick={() => void syncPropagationNode(shell)}
             >
                 <MaterialDesignIcon
                     iconName="refresh"
-                    class="w-5 h-5 {shell.isSyncingPropagationNode ? 'animate-spin' : ''}"
+                    class="size-5 {shell.isSyncingPropagationNode ? 'animate-spin' : ''}"
                 />
             </button>
             {#if shell.inboundDeliveryCount > 0}
                 <button
                     type="button"
-                    class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                    class="sm:hidden inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-700 transition-colors hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/40"
                     title={tr("app.cancel_inbound_deliveries")}
                     onclick={() => void cancelInboundDeliveries(shell)}
                 >
-                    <MaterialDesignIcon iconName="close-circle-outline" class="w-5 h-5" />
+                    <MaterialDesignIcon iconName="close-circle-outline" class="size-5" />
                 </button>
             {/if}
-            <button type="button" class="hidden sm:flex rounded-full" onclick={() => void syncPropagationNode(shell)}>
+            <button
+                type="button"
+                class="hidden sm:inline-flex rounded-full"
+                onclick={() => void syncPropagationNode(shell)}
+            >
                 <span
-                    class="flex text-sem-fg bg-sem-surface-raised border border-sem-border hover:border-sem-accent px-2.5 py-1 rounded-full shadow-xs transition"
+                    class="inline-flex min-h-8 items-center gap-1 rounded-full border border-sem-border bg-sem-surface-raised px-2.5 py-1 text-sem-fg leading-none shadow-xs transition hover:border-sem-accent"
                 >
                     <MaterialDesignIcon
                         iconName="refresh"
-                        class="size-5 {shell.isSyncingPropagationNode ? 'animate-spin' : ''}"
+                        class="size-5 shrink-0 {shell.isSyncingPropagationNode ? 'animate-spin' : ''}"
                     />
-                    <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">
+                    <span class="text-sm font-medium leading-none">
                         {shell.isSyncingPropagationNode ? tr("app.syncing") : tr("app.sync_messages")}
                     </span>
                 </span>
@@ -158,14 +162,14 @@
             {#if shell.inboundDeliveryCount > 0}
                 <button
                     type="button"
-                    class="hidden sm:flex rounded-full"
+                    class="hidden sm:inline-flex rounded-full"
                     onclick={() => void cancelInboundDeliveries(shell)}
                 >
                     <span
-                        class="flex text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500/60 px-2.5 py-1 rounded-full shadow-xs transition"
+                        class="inline-flex min-h-8 items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-800 leading-none shadow-xs transition hover:border-amber-400 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:border-amber-500/60"
                     >
-                        <MaterialDesignIcon iconName="close-circle-outline" class="size-5" />
-                        <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">
+                        <MaterialDesignIcon iconName="close-circle-outline" class="size-5 shrink-0" />
+                        <span class="text-sm font-medium leading-none">
                             {tr("app.cancel_inbound_deliveries_count", {
                                 count: shell.inboundDeliveryCount,
                             })}
@@ -175,19 +179,17 @@
             {/if}
             <button
                 type="button"
-                class="inline-flex rounded-full min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 items-center justify-center"
+                class="inline-flex min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 items-center justify-center rounded-full"
                 title={tr("app.compose")}
                 aria-label={tr("app.compose")}
                 data-testid="header-compose"
                 onclick={() => void composeNewMessage(shell)}
             >
                 <span
-                    class="flex rounded-full border border-sem-action-primary bg-sem-action-primary px-2.5 py-1 text-white shadow-xs transition hover:bg-sem-action-primary-hover"
+                    class="inline-flex min-h-8 items-center gap-1 rounded-full border border-sem-action-primary bg-sem-action-primary px-2.5 py-1 text-white leading-none shadow-xs transition hover:bg-sem-action-primary-hover"
                 >
-                    <span>
-                        <MaterialDesignIcon iconName="email" class="w-5 h-5" />
-                    </span>
-                    <span class="hidden sm:inline-block my-auto mx-1 text-sm font-semibold">
+                    <MaterialDesignIcon iconName="email" class="size-5 shrink-0" />
+                    <span class="hidden sm:inline text-sm font-medium leading-none">
                         {tr("app.compose")}
                     </span>
                 </span>

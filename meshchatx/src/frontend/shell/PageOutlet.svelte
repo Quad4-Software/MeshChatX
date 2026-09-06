@@ -5,10 +5,13 @@
      * Mounts the Svelte feature page for the active hashRouter route.
      * Routes with meta.keepAlive keep their container in the DOM, hidden, so
      * the page keeps its state across navigation.
+     * Routes with meta.stableKey keep one mount and receive prop updates
+     * (conversation switches) without tearing down the page.
      */
-    import { mount, onDestroy, unmount } from "svelte";
+    import { mount, onDestroy, unmount, untrack } from "svelte";
     import { getCurrentRoute, subscribe } from "./hashRouter.js";
     import type { ActiveRoute } from "./hashRouter.js";
+    import { pageOutletMountKey } from "./pageOutletMountKey.js";
 
     const CONTAINER_CLASS = "feature-page-host flex flex-1 min-h-0 h-full min-w-0 w-full overflow-hidden bg-sem-canvas";
 
@@ -40,12 +43,17 @@
         keepAliveCache.clear();
     });
 
+    // Track only route + root. render() syncs $state page props; that must stay
+    // untracked or stableKey/keepAlive updates re-enter this effect forever
+    // (effect_update_depth_exceeded) and leave the outlet stuck on the prior page.
     $effect(() => {
         const route = pendingRoute;
         if (!root) {
             return;
         }
-        void render(route);
+        untrack(() => {
+            void render(route);
+        });
     });
 
     function pageProps(route: ActiveRoute): Record<string, unknown> {
@@ -54,17 +62,6 @@
             ...route.params,
             routeQuery: { ...route.query },
         };
-    }
-
-    /**
-     * Remount identity. keepAlive and stableKey routes remount only on param
-     * change, everything else on full path change.
-     */
-    function mountKeyFor(route: ActiveRoute): string {
-        if (route.meta?.keepAlive || route.meta?.stableKey) {
-            return `${route.name}:${JSON.stringify(route.params)}`;
-        }
-        return `${route.name}:${route.fullPath}`;
     }
 
     function createProps(initial: Record<string, unknown>): Record<string, unknown> {
@@ -146,7 +143,7 @@
             return;
         }
 
-        const key = mountKeyFor(route);
+        const key = pageOutletMountKey(route);
         const nextProps = pageProps(route);
 
         if (route.meta?.keepAlive) {
@@ -190,7 +187,11 @@
                 root.appendChild(entry.container);
             }
             entry.container.style.display = "";
-            await mountPage(entry, route, generation);
+            try {
+                await mountPage(entry, route, generation);
+            } catch (error) {
+                console.error("PageOutlet: keepAlive mount failed", route.name, error);
+            }
             return;
         }
 
@@ -199,22 +200,48 @@
             syncProps(transient, nextProps);
             return;
         }
-        destroyPage(transient);
+
+        // Keep the previous page painted until the next mount finishes so async
+        // chunk loads do not flash an empty (often light) canvas in dark mode.
+        // Do not claim `transient` until mount succeeds so a superseded load can
+        // discard itself without ripping out the still-visible previous page.
         const page: MountedPage = {
             container: newContainer(),
             app: null,
             key,
             props: createProps(nextProps),
         };
-        transient = page;
+        page.container.style.position = "absolute";
+        page.container.style.inset = "0";
+        page.container.style.visibility = "hidden";
+        page.container.setAttribute("aria-hidden", "true");
         // eslint-disable-next-line svelte/no-dom-manipulating -- PageOutlet mounts feature hosts
         root.appendChild(page.container);
-        await mountPage(page, route, generation);
-        if (generation !== renderGeneration && transient === page) {
+        try {
+            await mountPage(page, route, generation);
+        } catch (error) {
+            console.error("PageOutlet: mount failed", route.name, error);
             destroyPage(page);
-            transient = null;
+            return;
         }
+        if (generation !== renderGeneration) {
+            destroyPage(page);
+            return;
+        }
+        if (!page.app) {
+            destroyPage(page);
+            return;
+        }
+        const prev = transient;
+        transient = page;
+        if (prev && prev !== page) {
+            destroyPage(prev);
+        }
+        page.container.style.position = "";
+        page.container.style.inset = "";
+        page.container.style.visibility = "";
+        page.container.removeAttribute("aria-hidden");
     }
 </script>
 
-<div bind:this={root} class="flex flex-1 min-h-0 h-full min-w-0 w-full overflow-hidden"></div>
+<div bind:this={root} class="relative flex flex-1 min-h-0 h-full min-w-0 w-full overflow-hidden bg-sem-canvas"></div>

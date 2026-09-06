@@ -14,7 +14,7 @@ describe("layout UX oracle-light", () => {
         const app = src("features/app-shell/App.svelte");
         const sidebar = src("features/app-shell/components/AppShellSidebarPanel.svelte");
         const header = src("features/app-shell/components/AppShellHeaderBar.svelte");
-        expect(app).toContain('class="relative flex flex-1 w-full overflow-hidden');
+        expect(app).toContain('class="relative flex flex-1 w-full min-h-0 overflow-hidden');
         expect(sidebar).toContain("absolute inset-y-0 left-0 z-70");
         expect(app).toContain("absolute inset-0 z-65");
         expect(app).not.toContain("pt-16 sm:pt-0");
@@ -48,6 +48,41 @@ describe("layout UX oracle-light", () => {
     it("Settings page scroll includes bottom safe-area", () => {
         const page = src("features/settings/components/SettingsPage.svelte");
         expect(page).toContain("pb-[max(1.5rem,env(safe-area-inset-bottom))]");
+        expect(page).toContain("overflow-x-hidden w-full min-w-0");
+    });
+
+    it("Relay chat stacks sidebar and room on narrow viewports", () => {
+        const page = src("features/relay-chat/components/RelayChatPage.svelte");
+        const sidebar = src("features/relay-chat/components/RelayHubSidebar.svelte");
+        const members = src("features/relay-chat/components/RelayMembersPanel.svelte");
+        const search = src("features/relay-chat/components/RelaySearchPanel.svelte");
+        expect(sidebar).toContain("max-md:hidden");
+        expect(sidebar).toContain("w-full md:w-72");
+        expect(page).toContain("max-md:hidden");
+        expect(page).toContain("absolute inset-0 z-30 bg-black/40 md:hidden");
+        expect(members).toContain("absolute inset-y-0 right-0 z-40");
+        expect(members).toContain("md:static");
+        expect(search).toContain("absolute inset-y-0 right-0 z-40");
+        expect(search).toContain("md:static");
+    });
+
+    it("Nomad browser stacks sidebar and page on narrow viewports", () => {
+        const sidebar = src("features/nomadnetwork/components/NomadNetworkSidebar.svelte");
+        const browser = src("features/nomadnetwork/components/NomadNetworkBrowser.svelte");
+        const page = src("features/nomadnetwork/components/NomadNetworkPage.svelte");
+        expect(sidebar).toContain("max-sm:hidden");
+        expect(sidebar).toContain("selectedDestinationHash");
+        expect(browser).toContain("max-sm:pointer-events-none max-sm:invisible");
+        expect(page).toContain("max-sm:hidden");
+        expect(page).toContain('onnavigate?.("", DEFAULT_PAGE_PATH, isPrivate)');
+    });
+
+    it("MessagesPage stacks list and viewer under sm", () => {
+        const page = src("features/messages/MessagesPage.svelte");
+        const picker = src("features/messages/components/ComposerEmojiStickerGifPicker.svelte");
+        expect(page).toContain('class={destinationHash ? "hidden sm:flex" : ""}');
+        expect(page).toContain("hidden sm:flex");
+        expect(picker).toContain("max-h-[min(420px,50dvh)]");
     });
 
     describe("Toast + CallOverlay stacking", () => {

@@ -122,10 +122,9 @@ export function isSyncingPropagationNode(state: AppShellState) {
 }
 
 export function shellCanvasStyle(state: AppShellState) {
-    if (!state.config) {
-        return "";
-    }
-    const background = shellCanvasBackgroundStyle(state.config, state.effectiveThemeMode);
+    // Always paint a canvas color so dark mode never flashes through to the
+    // light #app fallback while config is still loading.
+    const background = shellCanvasBackgroundStyle(state.config || {}, state.effectiveThemeMode);
     return background ? `background-color: ${background};` : "";
 }
 

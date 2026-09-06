@@ -22,6 +22,7 @@
         openLxmfQr,
         sendAnnounce,
     } from "../lib/appShellIdentity.js";
+    import { navigate } from "../../../shell/hashRouter.js";
     import {
         enterSidebarNavEdit,
         onMoreNavToggle,
@@ -136,6 +137,7 @@
                     onannounceintervalchange={(seconds) => void onAnnounceIntervalChange(shell, seconds)}
                     oncopyvalue={(value, label) => void copyValue(shell, value, label)}
                     onopenlxmfqr={() => void openLxmfQr(shell)}
+                    onnavigatetoidentities={() => void navigate({ name: "identities" })}
                 />
             {:else if shell.config}
                 <AppSidebarClassicFooter

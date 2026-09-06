@@ -116,12 +116,12 @@
     <button
         bind:this={triggerButton}
         type="button"
-        class="relative rounded-full p-1.5 sm:p-2 text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+        class="toolbar-icon-btn relative"
         title={t("app.language")}
         aria-label={t("app.language")}
         onclick={toggleDropdown}
     >
-        <MaterialDesignIcon iconName="translate" class="w-5 h-5 sm:w-6 sm:h-6" />
+        <MaterialDesignIcon iconName="translate" class="size-5" />
     </button>
 
     {#if isDropdownOpen}

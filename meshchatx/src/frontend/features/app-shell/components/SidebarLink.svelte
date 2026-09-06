@@ -3,13 +3,8 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
     import { navRouteIsActive } from "../../../js/navRouteActive.js";
-
-    interface RouteTarget {
-        name?: string;
-        path?: string;
-        params?: Record<string, unknown>;
-        query?: Record<string, unknown>;
-    }
+    import { resolveTarget } from "../../../shell/hashRouter.js";
+    import type { RouteTarget } from "../../../shell/hashRouter.js";
 
     interface Props {
         to: RouteTarget;
@@ -36,9 +31,20 @@
     const isActive = $derived(navRouteIsActive(to?.name, activeRouteName));
 
     const href = $derived.by(() => {
-        if (to?.path) return `#${to.path}`;
-        if (to?.name) return `#/${to.name}`;
-        return "#";
+        if (!to?.path && !to?.name) {
+            return "#";
+        }
+        try {
+            return `#${resolveTarget(to)}`;
+        } catch {
+            if (to.path) {
+                return `#${to.path.startsWith("/") ? to.path : `/${to.path}`}`;
+            }
+            if (to.name) {
+                return `#/${to.name}`;
+            }
+            return "#";
+        }
     });
 
     const activeClass = $derived.by(() => {

@@ -22,6 +22,8 @@ function registerTestRoutes() {
     registerRoute({ name: "about", path: "/about", mount: "svelte", load });
     registerRoute({ name: "auth", path: "/auth", mount: "svelte", load });
     registerRoute({ name: "map", path: "/map", mount: "svelte", load, meta: { keepAlive: true } });
+    registerRoute({ name: "interfaces.add", path: "/interfaces/add", mount: "svelte", load });
+    registerRoute({ name: "profile.icon", path: "/profile/icon", mount: "svelte", load });
     registerRoute({
         name: "relay-chat-popout",
         path: "/popout/relay-chat/:hubHash/:room?",
@@ -83,6 +85,12 @@ describe("hashRouter", () => {
         expect(resolveTarget({ name: "messages" })).toBe("/messages");
         expect(resolveTarget({ name: "about", hash: "#about-database-backups" })).toBe("/about#about-database-backups");
         expect(resolveTarget({ name: "map", query: { lat: 1, zoom: null } })).toBe("/map?lat=1");
+    });
+
+    it("maps dotted route names to slash paths not name-as-path hashes", () => {
+        expect(resolveTarget({ name: "interfaces.add" })).toBe("/interfaces/add");
+        expect(resolveTarget({ name: "profile.icon" })).toBe("/profile/icon");
+        expect(resolveTarget({ name: "interfaces.add" })).not.toBe("/interfaces.add");
     });
 
     it("redirects the root path to messages", async () => {
