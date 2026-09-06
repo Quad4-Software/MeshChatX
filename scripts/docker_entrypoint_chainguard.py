@@ -37,7 +37,7 @@ def main() -> None:
         os.setuid(pw.pw_uid)
         os.environ.setdefault("HOME", pw.pw_dir)
 
-    os.execvp(argv[0], argv)
+    os.execvp(argv[0], argv)  # nosec: BAN-B606
 
 
 if __name__ == "__main__":

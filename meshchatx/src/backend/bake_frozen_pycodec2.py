@@ -118,22 +118,32 @@ def _darwin_load_commands(ext_so: Path) -> list[str]:
 
 def _rewrite_darwin_extension(ext_so: Path, dylib: Path) -> None:
     refs = _darwin_load_commands(ext_so)
-    for old_ref in refs:
-        if old_ref == _LOADER_PATH_DYLIB:
-            continue
+    install_name_tool = shutil.which("install_name_tool")
+    if install_name_tool:
+        for old_ref in refs:
+            if old_ref == _LOADER_PATH_DYLIB:
+                continue
+            subprocess.run(
+                [
+                    install_name_tool,
+                    "-change",
+                    old_ref,
+                    _LOADER_PATH_DYLIB,
+                    str(ext_so),
+                ],
+                check=False,
+            )
         subprocess.run(
-            ["install_name_tool", "-change", old_ref, _LOADER_PATH_DYLIB, str(ext_so)],
+            [install_name_tool, "-id", _LOADER_PATH_DYLIB, str(dylib)],
             check=False,
         )
-    subprocess.run(
-        ["install_name_tool", "-id", _LOADER_PATH_DYLIB, str(dylib)],
-        check=False,
-    )
-    subprocess.run(
-        ["codesign", "--force", "--sign", "-", str(ext_so), str(dylib)],
-        check=False,
-        capture_output=True,
-    )
+    codesign = shutil.which("codesign")
+    if codesign:
+        subprocess.run(
+            [codesign, "--force", "--sign", "-", str(ext_so), str(dylib)],
+            check=False,
+            capture_output=True,
+        )
 
 
 def _prune_pkg_extra_codec2(pkg: Path, keep_name: str) -> None:
