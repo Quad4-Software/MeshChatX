@@ -14,7 +14,7 @@ import GlobalEmitter from "../../../js/GlobalEmitter.js";
 import GlobalState from "../../../js/GlobalState.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import { t } from "../../../js/i18n.js";
-import { normalizeUiLocaleCode, setLocale } from "../../../js/localeLoader.js";
+import { getCurrentUiLocale, normalizeUiLocaleCode, setLocale } from "../../../js/localeLoader.js";
 import { bundledReticulumDocsUrl } from "../../../js/reticulumDocsEntryUrl.js";
 import { navigate } from "../../../shell/hashRouter.js";
 
@@ -190,8 +190,7 @@ export class TutorialState {
 
     get reticulumBundledDocsUrl(): string {
         void this.localeVersion;
-        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("meshchatx_locale") : null;
-        return bundledReticulumDocsUrl(stored || "en");
+        return bundledReticulumDocsUrl(getCurrentUiLocale() || "en");
     }
 
     get hasIdentityImportInput(): boolean {

@@ -31,7 +31,7 @@ export function listLocaleCodes(): string[] {
         });
 }
 
-export function normalizeUiLocaleCode(code: string | null | undefined): string {
+export function normalizeUiLocaleCode(code: string | null | undefined | unknown): string {
     if (!code || typeof code !== "string") {
         return "en";
     }
@@ -94,6 +94,9 @@ export async function setLocale(_unused: unknown, code: string): Promise<boolean
     if (typeof document !== "undefined") {
         document.documentElement.lang = normalized;
     }
+    if (typeof localStorage !== "undefined") {
+        localStorage.setItem("meshchatx_ui_locale", normalized);
+    }
     return true;
 }
 
@@ -131,7 +134,8 @@ export async function initSvelteI18n(enMessages: Record<string, unknown>): Promi
 
     const initial =
         normalizeUiLocaleCode(
-            (typeof localStorage !== "undefined" && localStorage.getItem("meshchatx_ui_locale")) ||
+            (typeof localStorage !== "undefined" &&
+                (localStorage.getItem("meshchatx_ui_locale") || localStorage.getItem("meshchatx_locale"))) ||
                 getLocaleFromNavigator() ||
                 "en"
         ) || "en";
