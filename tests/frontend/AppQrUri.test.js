@@ -1,8 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-    getMyIdentityUri,
-    openLxmfQr,
-} from "../../meshchatx/src/frontend/features/app-shell/lib/appShellIdentity.js";
+import { getMyIdentityUri, openLxmfQr } from "../../meshchatx/src/frontend/features/app-shell/lib/appShellIdentity.js";
 import { handleProtocolLink } from "../../meshchatx/src/frontend/features/app-shell/lib/appShellLinks.js";
 
 vi.mock("qrcode", () => ({
@@ -30,9 +27,7 @@ describe("app-shell QR and protocol URI handling", () => {
 
         expect(state.showLxmfQr).toBe(true);
         expect(state.lxmfQrDataUrl).toBe("data:image/png;base64,abc123");
-        expect(getMyIdentityUri(state)).toBe(
-            `lxma://${"a".repeat(32)}:${"b".repeat(128)}`
-        );
+        expect(getMyIdentityUri(state)).toBe(`lxma://${"a".repeat(32)}:${"b".repeat(128)}`);
     });
 
     it("parses lxma protocol links and routes by destination hash", () => {

@@ -60,7 +60,12 @@ describe("boot and load smoothness", () => {
         const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/features/app-shell/App.svelte"), "utf8");
         const themeEngine = readFileSync(resolve(ROOT, "meshchatx/src/frontend/theme/themeEngine.ts"), "utf8");
         expect(app).toContain("shellCanvasStyle");
-        expect(readFileSync(resolve(ROOT, "meshchatx/src/frontend/features/app-shell/components/AppShellHeaderBar.svelte"), "utf8")).toContain("bg-sem-canvas");
+        expect(
+            readFileSync(
+                resolve(ROOT, "meshchatx/src/frontend/features/app-shell/components/AppShellHeaderBar.svelte"),
+                "utf8"
+            )
+        ).toContain("bg-sem-canvas");
         expect(app).toContain("PageOutlet");
         expect(themeEngine).toContain("setUiTheme");
         expect(themeEngine).toContain("meshchatx_ui_theme");

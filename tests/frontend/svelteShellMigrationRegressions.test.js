@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Source contracts for APIs that regressed during the Vue→Svelte shell flip.
+ * Source contracts for APIs that regressed during the Svelte shell flip.
  * These assert live Svelte sources wire the correct backend paths.
  */
 
