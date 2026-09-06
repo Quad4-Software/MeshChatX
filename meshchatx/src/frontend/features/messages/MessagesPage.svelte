@@ -102,7 +102,7 @@
     let messagesListSidebarCollapsed = $state(loadFeatureSidebarCollapsed("messages") ?? false);
     let peers = $state<Record<string, Peer>>({});
 
-    const initialPaneRestore = loadAndRestorePanes(destinationHash, 2);
+    const initialPaneRestore = (() => loadAndRestorePanes(destinationHash, 2))();
     let panes = $state<Pane[]>(initialPaneRestore?.panes ?? [{ id: 1, peer: null }]);
     let focusedPaneId = $state(initialPaneRestore?.focusedPaneId ?? 1);
     let nextPaneId = $state(initialPaneRestore?.nextPaneId ?? 2);

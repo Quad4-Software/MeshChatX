@@ -75,7 +75,8 @@
         onToggleAnnounceListen,
     }: Props = $props();
 
-    let activeTab = $state(initialTab || "discover");
+    const initialTabValue = (() => initialTab || "discover")();
+    let activeTab = $state(initialTabValue);
 
     const tabs = [
         { id: "discover", labelKey: "map.tab_discover" },
