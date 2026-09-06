@@ -8,7 +8,7 @@ import json
 import zipfile
 from dataclasses import dataclass
 from io import BytesIO
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree as ET  # nosec: BAN-B405
 
 ZIP_LOCAL_HEADER = b"PK\x03\x04"
 MAX_KMZ_ENTRIES = 512
@@ -149,7 +149,7 @@ def validate_kml_bytes(
     if "<!DOCTYPE" in head or "<!ENTITY" in head:
         raise GeoValidationError("dtd_forbidden")
     try:
-        root = ET.fromstring(text)
+        root = ET.fromstring(text)  # nosec: BAN-B314
     except ET.ParseError as exc:
         raise GeoValidationError("invalid_kml") from exc
     if _strip_ns(root.tag).lower() != "kml":
