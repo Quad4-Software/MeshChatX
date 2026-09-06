@@ -52,8 +52,8 @@ ReticulumMeshChat (meshchatx/meshchat.py)
 
 ## Repo layout
 
-| Path                          | Role                                      |
-| ----------------------------- | ----------------------------------------- |
+| Path                        | Role                                      |
+| --------------------------- | ----------------------------------------- |
 | meshchatx/meshchat.py       | orchestration, CLI, lifecycle             |
 | meshchatx/src/backend/http/ | middleware, routes, WS                    |
 | meshchatx/src/backend/      | managers, DB, security, Landlock, plugins |
@@ -130,12 +130,12 @@ Shared: Reticulum config ~/.reticulum (--reticulum-config-dir / MESHCHAT_RETICUL
 
 Do not conflate these.
 
-| Goal                    | Where                              | Artifact                                               |
-| ----------------------- | ---------------------------------- | ------------------------------------------------------ |
-| Private key only        | Tutorial step 2, Identities import | POST /api/v1/identity/restore                        |
+| Goal                    | Where                              | Artifact                                         |
+| ----------------------- | ---------------------------------- | ------------------------------------------------ |
+| Private key only        | Tutorial step 2, Identities import | POST /api/v1/identity/restore                    |
 | History + settings tree | About restore, CLI                 | POST /api/v1/database/restore, --restore-db .zip |
 
-Key export extension: identity.bin. Key pickers: .bin, .key, .identity, application/octet-stream, */*. DB restore pickers: .zip only.
+Key export extension: identity.bin. Key pickers: .bin, .key, .identity, application/octet-stream, _/_. DB restore pickers: .zip only.
 Skill: .agents/skills/identity-restore/SKILL.md.
 
 ## Persistence
@@ -150,16 +150,16 @@ Skill: .agents/skills/identity-restore/SKILL.md.
 
 MESHCHAT_LANDLOCK: 1 on, 0 off, unset = auto when kernel supports.
 
-| Fact             | Detail                                                                                   |
-| ---------------- | ---------------------------------------------------------------------------------------- |
+| Fact             | Detail                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------ |
 | SQLite           | Under Landlock, temp_store=FILE can yield unable to open database file. Keep MEMORY. |
-| Memory pressure  | May shrink cache/mmap. Keep MEMORY temp while Landlock is active.                        |
-| Without Landlock | FILE temp + storage-local sqlite-tmp TMPDIR is fine.                                   |
-| Subprocess       | PATH tools outside allowed roots fail with Permission denied even if "detected".         |
+| Memory pressure  | May shrink cache/mmap. Keep MEMORY temp while Landlock is active.                    |
+| Without Landlock | FILE temp + storage-local sqlite-tmp TMPDIR is fine.                                 |
+| Subprocess       | PATH tools outside allowed roots fail with Permission denied even if "detected".     |
 | Allowed extras   | ~/.local/bin, pipx, Argos under ~/.local/share/argos-translate.                      |
-| rnsh/rnx         | Prefer python -m …. rnsh uses storage-scoped HOME.                                     |
-| Not covered      | Broken symlinks out of allowed trees, nvm-only tools, arbitrary location_cmd.          |
-| Tests            | Apply Landlock only in a subprocess (landlock_integration_support.py).                 |
+| rnsh/rnx         | Prefer python -m …. rnsh uses storage-scoped HOME.                                   |
+| Not covered      | Broken symlinks out of allowed trees, nvm-only tools, arbitrary location_cmd.        |
+| Tests            | Apply Landlock only in a subprocess (landlock_integration_support.py).               |
 
 After Landlock or Popen-facing edits:
 
@@ -172,14 +172,14 @@ Host sandbox examples: docs/en/platform-guides/linux-sandbox.md.
 
 ## Security
 
-| Control      | Note                                                                    |
-| ------------ | ----------------------------------------------------------------------- |
-| HTTPS/WSS    | On by default (per-identity self-signed when custom PEMs absent)        |
-| Auth         | Optional (--auth / MESHCHAT_AUTH=true)                              |
-| CSRF         | Required on mutating HTTP                                               |
-| Cookies      | Encrypted session                                                       |
-| Middleware   | CORS, CSP, lockout when auth on, optional IP allowlist                  |
-| Privacy mode | Blocks outbound clearnet HTTP. Does not stop Reticulum mesh.            |
+| Control      | Note                                                                  |
+| ------------ | --------------------------------------------------------------------- |
+| HTTPS/WSS    | On by default (per-identity self-signed when custom PEMs absent)      |
+| Auth         | Optional (--auth / MESHCHAT_AUTH=true)                                |
+| CSRF         | Required on mutating HTTP                                             |
+| Cookies      | Encrypted session                                                     |
+| Middleware   | CORS, CSP, lockout when auth on, optional IP allowlist                |
+| Privacy mode | Blocks outbound clearnet HTTP. Does not stop Reticulum mesh.          |
 | Bind         | Prefer 127.0.0.1. Do not expose to public internet without hardening. |
 
 Sensitive config (auth enable / password hash): CSRF-protected HTTP only, not open WS mutators.
@@ -214,10 +214,10 @@ Frontend/Android surface rules: .agents/conventions/frontend.md, .agents/convent
 
 CLI flags usually mirror these.
 
-| Variable / flag                                            | Purpose                                      |
-| ---------------------------------------------------------- | -------------------------------------------- |
-| MESHCHAT_HOST / --host                                 | Bind (default 127.0.0.1)                   |
-| MESHCHAT_PORT / --port                                 | Port (default 8000)                        |
+| Variable / flag                                        | Purpose                                      |
+| ------------------------------------------------------ | -------------------------------------------- |
+| MESHCHAT_HOST / --host                                 | Bind (default 127.0.0.1)                     |
+| MESHCHAT_PORT / --port                                 | Port (default 8000)                          |
 | MESHCHAT_HEADLESS / --headless                         | No auto browser                              |
 | MESHCHAT_STORAGE_DIR / --storage-dir                   | App storage root                             |
 | MESHCHAT_RETICULUM_CONFIG_DIR / --reticulum-config-dir | Reticulum config                             |
@@ -226,21 +226,21 @@ CLI flags usually mirror these.
 | MESHCHAT_AUTH / --auth                                 | Enable web auth                              |
 | MESHCHAT_NO_HTTPS / --no-https                         | HTTP instead of HTTPS                        |
 | MESHCHAT_SSL_CERT + MESHCHAT_SSL_KEY                   | Custom TLS PEMs (both required)              |
-| MESHCHAT_IDENTITY_FILE / BASE32 / BASE64             | Seed identity                                |
+| MESHCHAT_IDENTITY_FILE / BASE32 / BASE64               | Seed identity                                |
 | MESHCHAT_AUTO_RECOVER / --auto-recover                 | DB recovery on startup                       |
 | MESHCHAT_EMERGENCY / --emergency                       | Limited operation                            |
 | MESHCHAT_RESET_PASSWORD / --reset-password             | Clear password hash                          |
 | MESHCHAT_DISABLE_PLUGINS / --disable-plugins           | Disable plugins                              |
-| MESHCHAT_LANDLOCK                                        | 1 / 0 / unset auto                       |
+| MESHCHAT_LANDLOCK                                      | 1 / 0 / unset auto                           |
 | MESHCHAT_SELF_CHECK / --self-check                     | Diagnostics then exit                        |
 | MESHCHAT_MEMORY_DIAG / --memory-diag                   | tracemalloc                                  |
-| MESHCHAT_DISABLE_CSRF                                    | Dangerous. Tests/dev only                    |
-| MESHCHAT_SKIP_STORAGE_LOCK                               | Dangerous. Overlapping instances             |
-| MESHCHAT_RNS_LOG_LEVEL                                   | RNS verbosity                                |
-| MESHCHAT_RNS_LOG_DEST                                    | stdout or rotating logger                  |
-| MESHCHAT_DEBUGPY                                         | task debug listen                          |
-| MESHCHAT_DEBUGPY_PORT                                    | default 5678 on 127.0.0.1                    |
-| MESHCHAT_DEBUGPY_WAIT                                    | 1 wait for attach                          |
+| MESHCHAT_DISABLE_CSRF                                  | Dangerous. Tests/dev only                    |
+| MESHCHAT_SKIP_STORAGE_LOCK                             | Dangerous. Overlapping instances             |
+| MESHCHAT_RNS_LOG_LEVEL                                 | RNS verbosity                                |
+| MESHCHAT_RNS_LOG_DEST                                  | stdout or rotating logger                    |
+| MESHCHAT_DEBUGPY                                       | task debug listen                            |
+| MESHCHAT_DEBUGPY_PORT                                  | default 5678 on 127.0.0.1                    |
+| MESHCHAT_DEBUGPY_WAIT                                  | 1 wait for attach                            |
 
 ```bash
 meshchatx --restore-db /path/to/backup.zip
@@ -250,8 +250,8 @@ meshchatx --restore-db /path/to/backup.zip
 
 | Change             | Update                                       |
 | ------------------ | -------------------------------------------- |
-| Backend            | tests/backend/                             |
-| Frontend           | tests/frontend/                            |
+| Backend            | tests/backend/                               |
+| Frontend           | tests/frontend/                              |
 | Routes / WS shapes | contract fixtures (see conventions/tests.md) |
 
 Prefer focused suites. Full task test is heavy.

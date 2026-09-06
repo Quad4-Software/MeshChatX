@@ -16,7 +16,7 @@ Never imply identity-key import restores message history.
 
 ## Guards checklist
 
-- File picker accept: .bin,.key,.identity,application/octet-stream,*/*
+- File picker accept: .bin,.key,.identity,application/octet-stream,_/_
 - Export download filename: identity.bin
 - Reject empty / oversized identity payloads (client + server, max 64 KiB)
 - Normalize base32 by stripping all whitespace

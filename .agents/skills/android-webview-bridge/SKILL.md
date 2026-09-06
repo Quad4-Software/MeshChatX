@@ -18,7 +18,7 @@ Keep Chaquopy backend boot, WebView file choosers, storage locks, and external n
 ## File chooser
 
 - Extension tokens like .identity are **not** valid MIME types for Intent.EXTRA_MIME_TYPES.
-- Map .ext accepts to application/octet-stream and/or */*.
+- Map .ext accepts to application/octet-stream and/or _/_.
 - Set EXTRA_ALLOW_MULTIPLE only when the WebView chooser mode is multi-select.
 
 ## Storage and lock

@@ -20,12 +20,12 @@ LXST runs over Reticulum Links. Address callees by identity/destination hash. No
 
 ## Key paths
 
-| Area               | Path                                                              |
-| ------------------ | ----------------------------------------------------------------- |
+| Area               | Path                                                            |
+| ------------------ | --------------------------------------------------------------- |
 | Telephony managers | meshchatx/src/backend/ telephone / ringtone / voicemail modules |
 | Identity wiring    | meshchatx/src/backend/identity_context.py                       |
 | Adversarial tests  | tests/backend/test_lxst_hostless_audio.py                       |
-| Frontend call UI   | meshchatx/src/frontend/features/call/                     |
+| Frontend call UI   | meshchatx/src/frontend/features/call/                           |
 
 ## Gates
 
@@ -45,9 +45,9 @@ Also: reticulum-design-gates, auth-csrf-ws-security, identity-switch-teardown.
 
 ## LXST 0.5 duplex / PTT
 
-| Control            | LXST API                                   | MeshChatX surface                                    |
-| ------------------ | ------------------------------------------ | ---------------------------------------------------- |
-| Full / half duplex | Telephone.switch_mode, Profiles.MODE_* | POST /api/v1/telephone/switch-call-mode/{mode_id}  |
-| PTT (half duplex)  | squelch_transmit / unsquelch_transmit  | POST /api/v1/telephone/ptt with {"active": bool} |
-| Mute mic / speaker | mute_transmit / mute_receive           | existing mute endpoints                              |
-| Live stats         | RNS Link counters on active_call         | /api/v1/telephone/status tx_* / rx_* / *_bps |
+| Control            | LXST API                               | MeshChatX surface                                 |
+| ------------------ | -------------------------------------- | ------------------------------------------------- |
+| Full / half duplex | Telephone.switch_mode, Profiles.MODE_* | POST /api/v1/telephone/switch-call-mode/{mode_id} |
+| PTT (half duplex)  | squelch_transmit / unsquelch_transmit  | POST /api/v1/telephone/ptt with {"active": bool}  |
+| Mute mic / speaker | mute_transmit / mute_receive           | existing mute endpoints                           |
+| Live stats         | RNS Link counters on active_call       | /api/v1/telephone/status tx_* / rx_* / *_bps      |

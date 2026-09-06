@@ -16,16 +16,16 @@ Wire nav, tools, commands, settings search, and WebSocket events through registr
 
 ## Registries
 
-| Registry                                  | Role                                  |
-| ----------------------------------------- | ------------------------------------- |
-| navRegistry.js                          | Primary sidebar / nav                 |
-| toolsRegistry.js                        | Tools area entries                    |
-| commandRegistry.js                      | Command palette                       |
-| settingsSectionRegistry.js              | Settings search / sections            |
+| Registry                              | Role                                  |
+| ------------------------------------- | ------------------------------------- |
+| navRegistry.js                        | Primary sidebar / nav                 |
+| toolsRegistry.js                      | Tools area entries                    |
+| commandRegistry.js                    | Command palette                       |
+| settingsSectionRegistry.js            | Settings search / sections            |
 | wsEventRegistry.js + wsEventBridge.js | Typed WS handlers                     |
-| postInstallPromptRegistry.js            | Existing-user / after-install prompts |
-| routeRegistry.js + featureRegistry.js | Feature routes (registerFeature)    |
-| features/registerAllFeatures.ts         | Boot hook for feature modules         |
+| postInstallPromptRegistry.js          | Existing-user / after-install prompts |
+| routeRegistry.js + featureRegistry.js | Feature routes (registerFeature)      |
+| features/registerAllFeatures.ts       | Boot hook for feature modules         |
 
 Core boot registers once via registerCoreContributions.js and core*Entries.js siblings.
 Feature modules register via features/registerAllFeatures.ts (see features/<id>/ and svelte-feature-modules skill).
@@ -37,11 +37,11 @@ Sidebar pills are declared on CORE_NAV_ENTRIES in coreNavEntries.js via badge: {
 
 Current sources:
 
-| Source                     | Meaning                                     | Cleared when                         |
-| -------------------------- | ------------------------------------------- | ------------------------------------ |
+| Source                   | Meaning                                     | Cleared when                         |
+| ------------------------ | ------------------------------------------- | ------------------------------------ |
 | unreadConversationsCount | Unread LXMF conversations                   | Conversation marked read             |
 | relayChatUnreadCount     | RRC mention count (when relay chat enabled) | Mentions consumed on Relay chat page |
-| missedCallsCount         | Unviewed telephone_missed_call rows       | Call page opened or history cleared  |
+| missedCallsCount         | Unviewed telephone_missed_call rows         | Call page opened or history cleared  |
 
 App sidebar nav maps each source through GlobalState and getNavBadgeCount. Collapsed sidebar still shows pill badges on the icon. There is no header notification bell anymore. Message sounds stay under Settings.
 

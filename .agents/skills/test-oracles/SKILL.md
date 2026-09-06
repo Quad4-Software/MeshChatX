@@ -18,14 +18,14 @@ Write property, fuzz, and security tests that decide accept or reject with an in
 
 An oracle predicts the correct outcome from the input alone (or from a simpler trusted model), then the test checks the code matches that prediction.
 
-| Oracle type    | Example                                          |
-| -------------- | ------------------------------------------------ |
-| Accept/reject  | Empty room name must raise ValueError            |
+| Oracle type    | Example                                        |
+| -------------- | ---------------------------------------------- |
+| Accept/reject  | Empty room name must raise ValueError          |
 | Origin parse   | http://127.0.0.1:9337@example.com is not local |
-| Round-trip     | encode(decode(x)) == x when decode succeeds      |
-| Jail           | Successful path stays under storage root         |
-| Closed reasons | Error message is one of a fixed set              |
-| Membership     | After PART by non-member, no PARTED fanout       |
+| Round-trip     | encode(decode(x)) == x when decode succeeds    |
+| Jail           | Successful path stays under storage root       |
+| Closed reasons | Error message is one of a fixed set            |
+| Membership     | After PART by non-member, no PARTED fanout     |
 
 ## Hard refuse (soft fuzz)
 

@@ -75,15 +75,15 @@ Allowed:
 
 ## Anti-patterns (do not ship)
 
-| Anti-pattern                                         | Do this instead                                            |
-| ---------------------------------------------------- | ---------------------------------------------------------- |
+| Anti-pattern                                       | Do this instead                                            |
+| -------------------------------------------------- | ---------------------------------------------------------- |
 | fetch('https://api...') required to send a message | LXMF send via local router                                 |
 | Store peer as host:port                            | Store destination hash + aspect                            |
-| Spinner until ACK or fail hard                       | Outbound state machine + propagation                       |
-| JSON status blob every second on LoRa                | Announce sparingly, encode intent densely                  |
-| Global singleton cache of all identities' inboxes    | Per-identity DB and managers                               |
+| Spinner until ACK or fail hard                     | Outbound state machine + propagation                       |
+| JSON status blob every second on LoRa              | Announce sparingly, encode intent densely                  |
+| Global singleton cache of all identities' inboxes  | Per-identity DB and managers                               |
 | New mesh app on lxmf.delivery                      | Dedicated aspect + link/request or LXMF only if it is mail |
-| Debug dump with private key paths and full hashes    | Redacted export with user toggles                          |
+| Debug dump with private key paths and full hashes  | Redacted export with user toggles                          |
 
 ## Review checklist (paste into PR / finish notes)
 

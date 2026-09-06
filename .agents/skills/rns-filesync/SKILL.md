@@ -28,12 +28,12 @@ Reference resolve helper: rns_filesync_handler.py (_resolve_manager_path).
 
 ## Key files
 
-| Area             | Path                                                                                     |
-| ---------------- | ---------------------------------------------------------------------------------------- |
-| Handler          | meshchatx/src/backend/rns_filesync_handler.py                                          |
-| HTTP             | meshchatx/src/backend/http/routes/filesync.py                                          |
-| Vendored service | vendor/rns_filesync/                                                                   |
-| UI               | meshchatx/src/frontend/features/filesync/                                              |
+| Area             | Path                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| Handler          | meshchatx/src/backend/rns_filesync_handler.py                                        |
+| HTTP             | meshchatx/src/backend/http/routes/filesync.py                                        |
+| Vendored service | vendor/rns_filesync/                                                                 |
+| UI               | meshchatx/src/frontend/features/filesync/                                            |
 | Oracle tests     | tests/backend/test_rns_filesync_security.py, tests/backend/test_path_jail_oracles.py |
 
 ## Verification
