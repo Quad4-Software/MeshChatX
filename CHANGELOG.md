@@ -2,44 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.9.0] - 2026-09-TBD [unreleased]
-
-## Major Refactors
-
-- **Vue/JS to Svelte/TS**: Major frontend refactor. All new pages and shared UI go Svelte 5 and TypeScript. This was done using AI Agents with proper planning and layers to prevent losing any functionality. The frontend is now more maintainable and readable.
-- **Some Python God-files Broken Down**: Python backend refactor to make code more maintainable and readable. This is still a work in progress till 5.0.0.
+## [5.0.0] - 2026-12-TBD [unreleased]
 
 ### Added
 
-- **DX tooling**: Oxlint runs before ESLint for JS/TS. Vitest browser-mode smoke for Toggle. Playwright Electron shell harness (`task test:e2e:electron`). Core OpenAPI at `openapi/meshchatx-ui-core.yaml` with contract tests and optional Schemathesis (`MESHCHAT_OPENAPI_LIVE=1`). Ruff enables B and UP. Frontend API path contract also scans `.ts` and `.svelte` and accepts param-base prefixes. Fix drifted UI paths (reticulum interfaces, maintenance message import/export, map tiles/export cancel, dead RRC discovery/members calls).
-- **Bug Reports Extension (off by default)**: Capture crashes and issues locally, group duplicates, and send a redacted report over the RNS when you choose. Crash screens can open or save into Bug Reports.
-- **Release channels**: Testing, Beta, and Stable. The sidebar shows which channel you are on. Testing and Beta ask once how to file useful bug reports.
-- **Install options**: Flatpak channels at https://cdn.meshchatx.com/flatpak/ (testing, beta, stable). Docker images with testing and beta tags.
-- **Plugins**: Richer plugin pages (tabs, tables, images, and more). Enabled plugins appear as their own destinations in the app. Plugin pages follow the theme and accent colors.
-- **Archives**: Search shows short previews. Open Micron, Markdown, or HTML previews from a card. Recrawl a page from the viewer. Layout stacks on phones.
-- **Smart Crawler**: Crawls less aggressively (about one request per node per day). Sites can opt out with # nocrawl or Archives settings.
-- **Nomad private tabs**: Ctrl+Shift+P opens a purple private tab that is not archived, favourited, or saved in history.
-- **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step.
-- **Nomad identify-on-connect** (schema 58): Sticky per-favourite Identify when connecting, matching NomadNet. Auto-identifies on link before page requests. Fingerprint toggle and favourites import/export carry `identify_on_connect`.
-- **Android Auto**: LXMF message notifications use MessagingStyle with reply and mark-as-read so Android Auto can read and answer them from the car. Tap opens meshchatx://app/messages/<hash>.
+### Changed
+
+- **Frontend stack**: Migrated from Vue 3 and JSDoc to Svelte 5 and TypeScript. All new pages and shared UI now use Svelte 5 and TypeScript.
+- **Backend refactor**: Broke down large Python god files into smaller, maintainable modules.
+- **Dependencies**: Major bump to Electron 44.2.0, Vitest 5.0.0, vis-data 8.0.5, vis-network 10.1.2, jsdom 30.0.1, and other compatible packages.
 
 ### Fixed
-
-- **Messages**: Coming back to an open chat marks it read and clears badges and desktop notifications.
-- **Messages (propagated)**: Propagated send waits for a path to the preferred propagation node. Missing node or path gets a clear error and delivery help tip. Failed pending bubbles stay visible with the error.
-- **NomadNet**: Opening a node while the app is still connecting no longer sticks on Loading. A stuck page no longer freezes the whole Nomad UI. Switching away and back no longer falsely claims the page renderer stopped.
-- **Desktop app**: Startup and crash screens respect dark mode instead of flashing white.
-- **Map**: Interface and telemetry markers update again.
-- **UI**: Dropdown menus match the theme.
-- **Permissions-Policy**: Only microphone, camera, and autoplay are listed. Hardware and speaker-selection tokens are left to browser defaults so Brave and Chrome stop logging unrecognized feature warnings.
-
-- **Licensing**: First-party MeshChatX sources are 0BSD. MIT remains only for bundled third-party embeds (able, usb4a, rnode-flasher) and dependency notices.
-- **Reticulum**: RNS 1.5.2.
-- **WebTransport**: aioquic 1.3.0 is a normal dependency. Android builds ship aioquic and pylsqpack Chaquopy wheels.
-- **Micron**: Micron-Parser-Go WASM v1.1.0.
-- **Docs**: Short READMEs at the repo root. Full install and contributor guides under docs/en/.
-- **Auth**: ALTCHA proof-of-work on login/setup is removed (npm, Python, Android wheel, challenge API, and env flags).
-- **Docker**: Dockerfiles and compose files live under docker/ (build with -f docker/Dockerfile, compose -f docker/docker-compose.yml).
 
 ## [4.8.5] - 2026-08-21 [released]
 
