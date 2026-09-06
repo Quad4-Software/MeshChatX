@@ -49,7 +49,7 @@ export async function syncPropagationNode(state: AppShellState): Promise<void> {
 
     try {
         const preferredHash = state.config?.lxmf_preferred_propagation_node_destination_hash;
-        if (preferredHash) {
+        if (typeof preferredHash === "string" && preferredHash) {
             // Best-effort path priming. /sync also requests a path.
             try {
                 await postRequestPath(apiClient(), preferredHash);

@@ -6,34 +6,12 @@
  */
 
 import Utils from "../../../js/Utils.js";
-import {
-    channelBadgeClass,
-    channelLabelKey,
-    normalizeReleaseChannel,
-    shouldShowChannelPrompt,
-} from "../../../js/releaseChannel.js";
+import { channelLabelKey } from "../../../js/releaseChannel.js";
 import { t } from "../../../js/i18n.js";
 import ElectronUtils from "../../../js/ElectronUtils.js";
-import {
-    applyNavLayout,
-    captureNavLayout,
-    cloneNavLayout,
-    loadAppSidebarNavLayout,
-    moveNavGroup,
-    moveNavGroupByOffset,
-    moveNavItem,
-    moveNavItemByOffset,
-    orderItemsByLayout,
-    saveAppSidebarNavLayout,
-} from "../../../js/appSidebarNavLayout.js";
-import {
-    applyAppearanceTheme,
-    resolveEffectiveTheme,
-    shellCanvasBackgroundStyle,
-    subscribeSystemTheme,
-    systemPrefersDark,
-} from "../../../theme/themeEngine.js";
-import type { NavGroup, NavItem } from "./navTypes.js";
+import { orderItemsByLayout } from "../../../js/appSidebarNavLayout.js";
+import { shellCanvasBackgroundStyle } from "../../../theme/themeEngine.js";
+import type { NavItem } from "./navTypes.js";
 import { ACTIVE_SYNC_STATES } from "./appShellShared.js";
 import { getHashPopoutValue } from "./appShellState.svelte.js";
 import type { AppShellState } from "./appShellState.svelte.js";

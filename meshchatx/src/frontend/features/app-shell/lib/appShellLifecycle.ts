@@ -22,34 +22,14 @@ import {
 import { t } from "../../../js/i18n.js";
 import ElectronUtils from "../../../js/ElectronUtils.js";
 import fatalErrorState from "../../../js/fatalErrorState.js";
-import {
-    loadFeatureSidebarCollapsed,
-    saveFeatureSidebarCollapsed,
-    clearMessagePanes,
-} from "../../../js/browserLayoutStore.js";
-import {
-    applyNavLayout,
-    captureNavLayout,
-    cloneNavLayout,
-    loadAppSidebarNavLayout,
-    moveNavGroup,
-    moveNavGroupByOffset,
-    moveNavItem,
-    moveNavItemByOffset,
-    orderItemsByLayout,
-    saveAppSidebarNavLayout,
-} from "../../../js/appSidebarNavLayout.js";
+import { loadFeatureSidebarCollapsed } from "../../../js/browserLayoutStore.js";
+import { loadAppSidebarNavLayout } from "../../../js/appSidebarNavLayout.js";
 import {
     applyBackgroundPollInterval,
     BATTERY_SAVER_CHANGED_EVENT,
     loadBatterySaverPrefs,
 } from "../../../js/settings/batterySaverPrefs.js";
-import {
-    applyAppearanceTheme,
-    resolveEffectiveTheme,
-    subscribeSystemTheme,
-    systemPrefersDark,
-} from "../../../theme/themeEngine.js";
+import { subscribeSystemTheme } from "../../../theme/themeEngine.js";
 import { router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
 import { handleProtocolLink } from "./appShellLinks.js";
 import { apiClient, electronBridge } from "./appShellShared.js";
@@ -256,11 +236,13 @@ export async function bootstrapLiveTransport(state: AppShellState): Promise<void
     try {
         const status = await apiClient().get("/api/v1/status");
         const webtransport = status?.data?.webtransport || {};
-        const mode = state.config?.live_transport_mode || "auto";
+        const modeRaw = state.config?.live_transport_mode;
+        const mode = typeof modeRaw === "string" && modeRaw ? modeRaw : "auto";
         LiveTransport.configure({ mode, webtransport });
     } catch {
+        const modeRaw = state.config?.live_transport_mode;
         LiveTransport.configure({
-            mode: state.config?.live_transport_mode || "auto",
+            mode: typeof modeRaw === "string" && modeRaw ? modeRaw : "auto",
             webtransport: { server_available: false },
         });
     }
@@ -274,11 +256,11 @@ export function onLiveTransportReady(state: AppShellState): void {
     onWsShellReady(state);
 }
 
-export function onLiveQueueExpired(state: AppShellState): void {
+export function onLiveQueueExpired(_state: AppShellState): void {
     ToastUtils.warning(t("app.live_queue_expired"));
 }
 
-export function onTransportFallback(state: AppShellState): void {
+export function onTransportFallback(_state: AppShellState): void {
     ToastUtils.warning(t("app.live_transport_fallback_websocket"));
 }
 
@@ -348,14 +330,14 @@ export function stopClientHeapMemoryWatch(state: AppShellState): void {
     }
 }
 
-export function sampleClientHeapMemory(state: AppShellState): void {
+export function sampleClientHeapMemory(_state: AppShellState): void {
     let memoryInfo: unknown = null;
     try {
         memoryInfo = (performance as unknown as { memory?: unknown })?.memory ?? null;
     } catch {
         memoryInfo = null;
     }
-    const result = evaluateClientHeapSample(memoryInfo);
+    const result = evaluateClientHeapSample(memoryInfo as Record<string, unknown> | null);
     if (result.shouldWarn) {
         showMemoryWarningToastIfNeeded(ToastUtils, { fromClientHeap: true });
     }

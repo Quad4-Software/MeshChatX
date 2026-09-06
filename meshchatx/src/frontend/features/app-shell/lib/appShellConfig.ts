@@ -8,28 +8,14 @@
 import LiveTransport from "../../../js/liveTransport.js";
 import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
 import NotificationUtils from "../../../js/NotificationUtils.js";
-import { listOpenDestinationHashes, subscribeOpenDestinationHashes } from "../../../js/activeConversationStore.js";
+import { listOpenDestinationHashes } from "../../../js/activeConversationStore.js";
 import ToastUtils from "../../../js/ToastUtils.js";
-import {
-    showDatabaseHealthIssuesToastIfNeeded,
-    resetDatabaseHealthWarningState,
-} from "../../../js/databaseHealthWarning.js";
-import {
-    channelBadgeClass,
-    channelLabelKey,
-    normalizeReleaseChannel,
-    shouldShowChannelPrompt,
-} from "../../../js/releaseChannel.js";
+import { showDatabaseHealthIssuesToastIfNeeded } from "../../../js/databaseHealthWarning.js";
+import { shouldShowChannelPrompt } from "../../../js/releaseChannel.js";
 import { t } from "../../../js/i18n.js";
 import { normalizeUiLocaleCode, setLocale } from "../../../js/localeLoader.js";
 import { patchServerConfig } from "../../../js/settings/settingsConfigService.js";
-import {
-    applyAppearanceTheme,
-    resolveEffectiveTheme,
-    shellCanvasBackgroundStyle,
-    subscribeSystemTheme,
-    systemPrefersDark,
-} from "../../../theme/themeEngine.js";
+import { applyAppearanceTheme } from "../../../theme/themeEngine.js";
 import { apiClient } from "./appShellShared.js";
 import type { ShellConfig } from "./appShellShared.js";
 import { updateRingtonePlayer } from "./appShellTelephony.js";
@@ -180,7 +166,7 @@ export function applyAnnouncedEvent(state: AppShellState, json: any): void {
     void getConfig(state);
 }
 
-export async function getBlockedDestinations(state: AppShellState): Promise<void> {
+export async function getBlockedDestinations(_state: AppShellState): Promise<void> {
     try {
         const response = await apiClient().get("/api/v1/blocked-destinations");
         GlobalState.blockedDestinations = response.data.blocked_destinations || [];
@@ -189,7 +175,7 @@ export async function getBlockedDestinations(state: AppShellState): Promise<void
     }
 }
 
-export async function getKeyboardShortcuts(state: AppShellState): Promise<void> {
+export async function getKeyboardShortcuts(_state: AppShellState): Promise<void> {
     LiveTransport.send(JSON.stringify({ type: "keyboard_shortcuts.get" }));
 }
 
