@@ -96,7 +96,7 @@
             {#if !plugin.enabled}
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm cursor-pointer"
+                    class="toolbar-label-chip border border-sem-action-primary bg-sem-action-primary text-white hover:bg-sem-action-primary-hover cursor-pointer"
                     disabled={busyPluginId === plugin.id}
                     onclick={() => onenable?.(plugin.id)}
                 >
@@ -105,7 +105,7 @@
             {:else}
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-md bg-zinc-600 text-white text-sm cursor-pointer"
+                    class="toolbar-label-chip border border-sem-border bg-sem-surface-muted text-sem-fg cursor-pointer"
                     disabled={busyPluginId === plugin.id}
                     onclick={() => ondisable?.(plugin.id)}
                 >
@@ -114,7 +114,7 @@
             {/if}
             <button
                 type="button"
-                class="px-3 py-1.5 rounded-md border border-red-300 text-red-600 text-sm cursor-pointer"
+                class="toolbar-label-chip border border-red-300 text-red-600 dark:border-red-500/50 dark:text-red-400 cursor-pointer"
                 disabled={busyPluginId === plugin.id}
                 onclick={() => onremove?.(plugin)}
             >

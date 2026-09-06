@@ -3,6 +3,13 @@
 import DownloadUtils from "../../../js/DownloadUtils.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import DialogUtils from "../../../js/DialogUtils.js";
+import GlobalEmitter from "../../../js/GlobalEmitter.js";
+import {
+    loadNomadFavouritesLayout,
+    normalizeNomadFavouritesLayout,
+    saveNomadFavouritesLayout,
+    type NomadFavouritesLayout,
+} from "../../../js/nomadFavouritesLayoutStore.js";
 import { t } from "../../../js/i18n.js";
 import * as maintenanceClient from "../../../js/settings/settingsMaintenanceClient.js";
 
@@ -178,7 +185,7 @@ export async function handleClearPathTable(api = window.api): Promise<void> {
  */
 export async function exportMessages(api = window.api): Promise<void> {
     try {
-        const response = await api.get("/api/v1/messages/export");
+        const response = await api.get("/api/v1/maintenance/messages/export");
         const dataStr = JSON.stringify(response.data, null, 2);
         const exportFileDefaultName = `meshchat_messages_${new Date().toISOString().slice(0, 10)}.json`;
         await DownloadUtils.downloadFile(exportFileDefaultName, new Blob([dataStr], { type: "application/json" }));
@@ -196,7 +203,7 @@ export function importMessagesFile(file: File, api = window.api): void {
     reader.onload = async (e) => {
         try {
             const data = JSON.parse(e.target?.result as string);
-            const response = await api.post("/api/v1/messages/import", data);
+            const response = await api.post("/api/v1/maintenance/messages/import", data);
             ToastUtils.success(t("maintenance.import_success", { count: response.data.imported }));
         } catch {
             ToastUtils.error(t("maintenance.import_failed"));
@@ -237,33 +244,131 @@ export function importFoldersFile(file: File, api = window.api): void {
     reader.readAsText(file);
 }
 
+type NomadFavouritesImportParsed =
+    { kind: "full"; layout: NomadFavouritesLayout } | { kind: "section"; payload: Record<string, unknown> };
+
+function parseNomadnetFavouritesImportData(data: unknown): NomadFavouritesImportParsed | null {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+        return null;
+    }
+    const raw = data as Record<string, unknown>;
+    if (raw.format === "meshchatx/nomadnet_favourites/v1" && raw.layout && typeof raw.layout === "object") {
+        const layout = normalizeNomadFavouritesLayout(raw.layout);
+        return layout ? { kind: "full", layout } : null;
+    }
+    if (raw.format === "meshchatx/nomadnet_favourites_section/v1") {
+        const sec = raw.section;
+        if (!sec || typeof sec !== "object" || Array.isArray(sec) || typeof (sec as { id?: unknown }).id !== "string") {
+            return null;
+        }
+        return { kind: "section", payload: raw };
+    }
+    const layout = normalizeNomadFavouritesLayout(raw);
+    return layout ? { kind: "full", layout } : null;
+}
+
+async function mergeNomadnetFavouritesSectionImport(payload: Record<string, unknown>, api = window.api): Promise<void> {
+    const sec = payload.section as { id: string; name?: string; collapsed?: boolean };
+    const hashes = Array.isArray(payload.destination_hashes)
+        ? payload.destination_hashes.filter((h): h is string => typeof h === "string")
+        : [];
+    const loaded = await loadNomadFavouritesLayout(api);
+    const base = loaded || { sections: [], sectionOrder: [], favouritesBySection: {} };
+    const sections = [...base.sections];
+    const sectionOrder = [...base.sectionOrder];
+    const favouritesBySection = { ...base.favouritesBySection };
+    const idx = sections.findIndex((s) => s.id === sec.id);
+    const sectionObj = {
+        id: sec.id,
+        name: typeof sec.name === "string" && sec.name.trim() !== "" ? sec.name : t("nomadnet.favourites"),
+        collapsed: sec.collapsed === true,
+    };
+    if (idx === -1) {
+        sections.push(sectionObj);
+        if (!sectionOrder.includes(sec.id)) {
+            sectionOrder.push(sec.id);
+        }
+    } else {
+        sections[idx] = { ...sections[idx], ...sectionObj };
+    }
+    favouritesBySection[sec.id] = hashes;
+    const merged = normalizeNomadFavouritesLayout({
+        sections,
+        sectionOrder,
+        favouritesBySection,
+    });
+    if (!merged) {
+        throw new Error("invalid layout");
+    }
+    await saveNomadFavouritesLayout(api, merged);
+}
+
 /**
- * Exports nomadnet favourites layout as JSON file
+ * Exports nomadnet favourites layout plus favourite records as JSON
  */
 export async function exportNomadnetFavouritesLayout(api = window.api): Promise<void> {
+    let layout: NomadFavouritesLayout = { sections: [], sectionOrder: [], favouritesBySection: {} };
     try {
-        const response = await api.get("/api/v1/favourites/export/nomadnet");
-        const dataStr = JSON.stringify(response.data, null, 2);
-        const exportFileDefaultName = `meshchat_nomadnet_favourites_${new Date().toISOString().slice(0, 10)}.json`;
-        await DownloadUtils.downloadFile(exportFileDefaultName, new Blob([dataStr], { type: "application/json" }));
-        ToastUtils.success(t("maintenance.export_done"));
+        const loaded = await loadNomadFavouritesLayout(api);
+        if (loaded) {
+            layout = loaded;
+        }
     } catch {
-        ToastUtils.error(t("maintenance.import_failed"));
+        // keep empty layout
+    }
+    let favourites: unknown[] = [];
+    try {
+        const response = await api.get("/api/v1/favourites");
+        favourites = response.data.favourites || [];
+    } catch {
+        // continue without favourite records
+    }
+    const body = {
+        format: "meshchatx/nomadnet_favourites/v1",
+        exported_at: new Date().toISOString(),
+        favourites,
+        layout,
+    };
+    try {
+        await DownloadUtils.downloadFile(
+            `meshchat_nomadnet_favourites_${new Date().toISOString().slice(0, 10)}.json`,
+            new Blob([JSON.stringify(body, null, 2)], { type: "application/json" })
+        );
+        ToastUtils.success(t("maintenance.nomadnet_favourites_exported"));
+    } catch {
+        ToastUtils.error(t("maintenance.nomadnet_favourites_export_failed"));
     }
 }
 
 /**
- * Imports nomadnet favourites layout from a JSON file
+ * Imports nomadnet favourites layout (and optional favourites list) from JSON
  */
 export function importNomadnetFavouritesFile(file: File, api = window.api): void {
     const reader = new FileReader();
     reader.onload = async (e) => {
         try {
-            const data = JSON.parse(e.target?.result as string);
-            const response = await api.post("/api/v1/favourites/import/nomadnet", data);
-            ToastUtils.success(t("maintenance.import_success", { count: response.data?.imported ?? 0 }));
+            const data = JSON.parse(String(e.target?.result || ""));
+            const parsed = parseNomadnetFavouritesImportData(data);
+            if (!parsed) {
+                throw new Error("invalid file");
+            }
+            if (Array.isArray(data.favourites) && data.favourites.length > 0) {
+                await api.post("/api/v1/favourites/import", {
+                    favourites: data.favourites,
+                });
+            }
+            if (parsed.kind === "full") {
+                await saveNomadFavouritesLayout(api, parsed.layout);
+            } else if (parsed.kind === "section") {
+                await mergeNomadnetFavouritesSectionImport(parsed.payload, api);
+            } else {
+                throw new Error("invalid file");
+            }
+            GlobalEmitter.emit("nomadnet-favourites-layout-imported");
+            GlobalEmitter.emit("nomadnet-favourites-changed");
+            ToastUtils.success(t("maintenance.nomadnet_favourites_imported"));
         } catch {
-            ToastUtils.error(t("maintenance.import_failed"));
+            ToastUtils.error(t("maintenance.nomadnet_favourites_import_failed"));
         }
     };
     reader.readAsText(file);

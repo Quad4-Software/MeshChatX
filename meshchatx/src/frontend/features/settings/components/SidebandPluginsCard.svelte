@@ -72,7 +72,7 @@
             />
             <button
                 type="button"
-                class="px-3 py-1.5 rounded-md border border-sem-border text-sm shrink-0 min-h-[44px]"
+                class="toolbar-label-chip border border-sem-border bg-sem-surface shrink-0 min-h-11 sm:min-h-8"
                 disabled={!sidebandConfig.service_plugins_enabled || sidebandBusy}
                 title={t("plugins.sideband.browse_title")}
                 onclick={onpickdirectory}
@@ -84,7 +84,7 @@
     <div class="flex flex-wrap gap-2">
         <button
             type="button"
-            class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm"
+            class="toolbar-label-chip border border-sem-action-primary bg-sem-action-primary text-white hover:bg-sem-action-primary-hover"
             disabled={sidebandBusy}
             onclick={onsave}
         >
@@ -92,7 +92,7 @@
         </button>
         <button
             type="button"
-            class="px-3 py-1.5 rounded-md border border-sem-border text-sm"
+            class="toolbar-label-chip border border-sem-border bg-sem-surface"
             disabled={sidebandBusy}
             onclick={onreload}
         >

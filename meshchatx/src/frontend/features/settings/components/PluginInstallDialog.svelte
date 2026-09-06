@@ -229,7 +229,7 @@
             <div class="flex justify-end gap-2 pt-2">
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-md border border-sem-border text-sm"
+                    class="toolbar-label-chip border border-sem-border bg-sem-surface"
                     disabled={confirming}
                     onclick={handleCancel}
                 >
@@ -237,7 +237,7 @@
                 </button>
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm disabled:opacity-50"
+                    class="toolbar-label-chip border border-sem-action-primary bg-sem-action-primary text-white hover:bg-sem-action-primary-hover disabled:opacity-50"
                     disabled={confirming || signatureBlocksInstall}
                     onclick={handleConfirm}
                 >
