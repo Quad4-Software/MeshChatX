@@ -110,7 +110,4 @@ VITE_HOST="${VITE_DEV_HOST:-127.0.0.1}"
 VITE_PORT="${VITE_DEV_PORT:-5173}"
 
 echo "[dev] Starting Vite at http://${VITE_HOST}:${VITE_PORT} (API proxy -> ${BACKEND_URL%/api/v1/status})"
-if [[ "${MESHCHAT_VUE_DEVTOOLS:-1}" != "0" ]]; then
-    echo "[dev] Vue DevTools overlay is on. MESHCHAT_VUE_DEVTOOLS=0 disables it."
-fi
 pnpm run dev -- --host "$VITE_HOST" --port "$VITE_PORT"

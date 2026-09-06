@@ -24,6 +24,7 @@ packaging/
 meshchatx/public/
 meshchatx/src/frontend/public/
 meshchatx/src/frontend/style.css
+electron/assets/css/electron-shell.css
 
 # Other
 storage/

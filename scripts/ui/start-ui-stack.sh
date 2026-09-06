@@ -8,7 +8,6 @@ cd "$ROOT"
 export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-18079}"
 export MESHCHAT_NO_HTTPS=1
 export MESHCHAT_LANDLOCK=0
-export MESHCHAT_VUE_DEVTOOLS=0
 
 if [[ "${MESHCHAT_UI_PROD:-0}" == "1" ]]; then
     export MESHCHAT_LOG_DIR="${MESHCHAT_LOG_DIR:-$(mktemp -d -t meshchat-ui-XXXXXX)/logs}"
