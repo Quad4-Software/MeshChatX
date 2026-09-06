@@ -1,4 +1,4 @@
-# Native Electron builds for Windows and macOS on every push/PR to dev.
+# Native Electron builds for Windows, macOS arm64, and macOS x86_64 on every push/PR to dev.
 # Kept separate from ci.yml so the main test suite can finish without waiting on
 # the macOS universal slice, while still always verifying both desktop targets.
 #
@@ -60,6 +60,10 @@ jobs:
                       label: macos
                       timeout: 180
                       build_script: scripts/ci/github-build-macos.sh
+                    - os: macos-15-intel
+                      label: macos-x64
+                      timeout: 240
+                      build_script: scripts/ci/github-build-macos-x64.sh
         runs-on: ${{ matrix.os }}
         timeout-minutes: ${{ matrix.timeout }}
         defaults:
@@ -101,6 +105,7 @@ jobs:
                   key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
 
             - name: Install dependencies
+              if: matrix.label != 'macos-x64'
               run: bash scripts/ci/github-install-deps.sh
 
             - name: Fetch frontend artifact
