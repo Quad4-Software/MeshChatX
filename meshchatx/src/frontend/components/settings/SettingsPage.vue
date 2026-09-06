@@ -301,7 +301,7 @@
                                 <div class="grid grid-cols-1 gap-3">
                                     <button
                                         type="button"
-                                        class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                        class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-sem-danger/10 dark:hover:bg-red-900/20"
                                         @click="clearMessages"
                                     >
                                         <div class="flex flex-col items-start text-left">
@@ -476,12 +476,12 @@
                                 <div class="grid grid-cols-2 gap-3 mt-4">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 dark:border-zinc-800 bg-sem-surface-muted/50 hover:border-blue-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 bg-sem-surface-muted/50 hover:border-sem-accent transition group"
                                         @click="exportMessages"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="export"
-                                            class="size-6 text-blue-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-accent group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">{{ $t("maintenance.export_messages") }}</div>
                                         <div class="text-xs opacity-70 text-center px-1">
@@ -491,7 +491,7 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 dark:border-zinc-800 bg-sem-surface-muted/50 hover:border-emerald-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 bg-sem-surface-muted/50 hover:border-emerald-500 transition group"
                                         @click="triggerImport"
                                     >
                                         <MaterialDesignIcon
@@ -515,7 +515,7 @@
                                 <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-sem-border">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 dark:border-zinc-800 bg-sem-surface-muted/50 hover:border-purple-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 bg-sem-surface-muted/50 hover:border-purple-500 transition group"
                                         @click="exportFolders"
                                     >
                                         <MaterialDesignIcon
@@ -527,7 +527,7 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 dark:border-zinc-800 bg-sem-surface-muted/50 hover:border-indigo-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 bg-sem-surface-muted/50 hover:border-indigo-500 transition group"
                                         @click="triggerFolderImport"
                                     >
                                         <MaterialDesignIcon
@@ -548,7 +548,7 @@
                                 <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-sem-border">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-sem-surface-muted/50 hover:border-teal-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 bg-sem-surface-muted/50 hover:border-teal-500 transition group"
                                         @click="exportNomadnetFavouritesLayout"
                                     >
                                         <MaterialDesignIcon
@@ -562,7 +562,7 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 dark:border-zinc-800 bg-sem-surface-muted/50 hover:border-cyan-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 bg-sem-surface-muted/50 hover:border-cyan-500 transition group"
                                         @click="triggerNomadnetFavouritesImport"
                                     >
                                         <MaterialDesignIcon
@@ -596,7 +596,7 @@
                                 <div class="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
+                                        class="px-4 py-2 text-sm font-semibold text-white bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
                                         :disabled="selfTestRunning"
                                         @click="runSelfTest"
                                     >
@@ -636,7 +636,7 @@
                                                 <button
                                                     v-if="!check.passed && check.reason"
                                                     type="button"
-                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40"
+                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-sem-danger hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40"
                                                     :aria-expanded="isSelfTestReasonExpanded(check.key)"
                                                     :aria-label="
                                                         isSelfTestReasonExpanded(check.key)
@@ -673,7 +673,7 @@
                                         </div>
                                         <div
                                             v-if="!check.passed && check.reason && isSelfTestReasonExpanded(check.key)"
-                                            class="text-xs text-red-600 dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
+                                            class="text-xs text-sem-danger dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
                                         >
                                             <span class="font-semibold">{{ $t("selftest.reason_label") }}:</span>
                                             {{ check.reason }}
@@ -814,7 +814,7 @@
                                         <span class="setting-toggle__description">
                                             {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
                                             <a
-                                                class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                                                class="text-sem-accent hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
                                                 href="https://github.com/Quad4-Software/micron-parser-go"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -825,7 +825,7 @@
                                 </label>
                                 <div
                                     v-if="micronWasmBundledInBuild && config.nomad_micron_wasm_enabled"
-                                    class="space-y-2 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50"
+                                    class="space-y-2 rounded-lg border border-sem-border bg-sem-surface-muted/80 p-3 dark:bg-zinc-900/50"
                                 >
                                     <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("settings.nomad_micron_default_engine_title") }}
@@ -1824,7 +1824,7 @@
                                         {{ $t("app.connected_to_shared_instance") }}
                                     </p>
                                     <div
-                                        class="relative rounded-lg border border-gray-200/70 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60"
+                                        class="relative rounded-lg border border-sem-border/70 bg-white/60 dark:bg-zinc-900/60"
                                     >
                                         <pre
                                             class="text-xs font-mono whitespace-pre-wrap break-all text-sem-fg p-2 pr-12"
@@ -1847,7 +1847,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2"
+                                        class="inline-flex items-center gap-2 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 text-white text-sm font-semibold px-3 py-2"
                                         :disabled="!reticulumInstance.rpc_config_snippet"
                                         @click="copyRpcConfigSnippet"
                                     >
@@ -2072,7 +2072,7 @@
                                         >
                                             <div class="flex items-center gap-3">
                                                 <div
-                                                    class="size-8 rounded-full bg-sem-surface-muted text-blue-500 flex items-center justify-center"
+                                                    class="size-8 rounded-full bg-sem-surface-muted text-sem-accent flex items-center justify-center"
                                                 >
                                                     <MaterialDesignIcon icon-name="account" class="size-5" />
                                                 </div>
@@ -2086,7 +2086,7 @@
                                                 </div>
                                             </div>
                                             <button
-                                                class="p-2 text-sem-fg-muted hover:text-red-500 transition-colors"
+                                                class="p-2 text-sem-fg-muted hover:text-sem-danger transition-colors"
                                                 :title="$t('app.telemetry_revoke_trust')"
                                                 @click="revokeTelemetryTrust(peer)"
                                             >
@@ -2506,7 +2506,7 @@
                                         {{ $t("app.inbound_stamp_description") }}
                                     </div>
                                 </div>
-                                <hr class="border-gray-200 dark:border-gray-700" />
+                                <hr class="border-sem-border dark:border-gray-700" />
                                 <div>
                                     <div class="text-sm font-medium text-sem-fg mb-1">
                                         {{ $t("app.flood_protection") }}
@@ -2915,7 +2915,7 @@
                                         <div
                                             v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
                                             :key="shortcut.action"
-                                            class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-4 sm:p-5 border border-sem-border"
+                                            class="bg-sem-surface-muted/50 dark:bg-sem-surface-raised/30 rounded-2xl p-4 sm:p-5 border border-sem-border"
                                         >
                                             <div class="flex items-center justify-between mb-3">
                                                 <span class="text-sm font-bold text-sem-fg uppercase tracking-wide">
