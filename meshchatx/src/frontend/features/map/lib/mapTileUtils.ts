@@ -56,13 +56,48 @@ export function usesOfflineMbtilesRaster(offlineEnabled: boolean, tileServerUrl?
     return true;
 }
 
+function isBoundedDigitSegment(value: string, maxLen: number): boolean {
+    if (!value || value.length > maxLen) return false;
+    for (let i = 0; i < value.length; i += 1) {
+        const code = value.charCodeAt(i);
+        if (code < 48 || code > 57) return false;
+    }
+    return true;
+}
+
+function stripSingleAlnumExtension(segment: string): string | null {
+    const dot = segment.indexOf(".");
+    if (dot === -1) return segment;
+    if (dot === 0 || dot === segment.length - 1) return null;
+    if (segment.indexOf(".", dot + 1) !== -1) return null;
+    const ext = segment.slice(dot + 1);
+    for (let i = 0; i < ext.length; i += 1) {
+        const code = ext.charCodeAt(i);
+        const isDigit = code >= 48 && code <= 57;
+        const isUpper = code >= 65 && code <= 90;
+        const isLower = code >= 97 && code <= 122;
+        if (!isDigit && !isUpper && !isLower) return null;
+    }
+    return segment.slice(0, dot);
+}
+
 export function parseZxyFromTileUrl(url: string): { z: number; x: number; y: number } | null {
-    const match = url.match(/\/(\d{1,8})\/(\d{1,8})\/(\d{1,8})(?:\.[a-zA-Z0-9]+)?(?:\?|$)/);
-    if (!match) return null;
+    const qIndex = url.indexOf("?");
+    const path = qIndex === -1 ? url : url.slice(0, qIndex);
+    const parts = path.split("/");
+    if (parts.length < 3) return null;
+    const yRaw = parts[parts.length - 1];
+    const xRaw = parts[parts.length - 2];
+    const zRaw = parts[parts.length - 3];
+    const yPart = stripSingleAlnumExtension(yRaw);
+    if (yPart == null) return null;
+    if (!isBoundedDigitSegment(zRaw, 8) || !isBoundedDigitSegment(xRaw, 8) || !isBoundedDigitSegment(yPart, 8)) {
+        return null;
+    }
     return {
-        z: parseInt(match[1], 10),
-        x: parseInt(match[2], 10),
-        y: parseInt(match[3], 10),
+        z: parseInt(zRaw, 10),
+        x: parseInt(xRaw, 10),
+        y: parseInt(yPart, 10),
     };
 }
 
