@@ -160,7 +160,7 @@
                             >{{ $t("about.tagline_after") }}
                         </div>
 
-                        <div class="mt-6 pt-6 border-t border-sem-border/70 /80">
+                        <div class="mt-6 pt-6 border-t border-sem-border/70">
                             <button
                                 type="button"
                                 class="about-action-btn secondary-chip w-full justify-between text-left"
@@ -351,7 +351,7 @@
                             {{ $t("about.security_integrity") }}
                         </div>
 
-                        <div class="mb-6 pb-6 border-b border-sem-border/60 /80 space-y-4">
+                        <div class="mb-6 pb-6 border-b border-sem-border/60 space-y-4">
                             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <div class="text-[10px] font-black text-sem-fg uppercase tracking-[0.2em] mb-2">
@@ -622,7 +622,7 @@
                             {{ $t("about.usage_insights") }}
                         </div>
                         <div
-                            class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm min-w-0 rounded-xl border border-sem-border/60 /80 p-4 sm:bg-black/2 dark:sm:bg-white/2"
+                            class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm min-w-0 rounded-xl border border-sem-border/60 p-4 sm:bg-black/2 dark:sm:bg-white/2"
                         >
                             <div class="flex items-center justify-between gap-3 sm:col-span-2 lg:col-span-3">
                                 <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
@@ -892,7 +892,7 @@
                             <div class="space-y-8 min-w-0">
                                 <div
                                     v-if="electronVersion || chromeVersion || nodeVersion"
-                                    class="py-4 sm:p-5 border-t border-sem-border/60 /80 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
+                                    class="py-4 sm:p-5 border-t border-sem-border/60 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
                                 >
                                     <div
                                         class="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.2em] mb-4"
@@ -1011,7 +1011,7 @@
                         </div>
 
                         <div v-if="databaseHealth" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-8 mb-8">
-                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 /60 md:border md:rounded-xl">
+                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
                                     class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
@@ -1024,7 +1024,7 @@
                                     {{ databaseHealth.quick_check }}
                                 </div>
                             </div>
-                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 /60 md:border md:rounded-xl">
+                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
                                     class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
@@ -1034,7 +1034,7 @@
                                     {{ databaseHealth.journal_mode }}
                                 </div>
                             </div>
-                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 /60 md:border md:rounded-xl">
+                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
                                     class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
@@ -1044,7 +1044,7 @@
                                     {{ databaseHealth.page_count }}
                                 </div>
                             </div>
-                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 /60 md:border md:rounded-xl">
+                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
                                     class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
@@ -1140,7 +1140,7 @@
                                         <div
                                             v-for="snapshot in snapshots"
                                             :key="snapshot.path"
-                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-sem-border/60 /80 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
+                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-sem-border/60 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
                                                 <span class="font-black text-sem-fg text-xs truncate">{{
@@ -1232,7 +1232,7 @@
                                         <div
                                             v-for="backup in autoBackups"
                                             :key="backup.path"
-                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-sem-border/60 /80 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
+                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-sem-border/60 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
                                                 <span class="font-black text-sem-fg text-xs truncate">{{
@@ -2212,16 +2212,16 @@ export default {
             if (card.warn) {
                 return "border-amber-500/35 bg-amber-500/5 dark:bg-amber-950/20";
             }
-            return "border-sem-border/60 /80";
+            return "border-sem-border/60";
         },
         sandboxIconClass(card) {
             if (card.active) {
                 return "text-emerald-600 dark:text-emerald-400 border-emerald-500/35 bg-emerald-500/10";
             }
             if (card.unavailable) {
-                return "text-sem-fg-muted border-sem-border/60 /80 bg-sem-surface-muted/70 dark:bg-zinc-900/40";
+                return "text-sem-fg-muted border-sem-border/60 bg-sem-surface-muted/70 dark:bg-zinc-900/40";
             }
-            return "text-sem-fg-muted border-sem-border/60 /80";
+            return "text-sem-fg-muted border-sem-border/60";
         },
         sandboxBadgeClass(card) {
             if (card.active) {
@@ -2242,7 +2242,7 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .about-section {
-    @apply w-full border-b border-sem-border/60 /60 py-6 sm:py-8 last:border-0;
+    @apply w-full border-b border-sem-border/60 py-6 sm:py-8 last:border-0;
 }
 :deep(.about-btn:focus-visible) {
     outline: 2px solid rgba(59, 130, 246, 0.35);

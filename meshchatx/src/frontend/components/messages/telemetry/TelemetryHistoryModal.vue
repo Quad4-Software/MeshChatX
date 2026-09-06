@@ -48,7 +48,7 @@
 
                     <div
                         class="flex w-full items-center justify-between gap-3"
-                        :class="batteryHistory.length > 1 ? 'border-t border-sem-border/80 pt-3 /80' : ''"
+                        :class="batteryHistory.length > 1 ? 'border-t border-sem-border/80 pt-3' : ''"
                     >
                         <label class="flex items-center gap-2 cursor-pointer group min-w-0">
                             <input
