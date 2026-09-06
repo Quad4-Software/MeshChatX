@@ -56,9 +56,9 @@ SKIP=meshchatx-rsm git commit ...
 
 ### Code style
 
-| Surface  | Tool                                                         | Task                                                                                            |
-| -------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| Python   | Ruff                                                         | task format:backend, task lint:backend                                                          |
+| Surface  | Tool                                                | Task                                                                                            |
+| -------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Python   | Ruff                                                | task format:backend, task lint:backend                                                          |
 | Frontend | Prettier (incl. Svelte), ESLint, svelte-check, knip | task format:frontend, task lint:frontend (`task check:svelte` / `pnpm run format:check:svelte`) |
 
 Editor baseline: .editorconfig. Agent conventions: .agents/conventions/.
