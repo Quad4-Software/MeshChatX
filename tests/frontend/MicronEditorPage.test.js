@@ -269,6 +269,107 @@ describe("MicronEditorPage.vue", () => {
         expect(wrapper.vm.tabs.length).toBe(2); // main and guide
     }, 20_000);
 
+    it("moveTab reorders tabs and keeps the active tab selected", async () => {
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        await wrapper.setData({
+            tabs: [
+                { id: 1, name: "A", content: "a" },
+                { id: 2, name: "B", content: "b" },
+                { id: 3, name: "C", content: "c" },
+            ],
+            activeTabIndex: 1,
+        });
+        wrapper.vm.moveTab(1, 0);
+        expect(wrapper.vm.tabs.map((t) => t.name)).toEqual(["B", "A", "C"]);
+        expect(wrapper.vm.activeTabIndex).toBe(0);
+        expect(micronStorage.saveTabs).toHaveBeenCalled();
+    });
+
+    it("moveTab ignores out-of-range and no-op moves", async () => {
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        await wrapper.setData({
+            tabs: [
+                { id: 1, name: "A", content: "a" },
+                { id: 2, name: "B", content: "b" },
+            ],
+            activeTabIndex: 0,
+        });
+        wrapper.vm.moveTab(0, 0);
+        wrapper.vm.moveTab(5, 0);
+        wrapper.vm.moveTab(0, 9);
+        expect(wrapper.vm.tabs.map((t) => t.name)).toEqual(["A", "B"]);
+    });
+
+    it("buildSiteIndexPage emits micron links for each page", async () => {
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        const dest = "d".repeat(32);
+        const content = wrapper.vm.buildSiteIndexPage(dest, [
+            { name: "about.mu", label: "About" },
+            { name: "news.mu", label: "News [x]" },
+        ]);
+        expect(content).toContain(`[About\`${dest}:/page/about.mu]`);
+        expect(content).toContain(`[News x\`${dest}:/page/news.mu]`);
+    });
+
+    it("publishSite uploads pages in order and writes the index page", async () => {
+        const dest = "e".repeat(32);
+        window.api = {
+            get: vi.fn().mockResolvedValue({ data: { pages: [] } }),
+            post: vi.fn().mockResolvedValue({ data: {} }),
+        };
+        DialogUtils.confirm.mockResolvedValue(false);
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        await wrapper.setData({
+            tabs: [{ id: 1, name: "A", content: "a" }],
+            pageNodes: [{ node_id: "n9", name: "Srv", running: true, destination_hash: dest }],
+        });
+        await wrapper.vm.publishSite({
+            nodeId: "n9",
+            pages: [
+                { name: "one.mu", content: "1", label: "One" },
+                { name: "two.mu", content: "2", label: "Two" },
+            ],
+            generateIndex: true,
+        });
+        const posts = window.api.post.mock.calls.filter((c) => c[0] === "/api/v1/page-nodes/n9/pages");
+        expect(posts.map((c) => c[1].name)).toEqual(["one.mu", "two.mu", "index.mu"]);
+        expect(posts[2][1].content).toContain(`[One\`${dest}:/page/one.mu]`);
+        expect(wrapper.vm.lastPublished?.pageName).toBe("index.mu");
+        expect(wrapper.vm.showPublishSiteModal).toBe(false);
+    });
+
+    it("publishSite creates a new server when no nodeId is given", async () => {
+        const dest = "f".repeat(32);
+        window.api = {
+            get: vi.fn().mockResolvedValue({ data: { pages: [] } }),
+            post: vi
+                .fn()
+                .mockResolvedValueOnce({ data: { node_id: "n10", name: "Fresh", running: false } })
+                .mockResolvedValueOnce({ data: { destination_hash: dest } })
+                .mockResolvedValue({ data: {} }),
+        };
+        DialogUtils.confirm.mockResolvedValue(false);
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        await wrapper.setData({ pageNodes: [] });
+        await wrapper.vm.publishSite({
+            nodeId: null,
+            newServerName: "Fresh",
+            pages: [{ name: "index.mu", content: "home", label: "Home" }],
+            generateIndex: false,
+        });
+        expect(window.api.post).toHaveBeenNthCalledWith(1, "/api/v1/page-nodes", { name: "Fresh" });
+        expect(window.api.post).toHaveBeenNthCalledWith(2, "/api/v1/page-nodes/n10/start");
+        expect(window.api.post).toHaveBeenNthCalledWith(3, "/api/v1/page-nodes/n10/pages", {
+            name: "index.mu",
+            content: "home",
+        });
+    });
+
     it("onIdentitySwitched clears storage and resets tabs", async () => {
         const wrapper = mountMicronEditorPage();
         await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
