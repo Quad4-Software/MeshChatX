@@ -20,7 +20,6 @@
         }
     },
     "include": [
-        "meshchatx/src/frontend/**/*.vue",
         "meshchatx/src/frontend/**/*.svelte",
         "meshchatx/src/frontend/**/*.js",
         "meshchatx/src/frontend/**/*.ts",
@@ -37,9 +36,5 @@
         "vendor",
         "android",
         "tests"
-    ],
-    "vueCompilerOptions": {
-        "target": 3,
-        "strictTemplates": true
-    }
+    ]
 }

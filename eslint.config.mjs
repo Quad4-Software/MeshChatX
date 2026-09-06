@@ -1,7 +1,5 @@
 import js from "@eslint/js";
-import pluginVue from "eslint-plugin-vue";
 import pluginSvelte from "eslint-plugin-svelte";
-import pluginVueA11y from "eslint-plugin-vuejs-accessibility";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
 import globals from "globals";
@@ -44,7 +42,7 @@ export default [
         ],
     },
     {
-        files: ["**/*.{js,mjs,cjs,vue}"],
+        files: ["**/*.{js,mjs,cjs}"],
         languageOptions: {
             globals: {
                 ...globals.browser,
@@ -72,32 +70,16 @@ export default [
         },
     },
     js.configs.recommended,
-    ...pluginVue.configs["flat/recommended"],
     ...pluginSvelte.configs["flat/recommended"],
-    ...pluginVueA11y.configs["flat/recommended"],
     pluginPrettier,
     pluginSecurity.configs.recommended,
     {
-        files: ["**/*.{js,mjs,cjs,vue}"],
+        files: ["**/*.{js,mjs,cjs}"],
         rules: {
-            "vue/multi-word-component-names": "off",
-            "vue/no-v-html": "error",
             "no-unused-vars": "warn",
             "no-console": "off",
             "security/detect-object-injection": "off",
             "security/detect-non-literal-fs-filename": "off",
-            // Noise floor for legacy Vue mega-pages; fix gradually, keep as warn in CI.
-            "vuejs-accessibility/click-events-have-key-events": "warn",
-            "vuejs-accessibility/interactive-supports-focus": "warn",
-            "vuejs-accessibility/label-has-for": "warn",
-            "vuejs-accessibility/form-control-has-label": "warn",
-            "vuejs-accessibility/anchor-has-content": "warn",
-            "vuejs-accessibility/media-has-caption": "warn",
-            "vuejs-accessibility/mouse-events-have-key-events": "warn",
-            "vuejs-accessibility/no-autofocus": "warn",
-            "vuejs-accessibility/no-static-element-interactions": "warn",
-            "vuejs-accessibility/alt-text": "warn",
-            "vuejs-accessibility/iframe-has-title": "warn",
         },
     },
     {
@@ -144,7 +126,6 @@ export default [
         },
         rules: {
             "no-undef": "off",
-            // espree no-unused-vars false-positives on typed $props callback params
             "no-unused-vars": "off",
             "@typescript-eslint/no-unused-vars": [
                 "warn",
@@ -156,7 +137,6 @@ export default [
             ],
             "no-console": "off",
             "security/detect-object-injection": "off",
-            // One-shot URLSearchParams builders are not reactive $state.
             "svelte/prefer-svelte-reactivity": "off",
         },
     },
@@ -168,7 +148,7 @@ export default [
                 {
                     patterns: [
                         {
-                            group: ["**/components/**", "**/ui/svelte/**", "**/features/**", "**/*.vue", "**/*.svelte"],
+                            group: ["**/components/**", "**/ui/svelte/**", "**/features/**", "**/*.svelte"],
                             message: "Kernel js/ must stay framework-free. Import only other kernel modules.",
                         },
                     ],
