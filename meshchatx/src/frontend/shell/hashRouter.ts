@@ -53,7 +53,7 @@ const listeners = new Set<RouteListener>();
 let currentRoute: ActiveRoute | null = null;
 let navigationGuard: NavigationGuard | null = null;
 let started = false;
-let resolveToken = 0;
+let resolveGeneration = 0;
 
 function compilePath(pattern: string): PathSegment[] {
     return String(pattern)
@@ -306,7 +306,7 @@ function replaceHashSilently(target: RouteTarget | string): boolean {
 }
 
 async function applyLocation(): Promise<void> {
-    const token = ++resolveToken;
+    const generation = ++resolveGeneration;
     for (let hop = 0; hop < MAX_REDIRECT_HOPS; hop += 1) {
         const parsed = parseHashLocation(window.location.hash);
         const redirect = REDIRECTS[parsed.path];
@@ -324,14 +324,14 @@ async function applyLocation(): Promise<void> {
             } catch (error) {
                 console.error("hashRouter guard failed", error);
             }
-            if (token !== resolveToken) {
+            if (generation !== resolveGeneration) {
                 return;
             }
             if (!decision.allow && decision.redirect && replaceHashSilently(decision.redirect)) {
                 continue;
             }
         }
-        if (token !== resolveToken) {
+        if (generation !== resolveGeneration) {
             return;
         }
         currentRoute = next;
@@ -396,7 +396,7 @@ export function resetForTests(): void {
     listeners.clear();
     navigationGuard = null;
     currentRoute = null;
-    resolveToken = 0;
+    resolveGeneration = 0;
 }
 
 interface DynamicRouteRecord {
