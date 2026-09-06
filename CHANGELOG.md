@@ -38,6 +38,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Theme consistency pass**: Shared primitives, messages, conversation, about, settings, tutorial, call, and add-interface pages now use semantic color tokens instead of raw Tailwind classes. The audit script and fixtures track the remaining raw token inventory. The raw Tailwind color count in frontend components dropped from about 4990 to about 3963.
 - **Docker files**: Dockerfiles and compose files moved under docker/. Update commands to docker/Dockerfile and docker/docker-compose.yml.
 - **Dependencies**: Electron 44, jsdom 30, vis-network 10, vis-data 8, and assorted patch bumps. Dependency audit reports no known vulnerabilities.
 - **Vite and Vitest configs**: Renamed to .mjs so the ESM config warning is gone.
