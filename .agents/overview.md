@@ -30,8 +30,6 @@ Do not invent cloud/IP-era designs for mesh features.
 .agents/skills/reticulum-design-gates/SKILL.md
 ```
 
-Always-on editor rule: `.cursor/rules/reticulum-zen-gates.mdc`.
-
 ## Runtime
 
 ```
@@ -58,12 +56,12 @@ ReticulumMeshChat (meshchatx/meshchat.py)
 | `meshchatx/src/backend/http/` | middleware, routes, WS                    |
 | `meshchatx/src/backend/`      | managers, DB, security, Landlock, plugins |
 | `.agents/module-ownership.md` | domain to code/tests map                  |
-| `meshchatx/src/frontend/`     | Vue 3 UI                                  |
-| `meshchatx/public/`           | built assets                              |
+| `meshchatx/src/frontend/`     | Vue 3 UI (static assets in `public/`)     |
 | `electron/`                   | desktop shell                             |
 | `android/`                    | WebView + Chaquopy                        |
 | `tests/backend/`              | pytest                                    |
 | `tests/frontend/`             | vitest                                    |
+| `tests/electron/`             | Electron shell tests                      |
 | `tests/e2e/`                  | Playwright E2E                            |
 | `tests/ui/`                   | Playwright UI + Lighthouse                |
 | `docs/en/`                    | shipped user docs                         |
@@ -76,28 +74,16 @@ Business rules live in managers under `meshchatx/src/backend/`. Keep `meshchat.p
 
 Python `>=3.11` (CI often 3.14). Node `>=24`. pnpm from `packageManager`. UV. Task.
 
-```bash
-task install
-task format
-task lint
-task test:quick
-task test:eect
-task test:lv:l0
-task test:backend
-task test:frontend
-task test:e2e
-task test:ui:pages
-task test:ui:lighthouse
-task run
-task dev
-task debug
-```
-
-Optional mesh-side deps (slower, needs reachability):
+Full target list: `task --list`. Common ones:
 
 ```bash
-task deps:backend:rns
-task docs:rns
+task install      # deps
+task format       # format
+task lint         # lint
+task test:quick   # fast suite
+task run          # app
+task dev          # Vite HMR + backend
+task debug        # dev + debugpy on :5678
 ```
 
 Focused:
@@ -281,13 +267,4 @@ Flow: `CONTRIBUTING.md`. Generative AI: disclose and human-review. No unreviewed
 
 ## Product docs
 
-```
-docs/en/architecture.md
-docs/en/identity-and-security.md
-docs/en/getting-started.md
-docs/en/rns-link-api.md
-docs/en/platform-guides/linux-sandbox.md
-docs/en/messaging.md
-CHANGELOG.md
-CONTRIBUTING.md
-```
+User-facing docs live in `docs/en/` (index in `.agents/README.md`). Agent docs stay in `.agents/` only.

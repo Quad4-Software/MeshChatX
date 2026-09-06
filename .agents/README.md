@@ -1,7 +1,7 @@
 # .agents index
 
 Agent guidance only. End-user docs: `docs/en/`.
-Entry: root `AGENTS.md`. Always-on rules: `.cursor/rules/`.
+Entry: root `AGENTS.md`.
 
 ## Open by need
 
