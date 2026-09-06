@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.6] - 2026-09-06 [unreleased]
 
+### Fixed
+
+- **Micron WASM**: PUA/Nerd Font icon glyphs now render with `Roboto Mono Nerd Font` by wrapping them in a span. Bumped `micron-parser-go` to v1.1.1.
+
 ### Added
 
 - **Bug Reports Extension (off by default)**: Capture crashes and issues locally, group duplicates, and send a redacted report over the RNS when you choose. Crash screens can open or save into Bug Reports.
