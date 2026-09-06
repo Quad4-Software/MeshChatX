@@ -54,7 +54,7 @@ MESHCHAT_UI_PAGES=messages,contacts task test:ui:lighthouse
 ## After UI edits
 
 ```bash
-pnpm exec eslint <changed.vue> --fix
+pnpm exec eslint <changed.ts> --fix
 pnpm exec vitest run tests/frontend/<related>.test.js
 ```
 

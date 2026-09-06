@@ -14,12 +14,12 @@ Local-first mesh client on Reticulum. Independent fork of Reticulum MeshChat (no
 | LXST        | audio calls / telephony                            |
 
 One Python process owns HTTPS, Reticulum, and per-identity managers.
-Vue assets: meshchatx/public/ after Vite. Electron and Android wrap the same backend.
+Svelte assets: meshchatx/public/ after Vite. Electron and Android wrap the same backend.
 
 Site: https://meshchatx.com
 Source: https://github.com/Quad4-Software/MeshChatX
 
-Goals: local-first, correct RNS/LXMF/LXST semantics, multi-identity without leakage, testable Python + Vue, predictable SQLite, narrow plugin permissions.
+Goals: local-first, correct RNS/LXMF/LXST semantics, multi-identity without leakage, testable Python + Svelte, predictable SQLite, narrow plugin permissions.
 
 ## Mesh Zen
 
@@ -58,7 +58,7 @@ ReticulumMeshChat (meshchatx/meshchat.py)
 | meshchatx/src/backend/http/ | middleware, routes, WS                    |
 | meshchatx/src/backend/      | managers, DB, security, Landlock, plugins |
 | .agents/module-ownership.md | domain to code/tests map                  |
-| meshchatx/src/frontend/     | Vue 3 UI                                  |
+| meshchatx/src/frontend/     | Svelte 5 UI                               |
 | meshchatx/public/           | built assets                              |
 | electron/                   | desktop shell                             |
 | android/                    | WebView + Chaquopy                        |
@@ -241,7 +241,6 @@ CLI flags usually mirror these.
 | MESHCHAT_DEBUGPY                                         | task debug listen                          |
 | MESHCHAT_DEBUGPY_PORT                                    | default 5678 on 127.0.0.1                    |
 | MESHCHAT_DEBUGPY_WAIT                                    | 1 wait for attach                          |
-| MESHCHAT_VUE_DEVTOOLS                                    | 0 disables Vite overlay                    |
 
 ```bash
 meshchatx --restore-db /path/to/backup.zip

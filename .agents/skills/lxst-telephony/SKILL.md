@@ -25,7 +25,7 @@ LXST runs over Reticulum Links. Address callees by identity/destination hash. No
 | Telephony managers | meshchatx/src/backend/ telephone / ringtone / voicemail modules |
 | Identity wiring    | meshchatx/src/backend/identity_context.py                       |
 | Adversarial tests  | tests/backend/test_lxst_hostless_audio.py                       |
-| Frontend call UI   | telephone-related Vue components under meshchatx/src/frontend/  |
+| Frontend call UI   | meshchatx/src/frontend/features/call/                     |
 
 ## Gates
 

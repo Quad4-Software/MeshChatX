@@ -26,7 +26,7 @@ LXMF is store-and-forward mail on Reticulum. Do not require clearnet, DNS, or a 
 | Message handler          | meshchatx/src/backend/message_handler.py (and related)                                           |
 | HTTP/WS surface          | meshchatx/meshchat.py                                                                            |
 | Inbound cancel helpers   | meshchatx/src/backend/meshchat_utils.py (list_inbound_deliveries, cancel_inbound_deliveries) |
-| Frontend conversations   | meshchatx/src/frontend/components/ conversation viewers                                          |
+| Frontend conversations   | meshchatx/src/frontend/features/messages/                                      |
 | Config                   | config managers / settings UI for LXMF options                                                     |
 
 ## LXMF 1.1 / RNS 1.4 inbound cancel
@@ -40,7 +40,7 @@ MeshChatX surfaces them as:
 
 - Status: inbound_delivery_count and inbound_deliveries on /api/v1/lxmf/propagation-node/status
 - Cancel: POST /api/v1/lxmf/propagation-node/cancel-inbound with optional { "resource_hash": "..." }
-- Header UI in App.vue when active inbound transfers exist
+- Banner UI in AppShellBanners when active inbound transfers exist
 
 Outbound cancel remains POST /api/v1/lxmf-messages/{hash}/cancel via cancel_outbound.
 
