@@ -13,6 +13,7 @@
     import { pluginHost } from "../../../../js/plugins/PluginHost.js";
     import { onWsEvent, offWsEvent } from "../../../../js/registries/wsEventRegistry.js";
     import { t } from "../../../../js/i18n.js";
+    import { getCurrentUiLocale } from "../../../../js/localeLoader.js";
 
     interface Props {
         visible?: boolean;
@@ -120,7 +121,7 @@
     async function saveSidebandConfig() {
         sidebandBusy = true;
         try {
-            await window.api.patch("/api/v1/sideband-plugins/config", {
+            await window.api.post("/api/v1/sideband-plugins/config", {
                 service_plugins_enabled: sidebandConfig.service_plugins_enabled,
                 command_plugins_enabled: sidebandConfig.command_plugins_enabled,
                 command_plugins_path: sidebandConfig.command_plugins_path,
@@ -153,6 +154,7 @@
         busyPluginId = pluginId;
         try {
             await window.api.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/enable`);
+            await pluginHost.loadEnabledPlugins(window.api, getCurrentUiLocale());
             await refresh();
             ToastUtils.success(t("plugins.settings.enabled"));
         } catch (error: any) {
@@ -177,7 +179,7 @@
     }
 
     async function confirmRemove(plugin: any) {
-        const ok = await DialogUtils.confirm(t("plugins.settings.remove_confirm", { name: plugin.name }));
+        const ok = await DialogUtils.confirm(t("plugins.settings.confirm_remove", { name: plugin.name || plugin.id }));
         if (ok) {
             await removePlugin(plugin.id);
         }

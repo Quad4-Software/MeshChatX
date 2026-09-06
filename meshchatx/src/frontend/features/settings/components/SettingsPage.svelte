@@ -46,6 +46,7 @@
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import GlobalState from "../../../js/GlobalState.js";
     import { t } from "../../../js/i18n.js";
+    import { navigate } from "../../../shell/hashRouter.js";
     import {
         fetchMergedConfig,
         patchServerConfig,
@@ -105,6 +106,19 @@
     } from "../lib/settingsPageHelpers.js";
     import { exportStickers, importStickersFile, exportGifs, importGifsFile } from "../lib/maintenanceActions.js";
     import { fetchStickerCount, fetchGifCount } from "../../../js/settings/settingsMaintenanceClient.js";
+    import {
+        readBatterySaverPrefs,
+        fetchBatteryInterfaceRows,
+        patchBatterySaverPrefs,
+        applyBatteryBitrateLimitsNow,
+        restoreBatteryBitrateLimitsNow,
+        toastBatteryBitrateApplyResult,
+        toastBatteryBitrateRestoreResult,
+        toastBatteryBitrateApplyFailed,
+        toastBatteryBitrateRestoreFailed,
+        type BatteryInterfaceRow,
+    } from "../lib/batterySettingsUi.js";
+    import type { BatterySaverPrefs } from "../../../js/settings/batterySaverPrefs.js";
 
     let config = $state<Record<string, any>>(createDefaultConfig());
     let serverSecurity = $state<Record<string, any>>(createDefaultServerSecurity());
@@ -134,6 +148,9 @@
     let gifCount = $state(0);
     let stickerImportReplaceDuplicates = $state(false);
     let gifImportReplaceDuplicates = $state(false);
+    let batterySaver = $state<BatterySaverPrefs>(readBatterySaverPrefs());
+    let batteryInterfaceRows = $state<BatteryInterfaceRow[]>([]);
+    let batteryBitrateBusy = $state(false);
 
     let lastRememberedInboundStampCost = $state(8);
     const inboundStampsEnabled = $derived(
@@ -177,6 +194,60 @@
             return matchingSectionKeys.has(sectionKey);
         }
         return settingsSectionBelongsToTab(sectionKey, activeSettingsTab);
+    }
+
+    async function loadBatteryInterfaceRows() {
+        batteryInterfaceRows = await fetchBatteryInterfaceRows();
+    }
+
+    function onBatterySaverEnabledChange(val: boolean) {
+        const enabled = val === true;
+        batterySaver = patchBatterySaverPrefs({ enabled });
+        if (enabled && batterySaver.applyInterfaceBitrateLimits) {
+            void onApplyBatteryBitrates();
+        } else if (!enabled && Object.keys(batterySaver.interfaceBitratePrevious || {}).length > 0) {
+            void onRestoreBatteryBitrates();
+        }
+    }
+
+    function onBatterySaverPatch(patch: Record<string, any>) {
+        batterySaver = patchBatterySaverPrefs(patch);
+    }
+
+    async function onApplyBatteryBitrates() {
+        if (batteryBitrateBusy) return;
+        batteryBitrateBusy = true;
+        try {
+            batterySaver = patchBatterySaverPrefs({
+                applyInterfaceBitrateLimits: true,
+                interfaceBitrateLimits: { ...(batterySaver.interfaceBitrateLimits || {}) },
+            });
+            const result = await applyBatteryBitrateLimitsNow();
+            batterySaver = readBatterySaverPrefs();
+            toastBatteryBitrateApplyResult(result);
+            await loadBatteryInterfaceRows();
+        } catch (e) {
+            console.error(e);
+            toastBatteryBitrateApplyFailed();
+        } finally {
+            batteryBitrateBusy = false;
+        }
+    }
+
+    async function onRestoreBatteryBitrates() {
+        if (batteryBitrateBusy) return;
+        batteryBitrateBusy = true;
+        try {
+            const result = await restoreBatteryBitrateLimitsNow();
+            batterySaver = readBatterySaverPrefs();
+            toastBatteryBitrateRestoreResult(result);
+            await loadBatteryInterfaceRows();
+        } catch (e) {
+            console.error(e);
+            toastBatteryBitrateRestoreFailed();
+        } finally {
+            batteryBitrateBusy = false;
+        }
     }
 
     async function loadConfig() {
@@ -256,6 +327,14 @@
             await onIsTransportEnabledChange(Boolean(value));
             return;
         }
+        if (key === "auth_enabled") {
+            await onAuthEnabledChange(Boolean(value));
+            return;
+        }
+        if (key === "telephone_enabled") {
+            await onTelephoneEnabledChange(Boolean(value));
+            return;
+        }
         config[key] = value;
         try {
             const updated = await patchServerConfig({ [key]: value }, window.api);
@@ -275,6 +354,36 @@
             ToastUtils.success(t("common.saved"));
         } catch (e: any) {
             ToastUtils.error(e?.response?.data?.message || t("common.error"));
+        }
+    }
+
+    async function onAuthEnabledChange(value: boolean) {
+        config.auth_enabled = value;
+        try {
+            const updated = await patchServerConfig({ auth_enabled: value }, window.api);
+            sanitizeColorConfigFields(updated);
+            config = { ...config, ...updated };
+            publishPatchedConfig(config);
+            serverSecurity = { ...serverSecurity, auth_enabled: !!value };
+            if (value) {
+                navigate({ name: "auth" });
+            }
+        } catch (e) {
+            console.error("Failed to update auth_enabled", e);
+            ToastUtils.error(t("common.error"));
+        }
+    }
+
+    async function onTelephoneEnabledChange(value: boolean) {
+        config.telephone_enabled = value;
+        try {
+            const updated = await patchServerConfig({ telephone_enabled: value }, window.api);
+            sanitizeColorConfigFields(updated);
+            config = { ...config, ...updated };
+            publishPatchedConfig(config);
+            ToastUtils.success(value ? t("call.telephony_enabled") : t("call.telephony_disabled"));
+        } catch {
+            ToastUtils.error(t("call.failed_to_update_call_settings"));
         }
     }
 
@@ -507,6 +616,7 @@
         loadMediaCounts();
         loadDesktopCloseSettings();
         loadScreenSecuritySettings();
+        void loadBatteryInterfaceRows();
         isWasmBundled = isMicronWasmBundled();
         void getEffectiveMicronWasmReleaseLabel().then((label) => {
             if (typeof label === "string") micronReleaseLabel = label;
@@ -529,7 +639,7 @@
 
 <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas text-sem-fg">
     <div
-        class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
         <div class="space-y-6 w-full max-w-5xl mx-auto min-w-0">
             <div class="settings-section settings-section--hero border-b border-sem-border pb-6">
@@ -673,7 +783,16 @@
                                 onoutboundtransferprogressenabledchange={onOutboundTransferProgressEnabledChange}
                                 onmessagetimestampgroupingchange={onMessageTimestampGroupingChange}
                             />
-                            <BatterySettingsSection visible={showSection("battery")} />
+                            <BatterySettingsSection
+                                visible={showSection("battery")}
+                                {batterySaver}
+                                {batteryInterfaceRows}
+                                {batteryBitrateBusy}
+                                onenabledchange={onBatterySaverEnabledChange}
+                                onpatch={onBatterySaverPatch}
+                                onapplybitrates={onApplyBatteryBitrates}
+                                onrestorebitrates={onRestoreBatteryBitrates}
+                            />
                             <ExperimentalLiveSettingsSection
                                 visible={showSection("experimentalLive")}
                                 liveTransportMode={config.live_transport_mode}
@@ -791,7 +910,7 @@
                             <TelephonySettingsSection
                                 visible={showSection("telephony")}
                                 {config}
-                                onenabledchange={(val) => updateConfigField("telephone_enabled", val)}
+                                onenabledchange={onTelephoneEnabledChange}
                             />
 
                             <!-- Nomad tab sections -->
@@ -838,7 +957,7 @@
                             <AuthSettingsSection
                                 visible={showSection("auth")}
                                 {config}
-                                onauthenabledchange={(val) => updateConfigField("auth_enabled", val)}
+                                onauthenabledchange={onAuthEnabledChange}
                             />
                             <WebExposureSettingsSection
                                 visible={showSection("webExposure")}
