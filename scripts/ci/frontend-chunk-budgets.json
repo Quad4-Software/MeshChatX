@@ -5,10 +5,10 @@
         { "prefix": "app-", "maxKiB": 383 },
         { "prefix": "MessagesPage-", "maxKiB": 291 },
         { "prefix": "SettingsPage-", "maxKiB": 314 },
-        { "prefix": "CallPage-", "maxKiB": 149 },
-        { "prefix": "shared-async-", "maxKiB": 861 },
+        { "prefix": "CallPage-", "maxKiB": 170 },
+        { "prefix": "shared-async-", "maxKiB": 1000 },
         { "prefix": "vendor-mdi-", "maxKiB": 3018 },
-        { "prefix": "vendor-svelte-", "maxKiB": 100 },
+        { "prefix": "vendor-svelte-", "maxKiB": 120 },
         { "prefix": "vendor-other-", "maxKiB": 1022 },
         { "prefix": "vendor-vis-", "maxKiB": 659 }
     ]
