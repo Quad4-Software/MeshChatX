@@ -11,7 +11,7 @@
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../js/i18n.js";
     import { BATTERY_SAVER_CHANGED_EVENT, loadBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
-    import { INTERFACES_ADD_ROUTE_NAME, INTERFACES_EDIT_ROUTE_NAME } from "./lib/constants.js";
+    import { INTERFACES_ADD_ROUTE_PATH, INTERFACES_EDIT_ROUTE_PATH } from "./lib/constants.js";
     import type {
         ConfiguredInterface,
         DiscoveredInterface,
@@ -395,11 +395,11 @@
     }
 
     function handleEdit(name: string) {
-        window.location.hash = `#/${INTERFACES_EDIT_ROUTE_NAME}?name=${encodeURIComponent(name)}`;
+        window.location.hash = `#${INTERFACES_EDIT_ROUTE_PATH}?interface_name=${encodeURIComponent(name)}`;
     }
 
     function handleAdd() {
-        window.location.hash = `#/${INTERFACES_ADD_ROUTE_NAME}`;
+        window.location.hash = `#${INTERFACES_ADD_ROUTE_PATH}`;
     }
 
     async function handleSaveDiscoverySettings() {
@@ -445,7 +445,7 @@
         } catch {
             /* ignore */
         }
-        window.location.hash = `#/${INTERFACES_ADD_ROUTE_NAME}?from_discovered=1`;
+        window.location.hash = `#${INTERFACES_ADD_ROUTE_PATH}?from_discovered=1`;
     }
 
     function handleCopyDiscoveredConfig(iface: DiscoveredInterface) {

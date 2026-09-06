@@ -1,7 +1,8 @@
+import type { RouteTarget } from "../shell/hashRouter.js";
 import { RETICULUM_MANUAL_INTERFACES_COMMON_OPTIONS_REL } from "./reticulumDocsEntryUrl.js";
 
 export type HashRouterPushFacade = {
-    push: (target: unknown) => unknown;
+    push: (target: RouteTarget | string) => unknown;
 };
 
 export type DocsDeepLinkScheme = "meshchatx" | "meshchat";
