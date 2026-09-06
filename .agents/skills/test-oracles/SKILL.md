@@ -21,7 +21,7 @@ An oracle predicts the correct outcome from the input alone (or from a simpler t
 | Oracle type    | Example                                          |
 | -------------- | ------------------------------------------------ |
 | Accept/reject  | Empty room name must raise ValueError            |
-| Origin parse   | `http://127.0.0.1:9337@example.com` is not local |
+| Origin parse   | http://127.0.0.1:9337@example.com is not local |
 | Round-trip     | encode(decode(x)) == x when decode succeeds      |
 | Jail           | Successful path stays under storage root         |
 | Closed reasons | Error message is one of a fixed set              |
@@ -46,13 +46,13 @@ Do not ship tests that only do:
 
 ## MeshChatX examples
 
-- Protocol: `tests/backend/test_rrc_protocol_fuzz.py`
-- ACL/membership: `tests/backend/test_rrc_membership_acls.py`
-- Room keys: `tests/backend/test_rrc_room_keys.py`
-- EECT shared asserts: `tests/backend/eect/asserts.py`
-- URL origin allowlists: `tests/electron/mainHelpers.test.js`, `android/app/src/test/java/com/meshchatx/RemoteBackendUrlTest.java`
-- XSS sanitizers: `tests/frontend/sanitizerXssOracle.test.js` (shared payload list against Markdown, Nomad, Micron, KML)
-- Mesh size caps: `tests/backend/test_announce_manager_extended.py`, `tests/backend/test_nomadnet_downloader.py`, `tests/backend/test_map_geo_validator.py`, `tests/backend/test_rrc_security.py`
+- Protocol: tests/backend/test_rrc_protocol_fuzz.py
+- ACL/membership: tests/backend/test_rrc_membership_acls.py
+- Room keys: tests/backend/test_rrc_room_keys.py
+- EECT shared asserts: tests/backend/eect/asserts.py
+- URL origin allowlists: tests/electron/mainHelpers.test.js, android/app/src/test/java/com/meshchatx/RemoteBackendUrlTest.java
+- XSS sanitizers: tests/frontend/sanitizerXssOracle.test.js (shared payload list against Markdown, Nomad, Micron, KML)
+- Mesh size caps: tests/backend/test_announce_manager_extended.py, tests/backend/test_nomadnet_downloader.py, tests/backend/test_map_geo_validator.py, tests/backend/test_rrc_security.py
 
 ## Commands
 
@@ -62,4 +62,4 @@ pnpm exec vitest run tests/frontend/sanitizerXssOracle.test.js
 task test:eect
 ```
 
-Also read: `.agents/conventions/tests.md`, `.agents/skills/exploratory-testing/SKILL.md`.
+Also read: .agents/conventions/tests.md, .agents/skills/exploratory-testing/SKILL.md.

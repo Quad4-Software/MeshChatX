@@ -16,7 +16,7 @@ Implement or harden Reticulum Relay Chat (RRC) hubs and clients without breaking
 
 ## Core model
 
-- Aspect: `rrc.hub`. Address hubs by destination hash, not IP.
+- Aspect: rrc.hub. Address hubs by destination hash, not IP.
 - Hub-and-spoke over RNS Links. Rooms are hub-local labels.
 - JOIN body is empty in core wire docs. MeshChatX hubs may put a room key string in the JOIN body for +k.
 - Hosted /list marks keyed public rooms with [+k]. The key is never listed. Clients prompt only for that flag (no stored key) or on ERROR bad key (+k).
@@ -26,15 +26,15 @@ Implement or harden Reticulum Relay Chat (RRC) hubs and clients without breaking
 
 | Area              | Path                                              |
 | ----------------- | ------------------------------------------------- |
-| Protocol          | `meshchatx/src/backend/rrc/protocol.py`           |
-| Client hubs       | `meshchatx/src/backend/rrc/manager.py`            |
-| Hosted hub        | `meshchatx/src/backend/rrc/server.py`             |
-| Commands          | `meshchatx/src/backend/rrc/hub_commands.py`       |
-| Room ACL          | `meshchatx/src/backend/rrc/room_registry.py`      |
-| rooms.toml        | `meshchatx/src/backend/rrc/rooms_toml.py`         |
-| Client key crypto | `meshchatx/src/backend/rrc/room_key_crypto.py`    |
-| Key DAO           | `meshchatx/src/backend/database/rrc_room_keys.py` |
-| UI                | `meshchatx/src/frontend/features/relay-chat/`     |
+| Protocol          | meshchatx/src/backend/rrc/protocol.py           |
+| Client hubs       | meshchatx/src/backend/rrc/manager.py            |
+| Hosted hub        | meshchatx/src/backend/rrc/server.py             |
+| Commands          | meshchatx/src/backend/rrc/hub_commands.py       |
+| Room ACL          | meshchatx/src/backend/rrc/room_registry.py      |
+| rooms.toml        | meshchatx/src/backend/rrc/rooms_toml.py         |
+| Client key crypto | meshchatx/src/backend/rrc/room_key_crypto.py    |
+| Key DAO           | meshchatx/src/backend/database/rrc_room_keys.py |
+| UI                | meshchatx/src/frontend/features/relay-chat/     |
 
 ## Non-negotiables
 
@@ -42,7 +42,7 @@ Implement or harden Reticulum Relay Chat (RRC) hubs and clients without breaking
 2. Non-member PART must not fan out PARTED.
 3. Kick/ban must fan PARTED to remaining members and force client leave on ERROR.
 4. Client room keys: AES-GCM wrapped with HKDF from identity private key. Never return plaintext keys from list APIs.
-5. Hub room keys may live in rooms.toml (hub-local). Public API exposes `has_key` only.
+5. Hub room keys may live in rooms.toml (hub-local). Public API exposes has_key only.
 6. Quote rooms.toml table names so dotted room names roundtrip.
 7. Identity-scoped state only. Removing a hub clears stored keys for that hub.
 

@@ -5,7 +5,7 @@ description: "Rules and worked examples for writing prose that does not read lik
 
 # No AI Slop
 
-The full rule list lives in `references/rules.md` (rules 1 through 24). This skill turns the rules that have worked examples into actionable guidance: each shows a WRONG version (the slop) and a RIGHT version (the fix). The pattern behind every fix is the same: replace the vague claim with a specific, checkable fact.
+The full rule list lives in references/rules.md (rules 1 through 24). This skill turns the rules that have worked examples into actionable guidance: each shows a WRONG version (the slop) and a RIGHT version (the fix). The pattern behind every fix is the same: replace the vague claim with a specific, checkable fact.
 
 ## Rule 1: No emdashes
 
@@ -91,14 +91,14 @@ Whenever you say A differs from B, name the part, the version, the date, the mec
 
 ## Project prose reference
 
-For MeshChatX release notes and changelog-style prose, use the current `CHANGELOG.md` as the style reference. Entries are terse bullets, open with `**Area**:`, use the imperative mood, and end on a specific, checkable fact (a path, a status, a number, a version).
+For MeshChatX release notes and changelog-style prose, use the current CHANGELOG.md as the style reference. Entries are terse bullets, open with **Area**:, use the imperative mood, and end on a specific, checkable fact (a path, a status, a number, a version).
 
 - WRONG: "This is a very important improvement that makes things significantly better for users."
-- RIGHT: "**Python backend**: Move `websocket_broadcast` and RNS link handlers from `meshchat.py` to `websocket_runtime.py` and `rns_link_manager.py`. Contract and quick backend tests pass."
+- RIGHT: "**Python backend**: Move websocket_broadcast and RNS link handlers from meshchat.py to websocket_runtime.py and rns_link_manager.py. Contract and quick backend tests pass."
 
 ## Self-check before returning text
 
-Run this pass on every piece of prose before you hand it back. The full banned lists are in `references/ai-writing-detection.md`; check against them directly.
+Run this pass on every piece of prose before you hand it back. The full banned lists are in references/ai-writing-detection.md; check against them directly.
 
 1. Search for the emdash character. Remove every one (Rule 1).
 2. Scan for banned verbs (delve, leverage, utilize, foster, bolster, underscore, unveil, streamline) and replace with plain equivalents.

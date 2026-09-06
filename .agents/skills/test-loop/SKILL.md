@@ -46,9 +46,9 @@ MESHCHAT_UI_PAGES=messages,contacts task test:ui:lighthouse
 
 ## Anti-hang rules
 
-- Do not pipe long pytest runs through `| tail` in agent shells (blocks until process ends).
-- Prefer `--tb=short` / `-q` and explicit file lists.
-- Skip or isolate `long_running` / notification soak tests unless explicitly requested.
+- Do not pipe long pytest runs through | tail in agent shells (blocks until process ends).
+- Prefer --tb=short / -q and explicit file lists.
+- Skip or isolate long_running / notification soak tests unless explicitly requested.
 - Landlock apply tests: always subprocess.
 
 ## After UI edits
@@ -60,4 +60,4 @@ pnpm exec vitest run tests/frontend/<related>.test.js
 
 ## After identity / Landlock edits
 
-Run the matching skill's verification section before claiming done: `landlock-sqlite` for the full Landlock/SQLite/AppContainer command set, `identity-switch-teardown` or `identity-restore` for identity flows.
+Run the matching skill's verification section before claiming done: landlock-sqlite for the full Landlock/SQLite/AppContainer command set, identity-switch-teardown or identity-restore for identity flows.
