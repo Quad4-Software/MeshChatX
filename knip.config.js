@@ -9,7 +9,7 @@ export default {
         "tests/**/*.{js,cjs,mjs}",
     ],
     project: [
-        "meshchatx/src/frontend/**/*.{js,ts,vue,svelte}",
+        "meshchatx/src/frontend/**/*.{js,ts,svelte}",
         "electron/**/*.{js,ts}",
         "scripts/**/*.{js,mjs,cjs}",
         "tests/**/*.{js,cjs,mjs}",

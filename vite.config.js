@@ -3,14 +3,10 @@ import fs from "fs";
 import { defineConfig } from "vite";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
 import { meshchatxServiceWorkerPlugin } from "./scripts/build/generate_service_worker.mjs";
-import { detectLaunchEditor, isVueDevToolsEnabled } from "./scripts/vite-dx.mjs";
 import tailwindcss from "@tailwindcss/vite";
-import vue from "@vitejs/plugin-vue";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import vueDevTools from "vite-plugin-vue-devtools";
 const vendorChunkGroups = [
     { test: /[/\\]node_modules[/\\](vis-network|vis-data)/, name: "vendor-vis", priority: 95 },
-    { test: /[/\\]node_modules[/\\]vue-router/, name: "vendor-vue-router", priority: 90 },
     { test: /[/\\]node_modules[/\\](protobufjs|@protobufjs)/, name: "vendor-protobuf", priority: 85 },
     { test: /[/\\]node_modules[/\\]@mdi(?:\/|\\)js/, name: "vendor-mdi", priority: 75 },
     { test: /[/\\]node_modules[/\\]compressorjs/, name: "vendor-compressor", priority: 70 },
@@ -18,7 +14,6 @@ const vendorChunkGroups = [
     { test: /MicronParser\.js/, name: "vendor-micron", priority: 55 },
     { test: /[/\\]node_modules[/\\]electron-prompt/, name: "vendor-electron-prompt", priority: 50 },
     { test: /[/\\]node_modules[/\\]svelte/, name: "vendor-svelte", priority: 48 },
-    { test: /[/\\]node_modules[/\\].*vue/, name: "vendor-vue", priority: 45 },
     { test: /[/\\]node_modules[/\\]/, name: "vendor-other", priority: 10 },
 ];
 
@@ -236,30 +231,8 @@ function isViteDevCorsOrigin(origin) {
     }
 }
 
-/**
- * Strip Vue DevTools / inspector tags from the crash-tab HTML entry.
- * That frame is sandboxed to opaque null and must not pull overlay scripts.
- * @returns {import('vite').Plugin}
- */
-function skipVueDevToolsInCrashTab() {
-    return {
-        name: "meshchatx-skip-vue-devtools-in-crash-tab",
-        transformIndexHtml: {
-            order: "post",
-            handler(html, ctx) {
-                const file = String(ctx.filename || ctx.path || "");
-                if (!file.includes("nomad-crash-tab")) {
-                    return html;
-                }
-                return html.replace(/<script[^>]+(?:vue-devtools-path|vue-inspector-path)[^>]*>\s*<\/script>\s*/gi, "");
-            },
-        },
-    };
-}
-
 export default defineConfig(({ command }) => {
     const bundledDev = envBool(process.env.MESHCHAT_VITE_BUNDLED_DEV);
-    const vueDevToolsOn = isVueDevToolsEnabled({ command });
 
     // Only clear hashed assets on production build. Loading this config for
     // `vite` / `vite preview` must not wipe meshchatx/public/assets used by
@@ -272,7 +245,6 @@ export default defineConfig(({ command }) => {
         experimental: bundledDev ? { bundledDev: true } : undefined,
         define: {
             __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
-            __VUE_PROD_DEVTOOLS__: "false",
             "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
             "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
             "import.meta.env.VITE_VISUALISER_WASM_BUNDLED": JSON.stringify(visualiserWasmBundled ? "true" : "false"),
@@ -286,21 +258,6 @@ export default defineConfig(({ command }) => {
         },
         plugins: [
             tailwindcss(),
-            ...(vueDevToolsOn
-                ? [
-                      vueDevTools({
-                          launchEditor: detectLaunchEditor(),
-                      }),
-                      skipVueDevToolsInCrashTab(),
-                  ]
-                : []),
-            vue({
-                template: {
-                    compilerOptions: {
-                        isCustomElement: (tag) => tag === "emoji-picker",
-                    },
-                },
-            }),
             svelte(),
             meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
         ],
@@ -326,7 +283,11 @@ export default defineConfig(({ command }) => {
                 },
             },
             warmup: {
-                clientFiles: ["./main.ts", "./components/App.vue", "./features/messages/MessagesPage.svelte"],
+                clientFiles: [
+                    "./main.ts",
+                    "./features/app-shell/App.svelte",
+                    "./features/messages/MessagesPage.svelte",
+                ],
             },
             proxy: {
                 "/api": {
@@ -427,11 +388,11 @@ export default defineConfig(({ command }) => {
         },
 
         optimizeDeps: {
-            include: ["vue", "svelte", "emoji-picker-element"],
+            include: ["svelte", "emoji-picker-element"],
         },
 
         resolve: {
-            dedupe: ["vue", "svelte"],
+            dedupe: ["svelte"],
             tsconfigPaths: true,
             // Git-hosted micron-parser has no upstream package.json. Alias the entry so
             // Vite/Rolldown resolve it in Docker and CI without relying on metadata alone.

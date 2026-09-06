@@ -1,5 +1,4 @@
 import { defineConfig } from "vitest/config";
-import vue from "@vitejs/plugin-vue";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import path from "path";
 import fs from "fs";
@@ -52,16 +51,7 @@ export default defineConfig({
         __MICRON_WASM_SRI_WASM__: JSON.stringify(micronWasmIntegrity?.wasm || ""),
         __MICRON_WASM_SRI_EXEC__: JSON.stringify(micronWasmIntegrity?.wasmExec || ""),
     },
-    plugins: [
-        vue({
-            template: {
-                compilerOptions: {
-                    isCustomElement: (tag) => tag === "emoji-picker",
-                },
-            },
-        }),
-        svelte(),
-    ],
+    plugins: [svelte()],
     test: {
         execArgv: [
             "--no-experimental-webstorage",
@@ -78,7 +68,7 @@ export default defineConfig({
             provider: "v8",
             reporter: ["text", "json-summary"],
             reportsDirectory: "./coverage",
-            include: ["meshchatx/src/frontend/**/*.{js,vue,svelte}"],
+            include: ["meshchatx/src/frontend/**/*.{js,ts,svelte}"],
             exclude: [
                 "meshchatx/src/frontend/**/*.d.ts",
                 "meshchatx/src/frontend/public/**",
