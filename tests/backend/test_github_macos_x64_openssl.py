@@ -24,7 +24,9 @@ def test_macos_x64_deps_script_installs_openssl() -> None:
     assert "openssl" in text, "expected openssl to be installed via MacPorts"
     assert 'OPENSSL_DIR="/opt/local"' in text, "expected MacPorts OpenSSL prefix"
     assert 'OPENSSL_LIB_DIR="/opt/local/lib"' in text, "expected MacPorts lib path"
-    assert 'OPENSSL_INCLUDE_DIR="/opt/local/include"' in text, "expected MacPorts include path"
+    assert 'OPENSSL_INCLUDE_DIR="/opt/local/include"' in text, (
+        "expected MacPorts include path"
+    )
 
 
 def test_macos_workflows_install_openssl_on_x64() -> None:
