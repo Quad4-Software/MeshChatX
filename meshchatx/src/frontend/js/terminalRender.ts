@@ -6,21 +6,38 @@ const OSC_SEQUENCE = new RegExp(`${ESC}\\][^\\u0007${ESC}]*(?:\\u0007|${ESC}\\\\
 const STRING_SEQUENCE = new RegExp(`${ESC}[P^_][^${ESC}]*${ESC}\\\\`, "g");
 const CSI_SEQUENCE = new RegExp(`${ESC}\\[[0-?]*[ -/]*[@-~]`, "g");
 const SINGLE_ESCAPE = new RegExp(`${ESC}[@-Z\\\\-_]`, "g");
-// eslint-disable-next-line no-control-regex
-const STRIP_CONTROL = /[\u0000-\u0007\u000b\u000c\u000e-\u001f\u007f]/g;
+
 const TAB_WIDTH = 8;
+
+/** Drop C0 controls except NL, CR, HT, BS (handled by cursor simulation). */
+function stripOtherControls(input: string): string {
+    let out = "";
+    for (const ch of input) {
+        const c = ch.charCodeAt(0);
+        if (c === 9 || c === 10 || c === 13 || c === 8) {
+            out += ch;
+            continue;
+        }
+        if (c <= 31 || c === 127) {
+            continue;
+        }
+        out += ch;
+    }
+    return out;
+}
 
 /**
  * Strip ANSI escape and control sequences, preserving newline, carriage
  * return, tab and backspace which are handled by the cursor simulation.
  */
 function stripAnsi(input: string): string {
-    return input
-        .replace(OSC_SEQUENCE, "")
-        .replace(STRING_SEQUENCE, "")
-        .replace(CSI_SEQUENCE, "")
-        .replace(SINGLE_ESCAPE, "")
-        .replace(STRIP_CONTROL, "");
+    return stripOtherControls(
+        input
+            .replace(OSC_SEQUENCE, "")
+            .replace(STRING_SEQUENCE, "")
+            .replace(CSI_SEQUENCE, "")
+            .replace(SINGLE_ESCAPE, "")
+    );
 }
 
 /**

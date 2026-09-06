@@ -6,7 +6,7 @@
     import ToastUtils from "../../js/ToastUtils.js";
     import GlobalState from "../../js/GlobalState.js";
     import { t } from "../../js/i18n.js";
-    import { INTERFACES_ROUTE_NAME } from "./lib/constants.js";
+    import { INTERFACES_ROUTE_PATH } from "./lib/constants.js";
     import type {
         DiscoveryFields,
         InterfaceModule,
@@ -54,7 +54,10 @@
 
     let { interfaceName = "", routeQuery = {} }: Props = $props();
 
-    const isEditingInterface = $derived(Boolean(interfaceName));
+    const editInterfaceName = $derived(
+        interfaceName || (typeof routeQuery.interface_name === "string" ? routeQuery.interface_name : "")
+    );
+    const isEditingInterface = $derived(Boolean(editInterfaceName));
 
     let isSaving = $state(false);
     let savingDiscovery = $state(false);
@@ -238,8 +241,8 @@
         loadDiscoveryConfig();
         loadInstalledModules();
 
-        if (interfaceName) {
-            loadInterfaceToEdit(interfaceName);
+        if (editInterfaceName) {
+            loadInterfaceToEdit(editInterfaceName);
         } else if (routeQuery) {
             applyQueryPrefills();
             if (routeQuery.from_discovered === "1") {
@@ -587,7 +590,7 @@
     }
 
     function navigateBack() {
-        window.location.hash = `#/${INTERFACES_ROUTE_NAME}`;
+        window.location.hash = `#${INTERFACES_ROUTE_PATH}`;
     }
 </script>
 

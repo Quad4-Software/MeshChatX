@@ -2,6 +2,8 @@
 
 <script lang="ts">
     import { RETICULUM_MANUAL_INTERFACES_COMMON_OPTIONS_REL } from "../../../js/reticulumDocsEntryUrl.js";
+    import { openBundledReticulumManualPath } from "../../../js/reticulumDocsNavigation.js";
+    import { router } from "../../../shell/hashRouter.js";
     import { t } from "../../../js/i18n.js";
 
     interface Props {
@@ -19,7 +21,7 @@
     }: Props = $props();
 
     function openDocs() {
-        window.location.hash = `#/docs?reticulum=${encodeURIComponent(docsRelPath)}`;
+        void openBundledReticulumManualPath(router, docsRelPath);
     }
 </script>
 

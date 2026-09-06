@@ -9,8 +9,18 @@ function isAndroidSaveBridge() {
 class DownloadUtils {
     static sanitizeDownloadFilename(filename, defaultFilename = "download") {
         let name = filename == null ? "" : String(filename);
-        // eslint-disable-next-line no-control-regex -- strip CR/LF/NUL and bidi overrides from peer-provided names
-        name = name.replace(/[\r\n\x00\u202A-\u202E\u2066-\u2069]/g, "").trim();
+
+        // Strip CR/LF/NUL and bidi overrides without embedding control chars in a regex literal.
+        name = Array.from(name)
+            .filter((ch) => {
+                const c = ch.codePointAt(0) ?? 0;
+                if (c === 0 || c === 10 || c === 13) return false;
+                if (c >= 0x202a && c <= 0x202e) return false;
+                if (c >= 0x2066 && c <= 0x2069) return false;
+                return true;
+            })
+            .join("")
+            .trim();
         // Drop path segments from naive Content-Disposition or peer-provided names.
         name = name.split(/[/\\]/).pop() || "";
         name = name.replace(/[. ]+$/g, "");
