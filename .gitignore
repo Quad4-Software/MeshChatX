@@ -160,6 +160,11 @@ meshchatx/src/frontend/public/vendor/geo-wasm/wasm_exec.js
 .gotmp/
 .vitest-cache/
 
+# Prettier --cache (default: node_modules/.cache/prettier/.prettier-cache)
+node_modules/.cache/prettier/
+.prettier-cache
+.prettiercache
+
 .hypothesis
 .hypothesis/
 

@@ -19,4 +19,4 @@ fi
 
 NPM="${NPM:-pnpm}"
 # shellcheck disable=SC2086
-exec "$NPM" exec eslint --fix $files
+exec "$NPM" exec eslint --concurrency=auto --fix $files
