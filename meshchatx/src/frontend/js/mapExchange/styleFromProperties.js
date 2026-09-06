@@ -94,7 +94,10 @@ export function applyCappedMcxIconStyleIfNeeded(feature) {
     if (!(p[MCX_ICON_DATA_URL] || p[MCX_ICON_HREF])) {
         return;
     }
-    feature.setStyle((f, resolution) => styleFromMcxProperties(f, resolution) || undefined);
+    const built = styleFromMcxProperties(feature);
+    if (built) {
+        feature.setStyle(built);
+    }
 }
 
 export function styleFromMcxProperties(feature, resolution) {

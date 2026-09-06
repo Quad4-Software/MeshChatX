@@ -1,11 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div
-        :class="rootClasses"
-        :aria-hidden="true"
-        role="presentation"
-    />
+    <div :class="rootClasses" :aria-hidden="true" role="presentation" />
 </template>
 
 <script>
@@ -32,11 +28,7 @@ export default {
     computed: {
         rootClasses() {
             const base = VARIANT_CLASSES[this.variant] || VARIANT_CLASSES.line;
-            return [
-                "bg-sem-surface-muted animate-pulse motion-reduce:animate-none",
-                base,
-                this.rootClass,
-            ];
+            return ["bg-sem-surface-muted animate-pulse motion-reduce:animate-none", base, this.rootClass];
         },
     },
 };

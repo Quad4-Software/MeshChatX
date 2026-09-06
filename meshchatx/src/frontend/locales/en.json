@@ -4990,7 +4990,8 @@
         "login": "Login",
         "passwords_mismatch": "Passwords do not match",
         "status_check_failed": "Failed to check authentication status",
-        "failed": "Authentication failed"
+        "failed": "Authentication failed",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Enable Windows screen security?",

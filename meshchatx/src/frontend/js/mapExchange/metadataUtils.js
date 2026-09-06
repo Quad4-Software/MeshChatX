@@ -71,6 +71,10 @@ export function normalizeFeatureMetadataProps(feature) {
     if ((d == null || d === "") && D != null && D !== "") {
         feature.set("description", D);
     }
+    const rawDesc = feature.get("description");
+    if (rawDesc != null && descriptionNeedsFlatten(rawDesc)) {
+        feature.set("description", flattenHtmlDescription(rawDesc));
+    }
     const t = feature.get("title");
     const nameAfterKml = feature.get("name");
     if ((nameAfterKml == null || nameAfterKml === "") && t != null && t !== "") {

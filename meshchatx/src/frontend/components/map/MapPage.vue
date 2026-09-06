@@ -1166,6 +1166,7 @@ export default {
     components: {
         ContextMenuItem,
         ContextMenuPanel,
+        ContextMenuDivider,
         MaterialDesignIcon,
         MapClusterPanel,
         MapMarkerPanel,
@@ -1203,6 +1204,8 @@ export default {
     data() {
         return {
             map: null,
+            showMapToolbar: true,
+            useTabToolbar: false,
             offlineEnabled: true,
             hasOfflineMap: false,
             metadata: null,

@@ -4990,7 +4990,8 @@
         "login": "Zaloguj się",
         "passwords_mismatch": "Hasła nie są identyczne",
         "status_check_failed": "Nie udało się sprawdzić stanu uwierzytelniania",
-        "failed": "Uwierzytelnianie nie powiodło się"
+        "failed": "Uwierzytelnianie nie powiodło się",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Włączyć ochronę ekranu systemu Windows?",

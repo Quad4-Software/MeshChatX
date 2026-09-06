@@ -4990,7 +4990,8 @@
         "login": "ログイン",
         "passwords_mismatch": "パスワードが一致しません",
         "status_check_failed": "認証状態の確認に失敗しました",
-        "failed": "認証に失敗しました"
+        "failed": "認証に失敗しました",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Windowsの画面セキュリティを有効化しますか？",

@@ -4890,7 +4890,8 @@
         "login": "Kirjaudu",
         "passwords_mismatch": "Salasanat eivät täsmää",
         "status_check_failed": "Tunnistautumistilan tarkistus epäonnistui",
-        "failed": "Tunnistautuminen epäonnistui"
+        "failed": "Tunnistautuminen epäonnistui",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Otetaanko Windowsin näytön suojaus käyttöön?",

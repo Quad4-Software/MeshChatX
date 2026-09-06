@@ -4990,7 +4990,8 @@
         "login": "Entrar",
         "passwords_mismatch": "As senhas não coincidem",
         "status_check_failed": "Falha ao verificar o status de autenticação",
-        "failed": "Falha na autenticação"
+        "failed": "Falha na autenticação",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Ativar a segurança de tela do Windows?",

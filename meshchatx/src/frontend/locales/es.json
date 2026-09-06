@@ -4890,7 +4890,8 @@
         "login": "Iniciar sesión",
         "passwords_mismatch": "Las contraseñas no coinciden",
         "status_check_failed": "No se pudo comprobar el estado de autenticación",
-        "failed": "Error de autenticación"
+        "failed": "Error de autenticación",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "¿Activar la seguridad de pantalla de Windows?",

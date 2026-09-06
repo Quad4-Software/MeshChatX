@@ -4890,7 +4890,8 @@
         "login": "Inloggen",
         "passwords_mismatch": "Wachtwoorden komen niet overeen",
         "status_check_failed": "Authenticatiestatus kon niet worden gecontroleerd",
-        "failed": "Authenticatie mislukt"
+        "failed": "Authenticatie mislukt",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Windows-schermbeveiliging inschakelen?",

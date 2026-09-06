@@ -4890,7 +4890,8 @@
         "login": "登录",
         "passwords_mismatch": "两次输入的密码不一致",
         "status_check_failed": "无法检查身份验证状态",
-        "failed": "身份验证失败"
+        "failed": "身份验证失败",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "启用 Windows 屏幕安全？",

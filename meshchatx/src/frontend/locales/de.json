@@ -4890,7 +4890,8 @@
         "login": "Anmelden",
         "passwords_mismatch": "Passwörter stimmen nicht überein",
         "status_check_failed": "Authentifizierungsstatus konnte nicht geprüft werden",
-        "failed": "Authentifizierung fehlgeschlagen"
+        "failed": "Authentifizierung fehlgeschlagen",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Windows-Bildschirmsicherheit aktivieren?",

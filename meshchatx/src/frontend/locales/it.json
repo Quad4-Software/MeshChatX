@@ -4890,7 +4890,8 @@
         "login": "Accedi",
         "passwords_mismatch": "Le password non corrispondono",
         "status_check_failed": "Impossibile verificare lo stato di autenticazione",
-        "failed": "Autenticazione non riuscita"
+        "failed": "Autenticazione non riuscita",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Attivare la sicurezza schermo di Windows?",

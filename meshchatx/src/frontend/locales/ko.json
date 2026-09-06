@@ -4990,7 +4990,8 @@
         "login": "로그인",
         "passwords_mismatch": "비밀번호가 일치하지 않습니다",
         "status_check_failed": "인증 상태를 확인하지 못했습니다",
-        "failed": "인증에 실패했습니다"
+        "failed": "인증에 실패했습니다",
+        "altcha_required": "Complete the verification challenge first"
     },
     "post_install": {
         "windows_screen_security_title": "Windows 화면 보호를 활성화하시겠습니까?",

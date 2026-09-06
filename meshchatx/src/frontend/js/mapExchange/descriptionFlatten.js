@@ -85,9 +85,7 @@ function dropScriptAndStyle(html) {
         }
         return doc.body ? doc.body.innerHTML : s;
     }
-    return s
-        .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
-        .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "");
+    return s.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "").replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "");
 }
 
 /**
@@ -251,11 +249,38 @@ export function descriptionNeedsFlatten(text) {
 export function extractKeyedDescriptionLines(description) {
     const pairs = [];
     const leftover = [];
-    const normalized = unmashKeyedDescription(String(description || ""));
-    for (const rawLine of normalized.split(/\n+/)) {
+    for (const rawLine of String(description || "").split(/\n+/)) {
         const line = rawLine.trim();
         if (!line) {
             continue;
+        }
+        const keyMatch = line.match(/^([^:]{1,80}):\s*(.+)$/);
+        if (keyMatch && (keyMatch[2].match(MASHED_VALUE_KEY_RE) || keyMatch[2].match(MASHED_NULL_KEY_RE))) {
+            const unmashed = unmashKeyedDescription(line);
+            if (unmashed !== line) {
+                for (const rawSub of unmashed.split(/\n+/)) {
+                    const sub = rawSub.trim();
+                    if (!sub) {
+                        continue;
+                    }
+                    const m = sub.match(/^([^:]{1,80}):\s*(.+)$/);
+                    if (m) {
+                        const key = m[1].trim();
+                        const value = decodeBasicEntities(m[2].trim());
+                        if (key && !isNullishMapValue(value) && isPlausiblePropertyKey(key, value)) {
+                            pairs.push({ key, value });
+                            continue;
+                        }
+                        if (key && isNullishMapValue(value)) {
+                            continue;
+                        }
+                    }
+                    if (!isNullishMapValue(sub) && !SCRIPT_LIKE_RE.test(sub)) {
+                        leftover.push(decodeBasicEntities(sub));
+                    }
+                }
+                continue;
+            }
         }
         const m = line.match(/^([^:]{1,80}):\s*(.+)$/);
         if (m) {
