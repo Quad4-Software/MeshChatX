@@ -3,7 +3,15 @@
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";
-    import { hubDisplayName, hubIconName, statusIconColor, formatUnreadBadge } from "../lib/relayFormatters.js";
+    import {
+        hubDisplayName,
+        hubIconName,
+        hubTotalUnreadCount,
+        orderedKnownRoomNames,
+        roomUnreadCount,
+        statusIconColor,
+        formatUnreadBadge,
+    } from "../lib/relayFormatters.js";
     import type { RrcHub, RrcRoom } from "../lib/types.js";
 
     interface Props {
@@ -22,6 +30,8 @@
         onroomcontextmenu?: (e: MouseEvent, hub: RrcHub, room: RrcRoom) => void;
         ontogglehubexpanded?: (hubHash: string) => void;
         onreorderhubs?: (fromIdx: number, toIdx: number) => void;
+        onreorderrooms?: (hub: RrcHub, fromIdx: number, toIdx: number) => void;
+        onpersistroomorder?: (hub: RrcHub) => void;
     }
 
     let {
@@ -40,19 +50,67 @@
         onroomcontextmenu,
         ontogglehubexpanded,
         onreorderhubs,
+        onreorderrooms,
+        onpersistroomorder,
     }: Props = $props();
 
     let dragHubIndex = $state<number | null>(null);
+    let dragRoomHubHash = $state<string | null>(null);
+    let dragRoomIndex = $state<number | null>(null);
 
-    function hubRoomsList(hub: RrcHub): RrcRoom[] {
-        if (!hub.rooms) return [];
-        if (Array.isArray(hub.rooms)) return hub.rooms;
-        return Object.values(hub.rooms);
+    function roomAsObject(hub: RrcHub, roomName: string): RrcRoom {
+        const stored = Array.isArray(hub.stored_key_rooms) ? hub.stored_key_rooms : [];
+        return {
+            name: roomName,
+            unread: roomUnreadCount(hub, roomName),
+            has_key: stored.includes(roomName),
+        };
     }
 
-    function hubTotalUnread(hub: RrcHub): number {
-        const rooms = hubRoomsList(hub);
-        return rooms.reduce((sum, r) => sum + (r.unread || 0), 0);
+    function onRoomDragStart(hub: RrcHub, roomIndex: number, event: DragEvent) {
+        const rooms = orderedKnownRoomNames(hub);
+        if (rooms.length <= 1) {
+            return;
+        }
+        event.stopPropagation();
+        dragRoomHubHash = hub.hub_hash;
+        dragRoomIndex = roomIndex;
+        dragHubIndex = null;
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", String(roomIndex));
+        }
+    }
+
+    function onRoomDragOver(hub: RrcHub, roomIndex: number, event: DragEvent) {
+        if (dragRoomHubHash !== hub.hub_hash || dragRoomIndex === null) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        if (dragRoomIndex === roomIndex) {
+            return;
+        }
+        onreorderrooms?.(hub, dragRoomIndex, roomIndex);
+        dragRoomIndex = roomIndex;
+    }
+
+    function onRoomDrop(hub: RrcHub, event: DragEvent) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (dragRoomHubHash !== hub.hub_hash) {
+            dragRoomHubHash = null;
+            dragRoomIndex = null;
+            return;
+        }
+        dragRoomHubHash = null;
+        dragRoomIndex = null;
+        onpersistroomorder?.(hub);
+    }
+
+    function onRoomDragEnd() {
+        dragRoomHubHash = null;
+        dragRoomIndex = null;
     }
 </script>
 
@@ -107,11 +165,11 @@
                     }}
                 >
                     <MaterialDesignIcon iconName={hubIconName(hub)} class="size-6 {statusIconColor(hub.status)}" />
-                    {#if showUnreadBadges && hubTotalUnread(hub) > 0}
+                    {#if showUnreadBadges && hubTotalUnreadCount(hub) > 0}
                         <span
                             class="absolute -top-0.5 -right-0.5 min-w-[14px] rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-tight text-white"
                         >
-                            {formatUnreadBadge(hubTotalUnread(hub))}
+                            {formatUnreadBadge(hubTotalUnreadCount(hub))}
                         </span>
                     {/if}
                 </button>
@@ -132,7 +190,11 @@
                 <div
                     class="border-b border-sem-border/60 {dragHubIndex === hubIndex ? 'opacity-60' : ''}"
                     draggable="true"
-                    ondragstart={() => {
+                    ondragstart={(e) => {
+                        if (dragRoomHubHash) {
+                            e.preventDefault();
+                            return;
+                        }
                         dragHubIndex = hubIndex;
                     }}
                     ondragover={(e) => e.preventDefault()}
@@ -174,11 +236,11 @@
                         <div class="min-w-0 flex-1">
                             <div class="truncate text-sm">{hubDisplayName(hub)}</div>
                         </div>
-                        {#if showUnreadBadges && hubTotalUnread(hub) > 0}
+                        {#if showUnreadBadges && hubTotalUnreadCount(hub) > 0}
                             <span
                                 class="min-w-[16px] rounded-full bg-red-500 px-1 text-[10px] font-bold leading-tight text-white text-center"
                             >
-                                {formatUnreadBadge(hubTotalUnread(hub))}
+                                {formatUnreadBadge(hubTotalUnreadCount(hub))}
                             </span>
                         {/if}
                     </button>
@@ -194,13 +256,22 @@
                                 <span>{t("relay_chat.join_room")}</span>
                             </button>
 
-                            {#each hubRoomsList(hub) as room (room.name)}
+                            {#each orderedKnownRoomNames(hub) as roomName, roomIndex (roomName)}
+                                {@const room = roomAsObject(hub, roomName)}
                                 <button
                                     type="button"
                                     class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors cursor-pointer {selectedHubHash ===
-                                        hub.hub_hash && selectedRoomName === room.name
+                                        hub.hub_hash && selectedRoomName === roomName
                                         ? 'bg-sem-accent/15 text-sem-accent font-semibold'
-                                        : 'hover:bg-sem-surface/40 text-sem-fg'}"
+                                        : 'hover:bg-sem-surface/40 text-sem-fg'} {dragRoomHubHash === hub.hub_hash &&
+                                    dragRoomIndex === roomIndex
+                                        ? 'opacity-60'
+                                        : ''}"
+                                    draggable={orderedKnownRoomNames(hub).length > 1}
+                                    ondragstart={(e) => onRoomDragStart(hub, roomIndex, e)}
+                                    ondragover={(e) => onRoomDragOver(hub, roomIndex, e)}
+                                    ondrop={(e) => onRoomDrop(hub, e)}
+                                    ondragend={onRoomDragEnd}
                                     onclick={() => onselectroom?.(hub, room)}
                                     oncontextmenu={(e) => {
                                         e.preventDefault();
@@ -210,7 +281,7 @@
                                 >
                                     <div class="flex items-center gap-1.5 min-w-0 flex-1">
                                         <MaterialDesignIcon iconName="pound" class="size-3.5 shrink-0 opacity-60" />
-                                        <span class="truncate">{room.name}</span>
+                                        <span class="truncate">{roomName}</span>
                                         {#if room.has_key}
                                             <MaterialDesignIcon
                                                 iconName="lock"
@@ -218,7 +289,7 @@
                                             />
                                         {/if}
                                     </div>
-                                    {#if (room.unread || 0) > 0}
+                                    {#if showUnreadBadges && (room.unread || 0) > 0}
                                         <span
                                             class="ml-1 min-w-[14px] rounded-full bg-red-500 px-1 text-[9px] font-bold text-white text-center"
                                         >

@@ -7,11 +7,13 @@ import type { RrcHub, RrcMember, RrcMessage } from "./types.js";
 export interface RelayOfflineMember {
     hash: string;
     name: string;
+    [key: string]: unknown;
 }
 
-export function formatTime(ts: number): string {
-    if (!ts) return "";
-    const d = new Date(ts * 1000);
+export function formatTime(ts: number | string | null | undefined): string {
+    const n = typeof ts === "number" ? ts : Number(ts);
+    if (!n) return "";
+    const d = new Date(n * 1000);
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -30,6 +32,52 @@ export function formatUptime(seconds: number): string {
 export function formatUnreadBadge(count: number): string {
     if (count > 99) return "99+";
     return String(count);
+}
+
+export function orderedKnownRoomNames(hub?: RrcHub | null): string[] {
+    if (!hub) {
+        return [];
+    }
+    if (Array.isArray(hub.known_rooms)) {
+        return hub.known_rooms.filter((name): name is string => typeof name === "string" && name.length > 0);
+    }
+    if (Array.isArray(hub.rooms)) {
+        return hub.rooms
+            .map((room) => (typeof room === "string" ? room : room?.name))
+            .filter((name): name is string => typeof name === "string" && name.length > 0);
+    }
+    if (hub.rooms && typeof hub.rooms === "object") {
+        return Object.keys(hub.rooms);
+    }
+    return [];
+}
+
+export function roomUnreadCount(hub: RrcHub | null | undefined, roomName: string): number {
+    const counts = hub?.unread_counts;
+    if (!counts || typeof counts !== "object") {
+        return 0;
+    }
+    return Number(counts[roomName]) || 0;
+}
+
+export function hubTotalUnreadCount(hub: RrcHub | null | undefined): number {
+    if (!hub) {
+        return 0;
+    }
+    if (typeof hub.total_unread === "number") {
+        return hub.total_unread;
+    }
+    return orderedKnownRoomNames(hub).reduce((sum, name) => sum + roomUnreadCount(hub, name), 0);
+}
+
+export function isHubConnected(hub?: RrcHub | null): boolean {
+    if (!hub) {
+        return false;
+    }
+    if (hub.connected === true) {
+        return true;
+    }
+    return hub.status === "connected";
 }
 
 export function statusIconColor(status?: string): string {
