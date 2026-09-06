@@ -70,9 +70,10 @@ export async function resolveAuthNavigation(to, api) {
         const status = await fetchAuthStatus(api);
         applyAuthStatusToGlobalState(status);
         return authNavigationTargetForStatus(to, status);
-    } catch (e) {
+    } catch (e: unknown) {
         GlobalState.authSessionResolved = true;
-        if (e.response?.status === 401 || e.response?.status === 403) {
+        const status = (e as { response?: { status?: number } })?.response?.status;
+        if (status === 401 || status === 403) {
             GlobalState.authenticated = false;
             return { redirect: "/auth" };
         }

@@ -11,10 +11,11 @@ import ToastUtils from "../../../js/ToastUtils.js";
 import GlobalState from "../../../js/GlobalState.js";
 import { t } from "../../../js/i18n.js";
 import { applyRelayShareLink, parseMeshchatRelayUri } from "../../../js/relayLinkUtils.js";
+import type { RouteTarget } from "../../../shell/hashRouter.js";
 
 export interface ShellRouter {
-    push: (target: unknown) => Promise<unknown> | unknown;
-    replace?: (target: unknown) => Promise<unknown> | unknown;
+    push: (target: RouteTarget | string) => Promise<unknown> | unknown;
+    replace?: (target: RouteTarget | string) => Promise<unknown> | unknown;
 }
 
 const KNOWN_MESHCHATX_HOSTS = ["map", "docs", "relay", "app"];

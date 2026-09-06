@@ -117,9 +117,8 @@
     );
 
     function isBlocked(hash: string): boolean {
-        return (GlobalState.blockedDestinations || []).some(
-            (b: { destination_hash: string }) => b.destination_hash === hash
-        );
+        const blocked = (GlobalState.blockedDestinations || []) as Array<{ destination_hash?: string }>;
+        return blocked.some((b) => b.destination_hash === hash);
     }
 
     function persistLayout(immediate = false) {

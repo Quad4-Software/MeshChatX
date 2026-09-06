@@ -441,5 +441,3 @@ export const router = {
         unregisterRoute(name);
     },
 };
-
-export default router;

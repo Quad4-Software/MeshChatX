@@ -27,15 +27,17 @@
 
     const totalSize = $derived(Math.max(0, items.length * rowHeight));
 
+    type VirtualRow = { index: number; start: number; key: string };
+
     const virtualRows = $derived.by(() => {
+        const rows: VirtualRow[] = [];
         if (items.length === 0) {
-            return [];
+            return rows;
         }
         const start = Math.max(0, scrollTop);
         const end = start + Math.max(viewportHeight, 1);
         const firstVisible = Math.max(0, Math.floor(start / rowHeight) - overscan);
         const lastVisible = Math.min(items.length, Math.ceil(end / rowHeight) + overscan);
-        const rows = [];
         for (let index = firstVisible; index < lastVisible; index += 1) {
             rows.push({
                 index,

@@ -2,17 +2,11 @@
 
 <script lang="ts">
     import { t } from "../../../js/i18n.js";
-
-    interface Preset {
-        id: string;
-        bbox: number[];
-        minZoom: number;
-        maxZoom: number;
-    }
+    import type { ExportRegionPreset } from "../lib/constants.js";
 
     interface Props {
-        presets?: Preset[];
-        onselectpreset?: (preset: Preset) => void;
+        presets?: ExportRegionPreset[];
+        onselectpreset?: (preset: ExportRegionPreset) => void;
     }
 
     let { presets = [], onselectpreset }: Props = $props();

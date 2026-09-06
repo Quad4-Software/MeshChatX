@@ -20,13 +20,13 @@ export function encodeWtJsonLine(obj) {
  * @param {string} chunk
  * @returns {{ objects: object[], buffer: string, errors: string[] }}
  */
-export function feedWtJsonLines(buffer, chunk) {
-    const errors = [];
+export function feedWtJsonLines(buffer: string, chunk: string) {
+    const errors: string[] = [];
     let buf = (buffer || "") + (chunk || "");
     if (buf.length > WT_MAX_FRAME_CHARS * 2) {
-        return { objects: [], buffer: "", errors: ["frame_overflow"] };
+        return { objects: [] as object[], buffer: "", errors: ["frame_overflow"] };
     }
-    const objects = [];
+    const objects: object[] = [];
     let idx;
     while ((idx = buf.indexOf("\n")) >= 0) {
         const line = buf.slice(0, idx);
