@@ -123,20 +123,13 @@ pre.text-wrap > div > :last-child {
 
 .nodeContainer.bg-black input[type="text"],
 .nodeContainer.bg-black input[type="password"],
-.nodeContainer.bg-black textarea {
-    color: #f3f4f6 !important;
-    caret-color: #f3f4f6 !important;
-    -webkit-text-fill-color: #f3f4f6 !important;
-    border-bottom-color: #f3f4f6 !important;
-}
-
+.nodeContainer.bg-black textarea,
 .nodeContainer.nomad-shell-dark input[type="text"],
 .nodeContainer.nomad-shell-dark input[type="password"],
 .nodeContainer.nomad-shell-dark textarea {
-    color: #f3f4f6 !important;
-    caret-color: #f3f4f6 !important;
-    -webkit-text-fill-color: #f3f4f6 !important;
-    border-bottom-color: #f3f4f6 !important;
+    color: #f3f4f6;
+    caret-color: currentColor;
+    -webkit-text-fill-color: currentColor;
 }
 
 .nodeContainer.pad {
