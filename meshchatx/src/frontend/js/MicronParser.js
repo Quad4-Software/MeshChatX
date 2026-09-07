@@ -248,7 +248,7 @@ export default class MicronParser extends BaseMicronParser {
             .Mu-mnt {
                 display: inline-block;
                 box-sizing: border-box;
-                width: 0.6em;
+                width: 1ch;
                 text-align: center;
                 white-space: pre;
                 text-decoration: inherit;
@@ -258,7 +258,7 @@ export default class MicronParser extends BaseMicronParser {
             .Mu-mnt-full {
                 display: inline-block;
                 box-sizing: border-box;
-                width: 1.2em;
+                width: 2ch;
                 text-align: center;
                 white-space: pre;
                 text-decoration: inherit;

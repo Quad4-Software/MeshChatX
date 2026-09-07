@@ -1491,9 +1491,9 @@ ${b}=
 :deep(.Mu-mnt) {
     display: inline-block;
     box-sizing: border-box;
-    min-width: 0.6em;
-    width: 0.6em;
-    max-width: 0.6em;
+    min-width: 1ch;
+    width: 1ch;
+    max-width: 1ch;
     text-align: center;
     white-space: pre;
     text-decoration: inherit;
@@ -1503,9 +1503,9 @@ ${b}=
 :deep(.Mu-mnt-full) {
     display: inline-block;
     box-sizing: border-box;
-    min-width: 1.2em;
-    width: 1.2em;
-    max-width: 1.2em;
+    min-width: 2ch;
+    width: 2ch;
+    max-width: 2ch;
     text-align: center;
     white-space: pre;
     text-decoration: inherit;
