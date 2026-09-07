@@ -374,12 +374,12 @@ jobs:
                   BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
               run: |
                   set -euo pipefail
+                  if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
+                    echo "::notice::Skipping Flatpak OSTree upload for testing release"
+                    echo "run_flatpak_ostree=false" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
                   if [[ -z "${BUNNY_STORAGE_ACCESS_KEY:-}" ]]; then
-                    if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
-                      echo "::notice::Skipping Flatpak OSTree upload for testing release (BUNNY_STORAGE_ACCESS_KEY not set)"
-                      echo "run_flatpak_ostree=false" >> "$GITHUB_OUTPUT"
-                      exit 0
-                    fi
                     echo "::error::BUNNY_STORAGE_ACCESS_KEY is required to publish the Flatpak OSTree remote"
                     exit 1
                   fi
