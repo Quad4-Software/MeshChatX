@@ -1,0 +1,32 @@
+name: Stale issue cleanup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Mark and close stale issues
+        uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+        with:
+          stale-issue-label: stale
+          days-before-stale: 60
+          days-before-close: 14
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          ascending: true
+          stale-issue-message: 'This issue has been marked stale due to inactivity. If no update occurs in the next 14 days, it will be closed.'
+          close-issue-message: 'This issue is being closed due to inactivity. Reopen it if the problem or request is still current.'
+          exempt-issue-labels: pinned,security,good first issue
