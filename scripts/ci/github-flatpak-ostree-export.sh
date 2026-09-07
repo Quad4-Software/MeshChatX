@@ -77,7 +77,7 @@ if [[ -n "${GPG_FINGERPRINT:-}" ]]; then
     update_args=(--gpg-sign="${GPG_FINGERPRINT}")
 fi
 
-appid="com.meshchatx"
+appid="com.meshchatx.app"
 case "$(uname -m)" in
     x86_64 | amd64) arch="x86_64" ;;
     aarch64 | arm64) arch="aarch64" ;;

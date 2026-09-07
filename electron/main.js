@@ -130,7 +130,7 @@ if (process.platform === "linux") {
 // the electron-builder appId. Without this, minimized-window message toasts
 // often never appear for installer and portable builds.
 if (process.platform === "win32") {
-    app.setAppUserModelId("com.meshchatx");
+    app.setAppUserModelId("com.meshchatx.app");
 }
 
 // Detect if running in Flatpak sandbox
