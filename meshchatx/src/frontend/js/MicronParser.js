@@ -249,8 +249,6 @@ export default class MicronParser extends BaseMicronParser {
                 display: inline-block;
                 box-sizing: border-box;
                 min-width: 1ch;
-                width: 1ch;
-                max-width: 1ch;
                 text-align: center;
                 white-space: pre;
                 text-decoration: inherit;
@@ -261,8 +259,6 @@ export default class MicronParser extends BaseMicronParser {
                 display: inline-block;
                 box-sizing: border-box;
                 min-width: 2ch;
-                width: 2ch;
-                max-width: 2ch;
                 text-align: center;
                 white-space: pre;
                 text-decoration: inherit;
@@ -271,12 +267,8 @@ export default class MicronParser extends BaseMicronParser {
             }
             .Mu-mws {
                 text-decoration: inherit;
-                display: inline-flex;
-                flex-wrap: wrap;
-                align-items: baseline;
-                column-gap: 0;
-                row-gap: 0;
-                gap: 0;
+                display: inline-block;
+                white-space: pre-wrap;
             }
             .Mu-mnt-group {
                 display: inline;

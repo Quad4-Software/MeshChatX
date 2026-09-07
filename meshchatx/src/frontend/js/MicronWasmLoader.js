@@ -60,8 +60,6 @@ function injectMicronWasmStyles() {
             display: inline-block;
             box-sizing: border-box;
             min-width: 1ch;
-            width: 1ch;
-            max-width: 1ch;
             text-align: center;
             white-space: pre;
             text-decoration: inherit;
@@ -72,8 +70,6 @@ function injectMicronWasmStyles() {
             display: inline-block;
             box-sizing: border-box;
             min-width: 2ch;
-            width: 2ch;
-            max-width: 2ch;
             text-align: center;
             white-space: pre;
             text-decoration: inherit;
@@ -82,20 +78,18 @@ function injectMicronWasmStyles() {
         }
         .Mu-mws {
             text-decoration: inherit;
-            display: inline-flex;
-            flex-wrap: wrap;
-            align-items: baseline;
-            column-gap: 0;
-            row-gap: 0;
-            gap: 0;
+            display: inline-block;
+            white-space: pre-wrap;
         }
         .Mu-mnt-group {
-            display: inline-flex;
-            flex-wrap: nowrap;
-            align-items: baseline;
-            column-gap: 0;
-            row-gap: 0;
-            gap: 0;
+            display: inline;
+            font-family: inherit;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            text-decoration: inherit;
+            vertical-align: baseline;
+            line-height: 1.25;
         }
     `;
     document.head.appendChild(styleEl);
