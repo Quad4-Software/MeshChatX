@@ -285,6 +285,18 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(footer.vm.isExpanded).toBe(false);
     });
 
+    it("collapsing sidebar resets grouped account expanded state", async () => {
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const footer = wrapper.findComponent({ name: "AppSidebarAccountFooter" });
+        await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
+        expect(footer.vm.isExpanded).toBe(true);
+        wrapper.vm.isSidebarCollapsed = true;
+        await wrapper.vm.$nextTick();
+        expect(footer.vm.isExpanded).toBe(false);
+        expect(footer.find('[data-testid="sidebar-display-name"]').exists()).toBe(false);
+    });
+
     it("classic sidebar announce header toggles expanded state", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {
@@ -303,6 +315,26 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(footer.vm.isShowingAnnounceSection).toBe(true);
         await header.trigger("click");
         expect(footer.vm.isShowingAnnounceSection).toBe(false);
+    });
+
+    it("collapsing sidebar resets classic footer expanded sections", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config") {
+                return Promise.resolve({
+                    data: { config: makeConfig({ app_sidebar_layout: "classic" }) },
+                });
+            }
+            return defaultAxiosImplementation(url);
+        });
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const footer = wrapper.findComponent({ name: "AppSidebarClassicFooter" });
+        wrapper.vm.isSidebarCollapsed = true;
+        await wrapper.vm.$nextTick();
+        expect(footer.vm.isShowingMyIdentitySection).toBe(false);
+        expect(footer.vm.isShowingAnnounceSection).toBe(false);
+        expect(footer.find('[data-testid="sidebar-display-name"]').exists()).toBe(false);
+        expect(footer.find('[data-testid="sidebar-last-announced"]').exists()).toBe(false);
     });
 
     it("grouped footer has no save button and last announced is not clipped by action icons", async () => {
