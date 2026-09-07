@@ -663,6 +663,7 @@ export default {
             this.announcesLoaded = false;
             this.folders = [];
             this.selectedFolderId = null;
+            this._skipSelectedFolderRestore = true;
             for (const pane of this.panes || []) {
                 if (pane && typeof pane === "object") {
                     pane.peer = null;
@@ -1180,10 +1181,56 @@ export default {
                 // non-critical
             }
         },
+        selectedFolderStorageKey() {
+            const id = String(this.config?.identity_hash || "anon")
+                .toLowerCase()
+                .replace(/[^0-9a-f]/g, "")
+                .slice(0, 16);
+            return `meshchatx_messages_selected_folder_id_${id || "anon"}`;
+        },
+        persistSelectedFolder() {
+            if (typeof localStorage === "undefined") {
+                return;
+            }
+            try {
+                if (this.selectedFolderId != null) {
+                    localStorage.setItem(this.selectedFolderStorageKey(), String(this.selectedFolderId));
+                } else {
+                    localStorage.removeItem(this.selectedFolderStorageKey());
+                }
+            } catch {
+                // ignore storage errors
+            }
+        },
+        restoreSelectedFolder() {
+            if (typeof localStorage === "undefined") {
+                return;
+            }
+            try {
+                const raw = localStorage.getItem(this.selectedFolderStorageKey());
+                if (raw == null) {
+                    return;
+                }
+                const id = Number(raw);
+                const folderExists = Array.isArray(this.folders) && this.folders.some((f) => f.id === id);
+                if (folderExists) {
+                    this.selectedFolderId = id;
+                } else {
+                    localStorage.removeItem(this.selectedFolderStorageKey());
+                }
+            } catch {
+                // ignore storage errors
+            }
+        },
         async getFolders() {
             try {
                 const response = await window.api.get("/api/v1/lxmf/folders");
                 this.folders = response.data;
+                if (this._skipSelectedFolderRestore) {
+                    this._skipSelectedFolderRestore = false;
+                } else {
+                    this.restoreSelectedFolder();
+                }
             } catch (e) {
                 if (!isRetryableHttpError(e)) {
                     console.error("Failed to load folders", e);
@@ -1213,6 +1260,7 @@ export default {
                 await window.api.delete(`/api/v1/lxmf/folders/${id}`);
                 if (this.selectedFolderId === id) {
                     this.selectedFolderId = null;
+                    this.persistSelectedFolder();
                 }
                 await this.getFolders();
                 await this.getConversations();
@@ -1324,6 +1372,7 @@ export default {
         },
         onFolderClick(folderId) {
             this.selectedFolderId = folderId;
+            this.persistSelectedFolder();
             this.requestConversationsRefresh();
         },
         async loadMoreConversations() {
