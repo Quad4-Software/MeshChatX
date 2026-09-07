@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build macOS arm64 DMG via electron-builder. Unsigned CI build. Signing is disabled.
+# Build a macOS x86_64 DMG via electron-builder using MacPorts for native deps.
+# Runs on the GitHub-hosted macos-15-intel runner.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -8,6 +9,7 @@ cd "$ROOT"
 export CSC_IDENTITY_AUTO_DISCOVERY=false
 export MESHCHATX_SKIP_BACKEND_MANIFEST=1
 
+pnpm install --frozen-lockfile
 pnpm run electron-postinstall
 pnpm run version:sync
 
@@ -25,13 +27,16 @@ else
     echo "Reusing prebuilt frontend assets in meshchatx/public/."
 fi
 
-ARCH=arm64 pnpm run build-backend
+export UV_PROJECT_ENVIRONMENT="${ROOT}/.venv-x64"
+export PYTHON_CMD_X64="${UV_PROJECT_ENVIRONMENT}/bin/python"
 
-bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-arm64"
-bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-arm64"
-bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-arm64"
+ARCH=x64 PYTHON_CMD="${PYTHON_CMD_X64}" pnpm run build-backend
 
-pnpm exec electron-builder --mac --arm64 --config scripts/ci/electron-builder-mac.config.js --publish=never
+bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-x64"
+bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-x64"
+bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-x64"
+
+pnpm exec electron-builder --mac --x64 --config scripts/ci/electron-builder-mac.config.js --publish=never
 
 bash scripts/ci/github-prune-electron-dist-staging.sh
 bash scripts/ci/github-verify-electron-dist.sh mac
