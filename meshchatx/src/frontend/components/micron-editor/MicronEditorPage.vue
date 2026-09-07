@@ -1477,7 +1477,8 @@ ${b}=
 
 <style scoped>
 .nodeContainer {
-    font-family: "Roboto Mono Nerd Font", ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-family:
+        "Roboto Mono Nerd Font", ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     line-height: normal;
     letter-spacing: normal;
     font-variant-ligatures: none;
