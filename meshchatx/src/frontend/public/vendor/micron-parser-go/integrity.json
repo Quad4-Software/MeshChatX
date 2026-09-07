@@ -1,7 +1,7 @@
 {
-  "version": "v1.1.3",
-  "wasm": "sha384-k4ijGsx8/q/lNlNB1cHmeYEhuswE4QPOgA6Ubdu7XN/v1+FFX9H4d2Nfa3Nqb7oL",
+  "version": "v1.1.4",
+  "wasm": "sha384-Z7UbR7dDrrdmJ2hroXG2zYH51Pamw5or7Je852r/gx7GnBXS0KwjQRhoFMQ7DWPh",
   "wasmExec": "sha384-PWCs+V4BDf9yY1yjkD/p+9xNEs4iEbuvq+HezAOJiY3XL5GI6VyJXMsvnjiwNbce",
-  "wasmExecSourceUrl": "https://github.com/Quad4-Software/Micron-Parser-Go/releases/download/v1.1.3/wasm_exec.js",
-  "wasmExecEtag": "\"0x8DF0C844B759F44\""
+  "wasmExecSourceUrl": "https://raw.githubusercontent.com/golang/go/go1.26.2/lib/wasm/wasm_exec.js",
+  "wasmExecEtag": "W/\"97232acf11bb7ff454a8c640d2a6c59e000ceebfee1e4478f2f250d98618a007\""
 }
