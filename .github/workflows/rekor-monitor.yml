@@ -11,14 +11,12 @@ concurrency:
     cancel-in-progress: false
 
 permissions:
-    actions: write
     contents: read
-    id-token: write
     issues: write
 
 jobs:
     rekor:
-        uses: sigstore/rekor-monitor/.github/workflows/reusable_monitoring.yml@01680ec70d6bfa0ee4487f9be605c2db13273963
+        uses: sigstore/rekor-monitor/.github/workflows/reusable_monitoring.yml@fe1cc6c79f46fe1d4acbc7f3d2975586af83cd34
         secrets: inherit
         with:
             file_issue: true
