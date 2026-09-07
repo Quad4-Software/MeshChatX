@@ -18,8 +18,7 @@ permissions:
     contents: read
     issues: write
 
-env:
-    REKOR_MONITOR_SHA: fe1cc6c79f46fe1d4acbc7f3d2975586af83cd34
+
 
 jobs:
     monitor:
@@ -36,7 +35,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   repository: sigstore/rekor-monitor
-                  ref: ${{ env.REKOR_MONITOR_SHA }}
+                  ref: fe1cc6c79f46fe1d4acbc7f3d2975586af83cd34
                   persist-credentials: false
 
             - name: Set up Go
@@ -44,13 +43,6 @@ jobs:
               with:
                   go-version-file: "./go.mod"
                   check-latest: true
-
-            - name: Download previous checkpoint
-              uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
-              with:
-                  name: checkpoint
-              # Skip on first run since there will be no checkpoint.
-              continue-on-error: true
 
             - name: Log current checkpoints
               run: cat checkpoint_log.txt
