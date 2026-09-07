@@ -181,5 +181,13 @@ export default {
             isShowingAnnounceSection: true,
         };
     },
+    watch: {
+        isCollapsed(collapsed) {
+            if (collapsed) {
+                this.isShowingMyIdentitySection = false;
+                this.isShowingAnnounceSection = false;
+            }
+        },
+    },
 };
 </script>

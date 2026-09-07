@@ -176,6 +176,13 @@ export default {
             isExpanded: false,
         };
     },
+    watch: {
+        isCollapsed(collapsed) {
+            if (collapsed) {
+                this.isExpanded = false;
+            }
+        },
+    },
     methods: {
         onAccountChipClick() {
             if (this.isCollapsed) {
