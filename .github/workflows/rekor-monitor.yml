@@ -1,4 +1,7 @@
-# Cross-run Rekor checkpoint persistence uses Sigstore's reusable workflow (Actions artifact).
+# Verify Rekor transparency log consistency across runs.
+# This workflow is self-contained because the upstream sigstore reusable
+# workflow does not declare the actions: permission required by the artifact
+# download/upload steps used for checkpoint persistence.
 name: Rekor log monitor
 
 on:
@@ -11,13 +14,132 @@ concurrency:
     cancel-in-progress: false
 
 permissions:
+    actions: write
     contents: read
     issues: write
 
+env:
+    REKOR_MONITOR_SHA: fe1cc6c79f46fe1d4acbc7f3d2975586af83cd34
+
 jobs:
-    rekor:
-        uses: sigstore/rekor-monitor/.github/workflows/reusable_monitoring.yml@fe1cc6c79f46fe1d4acbc7f3d2975586af83cd34
-        secrets: inherit
-        with:
-            file_issue: true
-            artifact_retention_days: 30
+    monitor:
+        name: Monitor Rekor log
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Checkout rekor-monitor
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  repository: sigstore/rekor-monitor
+                  ref: ${{ env.REKOR_MONITOR_SHA }}
+                  persist-credentials: false
+
+            - name: Set up Go
+              uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+              with:
+                  go-version-file: "./go.mod"
+                  check-latest: true
+
+            - name: Download previous checkpoint
+              uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
+              with:
+                  name: checkpoint
+              # Skip on first run since there will be no checkpoint.
+              continue-on-error: true
+
+            - name: Log current checkpoints
+              run: cat checkpoint_log.txt
+              continue-on-error: true
+
+            - name: Run Rekor monitor
+              run: |
+                  set -euo pipefail
+                  go run ./cmd/rekor_monitor \
+                    --file checkpoint_log.txt \
+                    --once=true \
+                    --user-agent "Quad4-Software/MeshChatX/${{ github.run_id }}"
+
+            - name: Upload checkpoint
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+              with:
+                  name: checkpoint
+                  path: checkpoint_log.txt
+                  retention-days: 30
+
+            - name: Log new checkpoints
+              run: cat checkpoint_log.txt
+
+    close-on-success:
+        name: Close open Rekor monitoring issue
+        runs-on: ubuntu-latest
+        needs: [monitor]
+        timeout-minutes: 60
+        if: ${{ needs.monitor.result == 'success' }}
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Close open issue
+              run: |
+                  set -euo pipefail
+                  THIS_FILE=".github/workflows/rekor-monitor.yml"
+                  RUN_DATE=$(date --utc)
+                  {
+                    echo "Repo: https://github.com/$GITHUB_REPOSITORY/tree/$GITHUB_REF_NAME"
+                    echo "Run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+                    echo "Workflow file: https://github.com/$GITHUB_REPOSITORY/tree/main/$THIS_FILE"
+                    echo "Workflow runs: https://github.com/$GITHUB_REPOSITORY/actions/workflows/rekor-monitor.yml"
+                    echo "Trigger: $GITHUB_EVENT_NAME"
+                    echo "Branch: $GITHUB_REF_NAME"
+                    echo "Date: $RUN_DATE"
+                    echo ""
+                    echo "**Rekor monitoring is passing. Closing this issue.**"
+                  } > BODY
+                  ISSUE_ID=$(gh -R "$GITHUB_REPOSITORY" issue list --label "bug" --state open -S "$THIS_FILE" --json number | jq -r '.[0].number // empty')
+                  if [[ -n "$ISSUE_ID" ]]; then
+                    gh -R "$GITHUB_REPOSITORY" issue close "$ISSUE_ID" -c "$(cat ./BODY)"
+                  fi
+
+    open-on-failure:
+        name: Open Rekor monitoring issue
+        runs-on: ubuntu-latest
+        needs: [monitor]
+        timeout-minutes: 60
+        if: ${{ always() && needs.monitor.result == 'failure' }}
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Create or comment on issue
+              run: |
+                  set -euo pipefail
+                  THIS_FILE=".github/workflows/rekor-monitor.yml"
+                  RUN_DATE=$(date --utc)
+                  {
+                    echo "Repo: https://github.com/$GITHUB_REPOSITORY/tree/$GITHUB_REF_NAME"
+                    echo "Run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+                    echo "Workflow file: https://github.com/$GITHUB_REPOSITORY/tree/main/$THIS_FILE"
+                    echo "Workflow runs: https://github.com/$GITHUB_REPOSITORY/actions/workflows/rekor-monitor.yml"
+                    echo "Trigger: $GITHUB_EVENT_NAME"
+                    echo "Branch: $GITHUB_REF_NAME"
+                    echo "Date: $RUN_DATE"
+                  } > BODY
+                  ISSUE_ID=$(gh -R "$GITHUB_REPOSITORY" issue list --label "bug" --state open -S "$THIS_FILE" --json number | jq -r '.[0].number // empty')
+                  if [[ -z "$ISSUE_ID" ]]; then
+                    gh -R "$GITHUB_REPOSITORY" issue create -t "[bug]: Rekor monitoring failure" -F ./BODY --label "bug"
+                  else
+                    gh -R "$GITHUB_REPOSITORY" issue comment "$ISSUE_ID" -F ./BODY
+                  fi
