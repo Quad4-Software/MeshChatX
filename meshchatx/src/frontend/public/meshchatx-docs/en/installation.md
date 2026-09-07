@@ -186,7 +186,7 @@ Download the .rpm only when the release includes one. CI uploads RPM when the pa
 
 ```bash
 flatpak install --from https://cdn.meshchatx.com/flatpak/meshchatx-stable.flatpakref
-flatpak run com.quad4.meshchatx
+flatpak run com.meshchatx
 flatpak update
 ```
 
