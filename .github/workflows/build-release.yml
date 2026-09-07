@@ -369,16 +369,24 @@ jobs:
                   persist-credentials: false
 
             - name: Require Bunny Storage credentials
+              id: creds
               env:
                   BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
               run: |
                   set -euo pipefail
                   if [[ -z "${BUNNY_STORAGE_ACCESS_KEY:-}" ]]; then
+                    if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
+                      echo "::notice::Skipping Flatpak OSTree upload for testing release (BUNNY_STORAGE_ACCESS_KEY not set)"
+                      echo "run_flatpak_ostree=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                    fi
                     echo "::error::BUNNY_STORAGE_ACCESS_KEY is required to publish the Flatpak OSTree remote"
                     exit 1
                   fi
+                  echo "run_flatpak_ostree=true" >> "$GITHUB_OUTPUT"
 
             - name: Install flatpak and ostree
+              if: steps.creds.outputs.run_flatpak_ostree == 'true'
               run: |
                   set -euo pipefail
                   sudo apt-get update -y
@@ -390,18 +398,21 @@ jobs:
 
             - name: Import Flatpak GPG key
               id: gpg
+              if: steps.creds.outputs.run_flatpak_ostree == 'true'
               uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec
               with:
                   gpg_private_key: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
                   passphrase: ${{ secrets.FLATPAK_GPG_PASSPHRASE }}
 
             - name: Download Flatpak artifact
+              if: steps.creds.outputs.run_flatpak_ostree == 'true'
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
                   path: dl/flatpak
 
             - name: Export OSTree repo and upload to Bunny
+              if: steps.creds.outputs.run_flatpak_ostree == 'true'
               env:
                   BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
                   BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
