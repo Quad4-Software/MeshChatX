@@ -26,6 +26,7 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: {
         formatTimeAgo: (d) => "1h ago",
+        formatTimeAgoForI18n: (d) => "1h",
         formatDestinationHash: (h) => (h && h.length >= 8 ? h.slice(0, 8) + "…" : h),
         parseDestinationHash: (h) => {
             let text = String(h || "").trim();
