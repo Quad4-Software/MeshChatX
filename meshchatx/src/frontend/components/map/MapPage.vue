@@ -608,7 +608,7 @@
                         <select
                             id="map-coord-format"
                             v-model="coordinateFormat"
-                            class="bg-transparent text-sem-fg text-[10px] font-medium border border-sem-border rounded pl-1.5 pr-5 py-1 h-6 max-w-[8.5rem] min-w-[5.5rem]"
+                            class="bg-transparent text-sem-fg text-[10px] font-medium border border-sem-border rounded pl-1.5 pr-5 py-0.5 h-7 max-w-[8.5rem] min-w-[5.5rem]"
                             @change="onCoordinateFormatChange"
                         >
                             <option value="wgs84">{{ $t("map.coord_format_wgs84") }}</option>
