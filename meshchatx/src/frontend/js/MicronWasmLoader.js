@@ -59,7 +59,7 @@ function injectMicronWasmStyles() {
         .Mu-mnt {
             display: inline-block;
             box-sizing: border-box;
-            min-width: 1ch;
+            width: 0.6em;
             text-align: center;
             white-space: pre;
             text-decoration: inherit;
@@ -69,7 +69,7 @@ function injectMicronWasmStyles() {
         .Mu-mnt-full {
             display: inline-block;
             box-sizing: border-box;
-            min-width: 2ch;
+            width: 1.2em;
             text-align: center;
             white-space: pre;
             text-decoration: inherit;
