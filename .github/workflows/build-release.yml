@@ -583,7 +583,7 @@ jobs:
               continue-on-error: true
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
-                  pattern: meshchatx-macos-*-${{ github.ref_name }}-${{ github.run_id }}
+                  pattern: meshchatx-macos*-${{ github.ref_name }}-${{ github.run_id }}
                   path: dl/mac
 
             - name: Hash desktop artifacts
@@ -741,7 +741,7 @@ jobs:
               continue-on-error: true
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
-                  pattern: meshchatx-macos-*-${{ github.ref_name }}-${{ github.run_id }}
+                  pattern: meshchatx-macos*-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload/mac
 
             - name: Download Flatpak artifact
