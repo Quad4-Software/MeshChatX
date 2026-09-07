@@ -555,7 +555,7 @@ ${b}!Welcome to Micron Editor${b}!
 -
 Micron is a lightweight, terminal-friendly monospace markup format used in Reticulum applications such as ${b}!MeshChatX${b}! and ${b}!NomadNet${b}!.
 
-Micron supports sections, dividers, links, partials, anchors, tables, and dynamic input fields for low-bandwidth mesh pages.
+Micron supports sections, dividers, links, partials, anchors, tables, folding headings, and dynamic input fields for low-bandwidth mesh pages.
 
 Open the ${b}!${this.$t("tools.micron_editor.guide_tab")}${b}! tab for the full reference, or use ${b}+${b} to add another file.
 
@@ -626,6 +626,7 @@ With micron you can easily create structured documents and pages with formatting
  ${b}F44f${b}_${b}[Fields & Requests${b}#fields-requests]${b}_${b}f
  ${b}F44f${b}_${b}[Comments${b}#comments]${b}_${b}f
  ${b}F44f${b}_${b}[Partials${b}#partials]${b}_${b}f
+ ${b}F44f${b}_${b}[Folding Headings${b}#folding-headings]${b}_${b}f
  ${b}F44f${b}_${b}[Literals${b}#literals]${b}_${b}f
 
 >>Recommendations and Requirements
@@ -782,6 +783,25 @@ A sub sub section. We could continue, but you get the point.
 
 >>>>
 Wait! It's worth noting that we can also create sections without headings. They look like this.
+${b}${b}
+
+
+>>Folding Headings
+
+You can make any heading collapsible by prefixing the line with \${b}+> for an expanded section or \${b}-> for a collapsed one. Use \${b}#!fold glyph_open [glyph_closed] to customise the disclosure glyph.
+
+Here is an example:
+
+${b}Faaa
+${b}=
++> Open by default
+This content is visible.
+
+-> Collapsed by default
+This content is hidden until expanded.
+
+#!fold v >
+${b}=
 ${b}${b}
 
 
@@ -1471,9 +1491,9 @@ ${b}=
 :deep(.Mu-mnt) {
     display: inline-block;
     box-sizing: border-box;
-    min-width: 1ch;
-    width: 1ch;
-    max-width: 1ch;
+    min-width: 0.6em;
+    width: 0.6em;
+    max-width: 0.6em;
     text-align: center;
     white-space: pre;
     text-decoration: inherit;
@@ -1483,9 +1503,9 @@ ${b}=
 :deep(.Mu-mnt-full) {
     display: inline-block;
     box-sizing: border-box;
-    min-width: 2ch;
-    width: 2ch;
-    max-width: 2ch;
+    min-width: 1.2em;
+    width: 1.2em;
+    max-width: 1.2em;
     text-align: center;
     white-space: pre;
     text-decoration: inherit;
@@ -1494,12 +1514,8 @@ ${b}=
 }
 :deep(.Mu-mws) {
     text-decoration: inherit;
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    column-gap: 0;
-    row-gap: 0;
-    gap: 0;
+    display: inline-block;
+    white-space: pre-wrap;
 }
 
 :deep(a.Mu-nl),
