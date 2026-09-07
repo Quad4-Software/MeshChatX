@@ -116,7 +116,7 @@
         "vue-tsc": "^3.3.11"
     },
     "build": {
-        "appId": "com.meshchatx",
+        "appId": "com.meshchatx.app",
         "productName": "Reticulum MeshChatX",
         "electronLanguages": [
             "en-US"
@@ -285,7 +285,7 @@
                 "--talk-name=org.freedesktop.Notifications",
                 "--talk-name=org.freedesktop.DBus",
                 "--talk-name=org.freedesktop.portal.Desktop",
-                "--own-name=com.meshchatx",
+                "--own-name=com.meshchatx.app",
                 "--env=TMPDIR=/var/tmp",
                 "--socket=pulseaudio",
                 "--filesystem=xdg-run/pipewire-0"
