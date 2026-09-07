@@ -43,7 +43,11 @@ echo "Building Flatpak with branch=${branch}"
 
 bash scripts/ensure-flatpak-flathub-remote.sh
 
+pnpm run electron-postinstall
+cross-env PLATFORM=linux pnpm run version:sync
+cross-env PLATFORM=linux pnpm run build-backend
+
 DEBUG="${DEBUG:-@malept/flatpak-bundler*}" \
-    pnpm run dist:flatpak-prebuilt -- -c.flatpak.branch="${branch}"
+    pnpm exec electron-builder --linux flatpak --x64 --publish=never -c.flatpak.branch="${branch}"
 
 bash scripts/ci/github-verify-electron-dist.sh flatpak
