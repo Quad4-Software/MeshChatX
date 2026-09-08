@@ -238,10 +238,7 @@ describe("MapPage cluster behaviour", () => {
             clear: vi.fn(),
         };
         Object.defineProperty(window, "localStorage", { value: localStorageMock, writable: true });
-    });
-
-    afterEach(() => {
-        delete window.api;
+        window.api = axiosMock;
     });
 
     const mountMapPage = async () => {

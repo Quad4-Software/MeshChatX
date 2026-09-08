@@ -179,7 +179,7 @@ class TileCache {
             this._memPut(key, data);
             return;
         }
-        await this._evictIfNeeded(this._blobSize(data));
+        await this._evictIfNeeded(key, data);
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME, META_STORE], "readwrite");
             const store = transaction.objectStore(STORE_NAME);
@@ -219,13 +219,16 @@ class TileCache {
         });
     }
 
-    async _evictIfNeeded(incomingBytes = 0) {
+    async _evictIfNeeded(key, data) {
         let meta;
         try {
             meta = await this._readAllMeta();
         } catch {
             return;
         }
+        const incomingBytes = this._blobSize(data);
+        const existing = meta.find((m) => m.key === key);
+        const existingSize = existing ? existing.size || 0 : 0;
         const now = Date.now();
         const expired = meta.filter((m) => m.lastAccess && now - m.lastAccess > TILE_TTL_MS);
         if (expired.length > 0) {
@@ -233,8 +236,8 @@ class TileCache {
             meta = meta.filter((m) => !expired.some((e) => e.key === m.key));
         }
 
-        let totalBytes = meta.reduce((sum, m) => sum + (m.size || 0), 0) + incomingBytes;
-        let count = meta.length + (incomingBytes > 0 ? 1 : 0);
+        let totalBytes = meta.reduce((sum, m) => sum + (m.size || 0), 0) - existingSize + incomingBytes;
+        let count = meta.length + (existing ? 0 : 1);
         if (count <= MAX_TILES && totalBytes <= MAX_BYTES) {
             return;
         }
@@ -304,9 +307,14 @@ class TileCache {
     }
 
     async clear() {
-        await this._ensureInit();
+        if (this._accessFlushTimer != null) {
+            clearTimeout(this._accessFlushTimer);
+            this._accessFlushTimer = null;
+        }
+        await this._flushAccess();
         this._memCache.clear();
         this._pendingAccess.clear();
+        await this._ensureInit();
         if (!this.db) {
             return;
         }

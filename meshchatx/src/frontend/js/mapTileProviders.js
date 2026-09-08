@@ -2,7 +2,7 @@
 export const DEFAULT_TILE_SERVER_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 /** Raster basemap providers tried in order when tiles fail to load. */
-export const RASTER_TILE_PROVIDER_ORDER = ["osm", "openfreemap"];
+export const RASTER_TILE_PROVIDER_ORDER = ["osm", "carto-dark", "carto-voyager", "carto-light"];
 
 export const TILE_PROVIDER_URLS = {
     osm: DEFAULT_TILE_SERVER_URL,
@@ -40,9 +40,6 @@ export function detectRasterTileProviderId(tileServerUrl) {
     if (!host) {
         return null;
     }
-    if (host === "tiles.openfreemap.org") {
-        return "openfreemap";
-    }
     if (host === "tile.openstreetmap.org" || host.endsWith(".openstreetmap.org")) {
         return "osm";
     }
@@ -63,10 +60,14 @@ export function detectRasterTileProviderId(tileServerUrl) {
 export function nextRasterTileProviderId(currentId, attemptedIds = []) {
     const order = RASTER_TILE_PROVIDER_ORDER;
     const start = currentId ? order.indexOf(currentId) : -1;
+    const attempted = new Set(attemptedIds);
+    if (currentId && start >= 0) {
+        attempted.add(currentId);
+    }
     for (let i = 1; i <= order.length; i++) {
         const idx = (start + i) % order.length;
         const id = order[idx];
-        if (!attemptedIds.includes(id)) {
+        if (!attempted.has(id)) {
             return id;
         }
     }
