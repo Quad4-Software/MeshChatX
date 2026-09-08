@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.6] - 2026-09-06 [unreleased]
+## [4.9.0] - [unreleased]
+
+## [4.8.6] - 2026-09-06 [released]
 
 ### Added
 
@@ -22,7 +24,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- **Micron WASM**: ASCII-art whitespace is preserved again. Consecutive spaces in Micron markup were being collapsed by the WASM renderer, breaking block-character art such as the `shadow` page. Bumped `micron-parser-go` to v1.1.5.
+- **Micron WASM**: ASCII-art whitespace is preserved again. Consecutive spaces in Micron markup were being collapsed by the WASM renderer, breaking ASCII art. Bumped micron-parser-go to v1.1.5.
 - **Micron WASM**: PUA/Nerd Font icon glyphs now render with `Roboto Mono Nerd Font` by wrapping them in a span. Bumped `micron-parser-go` to v1.1.2.
 - **Reticulum config**: MeshChatX no longer overwrites an existing .reticulum/config on startup. Existing parseable configs are preserved and only missing [reticulum] or [interfaces] sections are added.
 - **Messages**: Coming back to an open chat marks it read and clears badges and desktop notifications.
