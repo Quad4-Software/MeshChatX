@@ -90,7 +90,7 @@ pnpm run build-frontend
 uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
-AppImage, deb, rpm, Electron, and Android: [Installation](docs/en/installation.md) and [Building](docs/en/building.md).
+AppImage, deb, rpm, Flatpak, Electron, and Android: [Installation](docs/en/installation.md) and [Building](docs/en/building.md).
 
 Current version is 4.9.0.
 
