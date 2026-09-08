@@ -340,6 +340,25 @@ class TestPageNodeNameLength:
         assert saved_name == "index.mu"
         assert node.list_pages() == [{"name": "index.mu", "executable": False}]
 
+    def test_add_page_and_file_on_windows_like_os(self, storage_dir, mock_rns):
+        """Windows has no os.pathconf; both pages and files must still save (issue 78)."""
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Windows Fallback")
+
+        original = getattr(os, "pathconf", None)
+        try:
+            if hasattr(os, "pathconf"):
+                del os.pathconf
+            page_name = node.add_page("index", "hello mesh")
+            file_name = node.add_file("notes.txt", "plain text")
+        finally:
+            if original is not None:
+                os.pathconf = original
+
+        assert page_name == "index.mu"
+        assert file_name == "notes.txt"
+        assert node.list_pages() == [{"name": "index.mu", "executable": False}]
+
 
 class TestPageNodeManagerTeardown:
     def test_teardown_stops_and_clears(self, storage_dir, mock_rns):
