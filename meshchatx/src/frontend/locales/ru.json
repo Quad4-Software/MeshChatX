@@ -1982,6 +1982,7 @@
         "search_placeholder": "Поиск по {count} чатам...",
         "unread": "Непрочитанные",
         "failed": "Ошибки",
+        "rejected": "Отклонено",
         "attachments": "Вложения",
         "folders": "Папки",
         "all_messages": "Все сообщения",

@@ -1928,6 +1928,7 @@
         "search_placeholder": "Szukaj wśród {count} rozmów...",
         "unread": "Nieprzeczytane",
         "failed": "Nieudane",
+        "rejected": "Odrzucone",
         "attachments": "Załączniki",
         "folders": "Foldery",
         "all_messages": "Wszystkie wiadomości",

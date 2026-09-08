@@ -47,7 +47,7 @@
                     <div>{{ toastMessage(toast.message) }}</div>
                     <ul
                         v-if="toast.details && toast.details.length"
-                        class="mt-2 list-disc list-inside space-y-1 text-xs font-normal text-sem-fg-muted"
+                        class="mt-2.5 list-disc list-outside pl-4 space-y-1.5 text-xs font-normal text-sem-fg/80 leading-snug"
                     >
                         <li v-for="(line, index) in toast.details" :key="index">{{ line }}</li>
                     </ul>

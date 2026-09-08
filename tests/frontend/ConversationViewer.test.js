@@ -796,6 +796,56 @@ describe("ConversationViewer.vue", () => {
         expect(callsDuringRaw.some((c) => c[0].includes("/uri"))).toBe(true);
     });
 
+    it("showRawMessage opens the modal even when the uri request hangs", async () => {
+        const peer = "a".repeat(32);
+        const msgHash = "b".repeat(32);
+        let resolveUri;
+        axiosMock.get.mockImplementation((url) => {
+            if (url.includes("/lxmf-messages/") && url.includes("/uri")) {
+                return new Promise((resolve) => {
+                    resolveUri = resolve;
+                });
+            }
+            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
+            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountConversationViewer({
+            selectedPeer: { destination_hash: peer, display_name: "Peer" },
+            myLxmfAddressHash: "c".repeat(32),
+        });
+        let guard = 0;
+        while (wrapper.vm.initialLoadActive && guard < 200) {
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+            guard += 1;
+        }
+        const openPromise = wrapper.vm.showRawMessage({
+            lxmf_message: {
+                hash: msgHash,
+                source_hash: "d".repeat(32),
+                destination_hash: peer,
+                state: "sent",
+                method: "direct",
+                content: "hi",
+                fields: {},
+                id: 7,
+            },
+        });
+        expect(wrapper.vm.isRawMessageModalOpen).toBe(true);
+        expect(wrapper.vm.rawMessageData.hash).toBe(msgHash);
+        resolveUri({ data: { uri: "lxmf://late-uri" } });
+        await openPromise;
+        expect(wrapper.vm.rawMessageData.raw_uri).toBe("lxmf://late-uri");
+    });
+
+    it("showRawMessage does not throw for items without lxmf_message", async () => {
+        const wrapper = mountConversationViewer();
+        await expect(wrapper.vm.showRawMessage({})).resolves.toBeUndefined();
+        expect(wrapper.vm.isRawMessageModalOpen).toBe(false);
+    });
+
     it("isMessageBodyTooLargeForDisplay is true only above display limit", () => {
         const wrapper = mountConversationViewer();
         const atLimit = { lxmf_message: { content: "x".repeat(MESSAGE_BODY_MAX_DISPLAY_CHARS) } };

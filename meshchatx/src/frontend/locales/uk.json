@@ -1928,6 +1928,7 @@
         "search_placeholder": "Пошук {count} розмов...",
         "unread": "Непрочитані",
         "failed": "Помилка",
+        "rejected": "Відхилено",
         "attachments": "Вкладення",
         "folders": "Теки",
         "all_messages": "Усі повідомлення",

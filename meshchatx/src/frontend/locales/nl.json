@@ -1928,6 +1928,7 @@
         "search_placeholder": "{count}gesprekken doorzoeken...",
         "unread": "Ongelezen",
         "failed": "Mislukt",
+        "rejected": "Afgewezen",
         "attachments": "Bijlagen",
         "folders": "Mappen",
         "all_messages": "Alle berichten",

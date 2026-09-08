@@ -1928,6 +1928,7 @@
         "search_placeholder": "{count} sohbeti ara...",
         "unread": "Okunmamış",
         "failed": "Başarısız",
+        "rejected": "Reddedildi",
         "attachments": "Ekler",
         "folders": "Klasörler",
         "all_messages": "Tüm iletiler",

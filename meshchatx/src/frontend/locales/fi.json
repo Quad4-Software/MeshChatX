@@ -1928,6 +1928,7 @@
         "search_placeholder": "Hae {count} keskustelusta...",
         "unread": "Lukematon",
         "failed": "Epäonnistunut",
+        "rejected": "Hylätty",
         "attachments": "Liitteet",
         "folders": "Kansiot",
         "all_messages": "Kaikki viestit",

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
 const THROTTLE_MS = 5 * 60 * 1000;
+const PEER_HELPTIP_COOLDOWN_MS = 30 * 1000;
 const lastShownAt = new Map();
+const lastPeerHelptipAt = new Map();
 
 /**
  * @param {object | null | undefined} config
@@ -35,6 +37,24 @@ export function shouldShowHelptip(peerHash, tipId) {
 
 /**
  * @param {string} peerHash
+ * @param {number} [now]
+ */
+export function shouldShowHelptipForPeer(peerHash, now = Date.now()) {
+    const key = (peerHash || "").toLowerCase();
+    const last = lastPeerHelptipAt.get(key);
+    return last == null || now - last >= PEER_HELPTIP_COOLDOWN_MS;
+}
+
+/**
+ * @param {string} peerHash
+ * @param {number} [now]
+ */
+export function recordHelptipShownForPeer(peerHash, now = Date.now()) {
+    lastPeerHelptipAt.set((peerHash || "").toLowerCase(), now);
+}
+
+/**
+ * @param {string} peerHash
  */
 export function deliveryHelptipToastKey(peerHash) {
     return `delivery-helptip:${(peerHash || "").toLowerCase()}`;
@@ -42,4 +62,5 @@ export function deliveryHelptipToastKey(peerHash) {
 
 export function resetHelptipPolicyForTests() {
     lastShownAt.clear();
+    lastPeerHelptipAt.clear();
 }

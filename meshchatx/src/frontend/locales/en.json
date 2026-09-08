@@ -1928,6 +1928,7 @@
         "search_placeholder": "Search {count} conversations...",
         "unread": "Unread",
         "failed": "Failed",
+        "rejected": "Rejected",
         "attachments": "Attachments",
         "folders": "Folders",
         "all_messages": "All messages",
