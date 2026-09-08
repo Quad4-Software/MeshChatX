@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report something that is broken or crashes
+description: Report a crash or something that does not work.
 title: "[Bug]: "
 labels:
     - bug
@@ -7,14 +7,42 @@ body:
     - type: markdown
       attributes:
           value: |
-              Thanks for taking the time to report a bug. Please fill in the fields below so we can reproduce the issue.
+              Thanks for the report. Fill in the fields below so we can reproduce the issue.
 
     - type: input
       id: version
       attributes:
           label: MeshChatX version
-          description: The version shown in Settings or the release you installed (for example 4.9.0).
+          description: The version shown in Settings or About (for example 4.9.0).
           placeholder: "4.9.0"
+      validations:
+          required: true
+
+    - type: dropdown
+      id: channel
+      attributes:
+          label: Release channel
+          description: Which channel are you on?
+          options:
+              - Stable
+              - Beta
+              - Testing
+              - Nightly
+              - Unsure
+      validations:
+          required: true
+
+    - type: dropdown
+      id: platform
+      attributes:
+          label: Platform
+          description: Where did the bug happen?
+          options:
+              - Desktop (Electron)
+              - Android
+              - Web UI in a browser
+              - Headless server (Docker / pip / uv)
+              - Other
       validations:
           required: true
 
@@ -22,7 +50,7 @@ body:
       id: os
       attributes:
           label: Operating system
-          description: Which OS were you using when the bug occurred?
+          description: Which OS were you using?
           options:
               - Windows 11
               - Windows 10
@@ -45,22 +73,38 @@ body:
       attributes:
           label: How did you install MeshChatX?
           options:
-              - Windows installer / portable
-              - Linux AppImage / deb / Flatpak
+              - Windows installer
+              - Windows portable
               - macOS app
+              - Linux AppImage
+              - Linux .deb
+              - Linux .rpm
+              - Linux Flatpak
+              - Arch AUR / PKGBUILD
               - Android APK
-              - pip / uv / source checkout
+              - pip / uv / PyPI
               - Docker
+              - Umbrel
+              - From source
               - Other
       validations:
           required: true
 
     - type: textarea
-      id: description
+      id: what-happened
       attributes:
           label: What happened?
-          description: Describe the bug and what you expected instead.
-          placeholder: When I enable an RNode over BLE interface on Windows 11, the backend crashes with...
+          description: Describe the actual behavior. Include the part of the app (for example Messages, Nomad, Calls, Settings).
+          placeholder: The conversation list stays blank after I add a TCP interface on Linux.
+      validations:
+          required: true
+
+    - type: textarea
+      id: expected
+      attributes:
+          label: What did you expect?
+          description: Describe what you expected instead.
+          placeholder: The conversation list should reload and show existing chats.
       validations:
           required: true
 
@@ -68,11 +112,11 @@ body:
       id: reproduction
       attributes:
           label: Steps to reproduce
-          description: Numbered steps that reliably trigger the issue.
+          description: Numbered steps that trigger the issue reliably.
           placeholder: |
-              1. Open MeshChatX on Windows 11
-              2. Add an RNode interface with port ble://...
-              3. Restart the app
+              1. Start MeshChatX on Ubuntu 24.04.
+              2. Add a TCP interface with host 127.0.0.1 and port 37500.
+              3. Open the Messages page.
       validations:
           required: true
 
@@ -80,7 +124,7 @@ body:
       id: logs
       attributes:
           label: Logs or error output
-          description: Paste relevant console output, log lines, or screenshots.
+          description: Paste relevant console output, log lines, or screenshots. For the Debug Logs page, copy the lines around the error.
           render: shell
 
     - type: checkboxes
@@ -90,5 +134,7 @@ body:
           options:
               - label: I searched existing issues to avoid duplicates
                 required: true
-              - label: I included my MeshChatX version and operating system
+              - label: I included my MeshChatX version, channel, operating system, and install method
                 required: true
+              - label: I can reproduce the issue with the steps above
+                required: false

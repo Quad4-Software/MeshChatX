@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest an improvement or new capability
+description: Suggest a new capability or improvement.
 title: "[Feature]: "
 labels:
     - enhancement
@@ -7,35 +7,48 @@ body:
     - type: markdown
       attributes:
           value: |
-              Describe what you want and why it would help. Include version and OS when platform support matters.
+              Describe what you want and why it helps. Include the version and platform when the request is platform-specific.
 
     - type: input
       id: version
       attributes:
           label: MeshChatX version
-          description: The version you are using today, if relevant.
+          description: The version you are using, if relevant.
           placeholder: "4.9.0"
 
     - type: dropdown
-      id: os
+      id: platform
       attributes:
-          label: Operating system
+          label: Platform
+          description: Which platform does this affect?
           options:
-              - Windows 11
-              - Windows 10
-              - Linux
-              - macOS
+              - Desktop (Electron)
               - Android
+              - Web UI
+              - Headless server
               - All platforms
               - Other
       validations:
           required: true
 
-    - type: input
-      id: os-other
+    - type: dropdown
+      id: area
       attributes:
-          label: OS details (if Other)
-          placeholder: "Ubuntu 24.04 LTS"
+          label: Area
+          description: Which part of MeshChatX does this touch?
+          options:
+              - Messaging / LXMF
+              - LXST calls / audio
+              - RRC relay chat
+              - NomadNet / pages
+              - Maps / overlays
+              - Plugins
+              - UI / accessibility
+              - Packaging / install
+              - Reticulum interfaces
+              - Other
+      validations:
+          required: true
 
     - type: textarea
       id: problem
@@ -58,3 +71,13 @@ body:
       attributes:
           label: Alternatives considered
           description: Any workarounds you tried.
+
+    - type: checkboxes
+      id: terms
+      attributes:
+          label: Checklist
+          options:
+              - label: I searched existing issues and discussions for similar requests
+                required: true
+              - label: I am willing to test the feature on my platform
+                required: false
