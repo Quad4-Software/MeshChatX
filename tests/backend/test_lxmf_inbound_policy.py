@@ -109,6 +109,35 @@ def test_oracle_unknown_identity_does_not_reject_attachment_block():
     app.is_destination_blocked.assert_not_called()
 
 
+def test_oracle_inbound_link_local_destination_identity_is_not_peer():
+    """Inbound links carry the local lxmf.delivery destination.
+
+    When the remote has not identified, destination.identity is our own
+    identity, not the sender's. Using it as the peer hash makes every
+    unidentified sender a known stranger and rejects all resource deliveries.
+    """
+    local_identity = SimpleNamespace(hash=bytes.fromhex("11" * 16))
+    resource = SimpleNamespace(
+        link=SimpleNamespace(
+            get_remote_identity=lambda: None,
+            destination=SimpleNamespace(identity=local_identity),
+        ),
+        hash=bytes.fromhex("aa" * 16),
+        status=0,
+        cancel=MagicMock(),
+    )
+
+    assert source_hash_from_delivery_resource(resource) is None
+
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True, block_all=True)
+    reject, reason = evaluate_inbound_delivery_resource_policy(app, ctx, resource)
+    assert reject is False
+    assert reason is None
+    app._is_contact.assert_not_called()
+    app.is_destination_blocked.assert_not_called()
+
+
 def test_install_rejects_stranger_resource_at_advertise():
     router = SimpleNamespace()
     router.delivery_resource_advertised = MagicMock(return_value=True)

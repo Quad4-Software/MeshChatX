@@ -28,7 +28,14 @@ PolicyContextGetter = Callable[[], Any]
 
 
 def source_hash_from_delivery_resource(resource) -> str | None:
-    """Best-effort peer hash for an incoming LXMF delivery resource."""
+    """Best-effort peer hash for an incoming LXMF delivery resource.
+
+    Only the remote-identified initiator counts. On an inbound link,
+    link.destination is the local lxmf.delivery destination, so
+    destination.identity is our own identity — treating it as the peer makes
+    every unidentified sender look like a known stranger and rejects all
+    resource-carried messages.
+    """
     link = getattr(resource, "link", None)
     if link is None:
         return None
@@ -39,11 +46,6 @@ def source_hash_from_delivery_resource(resource) -> str | None:
             identity = link.get_remote_identity()
         except Exception:
             identity = None
-
-    if identity is None:
-        destination = getattr(link, "destination", None)
-        if destination is not None:
-            identity = getattr(destination, "identity", None)
 
     if identity is None or not hasattr(identity, "hash"):
         return None
