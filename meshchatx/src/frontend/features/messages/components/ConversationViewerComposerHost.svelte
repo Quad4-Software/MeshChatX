@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { onDestroy } from "svelte";
     import { t } from "../../../js/i18n.js";
     import DialogUtils from "../../../js/DialogUtils.js";
     import ToastUtils from "../../../js/ToastUtils.js";
@@ -67,6 +68,12 @@
     let isRecordingAudioAttachment = $state(false);
     let audioAttachmentRecordingDuration = $state("0:00");
     let audioRecordingTimer: ReturnType<typeof setInterval> | null = null;
+
+    onDestroy(() => {
+        if (isRecordingAudioAttachment) {
+            void stopAudioRecording();
+        }
+    });
 
     const canSendMessage = $derived(Boolean(selectedPeer && (text.trim() || images.length || files.length || audio)));
 

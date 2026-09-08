@@ -21,7 +21,7 @@ def _host_for_bind(host: str | None) -> str:
     if host is None:
         return ""
     text = str(host).strip()
-    if text in {"", "*", "0.0.0.0", "::", "[::]"}:
+    if text in {"", "*", "0.0.0.0", "::", "[::]"}:  # nosec: BAN-B104
         return ""
     return text
 
@@ -53,7 +53,7 @@ def is_port_in_use(host: str | None, port: object, *, kind: str = "tcp") -> bool
     targets: list[tuple[socket.AddressFamily, str]] = []
 
     if host_text == "":
-        targets.append((socket.AF_INET, "0.0.0.0"))
+        targets.append((socket.AF_INET, "0.0.0.0"))  # nosec: BAN-B104
         targets.append((socket.AF_INET6, "::"))
     else:
         try:
@@ -95,7 +95,7 @@ def describe_port_conflict(
 ) -> str:
     """User-facing explanation of a bad or busy port setting."""
     port_num = _port_int(port)
-    host_label = _host_for_bind(host) or "0.0.0.0"
+    host_label = _host_for_bind(host) or "0.0.0.0"  # nosec: BAN-B104
     name_bit = f' for interface "{interface_name}"' if interface_name else ""
     proto = str(kind).upper()
     if port_num is None:

@@ -5,7 +5,7 @@
     import { onMount, tick, untrack } from "svelte";
     import DialogUtils from "../../../js/DialogUtils.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
-    import GlobalState from "../../../js/GlobalState.js";
+    import GlobalState, { subscribeGlobalState } from "../../../js/GlobalState.js";
     import ToastUtils from "../../../js/ToastUtils.js";
     import { copyTextToClipboard } from "../../../js/clipboardUtils.js";
     import { createOutboundQueue } from "../../../js/outboundSendQueue.js";
@@ -193,6 +193,13 @@
     let audioAttachmentCache = $state.raw<Record<string, string>>({});
     let audioAttachmentOrder: string[] = [];
     let audioDownloadInFlight = new Set<string>();
+    let blockedDestinations = $state<unknown[]>(GlobalState.blockedDestinations);
+
+    $effect(() => {
+        return subscribeGlobalState(() => {
+            blockedDestinations = GlobalState.blockedDestinations;
+        });
+    });
 
     const selectedHash = $derived(String(selectedPeer?.destination_hash || ""));
     const identityKey = $derived(String(config?.identity_hash || myLxmfAddressHash || "_"));
@@ -268,7 +275,7 @@
     const composeSuggestions = $derived(
         buildComposeAddressSuggestions(contacts, conversations, composeAddress, isComposeInputFocused)
     );
-    const isSelectedPeerBlocked = $derived(isPeerBlockedInState(GlobalState.blockedDestinations, selectedHash));
+    const isSelectedPeerBlocked = $derived(isPeerBlockedInState(blockedDestinations, selectedHash));
     const outboundQueue = createOutboundQueue((job: OutboundJob) => executeSendJob(job));
     const viewerApi: ConversationViewerApi = { markConversationAsRead };
 

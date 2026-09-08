@@ -8,6 +8,18 @@ from typing import Any
 
 from meshchatx.src.backend import reticulum_pathfinding
 from meshchatx.src.backend.colour_utils import ColourUtils
+from meshchatx.src.backend.lxmf_message_fields import (
+    LxmfAudioField,
+    LxmfFileAttachmentsField,
+    LxmfImageField,
+)
+from meshchatx.src.backend.lxmf_utils import (
+    FIELD_REPLY_TO,
+    FIELD_REPLY_QUOTE,
+    FIELD_REACTION,
+    LXMF_APP_EXTENSIONS_FIELD,
+    build_lxmf_reaction_field,
+)
 
 # ruff: noqa: F821
 
@@ -33,7 +45,7 @@ async def send_lxmf_message(
     context=None,
 ) -> LXMF.LXMessage:
     mc = __import__("meshchatx.meshchat", fromlist=["*"])
-    g = mc.__dict__
+    _SENTINEL = object()
     for _k in (
         "LXMF",
         "RNS",
@@ -71,18 +83,14 @@ async def send_lxmf_message(
         "parse_stored_lxmf_fields",
         "lxmf_fields_are_reaction",
         "extract_reaction_from_lxmf_fields",
-        "build_lxmf_reaction_field",
         "is_lxmf_outbound_progress_terminal",
         "convert_lxmf_state_to_string",
         "convert_lxmf_method_to_string",
         "message_fields_have_attachments",
-        "LxmfFileAttachment",
-        "LxmfFileAttachmentsField",
-        "LxmfImageField",
-        "LxmfAudioField",
     ):
-        if _k in g:
-            globals()[_k] = g[_k]
+        _v = getattr(mc, _k, _SENTINEL)
+        if _v is not _SENTINEL:
+            globals()[_k] = _v
     ctx = context or app.current_context
     if not ctx:
         raise RuntimeError("No identity context available for sending message")

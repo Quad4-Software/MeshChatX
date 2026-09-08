@@ -98,7 +98,7 @@ def test_origin_policy_requires_origin_on_non_loopback_without_auth():
     assert (
         websocket_origin_policy_allows(
             _Req(),
-            listen_host="0.0.0.0",
+            listen_host="0.0.0.0",  # nosec: BAN-B104
             auth_enabled=False,
             trusted_proxy_cidrs=None,
             origin_allowed_fn=origin_ok,
@@ -109,7 +109,7 @@ def test_origin_policy_requires_origin_on_non_loopback_without_auth():
     assert (
         websocket_origin_policy_allows(
             _Req(),
-            listen_host="0.0.0.0",
+            listen_host="0.0.0.0",  # nosec: BAN-B104
             auth_enabled=True,
             trusted_proxy_cidrs=None,
             origin_allowed_fn=origin_ok,

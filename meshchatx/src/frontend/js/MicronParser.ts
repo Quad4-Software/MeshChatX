@@ -3,7 +3,7 @@ import BaseMicronParser from "micron-parser";
 import { inlineStyleHasNetworkPaint, scrubNetworkCss as scrubNetworkCssBody } from "./nomadCssSecurity.js";
 
 const ALLOWED_URI_REGEXP =
-    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
+    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z.+-]+(?:[^a-z.+:-]|$))/i;
 
 function escapeHtmlForFallback(text) {
     if (text == null) return "";

@@ -6,12 +6,28 @@ from __future__ import annotations
 
 from typing import Any
 
+from meshchatx.src.backend.lxmf_utils import (
+    convert_lxmf_message_to_dict,
+    extract_sideband_command_entries,
+    lxmf_is_reaction_only_delivery,
+)
+from meshchatx.src.backend.memory_pressure import prune_lxmf_incoming_timestamps
+from meshchatx.src.backend.meshchat_utils import (
+    has_attachments,
+    lxmf_signature_validated,
+    normalize_lxmf_destination_hash,
+    parse_lxmf_display_name,
+    parse_lxmf_icon_appearance,
+)
+from meshchatx.src.backend.sideband_commands import SidebandCommands
+from meshchatx.src.backend.telemetry_utils import _valid_number
+
 # ruff: noqa: F821
 
 
 def handle_lxmf_delivery(app: Any, lxmf_message: LXMF.LXMessage, context=None):
     mc = __import__("meshchatx.meshchat", fromlist=["*"])
-    g = mc.__dict__
+    _SENTINEL = object()
     for _k in (
         "LXMF",
         "RNS",
@@ -43,24 +59,10 @@ def handle_lxmf_delivery(app: Any, lxmf_message: LXMF.LXMessage, context=None):
         "cast",
         "UTC",
         "Telemeter",
-        "convert_lxmf_message_to_dict",
-        "is_user_facing_lxmf_payload",
-        "convert_db_lxmf_message_to_dict",
-        "parse_stored_lxmf_fields",
-        "lxmf_fields_are_reaction",
-        "extract_reaction_from_lxmf_fields",
-        "build_lxmf_reaction_field",
-        "is_lxmf_outbound_progress_terminal",
-        "convert_lxmf_state_to_string",
-        "convert_lxmf_method_to_string",
-        "message_fields_have_attachments",
-        "LxmfFileAttachment",
-        "LxmfFileAttachmentsField",
-        "LxmfImageField",
-        "LxmfAudioField",
     ):
-        if _k in g:
-            globals()[_k] = g[_k]
+        _v = getattr(mc, _k, _SENTINEL)
+        if _v is not _SENTINEL:
+            globals()[_k] = _v
     """Handle inbound LXMF delivery from Reticulum (synchronous callback)."""
     ctx = context or app.current_context
     if not ctx or not ctx.running or not ctx.database:

@@ -231,7 +231,7 @@ def _write_tcp_pair(listen_dir: str, conn_dir: str, port: int) -> None:
     )
     os.makedirs(listen_dir, exist_ok=True)
     os.makedirs(conn_dir, exist_ok=True)
-    with open(os.path.join(listen_dir, "config"), "w", encoding="utf-8") as handle:
+    with open(os.path.join(listen_dir, "config"), "w", encoding="utf-8") as handle:  # nosec: PTC-W6004
         handle.write(listen_cfg)
     with open(os.path.join(conn_dir, "config"), "w", encoding="utf-8") as handle:
         handle.write(conn_cfg)

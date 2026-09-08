@@ -4,14 +4,17 @@
 
 from __future__ import annotations
 
+import socket
 from typing import Any
+
+import psutil
 
 # ruff: noqa: F821
 
 
 async def reload_reticulum_instance(app: Any):
     mc = __import__("meshchatx.meshchat", fromlist=["*"])
-    g = mc.__dict__
+    _SENTINEL = object()
     for _k in (
         "LXMF",
         "RNS",
@@ -42,9 +45,12 @@ async def reload_reticulum_instance(app: Any):
         "platform",
         "cast",
         "UTC",
+        "clear_all_cached_links",
+        "clear_all_nomadnet_cached_links",
     ):
-        if _k in g:
-            globals()[_k] = g[_k]
+        _v = getattr(mc, _k, _SENTINEL)
+        if _v is not _SENTINEL:
+            globals()[_k] = _v
     print("Hot reloading Reticulum stack...")
     # Keep reference to old reticulum instance for cleanup
     old_reticulum = getattr(app, "reticulum", None)
@@ -361,7 +367,7 @@ async def reload_reticulum_instance(app: Any):
                                                 # Match IP and port for IPv4
                                                 if conn.laddr.port == addr[1] and (
                                                     conn.laddr.ip == addr[0]
-                                                    or addr[0] == "0.0.0.0"
+                                                    or addr[0] == "0.0.0.0"  # nosec: BAN-B104
                                                 ):
                                                     match = True
                                             elif family_str == "AF_UNIX":

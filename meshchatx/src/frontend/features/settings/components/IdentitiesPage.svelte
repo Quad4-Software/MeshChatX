@@ -7,7 +7,7 @@
     import ToastUtils from "../../../js/ToastUtils.js";
     import DialogUtils from "../../../js/DialogUtils.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
-    import GlobalState from "../../../js/GlobalState.js";
+    import GlobalState, { subscribeGlobalState } from "../../../js/GlobalState.js";
     import { t } from "../../../js/i18n.js";
 
     import {
@@ -34,13 +34,19 @@
     let expandedAddressHashes = $state<Record<string, boolean>>({});
 
     let identityFileInput: HTMLInputElement | undefined = $state();
+    let messageIconSize = $state<number>(Number(GlobalState.config?.message_icon_size) || 28);
+
+    $effect(() => {
+        return subscribeGlobalState(() => {
+            messageIconSize = Number(GlobalState.config?.message_icon_size) || 28;
+        });
+    });
 
     const currentIdentity = $derived(identities.find((i) => i.is_current) || null);
     const otherIdentities = $derived(identities.filter((i) => !i.is_current));
-    const identityIconStyle = $derived.by(() => {
-        const cfg = GlobalState.config as { message_icon_size?: number } | null | undefined;
-        const size = Number(cfg?.message_icon_size) || 28;
-        return { width: `${size}px`, height: `${size}px` };
+    const identityIconStyle = $derived({
+        width: `${messageIconSize}px`,
+        height: `${messageIconSize}px`,
     });
 
     function onIdentitySwitchAborted() {

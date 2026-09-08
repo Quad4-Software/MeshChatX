@@ -246,7 +246,7 @@ def _strip_bundle_metadata_sections(data: bytes) -> bytes:
 
 def write_wasm_bundle(dest: str, bundle: WasmBundle) -> None:
     os.makedirs(dest, exist_ok=True)
-    with open(os.path.join(dest, "plugin.json"), "w", encoding="utf-8") as handle:
+    with open(os.path.join(dest, "plugin.json"), "w", encoding="utf-8") as handle:  # nosec: PTC-W6004
         json.dump(bundle.manifest, handle, indent=2)
         handle.write("\n")
     backend = bundle.manifest.get("backend") or {}

@@ -57,7 +57,7 @@ def _is_full_suite_baseline(previous):
 
 
 def _load_entries(path):
-    with open(path, encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:  # nosec: PTC-W6004
         data = json.load(f)
     if isinstance(data, list):
         return data

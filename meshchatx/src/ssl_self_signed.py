@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 _SKIP_IPS = {
-    ipaddress.ip_address("0.0.0.0"),
+    ipaddress.ip_address("0.0.0.0"),  # nosec: BAN-B104
     ipaddress.ip_address("255.255.255.255"),
     ipaddress.ip_address("::"),
 }

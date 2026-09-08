@@ -20,8 +20,12 @@ from meshchatx.src.backend.auto_resend_guard import (
     parse_fields_dict,
     should_skip_for_budget,
 )
-
-# ruff: noqa: F821
+from meshchatx.src.backend.lxmf_message_fields import (
+    LxmfAudioField,
+    LxmfFileAttachment,
+    LxmfFileAttachmentsField,
+    LxmfImageField,
+)
 
 
 async def resend_failed_messages_for_destination(

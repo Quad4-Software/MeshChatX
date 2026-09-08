@@ -20,7 +20,7 @@ def test_stage_script_exists_and_is_executable():
 
 
 def test_stage_script_bash_syntax():
-    subprocess.run(["bash", "-n", str(_SCRIPT)], check=True)
+    subprocess.run(["bash", "-n", str(_SCRIPT)], check=True)  # nosec: BAN-B607
 
 
 def test_gradle_release_apk_uses_desktop_asset_prefix():
@@ -45,7 +45,7 @@ def test_stage_renames_signed_apk_to_desktop_scheme(tmp_path: Path):
     src.mkdir()
     (src / "ReticulumMeshChatX-v4.8.4-android-universal-signed.apk").write_bytes(b"apk")
     (src / "ReticulumMeshChatX-v4.8.4-android-arm64-v8a-signed.apk").write_bytes(b"apk")
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_SCRIPT), str(src), str(dest)],
         capture_output=True,
         text=True,
@@ -64,7 +64,7 @@ def test_stage_rejects_missing_universal_or_abi_tag(tmp_path: Path):
     dest = tmp_path / "draft"
     src.mkdir()
     (src / "ReticulumMeshChatX-v4.8.4-android-signed.apk").write_bytes(b"apk")
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_SCRIPT), str(src), str(dest)],
         capture_output=True,
         text=True,
@@ -80,7 +80,7 @@ def test_stage_rejects_gradle_default_app_release_signed(tmp_path: Path):
     dest = tmp_path / "draft"
     src.mkdir()
     (src / "app-release-signed.apk").write_bytes(b"apk")
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_SCRIPT), str(src), str(dest)],
         capture_output=True,
         text=True,
@@ -98,7 +98,7 @@ def test_stage_fails_when_no_signed_apk(tmp_path: Path):
     (src / "ReticulumMeshChatX-v4.8.4-android-universal-unsigned.apk").write_bytes(
         b"apk",
     )
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_SCRIPT), str(src), str(dest)],
         capture_output=True,
         text=True,

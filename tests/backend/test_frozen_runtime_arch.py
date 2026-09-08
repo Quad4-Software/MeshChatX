@@ -94,7 +94,7 @@ def test_thin_backend_thins_executable_not_only_dylibs(tmp_path: Path) -> None:
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
     env["MESHCHATX_THIN_ARM64_DIR"] = str(arm)
     env["MESHCHATX_THIN_X64_DIR"] = str(x64)
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_THIN)],
         check=False,
         capture_output=True,
@@ -134,7 +134,7 @@ def test_verify_frozen_runtime_uses_arch_x86_64_for_darwin_x64(
     )
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_VERIFY), str(root)],
         check=False,
         capture_output=True,
@@ -161,7 +161,7 @@ def test_verify_frozen_runtime_runs_native_on_darwin_arm64(tmp_path: Path) -> No
     )
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_VERIFY), str(root)],
         check=False,
         capture_output=True,
@@ -185,7 +185,7 @@ def test_verify_frozen_runtime_rejects_arm64_only_stub_in_x64_tree(
     )
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_VERIFY), str(root)],
         check=False,
         capture_output=True,
@@ -243,7 +243,7 @@ def test_unify_mirrors_x64_openblas_and_still_drops_other_arch_only_mach_o(
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
     env["MESHCHATX_UNIFY_ARM64_DIR"] = str(arm)
     env["MESHCHATX_UNIFY_X64_DIR"] = str(x64)
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_UNIFY)],
         check=False,
         capture_output=True,
@@ -280,7 +280,7 @@ def test_unify_errors_when_libcodec2_exists_on_only_one_arch(tmp_path: Path) -> 
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
     env["MESHCHATX_UNIFY_ARM64_DIR"] = str(arm)
     env["MESHCHATX_UNIFY_X64_DIR"] = str(x64)
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_UNIFY)],
         check=False,
         capture_output=True,

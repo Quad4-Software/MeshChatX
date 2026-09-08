@@ -33,11 +33,11 @@ def test_pip_rns_deps_script_exists_and_is_executable():
 
 
 def test_pip_rns_deps_bash_syntax():
-    subprocess.run(["bash", "-n", str(_SCRIPT)], check=True)
+    subprocess.run(["bash", "-n", str(_SCRIPT)], check=True)  # nosec: BAN-B607
 
 
 def test_pip_rns_deps_help():
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_SCRIPT), "--help"],
         capture_output=True,
         text=True,
@@ -48,7 +48,7 @@ def test_pip_rns_deps_help():
 
 
 def test_pip_rns_deps_dry_run():
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_SCRIPT), "--dry-run", "--skip-ensure"],
         capture_output=True,
         text=True,

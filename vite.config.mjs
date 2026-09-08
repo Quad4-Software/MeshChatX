@@ -28,7 +28,7 @@ const idbChunkGroups = [
     },
 ];
 
-const assetsDir = path.join(__dirname, "meshchatx", "public", "assets");
+const assetsDir = path.join(import.meta.dirname, "meshchatx", "public", "assets");
 
 const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
 
@@ -100,7 +100,15 @@ function configureQuietProxyErrors(proxy) {
 const appBuildTimeIso = new Date().toISOString();
 
 function isMicronWasmBundledResolved() {
-    const wasmDir = path.join(__dirname, "meshchatx", "src", "frontend", "public", "vendor", "micron-parser-go");
+    const wasmDir = path.join(
+        import.meta.dirname,
+        "meshchatx",
+        "src",
+        "frontend",
+        "public",
+        "vendor",
+        "micron-parser-go"
+    );
     const wasmFile = path.join(wasmDir, "micron-parser-go.wasm");
     const execFile = path.join(wasmDir, "wasm_exec.js");
     try {
@@ -114,7 +122,15 @@ function isMicronWasmBundledResolved() {
 }
 
 function isVisualiserWasmBundledResolved() {
-    const wasmDir = path.join(__dirname, "meshchatx", "src", "frontend", "public", "vendor", "visualiser-wasm");
+    const wasmDir = path.join(
+        import.meta.dirname,
+        "meshchatx",
+        "src",
+        "frontend",
+        "public",
+        "vendor",
+        "visualiser-wasm"
+    );
     const wasmFile = path.join(wasmDir, "visualiser.wasm");
     const execFile = path.join(wasmDir, "wasm_exec.js");
     try {
@@ -128,7 +144,7 @@ function isVisualiserWasmBundledResolved() {
 }
 
 function isGeoWasmBundledResolved() {
-    const wasmDir = path.join(__dirname, "meshchatx", "src", "frontend", "public", "vendor", "geo-wasm");
+    const wasmDir = path.join(import.meta.dirname, "meshchatx", "src", "frontend", "public", "vendor", "geo-wasm");
     const wasmFile = path.join(wasmDir, "geo.wasm");
     const execFile = path.join(wasmDir, "wasm_exec.js");
     try {
@@ -148,7 +164,7 @@ const geoWasmBundled = isGeoWasmBundledResolved();
 function loadMicronWasmIntegrity() {
     if (!micronWasmBundled) return null;
     const integrityPath = path.join(
-        __dirname,
+        import.meta.dirname,
         "meshchatx",
         "src",
         "frontend",
@@ -169,7 +185,7 @@ function loadMicronWasmIntegrity() {
 function loadVisualiserWasmIntegrity() {
     if (!visualiserWasmBundled) return null;
     const integrityPath = path.join(
-        __dirname,
+        import.meta.dirname,
         "meshchatx",
         "src",
         "frontend",
@@ -189,7 +205,7 @@ function loadVisualiserWasmIntegrity() {
 function loadGeoWasmIntegrity() {
     if (!geoWasmBundled) return null;
     const integrityPath = path.join(
-        __dirname,
+        import.meta.dirname,
         "meshchatx",
         "src",
         "frontend",
@@ -328,9 +344,9 @@ export default defineConfig(({ command }) => {
         },
 
         // vite app is loaded from /meshchatx/src/frontend
-        root: path.join(__dirname, "meshchatx", "src", "frontend"),
+        root: path.join(import.meta.dirname, "meshchatx", "src", "frontend"),
 
-        publicDir: path.join(__dirname, "meshchatx", "src", "frontend", "public"),
+        publicDir: path.join(import.meta.dirname, "meshchatx", "src", "frontend", "public"),
 
         build: {
             sourcemap: false,
@@ -346,7 +362,7 @@ export default defineConfig(({ command }) => {
             },
 
             // we want to compile vite app to meshchatx/public which is bundled and served by the python executable
-            outDir: path.join(__dirname, "meshchatx", "public"),
+            outDir: path.join(import.meta.dirname, "meshchatx", "public"),
             emptyOutDir: false,
 
             rolldownOptions: {
@@ -362,8 +378,14 @@ export default defineConfig(({ command }) => {
                     },
                 },
                 input: {
-                    app: path.join(__dirname, "meshchatx", "src", "frontend", "index.html"),
-                    "nomad-crash-tab": path.join(__dirname, "meshchatx", "src", "frontend", "nomad-crash-tab.html"),
+                    app: path.join(import.meta.dirname, "meshchatx", "src", "frontend", "index.html"),
+                    "nomad-crash-tab": path.join(
+                        import.meta.dirname,
+                        "meshchatx",
+                        "src",
+                        "frontend",
+                        "nomad-crash-tab.html"
+                    ),
                 },
                 output: {
                     codeSplitting: {
@@ -393,7 +415,13 @@ export default defineConfig(({ command }) => {
             // Git-hosted micron-parser has no upstream package.json. Alias the entry so
             // Vite/Rolldown resolve it in Docker and CI without relying on metadata alone.
             alias: {
-                "micron-parser": path.join(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
+                "micron-parser": path.join(
+                    import.meta.dirname,
+                    "node_modules",
+                    "micron-parser",
+                    "js",
+                    "micron-parser.js"
+                ),
             },
         },
     };

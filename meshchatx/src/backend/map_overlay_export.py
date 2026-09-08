@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import zipfile
 from io import BytesIO
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree as ET  # nosec: BAN-B405
 from xml.sax.saxutils import escape
 
 from meshchatx.src.backend.map_geo_validator import (
@@ -98,7 +98,7 @@ def geojson_to_kml(data: bytes) -> bytes:
 
 
 def kml_to_geojson(data: bytes) -> bytes:
-    root = ET.fromstring(data.decode("utf-8"))
+    root = ET.fromstring(data.decode("utf-8"))  # nosec: BAN-B314
     features = []
     for pm in root.iter():
         if _strip_ns(pm.tag).lower() != "placemark":

@@ -20,13 +20,18 @@
 
     let scrollTop = $state(0);
     let viewportHeight = $state(0);
-    let measuredHeights = $state<Record<number, number>>({});
+    let measuredHeights = $state<Record<string, number>>({});
+
+    function rowHeightKey(group: MessageDisplayEntry, index: number): string {
+        return group.key || `${group.type}-${index}`;
+    }
 
     const layout = $derived.by(() => {
         let cursor = 0;
         const rows = groups.map((group, index) => {
-            const size = measuredHeights[index] || estimateGroupHeight(group);
-            const row = { index, start: cursor, size, key: group.key || `${group.type}-${index}` };
+            const key = rowHeightKey(group, index);
+            const size = measuredHeights[key] || estimateGroupHeight(group);
+            const row = { index, start: cursor, size, key };
             cursor += size;
             return row;
         });
@@ -45,17 +50,25 @@
         return layout.rows.slice(first, last);
     });
 
-    const measure: Action<HTMLElement, number> = (node, index) => {
+    const measure: Action<HTMLElement, number> = (node, initialIndex) => {
+        let index = initialIndex;
         const update = () => {
+            const group = groups[index];
+            if (!group) return;
+            const key = rowHeightKey(group, index);
             const next = Math.ceil(node.getBoundingClientRect().height);
-            if (next > 0 && measuredHeights[index] !== next) {
-                measuredHeights[index] = next;
+            if (next > 0 && measuredHeights[key] !== next) {
+                measuredHeights[key] = next;
             }
         };
         update();
         const observer = new ResizeObserver(update);
         observer.observe(node);
         return {
+            update(nextIndex: number) {
+                index = nextIndex;
+                update();
+            },
             destroy: () => observer.disconnect(),
         };
     };

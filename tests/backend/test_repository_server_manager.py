@@ -230,7 +230,7 @@ def test_http_get_root(tmp_path):
     url = out["url"]
     try:
         req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec: BAN-B310
             assert resp.status == 200
             body = resp.read().decode("utf-8")
             assert "listed.whl" in body

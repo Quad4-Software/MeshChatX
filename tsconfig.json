@@ -24,7 +24,7 @@
         "meshchatx/src/frontend/**/*.js",
         "meshchatx/src/frontend/**/*.ts",
         "electron/**/*.js",
-        "vite.config.js",
+        "vite.config.mjs",
         "svelte.config.mjs"
     ],
     "exclude": [

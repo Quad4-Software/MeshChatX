@@ -1,6 +1,7 @@
 package com.meshchatx;
 
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
 
@@ -34,17 +35,40 @@ public final class LocalhostTrustOkHttpClient {
                 new X509TrustManager() {
                     @Override
                     @SuppressWarnings("MethodDoesntCallSuperMethod")
-                    public void checkClientTrusted(X509Certificate[] c, String t) {
+                    public void checkClientTrusted(X509Certificate[] chain, String authType)
+                            throws CertificateException {
+                        validate(chain);
                     }
 
                     @Override
                     @SuppressWarnings("MethodDoesntCallSuperMethod")
-                    public void checkServerTrusted(X509Certificate[] c, String t) {
+                    public void checkServerTrusted(X509Certificate[] chain, String authType)
+                            throws CertificateException {
+                        validate(chain);
                     }
 
                     @Override
                     public X509Certificate[] getAcceptedIssuers() {
                         return new X509Certificate[0];
+                    }
+
+                    private void validate(X509Certificate[] chain) throws CertificateException {
+                        if (chain == null || chain.length == 0) {
+                            throw new CertificateException("empty certificate chain");
+                        }
+                        X509Certificate c = chain[0];
+                        c.checkValidity();
+                        try {
+                            c.verify(c.getPublicKey());
+                        } catch (java.security.GeneralSecurityException e) {
+                            throw new CertificateException(
+                                "not a self-signed MeshChatX certificate", e
+                            );
+                        }
+                        String dn = c.getSubjectX500Principal().getName();
+                        if (!dn.contains("O=Reticulum MeshChatX") || !dn.contains("CN=localhost")) {
+                            throw new CertificateException("not a MeshChatX localhost certificate");
+                        }
                     }
                 }
             };

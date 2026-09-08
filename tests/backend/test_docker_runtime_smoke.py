@@ -21,7 +21,7 @@ def _docker_available() -> bool:
     if shutil.which("docker") is None:
         return False
     try:
-        subprocess.run(
+        subprocess.run(  # nosec: BAN-B607
             ["docker", "info"],
             check=True,
             stdout=subprocess.DEVNULL,
@@ -42,7 +42,7 @@ def _docker_available() -> bool:
 def test_docker_image_serves_status():
     env = os.environ.copy()
     env.setdefault("MESHCHAT_DOCKER_SMOKE_TIMEOUT", "240")
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_SMOKE_SCRIPT)],
         cwd=_REPO_ROOT,
         env=env,
@@ -67,7 +67,7 @@ def test_docker_image_serves_status():
 def test_docker_hardened_compose_and_run_serve_status():
     env = os.environ.copy()
     env.setdefault("MESHCHAT_DOCKER_SMOKE_TIMEOUT", "240")
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_HARDENED_SMOKE_SCRIPT)],
         cwd=_REPO_ROOT,
         env=env,
@@ -92,7 +92,7 @@ def test_docker_hardened_compose_and_run_serve_status():
 def test_docker_demo_compose_smoke():
     env = os.environ.copy()
     env.setdefault("MESHCHAT_DOCKER_SMOKE_TIMEOUT", "240")
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_DEMO_SMOKE_SCRIPT)],
         cwd=_REPO_ROOT,
         env=env,

@@ -141,7 +141,7 @@ def verify_py_signature(py_path: str) -> SignatureInfo:
     rsg_path = py_path + ".rsg"
     if not os.path.isfile(rsg_path):
         return SignatureInfo()
-    with open(py_path, "rb") as handle:
+    with open(py_path, "rb") as handle:  # nosec: PTC-W6004
         message = handle.read()
     with open(rsg_path, "rb") as handle:
         rsg_data = handle.read()

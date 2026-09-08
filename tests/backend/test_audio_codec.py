@@ -158,7 +158,7 @@ def _ogg_opus_duration_seconds(path: str) -> float:
     Lets us assert the encoded file is exactly as long as the input PCM
     without depending on libopusfile being installed for decode.
     """
-    with open(path, "rb") as f:
+    with open(path, "rb") as f:  # nosec: PTC-W6004
         data = f.read()
     last_gp = 0
     i = 0

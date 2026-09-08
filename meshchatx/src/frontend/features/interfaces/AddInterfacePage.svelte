@@ -132,7 +132,7 @@
         httpMode: "client" as "client" | "server",
         httpServerUrl: null as string | null,
         httpPollInterval: 0.1 as number | string | null,
-        httpListenHost: "0.0.0.0" as string | null,
+        httpListenHost: "127.0.0.1" as string | null,
         httpListenPort: 8080 as number | string | null,
         httpMtu: 4096 as number | string | null,
         httpVersion: 1 as number | string | null,

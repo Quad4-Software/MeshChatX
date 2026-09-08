@@ -203,7 +203,7 @@ def test_bake_copies_from_build_env_when_freeze_tree_has_no_dylib(
 
 def test_verify_frozen_codec2_script_rejects_missing_extension(tmp_path: Path) -> None:
     (tmp_path / "lib" / "pycodec2").mkdir(parents=True)
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_VERIFY), str(tmp_path)],
         check=False,
         capture_output=True,
@@ -222,7 +222,7 @@ def test_verify_frozen_codec2_script_requires_dylib_on_darwin(tmp_path: Path) ->
     uname.chmod(0o755)
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_VERIFY), str(root)],
         check=False,
         capture_output=True,
@@ -236,7 +236,7 @@ def test_verify_frozen_codec2_script_requires_dylib_on_darwin(tmp_path: Path) ->
 def test_verify_frozen_codec2_script_accepts_extension(tmp_path: Path) -> None:
     root = _frozen_pycodec2_tree(tmp_path)
     (root / "lib" / "pycodec2" / "libcodec2.dylib").write_bytes(b"lib")
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_VERIFY), str(root)],
         check=False,
         capture_output=True,

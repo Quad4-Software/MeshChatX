@@ -32,7 +32,7 @@ def _write_plugin_dir(root, plugin_id="com.example.secure-plugin"):
         "frontend": {"entry": "frontend/main.js", "type": "js"},
         "i18n": {"directory": "locales", "defaultLocale": "en"},
     }
-    with open(os.path.join(root, "plugin.json"), "w", encoding="utf-8") as handle:
+    with open(os.path.join(root, "plugin.json"), "w", encoding="utf-8") as handle:  # nosec: PTC-W6004
         json.dump(manifest, handle)
     os.makedirs(os.path.join(root, "frontend"), exist_ok=True)
     with open(

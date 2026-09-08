@@ -1237,7 +1237,7 @@ class ReticulumMeshChat:
         def restart():
             time.sleep(delay)
             try:
-                os.execv(sys.executable, [sys.executable] + sys.argv)
+                os.execv(sys.executable, [sys.executable] + sys.argv)  # nosec: BAN-B606
             except Exception as e:
                 print(f"Failed to restart: {e}")
                 os._exit(0)
@@ -1361,17 +1361,40 @@ class ReticulumMeshChat:
             self._repair_reticulum_instance_name_corruption()
             self._reticulum_instance_name_startup_repair_done = True
         config_path = os.path.join(config_dir, "config")
-        needs_default = not reticulum_config_has_required_sections(config_path)
-        if not needs_default:
-            repair_unparseable_reticulum_config(
-                config_path,
-                write_default=self._write_rns_reticulum_default_config_file,
-            )
-            needs_default = not reticulum_config_has_required_sections(config_path)
-        if needs_default:
+        if not os.path.isfile(config_path):
             if not os.path.isdir(config_dir):
                 os.makedirs(config_dir, exist_ok=True)
             self._write_rns_reticulum_default_config_file(config_path)
+        else:
+            # Try to load the existing file. If it is readable, preserve the
+            # user content and only add missing top-level sections. If it is
+            # not readable, fall through to the backup-and-default repair path.
+            from RNS.vendor.configobj import ConfigObj
+
+            try:
+                cfg = ConfigObj(config_path)
+            except Exception:
+                repair_unparseable_reticulum_config(
+                    config_path,
+                    write_default=self._write_rns_reticulum_default_config_file,
+                )
+                if not reticulum_config_has_required_sections(config_path):
+                    self._write_rns_reticulum_default_config_file(config_path)
+            else:
+                changed = False
+                for section in ("reticulum", "interfaces"):
+                    if section not in cfg:
+                        cfg[section] = {}
+                        changed = True
+                if changed:
+                    try:
+                        cfg.write()
+                    except Exception as exc:
+                        logger.warning(
+                            "Failed to ensure required sections in %s: %s",
+                            config_path,
+                            exc,
+                        )
         try:
             from RNS.vendor.configobj import ConfigObj
 

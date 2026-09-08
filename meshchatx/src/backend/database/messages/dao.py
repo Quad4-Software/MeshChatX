@@ -237,7 +237,7 @@ class MessageDAO:
         )
 
         query = (
-            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
+            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "  # nosec: BAN-B608
             f"ON CONFLICT(hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"
         )
 
@@ -583,11 +583,11 @@ class MessageDAO:
             return
         placeholders = ", ".join(["?"] * len(message_hashes))
         peers = self.provider.fetchall(
-            f"SELECT DISTINCT peer_hash FROM lxmf_messages WHERE hash IN ({placeholders})",
+            f"SELECT DISTINCT peer_hash FROM lxmf_messages WHERE hash IN ({placeholders})",  # nosec: BAN-B608
             tuple(message_hashes),
         )
         self.provider.execute(
-            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",
+            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",  # nosec: BAN-B608
             tuple(message_hashes),
         )
         self.refresh_conversation_summaries_for_peers(
@@ -1192,7 +1192,7 @@ class MessageDAO:
         placeholders = ", ".join(["?"] * len(unique))
         rows = self.provider.fetchall(
             "SELECT destination_hash, last_viewed_at FROM notification_viewed_state "
-            f"WHERE destination_hash IN ({placeholders})",
+            f"WHERE destination_hash IN ({placeholders})",  # nosec: BAN-B608
             unique,
         )
         return {row["destination_hash"]: row["last_viewed_at"] for row in rows}

@@ -107,7 +107,7 @@ export function getInterfaceDescription(iface: ConfiguredInterface): string {
     if (iface.type === "HTTPInterface") {
         const tunnelMode = String(iface.mode || "").toLowerCase();
         if (tunnelMode === "server") {
-            return `HTTP ${iface.listen_host || "0.0.0.0"}:${iface.listen_port}`;
+            return `HTTP ${iface.listen_host || "127.0.0.1"}:${iface.listen_port}`;
         }
         return iface.server_url || "HTTP tunnel client";
     }
