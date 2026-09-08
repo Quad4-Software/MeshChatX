@@ -21,7 +21,7 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 | PyPI (reticulum-meshchatx) | Yes               | Headless install without building the UI |
 | Release wheel              | Yes               | Same as PyPI from a GitHub artifact      |
 | Linux AppImage             | Yes               | Portable desktop on x64 or arm64         |
-| Flatpak                    | Yes               | Desktop from cdn.meshchatx.com           |
+| Flatpak                    | Yes               | Desktop from cdn.quad4.io           |
 | Debian .deb                | Yes               | Debian and Ubuntu systems                |
 | RPM package                | Yes               | Fedora, RHEL, openSUSE style systems     |
 | Electron desktop           | Yes               | Integrated desktop with bundled backend  |
@@ -185,7 +185,7 @@ Download the .rpm only when the release includes one. CI uploads RPM when the pa
 **Flatpak**
 
 ```bash
-flatpak install --from https://cdn.meshchatx.com/flatpak/meshchatx-stable.flatpakref
+flatpak install --from https://cdn.quad4.io/flatpak/meshchatx-stable.flatpakref
 flatpak run com.meshchatx.app
 flatpak update
 ```

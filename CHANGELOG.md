@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.0] - [unreleased]
 
+### Changed
+
+- **Flatpak CDN**: Default pull zone moved from cdn.meshchatx.com/flatpak to cdn.quad4.io/flatpak.
+
 ## [4.8.6] - 2026-09-06 [released]
 
 ### Added

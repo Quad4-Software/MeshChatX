@@ -194,7 +194,7 @@ def test_workflow_flatpak_ostree_timeout_and_workers() -> None:
 
 def test_export_script_uses_cdn_meshchatx() -> None:
     text = _EXPORT.read_text(encoding="utf-8")
-    assert "cdn.meshchatx.com/flatpak" in text
+    assert "cdn.quad4.io/flatpak" in text
     assert "meshchatx-stable.flatpakref" in text
     assert "meshchatx-beta.flatpakref" in text
     assert "meshchatx-testing.flatpakref" in text
@@ -228,7 +228,7 @@ def test_workflow_wires_flatpak_ostree_not_pages() -> None:
     assert "github-flatpak-ostree-export.sh" in text
     assert "github-upload-bunny-flatpak-ostree.py" in text
     assert "flatpak-ostree-bunny" in text
-    assert "cdn.meshchatx.com/flatpak" in text
+    assert "cdn.quad4.io/flatpak" in text
     assert "deploy-pages" not in text
     assert "upload-pages-artifact" not in text
     assert "needs.flatpak-ostree.result" in text

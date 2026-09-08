@@ -9,7 +9,7 @@
 # (testing | beta | stable).
 #
 # Environment:
-#   FLATPAK_CDN_BASE_URL  public base (default https://cdn.meshchatx.com/flatpak)
+#   FLATPAK_CDN_BASE_URL  public base (default https://cdn.quad4.io/flatpak)
 #   GPG_FINGERPRINT       GPG key id for signing commits and summary
 #   REQUIRE_GPG           if 1, fail when GPG_FINGERPRINT is empty
 #   GITHUB_REPOSITORY     owner/repo for landing page link
@@ -44,7 +44,7 @@ case "$branch" in
         ;;
 esac
 
-cdn_base="${FLATPAK_CDN_BASE_URL:-https://cdn.meshchatx.com/flatpak}"
+cdn_base="${FLATPAK_CDN_BASE_URL:-https://cdn.quad4.io/flatpak}"
 cdn_base="${cdn_base%/}"
 repo_url="${cdn_base}/repo"
 repo_path="${OUT}/repo"
