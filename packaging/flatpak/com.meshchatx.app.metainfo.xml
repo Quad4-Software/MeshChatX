@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: 0BSD -->
+<component type="desktop-application">
+    <id>com.meshchatx.app</id>
+    <metadata_license>0BSD</metadata_license>
+    <project_license>0BSD AND MIT</project_license>
+    <name>Reticulum MeshChatX</name>
+    <summary>Mesh networking chat client</summary>
+    <description>
+        <p>MeshChatX is a local-first mesh communications app built on the Reticulum Network Stack. It supports LXMF messaging, LXST voice calls, RRC relay chat, NomadNet page browsing, map overlays, and plugins.</p>
+    </description>
+    <launchable type="desktop-id">com.meshchatx.app.desktop</launchable>
+    <icon type="stock">com.meshchatx.app</icon>
+    <developer id="com.quad4">
+        <name>Quad4</name>
+    </developer>
+    <categories>
+        <category>Network</category>
+        <category>InstantMessaging</category>
+        <category>Chat</category>
+    </categories>
+    <url type="homepage">https://meshchatx.com</url>
+    <url type="bugtracker">https://github.com/Quad4-Software/MeshChatX/issues</url>
+    <url type="help">https://github.com/Quad4-Software/MeshChatX/discussions</url>
+    <url type="vcs-browser">https://github.com/Quad4-Software/MeshChatX</url>
+    <content_rating type="oars-1.1">
+        <content_attribute id="social-chat">intense</content_attribute>
+        <content_attribute id="social-audio">intense</content_attribute>
+    </content_rating>
+    <releases>
+        <release version="4.8.6" date="2026-09-06"/>
+    </releases>
+</component>
