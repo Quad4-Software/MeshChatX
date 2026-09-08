@@ -14,8 +14,13 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
     @routes.get("/api/v1/bots/status")
     async def bots_status(request):
         try:
-            status = app.bot_handler.get_status()
-            templates = app.bot_handler.get_available_templates()
+            bot_handler = getattr(app, "bot_handler", None)
+            if bot_handler is None:
+                return web.json_response(
+                    {"status": {"bots": [], "detection_error": None}, "templates": []},
+                )
+            status = bot_handler.get_status()
+            templates = bot_handler.get_available_templates()
             if app.database:
                 for bot in status.get("bots") or []:
                     lxmf_addr = bot.get("lxmf_address") or bot.get("full_address")

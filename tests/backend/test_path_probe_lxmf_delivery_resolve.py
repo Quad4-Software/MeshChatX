@@ -89,11 +89,11 @@ async def test_post_path_waits_on_lxmf_delivery_when_identity_passed(mock_app):
 
     with (
         patch(
-            "meshchatx.src.backend.http.routes.path_probe.lxmf_delivery_hash_bytes_for_path",
+            "meshchatx.src.backend.http.routes.path_probe.destination.lxmf_delivery_hash_bytes_for_path",
             return_value=delivery_bytes,
         ),
         patch(
-            "meshchatx.src.backend.http.routes.path_probe.local_destination_hashes",
+            "meshchatx.src.backend.http.routes.path_probe.destination.local_destination_hashes",
             return_value=set(),
         ),
         patch(
@@ -157,7 +157,7 @@ async def test_ping_waits_on_lxmf_delivery_when_identity_passed(mock_app):
 
     with (
         patch(
-            "meshchatx.src.backend.http.routes.path_probe.lxmf_delivery_hash_bytes_for_path",
+            "meshchatx.src.backend.http.routes.path_probe.ping.lxmf_delivery_hash_bytes_for_path",
             return_value=delivery_bytes,
         ),
         patch("meshchatx.meshchat.RNS.Transport.has_path", side_effect=_has_path),
@@ -201,11 +201,11 @@ async def test_request_path_resend_uses_lxmf_delivery_lookup(mock_app):
 
     with (
         patch(
-            "meshchatx.src.backend.http.routes.path_probe.lxmf_delivery_hash_bytes_for_path",
+            "meshchatx.src.backend.http.routes.path_probe.destination.lxmf_delivery_hash_bytes_for_path",
             return_value=delivery_bytes,
         ),
         patch(
-            "meshchatx.src.backend.http.routes.path_probe.lxmf_delivery_hash_hex_for_path",
+            "meshchatx.src.backend.http.routes.path_probe.destination.lxmf_delivery_hash_hex_for_path",
             return_value=delivery_hex,
         ),
         patch("meshchatx.meshchat.reticulum_pathfinding.prepare_fresh_path_request"),

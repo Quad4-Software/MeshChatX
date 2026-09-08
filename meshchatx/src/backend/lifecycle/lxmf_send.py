@@ -28,9 +28,9 @@ async def send_lxmf_message(
     app: Any,
     destination_hash: str,
     content: str,
-    image_field: LxmfImageField = None,
-    audio_field: LxmfAudioField = None,
-    file_attachments_field: LxmfFileAttachmentsField = None,
+    image_field: LxmfImageField | None = None,
+    audio_field: LxmfAudioField | None = None,
+    file_attachments_field: LxmfFileAttachmentsField | None = None,
     telemetry_data: bytes | None = None,
     commands: list | None = None,
     delivery_method: str | None = None,
@@ -123,7 +123,7 @@ async def send_lxmf_message(
     wants_propagated = delivery_method == "propagated"
     is_local_self = app._is_self_lxmf_destination(destination_hash, ctx)
     if is_local_self and wants_propagated:
-        msg = "Propagated delivery is not available for messages to yourapp."
+        msg = "Propagated delivery is not available for messages to yourself."
         raise ValueError(msg)
 
     destination_identity = app.recall_identity(destination_hash)
@@ -312,7 +312,7 @@ async def send_lxmf_message(
             "utf-8",
         )
 
-    if has_standard_reaction:
+    if has_standard_reaction and reaction_to_hash is not None:
         lxmf_message.fields[FIELD_REACTION] = build_lxmf_reaction_field(
             reaction_to_hash,
             reaction_emoji or "",

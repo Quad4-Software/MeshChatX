@@ -395,7 +395,7 @@ def test_coerce_request_body_caps_unwrap_depth():
 
 def test_publish_caps_count(manager, monkeypatch):
     monkeypatch.setattr(
-        "meshchatx.src.backend.map_data_manager.MAX_PUBLISHED_MAPS",
+        "meshchatx.src.backend.map_data_manager.core.MAX_PUBLISHED_MAPS",
         1,
     )
     manager.publish_bytes(GEOJSON, name="one")

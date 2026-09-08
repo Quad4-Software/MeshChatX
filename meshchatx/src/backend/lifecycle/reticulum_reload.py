@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import gc
 import socket
 from typing import Any
 
@@ -516,7 +517,7 @@ async def reload_reticulum_instance(app: Any):
         instance_restore_name = None
         if abstract_unix_addr_in_use_after_wait:
             stored_instance_name = app._read_reticulum_instance_name()
-            stable_base = ReticulumMeshChat._strip_reload_instance_suffix(
+            stable_base = mc.ReticulumMeshChat._strip_reload_instance_suffix(
                 stored_instance_name,
             )
             instance_restore_name = (

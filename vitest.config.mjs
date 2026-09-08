@@ -61,6 +61,7 @@ export default defineConfig({
         globals: true,
         environment: "jsdom",
         include: ["tests/frontend/**/*.{test,spec}.{js,ts,jsx,tsx}"],
+        exclude: ["tests/frontend/browser/**", "**/*.browser.test.*", "**/*.browser.spec.*"],
         setupFiles: ["tests/frontend/setup.js"],
         ui: false,
         open: false,

@@ -204,7 +204,10 @@ def register_path_probe_destination_routes(routes, app):
         )
 
         if RNS.Transport.has_path(destination_hash_bytes):
-            maybe_resend_failed_for_current(app, destination_hash)
+            maybe_resend_failed_for_current(
+                app,
+                lxmf_delivery_hash_hex_for_path(app, destination_hash),
+            )
 
         return web.json_response(
             {

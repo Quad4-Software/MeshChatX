@@ -30,7 +30,7 @@ def test_oracle_enable_updates_both_legacy_keys():
 def test_oracle_disable_route_message_is_not_deleted():
     from pathlib import Path
 
-    src = Path("meshchatx/src/backend/http/routes/interfaces.py").read_text(
+    src = Path("meshchatx/src/backend/http/routes/interfaces/crud.py").read_text(
         encoding="utf-8",
     )
     # The disable handler historically returned "Interface deleted".

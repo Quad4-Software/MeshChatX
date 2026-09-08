@@ -40,9 +40,6 @@
             if (to.path) {
                 return `#${to.path.startsWith("/") ? to.path : `/${to.path}`}`;
             }
-            if (to.name) {
-                return `#/${to.name}`;
-            }
             return "#";
         }
     });
