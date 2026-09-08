@@ -4,9 +4,37 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.0] - [unreleased]
 
+### Added
+
+- **Map offline coordinate conversion**: Built-in geo-wasm converts and shows WGS84, UTM, MGRS, and Plus Code without a network round trip.
+- **Map starter graticule**: The bundled `starter_world.mbtiles` is now a 30-degree world graticule covering z0-z4 instead of a solid placeholder, so the map is usable offline immediately.
+- **Delivery help tips**: Per-peer throttling, severity ordering, capped detail count, and deduped diagnostic fetches keep delivery failure tips from getting noisy.
+- **Database idle connection reaper**: `DatabaseProvider` closes idle live-thread SQLite handles after 120 seconds and dead-thread handles, preventing unbounded file-descriptor growth in containers.
+- **Tests for database FD oracle, delivery help tips, message cancel-send, raw message view, and map bounds/provider handling**.
+
+### Fixed
+
+- **Map tiles**: Tile math clamps latitudes and wraps longitudes at the antimeridian and poles. The offline MBTiles source is capped to its metadata min/max zoom so OpenLayers stops requesting missing tiles.
+- **Map export**: Carto `{r}` placeholder is removed from tile URLs, bbox tile counts handle full-world and wrapped boxes, schema creation is idempotent, and SQLite connections close on every cleanup path.
+- **Map provider failover**: OpenFreeMap is no longer treated as a raster fallback, Carto providers are in the failover list, and `nextRasterTileProviderId` skips the current provider.
+- **Map tile cache**: `TileCache.clear()` waits for pending access writes and replacement entries are counted before eviction.
+- **Map tile state and placeholders**: Successful tile blob application sets `TileState.LOADED`, object URLs revoke on image load/error, and dark placeholders are 256x256.
+- **LXMF source hash**: Inbound delivery source hash no longer falls back to the local destination identity, so anonymous senders are not misidentified as known strangers.
+- **Messages**: Cancel-send is shown inline, failed and rejected labels are localized, and the raw message modal opens immediately with the paper URI loaded in the background.
+- **Settings**: All debounced save timeouts are cleared on unmount so config saves do not fire after the page is closed.
+- **NomadNet**: Crash tab render deadline pauses when the tab is inactive, and the Network page cancels active page downloads on unmount.
+- **Network Visualiser**: Hop filter and announce chunk fetches catch errors instead of rejecting the whole render.
+- **Tests**: UIComponents SettingsPage mocks config patch responses and unmounts wrappers to prevent `EnvironmentTeardownError`.
+
 ### Changed
 
-- **Flatpak CDN**: Default pull zone moved from cdn.meshchatx.com/flatpak to cdn.quad4.io/flatpak.
+- **Flatpak packaging**: Application ID is now `com.meshchatx.app`, with matching desktop file, icon, and metainfo bundled.
+- **Electron**: Linux app name and `userData` path use the new `com.meshchatx.app` scheme while keeping the existing `reticulum-meshchatx` data directory.
+- **Flatpak CDN**: Default pull zone moved from `cdn.meshchatx.com/flatpak` to `cdn.quad4.io/flatpak`.
+- **Theme consistency pass**: Debug logs, RNode panels and flasher, message entry, conversation viewer, and plugins settings use semantic `sem-*` tokens instead of raw Tailwind colors. A behavior contract test enforces this for future changes.
+- **Logging cleanup**: `print()` calls in `meshchatx.py`, `nomadnet_downloader.py`, and other backend paths now use the application logger.
+- **Geo-wasm and starter MBTiles**: Rebuilt and regenerated.
+- **Repository format and lint**: Full Ruff, Prettier, ESLint, and typecheck pass across backend and frontend.
 
 ## [4.8.6] - 2026-09-06 [released]
 
