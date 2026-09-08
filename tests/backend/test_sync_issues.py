@@ -49,7 +49,14 @@ def test_issue_content_carries_attribution():
 
 
 def test_comment_content_marker():
-    c = sync.comment_content({"id": 123, "author": {"login": "a"}, "createdAt": "2026-09-08T00:00:00Z", "body": "hi"})
+    c = sync.comment_content(
+        {
+            "id": 123,
+            "author": {"login": "a"},
+            "createdAt": "2026-09-08T00:00:00Z",
+            "body": "hi",
+        }
+    )
     assert "gh-comment:123" in c
     assert "@a" in c
     assert "hi" in c
