@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import type { BubbleTranslation } from "./conversationTranslate.js";
+
 export type MessageReaction = {
     reactionHash?: string;
     emoji?: string;
@@ -141,4 +143,42 @@ export type ConversationViewerActions = {
     outboundAttachmentCaptionClass: (chatItem: MessageChatItem) => string;
     outboundEmbeddedCardClass: (chatItem: MessageChatItem) => string;
     outboundEmbeddedSecondaryTextClass: (chatItem: MessageChatItem) => string;
+};
+
+export type ConversationViewerActionDeps = {
+    chatItems: MessageChatItem[];
+    identityKey?: string;
+    selectedPeer?: {
+        destination_hash?: string;
+        display_name?: string | null;
+        custom_display_name?: string | null;
+        is_tracking?: boolean;
+    } | null;
+    conversations?: Array<{
+        destination_hash?: string;
+        display_name?: string | null;
+        custom_display_name?: string | null;
+    }>;
+    myLxmfAddressHash?: string;
+    messageFontSize?: number;
+    expandedMessageInfo?: string | null;
+    audioAttachmentUrls?: Readonly<Record<string, string>>;
+    translations?: Readonly<Record<string, BubbleTranslation>>;
+    openImage: (src: string, gallery?: string[], items?: MessageChatItem[]) => void;
+    onMessageContextMenu: (event: MouseEvent, chatItem: MessageChatItem, suppressToggle?: boolean) => void;
+    onChatItemClick: (chatItem: MessageChatItem) => void;
+    openReactionPicker: (chatItem: MessageChatItem) => void;
+    replyToMessage: (chatItem: MessageChatItem) => void;
+    retrySendingMessage: (chatItem: MessageChatItem) => void;
+    cancelSendingMessage: (chatItem: MessageChatItem) => void;
+    deleteChatItem: (chatItem: MessageChatItem) => void;
+    showRawMessage: (chatItem: MessageChatItem) => void;
+    scrollToMessage: (hash: string) => void;
+    copyText: (text: string) => unknown;
+    downloadMessageImage: (chatItem: MessageChatItem) => void | Promise<void>;
+    downloadLxmfFileAttachment: (chatItem: MessageChatItem, index: number, name: string) => void | Promise<void>;
+    addContact: (name?: string, hash?: string, lxmfAddress?: string, lxstAddress?: string) => void | Promise<void>;
+    onSetBubbleMessageShowOriginal?: (hash: string, showOriginal: boolean) => void;
+    onupdatePeerTracking?: (payload: { destination_hash: string; is_tracking: boolean }) => void;
+    onPaperIngested?: (hash: string) => void;
 };

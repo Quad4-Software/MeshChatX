@@ -87,7 +87,7 @@ async def test_start_accepts_initial_lxmf_config(bot_http_client):
     aio_app, handler = bot_http_client
     proc = MagicMock()
     proc.pid = 4242
-    with patch("meshchatx.src.backend.bot_handler.subprocess.Popen", return_value=proc):
+    with patch("meshchatx.src.backend.bot_handler.core.subprocess.Popen", return_value=proc):
         async with TestClient(TestServer(aio_app)) as client:
             response = await client.post(
                 "/api/v1/bots/start",

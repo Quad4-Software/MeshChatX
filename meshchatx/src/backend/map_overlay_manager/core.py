@@ -51,7 +51,8 @@ from meshchatx.src.backend.rngit_sparse_fetcher import (
     RngitFetchError,
     RngitSparseFetcher,
 )
-from meshchatx.src.path_utils import atomic_write_bytes, is_path_within_dir
+from meshchatx.src import path_utils
+from meshchatx.src.path_utils import is_path_within_dir
 
 _log = logging.getLogger("meshchatx.map_overlays")
 
@@ -903,7 +904,7 @@ class MapOverlayManager:
                 return
 
         abs_path, rel = self.cache_path_for(identity_hash, overlay_id, validated.format)
-        atomic_write_bytes(abs_path, payload)
+        path_utils.atomic_write_bytes(abs_path, payload)
         now = datetime.now(UTC)
         next_at = None
         if refresh_interval > 0:

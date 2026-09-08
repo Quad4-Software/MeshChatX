@@ -18,6 +18,8 @@ import RNS
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.config_manager import ConfigManager
 from meshchatx.src.backend.database import Database
+from meshchatx.src.backend.rrc.manager.manager import RRCManager
+from meshchatx.src.backend.rrc.server.core import RRCServerManager
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
 from tests.backend.support.test_temp_dir import (
@@ -347,6 +349,21 @@ def mock_app(db, tmp_path, temp_db):
         app.database = Database(temp_db)
         app.current_context.config = ConfigManager(app.database)
         app.config = app.current_context.config
+        if app.rrc_manager is None:
+            app.rrc_manager = RRCManager(
+                identity=app.current_context.identity,
+                storage_dir=app.current_context.storage_path,
+                get_nickname=lambda: (
+                    app.config.display_name.get() if app.config else None
+                ),
+                get_name_for_identity_hash=lambda h: None,
+                database=app.database,
+            )
+        if app.rrc_server_manager is None:
+            app.rrc_server_manager = RRCServerManager(
+                storage_dir=app.current_context.storage_path,
+                owner_identity=app.current_context.identity,
+            )
         if app.rrc_manager is not None:
             app.rrc_manager.set_database(app.database)
         app.websocket_broadcast = MagicMock(side_effect=lambda data: None)

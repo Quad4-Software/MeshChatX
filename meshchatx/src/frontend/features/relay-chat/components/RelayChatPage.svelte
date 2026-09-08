@@ -170,7 +170,14 @@
     }
 
     async function fetchDiscoveredHubs() {
-        discoveredHubs = [];
+        const api = (window as any).api;
+        if (!api) return;
+        try {
+            const res = await api.get("/api/v1/announces");
+            discoveredHubs = res.data?.hubs || res.data?.announces || [];
+        } catch {
+            discoveredHubs = [];
+        }
     }
 
     async function loadRoomMessages(hubH: string, rName: string) {

@@ -1,5 +1,4 @@
 <!-- SPDX-License-Identifier: 0BSD -->
-
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
@@ -28,7 +27,6 @@
     } from "../lib/nomadBrowserData.js";
     import { DEFAULT_PAGE_PATH } from "../lib/constants.js";
     import type { NomadContextMenuState, NomadFavourite, NomadNode, NomadTab } from "../lib/types.js";
-
     interface Props {
         destinationHash?: string;
         path?: string;
@@ -70,6 +68,11 @@
 
     const routePath = $derived(path || routeQuery.path || DEFAULT_PAGE_PATH);
     const routeArchiveId = $derived(routeQuery.archive_id || null);
+    const routeHashWatchReady = $derived(Boolean(destinationHash || routePath));
+
+    $effect(() => {
+        const _ = routeHashWatchReady;
+    });
 
     function ensureTabMounted(tabId: number | null) {
         if (tabId == null || mountedTabIds[tabId]) return;

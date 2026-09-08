@@ -187,7 +187,7 @@ def test_start_stop_bot(mock_popen, temp_identity_dir):
     status = handler.get_status()
     assert any(b["id"] == bot_id and b["running"] for b in status["bots"])
 
-    with patch("meshchatx.src.backend.bot_handler.os.kill") as mock_kill:
+    with patch("meshchatx.src.backend.bot_handler.core.os.kill") as mock_kill:
         handler.stop_bot(bot_id)
         assert mock_kill.called
         assert bot_id not in handler.running_bots

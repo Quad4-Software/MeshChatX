@@ -121,7 +121,7 @@
         "prettier": "^3.9.6",
         "prettier-plugin-svelte": "^4.1.1",
         "svelte": "^5.57.0",
-        "svelte-check": "^4.7.6",
+        "svelte-check": "4.7.5",
         "tailwindcss": "^4.3.3",
         "terser": "^5.51.2",
         "typescript": "^6.0.3",

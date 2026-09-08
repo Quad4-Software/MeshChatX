@@ -210,10 +210,10 @@ async def test_unchanged_sha_skips_rewrite(manager, tmp_path):
             self._success("layer.geojson", payload)
 
     manager._file_downloader_factory = lambda **kw: FakeDownloader(**kw)
-    import meshchatx.src.backend.map_overlay_manager as mom
+    import meshchatx.src.path_utils as path_utils
 
     monkey = pytest.MonkeyPatch()
-    monkey.setattr(mom, "atomic_write_bytes", counting_atomic)
+    monkey.setattr(path_utils, "atomic_write_bytes", counting_atomic)
     try:
         created = await manager.create_overlays(
             identity,

@@ -16,7 +16,9 @@ from meshchatx.src.backend.http.routes.path_probe.path_table import (
 )
 from meshchatx.src.backend.http.routes.path_probe._names import (
     PATH_WAIT_REQUIRES_POST_MESSAGE as PATH_WAIT_REQUIRES_POST_MESSAGE,
+    local_destination_hashes as local_destination_hashes,
     lxmf_delivery_hash_bytes_for_path as lxmf_delivery_hash_bytes_for_path,
+    lxmf_delivery_hash_hex_for_path as lxmf_delivery_hash_hex_for_path,
 )
 
 

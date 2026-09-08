@@ -9,6 +9,43 @@ from typing import Any
 from meshchatx.src.backend.http.routes.maintenance._names import *  # noqa: F403
 
 
+def _message_import_response(result: dict) -> Any:
+    if not result.get("ok", True) and result.get("error"):
+        return web.json_response(
+            {
+                "error": result["error"],
+                "imported": result.get("imported", 0),
+                "skipped": result.get("skipped", 0),
+            },
+            status=400,
+        )
+    imported = result["imported"]
+    skipped = result["skipped"]
+    errors = result.get("errors") or []
+    if imported == 0 and errors:
+        return web.json_response(
+            {
+                "error": errors[0]["error"],
+                "imported": imported,
+                "skipped": skipped,
+                "errors": errors,
+            },
+            status=400,
+        )
+    response = {
+        "message": f"Successfully imported {imported} messages",
+        "imported": imported,
+        "skipped": skipped,
+        "contacts_added": result.get("contacts_added", 0),
+        "contacts_skipped": result.get("contacts_skipped", 0),
+        "display_names_imported": result.get("display_names_imported", 0),
+        "read_state_imported": result.get("read_state_imported", 0),
+    }
+    if errors:
+        response["errors"] = errors
+    return web.json_response(response)
+
+
 def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
     # maintenance - clear messages (all, or older than days / before date)
 

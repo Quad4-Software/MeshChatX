@@ -53,7 +53,7 @@ def build_user_guidance_messages(app: Any):
         )
 
     if (
-        hasattr(self, "reticulum")
+        hasattr(app, "reticulum")
         and app.reticulum
         and not app.reticulum.transport_enabled()
     ):

@@ -7,6 +7,10 @@ from typing import Any
 
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.websocket_upgrade._names import *  # noqa: F403
+from meshchatx.src.backend.http.routes.websocket_upgrade._names import (
+    _reject_forbidden_ws_origin,
+    _reject_forbidden_ws_session,
+)
 
 
 def register_websocket_upgrade_upgrade_routes(routes: Any, app: Any) -> None:
