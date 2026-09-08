@@ -520,6 +520,31 @@ describe("NomadCrashTab.vue", () => {
         }
     });
 
+    it("does not fire the render deadline while the tab is inactive", async () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountCrashTab({ active: false });
+            attachFrame(wrapper);
+            wrapper.vm.frameReady = true;
+            wrapper.vm.pushRender();
+            await wrapper.vm.$nextTick();
+            expect(wrapper.emitted("render-started")?.length).toBe(1);
+
+            vi.advanceTimersByTime(25000);
+            expect(wrapper.vm.status).toBe("rendering");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+
+            await wrapper.setProps({ active: true });
+            vi.advanceTimersByTime(20000);
+            expect(wrapper.vm.status).toBe("hung");
+            expect(wrapper.emitted("hung")?.length).toBe(1);
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
     it("parks the never-ready deadline while hidden and fires after visible", async () => {
         vi.useFakeTimers();
         setDocumentVisibility("hidden");
