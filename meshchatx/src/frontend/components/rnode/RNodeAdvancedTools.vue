@@ -2,7 +2,7 @@
 
 <template>
     <div class="space-y-4">
-        <div class="text-xs font-bold text-gray-400 dark:text-zinc-600 uppercase tracking-widest">
+        <div class="text-xs font-bold text-sem-fg-muted uppercase tracking-widest">
             {{ $t("tools.rnode_flasher.advanced_tools") }}
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
@@ -59,9 +59,9 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .rnf-action-btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-sem-surface-muted hover:bg-gray-200 hover:bg-sem-surface-muted px-3 py-2.5 text-[11px] font-bold text-sem-fg-muted border border-sem-border transition-all active:scale-95;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-sem-surface-muted hover:bg-sem-surface-raised px-3 py-2.5 text-[11px] font-bold text-sem-fg-muted border border-sem-border transition-all active:scale-95;
 }
 .rnf-action-btn--danger {
-    @apply bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40;
+    @apply bg-sem-danger/10 text-sem-danger border-sem-danger/30 hover:bg-sem-danger/20;
 }
 </style>

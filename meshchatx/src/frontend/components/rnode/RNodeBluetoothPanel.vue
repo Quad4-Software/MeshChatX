@@ -3,7 +3,7 @@
 <template>
     <div class="border border-sem-border bg-sem-surface rounded-2xl shadow-xl overflow-hidden">
         <div class="px-4 sm:px-6 py-4 border-b border-sem-border flex items-center gap-2">
-            <MaterialDesignIcon icon-name="bluetooth" class="size-5 text-blue-500" />
+            <MaterialDesignIcon icon-name="bluetooth" class="size-5 text-sem-accent" />
             <h3 class="font-bold text-sem-fg">
                 {{ $t("tools.rnode_flasher.configure_bluetooth") }}
             </h3>
@@ -19,7 +19,7 @@
                     {{ $t("tools.rnode_flasher.disable") }}
                 </button>
                 <button
-                    class="rnf-action-btn col-span-2 sm:col-span-1 bg-blue-500 text-white! border-none! hover:bg-blue-600"
+                    class="rnf-action-btn col-span-2 sm:col-span-1 bg-sem-action-primary text-white! border-none! hover:bg-sem-action-primary-hover"
                     @click="$emit('action', 'pair-bluetooth')"
                 >
                     <MaterialDesignIcon icon-name="key-link" class="size-4" />
@@ -46,6 +46,6 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .rnf-action-btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-sem-surface-muted hover:bg-gray-200 hover:bg-sem-surface-muted px-3 py-2.5 text-[11px] font-bold text-sem-fg-muted border border-sem-border transition-all active:scale-95;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-sem-surface-muted hover:bg-sem-surface-raised px-3 py-2.5 text-[11px] font-bold text-sem-fg-muted border border-sem-border transition-all active:scale-95;
 }
 </style>

@@ -11,13 +11,13 @@
             <template #actions>
                 <span
                     v-if="connectedTransportLabel"
-                    class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                    class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sem-success/15 text-sem-success"
                 >
                     <MaterialDesignIcon icon-name="link-variant" class="size-3" />
                     {{ connectedTransportLabel }}
                 </span>
                 <button
-                    class="p-2 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                    class="p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                     @click="showAdvanced = !showAdvanced"
                 >
                     <MaterialDesignIcon :icon-name="showAdvanced ? 'cog' : 'cog-outline'" class="size-5" />
@@ -28,7 +28,7 @@
                 <a
                     href="/rnode-flasher/index.html"
                     target="_blank"
-                    class="p-2 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                    class="p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                     :title="$t('tools.rnode_flasher.open_original_tab')"
                 >
                     <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
@@ -69,7 +69,7 @@
                             @enter-dfu="enterDfuMode"
                         />
                     </div>
-                    <div class="p-4 sm:p-6 bg-gray-50/50 dark:bg-zinc-900/50">
+                    <div class="p-4 sm:p-6 bg-sem-surface-muted/50">
                         <RNodeFirmwareSelector
                             ref="firmwareSelector"
                             :step-number="2"
@@ -124,9 +124,9 @@
 
             <!-- help footer -->
             <div
-                class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50 dark:bg-zinc-900/30"
+                class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border border-sem-border rounded-2xl bg-sem-surface-muted"
             >
-                <div class="flex items-center gap-3 text-sm text-zinc-500">
+                <div class="flex items-center gap-3 text-sm text-sem-fg-muted">
                     <MaterialDesignIcon icon-name="help-circle-outline" class="size-5" />
                     <span>{{ $t("tools.rnode_flasher.find_device_issue") }}</span>
                 </div>
@@ -135,14 +135,14 @@
                         target="_blank"
                         rel="noopener noreferrer"
                         href="https://github.com/liamcottle/rnode-flasher"
-                        class="text-blue-500 hover:underline text-sm font-bold"
+                        class="text-sem-accent hover:underline text-sm font-bold"
                         >RNode Flasher</a
                     >
                     <a
                         target="_blank"
                         rel="noopener noreferrer"
                         href="https://github.com/markqvist/RNode_Firmware"
-                        class="text-blue-500 hover:underline text-sm font-bold"
+                        class="text-sem-accent hover:underline text-sm font-bold"
                         >RNode Firmware</a
                     >
                 </div>
