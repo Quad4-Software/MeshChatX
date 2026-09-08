@@ -373,32 +373,37 @@ describe("DropDownMenu Component", () => {
 describe("SettingsPage Component", () => {
     let axiosMock;
     let websocketMock;
+    const wrappers = [];
+
+    const baseConfig = {
+        display_name: "Test User",
+        identity_hash: "abc123",
+        lxmf_address_hash: "def456",
+        theme: "dark",
+        is_transport_enabled: true,
+        lxmf_local_propagation_node_enabled: false,
+        auto_resend_failed_messages_when_announce_received: true,
+        allow_auto_resending_failed_messages_with_attachments: true,
+        auto_send_failed_messages_to_propagation_node: false,
+        show_suggested_community_interfaces: true,
+        banished_effect_enabled: true,
+        banished_text: "BANISHED",
+        banished_color: "#dc2626",
+        desktop_open_calls_in_separate_window: false,
+        lxmf_delivery_transfer_limit_in_bytes: 10000000,
+        lxmf_propagation_transfer_limit_in_bytes: 100000000,
+        lxmf_propagation_sync_limit_in_bytes: 100000000,
+    };
 
     beforeEach(() => {
         axiosMock = {
             get: vi.fn().mockResolvedValue({
-                data: {
-                    config: {
-                        display_name: "Test User",
-                        identity_hash: "abc123",
-                        lxmf_address_hash: "def456",
-                        theme: "dark",
-                        is_transport_enabled: true,
-                        lxmf_local_propagation_node_enabled: false,
-                        auto_resend_failed_messages_when_announce_received: true,
-                        allow_auto_resending_failed_messages_with_attachments: true,
-                        auto_send_failed_messages_to_propagation_node: false,
-                        show_suggested_community_interfaces: true,
-                        lxmf_local_propagation_node_enabled: false,
-                        banished_effect_enabled: true,
-                        banished_text: "BANISHED",
-                        banished_color: "#dc2626",
-                        desktop_open_calls_in_separate_window: false,
-                    },
-                },
+                data: { config: { ...baseConfig } },
             }),
             post: vi.fn().mockResolvedValue({ data: { success: true } }),
-            patch: vi.fn().mockResolvedValue({ data: { success: true } }),
+            patch: vi.fn().mockImplementation((_, partial) =>
+                Promise.resolve({ data: { config: { ...baseConfig, ...partial } } })
+            ),
         };
         window.api = axiosMock;
 
@@ -410,12 +415,20 @@ describe("SettingsPage Component", () => {
     });
 
     afterEach(() => {
+        for (const w of wrappers) {
+            try {
+                w.unmount();
+            } catch {
+                /* ignore */
+            }
+        }
+        wrappers.length = 0;
         delete window.api;
         vi.clearAllMocks();
     });
 
     const mountSettingsPage = () => {
-        return mount(SettingsPage, {
+        const wrapper = mount(SettingsPage, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: '<div class="mdi"></div>' },
@@ -439,6 +452,8 @@ describe("SettingsPage Component", () => {
                 },
             },
         });
+        wrappers.push(wrapper);
+        return wrapper;
     };
 
     it("renders settings page with profile information", async () => {

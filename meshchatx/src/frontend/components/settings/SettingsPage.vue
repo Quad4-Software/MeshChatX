@@ -3498,6 +3498,13 @@ export default {
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseInfo);
         window.removeEventListener("keydown", this.onSettingsSearchHotkey);
+        // stop any pending debounced saves
+        for (const key of Object.keys(this.saveTimeouts)) {
+            if (this.saveTimeouts[key]) {
+                clearTimeout(this.saveTimeouts[key]);
+                this.saveTimeouts[key] = null;
+            }
+        }
     },
     mounted() {
         // listen for websocket events
