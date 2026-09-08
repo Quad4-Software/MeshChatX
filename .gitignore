@@ -173,6 +173,11 @@ out/
 /packaging/arch/MeshChatX/
 /packaging/arch/reticulum-meshchatx/
 
+# Flatpak local builder outputs
+/packaging/flatpak/build-dir/
+/packaging/flatpak/repo/
+/packaging/flatpak/.flatpak-builder/
+
 electron/backend-manifest.json
 
 scripts/private/
