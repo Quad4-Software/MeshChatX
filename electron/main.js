@@ -123,7 +123,14 @@ if (process.argv.includes("--disable-gpu") || process.argv.includes("--disable-s
 }
 
 if (process.platform === "linux") {
-    app.setName("reticulum-meshchatx");
+    app.setName("com.meshchatx.app");
+    const retainedUserDataDir = path.join(app.getPath("appData"), "reticulum-meshchatx");
+    try {
+        fs.mkdirSync(retainedUserDataDir, { recursive: true });
+    } catch {
+        /* no-op */
+    }
+    app.setPath("userData", retainedUserDataDir);
 }
 
 // Windows toast notifications require a stable AppUserModelID that matches
