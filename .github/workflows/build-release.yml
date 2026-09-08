@@ -430,7 +430,7 @@ jobs:
                     echo "No .flatpak under dl/flatpak/" >&2
                     exit 1
                   fi
-                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://la.storage.bunnycdn.com/meshchatx}"
+                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://ny.storage.bunnycdn.com/quad4}"
                   export FLATPAK_CDN_BASE_URL="${FLATPAK_CDN_BASE_URL:-https://cdn.quad4.io/flatpak}"
                   mkdir -p flatpak-cdn
                   bash scripts/ci/github-flatpak-ostree-export.sh "${bundles[0]}" flatpak-cdn
@@ -834,7 +834,7 @@ jobs:
                     echo "::notice::Skipping Bunny Storage (set repository secret BUNNY_STORAGE_ACCESS_KEY to enable)."
                     exit 0
                   fi
-                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://la.storage.bunnycdn.com/meshchatx}"
+                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://ny.storage.bunnycdn.com/quad4}"
                   if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
                     track=testing
                   elif [[ "${GITHUB_REF_NAME}" == beta-* || "${GITHUB_REF_NAME}" == preview-* ]]; then
