@@ -317,8 +317,12 @@ export default {
             if (this.hopFilterDebounceTimer) clearTimeout(this.hopFilterDebounceTimer);
             this.hopFilterDebounceTimer = setTimeout(async () => {
                 this.hopFilterDebounceTimer = null;
-                await this.ensureAnnouncesForPathHashes();
-                this.processVisualization();
+                try {
+                    await this.ensureAnnouncesForPathHashes();
+                    this.processVisualization();
+                } catch (e) {
+                    console.error("Failed to refresh announces for hop filter", e);
+                }
             }, 80);
         },
     },
@@ -733,7 +737,14 @@ export default {
                         { signal: this.abortController.signal }
                     );
                 });
-                const responses = await Promise.all(promises);
+                let responses;
+                try {
+                    responses = await Promise.all(promises);
+                } catch (e) {
+                    if (this.abortController.signal.aborted || window.api?.isCancel?.(e)) return;
+                    console.error("Failed to fetch announce chunk", e);
+                    continue;
+                }
                 for (const resp of responses) {
                     for (const announce of resp.data?.announces || []) {
                         if (announce?.destination_hash) {
