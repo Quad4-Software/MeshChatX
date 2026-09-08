@@ -343,21 +343,29 @@ export default {
             if (!window.api?.get) {
                 return;
             }
-            const response = await window.api.get("/api/v1/plugins");
-            this.plugins = response.data?.plugins || [];
+            try {
+                const response = await window.api.get("/api/v1/plugins");
+                this.plugins = response.data?.plugins || [];
+            } catch (e) {
+                console.error("Failed to load plugins", e);
+            }
         },
         async refreshSideband() {
             if (!window.api?.get) {
                 return;
             }
-            const response = await window.api.get("/api/v1/sideband-plugins");
-            const config = response.data?.config || {};
-            this.sidebandConfig = {
-                service_plugins_enabled: Boolean(config.service_plugins_enabled),
-                command_plugins_enabled: Boolean(config.command_plugins_enabled),
-                command_plugins_path: config.command_plugins_path || "",
-            };
-            this.sidebandPlugins = response.data?.plugins || [];
+            try {
+                const response = await window.api.get("/api/v1/sideband-plugins");
+                const config = response.data?.config || {};
+                this.sidebandConfig = {
+                    service_plugins_enabled: Boolean(config.service_plugins_enabled),
+                    command_plugins_enabled: Boolean(config.command_plugins_enabled),
+                    command_plugins_path: config.command_plugins_path || "",
+                };
+                this.sidebandPlugins = response.data?.plugins || [];
+            } catch (e) {
+                console.error("Failed to load sideband plugins", e);
+            }
         },
         async onSidebandMasterToggle() {
             if (this.sidebandConfig.service_plugins_enabled) {
