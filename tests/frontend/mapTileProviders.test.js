@@ -15,7 +15,7 @@ describe("mapTileProviders", () => {
     });
 
     it("detects provider from URL", () => {
-        expect(detectRasterTileProviderId("https://tiles.openfreemap.org/styles/bright")).toBe("openfreemap");
+        expect(detectRasterTileProviderId("https://tiles.openfreemap.org/styles/bright")).toBe(null);
         expect(detectRasterTileProviderId("https://tile.openstreetmap.org/1/1/1.png")).toBe("osm");
         expect(detectRasterTileProviderId("https://evil.example/tiles.openfreemap.org/x")).toBe(null);
         expect(detectRasterTileProviderId("https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png")).toBe(
@@ -24,8 +24,9 @@ describe("mapTileProviders", () => {
     });
 
     it("returns next provider not yet attempted", () => {
-        expect(nextRasterTileProviderId("osm", [])).toBe("openfreemap");
-        expect(nextRasterTileProviderId("openfreemap", [])).toBe("osm");
-        expect(nextRasterTileProviderId("openfreemap", RASTER_TILE_PROVIDER_ORDER)).toBe(null);
+        expect(nextRasterTileProviderId("osm", [])).toBe("carto-dark");
+        expect(nextRasterTileProviderId("carto-dark", [])).toBe("carto-voyager");
+        expect(nextRasterTileProviderId("carto-light", [])).toBe("osm");
+        expect(nextRasterTileProviderId("osm", ["carto-dark", "carto-voyager", "carto-light"])).toBe(null);
     });
 });

@@ -244,7 +244,7 @@ describe("MapPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.api;
+        // Keep window.api so any pending async mounted hooks do not error.
     });
 
     const mountMapPage = () => {

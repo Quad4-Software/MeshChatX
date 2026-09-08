@@ -219,8 +219,9 @@ class MapDataManager:
         return self._announce_enabled() and self._published_count() > 0
 
     def _is_local_hash(self, dest: bytes) -> bool:
-        current = self._destination
-        return current is not None and current.hash == dest
+        with self._lock:
+            current = self._destination
+            return current is not None and current.hash == dest
 
     def _announce_interval(self) -> int:
         raw = getattr(self.config, "map_data_announce_interval", None)

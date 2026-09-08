@@ -1392,15 +1392,36 @@ export default {
         estimatedTiles() {
             if (!this.selectedBbox) return 0;
             const [minLon, minLat, maxLon, maxLat] = this.selectedBbox;
+            if (
+                !Number.isFinite(minLon) ||
+                !Number.isFinite(minLat) ||
+                !Number.isFinite(maxLon) ||
+                !Number.isFinite(maxLat)
+            ) {
+                return 0;
+            }
             let total = 0;
-            for (let z = this.exportMinZoom; z <= this.exportMaxZoom; z++) {
-                const x1 = this.lonToTile(minLon, z);
-                const x2 = this.lonToTile(maxLon, z);
+            const minZoom = Math.max(0, Math.floor(this.exportMinZoom));
+            const maxZoom = Math.max(minZoom, Math.min(22, Math.floor(this.exportMaxZoom)));
+            for (let z = minZoom; z <= maxZoom; z++) {
+                const n = 2 ** z;
+                const lonSpan = maxLon - minLon;
+                let xCount = 0;
+                const x1 = this.lonToTileMin(minLon, z);
+                const x2 = this.lonToTileMax(maxLon, z);
+                if (lonSpan >= 360 - 1e-9) {
+                    xCount = n;
+                } else if (lonSpan < 0) {
+                    xCount = n - x1 + (x2 + 1);
+                } else {
+                    xCount = Math.max(0, x2 - x1 + 1);
+                }
                 const y1 = this.latToTile(maxLat, z);
                 const y2 = this.latToTile(minLat, z);
-                total += (Math.abs(x2 - x1) + 1) * (Math.abs(y2 - y1) + 1);
+                const yCount = Math.max(0, Math.abs(y2 - y1) + 1);
+                total += xCount * yCount;
             }
-            return total;
+            return Number.isFinite(total) ? total : 0;
         },
         displayCoords() {
             return this.cursorCoords || this.currentCenter;
@@ -2517,6 +2538,17 @@ export default {
             if (!this.isKnownDefaultBasemapUrl(customTileUrl)) return false;
             return true;
         },
+        offlineMbtilesZoomRange() {
+            if (!this.metadata || !this.offlineEnabled) {
+                return { minZoom: 0, maxZoom: 22 };
+            }
+            const min = parseInt(this.metadata.minzoom, 10);
+            const max = parseInt(this.metadata.maxzoom, 10);
+            return {
+                minZoom: Number.isFinite(min) ? min : 0,
+                maxZoom: Number.isFinite(max) ? max : 22,
+            };
+        },
         async buildBaseMapLayer() {
             const url = (this.tileServerUrl || DEFAULT_OSM_RASTER).trim();
             if (!this.offlineEnabled && !this.cachingEnabled && this.isOpenFreeMapStyleUrl(url)) {
@@ -2558,6 +2590,7 @@ export default {
                 try {
                     const bitmap = await createImageBitmap(blob);
                     tile.setImage(bitmap);
+                    tile.setState(TileState.LOADED);
                     return;
                 } catch {
                     /* fall through */
@@ -2566,8 +2599,18 @@ export default {
             const el = tile.getImage();
             if (el && "src" in el) {
                 const url = URL.createObjectURL(blob);
+                const prev = el.onload;
+                el.onload = () => {
+                    URL.revokeObjectURL(url);
+                    el.onload = prev;
+                    tile.setState(TileState.LOADED);
+                };
+                el.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    el.onerror = null;
+                    tile.setState(TileState.ERROR);
+                };
                 el.src = url;
-                setTimeout(() => URL.revokeObjectURL(url), 10000);
                 return;
             }
             await this.applyRasterPlaceholderTile(tile, "dark");
@@ -2602,11 +2645,11 @@ export default {
                     el.src = OFFLINE_TRANSPARENT_TILE_PNG;
                 } else {
                     const c = document.createElement("canvas");
-                    c.width = 1;
-                    c.height = 1;
+                    c.width = 256;
+                    c.height = 256;
                     const ctx = c.getContext("2d");
                     ctx.fillStyle = "#18181b";
-                    ctx.fillRect(0, 0, 1, 1);
+                    ctx.fillRect(0, 0, 256, 256);
                     el.src = c.toDataURL("image/png");
                 }
                 tile.setState(TileState.LOADED);
@@ -2706,8 +2749,11 @@ export default {
             return false;
         },
         getOfflineRasterCacheOnlySource() {
+            const zoom = this.offlineMbtilesZoomRange();
             const source = new XYZ({
                 url: OFFLINE_MB_TILES_URL,
+                minZoom: zoom.minZoom,
+                maxZoom: zoom.maxZoom,
                 crossOrigin: "anonymous",
                 transition: 0,
                 cacheSize: 2048,
@@ -2719,8 +2765,11 @@ export default {
             return source;
         },
         getOfflineMbtilesTopSource() {
+            const zoom = this.offlineMbtilesZoomRange();
             const source = new XYZ({
                 url: OFFLINE_MB_TILES_URL,
+                minZoom: zoom.minZoom,
+                maxZoom: zoom.maxZoom,
                 crossOrigin: "anonymous",
                 transition: 0,
                 cacheSize: 2048,
@@ -2777,12 +2826,18 @@ export default {
                 tileUrl = this.resolveRasterTileUrl(customTileUrl);
             }
 
-            const source = new XYZ({
+            const xyzOptions = {
                 url: tileUrl,
                 crossOrigin: "anonymous",
                 transition: 0,
                 cacheSize: 2048,
-            });
+            };
+            if (isOffline && tileUrl === OFFLINE_MB_TILES_URL) {
+                const zoom = this.offlineMbtilesZoomRange();
+                xyzOptions.minZoom = zoom.minZoom;
+                xyzOptions.maxZoom = zoom.maxZoom;
+            }
+            const source = new XYZ(xyzOptions);
 
             if (!isOffline && source && typeof source.on === "function") {
                 source.on("tileloadend", () => {
@@ -2861,7 +2916,7 @@ export default {
                 this.dismissTileConnectivityBanner();
                 const label = this.tileProviderLabel(nextId);
                 ToastUtils.info(this.$t("map.tile_failover_trying", { provider: label }));
-                this.setTileServer(nextId);
+                await this.setTileServer(nextId);
                 this.tileFailoverInProgress = false;
                 return;
             }
@@ -3112,14 +3167,27 @@ export default {
                 }
             }, 2000);
         },
-        lonToTile(lon, zoom) {
-            return Math.floor(((lon + 180) / 360) * Math.pow(2, zoom));
+        lonToTileMin(lon, zoom) {
+            const n = 2 ** zoom;
+            let x = Math.floor(((lon + 180) / 360) * n);
+            x = ((x % n) + n) % n;
+            return x;
+        },
+        lonToTileMax(lon, zoom) {
+            const n = 2 ** zoom;
+            let x = Math.floor(((lon + 180 - 1e-9) / 360) * n);
+            return Math.max(0, Math.min(n - 1, x));
         },
         latToTile(lat, zoom) {
-            return Math.floor(
-                ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) *
-                    Math.pow(2, zoom)
+            const n = 2 ** zoom;
+            const clamped = Math.max(-85.05112878, Math.min(85.05112878, lat));
+            let y = Math.floor(
+                ((1 -
+                    Math.log(Math.tan((clamped * Math.PI) / 180) + 1 / Math.cos((clamped * Math.PI) / 180)) / Math.PI) /
+                    2) *
+                    n
             );
+            return Math.max(0, Math.min(n - 1, y));
         },
         async onFileSelected(event) {
             const file = event.target.files[0];
@@ -3212,7 +3280,7 @@ export default {
                 ToastUtils.error(this.$t("map.failed_save_tile_server"));
             }
         },
-        setTileServer(type) {
+        async setTileServer(type) {
             this.tileErrorCount = 0;
             this.tileProvidersAttempted = [];
             this.dismissTileConnectivityBanner();
@@ -3220,7 +3288,7 @@ export default {
             if (url) {
                 this.tileServerUrl = url;
             }
-            this.saveTileServerUrl();
+            await this.saveTileServerUrl();
         },
         async saveNominatimApiUrl() {
             try {
@@ -3637,9 +3705,12 @@ export default {
                 const response = await window.api.get("/api/v1/lxmf/conversations", {
                     params: { limit: 2000 },
                 });
+                const conversations = Array.isArray(response?.data?.conversations) ? response.data.conversations : [];
                 const peers = {};
-                for (const conv of response.data.conversations) {
-                    peers[conv.destination_hash] = conv;
+                for (const conv of conversations) {
+                    if (conv && conv.destination_hash) {
+                        peers[conv.destination_hash] = conv;
+                    }
                 }
                 this.peers = peers;
             } catch (e) {

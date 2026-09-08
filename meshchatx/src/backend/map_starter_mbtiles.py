@@ -4,17 +4,18 @@
 
 from __future__ import annotations
 
+import math
+import os
 import sqlite3
 import struct
 import threading
 import zlib
-import os
 from pathlib import Path
 
 STARTER_FILENAME = "starter_world.mbtiles"
-STARTER_NAME = "MeshChatX starter world (z0-z4)"
+STARTER_NAME = "MeshChatX starter world graticule (z0-z4)"
 STARTER_ATTRIBUTION = (
-    "Generated low-zoom placeholder. Replace with OSM or other MBTiles for detail."
+    "Generated low-zoom graticule. Replace with OSM or other MBTiles for detail."
 )
 STARTER_MAX_ZOOM = 4
 
@@ -51,6 +52,76 @@ def solid_png_rgba(width: int, height: int, rgba: tuple[int, int, int, int]) -> 
     )
 
 
+def _png_rgba_raster(pixels: bytearray, width: int, height: int) -> bytes:
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    raw = bytearray()
+    for row in range(height):
+        raw.append(0)
+        row_start = row * width * 4
+        raw.extend(pixels[row_start : row_start + width * 4])
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _png_chunk(b"IHDR", ihdr)
+        + _png_chunk(b"IDAT", zlib.compress(raw, 9))
+        + _png_chunk(b"IEND", b"")
+    )
+
+
+def _mercator_lat(y_norm: float) -> float:
+    return math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * y_norm))))
+
+
+def _graticule_tile_png(
+    z: int, x: int, y: int, width: int = 256, height: int = 256
+) -> bytes:
+    bg = bytes([15, 23, 42, 255])
+    grid = bytes([51, 65, 85, 255])
+    prime = bytes([56, 189, 248, 255])
+    n = 1 << z
+    west = x / n * 360.0 - 180.0
+    east = (x + 1) / n * 360.0 - 180.0
+    north = _mercator_lat(y / n)
+    south = _mercator_lat((y + 1) / n)
+
+    pixels = bytearray(width * height * 4)
+    for i in range(0, len(pixels), 4):
+        pixels[i : i + 4] = bg
+
+    for lon in range(-180, 181, 30):
+        if lon < west or lon > east:
+            continue
+        col = int(round((lon - west) / (east - west) * (width - 1)))
+        col = max(0, min(width - 1, col))
+        color = prime if lon == 0 else grid
+        for row in range(height):
+            idx = (row * width + col) * 4
+            pixels[idx : idx + 4] = color
+
+    for lat in range(-90, 91, 30):
+        if lat < south or lat > north:
+            continue
+        row = int(round((north - lat) / (north - south) * (height - 1)))
+        row = max(0, min(height - 1, row))
+        color = prime if lat == 0 else grid
+        row_start = row * width * 4
+        pixels[row_start : row_start + width * 4] = color * width
+
+    if 0 >= west and 0 <= east and 0 >= south and 0 <= north:
+        col = int(round((0 - west) / (east - west) * (width - 1)))
+        row = int(round((north - 0) / (north - south) * (height - 1)))
+        col = max(0, min(width - 1, col))
+        row = max(0, min(height - 1, row))
+        for dc in range(-2, 3):
+            for dr in range(-2, 3):
+                cc = col + dc
+                rr = row + dr
+                if 0 <= cc < width and 0 <= rr < height:
+                    idx = (rr * width + cc) * 4
+                    pixels[idx : idx + 4] = prime
+
+    return _png_rgba_raster(pixels, width, height)
+
+
 def write_starter_mbtiles(dest: str | Path, max_zoom: int = STARTER_MAX_ZOOM) -> Path:
     """Write a raster MBTiles with solid tiles covering the world up to max_zoom.
 
@@ -60,15 +131,13 @@ def write_starter_mbtiles(dest: str | Path, max_zoom: int = STARTER_MAX_ZOOM) ->
     dest_path = Path(dest)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    tile_png = solid_png_rgba(
-        256, 256, (70, 130, 180, 255)
-    )  # steel blue ocean placeholder
-
     tmp_path = dest_path.with_name(
         f".{dest_path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
     )
     try:
         conn = sqlite3.connect(str(tmp_path))
+        conn.execute("PRAGMA temp_store = MEMORY")
+        conn.execute("PRAGMA journal_mode = MEMORY")
         try:
             cur = conn.cursor()
             cur.execute(
@@ -103,7 +172,7 @@ def write_starter_mbtiles(dest: str | Path, max_zoom: int = STARTER_MAX_ZOOM) ->
                     for y in range(n):
                         # MBTiles uses TMS Y (flip from XYZ).
                         tms_y = (n - 1) - y
-                        rows.append((z, x, tms_y, tile_png))
+                        rows.append((z, x, tms_y, _graticule_tile_png(z, x, y)))
             cur.executemany(
                 "INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?)",
                 rows,
