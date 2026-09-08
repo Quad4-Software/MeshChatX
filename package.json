@@ -3,7 +3,7 @@
     "version": "4.9.0",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
     "homepage": "https://github.com/Quad4-Software/MeshChatX",
-    "desktopName": "reticulum-meshchatx.desktop",
+    "desktopName": "com.meshchatx.app.desktop",
     "author": {
         "name": "Quad4"
     },
@@ -220,11 +220,6 @@
             "category": "Network",
             "synopsis": "Mesh networking chat client",
             "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
-            "desktop": {
-                "entry": {
-                    "StartupWMClass": "reticulum-meshchatx"
-                }
-            },
             "extraResources": [
                 {
                     "from": "build/exe/linux-${arch}",
@@ -273,6 +268,16 @@
                         }
                     ]
                 }
+            ],
+            "files": [
+                [
+                    "packaging/flatpak/com.meshchatx.app.metainfo.xml",
+                    "/share/metainfo/com.meshchatx.app.metainfo.xml"
+                ],
+                [
+                    "packaging/flatpak/com.meshchatx.app.png",
+                    "/share/icons/hicolor/512x512/apps/com.meshchatx.app.png"
+                ]
             ],
             "finishArgs": [
                 "--share=ipc",
