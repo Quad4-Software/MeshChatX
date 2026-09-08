@@ -26,8 +26,8 @@
                         class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
                         :class="
                             activeTab === 'logs'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-sem-surface-muted text-gray-700 dark:text-gray-300 hover:bg-gray-200 hover:bg-sem-surface-muted'
+                                ? 'bg-sem-action-primary text-white'
+                                : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-raised'
                         "
                         @click="switchTab('logs')"
                     >
@@ -38,8 +38,8 @@
                         class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
                         :class="
                             activeTab === 'access'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-sem-surface-muted text-gray-700 dark:text-gray-300 hover:bg-gray-200 hover:bg-sem-surface-muted'
+                                ? 'bg-sem-action-primary text-white'
+                                : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-raised'
                         "
                         @click="switchTab('access')"
                     >
@@ -49,16 +49,16 @@
 
                 <div
                     v-if="activeTab === 'logs'"
-                    class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-zinc-800/50 p-3 rounded-lg border border-sem-border"
+                    class="flex flex-wrap gap-3 items-center bg-sem-surface/60 p-3 rounded-lg border border-sem-border"
                 >
                     <div class="relative flex-1 min-w-[200px]">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-gray-400" />
+                            <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-sem-fg-muted" />
                         </div>
                         <input
                             v-model="search"
                             type="text"
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            class="block w-full pl-10 pr-3 py-2 border border-sem-border rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-sem-fg-muted focus:outline-hidden focus:ring-1 focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm"
                             :placeholder="$t('debug.search_logs_placeholder')"
                             @input="debouncedSearch"
                         />
@@ -66,7 +66,7 @@
 
                     <select
                         v-model="level"
-                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-sem-surface text-sem-fg"
+                        class="block pl-3 pr-10 py-2 text-base border-sem-border focus:outline-hidden focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm rounded-md bg-sem-surface text-sem-fg"
                         @change="refreshLogs"
                     >
                         <option value="">{{ $t("debug.level_all") }}</option>
@@ -81,34 +81,32 @@
                         <input
                             v-model="is_anomaly"
                             type="checkbox"
-                            class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
+                            class="form-checkbox h-4 w-4 text-sem-accent transition duration-150 ease-in-out"
                             @change="refreshLogs"
                         />
-                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{
-                            $t("debug.anomalies_only")
-                        }}</span>
+                        <span class="ml-2 text-sm text-sem-fg-secondary">{{ $t("debug.anomalies_only") }}</span>
                     </label>
                 </div>
 
                 <div
                     v-else
-                    class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-zinc-800/50 p-3 rounded-lg border border-sem-border"
+                    class="flex flex-wrap gap-3 items-center bg-sem-surface/60 p-3 rounded-lg border border-sem-border"
                 >
                     <div class="relative flex-1 min-w-[200px]">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-gray-400" />
+                            <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-sem-fg-muted" />
                         </div>
                         <input
                             v-model="accessSearch"
                             type="text"
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            class="block w-full pl-10 pr-3 py-2 border border-sem-border rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-sem-fg-muted focus:outline-hidden focus:ring-1 focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm"
                             :placeholder="$t('debug.search_access_placeholder')"
                             @input="debouncedAccessSearch"
                         />
                     </div>
                     <select
                         v-model="accessOutcome"
-                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-sem-surface text-sem-fg"
+                        class="block pl-3 pr-10 py-2 text-base border-sem-border focus:outline-hidden focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm rounded-md bg-sem-surface text-sem-fg"
                         @change="refreshAccessAttempts"
                     >
                         <option value="">{{ $t("debug.outcome_all") }}</option>
@@ -132,34 +130,37 @@
                     v-if="activeTab === 'logs'"
                     class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-sem-surface min-h-0"
                 >
-                    <div v-if="logs.length === 0" class="text-gray-500 italic text-center py-10 text-sm sm:text-base">
+                    <div
+                        v-if="logs.length === 0"
+                        class="text-sem-fg-muted italic text-center py-10 text-sm sm:text-base"
+                    >
                         {{ loading ? $t("debug.loading_logs") : $t("debug.no_logs") }}
                     </div>
                     <div
                         v-for="(log, index) in logs"
                         :key="index"
-                        class="debug-log-row border-b border-gray-100 dark:border-zinc-900 py-1 sm:py-1.5 flex gap-1.5 sm:gap-3 max-sm:flex-nowrap max-sm:min-w-max hover:bg-gray-50 dark:hover:bg-zinc-900/50 cursor-copy"
-                        :class="{ 'bg-red-50/30 dark:bg-red-900/10': log.is_anomaly }"
+                        class="debug-log-row border-b border-sem-border/50 py-1 sm:py-1.5 flex gap-1.5 sm:gap-3 max-sm:flex-nowrap max-sm:min-w-max hover:bg-sem-surface-muted cursor-copy"
+                        :class="{ 'bg-sem-danger/10': log.is_anomaly }"
                         title="Tap to copy this log entry"
                         @click="copyLogLine(log)"
                     >
-                        <span class="text-gray-400 shrink-0 max-sm:text-[8px]">{{ formatTime(log.timestamp) }}</span>
+                        <span class="text-sem-fg-muted shrink-0 max-sm:text-[8px]">{{
+                            formatTime(log.timestamp)
+                        }}</span>
                         <span
                             :class="levelClass(log.level)"
                             class="w-11 sm:w-12 shrink-0 font-bold uppercase max-sm:text-[8px] max-sm:tracking-tight"
                             >{{ log.level }}</span
                         >
                         <span
-                            class="text-blue-500 shrink-0 w-[4.5rem] sm:w-24 overflow-hidden text-ellipsis italic max-sm:text-[8px]"
+                            class="text-sem-info shrink-0 w-[4.5rem] sm:w-24 overflow-hidden text-ellipsis italic max-sm:text-[8px]"
                             >[{{ log.module }}]</span
                         >
-                        <span
-                            class="text-gray-800 dark:text-gray-200 flex-1 max-sm:whitespace-nowrap sm:wrap-break-word"
-                        >
+                        <span class="text-sem-fg flex-1 max-sm:whitespace-nowrap sm:wrap-break-word">
                             {{ log.message }}
                             <span
                                 v-if="log.is_anomaly"
-                                class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 uppercase"
+                                class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium bg-sem-danger/15 text-sem-danger uppercase"
                             >
                                 <MaterialDesignIcon icon-name="alert-circle" class="w-2.5 h-2.5 mr-1" />
                                 {{ log.anomaly_type || "anomaly" }}
@@ -174,28 +175,28 @@
                 >
                     <div
                         v-if="accessAttempts.length === 0"
-                        class="text-gray-500 italic text-center py-10 text-sm sm:text-base"
+                        class="text-sem-fg-muted italic text-center py-10 text-sm sm:text-base"
                     >
                         {{ accessLoading ? $t("debug.loading_access") : $t("debug.no_access") }}
                     </div>
                     <div
                         v-for="row in accessAttempts"
                         :key="row.id"
-                        class="border-b border-gray-100 dark:border-zinc-900 py-1.5 sm:py-2 flex flex-col gap-0.5 sm:gap-1 hover:bg-gray-50 dark:hover:bg-zinc-900/50 cursor-copy"
+                        class="border-b border-sem-border/50 py-1.5 sm:py-2 flex flex-col gap-0.5 sm:gap-1 hover:bg-sem-surface-muted cursor-copy"
                         title="Tap to copy this access entry"
                         @click="copyAccessLine(row)"
                     >
                         <div
                             class="flex flex-wrap gap-x-2 gap-y-0.5 sm:gap-x-3 sm:gap-y-1 items-center max-sm:text-[9px]"
                         >
-                            <span class="text-gray-400 shrink-0">{{ formatTime(row.created_at) }}</span>
-                            <span class="text-amber-600 dark:text-amber-400 font-semibold">{{ row.outcome }}</span>
-                            <span class="text-cyan-600 dark:text-cyan-400 max-sm:break-all sm:min-w-0"
+                            <span class="text-sem-fg-muted shrink-0">{{ formatTime(row.created_at) }}</span>
+                            <span class="text-sem-warning font-semibold">{{ row.outcome }}</span>
+                            <span class="text-sem-info max-sm:break-all sm:min-w-0"
                                 >{{ row.method }} {{ row.path }}</span
                             >
                         </div>
-                        <div class="text-gray-600 dark:text-gray-400 break-all pl-0 max-sm:text-[8px]">
-                            <span class="text-gray-500">IP</span> {{ row.client_ip }}
+                        <div class="text-sem-fg-secondary break-all pl-0 max-sm:text-[8px]">
+                            <span class="text-sem-fg-muted">IP</span> {{ row.client_ip }}
                         </div>
                         <div class="text-sem-fg-muted break-all max-sm:text-[8px]">
                             <span class="text-sem-fg-muted">UA</span> {{ row.user_agent || "-" }}
@@ -420,11 +421,11 @@ export default {
         },
         levelClass(level) {
             const l = level.toUpperCase();
-            if (l === "ERROR" || l === "CRITICAL") return "text-red-500";
-            if (l === "WARNING") return "text-orange-500";
-            if (l === "INFO") return "text-blue-500";
-            if (l === "DEBUG") return "text-gray-500";
-            return "text-gray-400";
+            if (l === "ERROR" || l === "CRITICAL") return "text-sem-danger";
+            if (l === "WARNING") return "text-sem-warning";
+            if (l === "INFO") return "text-sem-info";
+            if (l === "DEBUG") return "text-sem-fg-muted";
+            return "text-sem-fg-muted/70";
         },
         async copyActive() {
             if (this.activeTab === "logs") {

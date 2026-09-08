@@ -3,7 +3,7 @@
 <template>
     <div class="space-y-4">
         <div class="flex items-center gap-2">
-            <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-sem-accent shrink-0">
+            <div class="p-2 bg-sem-accent/10 rounded-lg text-sem-accent shrink-0">
                 <MaterialDesignIcon icon-name="usb-port" class="size-5" />
             </div>
             <h2 class="font-bold text-sem-fg">{{ stepNumber }}. {{ $t("tools.rnode_flasher.select_device") }}</h2>
@@ -21,10 +21,10 @@
                     class="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl border text-xs sm:text-sm font-bold transition-all"
                     :class="
                         connectionMethod === option.id
-                            ? 'bg-blue-600 text-white border-blue-600'
+                            ? 'bg-sem-action-primary text-white border-transparent'
                             : option.available
-                              ? 'bg-gray-50 dark:bg-zinc-800/50 border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
-                              : 'bg-sem-surface-muted border-sem-border text-gray-400 dark:text-zinc-600 cursor-not-allowed'
+                              ? 'bg-sem-surface-muted border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
+                              : 'bg-sem-surface-muted border-sem-border text-sem-fg-muted opacity-60 cursor-not-allowed'
                     "
                     @click="option.available && $emit('update:connectionMethod', option.id)"
                 >
@@ -81,13 +81,13 @@
         <button
             v-if="selectedProduct?.platform === 0x70 && connectionMethod === 'serial'"
             :disabled="isEnteringDfuMode"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/40 px-4 py-2.5 text-sm font-bold text-amber-700 dark:text-amber-400 transition-colors disabled:opacity-50"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-sem-warning/15 hover:bg-sem-warning/25 px-4 py-2.5 text-sm font-bold text-sem-warning transition-colors disabled:opacity-50"
             @click="$emit('enter-dfu')"
         >
             <MaterialDesignIcon
                 v-if="isEnteringDfuMode"
                 icon-name="loading"
-                class="size-4 animate-spin text-amber-700 dark:text-amber-400"
+                class="size-4 animate-spin text-sem-warning"
             />
             <MaterialDesignIcon v-else icon-name="restart-alert" class="size-4" />
             <span>
@@ -171,7 +171,7 @@ export default {
     @apply text-xs font-semibold text-sem-fg-muted uppercase tracking-wider;
 }
 .rnf-input {
-    @apply w-full bg-gray-50 dark:bg-zinc-800/50 border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2.5 transition-all;
+    @apply w-full bg-sem-surface-muted border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border px-4 py-2.5 transition-all;
 }
 select.rnf-input {
     appearance: none;

@@ -35,6 +35,33 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
         });
     });
 
+    describe("theme tokens", () => {
+        // dev/testing surfaces that were washed out in light mode must stay on
+        // semantic sem-* tokens; raw palette utilities regress the fix
+        const RAW_COLOR_RE =
+            /\b(?:bg|text|border|ring|placeholder|caret|accent|fill|stroke)-(?:gray|zinc|slate|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d/;
+        const WHITE_BLACK_RE = /\b(?:bg|border|ring)-(?:white|black)\b/;
+        const themedFiles = [
+            "meshchatx/src/frontend/components/debug/DebugLogsPage.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeDeviceSelector.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeDiagnosticsPanel.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeAdvancedTools.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeBluetoothPanel.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeCapabilitiesBanner.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeProvisionPanel.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeTncPanel.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeFlashAction.vue",
+            "meshchatx/src/frontend/components/rnode/RNodeFirmwareSelector.vue",
+            "meshchatx/src/frontend/components/tools/RNodeFlasherPage.vue",
+        ];
+
+        it.each(themedFiles)("%s uses semantic tokens, not raw palette classes", (relativePath) => {
+            const src = readSource(relativePath);
+            expect(src).not.toMatch(RAW_COLOR_RE);
+            expect(src).not.toMatch(WHITE_BLACK_RE);
+        });
+    });
+
     describe("downloads", () => {
         const downloadSurfaces = [
             ["AboutPage.vue", "meshchatx/src/frontend/components/about/AboutPage.vue"],

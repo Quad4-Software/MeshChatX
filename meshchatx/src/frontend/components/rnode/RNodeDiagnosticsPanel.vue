@@ -3,19 +3,19 @@
 <template>
     <div v-if="diagnostics" class="border border-sem-border bg-sem-surface rounded-lg overflow-hidden">
         <div class="px-4 sm:px-6 py-4 border-b border-sem-border flex items-center gap-2">
-            <MaterialDesignIcon icon-name="stethoscope" class="size-5 text-emerald-500" />
+            <MaterialDesignIcon icon-name="stethoscope" class="size-5 text-sem-success" />
             <h3 class="font-bold text-sem-fg">
                 {{ $t("tools.rnode_flasher.diagnostics.title") }}
             </h3>
             <span
                 v-if="hasIssues"
-                class="ml-auto px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                class="ml-auto px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-sem-warning/15 text-sem-warning"
             >
                 {{ $t("tools.rnode_flasher.diagnostics.needs_attention") }}
             </span>
             <span
                 v-else
-                class="ml-auto px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                class="ml-auto px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-sem-success/15 text-sem-success"
             >
                 {{ $t("tools.rnode_flasher.diagnostics.healthy") }}
             </span>
@@ -32,14 +32,11 @@
             </div>
         </dl>
 
-        <div
-            v-if="hasIssues"
-            class="border-t border-sem-border bg-amber-50/40 dark:bg-amber-900/10 px-4 sm:px-6 py-4 space-y-2"
-        >
-            <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+        <div v-if="hasIssues" class="border-t border-sem-border bg-sem-warning/10 px-4 sm:px-6 py-4 space-y-2">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-sem-warning">
                 {{ $t("tools.rnode_flasher.diagnostics.issues_detected") }}
             </div>
-            <ul class="list-disc pl-4 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+            <ul class="list-disc pl-4 text-xs text-sem-warning space-y-1">
                 <li v-for="key in diagnostics.suggestionKeys" :key="key">{{ $t(key) }}</li>
             </ul>
         </div>
