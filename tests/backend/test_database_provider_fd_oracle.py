@@ -7,6 +7,7 @@ import os
 import sqlite3
 import tempfile
 import threading
+import time
 
 import pytest
 
@@ -113,3 +114,74 @@ def test_sqlite_closed_database_is_retryable():
     exc = sqlite3.ProgrammingError("Cannot operate on a closed database.")
     assert sqlite_error_is_retryable(exc) is True
     assert sqlite_error_is_retryable(RuntimeError("boom")) is False
+
+
+def test_reaper_closes_idle_connections(monkeypatch):
+    """Idle connections for dead/idle threads are closed by the reaper (issue 72)."""
+    monkeypatch.setattr(DatabaseProvider, "_IDLE_CONNECTION_TIMEOUT_SECONDS", 0.5)
+    monkeypatch.setattr(DatabaseProvider, "_IDLE_REAP_INTERVAL_SECONDS", 0.2)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = os.path.join(temp_dir, "reaper.db")
+        provider = DatabaseProvider(db_path)
+        try:
+            provider.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT)")
+
+            def worker(n: int):
+                provider.execute("INSERT INTO t (val) VALUES (?)", (f"w{n}",))
+
+            threads = [threading.Thread(target=worker, args=(i,)) for i in range(12)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=5)
+                assert not thread.is_alive()
+
+            # Reaper runs every 0.2s; idle timeout is 0.5s.
+            time.sleep(1.0)
+
+            # Main thread still owns one handle.
+            assert provider.connection_count() <= 1
+        finally:
+            provider.close_all()
+
+
+def test_reaper_keeps_active_transaction_open(monkeypatch):
+    """The reaper must not close a live thread's connection inside a transaction."""
+    monkeypatch.setattr(DatabaseProvider, "_IDLE_CONNECTION_TIMEOUT_SECONDS", 0.5)
+    monkeypatch.setattr(DatabaseProvider, "_IDLE_REAP_INTERVAL_SECONDS", 0.2)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = os.path.join(temp_dir, "trans.db")
+        provider = DatabaseProvider(db_path)
+        try:
+            provider.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT)")
+
+            hold = threading.Event()
+            ready = threading.Event()
+            errors: list[BaseException] = []
+
+            def worker():
+                try:
+                    provider.begin()
+                    ready.set()
+                    hold.wait(timeout=5)
+                    provider.execute("INSERT INTO t (val) VALUES (?)", ("kept",))
+                    provider.commit()
+                except BaseException as exc:
+                    errors.append(exc)
+
+            thread = threading.Thread(target=worker)
+            thread.start()
+            ready.wait(timeout=5)
+
+            time.sleep(1.0)
+            hold.set()
+            thread.join(timeout=5)
+
+            assert errors == []
+            row = provider.fetchone("SELECT val FROM t")
+            assert row is not None
+            assert row["val"] == "kept"
+        finally:
+            provider.close_all()
