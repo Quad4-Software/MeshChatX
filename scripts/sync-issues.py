@@ -57,7 +57,10 @@ def issue_content(issue: dict, repo: str) -> str:
     number = issue["number"]
     author = (issue.get("author") or {}).get("login") or "unknown"
     state = str(issue.get("state") or "").lower()
-    labels = ", ".join(label.get("name", "") for label in issue.get("labels") or []) or "none"
+    labels = (
+        ", ".join(label.get("name", "") for label in issue.get("labels") or [])
+        or "none"
+    )
     url = issue.get("url") or f"https://github.com/{repo}/issues/{number}"
     created = (issue.get("createdAt") or "")[:10]
     parts = [
@@ -153,13 +156,17 @@ class RngitError(RuntimeError):
 
 
 class RngitWorkClient:
-    def __init__(self, remote, rnsconfig=None, rngit_config=None, identity=None, verbosity=0):
+    def __init__(
+        self, remote, rnsconfig=None, rngit_config=None, identity=None, verbosity=0
+    ):
         import RNS
         from RNS.Utilities.rngit.server import ReticulumGitClient
 
         self._RNS = RNS
         RNS.Reticulum(configdir=rnsconfig, verbosity=verbosity)
-        self.client = ReticulumGitClient(configdir=rngit_config, verbosity=verbosity, identitypath=identity)
+        self.client = ReticulumGitClient(
+            configdir=rngit_config, verbosity=verbosity, identitypath=identity
+        )
         self.remote = remote
         _, group, repo = self.client.parse_remote_url(remote)
         self.repo_path = f"{group}/{repo}"
@@ -171,7 +178,11 @@ class RngitWorkClient:
             raise RngitError(f"connect failed ({e})") from e
         limit = self.client.link_timeout if timeout is None else timeout
         waited = 0.0
-        while not self.client.link_ready and not self.client.link_failed and waited < limit:
+        while (
+            not self.client.link_ready
+            and not self.client.link_failed
+            and waited < limit
+        ):
             time.sleep(self.client.wait_sleep)
             waited += self.client.wait_sleep
         if not self.client.link_ready:
@@ -186,14 +197,18 @@ class RngitWorkClient:
         data = {self.client.IDX_REPOSITORY: self.repo_path, "operation": operation}
         data.update(kw)
         try:
-            response, _metadata = self.client.send_request(self.client.PATH_WORK, data, timeout=timeout)
+            response, _metadata = self.client.send_request(
+                self.client.PATH_WORK, data, timeout=timeout
+            )
         except SystemExit as e:
             raise RngitError(f"request {operation} failed ({e})") from e
         if not response:
             raise RngitError(f"request {operation}: no response")
         status = response[0]
         if status != 0:
-            raise RngitError(f"request {operation}: remote error: {response[1:].decode('utf-8', 'replace')}")
+            raise RngitError(
+                f"request {operation}: remote error: {response[1:].decode('utf-8', 'replace')}"
+            )
         if len(response) > 1:
             from RNS.vendor import umsgpack
 
@@ -252,7 +267,12 @@ class RngitWorkClient:
 
     def comment(self, doc_id, content, scope="active"):
         return self.request(
-            "comment", doc_id=doc_id, scope=scope, content=content, format="markdown", timeout=600
+            "comment",
+            doc_id=doc_id,
+            scope=scope,
+            content=content,
+            format="markdown",
+            timeout=600,
         )
 
     def complete(self, doc_id):
@@ -268,16 +288,32 @@ class RngitWorkClient:
 
 
 def fetch_issues(repo, state="open", limit=500, with_comments=False):
-    fields = ["number", "title", "state", "body", "labels", "author", "url", "createdAt", "closedAt"]
+    fields = [
+        "number",
+        "title",
+        "state",
+        "body",
+        "labels",
+        "author",
+        "url",
+        "createdAt",
+        "closedAt",
+    ]
     if with_comments:
         fields.append("comments")
     out = subprocess.run(
         [
-            "gh", "issue", "list",
-            "--repo", repo,
-            "--state", state,
-            "--limit", str(limit),
-            "--json", ",".join(fields),
+            "gh",
+            "issue",
+            "list",
+            "--repo",
+            repo,
+            "--state",
+            state,
+            "--limit",
+            str(limit),
+            "--json",
+            ",".join(fields),
         ],
         capture_output=True,
         text=True,
@@ -312,23 +348,48 @@ def default_remote():
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Sync GitHub issues to rngit work documents")
+    ap = argparse.ArgumentParser(
+        description="Sync GitHub issues to rngit work documents"
+    )
     ap.add_argument("--repo", default=None, help="GitHub repo (default: current)")
-    ap.add_argument("--remote", default=None, help="rns:// remote (default: current rns remote)")
-    ap.add_argument("--state", default="open", choices=["open", "closed", "all"], help="issue state filter")
+    ap.add_argument(
+        "--remote", default=None, help="rns:// remote (default: current rns remote)"
+    )
+    ap.add_argument(
+        "--state",
+        default="open",
+        choices=["open", "closed", "all"],
+        help="issue state filter",
+    )
     ap.add_argument("--limit", type=int, default=500)
-    ap.add_argument("--comments", action="store_true", help="also sync issue comments as doc updates")
-    ap.add_argument("--dry-run", action="store_true", help="show the plan without touching the node")
-    ap.add_argument("--rnsconfig", default=None, help="Reticulum config dir (default ~/.reticulum)")
-    ap.add_argument("--rngit-config", default=None, help="rngit config dir (default ~/.rngit)")
-    ap.add_argument("--identity", default=None, help="client identity path (default ~/.rngit/client_identity)")
+    ap.add_argument(
+        "--comments",
+        action="store_true",
+        help="also sync issue comments as doc updates",
+    )
+    ap.add_argument(
+        "--dry-run", action="store_true", help="show the plan without touching the node"
+    )
+    ap.add_argument(
+        "--rnsconfig", default=None, help="Reticulum config dir (default ~/.reticulum)"
+    )
+    ap.add_argument(
+        "--rngit-config", default=None, help="rngit config dir (default ~/.rngit)"
+    )
+    ap.add_argument(
+        "--identity",
+        default=None,
+        help="client identity path (default ~/.rngit/client_identity)",
+    )
     ap.add_argument("-v", "--verbose", action="count", default=0)
     args = ap.parse_args(argv)
 
     repo = args.repo or default_repo()
     remote = args.remote or default_remote()
 
-    issues = fetch_issues(repo, state=args.state, limit=args.limit, with_comments=args.comments)
+    issues = fetch_issues(
+        repo, state=args.state, limit=args.limit, with_comments=args.comments
+    )
     print(f"{len(issues)} GitHub issues ({args.state}) from {repo}")
 
     client = RngitWorkClient(
