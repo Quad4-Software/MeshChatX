@@ -1982,6 +1982,7 @@
         "search_placeholder": "Cerca in {count} conversazioni...",
         "unread": "Non letti",
         "failed": "Falliti",
+        "rejected": "Rifiutato",
         "attachments": "Allegati",
         "folders": "Cartelle",
         "all_messages": "Tutti i messaggi",

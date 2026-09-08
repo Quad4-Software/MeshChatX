@@ -1928,6 +1928,7 @@
         "search_placeholder": "Buscar conversaciones{count}...",
         "unread": "No.",
         "failed": "Falló",
+        "rejected": "Rechazado",
         "attachments": "Adjuntos",
         "folders": "Carpetas",
         "all_messages": "Todos los mensajes",

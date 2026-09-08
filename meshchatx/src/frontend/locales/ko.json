@@ -1928,6 +1928,7 @@
         "search_placeholder": "대화 {count}개 검색...",
         "unread": "읽지 않음",
         "failed": "실패",
+        "rejected": "거부됨",
         "attachments": "첨부 파일",
         "folders": "폴더",
         "all_messages": "모든 메시지",

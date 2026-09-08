@@ -4560,17 +4560,28 @@ export default {
             });
         },
         async showRawMessage(chatItem) {
-            const base = { ...chatItem.lxmf_message };
-            const uriPromise = window.api
-                .get(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}/uri`)
-                .then((r) => r.data?.uri ?? null)
-                .catch(() => null);
-            const rawUri = await uriPromise;
-            this.rawMessageData = {
-                ...base,
-                raw_uri: rawUri ?? undefined,
-            };
+            const lxmfMessage = chatItem?.lxmf_message;
+            if (!lxmfMessage) {
+                return;
+            }
+            const base = { ...lxmfMessage };
+            // Open immediately with local data; the paper URI is optional and
+            // must not block the modal behind a retried/slow request.
+            this.rawMessageData = { ...base };
             this.isRawMessageModalOpen = true;
+            const hash = lxmfMessage.hash;
+            if (!hash) {
+                return;
+            }
+            try {
+                const r = await window.api.get(`/api/v1/lxmf-messages/${hash}/uri`);
+                const rawUri = r.data?.uri ?? null;
+                if (rawUri && this.isRawMessageModalOpen && this.rawMessageData?.hash === hash) {
+                    this.rawMessageData = { ...this.rawMessageData, raw_uri: rawUri };
+                }
+            } catch {
+                // URI stays absent; raw view still works without it.
+            }
         },
         async downloadAndDecodeAudio(chatItem) {
             if (this.isDownloadingAudio[chatItem.lxmf_message.hash]) return;

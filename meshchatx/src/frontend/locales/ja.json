@@ -1928,6 +1928,7 @@
         "search_placeholder": "{count} 件の会話を検索...",
         "unread": "未読",
         "failed": "失敗",
+        "rejected": "拒否されました",
         "attachments": "添付ファイル",
         "folders": "フォルダー",
         "all_messages": "すべてのメッセージ",

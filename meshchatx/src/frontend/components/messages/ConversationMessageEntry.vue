@@ -290,7 +290,11 @@
                         v-else-if="['failed', 'cancelled', 'rejected'].includes(entry.items[0].lxmf_message.state)"
                         class="text-[9px] font-bold uppercase tracking-wider text-white"
                     >
-                        {{ entry.items[0].lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                        {{
+                            entry.items[0].lxmf_message.state === "rejected"
+                                ? $t("messages.rejected")
+                                : $t("messages.failed")
+                        }}
                     </span>
                     <button
                         v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
@@ -361,6 +365,16 @@
                         class="size-3 text-white"
                         :title="cv.outboundBubbleFailedTitle(entry.items[0].lxmf_message)"
                     />
+                    <button
+                        v-if="cv.canCancelOutboundSend(entry.items[0])"
+                        type="button"
+                        data-testid="cancel-send-inline"
+                        class="inline-flex items-center justify-center -mr-0.5 size-3.5 rounded-full opacity-80 hover:opacity-100 hover:bg-black/15 transition-colors"
+                        :title="$t('messages.cancel_send')"
+                        @click.stop="cv.cancelSendingMessage(entry.items[0])"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-3" />
+                    </button>
                 </div>
             </div>
         </div>
@@ -512,21 +526,6 @@
                 :elevated="chatItem.is_outbound && cv.showOutboundTransferProgress(chatItem.lxmf_message)"
             />
         </div>
-        <div
-            v-if="chatItem.is_actions_expanded && cv.canCancelOutboundSend(chatItem)"
-            class="border-t px-4 py-2.5 rounded-b-2xl rounded-t-md w-full max-w-[min(280px,85vw)] mb-1.5"
-            :class="[chatItem.is_outbound ? 'ml-auto' : 'mr-auto', cv.outboundExpandedActionsShellClass(chatItem)]"
-        >
-            <div class="flex items-center gap-2">
-                <button
-                    type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-warning/50 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
-                    @click.stop="cv.cancelSendingMessage(chatItem)"
-                >
-                    {{ $t("messages.cancel_send") }}
-                </button>
-            </div>
-        </div>
         <!-- image-only: inline timestamp overlay (no bubble) -->
         <div
             v-if="cv.isImageOnlyMessage(chatItem) && (entry.showTimestamp !== false || chatItem.is_outbound)"
@@ -553,8 +552,18 @@
                     v-else-if="['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)"
                     class="text-[9px] font-bold uppercase tracking-wider text-sem-danger"
                 >
-                    {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                    {{ chatItem.lxmf_message.state === "rejected" ? $t("messages.rejected") : $t("messages.failed") }}
                 </span>
+                <button
+                    v-if="cv.canCancelOutboundSend(chatItem)"
+                    type="button"
+                    data-testid="cancel-send-inline"
+                    class="inline-flex items-center justify-center size-3.5 rounded-full text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted transition-colors"
+                    :title="$t('messages.cancel_send')"
+                    @click.stop="cv.cancelSendingMessage(chatItem)"
+                >
+                    <MaterialDesignIcon icon-name="close" class="size-3" />
+                </button>
             </template>
         </div>
 
@@ -1248,7 +1257,7 @@
                             >
                                 {{
                                     chatItem.lxmf_message.state === "rejected"
-                                        ? "Rejected"
+                                        ? $t("messages.rejected")
                                         : $t("messages.failed_waiting_announce")
                                 }}
                             </span>
@@ -1325,6 +1334,16 @@
                                 class="size-3 text-white"
                                 :title="cv.outboundBubbleFailedTitle(chatItem.lxmf_message)"
                             />
+                            <button
+                                v-if="cv.canCancelOutboundSend(chatItem)"
+                                type="button"
+                                data-testid="cancel-send-inline"
+                                class="inline-flex items-center justify-center -mr-0.5 size-3.5 rounded-full opacity-80 hover:opacity-100 hover:bg-black/15 transition-colors"
+                                :title="$t('messages.cancel_send')"
+                                @click.stop="cv.cancelSendingMessage(chatItem)"
+                            >
+                                <MaterialDesignIcon icon-name="close" class="size-3" />
+                            </button>
                         </div>
                     </div>
                 </div>

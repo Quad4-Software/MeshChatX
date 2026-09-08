@@ -1928,6 +1928,7 @@
         "search_placeholder": "Buscar {count} conversas...",
         "unread": "Não lidas",
         "failed": "Falhas",
+        "rejected": "Rejeitado",
         "attachments": "Anexos",
         "folders": "Pastas",
         "all_messages": "Todas as mensagens",

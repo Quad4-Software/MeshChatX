@@ -1928,6 +1928,7 @@
         "search_placeholder": "搜索 {count} 个对话...",
         "unread": "未读",
         "failed": "失败",
+        "rejected": "已拒绝",
         "attachments": "附件",
         "folders": "文件夹",
         "all_messages": "全部消息",

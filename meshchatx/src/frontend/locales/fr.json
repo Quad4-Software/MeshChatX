@@ -1928,6 +1928,7 @@
         "search_placeholder": "Rechercher les conversations{count}...",
         "unread": "Non lu",
         "failed": "Échec",
+        "rejected": "Rejeté",
         "attachments": "Pièces jointes",
         "folders": "Dossiers",
         "all_messages": "Tous les messages",

@@ -143,6 +143,86 @@ describe("ConversationMessageEntry wiring", () => {
         expect(cv.cancelSendingMessage).toHaveBeenCalledWith(chatItem);
     });
 
+    it("shows inline cancel inside the bubble for a sending outbound message", async () => {
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            is_actions_expanded: false,
+            lxmf_message: {
+                hash: "ab".repeat(16),
+                state: "sending",
+                content: "still sending",
+                destination_hash: "bb".repeat(16),
+                source_hash: "cc".repeat(16),
+                fields: {},
+            },
+        };
+        const cv = makeCv();
+
+        const wrapper = mount(ConversationMessageEntry, {
+            props: {
+                entry: { type: "message", key: "m-inline", chatItem, showTimestamp: true },
+                cv,
+            },
+            global: {
+                mocks: { $t: (key) => key },
+                stubs: {
+                    MaterialDesignIcon: { template: "<span />" },
+                    MessageReactionsOverlay: true,
+                    OutboundTransferProgressFooter: true,
+                },
+            },
+        });
+
+        const inlineCancel = wrapper.find("[data-message-bubble] [data-testid='cancel-send-inline']");
+        expect(inlineCancel.exists()).toBe(true);
+        expect(inlineCancel.attributes("title")).toBe("messages.cancel_send");
+        await inlineCancel.trigger("click");
+        expect(cv.cancelSendingMessage).toHaveBeenCalledWith(chatItem);
+    });
+
+    it("does not render a standalone cancel bubble outside the message bubble", () => {
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            is_actions_expanded: true,
+            lxmf_message: {
+                hash: "ac".repeat(16),
+                state: "sending",
+                content: "expanded sending",
+                destination_hash: "bb".repeat(16),
+                source_hash: "cc".repeat(16),
+                fields: {},
+            },
+        };
+        const cv = makeCv();
+
+        const wrapper = mount(ConversationMessageEntry, {
+            props: {
+                entry: { type: "message", key: "m-nofloat", chatItem, showTimestamp: true },
+                cv,
+            },
+            global: {
+                mocks: { $t: (key) => key },
+                stubs: {
+                    MaterialDesignIcon: { template: "<span />" },
+                    MessageReactionsOverlay: true,
+                    OutboundTransferProgressFooter: true,
+                },
+            },
+        });
+
+        // every cancel affordance must live inside the message bubble, never as
+        // a separate floating bubble above the message
+        const cancels = wrapper
+            .findAll("button")
+            .filter((b) => (b.attributes("title") || b.text()).includes("messages.cancel_send"));
+        expect(cancels.length).toBeGreaterThan(0);
+        for (const btn of cancels) {
+            expect(btn.element.closest("[data-message-bubble]")).not.toBeNull();
+        }
+    });
+
     it("file attachment row calls downloadLxmfFileAttachment instead of navigating", async () => {
         const chatItem = {
             type: "lxmf_message",
