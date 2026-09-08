@@ -22,8 +22,8 @@ describe("vite-dx and Vite serve config", () => {
         expect(detectLaunchEditor({})).toBe("code");
     });
 
-    it("vite.config.js is Svelte-only with localhost serve defaults", () => {
-        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+    it("vite.config.mjs is Svelte-only with localhost serve defaults", () => {
+        const vite = readFileSync(resolve(ROOT, "vite.config.mjs"), "utf8");
         expect(vite).not.toContain("vite-plugin-vue-devtools");
         expect(vite).not.toContain("@vitejs/plugin-vue");
         expect(vite).not.toContain('from "vue"');
@@ -40,8 +40,8 @@ describe("vite-dx and Vite serve config", () => {
         expect(vite).toContain("bundledDev: true");
     });
 
-    it("Docker frontend stages copy every vite.config.js scripts/ import", () => {
-        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+    it("Docker frontend stages copy every vite.config.mjs scripts/ import", () => {
+        const vite = readFileSync(resolve(ROOT, "vite.config.mjs"), "utf8");
         const imports = [...vite.matchAll(/from\s+"(\.\/scripts\/[^"]+)"/g)].map((m) => m[1].replace(/^\.\//, ""));
         expect(imports.length).toBeGreaterThan(0);
         expect(imports).not.toContain("scripts/vite-dx.mjs");
@@ -55,7 +55,7 @@ describe("vite-dx and Vite serve config", () => {
     });
 
     it("Vite proxy forwards Host and task stacks trust loopback for WS Origin", () => {
-        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+        const vite = readFileSync(resolve(ROOT, "vite.config.mjs"), "utf8");
         expect(vite).toContain("X-Forwarded-Host");
         expect(vite).toContain("setForwardedHost");
         expect(vite).toContain("xfwd: true");
@@ -68,7 +68,7 @@ describe("vite-dx and Vite serve config", () => {
     });
 
     it("Vite CORS allows opaque null Origin for the Nomad crash-tab sandbox", () => {
-        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+        const vite = readFileSync(resolve(ROOT, "vite.config.mjs"), "utf8");
         expect(vite).toContain('origin === "null"');
         expect(vite).toContain("nomad-crash-tab");
         expect(vite).not.toContain("skipVueDevToolsInCrashTab");

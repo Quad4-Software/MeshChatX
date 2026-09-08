@@ -54,7 +54,7 @@ export function pathViewerClasses(pagePath?: string | null): string[] {
     if (!pagePath) {
         return ["wrap-break-word", "whitespace-pre-wrap", "text-gray-100"];
     }
-    const pl = (pagePath || "").split("`")[0].toLowerCase();
+    const pl = pagePath.split("`")[0].toLowerCase();
     const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
     const isHtml = pl.endsWith(".html");
     const isMd = pl.endsWith(".md");

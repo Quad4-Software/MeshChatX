@@ -40,7 +40,7 @@ import java.util.List;
 public class BLE {
     private static final String TAG = "BLE-meshchatx";
 
-    public static volatile Context appContext;
+    private static volatile Context appContext;
 
     private final PythonBluetooth mPython;
     private final Context mContext;

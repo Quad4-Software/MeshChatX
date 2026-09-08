@@ -34,7 +34,7 @@
         mode = "client",
         serverUrl = null,
         pollInterval = 0.1,
-        listenHost = "0.0.0.0",
+        listenHost = "127.0.0.1",
         listenPort = 8080,
         mtu = 4096,
         httpVersion = 1,
@@ -111,9 +111,9 @@
                 <label for="http-listen-host" class="glass-label block font-medium mb-1">Listen Host</label>
                 <input
                     id="http-listen-host"
-                    value={listenHost ?? "0.0.0.0"}
+                    value={listenHost ?? "127.0.0.1"}
                     type="text"
-                    placeholder="0.0.0.0"
+                    placeholder="127.0.0.1"
                     class="input-field"
                     oninput={(e) => onlistenhostchange?.((e.target as HTMLInputElement).value)}
                 />

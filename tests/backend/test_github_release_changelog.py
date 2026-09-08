@@ -34,7 +34,7 @@ def test_changelog_script_exists_and_is_executable():
 
 
 def test_changelog_script_bash_syntax():
-    subprocess.run(["bash", "-n", str(_CHANGELOG)], check=True, cwd=_REPO)
+    subprocess.run(["bash", "-n", str(_CHANGELOG)], check=True, cwd=_REPO)  # nosec: BAN-B607
 
 
 def test_draft_script_invokes_changelog_helper():
@@ -50,7 +50,7 @@ def test_changelog_v4_8_5_uses_prior_stable_and_full_sha_bullets():
     }
     if tags != {"v4.8.4", "v4.8.5"}:
         # Shallow clones in some CI shards may lack tags.
-        subprocess.run(
+        subprocess.run(  # nosec: BAN-B607
             ["git", "fetch", "--tags", "--depth", "50", "origin"],
             cwd=_REPO,
             check=False,
@@ -111,7 +111,7 @@ def test_draft_notes_only_includes_changelog_then_checksums():
         env["MESHCHATX_DRAFT_NOTES_ONLY"] = "1"
         env["TAG"] = "v4.8.5"
         env.pop("GH_TOKEN", None)
-        proc = subprocess.run(
+        proc = subprocess.run(  # nosec: BAN-B607
             ["bash", str(_DRAFT), tmp],
             cwd=_REPO,
             env=env,

@@ -288,7 +288,7 @@ class HTTPTunnelInterface(Interface):
         self.name = ifconf["name"]
 
         mode = str(ifconf["mode"]).lower() if "mode" in ifconf else "client"
-        listen_host = ifconf["listen_host"] if "listen_host" in ifconf else "0.0.0.0"
+        listen_host = ifconf["listen_host"] if "listen_host" in ifconf else "127.0.0.1"
         listen_port = int(ifconf["listen_port"]) if "listen_port" in ifconf else 8080
         server_url = ifconf["server_url"] if "server_url" in ifconf else None
         poll_interval = (

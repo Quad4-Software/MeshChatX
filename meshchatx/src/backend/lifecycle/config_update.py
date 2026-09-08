@@ -4,52 +4,19 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
 from typing import Any
 
+from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.map_overlay_manager import (
     CONFIG_CLAMPS,
     clamp_overlay_config_value,
 )
-
-# ruff: noqa: F821
+from meshchatx.src.backend.webtransport_sidecar import try_start_webtransport_sidecar
 
 
 async def apply_config_update(app: Any, data):
-    mc = __import__("meshchatx.meshchat", fromlist=["*"])
-    g = mc.__dict__
-    for _k in (
-        "LXMF",
-        "RNS",
-        "AsyncUtils",
-        "InterfaceEditor",
-        "InterfaceConfigParser",
-        "web",
-        "json",
-        "logger",
-        "logging",
-        "os",
-        "sys",
-        "time",
-        "asyncio",
-        "traceback",
-        "copy",
-        "shutil",
-        "tempfile",
-        "threading",
-        "base64",
-        "configparser",
-        "sqlite3",
-        "secrets",
-        "re",
-        "io",
-        "contextlib",
-        "datetime",
-        "platform",
-        "cast",
-        "UTC",
-    ):
-        if _k in g:
-            globals()[_k] = g[_k]
     # update display name in config
     if "display_name" in data and data["display_name"] != "":
         app.config.display_name.set(data["display_name"])
@@ -752,10 +719,6 @@ async def apply_config_update(app: Any, data):
             app._parse_bool(data["webtransport_sidecar_enabled"]),
         )
         try:
-            from meshchatx.src.backend.webtransport_sidecar import (
-                try_start_webtransport_sidecar,
-            )
-
             AsyncUtils.run_async(try_start_webtransport_sidecar(app))
         except Exception:
             pass

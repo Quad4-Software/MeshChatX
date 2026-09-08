@@ -1615,6 +1615,13 @@
                     ToastUtils.success(t("map.coords_copied"));
                 }
             }}
+            oncopycoordformat={(format: string) => {
+                const row = contextMenuCoordRows.find((r) => r.format === format);
+                if (row?.text) {
+                    navigator.clipboard?.writeText(row.text);
+                    ToastUtils.success(t("map.coords_copied"));
+                }
+            }}
             onpinghere={() => {
                 if (contextMenuMapCoord && map) {
                     const lonLat = toLonLat(contextMenuMapCoord);

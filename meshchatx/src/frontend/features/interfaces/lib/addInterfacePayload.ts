@@ -191,7 +191,7 @@ export function buildSavePayload(
         payload.mode = form.httpMode || "client";
         payload.http_tunnel_mode = form.httpMode || "client";
         if (form.httpMode === "server") {
-            payload.listen_host = form.httpListenHost || "0.0.0.0";
+            payload.listen_host = form.httpListenHost || "127.0.0.1";
             if (form.httpListenPort != null) payload.listen_port = Number(form.httpListenPort);
         } else {
             payload.server_url = form.httpServerUrl || "";

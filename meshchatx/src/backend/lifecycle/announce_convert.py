@@ -7,6 +7,11 @@ from __future__ import annotations
 import base64
 from typing import Any
 
+from meshchatx.src.backend.meshchat_utils import (
+    parse_lxmf_display_name,
+    parse_nomadnetwork_node_display_name,
+)
+
 # ruff: noqa: F821
 
 
@@ -40,7 +45,7 @@ def batch_convert_announces_to_api_dicts(
     lxmf_names_for_telephony = {}
     if other_user_hashes:
         db_custom_names = app.database.provider.fetchall(
-            f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",
+            f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",  # nosec: BAN-B608
             other_user_hashes,
         )
         for row in db_custom_names:
@@ -52,7 +57,7 @@ def batch_convert_announces_to_api_dicts(
             )
             if identity_hashes:
                 lxmf_results = app.database.announces.provider.fetchall(
-                    f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",
+                    f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",  # nosec: BAN-B608
                     identity_hashes,
                 )
                 for row in lxmf_results:

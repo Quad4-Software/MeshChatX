@@ -120,7 +120,7 @@ class MapOverlaysDAO:
         cols = ", ".join(f"{k} = ?" for k in fields)
         values = list(fields.values()) + [overlay_id]
         self.provider.execute(
-            f"UPDATE map_overlay_sources SET {cols} WHERE id = ?",
+            f"UPDATE map_overlay_sources SET {cols} WHERE id = ?",  # nosec: BAN-B608
             tuple(values),
         )
 

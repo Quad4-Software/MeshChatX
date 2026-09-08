@@ -837,7 +837,7 @@ def register_interfaces_add_routes(routes, app):
             else:
                 listen_host = data.get("listen_host")
                 if listen_host is None or str(listen_host).strip() == "":
-                    listen_host = "0.0.0.0"
+                    listen_host = "127.0.0.1"
                 listen_port = data.get("listen_port")
                 if listen_port is None or listen_port == "":
                     return web.json_response(

@@ -165,7 +165,7 @@ public final class LocalApiClient {
             java.net.URI uri = java.net.URI.create(baseUrl);
             return RemoteBackendUrl.isLoopbackHost(uri.getHost());
         } catch (Exception e) {
-            return true;
+            return false;
         }
     }
 

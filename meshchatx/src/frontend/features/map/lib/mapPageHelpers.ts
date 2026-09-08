@@ -81,7 +81,13 @@ export function getContextMenuCoordRows(coord: number[] | null): ContextMenuCoor
     const lonLat = toLonLat(coord);
     return [
         { format: "wgs84", label: "WGS84", text: `${lonLat[1].toFixed(5)}, ${lonLat[0].toFixed(5)}` },
+        { format: "utm", label: "UTM", text: formatCoordinate(lonLat[0], lonLat[1], "utm")?.text || "" },
         { format: "mgrs", label: "MGRS", text: formatCoordinate(lonLat[0], lonLat[1], "mgrs")?.text || "" },
+        {
+            format: "olc",
+            label: "OLC",
+            text: formatCoordinate(lonLat[0], lonLat[1], "olc")?.text || "",
+        },
         {
             format: "maidenhead",
             label: "Maidenhead",

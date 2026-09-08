@@ -6,45 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
-# ruff: noqa: F821
-
 
 def build_config_dict(app: Any, context=None):
-    mc = __import__("meshchatx.meshchat", fromlist=["*"])
-    g = mc.__dict__
-    for _k in (
-        "LXMF",
-        "RNS",
-        "AsyncUtils",
-        "InterfaceEditor",
-        "InterfaceConfigParser",
-        "web",
-        "json",
-        "logger",
-        "logging",
-        "os",
-        "sys",
-        "time",
-        "asyncio",
-        "traceback",
-        "copy",
-        "shutil",
-        "tempfile",
-        "threading",
-        "base64",
-        "configparser",
-        "sqlite3",
-        "secrets",
-        "re",
-        "io",
-        "contextlib",
-        "datetime",
-        "platform",
-        "cast",
-        "UTC",
-    ):
-        if _k in g:
-            globals()[_k] = g[_k]
     ctx = context or app.current_context
     if not ctx:
         return {}

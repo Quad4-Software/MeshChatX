@@ -77,14 +77,14 @@ function dropScriptAndStyle(html: string): string {
     if (!s) {
         return s;
     }
-    if (typeof DOMParser !== "undefined") {
-        const doc = new DOMParser().parseFromString(s, "text/html");
-        for (const el of doc.querySelectorAll("script, style")) {
-            el.remove();
-        }
-        return doc.body ? doc.body.innerHTML : s;
+    if (typeof DOMParser === "undefined") {
+        return s;
     }
-    return s.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "").replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "");
+    const doc = new DOMParser().parseFromString(s, "text/html");
+    for (const el of doc.querySelectorAll("script, style")) {
+        el.remove();
+    }
+    return doc.body ? doc.body.innerHTML : s;
 }
 
 function cellPlain(cellHtml: string): string {
