@@ -5867,13 +5867,14 @@ class ReticulumMeshChat:
         while self.running and ctx.running and ctx.session_id == session_id:
             try:
                 if not self.emergency:
-                    print(
-                        f"Performing scheduled auto-backup for {ctx.identity_hash}...",
+                    logger.info(
+                        "Performing scheduled auto-backup for %s...",
+                        ctx.identity_hash,
                     )
                     max_count = ctx.config.backup_max_count.get()
                     ctx.database.backup_database(ctx.storage_path, max_count=max_count)
-            except Exception as e:
-                print(f"Auto-backup failed: {e}")
+            except Exception:
+                logger.exception("Auto-backup failed")
 
             # Sleep for 12 hours
             await asyncio.sleep(12 * 3600)

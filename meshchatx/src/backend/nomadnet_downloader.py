@@ -2,6 +2,7 @@
 
 import asyncio
 import io
+import logging
 import os
 import threading
 import time
@@ -29,6 +30,8 @@ LINK_IDLE_TTL_S = 30 * 60
 
 # Wait granularity while polling for path / link (seconds). Smaller = faster reaction, slightly more wakeups.
 _POLL_INTERVAL_S = 0.02
+
+logger = logging.getLogger(__name__)
 
 
 def cached_link_count() -> int:
@@ -234,7 +237,7 @@ class NomadnetDownloader:
         try:
             link.identify(self.local_identity)
         except Exception as exc:
-            print(f"[NomadnetDownloader] identify failed: {exc}")
+            logger.warning("identify failed: %s", exc)
 
     def cancel(self):
         self.is_cancelled = True
@@ -258,14 +261,14 @@ class NomadnetDownloader:
                             self.request_receipt,
                         )
             except Exception as e:
-                print(f"Failed to cancel request: {e}")
+                logger.warning("failed to cancel request: %s", e)
 
         if self.link is not None:
             _uncache_link_if_matches(self.destination_hash, self.link)
             try:
                 self.link.teardown()
             except Exception as e:
-                print(f"Failed to teardown link: {e}")
+                logger.warning("failed to teardown link: %s", e)
 
         self._download_failure_callback("cancelled")
 
@@ -292,7 +295,7 @@ class NomadnetDownloader:
         except Exception as exc:
             if self.is_cancelled:
                 return
-            print(f"[NomadnetDownloader] download failed: {exc}")
+            logger.warning("download failed: %s", exc)
             try:
                 self._download_failure_callback(str(exc) or "download_failed")
             except Exception:
@@ -309,7 +312,7 @@ class NomadnetDownloader:
         if not self.private:
             cached = get_cached_active_link(self.destination_hash)
             if cached is not None:
-                print("[NomadnetDownloader] using existing link for request")
+                logger.debug("using existing link for request")
                 self._emit_phase("requesting_page")
                 self.link = cached
                 self.link_established(cached)
@@ -358,7 +361,7 @@ class NomadnetDownloader:
         if not self.private:
             cached = get_cached_active_link(self.destination_hash)
             if cached is not None:
-                print("[NomadnetDownloader] using link cached while waiting for path")
+                logger.debug("using link cached while waiting for path")
                 self._emit_phase("requesting_page")
                 self.link = cached
                 self.link_established(cached)
@@ -389,15 +392,13 @@ class NomadnetDownloader:
         if not self.private:
             cached = get_cached_active_link(self.destination_hash)
             if cached is not None:
-                print(
-                    "[NomadnetDownloader] using link cached before establishing new link",
-                )
+                logger.debug("using link cached before establishing new link")
                 self._emit_phase("requesting_page")
                 self.link = cached
                 self.link_established(cached)
                 return
 
-        print("[NomadnetDownloader] establishing new link for request")
+        logger.debug("establishing new link for request")
         link = RNS.Link(destination, established_callback=self.link_established)
         self.link = link
 
