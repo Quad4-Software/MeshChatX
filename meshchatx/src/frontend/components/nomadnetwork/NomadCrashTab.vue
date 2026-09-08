@@ -215,8 +215,10 @@ export default {
         active(isActive) {
             if (isActive && !this.livenessPaused && !this.isDocumentHidden()) {
                 this.startWatchdog();
+                this.unparkRenderDeadline();
             } else {
                 this.stopWatchdog();
+                this.parkRenderDeadline();
             }
         },
     },
@@ -409,7 +411,7 @@ export default {
             this.clearRenderDeadline();
             const wait = timeoutMs == null ? RENDER_DEADLINE_MS : timeoutMs;
             this.renderDeadlineRemainingMs = wait;
-            if (this.livenessPaused || this.isDocumentHidden()) {
+            if (this.livenessPaused || this.isDocumentHidden() || !this.active) {
                 this.renderDeadlineParked = true;
                 return;
             }
@@ -423,7 +425,7 @@ export default {
                 if (this.status !== "rendering" && this.status !== "loading") {
                     return;
                 }
-                if (this.livenessPaused || this.isDocumentHidden()) {
+                if (this.livenessPaused || this.isDocumentHidden() || !this.active) {
                     this.renderDeadlineParked = true;
                     if (!this.renderDeadlineRemainingMs) {
                         this.renderDeadlineRemainingMs = RENDER_DEADLINE_MS;

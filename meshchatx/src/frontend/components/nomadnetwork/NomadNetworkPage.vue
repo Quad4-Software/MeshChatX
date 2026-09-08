@@ -1310,6 +1310,9 @@ export default {
         this.nodesListAbortController?.abort();
         this.nodeDetailAbortController?.abort();
         this.clearPartials();
+        if (this.isLoadingNodePage || this.currentPageDownloadId !== null) {
+            this.cancelPageDownload();
+        }
         this.teardownMultilineExpansion();
 
         offWsEvent("announce", this.onNomadAnnounceEvent);
