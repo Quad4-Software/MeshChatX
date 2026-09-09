@@ -983,9 +983,7 @@ class DocsManager:
         os.makedirs(dst, exist_ok=True)
         self._ensure_dir_writable(dst)
         for root, dirs, files in os.walk(src):
-            dirs[:] = [
-                d for d in dirs if not os.path.islink(os.path.join(root, d))
-            ]
+            dirs[:] = [d for d in dirs if not os.path.islink(os.path.join(root, d))]
             rel_root = os.path.relpath(root, src)
             target_root = dst if rel_root == "." else os.path.join(dst, rel_root)
             os.makedirs(target_root, exist_ok=True)

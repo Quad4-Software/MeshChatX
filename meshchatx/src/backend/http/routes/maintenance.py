@@ -309,6 +309,7 @@ def register_maintenance_routes(routes, app):
             )
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
+
         def _collect_and_build():
             # Paged SQLite reads must not run on the event loop: a large
             # inbox would stall every other request while pages are fetched.
