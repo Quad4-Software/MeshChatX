@@ -481,7 +481,9 @@ def main(argv=None):
                 have_title = current.get("meta", {}).get("title", "")
                 have_content = (current.get("content") or "").strip()
                 if want_title != have_title or want_content != have_content:
-                    client.edit_doc(doc["id"], want_title, want_content, scope=doc["_scope"])
+                    client.edit_doc(
+                        doc["id"], want_title, want_content, scope=doc["_scope"]
+                    )
                     updated += 1
                     print(f"updated doc #{doc['id']} (GH#{num})")
 

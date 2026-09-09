@@ -693,12 +693,16 @@ class PageNode:
     def _cleanup_file_access_grants(self):
         now = time.time()
         expired_links = [
-            lid for lid, (_, expires) in self._file_access_grants.items() if expires <= now
+            lid
+            for lid, (_, expires) in self._file_access_grants.items()
+            if expires <= now
         ]
         for lid in expired_links:
             del self._file_access_grants[lid]
         expired_identities = [
-            rid for rid, expires in self._file_access_grants_by_identity.items() if expires <= now
+            rid
+            for rid, expires in self._file_access_grants_by_identity.items()
+            if expires <= now
         ]
         for rid in expired_identities:
             del self._file_access_grants_by_identity[rid]

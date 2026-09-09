@@ -7950,7 +7950,8 @@ class ReticulumMeshChat:
             "nomad_micron_default_engine": ctx.config.nomad_micron_default_engine.get()
             or "js",
             "nomad_default_page_path": ctx.config.nomad_default_page_path.get(),
-            "nomad_image_loading_policy": ctx.config.nomad_image_loading_policy.get() or "manual",
+            "nomad_image_loading_policy": ctx.config.nomad_image_loading_policy.get()
+            or "manual",
             "local_message_auto_delete_enabled": ctx.config.local_message_auto_delete_enabled.get(),
             "local_message_auto_delete_value": ctx.config.local_message_auto_delete_value.get(),
             "local_message_auto_delete_unit": ctx.config.local_message_auto_delete_unit.get()
