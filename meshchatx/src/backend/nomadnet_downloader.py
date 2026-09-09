@@ -479,7 +479,11 @@ class NomadnetDownloader:
             self._teardown_private_link()
             return
         self._outcome_delivered = True
-        logger.debug("on_response called with type %s: %s", type(request_receipt), request_receipt)
+        logger.debug(
+            "on_response called with type %s: %s",
+            type(request_receipt),
+            request_receipt,
+        )
         try:
             self._download_success_callback(request_receipt)
         finally:
@@ -537,7 +541,11 @@ class NomadnetPageDownloader(NomadnetDownloader):
 
     def on_download_success(self, request_receipt: RNS.RequestReceipt):
         if not isinstance(request_receipt, RNS.RequestReceipt):
-            logger.warning("on_download_success got %s instead of RequestReceipt: %s", type(request_receipt), request_receipt)
+            logger.warning(
+                "on_download_success got %s instead of RequestReceipt: %s",
+                type(request_receipt),
+                request_receipt,
+            )
         raw = request_receipt.response
         if raw is None:
             self.on_page_download_failure("empty_response")
