@@ -89,7 +89,7 @@ These still fail under Landlock, by design:
 
 - Module: `meshchatx/src/backend/appcontainer_sandbox.py`
 - Launcher: `meshchatx/src/backend/appcontainer_launcher.py` via `--meshchatx-run-module`
-- Electron win32 spawn uses the launcher only when `MESHCHAT_APPCONTAINER=1`
+- Electron win32 spawn uses the launcher by default; set `MESHCHAT_APPCONTAINER=0` to disable
 
 ## Verification
 
