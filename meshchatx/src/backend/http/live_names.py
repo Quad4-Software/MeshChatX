@@ -31,6 +31,33 @@ class LiveMeshchatName:
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self._resolve()(*args, **kwargs)
 
+    def __eq__(self, other: object) -> bool:
+        return self._resolve() == other
+
+    def __ne__(self, other: object) -> bool:
+        return self._resolve() != other
+
+    def __lt__(self, other: Any) -> bool:
+        return self._resolve() < other
+
+    def __le__(self, other: Any) -> bool:
+        return self._resolve() <= other
+
+    def __gt__(self, other: Any) -> bool:
+        return self._resolve() > other
+
+    def __ge__(self, other: Any) -> bool:
+        return self._resolve() >= other
+
+    def __hash__(self) -> int:
+        return hash(self._resolve())
+
+    def __str__(self) -> str:
+        return str(self._resolve())
+
+    def __repr__(self) -> str:
+        return f"LiveMeshchatName({self._name!r})"
+
 
 def inject_meshchat_names(module_globals: dict[str, Any]) -> None:
     """Bind meshchat names into a module globals dict for free-variable lookups."""
