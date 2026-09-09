@@ -357,11 +357,12 @@ async def handle_nomadnet_download_cancel(app, client, data):
     if download_id is None:
         return
 
-    # cancel the download
-    if download_id in app.active_downloads:
-        downloader = app.active_downloads[download_id]
+    # cancel the download. The RNS request callbacks run on another thread
+    # and can pop the same key, so remove atomically rather than
+    # check-then-delete.
+    downloader = app.active_downloads.pop(download_id, None)
+    if downloader is not None:
         downloader.cancel()
-        del app.active_downloads[download_id]
 
         # notify client
         AsyncUtils.run_async(
@@ -574,9 +575,8 @@ async def handle_nomadnet_file_download(app, client, data):
 
     # handle successful file download
     def on_file_download_success(file_name, file_bytes):
-        # remove from active downloads
-        if download_id in app.active_downloads:
-            del app.active_downloads[download_id]
+        # remove from active downloads (callback thread races cancel)
+        app.active_downloads.pop(download_id, None)
 
         # Track download speed
         download_size = len(file_bytes)
@@ -585,8 +585,7 @@ async def handle_nomadnet_file_download(app, client, data):
             if download_duration > 0:
                 app.download_speeds.append((download_size, download_duration))
                 # Keep only last 100 downloads for average calculation
-                if len(app.download_speeds) > 100:
-                    app.download_speeds.pop(0)
+                del app.download_speeds[:-100]
 
         AsyncUtils.run_async(
             _send_nomad_file_bytes(
@@ -603,9 +602,8 @@ async def handle_nomadnet_file_download(app, client, data):
 
     # handle file download failure
     def on_file_download_failure(failure_reason):
-        # remove from active downloads
-        if download_id in app.active_downloads:
-            del app.active_downloads[download_id]
+        # remove from active downloads (callback thread races cancel)
+        app.active_downloads.pop(download_id, None)
 
         AsyncUtils.run_async(
             client.send_str(
@@ -795,9 +793,8 @@ async def handle_nomadnet_page_download(app, client, data):
 
     # handle successful page download
     def on_page_download_success(page_content):
-        # remove from active downloads
-        if download_id in app.active_downloads:
-            del app.active_downloads[download_id]
+        # remove from active downloads (callback thread races cancel)
+        app.active_downloads.pop(download_id, None)
 
         # archive the page if enabled (never for private browse)
         if not private:
@@ -817,9 +814,8 @@ async def handle_nomadnet_page_download(app, client, data):
 
     # handle page download failure
     def on_page_download_failure(failure_reason):
-        # remove from active downloads
-        if download_id in app.active_downloads:
-            del app.active_downloads[download_id]
+        # remove from active downloads (callback thread races cancel)
+        app.active_downloads.pop(download_id, None)
 
         # check if there are any archived versions (not offered in private browse)
         has_archives = False

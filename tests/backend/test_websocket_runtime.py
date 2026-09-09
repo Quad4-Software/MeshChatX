@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
+import pytest
 
 from meshchatx.src.backend.websocket_runtime import (
     NOTIFY_WORTHY_TYPES,
+    CoalesceBuffer,
     TokenBucket,
     apply_subscribe,
     client_allows_topic,
@@ -26,6 +28,63 @@ def test_token_bucket_allows_burst_then_rejects():
     assert bucket.consume(1.0) is True
     assert bucket.consume(1.0) is True
     assert bucket.consume(1.0) is False
+
+
+@pytest.mark.asyncio
+async def test_coalesce_keeps_distinct_peer_announces():
+    """Two different peers announcing inside the window must not drop one."""
+    flushed = []
+
+    async def _flush(p):
+        flushed.append(p)
+
+    buf = CoalesceBuffer(_flush)
+    assert (
+        buf.offer(
+            {"type": "announce", "announce": {"destination_hash": "aa"}},
+        )
+        is True
+    )
+    assert (
+        buf.offer(
+            {"type": "announce", "announce": {"destination_hash": "bb"}},
+        )
+        is True
+    )
+    assert len(buf._pending) == 2
+    await buf.flush_now()
+    assert {p["announce"]["destination_hash"] for p in flushed} == {"aa", "bb"}
+
+
+@pytest.mark.asyncio
+async def test_coalesce_merges_same_peer_announce():
+    flushed = []
+
+    async def _flush(p):
+        flushed.append(p)
+
+    buf = CoalesceBuffer(_flush)
+    buf.offer({"type": "announce", "announce": {"destination_hash": "aa"}})
+    buf.offer(
+        {"type": "announce", "announce": {"destination_hash": "aa", "v": 2}},
+    )
+    assert len(buf._pending) == 1
+    await buf.flush_now()
+    assert len(flushed) == 1
+    assert flushed[0]["announce"].get("v") == 2
+
+
+@pytest.mark.asyncio
+async def test_coalesce_key_falls_back_to_telemetry_dest():
+    flushed = []
+
+    async def _flush(p):
+        flushed.append(p)
+
+    buf = CoalesceBuffer(_flush)
+    buf.offer({"type": "lxmf.telemetry", "destination_hash": "cc"})
+    buf.offer({"type": "lxmf.telemetry", "destination_hash": "dd"})
+    assert len(buf._pending) == 2
 
 
 def test_message_rate_cost_heavy_types():

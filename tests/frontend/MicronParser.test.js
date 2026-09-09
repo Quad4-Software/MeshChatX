@@ -305,6 +305,17 @@ Content at depth 1`;
                 expect(html).not.toContain("mu-partial");
             });
 
+            it("sanitizes partialContents at the insertion sink", () => {
+                const dest = "a".repeat(32);
+                const markup = "`{" + dest + ":/page/partial.mu}";
+                const html = parser.convertMicronToHtml(markup, {
+                    "partial-0":
+                        '<img src="x" onerror="alert(1)"><script>alert(2)</script>',
+                });
+                expect(html).not.toContain("onerror");
+                expect(html).not.toContain("<script");
+            });
+
             it("assigns unique partial ids for multiple partials", () => {
                 const dest = "b".repeat(32);
                 const markup = "`{" + dest + ":/page/a.mu}\n`{" + dest + ":/page/b.mu}";

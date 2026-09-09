@@ -454,7 +454,9 @@ export default class MicronParser extends BaseMicronParser {
                                 const id = el.getAttribute("data-partial-id");
                                 if (id && partialContents[id]) {
                                     const holder = document.createElement("div");
-                                    holder.innerHTML = partialContents[id];
+                                    // Partials should arrive pre-sanitized, but do not
+                                    // rely on every caller: sanitize at the sink too.
+                                    holder.innerHTML = MicronParser.sanitizeRenderedMicronHtml(partialContents[id]);
                                     while (holder.firstChild) {
                                         tempContainer.appendChild(holder.firstChild);
                                     }

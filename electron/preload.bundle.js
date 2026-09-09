@@ -79,12 +79,19 @@ function isTrustedBlobUrl(url) {
 
 /**
  * file: loading.html and crash.html in the Electron shell. Not arbitrary files.
+ * A file: URL with a remote host (file://host/share/loading.html) is never
+ * trusted. When __dirname is available, the page must live in this module's
+ * directory so file:///tmp/loading.html cannot impersonate the shell.
  * @param {unknown} url
  * @returns {boolean}
  */
 function isTrustedShellFileUrl(url) {
     const parsed = parseAbsoluteUrl(url);
     if (!parsed || parsed.protocol !== "file:") {
+        return false;
+    }
+    const host = String(parsed.hostname || "").toLowerCase();
+    if (host !== "" && host !== "localhost") {
         return false;
     }
     let pathname = parsed.pathname || "";
@@ -94,7 +101,25 @@ function isTrustedShellFileUrl(url) {
         return false;
     }
     const normalized = pathname.replace(/\\/g, "/").toLowerCase();
-    return normalized.endsWith("/loading.html") || normalized.endsWith("/crash.html");
+    const isShellPage =
+        normalized.endsWith("/loading.html") || normalized.endsWith("/crash.html");
+    if (!isShellPage) {
+        return false;
+    }
+    if (typeof __dirname === "string" && __dirname) {
+        const base = __dirname.replace(/\\/g, "/").toLowerCase();
+        // Windows file: URLs carry a leading slash before the drive letter
+        // (file:///C:/...). Strip it when the module dir is a drive path.
+        const candidate =
+            normalized.startsWith("/") && !base.startsWith("/")
+                ? normalized.slice(1)
+                : normalized;
+        return (
+            candidate === `${base}/loading.html` ||
+            candidate === `${base}/crash.html`
+        );
+    }
+    return true;
 }
 
 /**

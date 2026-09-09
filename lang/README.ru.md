@@ -37,7 +37,7 @@ make install && make build && make run
 
 Подробнее: [`docs/en/installation.md`](../docs/en/installation.md).
 
-Текущая версия в репозитории: `4.9.0`.
+Текущая версия в репозитории: `4.8.7`.
 
 ## Безопасность, лицензия, благодарности
 
