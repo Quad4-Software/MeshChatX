@@ -2778,8 +2778,15 @@ export default {
             this.setCrashTabImage(imageId, "loading", { progress });
         },
         onCrashTabHung() {
+            // If the user has already navigated away, the crash tab should not
+            // fire a warning that appears on a different page. Only warn when
+            // this page is still active.
+            if (!this.isActive) {
+                this.isCrashTabRendering = false;
+                return;
+            }
             this.isCrashTabRendering = false;
-            ToastUtils.warning(this.$t("nomadnet.crash_tab_hung_toast"));
+            ToastUtils.warning(this.$t("nomadnet.crash_tab_hung_toast"), 5000, "nomad-crash-tab-hung");
         },
         onCrashTabNavigate(payload) {
             if (!payload || !payload.kind) {
@@ -2867,6 +2874,7 @@ export default {
         },
         onCrashTabRenderDone() {
             this.isCrashTabRendering = false;
+            ToastUtils.dismiss("nomad-crash-tab-hung");
         },
         beginCrashTabRenderWait() {
             if (
@@ -2880,11 +2888,13 @@ export default {
         onCrashTabAborted() {
             this.isCrashTabRendering = false;
             this.pageRenderAborted = true;
+            ToastUtils.dismiss("nomad-crash-tab-hung");
             ToastUtils.info(this.$t("nomadnet.crash_tab_render_cancelled"));
         },
         retryCrashTabRender() {
             this.pageRenderAborted = false;
             this.isCrashTabRendering = true;
+            ToastUtils.dismiss("nomad-crash-tab-hung");
         },
         toggleNodePageSource() {
             this.isShowingNodePageSource = !this.isShowingNodePageSource;

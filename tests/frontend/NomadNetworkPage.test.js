@@ -11,6 +11,7 @@ vi.mock("@/js/ToastUtils", () => ({
         error: vi.fn(),
         warning: vi.fn(),
         info: vi.fn(),
+        dismiss: vi.fn(),
     },
 }));
 
