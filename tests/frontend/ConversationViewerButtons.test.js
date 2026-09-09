@@ -5,6 +5,13 @@ import WebSocketConnection from "@/js/WebSocketConnection";
 import DialogUtils from "@/js/DialogUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import GlobalState from "@/js/GlobalState";
+import * as TranslationService from "@/js/TranslationService.js";
+
+vi.mock("@/js/TranslationService.js", () => ({
+    listPacks: vi.fn().mockResolvedValue([]),
+    translate: vi.fn().mockRejectedValue(new Error("No pack installed")),
+    refreshPacks: vi.fn().mockResolvedValue(undefined),
+}));
 
 const RENDER_THRESHOLD_MS = 1500;
 
@@ -259,24 +266,18 @@ describe("ConversationViewer.vue button interactions", () => {
     it("default translate target prefers meshchatx.translateTargetLang from localStorage", async () => {
         localStorage.getItem.mockImplementation((k) => {
             if (k === "meshchatx.translateTargetLang") {
-                return "de";
+                return "ende";
             }
             return null;
         });
-        const wrapper = mountViewer({
-            config: {
-                translator_argos_enabled: true,
-                translator_libretranslate_enabled: false,
-                language: "en",
-            },
-        });
+        const wrapper = mountViewer();
         await wrapper.vm.$nextTick();
         wrapper.vm.translatorLanguages = [
-            { code: "en", name: "English" },
-            { code: "de", name: "German" },
+            { pair: "ende", from: "en", to: "de" },
+            { pair: "enes", from: "en", to: "es" },
         ];
-        expect(wrapper.vm.defaultTranslateTargetForModal()).toBe("de");
-        expect(wrapper.vm.defaultBubbleTranslateTargetForModal()).toBe("de");
+        expect(wrapper.vm.defaultTranslateTargetForModal()).toBe("ende");
+        expect(wrapper.vm.defaultBubbleTranslateTargetForModal()).toBe("ende");
     });
 
     it("openBubbleTranslateFromContextMenu opens the bubble target bar on the next microtask", async () => {
@@ -292,16 +293,14 @@ describe("ConversationViewer.vue button interactions", () => {
         };
         const wrapper = mountViewer({
             config: {
-                translator_argos_enabled: true,
-                translator_libretranslate_enabled: false,
                 language: "en",
             },
         });
         await wrapper.vm.$nextTick();
         wrapper.vm.hasTranslator = true;
         wrapper.vm.translatorLanguages = [
-            { code: "en", name: "English" },
-            { code: "de", name: "German" },
+            { pair: "ende", from: "en", to: "de" },
+            { pair: "enes", from: "en", to: "es" },
         ];
         wrapper.vm.messageContextMenu = {
             show: true,
@@ -376,29 +375,18 @@ describe("ConversationViewer.vue button interactions", () => {
         });
 
         it("applyComposeTranslation posts translate and replaces text", async () => {
-            axiosMock.post.mockImplementation((url) => {
-                if (url.includes("/translator/translate")) {
-                    return Promise.resolve({ data: { translated_text: "translated" } });
-                }
-                return Promise.resolve({ data: {} });
-            });
-            const wrapper = mountViewer({
-                config: {
-                    translator_argos_enabled: true,
-                    translator_libretranslate_enabled: false,
-                    language: "en",
-                },
-            });
+            TranslationService.translate.mockResolvedValue({ target: { text: "translated" } });
+            const wrapper = mountViewer();
+            wrapper.vm.hasTranslator = true;
+            wrapper.vm.translatorLanguages = [{ pair: "ende", from: "en", to: "de" }];
             wrapper.vm.newMessageText = "hello";
-            await wrapper.vm.applyComposeTranslation("de");
+            await wrapper.vm.applyComposeTranslation("ende");
             expect(wrapper.vm.newMessageText).toBe("translated");
-            expect(axiosMock.post).toHaveBeenCalledWith(
-                "/api/v1/translator/translate",
+            expect(TranslationService.translate).toHaveBeenCalledWith(
                 expect.objectContaining({
                     text: "hello",
-                    source_lang: "auto",
-                    target_lang: "de",
-                    use_argos: true,
+                    from: "en",
+                    to: "de",
                 })
             );
         });

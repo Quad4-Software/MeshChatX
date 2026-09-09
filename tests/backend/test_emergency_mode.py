@@ -87,7 +87,6 @@ def test_emergency_mode_startup_logic(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
             "meshchatx.src.backend.identity_context.IntegrityManager",
@@ -142,7 +141,6 @@ def test_emergency_mode_env_var(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
             "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
@@ -186,7 +184,6 @@ def test_normal_mode_startup_logic(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
             "meshchatx.src.backend.identity_context.IntegrityManager",

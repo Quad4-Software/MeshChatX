@@ -46,7 +46,7 @@ from meshchatx.src.backend.http.routes.status import register_status_routes
 from meshchatx.src.backend.http.routes.stickers import register_stickers_routes
 from meshchatx.src.backend.http.routes.telemetry import register_telemetry_routes
 from meshchatx.src.backend.http.routes.telephone import register_telephone_routes
-from meshchatx.src.backend.http.routes.translator import register_translator_routes
+from meshchatx.src.backend.http.routes.translation import register_translation_routes
 from meshchatx.src.backend.http.routes.websocket_upgrade import (
     register_websocket_upgrade_routes,
 )
@@ -79,7 +79,6 @@ _ROUTE_MODULES = (
     "meshchatx.src.backend.http.routes.plugins",
     "meshchatx.src.backend.http.routes.sideband",
     "meshchatx.src.backend.http.routes.page_nodes",
-    "meshchatx.src.backend.http.routes.translator",
     "meshchatx.src.backend.http.routes.bots",
     "meshchatx.src.backend.http.routes.messages",
     "meshchatx.src.backend.http.routes.nomad",
@@ -88,6 +87,7 @@ _ROUTE_MODULES = (
     "meshchatx.src.backend.http.routes.map",
     "meshchatx.src.backend.http.routes.stickers",
     "meshchatx.src.backend.http.routes.gifs",
+    "meshchatx.src.backend.http.routes.translation",
     "meshchatx.src.backend.http.routes.telemetry",
 )
 
@@ -119,7 +119,6 @@ _REGISTER_ORDER = (
     register_plugins_routes,
     register_sideband_routes,
     register_page_nodes_routes,
-    register_translator_routes,
     register_bots_routes,
     register_messages_routes,
     register_nomad_routes,
@@ -128,6 +127,7 @@ _REGISTER_ORDER = (
     register_map_routes,
     register_stickers_routes,
     register_gifs_routes,
+    register_translation_routes,
     register_telemetry_routes,
 )
 

@@ -4,381 +4,145 @@
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="translate"
-            :title="$t('tools.translator.title')"
-            :description="$t('tools.translator.description')"
+            :title="$t('translator.title')"
+            :description="$t('translator.description')"
             accent="indigo"
         />
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
-            <div class="space-y-4 w-full max-w-4xl mx-auto">
-                <div class="glass-card space-y-5">
-                    <div v-if="config" class="space-y-3">
-                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">Translation backends</div>
-                        <label
-                            v-if="hasArgos"
-                            class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-100/80 dark:hover:bg-zinc-900/40"
-                        >
-                            <Toggle
-                                :model-value="config.translator_argos_enabled"
-                                @update:model-value="onArgosEnabledChange"
-                            />
-                            <span>
-                                <span class="block text-sm font-medium text-sem-fg">Argos Translate (local)</span>
-                                <span class="text-xs text-sem-fg-muted"
-                                    >Local packages when Argos is installed. Load languages to refresh this list.</span
-                                >
-                            </span>
-                        </label>
-                        <label
-                            v-if="libreClientAvailable"
-                            class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-100/80 dark:hover:bg-zinc-900/40"
-                        >
-                            <Toggle
-                                :model-value="config.translator_libretranslate_enabled"
-                                @update:model-value="onLibreEnabledChange"
-                            />
-                            <span>
-                                <span class="block text-sm font-medium text-sem-fg">LibreTranslate (HTTP)</span>
-                                <span class="text-xs text-sem-fg-muted"
-                                    >Set the base URL below, then enable. Use Refresh languages after the server is
-                                    up.</span
-                                >
-                            </span>
-                        </label>
-                        <p
-                            v-if="libreClientAvailable && !libretranslateReachable"
-                            class="text-xs text-amber-800/90 dark:text-amber-200/80 px-2 -mt-1"
-                        >
-                            No response from the LibreTranslate URL yet. Check the address, start the service, and tap
-                            Refresh languages.
-                        </p>
+            <div class="space-y-5 w-full max-w-4xl mx-auto">
+                <div class="glass-card space-y-4">
+                    <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        {{ $t("translator.pack_library") }}
                     </div>
-
-                    <div class="border-b border-sem-border">
-                        <div v-if="hasArgos || libreClientAvailable" class="flex -mb-px">
+                    <p class="text-sm text-sem-fg-muted">
+                        {{ $t("translator.pack_library_description") }}
+                    </p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <input
+                            ref="pack-file-input"
+                            type="file"
+                            accept=".zip,.tar,.tar.gz,.tgz"
+                            class="hidden"
+                            @change="onPackFileSelected"
+                        />
+                        <button type="button" class="primary-chip text-xs px-3.5 py-2" @click="selectPackFile">
+                            {{ $t("translator.import_pack") }}
+                        </button>
+                        <span v-if="isImporting" class="text-xs text-sem-fg-muted">{{
+                            $t("translator.importing")
+                        }}</span>
+                    </div>
+                    <div v-if="packs.length" class="space-y-2">
+                        <div
+                            v-for="pack in packs"
+                            :key="pack.pair"
+                            class="flex items-center justify-between p-2.5 rounded-lg bg-sem-surface/60 border border-sem-border"
+                        >
+                            <div>
+                                <div class="text-sm font-medium text-sem-fg">
+                                    {{ packLabel(pack) }}
+                                </div>
+                                <div class="text-xs text-sem-fg-muted">
+                                    {{ $t("translator.pair_code", { pair: pack.pair.toUpperCase() }) }}
+                                    ·
+                                    {{ $t("translator.size_kb", { size: Math.ceil(pack.size / 1024) }) }}
+                                </div>
+                            </div>
                             <button
-                                v-if="hasArgos"
                                 type="button"
-                                class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors"
-                                :class="
-                                    translationMode === 'argos'
-                                        ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
-                                        : 'border-transparent text-sem-fg-muted hover:text-gray-700 dark:hover:text-gray-300'
-                                "
-                                @click="translationMode = 'argos'"
+                                class="text-xs text-sem-danger hover:underline"
+                                @click="removePack(pack.pair)"
                             >
-                                Argos Translate
-                            </button>
-                            <button
-                                v-if="libreClientAvailable"
-                                type="button"
-                                class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors"
-                                :class="
-                                    translationMode === 'libretranslate'
-                                        ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
-                                        : 'border-transparent text-sem-fg-muted hover:text-gray-700 dark:hover:text-gray-300'
-                                "
-                                @click="translationMode = 'libretranslate'"
-                            >
-                                LibreTranslate
+                                {{ $t("translator.remove") }}
                             </button>
                         </div>
                     </div>
-
-                    <div
-                        v-if="translationMode === 'libretranslate'"
-                        class="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 space-y-3"
-                    >
-                        <div>
-                            <label class="glass-label mb-2">{{ $t("translator.api_server") }}</label>
-                            <input
-                                v-model="libretranslateUrl"
-                                type="text"
-                                placeholder="http://localhost:5000"
-                                class="input-field"
-                            />
-                            <div class="text-xs text-sem-fg-muted mt-1">
-                                {{ $t("translator.api_server_description") }}
-                            </div>
-                        </div>
-                        <div>
-                            <label class="glass-label mb-2">{{ $t("translator.api_key_optional") }}</label>
-                            <input
-                                v-model="libretranslateApiKey"
-                                type="password"
-                                autocomplete="off"
-                                class="input-field"
-                                :placeholder="$t('translator.api_key_placeholder')"
-                            />
-                            <div class="text-xs text-sem-fg-muted mt-1">
-                                {{ $t("translator.api_key_description") }}
-                            </div>
-                        </div>
+                    <div v-else class="text-sm text-sem-warning">
+                        {{ $t("translator.no_packs") }}
                     </div>
+                </div>
 
-                    <div class="grid lg:grid-cols-2 gap-4">
-                        <div>
-                            <label class="glass-label">Source Language</label>
-                            <select v-model="sourceLang" class="input-field">
-                                <option v-if="translationMode === 'libretranslate'" value="auto">Auto-detect</option>
-                                <option v-for="lang in filteredLanguages" :key="`src-${lang.code}`" :value="lang.code">
-                                    {{ lang.name }} ({{ lang.code }})
+                <div class="glass-card space-y-4">
+                    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                        <div class="flex-1">
+                            <label class="glass-label mb-2">{{ $t("translator.source_language") }}</label>
+                            <select v-model="sourceLang" class="input-field w-full">
+                                <option v-for="opt in sourceOptions" :key="opt.value" :value="opt.value">
+                                    {{ opt.label }}
                                 </option>
                             </select>
                         </div>
-                        <div>
-                            <label class="glass-label">Target Language</label>
-                            <select v-model="targetLang" class="input-field">
-                                <option value="">Select target language</option>
-                                <option v-for="lang in filteredLanguages" :key="`tgt-${lang.code}`" :value="lang.code">
-                                    {{ lang.name }} ({{ lang.code }})
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border border-sem-border bg-sem-surface text-sem-fg hover:bg-sem-surface-muted"
+                            :title="$t('translator.swap_languages')"
+                            @click="swapLanguages"
+                        >
+                            <MaterialDesignIcon icon-name="swap-horizontal" class="size-5" />
+                        </button>
+                        <div class="flex-1">
+                            <label class="glass-label mb-2">{{ $t("translator.target_language") }}</label>
+                            <select v-model="targetLang" class="input-field w-full">
+                                <option v-for="opt in targetOptions" :key="opt.value" :value="opt.value">
+                                    {{ opt.label }}
                                 </option>
                             </select>
-                        </div>
-                    </div>
-
-                    <div
-                        v-if="translationMode === 'argos' && !hasArgos"
-                        class="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30"
-                    >
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                                <MaterialDesignIcon
-                                    icon-name="information-outline"
-                                    class="size-5 text-amber-600 dark:text-amber-400"
-                                />
-                            </div>
-                            <div class="flex-1 text-sm text-amber-800 dark:text-amber-200">
-                                <p class="font-bold mb-1">Argos Translate not detected</p>
-                                <p class="mb-4 opacity-90">
-                                    To use local translation, you must install the Argos Translate package using one of
-                                    the following methods:
-                                </p>
-
-                                <div class="grid sm:grid-cols-2 gap-4">
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-semibold uppercase tracking-wider opacity-70"
-                                                >Method 1: pip (venv)</span
-                                            >
-                                            <button
-                                                class="text-amber-600 dark:text-amber-400 hover:scale-110 transition-transform"
-                                                @click="copyToClipboard('pip install argostranslate')"
-                                            >
-                                                <MaterialDesignIcon icon-name="content-copy" class="size-4" />
-                                            </button>
-                                        </div>
-                                        <div
-                                            class="bg-amber-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
-                                        >
-                                            pip install argostranslate
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-semibold uppercase tracking-wider opacity-70"
-                                                >Method 2: pipx</span
-                                            >
-                                            <button
-                                                class="text-amber-600 dark:text-amber-400 hover:scale-110 transition-transform"
-                                                @click="copyToClipboard('pipx install argostranslate')"
-                                            >
-                                                <MaterialDesignIcon icon-name="content-copy" class="size-4" />
-                                            </button>
-                                        </div>
-                                        <div
-                                            class="bg-amber-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
-                                        >
-                                            pipx install argostranslate
-                                        </div>
-                                    </div>
-                                </div>
-                                <p class="mt-4 text-xs opacity-70 italic">
-                                    Note: After installation, you may need to restart the application and install
-                                    language packages via the Argos Translate CLI.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        v-if="translationMode === 'argos' && hasArgos && !hasArgosLanguages"
-                        class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-800/30"
-                    >
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                <MaterialDesignIcon icon-name="information-outline" class="size-5 text-sem-accent" />
-                            </div>
-                            <div class="flex-1 text-sm text-blue-800 dark:text-blue-200">
-                                <p class="font-bold mb-1">No language packages detected</p>
-                                <p class="mb-4 opacity-90">
-                                    Argos Translate is installed but no language packages are available. Install
-                                    language packages using the buttons below or the CLI commands:
-                                </p>
-
-                                <div class="space-y-3">
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-semibold uppercase tracking-wider opacity-70"
-                                                >Install all languages</span
-                                            >
-                                            <div class="flex gap-2">
-                                                <button
-                                                    class="text-sem-accent hover:scale-110 transition-transform"
-                                                    @click="copyToClipboard('argospm install translate')"
-                                                >
-                                                    <MaterialDesignIcon icon-name="content-copy" class="size-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <button
-                                                type="button"
-                                                class="primary-chip px-3 py-1.5 text-xs"
-                                                :disabled="isInstallingLanguages"
-                                                @click="installLanguages('translate')"
-                                            >
-                                                <span
-                                                    v-if="isInstallingLanguages"
-                                                    class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"
-                                                ></span>
-                                                <MaterialDesignIcon v-else icon-name="download" class="w-3 h-3" />
-                                                Install All
-                                            </button>
-                                            <div
-                                                class="bg-blue-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all flex-1"
-                                            >
-                                                argospm install translate
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-semibold uppercase tracking-wider opacity-70"
-                                                >Install specific language pair (example: English to German)</span
-                                            >
-                                            <button
-                                                class="text-sem-accent hover:scale-110 transition-transform"
-                                                @click="copyToClipboard('argospm install translate-en_de')"
-                                            >
-                                                <MaterialDesignIcon icon-name="content-copy" class="size-4" />
-                                            </button>
-                                        </div>
-                                        <div
-                                            class="bg-blue-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
-                                        >
-                                            argospm install translate-en_de
-                                        </div>
-                                    </div>
-                                </div>
-                                <p class="mt-4 text-xs opacity-70 italic">
-                                    After installing language packages, click "Refresh Languages" to reload available
-                                    languages.
-                                </p>
-                            </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="glass-label">Text to Translate</label>
+                        <label class="glass-label mb-2">{{ $t("translator.input_text") }}</label>
                         <textarea
                             v-model="inputText"
-                            rows="6"
-                            placeholder="Enter text to translate..."
-                            class="input-field"
-                            :disabled="isTranslating"
-                        ></textarea>
+                            rows="5"
+                            class="input-field w-full resize-y"
+                            :placeholder="$t('translator.input_placeholder')"
+                        />
                     </div>
 
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
-                            class="primary-chip px-4 py-2 text-sm"
+                            class="primary-chip px-4 py-2"
                             :disabled="!canTranslate || isTranslating"
-                            @click="translateText"
+                            @click="runTranslate"
                         >
-                            <span
-                                v-if="isTranslating"
-                                class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"
-                            ></span>
-                            <MaterialDesignIcon v-else icon-name="translate" class="w-4 h-4" />
-                            {{ isTranslating ? "Translating..." : "Translate" }}
+                            <span v-if="isTranslating" class="flex items-center gap-2">
+                                <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin" />
+                                {{ $t("translator.translating") }}
+                            </span>
+                            <span v-else>{{ $t("translator.translate") }}</span>
                         </button>
                         <button
                             type="button"
-                            class="secondary-chip px-4 py-2 text-sm"
-                            :disabled="!targetLang || isTranslating"
-                            @click="swapLanguages"
+                            class="secondary-chip px-3.5 py-2"
+                            :disabled="!inputText"
+                            @click="
+                                inputText = '';
+                                outputText = '';
+                                error = null;
+                            "
                         >
-                            <MaterialDesignIcon icon-name="swap-horizontal" class="w-4 h-4" />
-                            Swap
+                            {{ $t("translator.clear") }}
                         </button>
-                        <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="clearText">
-                            <MaterialDesignIcon icon-name="broom" class="w-4 h-4" />
-                            Clear
+                        <button v-if="outputText" type="button" class="secondary-chip px-3.5 py-2" @click="copyOutput">
+                            {{ $t("translator.copy") }}
                         </button>
                     </div>
 
-                    <div v-if="translationResult" class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <div class="text-sm font-semibold text-sem-fg">Translation</div>
-                            <div class="text-xs text-sem-fg-muted">Source: {{ translationResult.source }}</div>
-                        </div>
-                        <div class="p-4 rounded-lg bg-gray-50 dark:bg-zinc-800 border border-sem-border">
-                            <div class="text-sem-fg whitespace-pre-wrap">
-                                {{ translationResult.translated_text }}
-                            </div>
-                        </div>
-                        <div class="text-xs text-sem-fg-muted">
-                            Detected: {{ translationResult.source_lang }} → {{ translationResult.target_lang }}
-                        </div>
-                    </div>
-
-                    <div
-                        v-if="error"
-                        class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
-                    >
+                    <div v-if="error" class="p-3 rounded-lg bg-sem-danger/10 text-sm text-sem-danger">
                         {{ error }}
                     </div>
-                </div>
 
-                <div class="glass-card space-y-3">
-                    <div class="text-sm font-semibold text-sem-fg">Available Languages</div>
-                    <div class="text-xs text-sem-fg-muted mb-2">
-                        Languages are loaded from LibreTranslate API or Argos Translate packages.
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <span
-                            v-for="lang in filteredLanguages"
-                            :key="lang.code"
-                            class="px-2 py-1 rounded-sm text-xs bg-sem-surface-muted text-gray-700 dark:text-gray-300"
+                    <div v-if="outputText" class="space-y-2">
+                        <label class="glass-label">{{ $t("translator.output_text") }}</label>
+                        <div
+                            class="p-3 rounded-lg bg-sem-surface/60 border border-sem-border whitespace-pre-wrap text-sm text-sem-fg"
                         >
-                            {{ lang.name }} ({{ lang.code }})
-                            <span class="text-gray-500 dark:text-gray-500">- {{ lang.source }}</span>
-                        </span>
-                    </div>
-                    <div class="flex gap-2 mt-2">
-                        <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="loadLanguages">
-                            <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
-                            Refresh Languages
-                        </button>
-                        <button
-                            v-if="translationMode === 'argos' && hasArgos"
-                            type="button"
-                            class="primary-chip px-4 py-2 text-sm"
-                            :disabled="isInstallingLanguages"
-                            @click="installLanguages('translate')"
-                        >
-                            <span
-                                v-if="isInstallingLanguages"
-                                class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"
-                            ></span>
-                            <MaterialDesignIcon v-else icon-name="download" class="w-4 h-4" />
-                            Install All Languages
-                        </button>
+                            {{ outputText }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -387,314 +151,170 @@
 </template>
 
 <script>
-import DialogUtils from "../../js/DialogUtils";
-import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
-import Toggle from "../forms/Toggle.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import * as TranslationService from "../../js/TranslationService.js";
+import { copyTextToClipboard } from "../../js/clipboardUtils.js";
 
 export default {
     name: "TranslatorPage",
-    components: {
-        MaterialDesignIcon,
-        Toggle,
-        ToolsPageHeader,
-    },
+    components: { MaterialDesignIcon, ToolsPageHeader },
     data() {
         return {
-            config: null,
-            languages: [],
+            packs: [],
             sourceLang: "",
             targetLang: "",
             inputText: "",
-            translationMode: "argos",
-            libretranslateUrl: "http://localhost:5000",
-            libretranslateApiKey: "",
-            hasArgos: false,
-            libreClientAvailable: false,
-            libretranslateReachable: false,
-            debouncedLibrePersistTimer: null,
+            outputText: "",
             isTranslating: false,
-            isInstallingLanguages: false,
-            translationResult: null,
+            isImporting: false,
             error: null,
         };
     },
     computed: {
         canTranslate() {
-            const a = this.config?.translator_argos_enabled;
-            const l = this.config?.translator_libretranslate_enabled;
-            const argosOk = this.translationMode === "argos" && a;
-            const libreOk = this.translationMode === "libretranslate" && l;
-            return (
-                (argosOk || libreOk) &&
-                this.inputText.trim().length > 0 &&
-                this.targetLang &&
-                this.targetLang !== this.sourceLang
-            );
+            return this.inputText.trim() && this.sourceLang && this.targetLang && this.sourceLang !== this.targetLang;
         },
-        useArgos() {
-            return this.translationMode === "argos";
+        installedPairs() {
+            return this.packs.map((p) => ({
+                pair: p.pair,
+                from: p.from || p.pair.slice(0, 2),
+                to: p.to || p.pair.slice(2, 4),
+            }));
         },
-        hasArgosLanguages() {
-            return this.languages.some((lang) => lang.source === "argos");
-        },
-        filteredLanguages() {
-            if (this.translationMode === "argos") {
-                return this.languages.filter((lang) => lang.source === "argos");
-            } else {
-                return this.languages.filter((lang) => lang.source === "libretranslate");
+        languageOptions() {
+            const userLocale = (navigator.language || "en").slice(0, 2);
+            let displayNames;
+            try {
+                displayNames = new Intl.DisplayNames([userLocale], { type: "language" });
+            } catch {
+                displayNames = { of: (code) => code };
             }
-        },
-    },
-    watch: {
-        translationMode() {
-            if (this.translationMode === "libretranslate" && !this.sourceLang) {
-                this.sourceLang = "auto";
-            } else if (this.translationMode === "argos" && this.sourceLang === "auto") {
-                this.sourceLang = "";
+            const codes = new Set();
+            for (const p of this.installedPairs) {
+                codes.add(p.from);
+                codes.add(p.to);
             }
-            this.loadLanguages();
+            const opts = Array.from(codes).map((code) => ({
+                value: code,
+                label: displayNames.of(code) || code,
+            }));
+            return opts.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
         },
-        libretranslateUrl() {
-            this.scheduleDebouncedLibrePersist();
-            if (this.translationMode === "libretranslate") {
-                this.loadLanguages();
-            }
+        sourceOptions() {
+            return this.languageOptions;
         },
-        libretranslateApiKey() {
-            this.scheduleDebouncedLibrePersist();
-            if (this.translationMode === "libretranslate") {
-                this.loadLanguages();
-            }
+        targetOptions() {
+            return this.languageOptions;
         },
     },
     mounted() {
-        this.getConfig();
+        this.loadPacks();
+        const q = this.$route?.query;
+        if (q?.text) {
+            this.inputText = String(q.text);
+        }
+        if (q?.source && q?.target) {
+            this.sourceLang = String(q.source);
+            this.targetLang = String(q.target);
+        }
     },
     methods: {
-        async getConfig() {
+        async loadPacks() {
             try {
-                const response = await window.api.get("/api/v1/config");
-                this.config = response.data.config;
-                if (this.config?.libretranslate_url) {
-                    this.libretranslateUrl = this.config.libretranslate_url;
-                }
-                this.libretranslateApiKey = this.config.libretranslate_api_key || "";
-                this.loadLanguages();
+                this.packs = await TranslationService.listPacks();
+                this.guessDefaultLanguages();
             } catch (e) {
-                console.log(e);
+                console.error("Failed to load packs:", e);
+                this.error = this.$t("translator.load_packs_failed");
             }
         },
-        syncTranslationModeFromBackends() {
-            const canArgos = this.hasArgos;
-            const canLibre = this.libreClientAvailable;
-            if (this.translationMode === "argos" && !canArgos && canLibre) {
-                this.translationMode = "libretranslate";
-                this.sourceLang = "auto";
-            } else if (this.translationMode === "libretranslate" && !canLibre && canArgos) {
-                this.translationMode = "argos";
-                if (this.sourceLang === "auto") {
-                    this.sourceLang = "";
-                }
-            } else if (canArgos && !canLibre) {
-                this.translationMode = "argos";
-            } else if (!canArgos && canLibre) {
-                this.translationMode = "libretranslate";
-                if (!this.sourceLang) {
-                    this.sourceLang = "auto";
+        guessDefaultLanguages() {
+            if (!this.packs.length) {
+                return;
+            }
+            const first = this.packs[0];
+            this.sourceLang = first.from || first.pair.slice(0, 2);
+            this.targetLang = first.to || first.pair.slice(2, 4);
+            if (this.sourceLang === this.targetLang) {
+                const diff = this.packs.find((p) => (p.from || p.pair.slice(0, 2)) !== (p.to || p.pair.slice(2, 4)));
+                if (diff) {
+                    this.sourceLang = diff.from || diff.pair.slice(0, 2);
+                    this.targetLang = diff.to || diff.pair.slice(2, 4);
                 }
             }
         },
-        async onArgosEnabledChange(value) {
-            if (this.config) {
-                this.config.translator_argos_enabled = value;
-            }
+        packLabel(pack) {
+            const userLocale = (navigator.language || "en").slice(0, 2);
+            let displayNames;
             try {
-                await window.api.patch("/api/v1/config", { translator_argos_enabled: value });
-            } catch (e) {
-                console.error(e);
+                displayNames = new Intl.DisplayNames([userLocale], { type: "language" });
+            } catch {
+                displayNames = { of: (code) => code };
             }
+            const from = pack.from || pack.pair.slice(0, 2);
+            const to = pack.to || pack.pair.slice(2, 4);
+            return `${displayNames.of(from) || from} → ${displayNames.of(to) || to}`;
         },
-        async onLibreEnabledChange(value) {
-            if (this.config) {
-                this.config.translator_libretranslate_enabled = value;
+        selectPackFile() {
+            this.$refs["pack-file-input"].click();
+        },
+        async onPackFileSelected(event) {
+            const file = event.target.files?.[0];
+            if (!file) {
+                return;
             }
+            this.isImporting = true;
+            this.error = null;
             try {
-                await window.api.patch("/api/v1/config", { translator_libretranslate_enabled: value });
+                await TranslationService.importPack(file);
+                await this.loadPacks();
             } catch (e) {
-                console.error(e);
+                console.error("Pack import failed:", e);
+                this.error = String(e.message || e);
+            } finally {
+                this.isImporting = false;
+                event.target.value = "";
             }
         },
-        scheduleDebouncedLibrePersist() {
-            if (this.debouncedLibrePersistTimer) {
-                clearTimeout(this.debouncedLibrePersistTimer);
-            }
-            this.debouncedLibrePersistTimer = setTimeout(() => {
-                this.persistLibreClientSettings();
-            }, 800);
-        },
-        async persistLibreClientSettings() {
-            if (!this.config) {
-                return;
-            }
-            const urlTarget = this.libretranslateUrl || "";
-            const keyTarget = (this.libretranslateApiKey || "").trim();
-            const urlEq = urlTarget === (this.config.libretranslate_url || "");
-            const cfgKeyRaw = this.config.libretranslate_api_key;
-            const cfgKey = cfgKeyRaw == null ? "" : String(cfgKeyRaw).trim();
-            const keyEq = keyTarget === cfgKey;
-            if (urlEq && keyEq) {
-                return;
-            }
-            const patch = {};
-            if (!urlEq) {
-                patch.libretranslate_url = this.libretranslateUrl;
-            }
-            if (!keyEq) {
-                patch.libretranslate_api_key = keyTarget === "" ? null : keyTarget;
-            }
+        async removePack(pair) {
             try {
-                await window.api.patch("/api/v1/config", patch);
-                if (!urlEq) {
-                    this.config.libretranslate_url = this.libretranslateUrl;
-                }
-                if (!keyEq) {
-                    this.config.libretranslate_api_key = keyTarget === "" ? null : keyTarget;
-                }
+                await TranslationService.removePack(pair);
+                await this.loadPacks();
             } catch (e) {
-                console.error(e);
+                console.error("Pack removal failed:", e);
+                this.error = String(e.message || e);
             }
         },
-        async loadLanguages() {
-            if (!this.config) {
-                return;
-            }
-            try {
-                const params = {};
-                if (this.translationMode === "libretranslate" && this.libretranslateUrl) {
-                    params.libretranslate_url = this.libretranslateUrl;
-                }
-                const response = await window.api.get("/api/v1/translator/languages", { params });
-                this.languages = response.data.languages || [];
-                this.hasArgos = response.data.has_argos;
-                this.libreClientAvailable = Boolean(response.data.libre_client_available);
-                this.libretranslateReachable = Boolean(response.data.libretranslate_reachable);
-                this.syncTranslationModeFromBackends();
-            } catch (e) {
-                console.error(e);
-                DialogUtils.alert(this.$t("translator.failed_load_languages"));
-            }
+        swapLanguages() {
+            [this.sourceLang, this.targetLang] = [this.targetLang, this.sourceLang];
         },
-        copyToClipboard(text) {
-            navigator.clipboard.writeText(text);
-            ToastUtils.success(this.$t("common.copied"));
-        },
-        async translateText() {
-            if (!this.canTranslate || this.isTranslating) {
+        async runTranslate() {
+            if (!this.canTranslate) {
                 return;
             }
-
-            if (!this.sourceLang || !this.targetLang) {
-                this.error = this.$t("translator.select_languages_warning");
-                return;
-            }
-
-            if (this.translationMode === "argos" && this.sourceLang === "auto") {
-                this.error = this.$t("translator.auto_detect_not_supported");
-                return;
-            }
-
             this.isTranslating = true;
             this.error = null;
-            this.translationResult = null;
-
+            this.outputText = "";
             try {
-                const payload = {
+                const result = await TranslationService.translate({
+                    from: this.sourceLang,
+                    to: this.targetLang,
                     text: this.inputText,
-                    source_lang: this.sourceLang,
-                    target_lang: this.targetLang,
-                    use_argos: this.useArgos,
-                };
-                if (this.translationMode === "libretranslate" && this.libretranslateUrl) {
-                    payload.libretranslate_url = this.libretranslateUrl;
-                }
-                const keyTrimmed = (this.libretranslateApiKey || "").trim();
-                if (this.translationMode === "libretranslate" && keyTrimmed) {
-                    payload.libretranslate_api_key = keyTrimmed;
-                }
-                const response = await window.api.post("/api/v1/translator/translate", payload);
-
-                this.translationResult = response.data;
-                if (this.translationResult.source_lang === "auto") {
-                    this.sourceLang = this.translationResult.source_lang;
-                }
+                });
+                this.outputText = result?.target?.text || "";
             } catch (e) {
-                console.error(e);
-                this.error = e.response?.data?.message || this.$t("translator.failed_translate");
+                console.error("Translation failed:", e);
+                this.error = this.$t("translator.translation_failed");
             } finally {
                 this.isTranslating = false;
             }
         },
-        swapLanguages() {
-            if (!this.targetLang) {
-                return;
-            }
-
-            if (
-                this.translationResult &&
-                this.translationResult.source_lang &&
-                this.translationResult.source_lang !== "auto"
-            ) {
-                const temp = this.sourceLang;
-                this.sourceLang = this.targetLang;
-                this.targetLang = temp;
-
-                if (this.translationResult.translated_text) {
-                    this.inputText = this.translationResult.translated_text;
-                    this.translationResult = null;
-                }
-            } else {
-                const temp = this.sourceLang;
-                if (this.translationMode === "argos") {
-                    if (!this.targetLang) {
-                        return;
-                    }
-                    this.sourceLang = this.targetLang;
-                    this.targetLang = temp && temp !== "auto" ? temp : "";
-                } else {
-                    this.sourceLang = this.targetLang || "auto";
-                    this.targetLang = temp && temp !== "auto" ? temp : "";
-                }
-            }
-        },
-        clearText() {
-            this.inputText = "";
-            this.translationResult = null;
-            this.error = null;
-        },
-        async installLanguages(packageName) {
-            if (this.isInstallingLanguages) {
-                return;
-            }
-
-            this.isInstallingLanguages = true;
-            this.error = null;
-
+        async copyOutput() {
             try {
-                const response = await window.api.post("/api/v1/translator/install-languages", {
-                    package: packageName,
-                });
-
-                ToastUtils.success(response.data.message || "Languages installed successfully");
-                await this.loadLanguages();
+                await copyTextToClipboard(this.outputText);
             } catch (e) {
-                console.error(e);
-                this.error =
-                    e.response?.data?.message || "Failed to install languages. Make sure argospm is available in PATH.";
-                ToastUtils.error(this.error);
-            } finally {
-                this.isInstallingLanguages = false;
+                console.error("Copy failed:", e);
             }
         },
     },

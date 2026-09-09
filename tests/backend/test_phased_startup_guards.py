@@ -149,10 +149,9 @@ def test_deferred_setup_idempotent_under_concurrent_calls(temp_dir):
     ctx._deferred_setup_finished.set()
     ctx.config = MagicMock()
     ctx.config.rrc_enabled.get.return_value = False
-    ctx.config.libretranslate_url.get.return_value = ""
-    ctx.config.libretranslate_api_key.get.return_value = ""
-    ctx.config.translator_argos_enabled.get.return_value = False
-    ctx.config.translator_libretranslate_enabled.get.return_value = False
+    ctx.config.translation_enabled.get.return_value = False
+    ctx.config.translation_default_source_lang.get.return_value = "auto"
+    ctx.config.translation_default_target_lang.get.return_value = None
     ctx.database = MagicMock()
     ctx.docs_manager = MagicMock()
     ctx.integrity_manager = MagicMock()

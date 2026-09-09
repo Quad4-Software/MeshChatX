@@ -53,38 +53,6 @@ def test_parse_bool(mock_app):
 
 
 @pytest.mark.asyncio
-async def test_update_config_libretranslate_api_key(mock_app):
-    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
-    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
-    mock_app.config.libretranslate_api_key = MagicMock()
-    mock_app.translator_handler = MagicMock()
-    await mock_app.update_config({"libretranslate_api_key": " sek "})
-    mock_app.config.libretranslate_api_key.set.assert_called_once_with("sek")
-    assert mock_app.translator_handler.libretranslate_api_key == "sek"
-
-
-@pytest.mark.asyncio
-async def test_update_config_libretranslate_api_key_empty_clears(mock_app):
-    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
-    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
-    mock_app.config.libretranslate_api_key = MagicMock()
-    mock_app.translator_handler = MagicMock()
-    await mock_app.update_config({"libretranslate_api_key": ""})
-    mock_app.config.libretranslate_api_key.set.assert_called_once_with(None)
-    assert mock_app.translator_handler.libretranslate_api_key is None
-
-
-@pytest.mark.asyncio
-async def test_update_config_libretranslate_api_key_length_limit(mock_app):
-    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
-    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
-    mock_app.config.libretranslate_api_key = MagicMock()
-    mock_app.translator_handler = MagicMock()
-    with pytest.raises(ValueError):
-        await mock_app.update_config({"libretranslate_api_key": "z" * 513})
-
-
-@pytest.mark.asyncio
 async def test_update_config_nomad_default_page_path_empty_resets(mock_app):
     mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
     mock_app.send_config_to_websocket_clients.return_value.set_result(None)
