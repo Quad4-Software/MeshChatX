@@ -500,6 +500,50 @@ describe("NomadCrashTab.vue", () => {
         }
     });
 
+    it("emits images from render-done", () => {
+        const wrapper = mountReadyCrashTab();
+        const fakeWindow = attachFrame(wrapper);
+        try {
+            const images = [{ index: 0, url: ":/file/a.webp", alt: "A" }];
+            sendFromFrame(wrapper, fakeWindow, "render-done", { partials: [], images });
+            expect(wrapper.emitted("images")?.[0]?.[0]).toEqual(images);
+        } finally {
+            wrapper.unmount();
+        }
+    });
+
+    it("emits image-action from frame and setImage posts to frame", () => {
+        const wrapper = mountReadyCrashTab();
+        const fakeWindow = attachFrame(wrapper);
+        try {
+            sendFromFrame(wrapper, fakeWindow, "image-action", {
+                action: "load",
+                index: 0,
+                url: ":/file/a.webp",
+                alt: "A",
+            });
+            expect(wrapper.emitted("image-action")?.[0]?.[0]).toMatchObject({
+                action: "load",
+                index: 0,
+                url: ":/file/a.webp",
+            });
+            postMessageSpy.mockClear();
+            wrapper.vm.setImage(0, "loaded", { dataUrl: "data:image/webp;base64,abc" });
+            expect(postMessageSpy).toHaveBeenCalledWith(
+                {
+                    channel: NOMAD_CRASH_TAB_CHANNEL,
+                    type: "set-image",
+                    index: 0,
+                    state: "loaded",
+                    dataUrl: "data:image/webp;base64,abc",
+                },
+                "*"
+            );
+        } finally {
+            wrapper.unmount();
+        }
+    });
+
     it("render-done after paint deadline hung recovers the overlay", async () => {
         vi.useFakeTimers();
         let wrapper;
