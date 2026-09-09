@@ -1702,9 +1702,11 @@ export default {
             this.persistRelayLayout();
         },
         selectedHubHash() {
+            this.messageTranslations = {};
             this.persistRelayLayout();
         },
         selectedRoom() {
+            this.messageTranslations = {};
             this.persistRelayLayout();
         },
         view() {
@@ -1788,6 +1790,7 @@ export default {
             this.members = [];
             this.selectedHubHash = null;
             this.selectedRoom = null;
+            this.messageTranslations = {};
             this.expandedHubs = {};
             this.availableRoomsExpanded = {};
             this.availableRoomsRefreshing = {};
