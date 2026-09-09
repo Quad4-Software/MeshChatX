@@ -151,6 +151,7 @@ function listPartials() {
 function readImage(el) {
     return {
         url: el.getAttribute("data-mu-image-url") || "",
+        path: el.getAttribute("data-mu-image-path") || el.getAttribute("data-mu-image-url") || "",
         alt: el.getAttribute("data-mu-image-alt") || "",
         w: el.getAttribute("data-mu-image-w") || null,
         h: el.getAttribute("data-mu-image-h") || null,
@@ -166,6 +167,20 @@ function listImages() {
         el.setAttribute("data-mu-image-index", String(index));
         return { index, ...readImage(el) };
     });
+}
+
+function isAllowedImageDataUrl(url) {
+    if (typeof url !== "string" || !url) {
+        return false;
+    }
+    // Only allow base64 data URLs for recognized image types.
+    return /^data:image\/(webp|png|jpeg|jpg|gif|svg\+xml);base64,/i.test(url);
+}
+
+function sanitizeImageErrorReason(reason) {
+    return String(reason ?? "")
+        .replace(/[\x00-\x1f\x7f]/g, "")
+        .slice(0, 120);
 }
 
 function escapeSource(content) {
@@ -457,8 +472,11 @@ window.addEventListener("message", (ev) => {
             }
         } else if (d.state === "loaded") {
             if (img) {
-                img.src = d.dataUrl || "";
-                img.removeAttribute("hidden");
+                const dataUrl = d.dataUrl || "";
+                if (isAllowedImageDataUrl(dataUrl)) {
+                    img.src = dataUrl;
+                    img.removeAttribute("hidden");
+                }
             }
             if (load) {
                 load.textContent = "Loaded";
@@ -470,7 +488,8 @@ window.addEventListener("message", (ev) => {
             }
         } else if (d.state === "error") {
             if (load) {
-                load.textContent = d.reason ? `Error: ${d.reason}` : "Error";
+                const reason = sanitizeImageErrorReason(d.reason);
+                load.textContent = reason ? `Error: ${reason}` : "Error";
             }
         }
         return;
@@ -500,8 +519,32 @@ window.addEventListener("message", (ev) => {
     }
 });
 
+function onImageKeyDown(event) {
+    if (event.key !== "Enter" && event.key !== " ") {
+        return;
+    }
+    const imageAction = event.target && event.target.closest ? event.target.closest(".mu-image-action") : null;
+    if (!imageAction) {
+        return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const container = imageAction.closest(".mu-image");
+    if (container) {
+        const info = readImage(container);
+        const index = container.getAttribute("data-mu-image-index");
+        post({
+            type: "image-action",
+            action: imageAction.getAttribute("data-mu-image-action") || "load",
+            index: index != null ? Number(index) : null,
+            ...info,
+        });
+    }
+}
+
 root.addEventListener("click", onClick, true);
 root.addEventListener("auxclick", onClick, true);
+root.addEventListener("keydown", onImageKeyDown, true);
 paintShell("#000000", "#dddddd");
 // Warm the parser chunk while the shell downloads the page.
 void loadRenderer();
