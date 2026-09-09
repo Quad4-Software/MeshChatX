@@ -24,6 +24,23 @@ export class BergamotBacking extends TranslatorBacking {
             registryUrl: absoluteUrl(options.registryUrl ?? "/translation-packs/registry.json"),
         });
         this.workerUrl = absoluteUrl(options.workerUrl ?? "/vendor/bergamot/translator-worker.js");
+        this.allowedOrigin = typeof window !== "undefined" && window.location ? window.location.origin : null;
+    }
+
+    async loadModelRegistery() {
+        const response = await fetch(this.registryUrl, { credentials: "same-origin" });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch translation registry: ${response.status}`);
+        }
+        const registry = await response.json();
+        return Object.entries(registry).map(([pair, pack]) => {
+            const files = pack && typeof pack === "object" && pack.files ? pack.files : pack;
+            return {
+                from: pair.slice(0, 2),
+                to: pair.slice(2, 4),
+                files,
+            };
+        });
     }
 
     async loadWorker() {
@@ -87,6 +104,13 @@ export class BergamotBacking extends TranslatorBacking {
     }
 
     async fetch(url, checksum, extra) {
+        const resolved = absoluteUrl(url);
+        if (this.allowedOrigin && resolved.startsWith("http")) {
+            const parsed = new URL(resolved);
+            if (parsed.origin !== this.allowedOrigin) {
+                throw new Error(`Refusing to fetch translation file from ${parsed.origin}`);
+            }
+        }
         const options = { credentials: "same-origin" };
         if (extra?.signal) {
             options.signal = extra.signal;
@@ -94,7 +118,7 @@ export class BergamotBacking extends TranslatorBacking {
         if (checksum) {
             options.integrity = `sha256-${this.hexToBase64(checksum)}`;
         }
-        const response = await fetch(absoluteUrl(url), options);
+        const response = await fetch(resolved, options);
         if (!response.ok) {
             throw new Error(`Failed to fetch ${url}: ${response.status}`);
         }

@@ -3,6 +3,13 @@ import { BergamotBacking } from "./translation/BergamotBacking.js";
 
 let translator = null;
 let backing = null;
+let queue = Promise.resolve();
+
+function withTranslator(fn) {
+    const next = queue.then(fn);
+    queue = next.catch(() => {});
+    return next;
+}
 
 function apiUrl(path) {
     const base = import.meta.env.BASE_URL || "/";
@@ -57,7 +64,7 @@ async function apiDelete(path) {
     return res.json();
 }
 
-async function ensureTranslator() {
+async function doEnsureTranslator() {
     if (translator && backing) {
         return translator;
     }
@@ -70,12 +77,14 @@ async function ensureTranslator() {
 }
 
 export async function refreshPacks() {
-    if (translator) {
-        const old = translator;
-        translator = null;
-        await old.delete().catch(() => {});
-    }
-    backing = null;
+    return withTranslator(async () => {
+        if (translator) {
+            const old = translator;
+            translator = null;
+            backing = null;
+            await old.delete().catch(() => {});
+        }
+    });
 }
 
 export async function listPacks() {
@@ -86,9 +95,7 @@ export async function listPacks() {
 export async function importPack(file) {
     const form = new FormData();
     form.append("file", file);
-    const data = await apiPost("/api/v1/translation/packs/import", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-    });
+    const data = await apiPost("/api/v1/translation/packs/import", form);
     await refreshPacks();
     return data;
 }
@@ -103,11 +110,16 @@ export async function translate({ from, to, text, html = false, signal = null })
     if (!text || !from || !to) {
         throw new Error("Missing source, target, or text");
     }
-    const t = await ensureTranslator();
-    const request = { from, to, text, html };
-    const options = {};
-    if (signal) {
-        options.signal = signal;
+    if (signal?.aborted) {
+        throw new Error("Translation cancelled");
     }
-    return t.translate(request, options);
+    return withTranslator(async () => {
+        const t = await doEnsureTranslator();
+        const request = { from, to, text, html };
+        const options = {};
+        if (signal) {
+            options.signal = signal;
+        }
+        return t.translate(request, options);
+    });
 }

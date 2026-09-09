@@ -20,10 +20,10 @@ import zipfile
 
 import RNS
 
-from meshchatx.src.path_utils import is_path_within_dir, safe_path_under_dir
+from meshchatx.src.path_utils import is_path_within_dir, resolve_path_under_dir, safe_path_under_dir
 
 
-_ALLOWED_FILE_NAME_RE = re.compile(r"^[A-Za-z0-9_.@\- ]+$")
+_ALLOWED_FILE_NAME_RE = re.compile(r"^[A-Za-z0-9@\-][A-Za-z0-9_.@\- ]*$")
 _PAIR_CODE_RE = re.compile(r"^[a-zA-Z]{4}$")
 _FILE_TYPE_RE = re.compile(r"^(model|lex|vocab|qualityModel|srcvocab|trgvocab)[^A-Za-z0-9]", re.IGNORECASE)
 _REQUIRED_PARTS = frozenset({"model", "lex", "vocab"})
@@ -74,23 +74,35 @@ class TranslationPackManager:
         try:
             if tarfile.is_tarfile(archive_path):
                 with tarfile.open(archive_path, "r:*") as tf:
-                    def is_safe(member: tarfile.TarInfo) -> bool:
+                    for member in tf.getmembers():
+                        if not member.isreg() and not member.isdir():
+                            continue
                         if member.issym() or member.islnk():
-                            return False
-                        target = os.path.normpath(os.path.join(tmp_dir, member.name))
-                        return safe_path_under_dir(tmp_dir, target) is not None
-                    tf.extractall(tmp_dir, members=[m for m in tf.getmembers() if is_safe(m)])
+                            continue
+                        if member.name.startswith(("/", "\\")) or os.path.isabs(member.name):
+                            continue
+                        target = resolve_path_under_dir(tmp_dir, member.name)
+                        if not target or not is_path_within_dir(target, tmp_dir):
+                            continue
+                        if member.isdir():
+                            os.makedirs(target, exist_ok=True)
+                        else:
+                            os.makedirs(os.path.dirname(target), exist_ok=True)
+                            with open(target, "wb") as f:
+                                f.write(tf.extractfile(member).read())
             elif zipfile.is_zipfile(archive_path):
                 with zipfile.ZipFile(archive_path, "r") as zf:
                     for info in zf.infolist():
                         if info.is_dir():
                             continue
-                        if info.filename.startswith("/") or ".." in info.filename:
+                        if info.filename.startswith(("/", "\\")) or os.path.isabs(info.filename):
                             continue
-                        target = os.path.normpath(os.path.join(tmp_dir, info.filename))
-                        if safe_path_under_dir(tmp_dir, target) is None:
+                        target = resolve_path_under_dir(tmp_dir, info.filename)
+                        if not target or not is_path_within_dir(target, tmp_dir):
                             continue
-                        zf.extract(info, tmp_dir)
+                        os.makedirs(os.path.dirname(target), exist_ok=True)
+                        with open(target, "wb") as f:
+                            f.write(zf.read(info))
             else:
                 raise TranslationPackError("Unsupported archive format")
 
@@ -118,10 +130,11 @@ class TranslationPackManager:
         """Return the absolute path to a pack file, or None if outside packs_dir."""
         if not isinstance(requested, str) or not requested or "\x00" in requested:
             return None
-        if requested.startswith("/") or ".." in requested.split("/"):
+        normalised = requested.replace("\\", "/")
+        if normalised.startswith("/") or ".." in normalised.split("/"):
             return None
-        candidate = os.path.realpath(os.path.join(self.packs_dir, requested))
-        if not is_path_within_dir(candidate, self.packs_dir):
+        candidate = resolve_path_under_dir(self.packs_dir, normalised)
+        if not candidate or not os.path.isfile(candidate):
             return None
         return candidate
 
@@ -189,7 +202,15 @@ class TranslationPackManager:
         dest_dir = os.path.join(self.packs_dir, pair)
         if os.path.exists(dest_dir):
             shutil.rmtree(dest_dir, ignore_errors=True)
-        shutil.copytree(source_pair_dir, dest_dir)
+        os.makedirs(dest_dir, exist_ok=True)
+        allowed_basenames = {os.path.basename(meta.get("name", "")) for meta in files.values()}
+        for filename in os.listdir(source_pair_dir):
+            if filename not in allowed_basenames:
+                continue
+            src = os.path.join(source_pair_dir, filename)
+            if not os.path.isfile(src):
+                continue
+            shutil.copy2(src, os.path.join(dest_dir, filename))
 
         # Write a normalised pack.json for future registry rebuilds.
         pack["id"] = pair
@@ -215,9 +236,11 @@ class TranslationPackManager:
                 raise TranslationPackError(f"File entry for {part} has no name")
             if not _ALLOWED_FILE_NAME_RE.match(filename):
                 raise TranslationPackError(f"Disallowed file name: {filename}")
-            file_path = safe_path_under_dir(pair_dir, os.path.join(pair_dir, filename))
+            file_path = safe_path_under_dir(pair_dir, filename)
             if not file_path or not os.path.isfile(file_path):
                 raise TranslationPackError(f"File missing in pack: {filename}")
+            stat = os.stat(file_path)
+            meta["size"] = stat.st_size
             checksum = meta.get("expectedSha256Hash")
             if checksum:
                 actual = self._sha256_file(file_path)
@@ -290,6 +313,11 @@ class TranslationPackManager:
             pack.setdefault("from", pair[:2])
             pack.setdefault("to", pair[2:4])
             pack["files"] = self._normalise_files(pack.get("files", {}), pair)
+            try:
+                self._validate_pack_metadata(pair_dir, pack["files"])
+            except TranslationPackError as e:
+                RNS.log(f"Skipping invalid translation pack {pair}: {e}", RNS.LOG_WARNING)
+                continue
             if pack["files"]:
                 registry[pair] = pack
 
