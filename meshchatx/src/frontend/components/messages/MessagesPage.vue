@@ -1130,9 +1130,17 @@ export default {
             const conv = this.conversations.find((c) => c.destination_hash === peerHash);
             if (!conv) return;
 
-            const oldState = conv._lastKnownState;
+            // Track state per message hash. A single conversation-level
+            // _lastKnownState misattributes transitions when updates for
+            // different messages arrive interleaved, corrupting the
+            // failed_messages_count delta.
+            const msgKey = msg.hash || "__unknown__";
+            if (!conv._stateByMessageHash) {
+                conv._stateByMessageHash = {};
+            }
+            const oldState = conv._stateByMessageHash[msgKey];
             const newState = msg.state;
-            conv._lastKnownState = newState;
+            conv._stateByMessageHash[msgKey] = newState;
 
             if (newState === "failed" && oldState !== "failed") {
                 conv.failed_messages_count = (conv.failed_messages_count || 0) + 1;

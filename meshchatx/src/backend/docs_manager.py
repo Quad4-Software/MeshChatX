@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import shutil
+import stat
 import zipfile
 
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
@@ -875,10 +876,19 @@ class DocsManager:
             self._remove_tree_force_writable(temp_extract)
 
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            namelist = zip_ref.namelist()
-            if not namelist:
+            infos = zip_ref.infolist()
+            if not infos:
                 raise Exception("Zip file is empty")
 
+            # Symlink entries must never land on disk: the version copy below
+            # would follow them out of the docs tree.
+            symlink_members = {
+                info.filename
+                for info in infos
+                if stat.S_ISLNK(info.external_attr >> 16)
+            }
+
+            namelist = zip_ref.namelist()
             root_folder = namelist[0].split("/")[0]
 
             docs_prefix = f"{root_folder}/docs/"
@@ -887,6 +897,8 @@ class DocsManager:
             if has_docs_subfolder:
                 members_to_extract = [m for m in namelist if m.startswith(docs_prefix)]
                 for member in members_to_extract:
+                    if member in symlink_members:
+                        continue
                     if not _docs_zip_member_is_safe(member):
                         continue
                     zip_ref.extract(member, temp_extract)
@@ -900,7 +912,11 @@ class DocsManager:
                     else:
                         self._copy_file_no_metadata(s, d)
             else:
-                safe_members = [m for m in namelist if _docs_zip_member_is_safe(m)]
+                safe_members = [
+                    m
+                    for m in namelist
+                    if _docs_zip_member_is_safe(m) and m not in symlink_members
+                ]
                 zip_ref.extractall(temp_extract, members=safe_members)
                 src_path = os.path.join(temp_extract, root_folder)
                 if os.path.exists(src_path) and os.path.isdir(src_path):
@@ -951,11 +967,13 @@ class DocsManager:
         shutil.rmtree(path)
 
     def _copy_file_no_metadata(self, src, dst):
+        if os.path.islink(src):
+            return
         parent = os.path.dirname(dst)
         if parent:
             os.makedirs(parent, exist_ok=True)
             self._ensure_dir_writable(parent)
-        shutil.copyfile(src, dst)
+        shutil.copyfile(src, dst, follow_symlinks=False)
         try:
             os.chmod(dst, 0o644)
         except OSError:
@@ -965,6 +983,9 @@ class DocsManager:
         os.makedirs(dst, exist_ok=True)
         self._ensure_dir_writable(dst)
         for root, dirs, files in os.walk(src):
+            dirs[:] = [
+                d for d in dirs if not os.path.islink(os.path.join(root, d))
+            ]
             rel_root = os.path.relpath(root, src)
             target_root = dst if rel_root == "." else os.path.join(dst, rel_root)
             os.makedirs(target_root, exist_ok=True)

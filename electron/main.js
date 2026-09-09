@@ -32,6 +32,7 @@ const {
     resolvePortableStorageRoots,
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
+    isTrustedShellFileUrl,
     shouldOpenInElectronWindow,
     shouldAllowInWindowNavigation,
     isTrustedIpcEvent,
@@ -795,10 +796,16 @@ function getMainWindowPageKind() {
         return "none";
     }
     const url = mainWindow.webContents.getURL();
-    if (url.includes("loading.html")) {
+    let pathname = "";
+    try {
+        pathname = new URL(url).pathname || "";
+    } catch {
+        pathname = "";
+    }
+    if (isTrustedShellFileUrl(url) && pathname.endsWith("/loading.html")) {
         return "loading";
     }
-    if (url.includes("crash.html")) {
+    if (isTrustedShellFileUrl(url) && pathname.endsWith("/crash.html")) {
         return "crash";
     }
     if (isLocalBackendUrl(url)) {

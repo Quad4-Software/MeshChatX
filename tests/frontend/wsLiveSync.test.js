@@ -68,6 +68,38 @@ describe("wsLiveSync oracles", () => {
         clearLastSeq(key);
     });
 
+    it("drops a stale cursor when the server epoch regressed", async () => {
+        const handlers = {};
+        const connection = {
+            on(ev, fn) {
+                handlers[ev] = fn;
+            },
+            off() {},
+            sendQueued: vi.fn(),
+        };
+        const onNeedsResync = vi.fn(async () => {});
+        const key = "meshchatx_ws_last_seq:vitest-epoch";
+        saveLastSeq(key, 5000);
+        const handle = installWsLiveSync({
+            connection,
+            onNeedsResync,
+            getStorageKey: () => key,
+        });
+        expect(handle.getLastSeq()).toBe(5000);
+        handlers.message({
+            data: JSON.stringify({
+                type: "sync.subscribe",
+                status: "gap",
+                resync: true,
+                current_seq: 3,
+            }),
+        });
+        await vi.waitFor(() => expect(onNeedsResync).toHaveBeenCalledTimes(1));
+        expect(handle.getLastSeq()).toBe(3);
+        handle.dispose();
+        clearLastSeq(key);
+    });
+
     it("installWsLiveSync requests sync on ready and resyncs on gap", async () => {
         const handlers = {};
         const connection = {

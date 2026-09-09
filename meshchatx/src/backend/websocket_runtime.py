@@ -268,9 +268,23 @@ def init_client_runtime(client) -> TokenBucket:
         client._meshchatx_ws_topics = None
         client._meshchatx_last_activity = time.monotonic()
         client._meshchatx_binary_rns_link = False
+        # Serializes broadcast writes so two concurrent broadcasts cannot
+        # interleave frames (and their seq ordering) on one socket.
+        client._meshchatx_send_lock = asyncio.Lock()
     except (AttributeError, TypeError):
         pass
     return bucket
+
+
+def get_client_send_lock(client) -> asyncio.Lock:
+    lock = getattr(client, "_meshchatx_send_lock", None)
+    if lock is None:
+        lock = asyncio.Lock()
+        try:
+            client._meshchatx_send_lock = lock
+        except (AttributeError, TypeError):
+            pass
+    return lock
 
 
 def get_client_bucket(client) -> TokenBucket:
@@ -422,7 +436,18 @@ class BroadcastSeqState:
             return n
 
     def gap_hint(self, since_seq: int) -> dict[str, Any]:
-        if since_seq >= self.seq:
+        if since_seq > self.seq:
+            # A cursor ahead of the server cannot come from this process, so
+            # it is stale state from before a restart. Ask for a resync
+            # instead of reporting the client as caught up.
+            return {
+                "status": "gap",
+                "since_seq": since_seq,
+                "current_seq": self.seq,
+                "buffered": 0,
+                "resync": True,
+            }
+        if since_seq == self.seq:
             return {"status": "ok", "since_seq": since_seq, "current_seq": self.seq}
         known = [n for n, _ in self.ring if n > since_seq]
         return {
@@ -434,20 +459,41 @@ class BroadcastSeqState:
         }
 
 
+def _coalesce_key(payload: dict[str, Any]) -> tuple[Any, Any]:
+    """Identity key for a coalesceable payload.
+
+    Keying by message type alone drops a second peer's announce or telemetry
+    that lands inside the window, so the key includes the destination hash
+    when the payload carries one. Payloads without a usable identity get a
+    unique key so they are never overwritten.
+    """
+    t = payload.get("type")
+    ident: Any = None
+    if t == "announce":
+        announce = payload.get("announce")
+        if isinstance(announce, dict):
+            ident = announce.get("destination_hash") or announce.get("identity_hash")
+    if ident is None:
+        ident = payload.get("destination_hash") or payload.get("identity_hash")
+    if ident is None:
+        ident = id(payload)
+    return (t, ident)
+
+
 class CoalesceBuffer:
     """Merge high-frequency announce/telemetry within a short window."""
 
     def __init__(self, flush_cb, window_sec: float = COALESCE_WINDOW_SEC) -> None:
         self._flush_cb = flush_cb
         self._window = window_sec
-        self._pending: dict[str, Any] = {}
+        self._pending: dict[tuple[Any, Any], Any] = {}
         self._task: asyncio.Task | None = None
 
     def offer(self, payload: dict[str, Any]) -> bool:
         t = payload.get("type")
         if t not in COALESCE_TYPES:
             return False
-        self._pending[t] = payload
+        self._pending[_coalesce_key(payload)] = payload
         if self._task is None or self._task.done():
             self._task = asyncio.create_task(self._delayed_flush())
         return True

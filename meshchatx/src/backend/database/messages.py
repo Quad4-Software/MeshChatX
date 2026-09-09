@@ -413,6 +413,16 @@ class MessageDAO:
             (hops, interface_name, now, message_hash),
         )
 
+    # Outbound lifecycle is monotonic: generating -> outbound -> sending ->
+    # sent -> delivered. Terminal states must not regress to in-flight ones;
+    # a stale progress poll could otherwise flip delivered back to sent.
+    _LXMF_TERMINAL_STATES = frozenset(
+        {"delivered", "rejected", "cancelled", "failed"},
+    )
+    _LXMF_PROGRESS_STATES = frozenset(
+        {"generating", "outbound", "sending", "sent"},
+    )
+
     def update_lxmf_message_state(
         self,
         message_hash,
@@ -431,6 +441,18 @@ class MessageDAO:
         data) which the heavy upsert_lxmf_message path does.
         """
         now = datetime.now(UTC).isoformat()
+        existing = self.provider.fetchone(
+            "SELECT state FROM lxmf_messages WHERE hash = ?",
+            (message_hash,),
+        )
+        if (
+            existing
+            and existing.get("state") in self._LXMF_TERMINAL_STATES
+            and state in self._LXMF_PROGRESS_STATES
+        ):
+            # Keep the terminal state but still accept fresh progress,
+            # delivery-attempt, and radio telemetry fields.
+            state = existing["state"]
         if method is None:
             self.provider.execute(
                 "UPDATE lxmf_messages SET state = ?, progress = ?, "
