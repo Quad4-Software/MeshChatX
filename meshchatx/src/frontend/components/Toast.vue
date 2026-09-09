@@ -111,38 +111,43 @@ export default {
             return message;
         },
         add(toast) {
+            // Generate a stable key for unkeyed toasts so identical messages do not
+            // stack into a tower when a retry loop, poll, or watchdog fires repeatedly.
+            let toastKey = toast.key;
+            if (toastKey == null) {
+                toastKey = `__unkeyed:${String(toast.type || "info")}:${String(toast.message || "")}`;
+            }
+
             // Check if a toast with the same key already exists
-            if (toast.key) {
-                const existingIndex = this.toasts.findIndex((t) => t.key === toast.key);
-                if (existingIndex !== -1) {
-                    const existingToast = this.toasts[existingIndex];
+            const existingIndex = this.toasts.findIndex((t) => t.key === toastKey);
+            if (existingIndex !== -1) {
+                const existingToast = this.toasts[existingIndex];
 
-                    // Clear existing timeout if it exists
-                    if (existingToast.timer) {
-                        clearTimeout(existingToast.timer);
-                    }
-
-                    // Update existing toast
-                    existingToast.message = toast.message;
-                    existingToast.type = toast.type || "info";
-                    existingToast.duration = toast.duration !== undefined ? toast.duration : 5000;
-                    existingToast.details = Array.isArray(toast.details) ? toast.details : [];
-
-                    if (existingToast.duration > 0) {
-                        existingToast.timer = setTimeout(() => {
-                            this.remove(existingToast.id);
-                        }, existingToast.duration);
-                    } else {
-                        existingToast.timer = null;
-                    }
-                    return;
+                // Clear existing timeout if it exists
+                if (existingToast.timer) {
+                    clearTimeout(existingToast.timer);
                 }
+
+                // Update existing toast
+                existingToast.message = toast.message;
+                existingToast.type = toast.type || "info";
+                existingToast.duration = toast.duration !== undefined ? toast.duration : 5000;
+                existingToast.details = Array.isArray(toast.details) ? toast.details : [];
+
+                if (existingToast.duration > 0) {
+                    existingToast.timer = setTimeout(() => {
+                        this.remove(existingToast.id);
+                    }, existingToast.duration);
+                } else {
+                    existingToast.timer = null;
+                }
+                return;
             }
 
             const id = this.counter++;
             const newToast = {
                 id,
-                key: toast.key,
+                key: toastKey,
                 message: toast.message,
                 details: Array.isArray(toast.details) ? toast.details : [],
                 type: toast.type || "info",

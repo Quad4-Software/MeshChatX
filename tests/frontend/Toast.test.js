@@ -105,6 +105,18 @@ describe("Toast.vue", () => {
         expect(toasts[1].classes()).toContain("border-sem-danger/30");
     });
 
+    it("replaces an unkeyed toast with the same message and type instead of stacking", async () => {
+        GlobalEmitter.emit("toast", { message: "Syncing", type: "info" });
+        await wrapper.vm.$nextTick();
+
+        GlobalEmitter.emit("toast", { message: "Syncing", type: "info" });
+        await wrapper.vm.$nextTick();
+
+        const toasts = wrapper.findAll(".pointer-events-auto");
+        expect(toasts.length).toBe(1);
+        expect(wrapper.text()).toContain("Syncing");
+    });
+
     it("shows no toasts initially", () => {
         expect(wrapper.findAll(".pointer-events-auto").length).toBe(0);
     });
