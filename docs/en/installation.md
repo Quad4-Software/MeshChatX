@@ -134,6 +134,7 @@ GitHub releases include a meshchatx-py<ver>-linux-<arch>.pyz zipapp built with s
 
 ```bash
 python3.11 ./meshchatx-py311-linux-x64.pyz --headless --host 127.0.0.1
+python3.14 ./meshchatx-py314-linux-x64.pyz --headless --host 127.0.0.1
 ```
 
 First run extracts the dependency cache to ~/.shiv. The PYZ is architecture and Python-version specific; pick the file that matches both the CPU and the interpreter on the host.

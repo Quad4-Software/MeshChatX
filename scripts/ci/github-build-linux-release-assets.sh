@@ -112,17 +112,27 @@ else
     echo "Skipping wheel (SKIP_WHEEL=1)."
 fi
 
+build_pyz() {
+    local pyver="$1"
+    local shebang="/usr/bin/env python${pyver}"
+    local output="release-assets/meshchatx-py${pyver//./}-linux-${NATIVE_ARCH}.pyz"
+    PYZ_PYTHON_VERSION="$pyver" \
+        PYZ_SHEBANG="$shebang" \
+        PYZ_OUTPUT="$output" \
+        SKIP_WHEEL="$2" \
+        bash scripts/build-pyz.sh
+}
+
 if [ "${SKIP_PYZ:-0}" != 1 ]; then
-    echo "Building Python PYZ..."
+    echo "Building Python PYZs..."
     _skip_wheel=0
     if [ "$NATIVE_ARCH" = "x64" ]; then
         _skip_wheel=1
     fi
-    PYZ_PYTHON_VERSION="3.11" \
-        PYZ_SHEBANG="/usr/bin/env python3.11" \
-        PYZ_OUTPUT="release-assets/meshchatx-py311-linux-${NATIVE_ARCH}.pyz" \
-        SKIP_WHEEL="$_skip_wheel" \
-        bash scripts/build-pyz.sh
+    for _py in 3.11 3.14; do
+        build_pyz "$_py" "$_skip_wheel"
+        _skip_wheel=1
+    done
 else
     echo "Skipping Python PYZ (SKIP_PYZ=1)."
 fi
