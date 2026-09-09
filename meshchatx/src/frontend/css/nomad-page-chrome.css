@@ -105,6 +105,49 @@ pre.text-wrap > div > :last-child {
     color: inherit;
 }
 
+/* Opt-in Micron image placeholders. The actual <img> is hidden until the user
+ * or policy allows loading, and the placeholder falls back to a text link when
+ * the client cannot render images. */
+.nodeContainer .mu-image {
+    display: inline-block;
+    border: 1px dashed currentColor;
+    padding: 0.5rem;
+    margin: 0.25rem 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.nodeContainer .mu-image .mu-image-meta {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.nodeContainer .mu-image .mu-image-alt {
+    font-weight: bold;
+}
+
+.nodeContainer .mu-image .mu-image-size {
+    color: #9ca3af;
+    margin-left: 0.5rem;
+}
+
+.nodeContainer .mu-image .mu-image-action {
+    cursor: pointer;
+    text-decoration: underline;
+    color: #60a5fa;
+    margin-right: 0.75rem;
+}
+
+.nodeContainer .mu-image .mu-image-output {
+    display: block;
+    max-width: 100%;
+    margin-top: 0.25rem;
+}
+
+.nodeContainer .mu-image .mu-image-output[hidden] {
+    display: none;
+}
+
 .nodeContainer input[type="text"],
 .nodeContainer input[type="password"] {
     font-family: inherit;

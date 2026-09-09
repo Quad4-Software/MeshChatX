@@ -5,6 +5,84 @@ import { inlineStyleHasNetworkPaint, scrubNetworkCss as scrubNetworkCssBody } fr
 const ALLOWED_URI_REGEXP =
     /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
 
+const MICRON_IMAGE_FORMATTED_SIZE = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 1,
+});
+
+function parseMicronImageOptions(fields) {
+    const options = {
+        img: false,
+        w: null,
+        h: null,
+        size: null,
+        key: "",
+        align: "left",
+        profile: "",
+    };
+    if (!Array.isArray(fields)) {
+        return options;
+    }
+    for (const raw of fields) {
+        if (!raw || typeof raw !== "string") {
+            continue;
+        }
+        const parts = raw.split(";");
+        for (const part of parts) {
+            const idx = part.indexOf("=");
+            if (idx <= 0) {
+                continue;
+            }
+            const k = part.slice(0, idx).trim().toLowerCase();
+            const v = part.slice(idx + 1).trim();
+            if (k === "img") {
+                options.img = ["1", "true", "yes"].includes(v.toLowerCase());
+            } else if (k === "w") {
+                const n = parseInt(v, 10);
+                if (!isNaN(n) && n > 0) {
+                    options.w = n;
+                }
+            } else if (k === "h") {
+                const n = parseInt(v, 10);
+                if (!isNaN(n) && n > 0) {
+                    options.h = n;
+                }
+            } else if (k === "s") {
+                const n = parseInt(v, 10);
+                if (!isNaN(n) && n > 0) {
+                    options.size = n;
+                }
+            } else if (k === "k") {
+                options.key = v;
+            } else if (k === "a") {
+                const av = v.toLowerCase();
+                if (["left", "l"].includes(av)) {
+                    options.align = "left";
+                } else if (["center", "c"].includes(av)) {
+                    options.align = "center";
+                } else if (["right", "r"].includes(av)) {
+                    options.align = "right";
+                }
+            } else if (k === "profile") {
+                options.profile = v;
+            }
+        }
+    }
+    return options;
+}
+
+function formatMicronImageSize(bytes) {
+    if (bytes == null || bytes < 0) {
+        return "";
+    }
+    if (bytes < 1024) {
+        return String(bytes) + " B";
+    }
+    if (bytes < 1024 * 1024) {
+        return MICRON_IMAGE_FORMATTED_SIZE.format(bytes / 1024) + " kB";
+    }
+    return MICRON_IMAGE_FORMATTED_SIZE.format(bytes / (1024 * 1024)) + " MB";
+}
+
 function escapeHtmlForFallback(text) {
     if (text == null) return "";
     return String(text)
@@ -629,6 +707,145 @@ export default class MicronParser extends BaseMicronParser {
             fragment.appendChild(pre);
             return fragment;
         }
+    }
+
+    static parseImageOptions(fields) {
+        return parseMicronImageOptions(fields);
+    }
+
+    parseLink(line, startIndex, state) {
+        const linkData = super.parseLink(line, startIndex, state);
+        if (!linkData || !linkData.obj) {
+            return linkData;
+        }
+        const obj = linkData.obj;
+        if (obj.type === "link" && Array.isArray(obj.fields) && obj.fields.length > 0) {
+            const imgOptions = parseMicronImageOptions(obj.fields);
+            if (imgOptions.img) {
+                const rawUrl = String(obj.url || "").replace(/^nomadnetwork:\/\//, "");
+                const isWebP = rawUrl.toLowerCase().endsWith(".webp");
+                const endpos = line.indexOf("]", startIndex);
+                let originalAlt = "";
+                if (endpos >= 0) {
+                    const linkDataRaw = line.substring(startIndex + 1, endpos);
+                    const linkComponents = linkDataRaw.split("`");
+                    if (linkComponents.length >= 2) {
+                        originalAlt = linkComponents[0];
+                    }
+                }
+                if (originalAlt.trim() && isWebP) {
+                    obj.type = "image";
+                    obj.alt = originalAlt.trim();
+                    obj.rawUrl = rawUrl;
+                    obj.imageOptions = imgOptions;
+                }
+            }
+        }
+        return linkData;
+    }
+
+    appendOutput(container, parts, state) {
+        if (!Array.isArray(parts) || parts.length === 0) {
+            return;
+        }
+        const flushNonImage = (chunk) => {
+            if (chunk.length > 0) {
+                super.appendOutput(container, chunk, state);
+            }
+        };
+        let chunk = [];
+        for (const p of parts) {
+            if (p && p.type === "image") {
+                flushNonImage(chunk);
+                chunk = [];
+                const el = this.createImagePlaceholder(p);
+                if (el) {
+                    container.appendChild(el);
+                }
+            } else {
+                chunk.push(p);
+            }
+        }
+        flushNonImage(chunk);
+    }
+
+    createImagePlaceholder(p) {
+        if (!document) {
+            return null;
+        }
+        const opts = p.imageOptions || {};
+        const alt = p.alt || "";
+        const url = p.rawUrl || "";
+
+        const div = document.createElement("div");
+        div.className = "mu-image";
+        div.setAttribute("data-mu-image-url", url);
+        div.setAttribute("data-mu-image-alt", alt);
+        if (opts.w != null) {
+            div.setAttribute("data-mu-image-w", String(opts.w));
+        }
+        if (opts.h != null) {
+            div.setAttribute("data-mu-image-h", String(opts.h));
+        }
+        if (opts.size != null) {
+            div.setAttribute("data-mu-image-s", String(opts.size));
+        }
+        if (opts.key) {
+            div.setAttribute("data-mu-image-k", opts.key);
+        }
+        if (opts.align) {
+            div.setAttribute("data-mu-image-a", opts.align);
+        }
+        if (opts.profile) {
+            div.setAttribute("data-mu-image-profile", opts.profile);
+        }
+        div.setAttribute("role", "img");
+        div.setAttribute("aria-label", alt);
+
+        if (opts.w != null) {
+            div.style.width = String(opts.w) + "px";
+        }
+        if (opts.h != null) {
+            div.style.minHeight = String(opts.h) + "px";
+        }
+
+        const meta = document.createElement("span");
+        meta.className = "mu-image-meta";
+
+        const altSpan = document.createElement("span");
+        altSpan.className = "mu-image-alt";
+        altSpan.textContent = alt;
+        meta.appendChild(altSpan);
+
+        if (opts.size != null && opts.size > 0) {
+            meta.appendChild(document.createTextNode(" "));
+            const sizeSpan = document.createElement("span");
+            sizeSpan.className = "mu-image-size";
+            sizeSpan.textContent = formatMicronImageSize(opts.size);
+            meta.appendChild(sizeSpan);
+        }
+
+        const actions = document.createElement("span");
+        actions.className = "mu-image-actions";
+
+        const load = document.createElement("a");
+        load.className = "mu-image-action";
+        load.setAttribute("data-mu-image-action", "load");
+        load.setAttribute("role", "button");
+        load.setAttribute("tabindex", "0");
+        load.textContent = "Load image";
+        actions.appendChild(load);
+
+        const img = document.createElement("img");
+        img.className = "mu-image-output";
+        img.setAttribute("alt", alt);
+        img.setAttribute("hidden", "");
+
+        div.appendChild(meta);
+        div.appendChild(actions);
+        div.appendChild(img);
+
+        return div;
     }
 
     parseLine(line, state) {

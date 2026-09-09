@@ -267,7 +267,45 @@ Content at depth 1`;
             expect(html).toContain("Checkbox Label");
         });
 
-        describe("partials", () => {
+        describe("images", () => {
+        it("renders a placeholder for a valid WebP image link", () => {
+            const markup = "`[River valley`:/file/harbour.webp`img=1;w=400;h=267;s=18088]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).toContain('class="mu-image"');
+            expect(html).toContain('data-mu-image-url=":/file/harbour.webp"');
+            expect(html).toContain('data-mu-image-alt="River valley"');
+            expect(html).toContain('data-mu-image-w="400"');
+            expect(html).toContain('data-mu-image-h="267"');
+            expect(html).toContain('data-mu-image-s="18088"');
+            expect(html).toContain("River valley");
+            expect(html).toContain("17.7 kB");
+            expect(html).toContain("Load image");
+            expect(html).toContain('data-mu-image-a="left"');
+        });
+
+        it("falls back to a normal link when img=1 is missing alt text", () => {
+            const markup = "`[`:/file/harbour.webp`img=1]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toContain('class="mu-image"');
+            expect(html).toContain('class="Mu-nl"');
+            expect(html).toContain("/file/harbour.webp");
+        });
+
+        it("falls back to a normal link for non-webp images", () => {
+            const markup = "`[River valley`:/file/harbour.jpg`img=1]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toContain('class="mu-image"');
+            expect(html).toContain('class="Mu-nl"');
+        });
+
+        it("respects alignment from the a= option", () => {
+            const markup = "`[Centre`:/file/c.webp`img=1;a=c]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).toContain('data-mu-image-a="center"');
+        });
+    });
+
+    describe("partials", () => {
             it("emits placeholder for partial line without refresh", () => {
                 const dest = "f64a846313b874ee4a357040807f8c77";
                 const path = "/page/partial_1.mu";
