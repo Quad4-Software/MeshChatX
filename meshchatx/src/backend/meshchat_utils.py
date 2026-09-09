@@ -3,6 +3,7 @@
 import base64
 import contextlib
 import json
+import logging
 import math
 import signal
 import threading
@@ -10,6 +11,8 @@ import threading
 import LXMF
 import RNS.vendor.umsgpack as msgpack
 from LXMF import LXMRouter
+
+logger = logging.getLogger(__name__)
 
 
 def create_lxmf_router(
@@ -102,19 +105,15 @@ def cancel_inbound_deliveries(router, resource_hash: str | None = None) -> dict:
     if router is None:
         return {"ok": False, "error": "router unavailable", "cancelled": 0}
 
-    cleaned = str(resource_hash or "").strip().lower().replace(":", "")
-    if cleaned:
+    if resource_hash:
         if not hasattr(router, "cancel_inbound"):
             return {
                 "ok": False,
                 "error": "inbound delivery cancellation is unavailable",
                 "cancelled": 0,
             }
-        try:
-            hash_bytes = bytes.fromhex(cleaned)
-        except ValueError:
-            return {"ok": False, "error": "invalid resource_hash", "cancelled": 0}
-        if not hash_bytes:
+        hash_bytes = hex_identifier_to_bytes(resource_hash)
+        if hash_bytes is None:
             return {"ok": False, "error": "invalid resource_hash", "cancelled": 0}
         try:
             ok = bool(router.cancel_inbound(hash_bytes))
@@ -123,7 +122,7 @@ def cancel_inbound_deliveries(router, resource_hash: str | None = None) -> dict:
         return {
             "ok": ok,
             "cancelled": 1 if ok else 0,
-            "resource_hash": cleaned,
+            "resource_hash": hash_bytes.hex(),
             "error": None if ok else "resource not active",
         }
 
@@ -361,7 +360,7 @@ def parse_lxmf_display_name(
             if display_name is not None:
                 return _clamp_lxmf_display_name(str(display_name))
     except Exception as e:
-        print(f"Failed to parse LXMF display name: {e}")
+        logger.warning("Failed to parse LXMF display name: %s", e)
 
     return default_value
 
@@ -397,7 +396,7 @@ def parse_lxmf_stamp_cost(app_data_base64: str | bytes | None):
             return None
         return cost_i
     except Exception as e:
-        print(f"Failed to parse LXMF stamp cost: {e}")
+        logger.warning("Failed to parse LXMF stamp cost: %s", e)
         return None
 
 
@@ -416,7 +415,7 @@ def parse_nomadnetwork_node_display_name(
 
         return app_data_bytes.decode("utf-8", errors="replace")
     except Exception as e:
-        print(f"Failed to parse NomadNetwork display name: {e}")
+        logger.warning("Failed to parse NomadNetwork display name: %s", e)
         return default_value
 
 
@@ -441,7 +440,7 @@ def parse_lxmf_propagation_node_app_data(app_data_base64: str | bytes | None):
             "per_transfer_limit": int(data[3]) if data[3] is not None else 0,
         }
     except Exception as e:
-        print(f"Failed to parse LXMF propagation node app data: {e}")
+        logger.warning("Failed to parse LXMF propagation node app data: %s", e)
         return None
 
 
