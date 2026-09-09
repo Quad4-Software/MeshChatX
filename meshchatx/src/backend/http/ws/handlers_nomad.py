@@ -132,7 +132,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 )
 
 
-from meshchatx.src.backend.sticker_utils import detect_image_format_from_magic
 from meshchatx.src.backend.websocket_runtime import (
     WS_NOMAD_CHUNK_SIZE,
     WS_NOMAD_CHUNK_THRESHOLD,
@@ -571,7 +570,9 @@ async def handle_nomadnet_file_download(app, client, data):
 
     rid = _request_id_fields(data)
 
-    page_path = request_data.get("page_path") if isinstance(request_data, dict) else None
+    page_path = (
+        request_data.get("page_path") if isinstance(request_data, dict) else None
+    )
     local_file = app._try_serve_local_page_node_file(
         destination_hash,
         file_path,
@@ -581,7 +582,9 @@ async def handle_nomadnet_file_download(app, client, data):
     )
     if local_file is not None:
         file_name, file_bytes = local_file
-        if _is_nomad_image_request(request_data) and not _validate_nomad_image_bytes(file_bytes):
+        if _is_nomad_image_request(request_data) and not _validate_nomad_image_bytes(
+            file_bytes
+        ):
             await client.send_str(
                 json.dumps(
                     {
@@ -593,7 +596,11 @@ async def handle_nomadnet_file_download(app, client, data):
                             "failure_reason": "invalid_image",
                             "destination_hash": destination_hash_hex,
                             "file_path": file_path,
-                            **({"data": request_data} if request_data is not None else {}),
+                            **(
+                                {"data": request_data}
+                                if request_data is not None
+                                else {}
+                            ),
                         },
                     },
                 ),
@@ -625,7 +632,9 @@ async def handle_nomadnet_file_download(app, client, data):
         # remove from active downloads (callback thread races cancel)
         app.active_downloads.pop(download_id, None)
 
-        if _is_nomad_image_request(request_data) and not _validate_nomad_image_bytes(file_bytes):
+        if _is_nomad_image_request(request_data) and not _validate_nomad_image_bytes(
+            file_bytes
+        ):
             on_file_download_failure("invalid_image")
             return
 

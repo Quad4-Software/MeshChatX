@@ -11119,7 +11119,9 @@ class ReticulumMeshChat:
             return set()
         links = set()
         # Match "hash:/file/..." and relative ":/file/..." WebP links.
-        pattern = re.compile(r"(?:[a-f0-9]{32})?:/file/([^\s)`\"'\\]+\.webp)", re.IGNORECASE)
+        pattern = re.compile(
+            r"(?:[a-f0-9]{32})?:/file/([^\s)`\"'\\]+\.webp)", re.IGNORECASE
+        )
         for m in pattern.finditer(page_content):
             path = m.group(1)
             if not path or ".." in path:
@@ -11144,7 +11146,11 @@ class ReticulumMeshChat:
         }
         self._page_file_grants[key] = {
             "expires": now + ttl,
-            "destinations": {destination_hash.hex(): {page_path: self._extract_page_file_links(page_content)}},
+            "destinations": {
+                destination_hash.hex(): {
+                    page_path: self._extract_page_file_links(page_content)
+                }
+            },
         }
 
     def _check_page_file_grant(
@@ -11185,7 +11191,9 @@ class ReticulumMeshChat:
         if isinstance(request_data, dict) and request_data.get("image_id") is not None:
             if client is None or page_path is None:
                 return None
-            if not self._check_page_file_grant(client, destination_hash, page_path, file_path):
+            if not self._check_page_file_grant(
+                client, destination_hash, page_path, file_path
+            ):
                 return None
 
         for node in self.page_node_manager.nodes.values():

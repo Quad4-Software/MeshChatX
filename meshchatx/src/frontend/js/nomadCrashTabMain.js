@@ -178,9 +178,13 @@ function isAllowedImageDataUrl(url) {
 }
 
 function sanitizeImageErrorReason(reason) {
-    return String(reason ?? "")
-        .replace(/[\x00-\x1f\x7f]/g, "")
-        .slice(0, 120);
+    return [...String(reason ?? "")]
+        .filter((ch) => {
+            const code = ch.charCodeAt(0);
+            return code >= 32 && code !== 127;
+        })
+        .slice(0, 120)
+        .join("");
 }
 
 function escapeSource(content) {
