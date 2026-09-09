@@ -323,13 +323,12 @@ def _existing_dir(path: str | None) -> str | None:
 
 
 def _collect_user_local_cli_roots() -> list[str]:
-    """User-installed CLIs (pipx Argos Translate, rnsh/rnx wrappers, git-remote-rns, etc.)."""
+    """User-installed CLIs (pipx, rnsh/rnx wrappers, git-remote-rns, etc.)."""
     home = os.path.expanduser("~")
     if not home or home == "~":
         return []
     candidates = (
         os.path.join(home, ".local", "bin"),
-        os.path.join(home, ".local", "share", "argos-translate"),
         os.path.join(home, ".local", "share", "pipx"),
     )
     paths: list[str] = []

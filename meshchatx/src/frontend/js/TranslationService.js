@@ -4,8 +4,57 @@ import { BergamotBacking } from "./translation/BergamotBacking.js";
 let translator = null;
 let backing = null;
 
-function baseUrl() {
-    return (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+function apiUrl(path) {
+    const base = import.meta.env.BASE_URL || "/";
+    const origin = typeof window !== "undefined" && window.location ? window.location.origin : "http://localhost";
+    const prefix = `${origin}${base.replace(/\/?$/, "/")}`;
+    return `${prefix}${path.replace(/^\//, "")}`;
+}
+
+function apiClient() {
+    if (typeof window !== "undefined" && window.api) {
+        return window.api;
+    }
+    return null;
+}
+
+async function apiGet(path) {
+    const client = apiClient();
+    if (client?.get) {
+        const res = await client.get(apiUrl(path));
+        return res.data;
+    }
+    const res = await fetch(apiUrl(path));
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+async function apiPost(path, body, config = {}) {
+    const client = apiClient();
+    if (client?.post) {
+        const res = await client.post(apiUrl(path), body, config);
+        return res.data;
+    }
+    const res = await fetch(apiUrl(path), { method: "POST", body });
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+async function apiDelete(path) {
+    const client = apiClient();
+    if (client?.delete) {
+        const res = await client.delete(apiUrl(path));
+        return res.data;
+    }
+    const res = await fetch(apiUrl(path), { method: "DELETE" });
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+    }
+    return res.json();
 }
 
 async function ensureTranslator() {
@@ -30,38 +79,24 @@ export async function refreshPacks() {
 }
 
 export async function listPacks() {
-    const res = await fetch(`${baseUrl()}api/v1/translation/packs`);
-    if (!res.ok) {
-        throw new Error(`Failed to list packs: ${res.status}`);
-    }
-    return (await res.json()).packs || [];
+    const data = await apiGet("/api/v1/translation/packs");
+    return data.packs || [];
 }
 
 export async function importPack(file) {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch(`${baseUrl()}api/v1/translation/packs/import`, {
-        method: "POST",
-        body: form,
+    const data = await apiPost("/api/v1/translation/packs/import", form, {
+        headers: { "Content-Type": "multipart/form-data" },
     });
-    if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Import failed: ${res.status}`);
-    }
     await refreshPacks();
-    return res.json();
+    return data;
 }
 
 export async function removePack(pair) {
-    const res = await fetch(`${baseUrl()}api/v1/translation/packs/${encodeURIComponent(pair)}`, {
-        method: "DELETE",
-    });
-    if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Remove failed: ${res.status}`);
-    }
+    const data = await apiDelete(`/api/v1/translation/packs/${encodeURIComponent(pair)}`);
     await refreshPacks();
-    return res.json();
+    return data;
 }
 
 export async function translate({ from, to, text, html = false, signal = null }) {

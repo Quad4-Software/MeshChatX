@@ -3821,6 +3821,7 @@
         "ctx_reply_quote": "Reply with quote",
         "ctx_mention_user": "Mention user",
         "ctx_copy_message": "Copy message",
+        "ctx_translate_message": "Translate message",
         "ctx_kick_user": "Kick user",
         "ctx_ban_user": "Ban user",
         "tab_discovery": "Discover",

@@ -2254,7 +2254,9 @@ export default {
                 displayNames = { of: (code) => code };
             }
             const opts = (this.translatorLanguages || []).map((l) => {
-                const pair = String(l.code || l.pair || "").toLowerCase().slice(0, 4);
+                const pair = String(l.code || l.pair || "")
+                    .toLowerCase()
+                    .slice(0, 4);
                 const fromName = displayNames.of(l.from || pair.slice(0, 2)) || l.from;
                 const toName = displayNames.of(l.to || pair.slice(2, 4)) || l.to;
                 return {
