@@ -54,7 +54,7 @@ def appcontainer_supported() -> bool:
         return False
 
 
-def _tail(path: Path, n: int = 60) -> str:
+def _tail(path: Path, n: int = 200) -> str:
     if not path.is_file():
         return ""
     try:
@@ -181,7 +181,7 @@ def run_smoke(build_dir: Path) -> int:
                         file=sys.stderr,
                     )
                     print(
-                        f"meshchatx.log tail:\n{_tail(meshchat_log, n=120)}",
+                        f"meshchatx.log tail:\n{_tail(meshchat_log, n=500)}",
                         file=sys.stderr,
                     )
                     return 1
