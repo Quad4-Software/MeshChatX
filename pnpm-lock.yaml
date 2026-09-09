@@ -69,6 +69,9 @@ importers:
 
   .:
     dependencies:
+      '@browsermt/bergamot-translator':
+        specifier: 0.4.9
+        version: 0.4.9
       '@fontsource/noto-sans':
         specifier: ^5.3.0
         version: 5.3.0
@@ -133,9 +136,6 @@ importers:
         specifier: ^4.6.4
         version: 4.6.4(vue@3.5.42(typescript@6.0.3))
     devDependencies:
-      '@browsermt/bergamot-translator':
-        specifier: 0.4.9
-        version: 0.4.9
       '@commitlint/cli':
         specifier: ^21.2.2
         version: 21.2.2(@types/node@24.13.3)(conventional-commits-parser@7.1.2)(typescript@6.0.3)
