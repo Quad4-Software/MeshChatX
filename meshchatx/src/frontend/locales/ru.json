@@ -480,8 +480,6 @@
         "translator": "Переводчик",
         "translator_enabled": "Включить переводчик",
         "translator_description": "Включить функции перевода в разговорах.",
-        "libretranslate_url": "URL LibreTranslate",
-        "libretranslate_url_description": "URL-адрес, по которому доступен API LibreTranslate.",
         "system": "Система",
         "reticulum_stack": "Стек Reticulum",
         "reticulum_stack_description": "Управление базовым сетевым стеком Reticulum.",

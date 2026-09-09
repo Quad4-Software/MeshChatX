@@ -480,8 +480,6 @@
         "translator": "Çevirmen",
         "translator_enabled": "Çevirmeni Etkinleştir",
         "translator_description": "Sohbetlerde çeviri özelliklerini etkinleştir.",
-        "libretranslate_url": "LibreTranslate URL",
-        "libretranslate_url_description": "LibreTranslate API'sinin erişilebilir olduğu URL.",
         "system": "Sistem",
         "reticulum_stack": "Reticulum Stack",
         "reticulum_stack_description": "Altyapıdaki Reticulum Network Stack'i yönetin.",

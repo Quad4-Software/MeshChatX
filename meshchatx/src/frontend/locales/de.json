@@ -480,8 +480,6 @@
         "translator": "Übersetzer",
         "translator_enabled": "Übersetzer aktivieren",
         "translator_description": "Übersetzungsfunktionen in Gesprächen aktivieren.",
-        "libretranslate_url": "LibreTranslate-URL",
-        "libretranslate_url_description": "Die URL, unter der die LibreTranslate-API erreichbar ist.",
         "system": "System",
         "reticulum_stack": "Reticulum-Stack",
         "reticulum_stack_description": "Verwalten Sie den zugrunde liegenden Reticulum Network Stack.",

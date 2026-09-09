@@ -480,8 +480,6 @@
         "translator": "Перекладач",
         "translator_enabled": "Увімкнути перекладача",
         "translator_description": "Увімкніть функції перекладу в розмовах.",
-        "libretranslate_url": "URL LibreTranslate",
-        "libretranslate_url_description": "URL, за яким доступний API LibreTranslate.",
         "system": "Система",
         "reticulum_stack": "Стек Reticulum",
         "reticulum_stack_description": "Керуйте базовим стеком мережі Reticulum.",

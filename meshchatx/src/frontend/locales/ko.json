@@ -480,8 +480,6 @@
         "translator": "번역기",
         "translator_enabled": "번역기 활성화",
         "translator_description": "대화에서 번역 기능을 활성화합니다.",
-        "libretranslate_url": "LibreTranslate URL",
-        "libretranslate_url_description": "LibreTranslate API에 접근할 수 있는 URL입니다.",
         "system": "시스템",
         "reticulum_stack": "Reticulum 스택",
         "reticulum_stack_description": "기반이 되는 Reticulum Network Stack을 관리합니다.",

@@ -480,8 +480,6 @@
         "translator": "Translator",
         "translator_enabled": "Enable Translator",
         "translator_description": "Enable translation features in conversations.",
-        "libretranslate_url": "LibreTranslate URL",
-        "libretranslate_url_description": "The URL where LibreTranslate API is accessible.",
         "system": "System",
         "reticulum_stack": "Reticulum Stack",
         "reticulum_stack_description": "Manage the underlying Reticulum Network Stack.",
