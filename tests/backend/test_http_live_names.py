@@ -55,3 +55,17 @@ def test_async_utils_attribute_access_follows_patch():
     with patch("meshchatx.meshchat.AsyncUtils") as mock_async_utils:
         mock_async_utils.run_async.return_value = "ok"
         assert g["AsyncUtils"].run_async(object()) == "ok"
+
+
+def test_live_name_comparison_and_hash_resolve():
+    name = LiveMeshchatName("MAX_EXPORT_ZOOM")
+    with patch("meshchatx.meshchat.MAX_EXPORT_ZOOM", 22):
+        assert 0 <= name
+        assert name <= 22
+        assert name == 22
+        assert name != 21
+        assert name < 23
+        assert name > 20
+        assert {name: "ok"}[22] == "ok"
+        assert str(name) == "22"
+        assert "MAX_EXPORT_ZOOM" in repr(name)
