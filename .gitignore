@@ -45,6 +45,8 @@ stage/
 /meshchatx/public/
 /electron/build/exe/
 python-dist/
+release-assets/
+release-body.md
 .local/
 maven/
 *.o

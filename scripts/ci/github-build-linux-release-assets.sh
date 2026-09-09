@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Build wheel, Linux AppImage/deb (x64 + arm64), optional RPM/APK, frontend zip, and SBOM under ./release-assets/.
+# Build wheel, Python PYZ, Linux AppImage/deb (x64 + arm64), optional RPM/APK, frontend zip, and SBOM under ./release-assets/.
 # Expects repo root as cwd, dependencies installed (task install / pnpm), and meshchatx/public populated when building Electron.
-# Optional: SKIP_WHEEL=1, SKIP_ELECTRON=1, TRIVY_SBOM=0
+# Optional: SKIP_WHEEL=1, SKIP_PYZ=1, SKIP_ELECTRON=1, TRIVY_SBOM=0
 # Optional: MESHCHATX_LINUX_FORMATS = comma list of appimage,deb,rpm,apk (default: all four)
 set -euo pipefail
 
@@ -110,6 +110,21 @@ if [ "${SKIP_WHEEL:-0}" != 1 ]; then
     fi
 else
     echo "Skipping wheel (SKIP_WHEEL=1)."
+fi
+
+if [ "${SKIP_PYZ:-0}" != 1 ]; then
+    echo "Building Python PYZ..."
+    _skip_wheel=0
+    if [ "$NATIVE_ARCH" = "x64" ]; then
+        _skip_wheel=1
+    fi
+    PYZ_PYTHON_VERSION="3.11" \
+        PYZ_SHEBANG="/usr/bin/env python3.11" \
+        PYZ_OUTPUT="release-assets/meshchatx-py311-linux-${NATIVE_ARCH}.pyz" \
+        SKIP_WHEEL="$_skip_wheel" \
+        bash scripts/build-pyz.sh
+else
+    echo "Skipping Python PYZ (SKIP_PYZ=1)."
 fi
 
 if [ "${SKIP_ELECTRON:-0}" != 1 ]; then

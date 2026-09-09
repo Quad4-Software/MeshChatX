@@ -20,6 +20,7 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 | Docker image               | Yes               | Fast server setup on Linux               |
 | PyPI (reticulum-meshchatx) | Yes               | Headless install without building the UI |
 | Release wheel              | Yes               | Same as PyPI from a GitHub artifact      |
+| Python zipapp (.pyz)       | Yes               | Single-file download for a known Python  |
 | Linux AppImage             | Yes               | Portable desktop on x64 or arm64         |
 | Flatpak                    | Yes               | Desktop from cdn.quad4.io                |
 | Debian .deb                | Yes               | Debian and Ubuntu systems                |
@@ -126,6 +127,16 @@ pip install ./reticulum_meshchatx-*-py3-none-any.whl
 ```
 
 On hosts where `libopus` is installed but `libogg` is not, LXST's vendored pyogg can raise `NameError: c_int_p` on import. MeshChatX applies a ctypes compatibility fix at startup (the same patch Docker runs after install). Optional telephony audio still needs the usual Opus/Ogg system libraries when you use those codecs.
+
+## Python zipapp (.pyz)
+
+GitHub releases include a meshchatx-py<ver>-linux-<arch>.pyz zipapp built with shiv. It contains the web UI, backend, and all dependencies in one file. Run it with the matching Python version:
+
+```bash
+python3.11 ./meshchatx-py311-linux-x64.pyz --headless --host 127.0.0.1
+```
+
+First run extracts the dependency cache to ~/.shiv. The PYZ is architecture and Python-version specific; pick the file that matches both the CPU and the interpreter on the host.
 
 ## From source (git clone)
 
