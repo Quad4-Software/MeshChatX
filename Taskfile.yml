@@ -318,6 +318,7 @@ tasks:
                 tests/backend/test_interface_stats_endpoint.py
                 tests/backend/test_http_auth_security.py
                 tests/backend/test_meshchat_coverage.py
+                tests/backend/test_meshchat_image_file_grant.py
                 tests/backend/test_nomadnet_downloader.py
                 tests/backend/test_rns_link_manager.py
                 tests/backend/test_rns_link_fuzzing.py
