@@ -297,6 +297,18 @@
                         >
                             <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                         </IconButton>
+                        <select
+                            v-if="!isPrivate && selectedNode"
+                            v-model="selectedNodeImageLoadingPolicy"
+                            class="input-field hidden h-8 w-32 text-xs lg:block"
+                            :title="$t('nomadnet.image_loading_policy_title')"
+                        >
+                            <option value="inherit">{{ $t("nomadnet.image_loading_policy_inherit") }}</option>
+                            <option value="never">{{ $t("nomadnet.image_loading_policy_never_short") }}</option>
+                            <option value="manual">{{ $t("nomadnet.image_loading_policy_manual_short") }}</option>
+                            <option value="auto">{{ $t("nomadnet.image_loading_policy_auto_short") }}</option>
+                            <option value="always">{{ $t("nomadnet.image_loading_policy_always_short") }}</option>
+                        </select>
                         <IconButton
                             class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('common.cancel')"
@@ -852,6 +864,7 @@ export default {
             crashTabImages: [],
             nomadImageCache: new Map(),
             nomadImageDownloadCallbacks: {},
+            nomadImagePerNodePolicies: {},
             isCrashTabRendering: false,
             multilineCleanup: null,
             multilineHintVisible: false,
@@ -951,6 +964,31 @@ export default {
                 !this.isCancelledPageContent(this.nodePageContent) &&
                 !this.isFailedPageContent(this.nodePageContent)
             );
+        },
+        selectedNodeImageLoadingPolicy: {
+            get() {
+                const hash = this.selectedNode?.destination_hash;
+                if (!hash) {
+                    return "inherit";
+                }
+                const override = this.nomadImagePerNodePolicies[hash];
+                return this.sanitizeImagePolicy(override) || "inherit";
+            },
+            set(value) {
+                const hash = this.selectedNode?.destination_hash;
+                if (!hash) {
+                    return;
+                }
+                const safe = this.sanitizeImagePolicy(value) || "inherit";
+                const next = { ...this.nomadImagePerNodePolicies };
+                if (safe === "inherit") {
+                    delete next[hash];
+                } else {
+                    next[hash] = safe;
+                }
+                this.nomadImagePerNodePolicies = next;
+                this.saveNomadImagePerNodePolicies();
+            },
         },
         nomadMicronWasmFeatureEffective() {
             return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
@@ -1340,6 +1378,7 @@ export default {
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
         this.refreshMicronWasmReleaseLabel();
+        this.loadNomadImagePerNodePolicies();
 
         this.$watch(
             () => GlobalState.config?.nomad_micron_wasm_enabled,
@@ -2666,16 +2705,44 @@ export default {
             this.loadNomadImage(image, payload.index);
         },
         getNomadImagePolicy(destinationHash) {
-            const key = `nomad_image_policy_${destinationHash || "_global"}`;
-            const perNode = GlobalState.config?.[key];
-            if (perNode === "never" || perNode === "manual" || perNode === "auto" || perNode === "always") {
-                return perNode;
+            const perNode = destinationHash ? this.nomadImagePerNodePolicies[destinationHash] : null;
+            const safePerNode = this.sanitizeImagePolicy(perNode);
+            if (safePerNode) {
+                return safePerNode;
             }
             const global = GlobalState.config?.nomad_image_loading_policy;
-            if (global === "never" || global === "manual" || global === "auto" || global === "always") {
-                return global;
+            const safeGlobal = this.sanitizeImagePolicy(global);
+            return safeGlobal || "manual";
+        },
+        sanitizeImagePolicy(value) {
+            const policy = String(value || "")
+                .trim()
+                .toLowerCase();
+            if (["never", "manual", "auto", "always"].includes(policy)) {
+                return policy;
             }
-            return "manual";
+            return null;
+        },
+        loadNomadImagePerNodePolicies() {
+            try {
+                const raw = localStorage.getItem("meshchatx.nomad.image_per_node_policies");
+                const parsed = raw ? JSON.parse(raw) : {};
+                if (parsed && typeof parsed === "object") {
+                    this.nomadImagePerNodePolicies = parsed;
+                }
+            } catch {
+                this.nomadImagePerNodePolicies = {};
+            }
+        },
+        saveNomadImagePerNodePolicies() {
+            try {
+                localStorage.setItem(
+                    "meshchatx.nomad.image_per_node_policies",
+                    JSON.stringify(this.nomadImagePerNodePolicies)
+                );
+            } catch {
+                // Local storage may be unavailable or full.
+            }
         },
         cancelStaleImageDownloads() {
             for (const id of Object.keys(this.nomadImageDownloadCallbacks)) {
