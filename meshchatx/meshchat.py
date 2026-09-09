@@ -733,7 +733,9 @@ class ReticulumMeshChat:
         self._page_file_grants: dict[int, dict] = {}
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
-        from meshchatx.src.backend.translation_pack_manager import TranslationPackManager
+        from meshchatx.src.backend.translation_pack_manager import (
+            TranslationPackManager,
+        )
 
         self.translation_pack_manager = TranslationPackManager(self.storage_dir)
         self.page_node_manager = PageNodeManager(
@@ -1379,6 +1381,11 @@ class ReticulumMeshChat:
         unicode_result = self_check_mod.check_unicode_path(storage_base)
         rnode_result = self_check_mod.check_rnode_support()
         bot_launcher_result = self_check_mod.check_bot_launcher()
+        umsgpack_result = self_check_mod.check_umsgpack_roundtrip()
+        lxst_telephony_result = self_check_mod.check_lxst_telephony()
+        audio_codec_result = self_check_mod.check_audio_codec_roundtrip()
+        miniaudio_result = self_check_mod.check_miniaudio_decode()
+        translation_pack_result = self_check_mod.check_translation_pack_import()
         plugins_runtime_result = self_check_mod.check_plugins_runtime(self)
         web_results = self_check_mod.check_web_stack(self)
 
@@ -1401,13 +1408,18 @@ class ReticulumMeshChat:
             },
             "identity_good": identity_result,
             "imports_good": imports_result,
+            "umsgpack_roundtrip": umsgpack_result,
             "storage_lock_good": storage_lock_result,
             "temp_fs_good": temp_fs_result,
             "fs_sandbox_good": fs_sandbox_result,
             "public_assets_good": public_assets_result,
             "lxmf_router_good": lxmf_result,
+            "lxst_telephony": lxst_telephony_result,
             "subprocess_good": subprocess_result,
             "run_module_good": run_module_result,
+            "audio_codec_roundtrip": audio_codec_result,
+            "miniaudio_decode": miniaudio_result,
+            "translation_pack_import": translation_pack_result,
             "sqlite_roundtrip": sqlite_result,
             "identity_roundtrip": identity_file_result,
             "loopback_tcp": loopback_result,

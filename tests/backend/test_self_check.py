@@ -158,6 +158,35 @@ def test_check_bot_launcher_ok():
     assert self_check.check_bot_launcher()["status"] == "ok"
 
 
+def test_check_umsgpack_roundtrip_ok():
+    result = self_check.check_umsgpack_roundtrip()
+    assert result["status"] == "ok", result.get("reason")
+
+
+def test_check_lxst_telephony_ok():
+    pytest.importorskip("LXST")
+    result = self_check.check_lxst_telephony()
+    assert result["status"] == "ok", result.get("reason")
+
+
+def test_check_audio_codec_roundtrip_ok():
+    pytest.importorskip("LXST")
+    pytest.importorskip("miniaudio")
+    result = self_check.check_audio_codec_roundtrip()
+    assert result["status"] == "ok", result.get("reason")
+
+
+def test_check_miniaudio_decode_ok():
+    pytest.importorskip("miniaudio")
+    result = self_check.check_miniaudio_decode()
+    assert result["status"] == "ok", result.get("reason")
+
+
+def test_check_translation_pack_import_ok():
+    result = self_check.check_translation_pack_import()
+    assert result["status"] == "ok", result.get("reason")
+
+
 def test_check_plugins_runtime_ok(mock_app):
     result = self_check.check_plugins_runtime(mock_app)
     assert result["status"] == "ok", result.get("reason")

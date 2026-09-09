@@ -511,7 +511,8 @@ jobs:
               shell: bash
               run: |
                   # Exercises storage_lock_good (native flock/msvcrt + soft ENOSYS
-                  # fallback) and the rest of SELF_CHECK_LABELS on each OS.
+                  # fallback), umsgpack roundtrip, LXST telephony, and the rest of
+                  # SELF_CHECK_LABELS on each OS.
                   # Overall exit may be non-zero when optional host-local checks
                   # fail (missing Reticulum config, identity fixtures). Gate on
                   # the checks this job cares about via grep.
@@ -520,3 +521,8 @@ jobs:
                   grep -E '^\[OK\][[:space:]]+Storage Lock' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+FS Sandbox Modules' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+HTTP Server Security' self-check-out.txt
+                  grep -E '^\[OK\][[:space:]]+Umsgpack Roundtrip' self-check-out.txt
+                  grep -E '^\[OK\][[:space:]]+LXST Telephony' self-check-out.txt
+                  grep -E '^\[OK\][[:space:]]+Audio Codec Roundtrip' self-check-out.txt
+                  grep -E '^\[OK\][[:space:]]+Miniaudio Decode' self-check-out.txt
+                  grep -E '^\[OK\][[:space:]]+Translation Pack Import' self-check-out.txt
