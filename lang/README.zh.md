@@ -37,7 +37,7 @@ make install && make build && make run
 
 详情见 [`docs/en/installation.md`](../docs/en/installation.md)。
 
-本仓库当前版本: `4.8.8`。
+本仓库当前版本: `4.8.9`。
 
 ## 安全、许可与致谢
 

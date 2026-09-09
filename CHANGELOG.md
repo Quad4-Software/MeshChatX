@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.8.9] - 2026-09-09 [released]
+
+### Fixed
+
+- Re-releases the LXMF inbound attachment rejection fix from 4.8.8 with corrected test lint. The delivery resource policy no longer treats the local `lxmf.delivery` identity as the sender, so large messages transfer before the backchannel identifies the remote peer. Closes #94.
+
 ## [4.8.8] - 2026-09-09 [released]
 
 ### Fixed
