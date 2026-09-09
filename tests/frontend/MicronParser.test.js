@@ -303,6 +303,28 @@ Content at depth 1`;
             const html = parser.convertMicronToHtml(markup);
             expect(html).toContain('data-mu-image-a="center"');
         });
+
+        it("preserves key and profile metadata", () => {
+            const markup = "`[Map`:/file/m.webp`img=1;k=map1;profile=fast]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).toContain('data-mu-image-k="map1"');
+            expect(html).toContain('data-mu-image-profile="fast"');
+        });
+
+        it("ignores unknown image option fields", () => {
+            const markup = "`[x`:/file/x.webp`img=1;foo=bar;w=abc;h=-1]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).toContain('class="mu-image"');
+            expect(html).not.toContain('data-mu-image-w');
+            expect(html).not.toContain('data-mu-image-h');
+        });
+
+        it("treats img=0 as a normal link", () => {
+            const markup = "`[x`:/file/x.webp`img=0]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toContain('class="mu-image"');
+            expect(html).toContain('class="Mu-nl"');
+        });
     });
 
     describe("partials", () => {

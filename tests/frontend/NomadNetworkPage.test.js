@@ -1482,4 +1482,62 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("image support", () => {
+        it("resolves a relative image URL to the selected node", () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            const resolved = wrapper.vm.resolveNomadImageDestination(":/file/img.webp");
+            expect(resolved.destinationHash).toBe(hash);
+            expect(resolved.filePath).toBe("/file/img.webp");
+        });
+
+        it("resolves an absolute image URL with destination hash", () => {
+            const hash = "a".repeat(32);
+            const other = "b".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            const resolved = wrapper.vm.resolveNomadImageDestination(`${other}:/file/img.webp`);
+            expect(resolved.destinationHash).toBe(other);
+            expect(resolved.filePath).toBe("/file/img.webp");
+        });
+
+        it("maps unknown policy values to manual", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.config = { nomad_image_loading_policy: "bogus" };
+            expect(wrapper.vm.getNomadImagePolicy()).toBe("manual");
+        });
+
+        it("sends a file download with image metadata", async () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            wrapper.vm.crashTabImages = [
+                {
+                    url: ":/file/img.webp",
+                    alt: "test",
+                    w: "100",
+                    h: "50",
+                    size: null,
+                    key: "",
+                    align: "left",
+                    profile: "fast",
+                },
+            ];
+            wrapper.vm.setCrashTabImage = vi.fn();
+            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
+            const calls = WebSocketConnection.send.mock.calls.filter((c) =>
+                String(c[0]).includes('"nomadnet.file.download"')
+            );
+            expect(calls.length).toBe(1);
+            const payload = JSON.parse(calls[0][0]);
+            expect(payload.nomadnet_file_download.destination_hash).toBe(hash);
+            expect(payload.nomadnet_file_download.file_path).toBe("/file/img.webp");
+            expect(payload.nomadnet_file_download.data.image_id).toBe(0);
+            expect(payload.nomadnet_file_download.data.image_profile).toBe("fast");
+        });
+    });
 });
