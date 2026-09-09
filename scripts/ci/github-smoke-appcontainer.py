@@ -143,10 +143,12 @@ def run_smoke(build_dir: Path) -> int:
             "--reticulum-config-dir",
             str(reticulum),
         ]
-        log_path = tmp / "backend.log"
+        meshchat_log = logs / "meshchatx.log"
         env = os.environ.copy()
         env["MESHCHAT_LOG_DIR"] = str(logs)
-        with open(log_path, "w", encoding="utf-8") as log_handle:
+        # Keep console output as well for child/launcher diagnostics.
+        console_log = tmp / "console.log"
+        with open(console_log, "w", encoding="utf-8") as log_handle:
             proc = subprocess.Popen(
                 args,
                 stdout=log_handle,
@@ -154,7 +156,12 @@ def run_smoke(build_dir: Path) -> int:
                 env=env,
             )  # noqa: S603
         try:
-            data = wait_for_security(DEFAULT_PORT, STARTUP_TIMEOUT, proc, log_path)
+            data = wait_for_security(
+                DEFAULT_PORT,
+                STARTUP_TIMEOUT,
+                proc,
+                meshchat_log,
+            )
 
             required = (
                 "appcontainer_supported",
@@ -170,7 +177,11 @@ def run_smoke(build_dir: Path) -> int:
                         file=sys.stderr,
                     )
                     print(
-                        f"backend log tail:\n{_tail(log_path, n=120)}",
+                        f"console log tail:\n{_tail(console_log, n=40)}",
+                        file=sys.stderr,
+                    )
+                    print(
+                        f"meshchatx.log tail:\n{_tail(meshchat_log, n=120)}",
                         file=sys.stderr,
                     )
                     return 1
