@@ -12,6 +12,7 @@ export const SETTINGS_TABS = [
         descriptionKey: "settings.tabs.general_desc",
         sections: [
             "language",
+            "translation",
             "appearance",
             "battery",
             "experimentalLive",
