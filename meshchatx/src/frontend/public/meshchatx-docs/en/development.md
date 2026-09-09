@@ -98,14 +98,7 @@ Prerelease retention: keep about 7 Testing and 5 Beta GitHub prereleases (script
 
 Locale discovery is automatic. Add a file under meshchatx/src/frontend/locales/ (for example xx.json) with the same keys as en.json and a top-level _languageName string for the selector label. Copy en.json and translate the values. Machine-assisted generation is optional.
 
-For a machine-generated first draft from en.json, use scripts/argos_translate.py. It keeps interpolation variables such as `{count}` intact.
-
-```bash
-pipx install argostranslate
-python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Your Language Name"
-```
-
-After a machine pass, have an LLM or a human check grammar, context, and tone.
+For a machine-generated first draft from en.json, use any offline-capable tool you prefer and keep interpolation variables such as `{count}` intact. After a machine pass, have an LLM or a human check grammar, context, and tone.
 
 ```bash
 pnpm test -- tests/frontend/i18n.test.js --run
