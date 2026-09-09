@@ -733,6 +733,9 @@ class ReticulumMeshChat:
         self._page_file_grants: dict[int, dict] = {}
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
+        from meshchatx.src.backend.translation_pack_manager import TranslationPackManager
+
+        self.translation_pack_manager = TranslationPackManager(self.storage_dir)
         self.page_node_manager = PageNodeManager(
             self.storage_dir,
             on_announce=self._register_local_page_node_announce,
@@ -1072,15 +1075,6 @@ class ReticulumMeshChat:
     def rnprobe_handler(self, value):
         if self.current_context:
             self.current_context.rnprobe_handler = value
-
-    @property
-    def translator_handler(self):
-        return self.current_context.translator_handler if self.current_context else None
-
-    @translator_handler.setter
-    def translator_handler(self, value):
-        if self.current_context:
-            self.current_context.translator_handler = value
 
     @property
     def bot_handler(self):
@@ -7055,48 +7049,6 @@ class ReticulumMeshChat:
                 self._parse_bool(data["telephone_web_audio_allow_fallback"]),
             )
 
-        if "translator_argos_enabled" in data:
-            v = self._parse_bool(data["translator_argos_enabled"])
-            self.config.translator_argos_enabled.set(v)
-            if hasattr(self, "translator_handler"):
-                self.translator_handler.translator_argos_enabled = v
-
-        if "translator_libretranslate_enabled" in data:
-            v = self._parse_bool(data["translator_libretranslate_enabled"])
-            self.config.translator_libretranslate_enabled.set(v)
-            if hasattr(self, "translator_handler"):
-                self.translator_handler.translator_libretranslate_enabled = v
-
-        if "translator_enabled" in data:
-            v = self._parse_bool(data["translator_enabled"])
-            self.config.translator_argos_enabled.set(v)
-            self.config.translator_libretranslate_enabled.set(v)
-            if hasattr(self, "translator_handler"):
-                th = self.translator_handler
-                th.translator_argos_enabled = v
-                th.translator_libretranslate_enabled = v
-
-        if "libretranslate_url" in data:
-            value = data["libretranslate_url"]
-            self.config.libretranslate_url.set(value)
-            if hasattr(self, "translator_handler"):
-                self.translator_handler.libretranslate_url = value
-
-        if "libretranslate_api_key" in data:
-            from meshchatx.src.backend.translator_handler import (
-                _normalize_optional_libretranslate_api_key,
-            )
-
-            raw = data["libretranslate_api_key"]
-            if raw is None or raw == "":
-                norm = None
-            else:
-                norm = _normalize_optional_libretranslate_api_key(str(raw))
-
-            self.config.libretranslate_api_key.set(norm)
-            if hasattr(self, "translator_handler"):
-                self.translator_handler.libretranslate_api_key = norm
-
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
         if "multi_session_warning_enabled" in data:
@@ -7913,10 +7865,9 @@ class ReticulumMeshChat:
             "message_inbound_bubble_color": ctx.config.message_inbound_bubble_color.get(),
             "message_failed_bubble_color": ctx.config.message_failed_bubble_color.get(),
             "message_waiting_bubble_color": ctx.config.message_waiting_bubble_color.get(),
-            "translator_argos_enabled": ctx.config.translator_argos_enabled.get(),
-            "translator_libretranslate_enabled": ctx.config.translator_libretranslate_enabled.get(),
-            "libretranslate_url": ctx.config.libretranslate_url.get(),
-            "libretranslate_api_key": ctx.config.libretranslate_api_key.get(),
+            "translation_enabled": ctx.config.translation_enabled.get(),
+            "translation_default_source_lang": ctx.config.translation_default_source_lang.get(),
+            "translation_default_target_lang": ctx.config.translation_default_target_lang.get(),
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
             "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),

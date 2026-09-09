@@ -1683,6 +1683,7 @@ import StickerView from "../stickers/StickerView.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import TelemetryHistoryModal from "./telemetry/TelemetryHistoryModal.vue";
 import { uuidv4 } from "../../libs/uuid.js";
+import * as TranslationService from "../../js/TranslationService.js";
 
 export default {
     name: "ConversationViewer",
@@ -2245,19 +2246,27 @@ export default {
             return h.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24) || "default";
         },
         translateTargetSelectOptions() {
-            const seen = new Map();
-            for (const l of this.translatorLanguages || []) {
-                if (l && l.code) {
-                    const c = String(l.code).toLowerCase().slice(0, 8);
-                    if (!seen.has(c)) {
-                        const name = l.name || c;
-                        seen.set(c, { value: c, label: `${name} (${c})` });
-                    }
-                }
+            const userLocale = (this.config?.locale || navigator.language || "en").slice(0, 2);
+            let displayNames;
+            try {
+                displayNames = new Intl.DisplayNames([userLocale], { type: "language" });
+            } catch {
+                displayNames = { of: (code) => code };
             }
-            return Array.from(seen.values()).sort((a, b) =>
-                a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
-            );
+            const opts = (this.translatorLanguages || []).map((l) => {
+                const pair = String(l.code || l.pair || "")
+                    .toLowerCase()
+                    .slice(0, 4);
+                const fromName = displayNames.of(l.from || pair.slice(0, 2)) || l.from;
+                const toName = displayNames.of(l.to || pair.slice(2, 4)) || l.to;
+                return {
+                    value: pair,
+                    label: `${fromName} → ${toName}`,
+                    from: l.from || pair.slice(0, 2),
+                    to: l.to || pair.slice(2, 4),
+                };
+            });
+            return opts.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
         },
     },
     watch: {
@@ -2633,23 +2642,18 @@ export default {
             }
         },
         async checkTranslator() {
-            const argosOn = this.config?.translator_argos_enabled;
-            const libreOn = this.config?.translator_libretranslate_enabled;
-            if (!argosOn && !libreOn) {
-                this.hasTranslator = false;
-                this.translatorLanguages = [];
-                return;
-            }
             try {
-                const response = await window.api.get("/api/v1/translator/languages");
-                const raw = response.data.languages || [];
-                this.translatorLanguages = raw.filter(
-                    (lang) => (lang.source === "argos" && argosOn) || (lang.source === "libretranslate" && libreOn)
-                );
+                const packs = await TranslationService.listPacks();
+                this.translatorLanguages = packs.map((p) => ({
+                    code: p.pair,
+                    from: p.from,
+                    to: p.to,
+                }));
                 this.hasTranslator = this.translatorLanguages.length > 0;
             } catch (e) {
                 console.log("Failed to check translator:", e);
                 this.hasTranslator = false;
+                this.translatorLanguages = [];
             }
         },
         normalizedLocaleCode(loc) {
@@ -2665,14 +2669,7 @@ export default {
             return c.slice(0, 2);
         },
         composeSourceLangForTranslate() {
-            const cfg = this.config;
-            const a = cfg?.translator_argos_enabled;
-            const l = cfg?.translator_libretranslate_enabled;
-            if (!a && !l) {
-                return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
-            }
-
-            return "auto";
+            return this.normalizedLocaleCode(this.config?.language || this.$i18n.locale) || "en";
         },
         _readSavedTranslateTargetLang() {
             let v = null;
@@ -2703,52 +2700,21 @@ export default {
             }
         },
         defaultTranslateTargetForModal() {
-            const source = String(this.composeSourceLangForTranslate() || "").toLowerCase();
-            const opts = this.translateTargetSelectOptions;
-            if (!opts.length) {
-                return "en";
-            }
-            const fromStorage = this._readSavedTranslateTargetLang();
-            if (fromStorage && opts.some((o) => o.value === fromStorage) && fromStorage !== source) {
-                return fromStorage;
-            }
-            const diff = opts.find((o) => o.value !== source);
-            if (diff) {
-                return diff.value;
-            }
-            return opts[0].value;
-        },
-        defaultBubbleTranslateTargetForModal() {
-            const source = this._bubbleTranslateSourcePreview();
             const opts = this.translateTargetSelectOptions;
             if (!opts.length) {
                 return "en";
             }
             const fromStorage = this._readSavedTranslateTargetLang();
             if (fromStorage && opts.some((o) => o.value === fromStorage)) {
-                if (String(source).toLowerCase() === "auto") {
-                    return fromStorage;
-                }
-                const s2 = String(source).toLowerCase().slice(0, 2);
-                if (fromStorage !== s2) {
-                    return fromStorage;
-                }
+                return fromStorage;
             }
-            if (String(source).toLowerCase() === "auto") {
-                return opts[0].value;
-            }
-            const s2 = String(source).toLowerCase().slice(0, 2);
-            const diff = opts.find((o) => o.value !== s2);
-            return diff ? diff.value : opts[0].value;
+            return opts[0].value;
+        },
+        defaultBubbleTranslateTargetForModal() {
+            return this.defaultTranslateTargetForModal();
         },
         _bubbleTranslateSourcePreview() {
-            const cfg = this.config;
-            const a = cfg?.translator_argos_enabled;
-            const l = cfg?.translator_libretranslate_enabled;
-            if (!a && !l) {
-                return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
-            }
-            return "auto";
+            return this.normalizedLocaleCode(this.config?.language || this.$i18n.locale) || "en";
         },
         onTranslateTargetBarClickOutside() {
             if (this.isTranslateTargetModalWorking) {
@@ -2845,29 +2811,25 @@ export default {
             }
             return true;
         },
-        async applyComposeTranslation(targetLang) {
+        async applyComposeTranslation(targetPair) {
             if (!this.newMessageText?.trim()) {
                 return;
             }
-            const cfg = this.config;
-            const a = cfg?.translator_argos_enabled;
-            const l = cfg?.translator_libretranslate_enabled;
-            if (!a && !l) {
+            if (!this.hasTranslator) {
                 return;
             }
-            const useArgos = Boolean(a) && !l;
-            const target = String(targetLang).toLowerCase().slice(0, 8);
-            const source_lang = "auto";
+            const pair = String(targetPair).toLowerCase().slice(0, 4);
+            const source = pair.slice(0, 2);
+            const target = pair.slice(2, 4);
             this.isTranslatingMessage = true;
             try {
-                const response = await window.api.post("/api/v1/translator/translate", {
+                const result = await TranslationService.translate({
+                    from: source,
+                    to: target,
                     text: this.newMessageText,
-                    source_lang,
-                    target_lang: target,
-                    use_argos: useArgos,
                 });
-                if (response.data.translated_text) {
-                    this.newMessageText = response.data.translated_text;
+                if (result?.target?.text) {
+                    this.newMessageText = result.target.text;
                     this.$nextTick(() => {
                         this.adjustTextareaHeight();
                     });
@@ -2880,44 +2842,39 @@ export default {
                 this.isTranslatingMessage = false;
             }
         },
-        async applyBubbleMessageTranslation(chatItem, targetLang) {
+        async applyBubbleMessageTranslation(chatItem, targetPair) {
             const hash = chatItem?.lxmf_message?.hash;
             const text = this.copyableMessagePlainText(chatItem);
             if (!hash || !text) {
                 return;
             }
-            const cfg = this.config;
-            const a = cfg?.translator_argos_enabled;
-            const l = cfg?.translator_libretranslate_enabled;
-            if (!a && !l) {
+            if (!this.hasTranslator) {
                 return;
             }
-            const useArgos = Boolean(a) && !l;
-            const target = String(targetLang).toLowerCase().slice(0, 8);
-            const source_lang = "auto";
+            const pair = String(targetPair).toLowerCase().slice(0, 4);
+            const source = pair.slice(0, 2);
+            const target = pair.slice(2, 4);
             this.messageBubbleTranslation[hash] = {
                 loading: true,
                 showOriginal: false,
                 translatedText: "",
-                resolvedSourceLang: "",
+                resolvedSourceLang: source,
                 targetLang: target,
                 source: "",
             };
             try {
-                const response = await window.api.post("/api/v1/translator/translate", {
+                const result = await TranslationService.translate({
+                    from: source,
+                    to: target,
                     text,
-                    source_lang,
-                    target_lang: target,
-                    use_argos: useArgos,
                 });
-                const data = response.data;
                 this.messageBubbleTranslation[hash] = {
                     loading: false,
                     showOriginal: false,
-                    translatedText: data.translated_text || "",
-                    resolvedSourceLang: data.source_lang || source_lang,
-                    targetLang: data.target_lang || target,
-                    source: data.source || "",
+                    translatedText: result?.target?.text || "",
+                    resolvedSourceLang: source,
+                    targetLang: target,
+                    source: "",
                 };
             } catch (e) {
                 delete this.messageBubbleTranslation[hash];

@@ -82,14 +82,14 @@ def test_extract_and_collect_network_endpoints(tmp_path):
         "permissions": {"network": "fetch"},
         "network": {
             "endpoints": [
-                "https://libretranslate.com/",
-                "User-configured LibreTranslate instance URL",
+                "https://translate.example.com/",
+                "User-configured translation instance URL",
             ],
         },
     }
     endpoints = collect_network_endpoints(manifest, str(plugin_dir))
-    assert "https://libretranslate.com/" in endpoints
-    assert "User-configured LibreTranslate instance URL" in endpoints
+    assert "https://translate.example.com/" in endpoints
+    assert "User-configured translation instance URL" in endpoints
     assert any("translate.example.org" in item for item in endpoints)
     assert requires_network_fetch(manifest, endpoints) is True
 

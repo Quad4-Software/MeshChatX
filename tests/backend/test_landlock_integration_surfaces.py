@@ -24,28 +24,13 @@ def test_collect_user_local_cli_roots_expected_layout(tmp_path, monkeypatch):
     home = tmp_path / "home"
     local_bin = home / ".local" / "bin"
     pipx = home / ".local" / "share" / "pipx"
-    argos = home / ".local" / "share" / "argos-translate"
     local_bin.mkdir(parents=True)
     pipx.mkdir(parents=True)
-    argos.mkdir(parents=True)
     monkeypatch.setenv("HOME", str(home))
 
     roots = set(ll._collect_user_local_cli_roots())
     assert str(local_bin) in roots
     assert str(pipx) in roots
-    assert str(argos) in roots
-
-
-def test_collect_rw_roots_includes_argos_share_when_present(tmp_path, monkeypatch):
-    home = tmp_path / "home"
-    argos = home / ".local" / "share" / "argos-translate"
-    argos.mkdir(parents=True)
-    monkeypatch.setenv("HOME", str(home))
-
-    storage = tmp_path / "storage"
-    storage.mkdir()
-    rw = ll._collect_rw_roots(str(storage), None, str(storage))
-    assert str(argos) in rw
 
 
 @requires_landlock_integration
@@ -160,145 +145,13 @@ def test_landlock_self_check_subprocess_spawn_helper():
 
 
 @requires_landlock_integration
-def test_landlock_translator_handler_lists_argos_languages(tmp_path):
-    storage = tmp_path / "storage"
-    storage.mkdir()
-    result = run_python_under_landlock(
-        """
-        import sys
-        from meshchatx.src.backend.translator_handler import TranslatorHandler
-
-        handler = TranslatorHandler(translator_argos_enabled=True)
-        if not handler.has_argos:
-            print("SKIP_NO_ARGOS")
-            sys.exit(0)
-        resp = handler.get_translator_languages_response()
-        argos = [x for x in resp["languages"] if x.get("source") == "argos"]
-        if not argos:
-            print("EMPTY_ARGOS_LANGS has_lib", handler.has_argos_lib, "has_cli", handler.has_argos_cli)
-            sys.exit(4)
-        print("OK", len(argos))
-        sys.exit(0)
-        """,
-        storage=storage,
-        timeout=120,
-    )
-    skip_if_landlock_not_applied(result)
-    if "SKIP_NO_ARGOS" in (result.stdout or ""):
-        pytest.skip("Argos Translate not installed on this host")
-    assert_probe_ok(result)
-
-
-@requires_landlock_integration
-def test_landlock_argospm_list_when_installed(tmp_path):
-    if not shutil.which("argospm"):
-        pytest.skip("argospm not on PATH")
-    storage = tmp_path / "storage"
-    storage.mkdir()
-    result = run_python_under_landlock(
-        """
-        import subprocess
-        import sys
-
-        proc = subprocess.run(
-            ["argospm", "list"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-        if proc.returncode != 0:
-            print("ARGOSPM_FAIL", proc.stderr or proc.stdout)
-            sys.exit(3)
-        if not (proc.stdout or "").strip():
-            print("ARGOSPM_EMPTY")
-            sys.exit(4)
-        print("OK")
-        sys.exit(0)
-        """,
-        storage=storage,
-    )
-    assert_probe_ok(result)
-
-
-@requires_landlock_integration
-def test_landlock_argos_translate_cli_when_installed(tmp_path):
-    executable = shutil.which("argos-translate")
-    if not executable:
-        pytest.skip("argos-translate not on PATH")
-    storage = tmp_path / "storage"
-    storage.mkdir()
-    result = run_python_under_landlock(
-        f"""
-        import subprocess
-        import sys
-
-        proc = subprocess.run(
-            [{executable!r}, "--from-lang", "en", "--to-lang", "ru", "hello"],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-        )
-        if proc.returncode != 0:
-            print("TRANSLATE_FAIL", proc.stderr or proc.stdout)
-            sys.exit(3)
-        if not (proc.stdout or "").strip():
-            print("TRANSLATE_EMPTY")
-            sys.exit(4)
-        print("OK")
-        sys.exit(0)
-        """,
-        storage=storage,
-        timeout=180,
-    )
-    skip_if_landlock_not_applied(result)
-    if result.returncode != 0 and "translate-en_ru" in (
-        result.stdout or result.stderr or ""
-    ):
-        pytest.skip("translate-en_ru package not installed")
-    assert_probe_ok(result)
-
-
-@requires_landlock_integration
-def test_landlock_argos_share_allows_stanza_style_temp_dir(tmp_path):
-    home = os.path.expanduser("~")
-    argos_share = os.path.join(home, ".local", "share", "argos-translate")
-    if not os.path.isdir(argos_share):
-        pytest.skip("Argos data directory not present")
-    storage = tmp_path / "storage"
-    storage.mkdir()
-    result = run_python_under_landlock(
-        f"""
-        import os
-        import sys
-        import tempfile
-
-        base = {argos_share!r}
-        with tempfile.TemporaryDirectory(dir=base) as td:
-            path = os.path.join(td, "probe.txt")
-            with open(path, "w", encoding="utf-8") as handle:
-                handle.write("ok")
-        print("OK")
-        sys.exit(0)
-        """,
-        storage=storage,
-    )
-    assert_probe_ok(result)
-
-
-@requires_landlock_integration
 def test_landlock_user_local_bin_script_executable(tmp_path):
     local_bin = os.path.join(os.path.expanduser("~"), ".local", "bin")
     if not os.path.isdir(local_bin):
         pytest.skip("~/.local/bin not present")
     # Pipx-style CLIs only. git-remote-rns imports RNS at startup and is not a
     # generic --help smoke target for Landlock execute permission.
-    preferred = (
-        ("argospm", ["--help"]),
-        ("argos-translate", ["--help"]),
-        ("argostranslate", ["--help"]),
-    )
+    preferred = ()
     cmd = None
     cmd_argv = None
     for name, extra_argv in preferred:
@@ -452,10 +305,6 @@ def test_landlock_executable_page_script_spawn(tmp_path):
     [
         ("local_bin", lambda home: os.path.join(home, ".local", "bin")),
         ("pipx", lambda home: os.path.join(home, ".local", "share", "pipx")),
-        (
-            "argos_share",
-            lambda home: os.path.join(home, ".local", "share", "argos-translate"),
-        ),
     ],
 )
 def test_read_roots_cover_user_local_paths_when_present(path_name, collector):
@@ -492,6 +341,42 @@ def test_landlock_allows_sysfs_tty_and_pyserial_comports(tmp_path):
 
         ports = list_ports.comports()
         print("OK", len(ports))
+        sys.exit(0)
+        """,
+        storage=storage,
+    )
+    assert_probe_ok(result)
+
+
+@requires_landlock_integration
+def test_landlock_allows_translation_pack_storage(tmp_path):
+    """Translation pack archives and extracted models live under storage."""
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    packs_dir = storage / "translation-packs"
+    packs_dir.mkdir()
+    result = run_python_under_landlock(
+        f"""
+        import os
+        import sys
+
+        packs = {str(packs_dir)!r}
+        archive = os.path.join(packs, "test.zip")
+        extracted = os.path.join(packs, "incoming", "enes")
+        with open(archive, "w", encoding="utf-8") as handle:
+            handle.write("fake-zip")
+        os.makedirs(extracted, exist_ok=True)
+        model = os.path.join(extracted, "model.enes.intgemm8.bin")
+        with open(model, "w", encoding="utf-8") as handle:
+            handle.write("fake-model")
+        with open(archive, encoding="utf-8") as handle:
+            a = handle.read()
+        with open(model, encoding="utf-8") as handle:
+            m = handle.read()
+        if a != "fake-zip" or m != "fake-model":
+            print("BAD_READ", a, m)
+            sys.exit(3)
+        print("OK")
         sys.exit(0)
         """,
         storage=storage,

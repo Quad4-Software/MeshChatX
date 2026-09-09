@@ -804,10 +804,27 @@ SYSTEM_NETWORK_INTERFACES_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
-TRANSLATOR_LANGUAGES_SCHEMA: dict = {
+TRANSLATION_PACKS_SCHEMA: dict = {
     "type": "object",
-    "required": ["languages"],
-    "properties": {"languages": _ARRAY},
+    "required": ["packs"],
+    "properties": {
+        "packs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["pair", "from", "to"],
+                "properties": {
+                    "pair": _STRING,
+                    "from": _STRING,
+                    "to": _STRING,
+                    "version": _STRING,
+                    "size": _INTEGER,
+                    "files": _ARRAY,
+                },
+                "additionalProperties": True,
+            },
+        },
+    },
     "additionalProperties": True,
 }
 

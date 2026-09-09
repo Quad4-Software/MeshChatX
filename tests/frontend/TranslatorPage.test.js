@@ -4,40 +4,24 @@ import TranslatorPage from "@/components/translator/TranslatorPage.vue";
 import { mountToolsPageGlobals } from "./testI18n.js";
 
 describe("TranslatorPage.vue", () => {
-    let axiosMock;
+    let apiMock;
 
     beforeEach(() => {
-        axiosMock = {
+        apiMock = {
             get: vi.fn(),
             post: vi.fn(),
+            delete: vi.fn(),
         };
-        window.api = axiosMock;
+        window.api = apiMock;
 
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config") {
+        apiMock.get.mockImplementation((url) => {
+            if (url.includes("/api/v1/translation/packs")) {
                 return Promise.resolve({
                     data: {
-                        config: {
-                            translator_argos_enabled: true,
-                            translator_libretranslate_enabled: true,
-                            libretranslate_url: "http://localhost:5000",
-                            libretranslate_api_key: null,
-                        },
-                    },
-                });
-            }
-            if (url === "/api/v1/translator/languages") {
-                return Promise.resolve({
-                    data: {
-                        languages: [
-                            { code: "en", name: "English", source: "argos" },
-                            { code: "de", name: "German", source: "argos" },
-                            { code: "en", name: "English", source: "libretranslate" },
-                            { code: "de", name: "German", source: "libretranslate" },
+                        packs: [
+                            { pair: "enes", from: "en", to: "es", size: 1024 },
+                            { pair: "deen", from: "de", to: "en", size: 2048 },
                         ],
-                        has_argos: true,
-                        libre_client_available: true,
-                        libretranslate_reachable: true,
                     },
                 });
             }
@@ -60,102 +44,43 @@ describe("TranslatorPage.vue", () => {
 
     it("renders the translator page", async () => {
         const wrapper = mountTranslatorPage();
-        await vi.waitFor(() => expect(wrapper.vm.config).not.toBeNull());
+        await vi.waitFor(() => expect(wrapper.vm.packs.length).toBeGreaterThan(0));
         expect(wrapper.text()).toContain("Translator");
     });
 
-    it("shows Libre tab when HTTP client is available even if server is not reachable yet", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config") {
-                return Promise.resolve({
-                    data: {
-                        config: {
-                            translator_argos_enabled: false,
-                            translator_libretranslate_enabled: false,
-                            libretranslate_url: "http://127.0.0.1:5000",
-                            libretranslate_api_key: null,
-                        },
-                    },
-                });
-            }
-            if (url === "/api/v1/translator/languages") {
-                return Promise.resolve({
-                    data: {
-                        languages: [],
-                        has_argos: false,
-                        libre_client_available: true,
-                        libretranslate_reachable: false,
-                    },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
+    it("lists installed packs", async () => {
         const wrapper = mountTranslatorPage();
-        await vi.waitFor(() => expect(wrapper.vm.config).not.toBeNull());
-        const libreTab = wrapper.findAll("button").find((b) => b.text().includes("LibreTranslate"));
-        expect(libreTab).toBeDefined();
-        await libreTab.trigger("click");
-        expect(wrapper.vm.translationMode).toBe("libretranslate");
-        expect(wrapper.text()).toContain("LibreTranslate API Server");
-    });
-
-    it("switches translation modes", async () => {
-        const wrapper = mountTranslatorPage();
-        await vi.waitFor(() => expect(wrapper.vm.config).not.toBeNull());
-
-        const libreButton = wrapper.findAll("button").find((b) => b.text().includes("LibreTranslate"));
-        await libreButton.trigger("click");
-        expect(wrapper.vm.translationMode).toBe("libretranslate");
-        expect(wrapper.text()).toContain("LibreTranslate API Server");
-
-        const argosButton = wrapper.findAll("button").find((b) => b.text().includes("Argos Translate"));
-        await argosButton.trigger("click");
-        expect(wrapper.vm.translationMode).toBe("argos");
-    });
-
-    it("calls translate API and displays result", async () => {
-        window.api.post = vi.fn().mockResolvedValue({
-            data: {
-                translated_text: "Hallo Welt",
-                source_lang: "en",
-                target_lang: "de",
-            },
-        });
-
-        const wrapper = mountTranslatorPage();
-        await vi.waitFor(() => expect(wrapper.vm.config).not.toBeNull());
-
-        await wrapper.setData({
-            inputText: "Hello World",
-            sourceLang: "en",
-            targetLang: "de",
-        });
-
-        await wrapper.vm.$nextTick();
-
-        // Call directly to verify logic
-        await wrapper.vm.translateText();
-
-        expect(window.api.post).toHaveBeenCalledWith(
-            "/api/v1/translator/translate",
-            expect.objectContaining({
-                text: "Hello World",
-                source_lang: "en",
-                target_lang: "de",
-            })
-        );
-
-        await vi.waitFor(() => expect(wrapper.text()).toContain("Hallo Welt"));
+        await vi.waitFor(() => expect(wrapper.vm.packs.length).toBeGreaterThan(0));
+        expect(wrapper.text()).toContain("English");
+        expect(wrapper.text()).toContain("Spanish");
     });
 
     it("swaps languages", async () => {
         const wrapper = mountTranslatorPage();
-        await wrapper.setData({ sourceLang: "en", targetLang: "de" });
-
-        const swapButton = wrapper.findAll("button").find((b) => b.text().includes("Swap"));
+        await vi.waitFor(() => expect(wrapper.vm.packs.length).toBeGreaterThan(0));
+        await wrapper.setData({ sourceLang: "en", targetLang: "es" });
+        const swapButton = wrapper.findAll("button").find((b) => b.attributes("title")?.includes("Swap"));
+        expect(swapButton).toBeDefined();
         await swapButton.trigger("click");
-
-        expect(wrapper.vm.sourceLang).toBe("de");
+        expect(wrapper.vm.sourceLang).toBe("es");
         expect(wrapper.vm.targetLang).toBe("en");
+    });
+
+    it("disables translate when source and target are the same", async () => {
+        const wrapper = mountTranslatorPage();
+        await wrapper.setData({ sourceLang: "en", targetLang: "en", inputText: "hello" });
+        expect(wrapper.vm.canTranslate).toBe(false);
+    });
+
+    it("shows a message when no packs are installed", async () => {
+        apiMock.get.mockImplementation((url) => {
+            if (url.includes("/api/v1/translation/packs")) {
+                return Promise.resolve({ data: { packs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountTranslatorPage();
+        await vi.waitFor(() => expect(wrapper.vm.packs.length).toBe(0));
+        expect(wrapper.text()).toContain("No packs installed");
     });
 });

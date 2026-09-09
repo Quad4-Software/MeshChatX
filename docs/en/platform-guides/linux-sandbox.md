@@ -11,7 +11,7 @@ MeshChatX also applies optional **in-process** Linux sandboxes when available:
 
 Those layers fall back cleanly when unsupported. Firejail and Bubblewrap remain useful as an outer wrapper.
 
-**Landlock and user-local tools:** When Landlock is active, MeshChatX whitelists common pipx paths (~/.local/bin, ~/.local/share/pipx) and Argos Translate data under ~/.local/share/argos-translate so local translation and similar CLIs keep working. Tools installed elsewhere (for example only under ~/.nvm) or symlink shims that point outside those trees may still fail with permission errors. Disable Landlock temporarily with MESHCHAT_LANDLOCK=0 while debugging PATH-only failures.
+**Landlock and user-local tools:** When Landlock is active, MeshChatX whitelists common pipx paths (~/.local/bin, ~/.local/share/pipx) so local CLIs keep working. Tools installed elsewhere (for example only under ~/.nvm) or symlink shims that point outside those trees may still fail with permission errors. Disable Landlock temporarily with MESHCHAT_LANDLOCK=0 while debugging PATH-only failures.
 
 **Landlock and USB serial:** Landlock read roots include /sys so pyserial can read USB product strings for RNode listing. /dev is already a write root (including IOCTL_DEV on ABI 5+) so opening /dev/ttyACM* still works. Seccomp does not block serial ioctl. The user still needs dialout (or equivalent) group membership, and Ubuntu/Kubuntu brltty can steal CDC ACM devices before MeshChatX sees them.
 

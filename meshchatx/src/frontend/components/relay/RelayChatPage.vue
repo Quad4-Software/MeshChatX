@@ -1321,6 +1321,12 @@
                 <ContextMenuItem v-if="messageMenu.msg && messageMenu.msg.text" @click="copyMessageFromMenu">
                     {{ $t("relay_chat.ctx_copy_message") }}
                 </ContextMenuItem>
+                <ContextMenuItem
+                    v-if="messageMenu.msg && canTranslateRelayMessage(messageMenu.msg)"
+                    @click="translateRelayMessageFromMenu"
+                >
+                    {{ $t("relay_chat.ctx_translate_message") }}
+                </ContextMenuItem>
                 <template v-if="messageMenu.msg && canModerateSelectedHub">
                     <ContextMenuDivider />
                     <ContextMenuItem class="text-sem-danger" @click="kickUserFromMenu">
@@ -1380,6 +1386,7 @@ import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
 import Toggle from "../forms/Toggle.vue";
+import * as TranslationService from "../../js/TranslationService.js";
 
 const BTN_PRIMARY =
     "inline-flex items-center justify-center gap-1.5 rounded-lg bg-sem-action-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed";
@@ -1526,6 +1533,8 @@ export default {
                 y: 0,
                 msg: null,
             },
+            translationPacks: [],
+            messageTranslations: {},
             messages: [],
             messageTimelineCache: null,
             messageTimelineCacheSignature: "",
@@ -1693,9 +1702,11 @@ export default {
             this.persistRelayLayout();
         },
         selectedHubHash() {
+            this.messageTranslations = {};
             this.persistRelayLayout();
         },
         selectedRoom() {
+            this.messageTranslations = {};
             this.persistRelayLayout();
         },
         view() {
@@ -1727,6 +1738,7 @@ export default {
         if (!this.isPopoutMode) {
             this.fetchDiscovered();
         }
+        this.loadTranslationPacks();
     },
     beforeUnmount() {
         offWsEvent("rrc.change", this.onRrcChange);
@@ -1778,6 +1790,7 @@ export default {
             this.members = [];
             this.selectedHubHash = null;
             this.selectedRoom = null;
+            this.messageTranslations = {};
             this.expandedHubs = {};
             this.availableRoomsExpanded = {};
             this.availableRoomsRefreshing = {};
@@ -2386,6 +2399,82 @@ export default {
                 ToastUtils.success(this.$t("common.copied"));
             } catch {
                 ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
+        },
+        async loadTranslationPacks() {
+            try {
+                this.translationPacks = await TranslationService.listPacks();
+            } catch (e) {
+                console.error("Failed to load translation packs:", e);
+                this.translationPacks = [];
+            }
+        },
+        canTranslateRelayMessage(msg) {
+            return this.translationPacks.length > 0 && Boolean(msg?.text) && msg.kind === "msg";
+        },
+        defaultRelayTranslatePair() {
+            try {
+                const saved = localStorage.getItem("meshchatx.translateTargetLang");
+                if (saved && this.translationPacks.some((p) => p.pair === saved)) {
+                    return saved;
+                }
+            } catch {
+                /* empty */
+            }
+            return this.translationPacks[0]?.pair || "";
+        },
+        async translateRelayMessageFromMenu() {
+            const msg = this.messageMenu.msg;
+            this.closeMessageMenu();
+            if (!msg?.text) {
+                return;
+            }
+            const pair = this.defaultRelayTranslatePair();
+            if (!pair || pair.length < 4) {
+                return;
+            }
+            const key = this.messageKey(msg);
+            this.messageTranslations[key] = {
+                loading: true,
+                text: "",
+                from: pair.slice(0, 2),
+                to: pair.slice(2, 4),
+                showOriginal: false,
+            };
+            try {
+                const result = await TranslationService.translate({
+                    from: pair.slice(0, 2),
+                    to: pair.slice(2, 4),
+                    text: msg.text,
+                });
+                this.messageTranslations[key] = {
+                    loading: false,
+                    text: result?.target?.text || "",
+                    from: pair.slice(0, 2),
+                    to: pair.slice(2, 4),
+                    showOriginal: false,
+                };
+            } catch (e) {
+                console.error("Relay translation failed:", e);
+                delete this.messageTranslations[key];
+                ToastUtils.error(this.$t("messages.translation_failed"));
+            }
+        },
+        relayMessageTranslation(msg) {
+            return this.messageTranslations[this.messageKey(msg)] || null;
+        },
+        relayMessageDisplayText(msg) {
+            const tr = this.relayMessageTranslation(msg);
+            if (tr && tr.text && !tr.showOriginal && !tr.loading) {
+                return tr.text;
+            }
+            return msg.text;
+        },
+        toggleRelayMessageOriginal(msg) {
+            const key = this.messageKey(msg);
+            const tr = this.messageTranslations[key];
+            if (tr) {
+                tr.showOriginal = !tr.showOriginal;
             }
         },
         async sendModerationCommand(template, msg) {

@@ -451,25 +451,20 @@ class ConfigManager:
             None,
         )
 
-        # translator config
-        self.translator_argos_enabled = self.BoolConfig(
+        # translation config
+        self.translation_enabled = self.BoolConfig(
             self,
-            "translator_argos_enabled",
+            "translation_enabled",
             False,
         )
-        self.translator_libretranslate_enabled = self.BoolConfig(
+        self.translation_default_source_lang = self.StringConfig(
             self,
-            "translator_libretranslate_enabled",
-            False,
+            "translation_default_source_lang",
+            "auto",
         )
-        self.libretranslate_url = self.StringConfig(
+        self.translation_default_target_lang = self.StringConfig(
             self,
-            "libretranslate_url",
-            "http://localhost:5000",
-        )
-        self.libretranslate_api_key = self.StringConfig(
-            self,
-            "libretranslate_api_key",
+            "translation_default_target_lang",
             None,
         )
 
@@ -788,10 +783,14 @@ class ConfigManager:
         old = self.db.config.get("translator_enabled", default=None)
         a = self.db.config.get("translator_argos_enabled", default=None)
         libre = self.db.config.get("translator_libretranslate_enabled", default=None)
-        if old is not None and a is None and libre is None:
-            v = "true" if str(old).lower() == "true" else "false"
-            self.db.config.set("translator_argos_enabled", v)
-            self.db.config.set("translator_libretranslate_enabled", v)
+        current = self.db.config.get("translation_enabled", default=None)
+        if current is None and (old is not None or a is not None or libre is not None):
+            enabled = False
+            for key in ("translator_enabled", "translator_argos_enabled", "translator_libretranslate_enabled"):
+                raw = self.db.config.get(key, default=None)
+                if str(raw).lower() == "true":
+                    enabled = True
+            self.translation_enabled.set(enabled)
 
     def _migrate_legacy_announce_limit_keys(self):
         pairs = [

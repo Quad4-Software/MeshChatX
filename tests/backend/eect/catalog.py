@@ -92,13 +92,7 @@ SCENARIOS: tuple[Scenario, ...] = (
         taxonomy="security_surface",
         summary="favourites layout rejects NUL in section ids and hashes",
     ),
-    Scenario(
-        id="hostile.url.decimal_link_local",
-        pack="HostileMediumPack",
-        gate="gate3-hostile-medium",
-        taxonomy="security_surface",
-        summary="LibreTranslate URL guard rejects decimal/hex/IPv6-mapped link-local SSRF forms",
-    ),
+
     Scenario(
         id="hostile.plugin.path_escape",
         pack="HostileMediumPack",
