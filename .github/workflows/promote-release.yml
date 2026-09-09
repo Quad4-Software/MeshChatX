@@ -93,13 +93,30 @@ jobs:
                   git tag -a "${tag}" -m "Promote ${CHANNEL} for ${full_sha}" "${full_sha}"
                   git push origin "${tag}"
 
+                  build_dispatched=false
                   for attempt in 1 2 3 4 5; do
                     if gh workflow run build-release.yml --ref "refs/tags/${tag}"; then
                       echo "Dispatched build-release.yml for ${tag} (${full_sha})"
-                      exit 0
+                      build_dispatched=true
+                      break
                     fi
                     echo "Dispatch attempt ${attempt} failed; waiting..."
                     sleep 5
                   done
-                  echo "Failed to dispatch build-release.yml for ${tag}" >&2
-                  exit 1
+                  if [ "$build_dispatched" != "true" ]; then
+                    echo "Failed to dispatch build-release.yml for ${tag}" >&2
+                    exit 1
+                  fi
+
+                  if [ "${CHANNEL}" = "stable" ]; then
+                    for attempt in 1 2 3 4 5; do
+                      if gh workflow run pypi.yml --ref "refs/tags/${tag}"; then
+                        echo "Dispatched pypi.yml for ${tag} (${full_sha})"
+                        exit 0
+                      fi
+                      echo "PyPI dispatch attempt ${attempt} failed; waiting..."
+                      sleep 5
+                    done
+                    echo "Failed to dispatch pypi.yml for ${tag}" >&2
+                    exit 1
+                  fi
