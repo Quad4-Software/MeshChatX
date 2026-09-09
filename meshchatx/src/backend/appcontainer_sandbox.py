@@ -937,11 +937,29 @@ def launch_backend_sandboxed(
             grant_path_access(sid, path, write=False)
             granted.append((path, False))
 
-        h_process, h_thread, _pid = create_process_in_appcontainer(
-            exe,
-            args,
-            use_lpac=use_lpac,
-        )
+        try:
+            h_process, h_thread, _pid = create_process_in_appcontainer(
+                exe,
+                args,
+                use_lpac=use_lpac,
+            )
+        except OSError as exc:
+            # LPAC is best-effort: some Windows builds reject the policy
+            # attribute with ERROR_INVALID_PARAMETER (87). Retry without
+            # LPAC before falling back to an unsandboxed child.
+            err = getattr(exc, "winerror", exc.errno) or 0
+            if use_lpac and err == 87:
+                logger.warning(
+                    "AppContainer LPAC launch failed with error %s; retrying without LPAC",
+                    err,
+                )
+                h_process, h_thread, _pid = create_process_in_appcontainer(
+                    exe,
+                    args,
+                    use_lpac=False,
+                )
+            else:
+                raise
         try:
             close_handle(h_thread)
             exit_code = _wait_process(h_process)
