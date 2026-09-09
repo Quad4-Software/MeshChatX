@@ -796,12 +796,12 @@ def create_process_in_appcontainer(
         )
         ok = kernel32.CreateProcessW(
             ctypes.c_wchar_p(exe),
-            cmdline,
+            ctypes.cast(cmdline, ctypes.c_wchar_p),
             None,
             None,
-            True,
+            False,
             creation_flags,
-            env_buf,
+            ctypes.cast(env_buf, ctypes.c_void_p),
             ctypes.c_wchar_p(cwd) if cwd else None,
             ctypes.byref(siex),
             ctypes.byref(pi),
