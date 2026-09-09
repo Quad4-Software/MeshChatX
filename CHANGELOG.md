@@ -14,7 +14,11 @@ All notable changes to this project will be documented in this file.
 - The bundled `starter_world.mbtiles` is now a 30-degree world graticule covering z0-z4 instead of a solid placeholder, so the map is usable offline immediately.
 - Delivery failure tips throttle per peer, order by severity, cap the detail count and deduplicate diagnostic fetches so they do not get noisy.
 - DatabaseProvider closes idle live-thread SQLite handles after 120 seconds and dead-thread handles, preventing unbounded file-descriptor growth in containers.
-- New tests cover the database file-descriptor oracle, delivery help tips, message cancel-send, raw message view and map bounds/provider handling.
+- Opt-in WebP image support for Mesh Server and Micron pages. The parser recognizes `img=1` image links, renders placeholders with alt text and size metadata, and loads the image only after an explicit click or when the policy is set to auto or always.
+- Nomad page images download over the Reticulum page socket, report progress, reassemble chunked transfers and are cached per node and page path.
+- Page nodes grant file access only after a page request, so direct links to hosted files fail without first visiting the page.
+- Image loading on Micron pages is controlled by a global policy in Settings: never, manual, auto or always.
+- New tests cover the database file-descriptor oracle, delivery help tips, message cancel-send, raw message view, map bounds/provider handling and Micron image parsing.
 
 ### Fixed
 
@@ -26,7 +30,10 @@ All notable changes to this project will be documented in this file.
 - All debounced save timeouts are cleared on unmount so config saves do not fire after the page is closed.
 - Crash tab render deadlines pause when the tab is inactive and the Network page cancels active page downloads on unmount.
 - Hop filter and announce chunk fetches catch errors instead of rejecting the whole render.
+- Unkeyed toasts with the same message and type replace the existing one instead of stacking.
+- Crash-tab hung toasts clear when the tab recovers, and the warning is skipped when the page is no longer active.
 - UIComponents SettingsPage mocks config patch responses and unmounts wrappers to prevent EnvironmentTeardownError.
+- Live name bindings in the split HTTP/WS modules support comparison, hashing and string conversion, so constants like `MAX_EXPORT_ZOOM` can be used in chained comparisons and map lookups.
 
 ### Changed
 
