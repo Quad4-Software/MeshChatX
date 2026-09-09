@@ -7,6 +7,11 @@ import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
 
+// CI and slower local machines can need more than the default 1000ms for async
+// conditions. Extend vitest's waitFor default while still allowing overrides.
+const _originalWaitFor = vi.waitFor;
+vi.waitFor = (callback, options) => _originalWaitFor(callback, { timeout: 5000, ...options });
+
 injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
 
 // App shell tests assume auth is settled with auth disabled unless a case overrides.

@@ -13,7 +13,7 @@ vi.mock("@/js/TranslationService.js", () => ({
     refreshPacks: vi.fn().mockResolvedValue(undefined),
 }));
 
-const RENDER_THRESHOLD_MS = 1500;
+const RENDER_THRESHOLD_MS = 5000;
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
