@@ -94,6 +94,20 @@ def test_extract_and_collect_network_endpoints(tmp_path):
     assert requires_network_fetch(manifest, endpoints) is True
 
 
+def test_host_root_uses_real_host_from_userinfo_url(tmp_path):
+    """Userinfo URLs must derive the real host root, not a loopback decoy."""
+    plugin_dir = tmp_path / "plugin"
+    plugin_dir.mkdir()
+    (plugin_dir / "main.js").write_text(
+        'fetch("http://127.0.0.1:9337@example.com/v1")',
+        encoding="utf-8",
+    )
+    endpoints = collect_network_endpoints({}, str(plugin_dir))
+    assert "http://127.0.0.1:9337@example.com/v1" in endpoints
+    assert "https://example.com/" in endpoints
+    assert "https://127.0.0.1/" not in endpoints
+
+
 def test_preview_and_install_with_denied_network(tmp_path):
     from meshchatx.src.backend.plugin_manager import PluginManager
 

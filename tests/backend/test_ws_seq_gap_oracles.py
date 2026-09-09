@@ -12,7 +12,9 @@ from meshchatx.src.backend.websocket_runtime import BroadcastSeqState
 
 
 def oracle_gap_hint(seq: int, since_seq: int) -> dict:
-    if since_seq >= seq:
+    # Only an exact match means the client is caught up. A cursor ahead of
+    # the server is stale state from before a restart and must resync.
+    if since_seq == seq:
         return {"status": "ok", "since_seq": since_seq, "current_seq": seq}
     return {
         "status": "gap",
@@ -31,6 +33,21 @@ async def test_gap_hint_ok_when_caught_up():
     assert hint["status"] == "ok"
     assert hint.get("resync") is not True
     assert hint["current_seq"] == n
+
+
+@pytest.mark.asyncio
+async def test_gap_hint_resync_when_client_ahead_after_restart():
+    """Client cursor ahead of server seq must resync.
+
+    A cursor larger than the server seq is stale state from a previous
+    server epoch (restart resets seq to zero); the client must resync.
+    """
+    state = BroadcastSeqState()
+    await state.stamp({"type": "announce"})
+    hint = state.gap_hint(999)
+    assert hint["status"] == "gap"
+    assert hint["resync"] is True
+    assert hint["current_seq"] == 1
 
 
 @pytest.mark.asyncio

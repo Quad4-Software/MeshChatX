@@ -135,6 +135,22 @@ public class MainActivity extends AppCompatActivity {
         if (uri == null) {
             return;
         }
+        // Only hand browser-safe schemes to the OS. Anything the WebView was
+        // denied (javascript:, data:, file:, intent:, ...) must not be
+        // forwarded to another app.
+        String scheme = uri.getScheme();
+        if (scheme == null) {
+            return;
+        }
+        String schemeLower = scheme.toLowerCase(Locale.ROOT);
+        if (!schemeLower.equals("http") && !schemeLower.equals("https")
+            && !schemeLower.equals("mailto")) {
+            return;
+        }
+        String userInfo = uri.getUserInfo();
+        if (userInfo != null && !userInfo.isEmpty()) {
+            return;
+        }
         try {
             startActivity(new Intent(Intent.ACTION_VIEW, uri));
         } catch (ActivityNotFoundException ignored) {

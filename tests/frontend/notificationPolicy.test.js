@@ -13,6 +13,7 @@ import {
     clearOpenDestinationHashesForTests,
     hasOpenDestinationHash,
 } from "../../meshchatx/src/frontend/js/activeConversationStore.js";
+import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 
 const peerA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const peerB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -270,6 +271,12 @@ describe("activeConversationStore", () => {
         expect(listOpenDestinationHashes().sort()).toEqual([peerA, peerB].sort());
         expect(hasOpenDestinationHash(peerA.toUpperCase())).toBe(true);
         setOpenDestinationHashes([]);
+        expect(listOpenDestinationHashes()).toEqual([]);
+    });
+
+    it("clears open hashes on identity switch", () => {
+        setOpenDestinationHashes([peerA, peerB]);
+        GlobalEmitter.emit("identity-switched", {});
         expect(listOpenDestinationHashes()).toEqual([]);
     });
 });
