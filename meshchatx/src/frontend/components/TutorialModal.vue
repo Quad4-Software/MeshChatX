@@ -271,6 +271,22 @@
                             {{ $t("tutorial.identity_desc") }}
                         </p>
                     </div>
+
+                    <div
+                        v-if="originalIdentityHash"
+                        class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-sem-border bg-sem-surface-muted space-y-2"
+                    >
+                        <div class="text-sm font-semibold text-sem-fg">
+                            {{ $t("app.identity_hash") }}
+                        </div>
+                        <div class="font-mono text-xs break-all text-sem-fg-muted select-all">
+                            {{ formatIdentityHash(originalIdentityHash) }}
+                        </div>
+                        <p class="text-xs text-sem-fg-muted">
+                            {{ $t("tutorial.identity_new_desc") }}
+                        </p>
+                    </div>
+
                     <input
                         ref="identityImportFileInput"
                         type="file"
@@ -1368,6 +1384,22 @@
                                 {{ $t("tutorial.identity_desc_page") }}
                             </p>
                         </div>
+
+                        <div
+                            v-if="originalIdentityHash"
+                            class="w-full max-w-3xl mx-auto p-5 rounded-3xl border border-sem-border bg-sem-surface-muted space-y-2"
+                        >
+                            <div class="text-base font-semibold text-sem-fg">
+                                {{ $t("app.identity_hash") }}
+                            </div>
+                            <div class="font-mono text-sm break-all text-sem-fg-muted select-all">
+                                {{ formatIdentityHash(originalIdentityHash) }}
+                            </div>
+                            <p class="text-sm text-sem-fg-muted">
+                                {{ $t("tutorial.identity_new_desc") }}
+                            </p>
+                        </div>
+
                         <input
                             ref="identityImportFileInput"
                             type="file"
@@ -2254,6 +2286,7 @@
 <script>
 import logoUrl from "../assets/images/logo.png";
 import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
+import Utils from "../js/Utils";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import GlobalState from "../js/GlobalState";
@@ -2307,7 +2340,7 @@ export default {
             discoveryInterval: null,
             markingSeen: false,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
-            defaultBootstrapOnly: false,
+            defaultBootstrapOnly: true,
             bootstrapListSearch: "",
             bootstrapDiscoveredSectionOpen: true,
             bootstrapCommunitySectionOpen: true,
@@ -2484,6 +2517,9 @@ export default {
         },
         normalizeBase32(value) {
             return String(value || "").replace(/\s+/g, "");
+        },
+        formatIdentityHash(hash) {
+            return Utils.formatDestinationHash(hash);
         },
         onIdentityImportBase32Input() {
             this.identityImportedHash = null;
@@ -2775,10 +2811,10 @@ export default {
                 const payload = {
                     discover_interfaces: true,
                     autoconnect_discovered_interfaces: 3,
-                    default_bootstrap_only: false,
+                    default_bootstrap_only: true,
                 };
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
-                this.defaultBootstrapOnly = false;
+                this.defaultBootstrapOnly = true;
 
                 ToastUtils.success(this.$t("tutorial.mode_recommended_added"));
                 this.connectionMode = "recommended";
@@ -2812,10 +2848,10 @@ export default {
                 const payload = {
                     discover_interfaces: true,
                     autoconnect_discovered_interfaces: 3,
-                    default_bootstrap_only: false,
+                    default_bootstrap_only: true,
                 };
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
-                this.defaultBootstrapOnly = false;
+                this.defaultBootstrapOnly = true;
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.connectionMode = "discovery";
                 this.currentStep = 4;
@@ -3091,10 +3127,10 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/reticulum/discovery");
                 const d = response.data?.discovery ?? {};
-                this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only, false);
+                this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only, true);
             } catch (e) {
                 console.error(e);
-                this.defaultBootstrapOnly = false;
+                this.defaultBootstrapOnly = true;
             }
         },
         async persistDefaultBootstrapOnly(value) {
