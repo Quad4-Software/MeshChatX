@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "Impossibile caricare la pagina",
         "archived_version_available": "È disponibile una versione archiviata di questa pagina.",
         "view_archive": "Visualizza Archivio",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "Nessun Nodo Attivo",
         "select_node_to_browse": "Seleziona un Nodo per iniziare a navigare!",
         "open_nomadnet_url": "Apri un URL Nomadnet",

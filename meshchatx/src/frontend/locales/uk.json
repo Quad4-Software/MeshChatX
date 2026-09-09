@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "Не вдалося завантажити сторінку",
         "archived_version_available": "Доступна архівна версія цієї сторінки.",
         "view_archive": "Переглянути архів",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "Немає активного вузла",
         "select_node_to_browse": "Виберіть вузол, щоб почати перегляд!",
         "open_nomadnet_url": "Відкрити URL Nomadnet",

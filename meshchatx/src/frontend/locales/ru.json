@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "Ошибка загрузки страницы",
         "archived_version_available": "Доступна архивная версия этой страницы.",
         "view_archive": "Просмотреть архив",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "Нет активного узла",
         "select_node_to_browse": "Выберите узел, чтобы начать просмотр!",
         "open_nomadnet_url": "Открыть URL Nomadnet",

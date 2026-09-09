@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "Sivun lataus epäonnistui",
         "archived_version_available": "Sivusta on arkistoitu versio.",
         "view_archive": "Näytä arkisto",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "Ei aktiivista solmua",
         "select_node_to_browse": "Valitse solmu aloittaaksesi selailun!",
         "open_nomadnet_url": "Avaa Nomadnet URL",

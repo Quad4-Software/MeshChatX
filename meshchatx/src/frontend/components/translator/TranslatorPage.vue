@@ -210,6 +210,14 @@ export default {
     },
     mounted() {
         this.loadPacks();
+        const q = this.$route?.query;
+        if (q?.text) {
+            this.inputText = String(q.text);
+        }
+        if (q?.source && q?.target) {
+            this.sourceLang = String(q.source);
+            this.targetLang = String(q.target);
+        }
     },
     methods: {
         async loadPacks() {

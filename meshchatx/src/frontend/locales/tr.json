@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "Sayfa yüklenemedi",
         "archived_version_available": "Bu sayfanın arşivlenmiş bir sürümü var.",
         "view_archive": "Arşivi Görüntüle",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "Etkin Düğüm Yok",
         "select_node_to_browse": "Gezinmeye başlamak için bir düğüm seçin!",
         "open_nomadnet_url": "Bir Nomadnet URL'si aç",

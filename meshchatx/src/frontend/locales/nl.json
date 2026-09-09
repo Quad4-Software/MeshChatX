@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "Kon pagina niet laden",
         "archived_version_available": "Een gearchiveerde versie van deze pagina is beschikbaar.",
         "view_archive": "Beeldarchief",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "Geen actief knooppunt",
         "select_node_to_browse": "Selecteer een Knooppunt om te beginnen bladeren!",
         "open_nomadnet_url": "Een Nomadnet-URL openen",

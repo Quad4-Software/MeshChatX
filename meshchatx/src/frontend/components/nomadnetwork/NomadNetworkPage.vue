@@ -290,6 +290,14 @@
                             />
                         </IconButton>
                         <IconButton
+                            v-if="nodePageContent"
+                            class="nomad-icon-btn text-sem-fg-muted"
+                            :title="$t('nomadnet.translate_page')"
+                            @click="openNomadPageTranslation"
+                        >
+                            <MaterialDesignIcon icon-name="translate" class="size-5" />
+                        </IconButton>
+                        <IconButton
                             v-if="!isPrivate"
                             class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('nomadnet.pop_out_browser')"
@@ -1679,6 +1687,19 @@ export default {
             const encodedHash = encodeURIComponent(destinationHash);
             const url = `${window.location.origin}${window.location.pathname}#/popout/nomadnetwork/${encodedHash}`;
             window.open(url, "_blank", "width=1100,height=800,noopener");
+        },
+        openNomadPageTranslation() {
+            const container = this.$el?.querySelector?.(".nodeContainer");
+            const text = container ? container.innerText?.trim() : "";
+            if (!text) {
+                ToastUtils.info(this.$t("nomadnet.no_page_text_to_translate"));
+                return;
+            }
+            const maxLen = 2000;
+            const snippet = text.length > maxLen ? `${text.slice(0, maxLen)}…` : text;
+            const encoded = encodeURIComponent(snippet);
+            const url = `${window.location.origin}${window.location.pathname}#/translator?text=${encoded}`;
+            window.open(url, "_blank", "noopener");
         },
         checkIfSelectedNodeBlocked() {
             if (!this.selectedNode) {

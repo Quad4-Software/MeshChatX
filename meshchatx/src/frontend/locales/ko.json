@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "페이지를 불러오지 못했습니다",
         "archived_version_available": "이 페이지의 아카이브 버전이 있습니다.",
         "view_archive": "아카이브 보기",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "활성 노드 없음",
         "select_node_to_browse": "탐색을 시작할 노드를 선택하세요!",
         "open_nomadnet_url": "Nomadnet URL 열기",
