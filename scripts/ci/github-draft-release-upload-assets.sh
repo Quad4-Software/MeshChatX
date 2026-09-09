@@ -18,6 +18,23 @@ TAG="${TAG:-${GITHUB_REF_NAME:?set TAG or GITHUB_REF_NAME}}"
 NOTES_ONLY="${MESHCHATX_DRAFT_NOTES_ONLY:-0}"
 ROOT="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
 
+# Extract the hand-written CHANGELOG section for a vX.Y.Z style tag.
+extract_changelog_notes() {
+    local ver="$1"
+    local changelog="$ROOT/CHANGELOG.md"
+    if [ ! -f "$changelog" ]; then
+        return
+    fi
+    awk -v ver="$ver" '
+        BEGIN { in_section = 0 }
+        /^## \[/ {
+            if (in_section) { exit }
+            if (index($0, "## [" ver "]") == 1) { in_section = 1; next }
+        }
+        in_section { print }
+    ' "$changelog" | sed '/./,$!d'
+}
+
 if [[ "$NOTES_ONLY" != "1" ]]; then
     if ! command -v gh >/dev/null 2>&1; then
         echo "gh is required" >&2
@@ -113,8 +130,14 @@ mapfile -t files < <(find "$STAGE" -type f)
         echo "Commit: \`${GITHUB_SHA:-unknown}\`"
         echo
     else
-        echo "Automated Stable draft release. Review assets and provenance before publishing."
-        echo
+        release_ver="${TAG#v}"
+        release_notes=$(extract_changelog_notes "$release_ver")
+        if [ -n "$release_notes" ]; then
+            echo "## Release Notes"
+            echo
+            echo "$release_notes"
+            echo
+        fi
     fi
 
     # Commit list since previous tag, then checksums / verify.

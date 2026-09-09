@@ -820,11 +820,13 @@ jobs:
                   rm -f /tmp/cosign.key
 
             - name: Upload release assets (draft then publish for testing/beta)
+              id: upload_gh_release
               env:
                   GH_TOKEN: ${{ github.token }}
               run: bash scripts/ci/github-draft-release-upload-assets.sh upload
 
             - name: Upload release assets to Bunny Storage
+              if: always() && !cancelled() && (steps.upload_gh_release.outcome == 'success' || steps.upload_gh_release.outcome == 'failure')
               env:
                   BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
                   BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
