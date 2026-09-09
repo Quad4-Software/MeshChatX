@@ -169,6 +169,10 @@ def run_smoke(build_dir: Path) -> int:
                         f"expected {key}=true, got {data!r}",
                         file=sys.stderr,
                     )
+                    print(
+                        f"backend log tail:\n{_tail(log_path, n=120)}",
+                        file=sys.stderr,
+                    )
                     return 1
 
             print("AppContainer smoke passed.")
