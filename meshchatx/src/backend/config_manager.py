@@ -786,7 +786,11 @@ class ConfigManager:
         current = self.db.config.get("translation_enabled", default=None)
         if current is None and (old is not None or a is not None or libre is not None):
             enabled = False
-            for key in ("translator_enabled", "translator_argos_enabled", "translator_libretranslate_enabled"):
+            for key in (
+                "translator_enabled",
+                "translator_argos_enabled",
+                "translator_libretranslate_enabled",
+            ):
                 raw = self.db.config.get(key, default=None)
                 if str(raw).lower() == "true":
                     enabled = True

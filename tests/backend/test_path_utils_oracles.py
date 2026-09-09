@@ -5,7 +5,6 @@
 import os
 import uuid
 
-import pytest
 from hypothesis import HealthCheck, example, given, settings, strategies as st
 
 from meshchatx.src.path_utils import (
@@ -38,21 +37,23 @@ def adversarial_path(draw):
     return draw(
         st.one_of(
             st.text(),
-            st.sampled_from([
-                "",
-                ".",
-                "..",
-                ".hidden",
-                "../evil.txt",
-                "../../etc/passwd",
-                "/etc/passwd",
-                "C:boot.ini",
-                "foo\\..\\bar",
-                "foo\x00bar",
-                "foo/bar/../baz",
-                "foo/../..",
-                "//double",
-            ]),
+            st.sampled_from(
+                [
+                    "",
+                    ".",
+                    "..",
+                    ".hidden",
+                    "../evil.txt",
+                    "../../etc/passwd",
+                    "/etc/passwd",
+                    "C:boot.ini",
+                    "foo\\..\\bar",
+                    "foo\x00bar",
+                    "foo/bar/../baz",
+                    "foo/../..",
+                    "//double",
+                ]
+            ),
         )
     )
 
@@ -62,8 +63,14 @@ class TestPathWithinDirOracle:
     @example(user_path="/etc/passwd", directory="/tmp/root")
     @example(user_path="../outside", directory="/tmp/root")
     @example(user_path="foo/bar", directory="/tmp/root")
-    @settings(max_examples=150, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
-    def test_is_path_within_dir_never_returns_true_for_outside(self, user_path, directory, tmp_path):
+    @settings(
+        max_examples=150,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
+    def test_is_path_within_dir_never_returns_true_for_outside(
+        self, user_path, directory, tmp_path
+    ):
         # Construct stable on-disk roots so realpath does not depend on cwd.
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
@@ -87,7 +94,9 @@ class TestPathWithinDirOracle:
         if result:
             resolved = os.path.realpath(full)
             root_resolved = os.path.realpath(str(root))
-            assert resolved == root_resolved or resolved.startswith(root_resolved + os.sep)
+            assert resolved == root_resolved or resolved.startswith(
+                root_resolved + os.sep
+            )
 
 
 class TestSafePathUnderDirOracle:
@@ -100,7 +109,11 @@ class TestSafePathUnderDirOracle:
     @example(filename="foo/bar")
     @example(filename="C:evil")
     @example(filename="foo\\..\\bar")
-    @settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=200,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_safe_path_under_dir_never_escapes(self, filename, tmp_path):
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
@@ -112,7 +125,11 @@ class TestSafePathUnderDirOracle:
         assert resolved == root_resolved or resolved.startswith(root_resolved + os.sep)
 
     @given(filename=safe_segment())
-    @settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=50,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_safe_path_under_dir_accepts_safe_basenames(self, filename, tmp_path):
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
@@ -134,7 +151,11 @@ class TestResolvePathUnderDirOracle:
     @example(user_path="foo\\..\\bar")
     @example(user_path="foo\x00bar")
     @example(user_path="foo/../bar")
-    @settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=200,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_resolve_path_under_dir_never_escapes(self, user_path, tmp_path):
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
@@ -146,7 +167,11 @@ class TestResolvePathUnderDirOracle:
         assert resolved == root_resolved or resolved.startswith(root_resolved + os.sep)
 
     @given(user_path=safe_relative_path())
-    @settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=50,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_resolve_path_under_dir_accepts_safe_subpaths(self, user_path, tmp_path):
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
@@ -171,13 +196,17 @@ class TestRequestClientIpOracle:
 
     def test_client_ip_ignores_xff_when_not_trusted(self, monkeypatch):
         with monkeypatch.context() as m:
-            m.setattr("meshchatx.src.backend.ip_allowlist.client_ip_allowed", self._allowed)
+            m.setattr(
+                "meshchatx.src.backend.ip_allowlist.client_ip_allowed", self._allowed
+            )
             req = self._Request("203.0.113.4", {"X-Forwarded-For": "1.2.3.4"})
             assert request_client_ip(req, "10.0.0.0/8") == "203.0.113.4"
 
     def test_client_ip_uses_xff_when_trusted_and_present(self, monkeypatch):
         with monkeypatch.context() as m:
-            m.setattr("meshchatx.src.backend.ip_allowlist.client_ip_allowed", self._allowed)
+            m.setattr(
+                "meshchatx.src.backend.ip_allowlist.client_ip_allowed", self._allowed
+            )
             req = self._Request("10.0.0.1", {"X-Forwarded-For": "1.2.3.4, 5.6.7.8"})
             assert request_client_ip(req, "10.0.0.0/8") == "1.2.3.4"
 

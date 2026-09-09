@@ -11,7 +11,6 @@ import shutil
 import uuid
 
 import io
-import json
 import os
 import tarfile
 import zipfile
@@ -24,14 +23,15 @@ from meshchatx.src.backend.translation_pack_manager import (
     TranslationPackError,
     TranslationPackManager,
     _ALLOWED_FILE_NAME_RE,
-    _FILE_TYPE_RE,
     _PAIR_CODE_RE,
     _REQUIRED_PARTS,
 )
 
 
 _ALPHABET = "abcdefghijklmnopqrstuvwxyz"
-_ALLOWED_NAME_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.@- "
+_ALLOWED_NAME_CHARS = (
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.@- "
+)
 _PARTS = ["model", "lex", "vocab", "qualityModel", "srcvocab", "trgvocab"]
 _REQUIRED = set(_REQUIRED_PARTS)
 
@@ -45,8 +45,10 @@ def _independent_pair_match(s):
 
 
 def _independent_filename_rejected(s):
-    """Independent oracle: a filename is unsafe if it is empty, ., .., hidden, or
-    contains a path-separator-like or drive-letter character."""
+    """Independent oracle: a filename is unsafe if it is empty, ., .., hidden, or worse.
+
+    It contains a path-separator-like or drive-letter character.
+    """
     if not s:
         return True
     if s in (".", ".."):
@@ -70,7 +72,11 @@ def _make_tar(path, entries, mode="w"):
             if kind == "symlink":
                 info = tarfile.TarInfo(name)
                 info.type = tarfile.SYMTYPE
-                info.linkname = data.decode("utf-8", errors="replace") if isinstance(data, bytes) else str(data)
+                info.linkname = (
+                    data.decode("utf-8", errors="replace")
+                    if isinstance(data, bytes)
+                    else str(data)
+                )
                 tf.addfile(info)
             else:
                 info = tarfile.TarInfo(name)
@@ -95,12 +101,16 @@ def pair_code(draw):
 
 @st.composite
 def pack_entries(draw, include_garbage=True, include_symlinks=True):
-    """Generate a list of archive entries. Always includes the three required parts
-    plus random adversarial extras."""
+    """Generate a list of archive entries.
+
+    Always includes the three required parts plus random adversarial extras.
+    """
     pair = draw(pair_code())
     entries = []
     for part in _REQUIRED_PARTS:
-        suffix = draw(st.sampled_from([".npz", ".bin", ".spm", ".s2t.bin", ".en-es.npz"]))
+        suffix = draw(
+            st.sampled_from([".npz", ".bin", ".spm", ".s2t.bin", ".en-es.npz"])
+        )
         body = draw(st.text(alphabet=_ALLOWED_NAME_CHARS, min_size=1, max_size=20))
         # _FILE_TYPE_RE requires the part name followed by a non-alphanumeric char.
         filename = f"{pair}/{part}.{body}{suffix}"
@@ -110,19 +120,29 @@ def pack_entries(draw, include_garbage=True, include_symlinks=True):
     if include_garbage:
         n_extras = draw(st.integers(min_value=0, max_value=4))
         for _ in range(n_extras):
-            name = draw(st.text(alphabet=st.characters(whitelist_categories=("Ll", "Lu", "Nd")), min_size=1, max_size=20))
+            name = draw(
+                st.text(
+                    alphabet=st.characters(whitelist_categories=("Ll", "Lu", "Nd")),
+                    min_size=1,
+                    max_size=20,
+                )
+            )
             data = draw(st.binary(min_size=0, max_size=128))
             # Half the time generate a benign extra, half the time an adversarial path.
             if draw(st.booleans()):
                 entries.append((f"{pair}/{name}.txt", data, "file"))
             else:
-                adversarial = draw(st.sampled_from([
-                    f"{pair}/../{name}.txt",
-                    f"../{name}.txt",
-                    f"/{pair}/{name}.txt",
-                    f"{pair}\\..\\{name}.txt",
-                    f"..\\{name}.txt",
-                ]))
+                adversarial = draw(
+                    st.sampled_from(
+                        [
+                            f"{pair}/../{name}.txt",
+                            f"../{name}.txt",
+                            f"/{pair}/{name}.txt",
+                            f"{pair}\\..\\{name}.txt",
+                            f"..\\{name}.txt",
+                        ]
+                    )
+                )
                 entries.append((adversarial, data, "file"))
 
     if include_symlinks:
@@ -172,7 +192,11 @@ class TestPackManagerJailOracles:
     @example(p="/etc/passwd")
     @example(p="foo\\..\\bar")
     @example(p="foo\x00bar")
-    @settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=200,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_safe_file_path_never_escapes_packs_dir(self, p, tmp_path):
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
@@ -186,7 +210,11 @@ class TestPackManagerJailOracles:
         assert os.path.isfile(result)
 
     @given(entries=pack_entries(), kind=archive_kind())
-    @settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=50,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_imported_files_stay_under_packs_dir(self, entries, kind, tmp_path):
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
@@ -218,8 +246,15 @@ class TestPackManagerJailOracles:
 
 
 class TestPackManagerMetamorphicOracles:
-    @given(entries=pack_entries(include_garbage=False, include_symlinks=False), kind=archive_kind())
-    @settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @given(
+        entries=pack_entries(include_garbage=False, include_symlinks=False),
+        kind=archive_kind(),
+    )
+    @settings(
+        max_examples=30,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_import_remove_import_is_idempotent(self, entries, kind, tmp_path):
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
@@ -249,7 +284,11 @@ class TestPackManagerMetamorphicOracles:
         assert first == second
 
     @given(entries=pack_entries(include_garbage=False, include_symlinks=False))
-    @settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=20,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_zip_and_tar_imports_agree(self, entries, tmp_path):
         root = tmp_path / str(uuid.uuid4())
         root.mkdir()
