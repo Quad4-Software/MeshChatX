@@ -63,7 +63,7 @@ _PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT = 1
 # WELL_KNOWN_SID_TYPE for AppContainer network capabilities
 _WinCapabilityInternetClientSid = 85
 _WinCapabilityInternetClientServerSid = 86
-_WinCapabilityPrivateNetworkClientServerSid = 84
+_WinCapabilityPrivateNetworkClientServerSid = 87
 
 _INFINITE = 0xFFFFFFFF
 _WAIT_OBJECT_0 = 0
