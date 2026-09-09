@@ -733,6 +733,9 @@ class ReticulumMeshChat:
         self._page_file_grants: dict[int, dict] = {}
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
+        from meshchatx.src.backend.translation_pack_manager import TranslationPackManager
+
+        self.translation_pack_manager = TranslationPackManager(self.storage_dir)
         self.page_node_manager = PageNodeManager(
             self.storage_dir,
             on_announce=self._register_local_page_node_announce,
