@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "加载页面失败",
         "archived_version_available": "此页面的存档版本可用。",
         "view_archive": "查看存档",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "无活动节点",
         "select_node_to_browse": "选择要开始浏览的节点！",
         "open_nomadnet_url": "打开 Nomad Network URL",

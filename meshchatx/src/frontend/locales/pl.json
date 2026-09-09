@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "Nie udało się wczytać strony",
         "archived_version_available": "Dostępna jest zarchiwizowana wersja tej strony.",
         "view_archive": "Pokaż archiwum",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "Brak aktywnego węzła",
         "select_node_to_browse": "Wybierz węzeł, aby rozpocząć przeglądanie!",
         "open_nomadnet_url": "Otwórz adres URL Nomadnet",

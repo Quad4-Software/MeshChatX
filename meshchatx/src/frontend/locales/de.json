@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "Seite konnte nicht geladen werden",
         "archived_version_available": "Eine archivierte Version dieser Seite ist verfügbar.",
         "view_archive": "Archiv anzeigen",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "Kein aktiver Knoten",
         "select_node_to_browse": "Wählen Sie einen Knoten aus, um mit dem Surfen zu beginnen!",
         "open_nomadnet_url": "Eine Nomadnet-URL öffnen",

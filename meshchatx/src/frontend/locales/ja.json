@@ -2622,6 +2622,8 @@
         "failed_to_load_page": "ページの読み込みに失敗しました",
         "archived_version_available": "このページにはアーカイブ済みのバージョンがあります。",
         "view_archive": "アーカイブを表示",
+        "translate_page": "Translate page",
+        "no_page_text_to_translate": "No page text to translate.",
         "no_active_node": "アクティブなノードがありません",
         "select_node_to_browse": "ブラウズするにはノードを選択してください！",
         "open_nomadnet_url": "NomadnetのURLを開く",
