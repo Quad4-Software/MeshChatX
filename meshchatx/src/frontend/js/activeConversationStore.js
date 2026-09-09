@@ -5,6 +5,7 @@
  */
 
 import { normalizeDestinationHash } from "./notificationPolicy.js";
+import GlobalEmitter from "./GlobalEmitter";
 
 /** @type {Set<string>} */
 const openHashes = new Set();
@@ -115,3 +116,13 @@ export function clearOpenDestinationHashesForTests() {
     openHashes.clear();
     listeners.clear();
 }
+
+// Open panes belong to the active identity. After an identity switch the old
+// destination hashes must not keep suppressing notifications for the new one.
+GlobalEmitter.on("identity-switched", () => {
+    if (openHashes.size === 0) {
+        return;
+    }
+    openHashes.clear();
+    notifyListeners();
+});

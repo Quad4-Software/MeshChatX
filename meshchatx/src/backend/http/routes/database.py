@@ -211,7 +211,11 @@ def register_database_routes(routes, app):
                     temp_path = tmp.name
 
                 try:
-                    result = app.restore_database(temp_path, relaunch=True)
+                    # Restore tears down identity contexts and blocks for up
+                    # to ~30s; keep it off the event loop.
+                    result = await asyncio.to_thread(
+                        app.restore_database, temp_path, relaunch=True
+                    )
                 finally:
                     with contextlib.suppress(OSError):
                         os.remove(temp_path)
@@ -242,7 +246,9 @@ def register_database_routes(routes, app):
                     status=404,
                 )
 
-            result = app.restore_database(resolved, relaunch=True)
+            result = await asyncio.to_thread(
+                app.restore_database, resolved, relaunch=True
+            )
             return web.json_response(
                 {
                     "status": "success",

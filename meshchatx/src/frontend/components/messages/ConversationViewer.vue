@@ -1673,6 +1673,7 @@ import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../j
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import {
     isOpportunisticDeferredDelivery as isOpportunisticDeferredDeliveryStatus,
+    lxmfStateWouldRegress,
     outboundBubbleStatusIconName as resolveOutboundBubbleStatusIconName,
     outboundBubbleStatusTitleKey as resolveOutboundBubbleStatusTitleKey,
 } from "../../js/outboundMessageStatus.js";
@@ -3747,6 +3748,9 @@ export default {
             const prev = chatItem.lxmf_message;
             const prevState = prev?.state;
             const merged = { ...prev, ...lxmfMessage };
+            if (lxmfStateWouldRegress(prevState, merged.state)) {
+                merged.state = prevState;
+            }
             if (!Object.prototype.hasOwnProperty.call(lxmfMessage, "_pendingPathfinding")) {
                 delete merged._pendingPathfinding;
             }

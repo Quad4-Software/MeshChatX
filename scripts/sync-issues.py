@@ -36,12 +36,30 @@ GH_MARKER_RE = re.compile(r"\bGH#(\d+)\b")
 GH_COMMENT_MARKER = "<!-- gh-comment:"
 GH_COMMENT_MARKER_RE = re.compile(r"<!--\s*gh-comment:(\S+)\s*-->")
 
+MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+HTML_IMG_RE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+
 MAX_TITLE = 140
 
 
 # ---------------------------------------------------------------------------
 # Pure helpers (unit-testable, no network)
 # ---------------------------------------------------------------------------
+
+
+def strip_images(text: str) -> str:
+    """Replace embedded images with a text placeholder.
+
+    Work documents live on the mesh where clearnet image URLs are dead weight;
+    the attribution footer links back to the issue for anyone who needs them.
+    """
+
+    def _md(m):
+        alt = re.match(r"!\[([^\]]*)\]", m.group(0)).group(1).strip()
+        return f"[image: {alt}]" if alt else "[image]"
+
+    text = MD_IMAGE_RE.sub(_md, str(text))
+    return HTML_IMG_RE.sub("[image]", text)
 
 
 def issue_title(issue: dict) -> str:
@@ -53,7 +71,7 @@ def issue_title(issue: dict) -> str:
 
 
 def issue_content(issue: dict, repo: str) -> str:
-    body = str(issue.get("body") or "").strip()
+    body = strip_images(str(issue.get("body") or "")).strip()
     number = issue["number"]
     author = (issue.get("author") or {}).get("login") or "unknown"
     state = str(issue.get("state") or "").lower()
@@ -80,7 +98,7 @@ def comment_content(comment: dict) -> str:
     cid = str(comment.get("id") or comment.get("databaseId") or "0")
     author = (comment.get("author") or {}).get("login") or "unknown"
     created = (comment.get("createdAt") or "")[:19].replace("T", " ")
-    body = str(comment.get("body") or "").strip()
+    body = strip_images(str(comment.get("body") or "")).strip()
     header = f"@{author}"
     if created:
         header += f" on {created}"
@@ -368,6 +386,11 @@ def main(argv=None):
         help="also sync issue comments as doc updates",
     )
     ap.add_argument(
+        "--update",
+        action="store_true",
+        help="edit existing docs whose title or content differs from GitHub",
+    )
+    ap.add_argument(
         "--dry-run", action="store_true", help="show the plan without touching the node"
     )
     ap.add_argument(
@@ -444,6 +467,24 @@ def main(argv=None):
             client.activate(doc["id"])
             print(f"re-activated doc #{doc['id']}")
 
+        updated = 0
+        if args.update:
+            issues_by_num = {i["number"]: i for i in issues}
+            for doc in docs:
+                num = doc_gh_number(doc)
+                if num not in issues_by_num:
+                    continue
+                issue = issues_by_num[num]
+                want_title = issue_title(issue)
+                want_content = issue_content(issue, repo).strip()
+                current = client.view_doc(doc["id"], scope=doc["_scope"])
+                have_title = current.get("meta", {}).get("title", "")
+                have_content = (current.get("content") or "").strip()
+                if want_title != have_title or want_content != have_content:
+                    client.edit_doc(doc["id"], want_title, want_content, scope=doc["_scope"])
+                    updated += 1
+                    print(f"updated doc #{doc['id']} (GH#{num})")
+
         if args.comments:
             for issue in issues:
                 gh_comments = issue.get("comments") or []
@@ -466,7 +507,8 @@ def main(argv=None):
         print(
             f"done: {len(plan.creates)} created, "
             f"{len(plan.completes)} completed, "
-            f"{len(plan.activates)} re-activated"
+            f"{len(plan.activates)} re-activated, "
+            f"{updated} updated"
         )
         return 0
     finally:

@@ -1060,7 +1060,7 @@ class Database:
 
     def restore_database(self, backup_path: str):
         if not os.path.exists(backup_path):
-            msg = f"Backup not found at {backup_path}"
+            msg = "Backup not found"
             raise FileNotFoundError(msg)
 
         paths = self._database_paths()

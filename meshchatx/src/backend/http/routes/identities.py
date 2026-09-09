@@ -396,7 +396,14 @@ def register_identities_routes(routes, app):
                     status=400,
                 )
 
-            shutil.copy2(identity_file, main_identity_file)
+            # A symlinked identity file would copy the link target into the
+            # active identity slot, reading an arbitrary local file.
+            if os.path.islink(identity_file):
+                return web.json_response(
+                    {"message": "Invalid identity file"},
+                    status=400,
+                )
+            shutil.copy2(identity_file, main_identity_file, follow_symlinks=False)
 
             def restart():
                 time.sleep(1)

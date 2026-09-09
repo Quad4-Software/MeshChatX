@@ -143,7 +143,9 @@ def register_maintenance_routes(routes, app):
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
         if cutoff is None:
-            app.database.messages.delete_all_lxmf_messages()
+            await asyncio.to_thread(
+                app.database.messages.delete_all_lxmf_messages,
+            )
             return web.json_response(
                 {"message": "All messages cleared", "deleted": None},
             )
@@ -307,30 +309,33 @@ def register_maintenance_routes(routes, app):
             )
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
-        messages_list = []
-        page_size = 5000
-        offset = 0
-        while True:
-            if cutoff is None:
-                page = app.database.messages.get_all_lxmf_messages(
-                    limit=page_size,
-                    offset=offset,
-                )
-            else:
-                page = app.database.messages.get_lxmf_messages_with_timestamp_before(
-                    cutoff,
-                    limit=page_size,
-                    offset=offset,
-                )
-            messages_list.extend(dict(m) for m in page)
-            if len(page) < page_size:
-                break
-            offset += page_size
-        bundle = await asyncio.to_thread(
-            build_messages_export_bundle,
-            app.database,
-            messages_list,
-        )
+        def _collect_and_build():
+            # Paged SQLite reads must not run on the event loop: a large
+            # inbox would stall every other request while pages are fetched.
+            messages_list = []
+            page_size = 5000
+            offset = 0
+            while True:
+                if cutoff is None:
+                    page = app.database.messages.get_all_lxmf_messages(
+                        limit=page_size,
+                        offset=offset,
+                    )
+                else:
+                    page = (
+                        app.database.messages.get_lxmf_messages_with_timestamp_before(
+                            cutoff,
+                            limit=page_size,
+                            offset=offset,
+                        )
+                    )
+                messages_list.extend(dict(m) for m in page)
+                if len(page) < page_size:
+                    break
+                offset += page_size
+            return build_messages_export_bundle(app.database, messages_list)
+
+        bundle = await asyncio.to_thread(_collect_and_build)
         return web.json_response(bundle)
 
     def _message_import_response(result):

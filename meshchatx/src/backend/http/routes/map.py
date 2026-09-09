@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
+import math
+
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
     MAX_EXPORT_TILES,
+    MAX_EXPORT_ZOOM,
     RNS,
     SETUP_PATH,
     TRANSPARENT_TILE,
@@ -205,6 +208,10 @@ def register_map_routes(routes, app):
     async def set_active_mbtiles(request):
         data = await request.json()
         filename = data.get("filename")
+        if filename is not None and (
+            not isinstance(filename, str) or "\x00" in filename
+        ):
+            return web.json_response({"error": "Invalid filename"}, status=400)
         if not filename:
             app.config.map_offline_path.set(None)
             app.config.map_offline_enabled.set(False)
@@ -543,13 +550,38 @@ def register_map_routes(routes, app):
     async def start_map_export(request):
         try:
             data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"error": "Invalid body"}, status=400)
             bbox = data.get("bbox")  # [min_lon, min_lat, max_lon, max_lat]
-            min_zoom = int(data.get("min_zoom", 0))
-            max_zoom = int(data.get("max_zoom", 10))
+            try:
+                min_zoom = int(data.get("min_zoom", 0))
+                max_zoom = int(data.get("max_zoom", 10))
+            except (TypeError, ValueError):
+                return web.json_response(
+                    {"error": "Invalid zoom levels"},
+                    status=400,
+                )
             name = data.get("name", "Exported Map")
 
-            if not bbox or len(bbox) != 4:
+            if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
                 return web.json_response({"error": "Invalid bbox"}, status=400)
+            try:
+                bbox = [float(v) for v in bbox]
+            except (TypeError, ValueError):
+                return web.json_response({"error": "Invalid bbox"}, status=400)
+            if not all(math.isfinite(v) for v in bbox):
+                return web.json_response({"error": "Invalid bbox"}, status=400)
+            if not (0 <= min_zoom <= max_zoom <= MAX_EXPORT_ZOOM):
+                return web.json_response(
+                    {
+                        "error": (
+                            f"Invalid zoom range; "
+                            f"allowed is 0 <= min_zoom <= max_zoom <= "
+                            f"{MAX_EXPORT_ZOOM}."
+                        ),
+                    },
+                    status=400,
+                )
 
             app._require_outbound_http("map tile export")
 
@@ -557,12 +589,14 @@ def register_map_routes(routes, app):
                 bbox,
                 min_zoom,
                 max_zoom,
+                limit=MAX_EXPORT_TILES,
             )
             if tile_count > MAX_EXPORT_TILES:
                 return web.json_response(
                     {
                         "error": (
-                            f"Export would download {tile_count} tiles; "
+                            f"Export would download more than "
+                            f"{MAX_EXPORT_TILES} tiles; "
                             f"maximum allowed is {MAX_EXPORT_TILES}. "
                             "Shrink the area or lower max zoom."
                         ),
