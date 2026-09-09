@@ -175,11 +175,14 @@ export function installWsLiveSync(options) {
     }
 
     async function handleSyncReply(payload) {
+        if (typeof payload?.current_seq === "number" && payload.current_seq < lastSeq) {
+            // The server restarted and its seq began again from zero. The
+            // stored cursor is from a previous epoch and must be dropped or
+            // gap recovery stays permanently disabled.
+            lastSeq = Math.max(0, Math.floor(payload.current_seq));
+            persist();
+        }
         if (!syncSubscribeRequiresResync(payload)) {
-            if (typeof payload?.current_seq === "number") {
-                lastSeq = Math.max(lastSeq, Math.floor(payload.current_seq));
-                persist();
-            }
             return;
         }
         await onNeedsResync();

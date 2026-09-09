@@ -52,10 +52,6 @@ KNOWN_NETWORK = frozenset({"none", "fetch"})
 KNOWN_UI = frozenset({"none", "sandboxed-html"})
 
 _URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)]+""")
-_SCHEME_HOST_RE = re.compile(
-    r"https?://([a-z0-9][-a-z0-9.]*(?:\.[a-z0-9][-a-z0-9.]*)+)",
-    re.IGNORECASE,
-)
 _SCAN_EXTENSIONS = frozenset(
     {".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".wat", ".html", ".htm"}
 )
@@ -273,10 +269,23 @@ def extract_urls_from_text(text: str) -> list[str]:
 
 
 def _host_root(endpoint: str) -> str | None:
-    match = _SCHEME_HOST_RE.search(endpoint)
-    if not match:
+    """Derive scheme://host/ for an endpoint using a real URL parse.
+
+    A regex search would read 127.0.0.1 out of
+    http://127.0.0.1:8000@example.com/x even though the actual host is
+    example.com. urlparse resolves userinfo correctly, so the emitted root
+    always names the host a request would really reach.
+    """
+    try:
+        parsed = urlparse(endpoint)
+        hostname = parsed.hostname
+    except (ValueError, UnicodeError):
         return None
-    return f"https://{match.group(1).lower()}/"
+    if parsed.scheme.lower() not in ("http", "https"):
+        return None
+    if not hostname or "." not in hostname:
+        return None
+    return f"https://{hostname.lower()}/"
 
 
 def collect_network_endpoints(manifest: dict[str, Any], plugin_dir: str) -> list[str]:

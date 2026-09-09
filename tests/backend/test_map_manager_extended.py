@@ -130,6 +130,43 @@ def test_count_export_tiles_dedupes(mock_config, temp_dir):
     assert single > 0
 
 
+def test_count_export_tiles_stops_at_limit(mock_config, temp_dir):
+    """Unbounded counting on a huge bbox would hang the event loop."""
+    mm = MapManager(mock_config, temp_dir)
+    bbox = [-180, -85.051129, 180, 85.051129]
+    # World coverage at zoom 0-10 is ~1.4M tiles; a bounded count must return
+    # limit + 1 immediately instead of enumerating the whole range.
+    assert mm.count_export_tiles(bbox, 0, 10, limit=10) == 11
+    assert mm.count_export_tiles(bbox, 0, 22, limit=MAX_EXPORT_TILES) == (
+        MAX_EXPORT_TILES + 1
+    )
+
+
+def test_count_export_tiles_limit_still_counts_small(mock_config, temp_dir):
+    mm = MapManager(mock_config, temp_dir)
+    n = mm.count_export_tiles([0, 0, 1, 1], 0, 2, limit=MAX_EXPORT_TILES)
+    assert n > 0
+    assert n <= MAX_EXPORT_TILES
+
+
+def test_start_export_rejects_over_cap(mock_config, temp_dir, monkeypatch):
+    mm = MapManager(mock_config, temp_dir)
+    monkeypatch.setattr(
+        "meshchatx.src.backend.map_manager.MAX_EXPORT_TILES",
+        5,
+    )
+    with pytest.raises(ValueError):
+        mm.start_export("too_big", [-180, -85.051129, 180, 85.051129], 0, 10)
+    assert mm.get_export_status("too_big") is None
+
+
+def test_delete_mbtiles_rejects_nul_and_nonstring(mock_config, temp_dir):
+    mm = MapManager(mock_config, temp_dir)
+    assert mm.delete_mbtiles("a\x00.mbtiles") is False
+    assert mm.delete_mbtiles(None) is False
+    assert mm.delete_mbtiles(123) is False
+
+
 def test_is_path_within_dir_allows_nested_file(mock_config, temp_dir):
     nested = os.path.join(temp_dir, "maps", "area.mbtiles")
     os.makedirs(os.path.dirname(nested), exist_ok=True)

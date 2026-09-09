@@ -8,6 +8,21 @@
 
 const SENT_LIKE_STATES = new Set(["sent", "propagated", "unknown"]);
 
+const TERMINAL_STATES = new Set(["delivered", "rejected", "cancelled", "failed"]);
+const PROGRESS_STATES = new Set(["generating", "outbound", "sending", "sent"]);
+
+/**
+ * True when applying nextState over prevState would move a finished outbound
+ * message back to an in-flight state. Mirrors the backend guard that blocks
+ * delivered -> sent regressions from stale or out-of-order updates.
+ * @param {string | null | undefined} prevState
+ * @param {string | null | undefined} nextState
+ * @returns {boolean}
+ */
+export function lxmfStateWouldRegress(prevState, nextState) {
+    return TERMINAL_STATES.has(prevState) && PROGRESS_STATES.has(nextState);
+}
+
 /**
  * @param {{ state?: string, method?: string } | null | undefined} lxmfMessage
  * @returns {string} MDI kebab icon name

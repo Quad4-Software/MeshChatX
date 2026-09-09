@@ -28,6 +28,12 @@ def mock_rns():
         patch("RNS.Transport") as mock_transport,
         patch("RNS.Identity", MockIdentityClass),
         patch("threading.Thread"),
+        # threading.Thread is mocked, so asyncio.to_thread can never spawn
+        # an executor thread; run those calls synchronously.
+        patch(
+            "asyncio.to_thread",
+            side_effect=lambda fn, *args, **kwargs: fn(*args, **kwargs),
+        ),
         patch.object(
             ReticulumMeshChat,
             "announce_loop",

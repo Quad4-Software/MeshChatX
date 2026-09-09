@@ -19,6 +19,7 @@ TRANSPARENT_TILE = base64.b64decode(
 # Guardrail for MBTiles exports (world + high zoom can explode).
 MAX_EXPORT_TILES = 200_000
 MAX_EXPORT_RECORDS = 8
+MAX_EXPORT_ZOOM = 22
 TERMINAL_EXPORT_STATUSES = frozenset({"completed", "failed"})
 
 
@@ -42,6 +43,9 @@ class MapManager:
         self._export_progress = {}
         self._export_cancelled = set()
         self._starter_lock = threading.Lock()
+        # _export_progress / _export_cancelled are touched by the export
+        # thread and the aiohttp loop, so mutations need one lock.
+        self._export_lock = threading.Lock()
 
     def get_connection(self, path):
         if not hasattr(self._local, "connections"):
@@ -51,6 +55,7 @@ class MapManager:
             if not os.path.exists(path):
                 return None
             conn = sqlite3.connect(path, check_same_thread=False)
+            conn.execute("PRAGMA temp_store = MEMORY")
             conn.row_factory = sqlite3.Row
             self._local.connections[path] = conn
 
@@ -58,10 +63,9 @@ class MapManager:
 
     def get_offline_path(self):
         path = self.config.map_offline_path.get()
-        if path:
+        if path and is_path_within_dir(path, self.storage_dir) and os.path.exists(path):
             return path
 
-        # Fallback to default if not set but file exists
         default_path = os.path.join(self.storage_dir, "offline_map.mbtiles")
         if os.path.exists(default_path):
             return default_path
@@ -70,7 +74,11 @@ class MapManager:
 
     def get_mbtiles_dir(self):
         dir_path = self.config.map_mbtiles_dir.get()
-        if dir_path and os.path.isdir(dir_path):
+        if (
+            dir_path
+            and os.path.isdir(dir_path)
+            and is_path_within_dir(dir_path, self.storage_dir)
+        ):
             return dir_path
         return self.storage_dir
 
@@ -160,6 +168,8 @@ class MapManager:
         return sorted(files, key=lambda x: x["mtime"], reverse=True)
 
     def delete_mbtiles(self, filename):
+        if not isinstance(filename, str) or "\x00" in filename:
+            return False
         mbtiles_dir = self.get_mbtiles_dir()
         safe_name = os.path.basename(filename)
         file_path = os.path.join(mbtiles_dir, safe_name)
@@ -169,6 +179,15 @@ class MapManager:
             if file_path == self.get_offline_path():
                 self.config.map_offline_path.set(None)
                 self.config.map_offline_enabled.set(False)
+            if (
+                hasattr(self._local, "connections")
+                and file_path in self._local.connections
+            ):
+                try:
+                    self._local.connections[file_path].close()
+                except Exception:
+                    pass
+                del self._local.connections[file_path]
             os.remove(file_path)
             self._metadata_cache = None
             return True
@@ -234,61 +253,90 @@ class MapManager:
             RNS.log(f"Error reading MBTiles tile {z}/{x}/{y}: {e}", RNS.LOG_ERROR)
             return None
 
-    def count_export_tiles(self, bbox, min_zoom, max_zoom):
-        """Return the number of unique raster tiles that would be exported."""
-        min_lon, min_lat, max_lon, max_lat = bbox
-        seen = set()
-        for z in range(min_zoom, max_zoom + 1):
-            x1, y1 = self._lonlat_to_tile(min_lon, max_lat, z)
-            x2, y2 = self._lonlat_to_tile(max_lon, min_lat, z)
-            for x in range(x1, x2 + 1):
-                for y in range(y1, y2 + 1):
-                    seen.add((z, x, y))
-        return len(seen)
+    def count_export_tiles(self, bbox, min_zoom, max_zoom, limit=None):
+        """Count tiles for a bbox, stopping early once limit is exceeded.
+
+        The tile space grows quadratically with zoom, so callers enforcing a
+        cap must pass limit to avoid enumerating an unbounded range.
+        """
+        count = 0
+        for _tile in self._iter_export_tiles_for_bbox(bbox, min_zoom, max_zoom):
+            count += 1
+            if limit is not None and count > limit:
+                break
+        return count
 
     def start_export(self, export_id, bbox, min_zoom, max_zoom, name="Exported Map"):
         """Start downloading tiles and creating an MBTiles file in a background thread."""
+        tile_count = self.count_export_tiles(
+            bbox,
+            min_zoom,
+            max_zoom,
+            limit=MAX_EXPORT_TILES,
+        )
+        if tile_count > MAX_EXPORT_TILES:
+            msg = (
+                f"Export would download more than {MAX_EXPORT_TILES} tiles. "
+                "Shrink the area or lower max zoom."
+            )
+            raise ValueError(msg)
         thread = threading.Thread(
             target=self._run_export,
             args=(export_id, bbox, min_zoom, max_zoom, name),
             daemon=True,
         )
-        self._export_progress[export_id] = {
-            "status": "starting",
-            "progress": 0,
-            "total": 0,
-            "current": 0,
-            "start_time": time.time(),
-        }
+        with self._export_lock:
+            self._export_progress[export_id] = {
+                "status": "starting",
+                "progress": 0,
+                "total": 0,
+                "current": 0,
+                "start_time": time.time(),
+            }
         thread.start()
         self.prune_export_records()
         return export_id
 
     def get_export_status(self, export_id):
-        return self._export_progress.get(export_id)
+        with self._export_lock:
+            entry = self._export_progress.get(export_id)
+            # The export thread mutates this dict; hand callers a copy so
+            # they never observe a half-updated record.
+            return dict(entry) if entry is not None else None
+
+    def _update_export_progress(self, export_id, **fields):
+        with self._export_lock:
+            entry = self._export_progress.get(export_id)
+            if entry is not None:
+                entry.update(fields)
 
     def prune_export_records(self) -> int:
-        terminal = [
-            export_id
-            for export_id, entry in self._export_progress.items()
-            if entry.get("status") in TERMINAL_EXPORT_STATUSES
-        ]
-        overflow = len(terminal) - MAX_EXPORT_RECORDS
-        if overflow <= 0:
-            return 0
-        ranked = sorted(
-            terminal,
-            key=lambda eid: float(self._export_progress[eid].get("start_time") or 0.0),
-        )
-        dropped = 0
-        for export_id in ranked[:overflow]:
-            if self._export_progress.pop(export_id, None) is not None:
-                dropped += 1
-            self._export_cancelled.discard(export_id)
-        return dropped
+        with self._export_lock:
+            terminal = [
+                export_id
+                for export_id, entry in self._export_progress.items()
+                if entry.get("status") in TERMINAL_EXPORT_STATUSES
+            ]
+            overflow = len(terminal) - MAX_EXPORT_RECORDS
+            if overflow <= 0:
+                return 0
+            ranked = sorted(
+                terminal,
+                key=lambda eid: float(
+                    self._export_progress[eid].get("start_time") or 0.0,
+                ),
+            )
+            dropped = 0
+            for export_id in ranked[:overflow]:
+                if self._export_progress.pop(export_id, None) is not None:
+                    dropped += 1
+                self._export_cancelled.discard(export_id)
+            return dropped
 
     def cancel_export(self, export_id):
-        if export_id in self._export_progress:
+        with self._export_lock:
+            if export_id not in self._export_progress:
+                return False
             self._export_cancelled.add(export_id)
             # If it's already failed or completed, just clean up
             status = self._export_progress[export_id].get("status")
@@ -297,49 +345,38 @@ class MapManager:
                 if file_path and os.path.exists(file_path):
                     os.remove(file_path)
                 del self._export_progress[export_id]
-                if export_id in self._export_cancelled:
-                    self._export_cancelled.remove(export_id)
+                self._export_cancelled.discard(export_id)
             return True
-        return False
 
     def _run_export(self, export_id, bbox, min_zoom, max_zoom, name):
-        # bbox: [min_lon, min_lat, max_lon, max_lat]
         min_lon, min_lat, max_lon, max_lat = bbox
-
-        # collect all tiles to download (unique keys, since bbox can span tile seams)
-        tiles_to_download = []
-        seen = set()
-        zoom_levels = range(min_zoom, max_zoom + 1)
-        for z in zoom_levels:
-            x1, y1 = self._lonlat_to_tile(min_lon, max_lat, z)
-            x2, y2 = self._lonlat_to_tile(max_lon, min_lat, z)
-            for x in range(x1, x2 + 1):
-                for y in range(y1, y2 + 1):
-                    key = (z, x, y)
-                    if key not in seen:
-                        seen.add(key)
-                        tiles_to_download.append(key)
+        tiles_to_download = list(
+            self._iter_export_tiles_for_bbox(bbox, min_zoom, max_zoom),
+        )
 
         total_tiles = len(tiles_to_download)
-        self._export_progress[export_id]["total"] = total_tiles
-        self._export_progress[export_id]["status"] = "downloading"
+        self._update_export_progress(
+            export_id,
+            total=total_tiles,
+            status="downloading",
+        )
 
         dest_path = os.path.join(self.storage_dir, f"export_{export_id}.mbtiles")
 
+        conn = None
         try:
             conn = sqlite3.connect(dest_path)
             cursor = conn.cursor()
-
-            # create schema
-            cursor.execute("CREATE TABLE metadata (name text, value text)")
             cursor.execute(
-                "CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)",
+                "CREATE TABLE IF NOT EXISTS metadata (name text, value text)",
             )
             cursor.execute(
-                "CREATE UNIQUE INDEX tile_index on tiles (zoom_level, tile_column, tile_row)",
+                "CREATE TABLE IF NOT EXISTS tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)",
+            )
+            cursor.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS tile_index ON tiles (zoom_level, tile_column, tile_row)",
             )
 
-            # insert metadata
             metadata = [
                 ("name", name),
                 ("type", "baselayer"),
@@ -364,26 +401,29 @@ class MapManager:
             )
 
             if export_id in self._export_cancelled:
-                conn.close()
                 if os.path.exists(dest_path):
                     os.remove(dest_path)
-                if export_id in self._export_progress:
-                    del self._export_progress[export_id]
-                self._export_cancelled.remove(export_id)
+                with self._export_lock:
+                    self._export_progress.pop(export_id, None)
+                    self._export_cancelled.discard(export_id)
                 return
 
-            conn.close()
-            self._export_progress[export_id]["status"] = "completed"
-            self._export_progress[export_id]["file_path"] = dest_path
+            self._update_export_progress(
+                export_id,
+                status="completed",
+                file_path=dest_path,
+            )
             self.prune_export_records()
 
         except Exception as e:
             RNS.log(f"Map export failed: {e}", RNS.LOG_ERROR)
-            self._export_progress[export_id]["status"] = "failed"
-            self._export_progress[export_id]["error"] = str(e)
+            self._update_export_progress(export_id, status="failed", error=str(e))
             if os.path.exists(dest_path):
                 os.remove(dest_path)
             self.prune_export_records()
+        finally:
+            if conn is not None:
+                conn.close()
 
     async def _export_download_tiles(
         self,
@@ -417,6 +457,7 @@ class MapManager:
                     tile_server_url.replace("{z}", str(z))
                     .replace("{x}", str(x))
                     .replace("{y}", str(y))
+                    .replace("{r}", "")
                 )
 
                 await asyncio.sleep(0.02)
@@ -454,9 +495,10 @@ class MapManager:
                 current_count += 1
 
                 if current_count % 5 == 0 or current_count == total_tiles:
-                    self._export_progress[export_id]["current"] = current_count
-                    self._export_progress[export_id]["progress"] = int(
-                        (current_count / total_tiles) * 100,
+                    self._update_export_progress(
+                        export_id,
+                        current=current_count,
+                        progress=int((current_count / total_tiles) * 100),
                     )
 
                 if len(batch_data) >= batch_size or (
@@ -473,16 +515,70 @@ class MapManager:
                         RNS.log(f"Failed to insert map tiles: {e}", RNS.LOG_ERROR)
 
     def _lonlat_to_tile(self, lon, lat, zoom):
-        lat = max(-85.051129, min(85.051129, lat))
+        lat = max(-85.05112878, min(85.05112878, lat))
         lat_rad = math.radians(lat)
-        n = 2.0**zoom
+        n = 1 << zoom
         x = int((lon + 180.0) / 360.0 * n)
         y = int(
             (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi)
             / 2.0
             * n,
         )
+        x = ((x % n) + n) % n
+        y = max(0, min(n - 1, y))
         return x, y
+
+    def _tile_x_for_min(self, lon, zoom):
+        n = 1 << zoom
+        x = int((lon + 180.0) / 360.0 * n)
+        return ((x % n) + n) % n
+
+    def _tile_x_for_max(self, lon, zoom):
+        n = 1 << zoom
+        x = int((lon + 180.0 - 1e-9) / 360.0 * n)
+        return ((x % n) + n) % n
+
+    def _tile_y(self, lat, zoom):
+        lat = max(-85.05112878, min(85.05112878, lat))
+        lat_rad = math.radians(lat)
+        n = 1 << zoom
+        y = int(
+            (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi)
+            / 2.0
+            * n,
+        )
+        return max(0, min(n - 1, y))
+
+    def _iter_export_tiles_for_bbox(self, bbox, min_zoom, max_zoom):
+        min_lon, min_lat, max_lon, max_lat = bbox
+        lon_span = max_lon - min_lon
+        lat_span = max_lat - min_lat
+        seen = set()
+        for z in range(min_zoom, max_zoom + 1):
+            n = 1 << z
+            x_min = self._tile_x_for_min(min_lon, z)
+            x_max = self._tile_x_for_max(max_lon, z)
+            if lon_span >= 360.0 - 1e-9:
+                x_ranges = [(0, n - 1)]
+            elif lon_span < 0.0:
+                x_ranges = [(x_min, n - 1), (0, x_max)]
+            else:
+                x_ranges = [(x_min, x_max)]
+            y_min = self._tile_y(max_lat, z)
+            y_max = self._tile_y(min_lat, z)
+            if y_min > y_max:
+                y_min, y_max = y_max, y_min
+            if lat_span >= 180.0 - 1e-9:
+                y_min, y_max = 0, n - 1
+            for xs, xe in x_ranges:
+                if xs > xe:
+                    continue
+                for x in range(xs, xe + 1):
+                    for y in range(y_min, y_max + 1):
+                        key = (z, x, y)
+                        if key not in seen:
+                            seen.add(key)
+                            yield key
 
     def close(self):
         if hasattr(self._local, "connections"):
