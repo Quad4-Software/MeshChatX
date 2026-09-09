@@ -181,6 +181,7 @@ from meshchatx.src.backend.lxmf_utils import (
 from meshchatx.src.backend.map_geo_validator import GeoValidationError
 from meshchatx.src.backend.map_manager import (
     MAX_EXPORT_TILES,
+    MAX_EXPORT_ZOOM,
     TRANSPARENT_TILE,
     is_mbtiles_filename,
 )
@@ -565,6 +566,7 @@ _HTTP_LIVE_NAME_ANCHORS = (
     lxmf_sidebar_preview_for_conversation_latest_row,
     GeoValidationError,
     MAX_EXPORT_TILES,
+    MAX_EXPORT_ZOOM,
     TRANSPARENT_TILE,
     is_mbtiles_filename,
     OverlayExportError,
@@ -2552,7 +2554,9 @@ class ReticulumMeshChat:
                 "stopping-services",
                 "Stopping bots and mesh services across identities...",
             )
-            self._teardown_all_contexts_for_reload()
+            # Context teardown blocks on Event.wait and sleeps; keep the web
+            # loop responsive while it runs.
+            await asyncio.to_thread(self._teardown_all_contexts_for_reload)
 
             # Give loops a moment to finish
             await asyncio.sleep(2)
@@ -3096,7 +3100,9 @@ class ReticulumMeshChat:
 
             # 2. teardown old identity if not keeping alive
             if not keep_alive:
-                self.teardown_identity()
+                # Teardown waits on setup events and sleeps; run it on a
+                # worker thread so the web loop is not frozen.
+                await asyncio.to_thread(self.teardown_identity)
                 # Give a moment for destinations to clear from transport
                 await asyncio.sleep(2)
             else:
@@ -7556,6 +7562,7 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.websocket_runtime import (
             WS_BROADCAST_SEND_TIMEOUT_SEC,
             client_allows_topic,
+            get_client_send_lock,
             topic_for_type,
             touch_client_activity,
         )
@@ -7598,10 +7605,12 @@ class ReticulumMeshChat:
 
             async def _send_one(websocket_client):
                 try:
-                    await asyncio.wait_for(
-                        websocket_client.send_str(data),
-                        timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
-                    )
+                    send_lock = get_client_send_lock(websocket_client)
+                    async with send_lock:
+                        await asyncio.wait_for(
+                            websocket_client.send_str(data),
+                            timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
+                        )
                     touch_client_activity(websocket_client)
                     counters = getattr(self, "ws_counters", None)
                     if counters is not None:

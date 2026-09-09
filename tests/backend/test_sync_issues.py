@@ -111,3 +111,22 @@ def test_missing_comments_dedup_by_marker():
 def test_missing_comments_empty_inputs():
     assert sync.missing_comments([], []) == []
     assert sync.missing_comments([{"id": 9}], []) == [{"id": 9}]
+
+
+def test_strip_images_markdown():
+    out = sync.strip_images("look ![screenshot](https://x/y.png) here")
+    assert out == "look [image: screenshot] here"
+    assert sync.strip_images("![](https://x/y.png)") == "[image]"
+
+
+def test_strip_images_html_and_none():
+    assert sync.strip_images('<img src="a.png" alt="x">') == "[image]"
+    assert sync.strip_images("plain text") == "plain text"
+    assert sync.strip_images("[link](https://x)") == "[link](https://x)"
+
+
+def test_issue_content_strips_images():
+    issue = _issue(1, body="see ![img](https://a/b.png)")
+    c = sync.issue_content(issue, "x/y")
+    assert "![" not in c
+    assert "[image: img]" in c

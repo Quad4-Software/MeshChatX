@@ -23,4 +23,18 @@ describe("wsEventRegistry", () => {
         offWsEvent("announce", first);
         offWsEvent("announce", second);
     });
+
+    it("a throwing handler does not starve later handlers", async () => {
+        const bad = vi.fn(() => {
+            throw new Error("boom");
+        });
+        const good = vi.fn();
+        onWsEvent("announce", bad);
+        onWsEvent("announce", good);
+        await dispatchWsEvent("announce", { type: "announce" });
+        expect(bad).toHaveBeenCalled();
+        expect(good).toHaveBeenCalled();
+        offWsEvent("announce", bad);
+        offWsEvent("announce", good);
+    });
 });

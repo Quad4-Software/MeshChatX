@@ -37,6 +37,12 @@ def mock_rns():
             patch("RNS.Transport"),
             patch("RNS.Identity", MockIdentityClass),
             patch("threading.Thread"),
+            # threading.Thread is mocked, so asyncio.to_thread can never
+            # spawn an executor thread; run those calls synchronously.
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda fn, *args, **kwargs: fn(*args, **kwargs),
+            ),
             patch("meshchatx.src.backend.identity_context.Database"),
             patch("meshchatx.src.backend.identity_context.ConfigManager"),
             patch("meshchatx.src.backend.identity_context.MessageHandler"),

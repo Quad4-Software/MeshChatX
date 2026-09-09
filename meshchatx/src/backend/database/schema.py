@@ -6,6 +6,22 @@ from .provider import DatabaseProvider
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
+# Column types come from parsed CREATE TABLE statements. SQLite allows quoted
+# DEFAULT literals, so instead of a char allowlist reject the tokens that make
+# an appended clause dangerous: statement/comment terminators and quoting that
+# could break out of the type position.
+_COLUMN_TYPE_FORBIDDEN_RE = re.compile(r";|--|/\*|\*/|[`\"\[\]\\]")
+
+
+def _validate_column_type(column_type: str) -> str:
+    if not isinstance(column_type, str) or not column_type.strip():
+        msg = "Invalid SQL column type"
+        raise ValueError(msg)
+    if len(column_type) > 200 or _COLUMN_TYPE_FORBIDDEN_RE.search(column_type):
+        msg = f"Invalid SQL column type: {column_type!r}"
+        raise ValueError(msg)
+    return column_type
+
 
 class DatabaseMigrationError(RuntimeError):
     pass
@@ -62,6 +78,7 @@ class DatabaseSchema:
         """Add a column to a table if it doesn't exist."""
         _validate_identifier(table_name, "table name")
         _validate_identifier(column_name, "column name")
+        _validate_column_type(column_type)
 
         cursor = self.provider.connection.cursor()
         try:
