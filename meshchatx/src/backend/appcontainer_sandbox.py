@@ -954,6 +954,7 @@ def launch_backend_sandboxed(
         if exe and sys.platform == "win32":
             exe_dir = os.path.dirname(exe)
             if exe_dir and os.path.isdir(exe_dir):
+                file_count = 0
                 for root, dirs, files in os.walk(exe_dir):
                     for name in dirs + files:
                         file_path = os.path.join(root, name)
@@ -962,23 +963,41 @@ def launch_backend_sandboxed(
                         try:
                             grant_path_access(sid, file_path, write=False)
                             _record_grant(file_path, False)
-                        except OSError:
-                            pass
+                            file_count += 1
+                        except OSError as grant_exc:
+                            logger.debug(
+                                "grant_path_access(%s) failed: %s",
+                                file_path,
+                                grant_exc,
+                            )
+                logger.info(
+                    "Granted read/execute on %d files under %s",
+                    file_count,
+                    exe_dir,
+                )
                 parent = os.path.dirname(exe_dir)
                 while parent and parent != os.path.dirname(parent):
                     if parent not in granted_set:
                         try:
                             grant_execute_access(sid, parent)
                             _record_grant(parent, False)
-                        except OSError:
-                            pass
+                        except OSError as grant_exc:
+                            logger.debug(
+                                "grant_execute_access(%s) failed: %s",
+                                parent,
+                                grant_exc,
+                            )
                     parent = os.path.dirname(parent)
 
         try:
+            child_cwd = (
+                storage_dir or log_dir or reticulum_config_dir or os.path.dirname(exe)
+            )
             h_process, h_thread, _pid = create_process_in_appcontainer(
                 exe,
                 args,
                 use_lpac=use_lpac,
+                cwd=child_cwd,
             )
         except OSError as exc:
             # LPAC is best-effort: some Windows builds reject the policy
@@ -995,6 +1014,7 @@ def launch_backend_sandboxed(
                     exe,
                     args,
                     use_lpac=False,
+                    cwd=child_cwd,
                 )
             else:
                 raise
