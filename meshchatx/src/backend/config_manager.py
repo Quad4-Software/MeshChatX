@@ -700,7 +700,11 @@ class ConfigManager:
             self,
             "nomad_image_loading_policy",
             "manual",
-            validate=lambda v: v.lower() if v.lower() in {"never", "manual", "auto", "always"} else "manual",
+            validate=lambda v: (
+                v.lower()
+                if v.lower() in {"never", "manual", "auto", "always"}
+                else "manual"
+            ),
         )
         self.default_bootstrap_only = self.BoolConfig(
             self,

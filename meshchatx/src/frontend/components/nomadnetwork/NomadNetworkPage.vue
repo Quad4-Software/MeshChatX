@@ -2756,7 +2756,11 @@ export default {
         resolveNomadImageDestination(imageUrl, imagePath) {
             const raw = (imagePath || imageUrl || "").trim();
             const parsed = this.parseNomadnetworkUrl(raw);
-            const destinationHash = (parsed?.destination_hash || this.selectedNode?.destination_hash || "").toLowerCase();
+            const destinationHash = (
+                parsed?.destination_hash ||
+                this.selectedNode?.destination_hash ||
+                ""
+            ).toLowerCase();
             const filePath = (parsed?.path || "").trim();
             if (!/^[a-f0-9]{32}$/.test(destinationHash)) {
                 return { destinationHash: "", filePath: "" };
@@ -2765,7 +2769,7 @@ export default {
                 return { destinationHash: "", filePath: "" };
             }
             // Reject obvious traversal or dangerous characters.
-            if (filePath.includes("..") || /[<>"|?*\x00-\x1f]/.test(filePath)) {
+            if (filePath.includes("..") || [...filePath].some((ch) => ch.charCodeAt(0) < 32 || '<>"|?*'.includes(ch))) {
                 return { destinationHash: "", filePath: "" };
             }
             return { destinationHash, filePath };
@@ -2847,12 +2851,20 @@ export default {
                 filePath,
                 requestId,
                 downloadId: null,
-                onSuccessCallback: (fileName, fileBytes) => this.onNomadImageDownloadSuccess(index, fileName, fileBytes),
+                onSuccessCallback: (fileName, fileBytes) =>
+                    this.onNomadImageDownloadSuccess(index, fileName, fileBytes),
                 onFailureCallback: (reason) => this.onNomadImageDownloadFailure(index, reason),
                 onProgressCallback: (progress) => this.onNomadImageDownloadProgress(index, progress),
             };
             this.nomadImageDownloadCallbacks[index] = context;
-            this.downloadNomadNetFile(destinationHash, filePath, data, context.onSuccessCallback, context.onFailureCallback, context.onProgressCallback);
+            this.downloadNomadNetFile(
+                destinationHash,
+                filePath,
+                data,
+                context.onSuccessCallback,
+                context.onFailureCallback,
+                context.onProgressCallback
+            );
         },
         generateNomadImageRequestId() {
             return `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
@@ -2866,7 +2878,11 @@ export default {
             if (eventRequestId != null && String(eventRequestId) !== String(context.requestId)) {
                 return false;
             }
-            if (eventData.download_id != null && context.downloadId != null && Number(eventData.download_id) !== Number(context.downloadId)) {
+            if (
+                eventData.download_id != null &&
+                context.downloadId != null &&
+                Number(eventData.download_id) !== Number(context.downloadId)
+            ) {
                 return false;
             }
             if (eventData.destination_hash && eventData.destination_hash !== context.destinationHash) {

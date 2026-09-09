@@ -96,7 +96,7 @@ function parseMicronImageOptions(fields) {
                 options.profile = sanitizeMicronImageString(
                     v,
                     MICRON_IMAGE_MAX_PROFILE_LEN,
-                    MICRON_IMAGE_PROFILE_REGEXP,
+                    MICRON_IMAGE_PROFILE_REGEXP
                 );
             }
         }
@@ -775,7 +775,7 @@ export default class MicronParser extends BaseMicronParser {
             return null;
         }
         // Reject anything that looks like traversal.
-        if (path.includes("..") || /[<>"|?*\x00-\x1f]/.test(path)) {
+        if (path.includes("..") || [...path].some((ch) => ch.charCodeAt(0) < 32 || '<>"|?*'.includes(ch))) {
             return null;
         }
         if (hash) {
