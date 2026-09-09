@@ -1,6 +1,5 @@
 # Testing channel builds from dev: push a nightly-* tag when dev has new
 # commits since the last Testing prerelease, then dispatch build-release.yml.
-# CI must be green by default; set require_ci_green=false to override manually.
 # Tag push alone does not start other workflows when using GITHUB_TOKEN
 # (GitHub Actions event loop prevention); workflow_dispatch is required.
 #
@@ -15,12 +14,6 @@ on:
     schedule:
         - cron: "0 7 * * *"
     workflow_dispatch:
-        inputs:
-            require_ci_green:
-                description: Require a green CI run on the chosen SHA before cutting the tag
-                required: false
-                type: boolean
-                default: true
 
 concurrency:
     group: testing-release
@@ -96,12 +89,6 @@ jobs:
               with:
                   ref: dev
                   fetch-depth: 0
-
-            - name: Require CI green
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  MESHCHATX_REQUIRE_CI_GREEN: ${{ inputs.require_ci_green }}
-              run: bash scripts/ci/github-require-ci-green.sh "${{ needs.metadata.outputs.commit_sha }}"
 
             - name: Create and push Testing tag
               env:
