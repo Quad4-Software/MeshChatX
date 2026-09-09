@@ -44,8 +44,12 @@ def _policy_ctx(*, block_all=False, block_attachments=False):
 
 def test_oracle_source_hash_from_delivery_resource():
     resource = _resource_for_peer(PEER_SPAMMER)
-    assert source_hash_from_delivery_resource(resource) == PEER_SPAMMER  # skipcq: BAN-B101
-    assert source_hash_from_delivery_resource(SimpleNamespace(link=None)) is None  # skipcq: BAN-B101
+    assert (
+        source_hash_from_delivery_resource(resource) == PEER_SPAMMER
+    )  # skipcq: BAN-B101
+    assert (
+        source_hash_from_delivery_resource(SimpleNamespace(link=None)) is None
+    )  # skipcq: BAN-B101
 
 
 @pytest.mark.parametrize(
