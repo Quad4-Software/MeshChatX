@@ -7,12 +7,7 @@ function appBase() {
 }
 
 function absoluteUrl(path) {
-    if (path.startsWith("http://") || path.startsWith("https://")) {
-        return path;
-    }
-    const base = appBase();
-    const relative = path.replace(/^\//, "");
-    return `${base}${relative}`;
+    return new URL(path, appBase()).href;
 }
 
 export class BergamotBacking extends TranslatorBacking {
