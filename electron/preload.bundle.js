@@ -101,8 +101,7 @@ function isTrustedShellFileUrl(url) {
         return false;
     }
     const normalized = pathname.replace(/\\/g, "/").toLowerCase();
-    const isShellPage =
-        normalized.endsWith("/loading.html") || normalized.endsWith("/crash.html");
+    const isShellPage = normalized.endsWith("/loading.html") || normalized.endsWith("/crash.html");
     if (!isShellPage) {
         return false;
     }
@@ -110,14 +109,8 @@ function isTrustedShellFileUrl(url) {
         const base = __dirname.replace(/\\/g, "/").toLowerCase();
         // Windows file: URLs carry a leading slash before the drive letter
         // (file:///C:/...). Strip it when the module dir is a drive path.
-        const candidate =
-            normalized.startsWith("/") && !base.startsWith("/")
-                ? normalized.slice(1)
-                : normalized;
-        return (
-            candidate === `${base}/loading.html` ||
-            candidate === `${base}/crash.html`
-        );
+        const candidate = normalized.startsWith("/") && !base.startsWith("/") ? normalized.slice(1) : normalized;
+        return candidate === `${base}/loading.html` || candidate === `${base}/crash.html`;
     }
     return true;
 }

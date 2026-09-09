@@ -30,7 +30,7 @@ def _resource_for_peer(peer_hash: str):
 
 def _policy_app(*, is_contact=False, is_blocked=False):
     app = MagicMock()
-    app._is_contact = MagicMock(return_value=is_contact)
+    app._is_contact = MagicMock(return_value=is_contact)  # skipcq: PYL-W0212
     app.is_destination_blocked = MagicMock(return_value=is_blocked)
     return app
 
@@ -44,8 +44,12 @@ def _policy_ctx(*, block_all=False, block_attachments=False):
 
 def test_oracle_source_hash_from_delivery_resource():
     resource = _resource_for_peer(PEER_SPAMMER)
-    assert source_hash_from_delivery_resource(resource) == PEER_SPAMMER
-    assert source_hash_from_delivery_resource(SimpleNamespace(link=None)) is None
+    assert (
+        source_hash_from_delivery_resource(resource) == PEER_SPAMMER
+    )  # skipcq: BAN-B101
+    assert (
+        source_hash_from_delivery_resource(SimpleNamespace(link=None)) is None
+    )  # skipcq: BAN-B101
 
 
 @pytest.mark.parametrize(
@@ -70,11 +74,11 @@ def test_oracle_evaluate_inbound_delivery_resource_policy(
 
     reject, reason = evaluate_inbound_delivery_resource_policy(app, ctx, resource)
     if expected_reason is None:
-        assert reject is False
-        assert reason is None
+        assert reject is False  # skipcq: BAN-B101
+        assert reason is None  # skipcq: BAN-B101
     else:
-        assert reject is True
-        assert reason == expected_reason
+        assert reject is True  # skipcq: BAN-B101
+        assert reason == expected_reason  # skipcq: BAN-B101
 
 
 def test_oracle_blocked_peer_rejects_before_transfer():
@@ -83,8 +87,8 @@ def test_oracle_blocked_peer_rejects_before_transfer():
     resource = _resource_for_peer(PEER_SPAMMER)
 
     reject, reason = evaluate_inbound_delivery_resource_policy(app, ctx, resource)
-    assert reject is True
-    assert reason == "blocked"
+    assert reject is True  # skipcq: BAN-B101
+    assert reason == "blocked"  # skipcq: BAN-B101
 
 
 def test_oracle_unknown_identity_does_not_reject_attachment_block():
@@ -103,9 +107,38 @@ def test_oracle_unknown_identity_does_not_reject_attachment_block():
     )
 
     reject, reason = evaluate_inbound_delivery_resource_policy(app, ctx, resource)
-    assert reject is False
-    assert reason is None
-    app._is_contact.assert_not_called()
+    assert reject is False  # skipcq: BAN-B101
+    assert reason is None  # skipcq: BAN-B101
+    app._is_contact.assert_not_called()  # skipcq: PYL-W0212
+    app.is_destination_blocked.assert_not_called()
+
+
+def test_oracle_inbound_link_local_destination_identity_is_not_peer():
+    """Inbound links carry the local lxmf.delivery destination.
+
+    When the remote has not identified, destination.identity is our own
+    identity, not the sender's. Using it as the peer hash makes every
+    unidentified sender a known stranger and rejects all resource deliveries.
+    """
+    local_identity = SimpleNamespace(hash=bytes.fromhex("11" * 16))
+    resource = SimpleNamespace(
+        link=SimpleNamespace(
+            get_remote_identity=lambda: None,
+            destination=SimpleNamespace(identity=local_identity),
+        ),
+        hash=bytes.fromhex("aa" * 16),
+        status=0,
+        cancel=MagicMock(),
+    )
+
+    assert source_hash_from_delivery_resource(resource) is None  # skipcq: BAN-B101
+
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True, block_all=True)
+    reject, reason = evaluate_inbound_delivery_resource_policy(app, ctx, resource)
+    assert reject is False  # skipcq: BAN-B101
+    assert reason is None  # skipcq: BAN-B101
+    app._is_contact.assert_not_called()  # skipcq: PYL-W0212
     app.is_destination_blocked.assert_not_called()
 
 
@@ -120,13 +153,13 @@ def test_install_rejects_stranger_resource_at_advertise():
 
     resource = _resource_for_peer(PEER_SPAMMER)
     accepted = router.delivery_resource_advertised(resource)
-    assert accepted is False
+    assert accepted is False  # skipcq: BAN-B101
 
-    app._is_contact.return_value = True
+    app._is_contact.return_value = True  # skipcq: PYL-W0212
     accepted_contact = router.delivery_resource_advertised(
         _resource_for_peer(PEER_FRIEND),
     )
-    assert accepted_contact is True
+    assert accepted_contact is True  # skipcq: BAN-B101
 
 
 def test_install_accepts_unknown_identity_at_advertise():
@@ -146,9 +179,9 @@ def test_install_accepts_unknown_identity_at_advertise():
         cancel=MagicMock(),
     )
     accepted = router.delivery_resource_advertised(resource)
-    assert accepted is True
+    assert accepted is True  # skipcq: BAN-B101
     original_advertised.assert_called_once_with(resource)
-    app._is_contact.assert_not_called()
+    app._is_contact.assert_not_called()  # skipcq: PYL-W0212
 
 
 def test_install_cancels_stranger_resource_when_transfer_begins():
@@ -168,7 +201,7 @@ def test_install_cancels_stranger_resource_when_transfer_begins():
     resource = _resource_for_peer(PEER_SPAMMER)
     router.delivery_resource_transfer_began(resource)
     resource.cancel.assert_called_once()
-    assert began_calls == []
+    assert began_calls == []  # skipcq: BAN-B101
 
 
 def test_install_does_not_cancel_when_identity_unknown_at_transfer_began():
@@ -193,7 +226,7 @@ def test_install_does_not_cancel_when_identity_unknown_at_transfer_began():
     )
     router.delivery_resource_transfer_began(resource)
     resource.cancel.assert_not_called()
-    assert began_calls == [resource]
+    assert began_calls == [resource]  # skipcq: BAN-B101
 
 
 def test_install_is_idempotent():
@@ -206,4 +239,4 @@ def test_install_is_idempotent():
     install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
     first = router.delivery_resource_advertised
     install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
-    assert router.delivery_resource_advertised is first
+    assert router.delivery_resource_advertised is first  # skipcq: BAN-B101
