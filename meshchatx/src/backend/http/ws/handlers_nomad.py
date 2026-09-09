@@ -132,6 +132,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 )
 
 
+from meshchatx.src.backend.sticker_utils import detect_image_format_from_magic
 from meshchatx.src.backend.websocket_runtime import (
     WS_NOMAD_CHUNK_SIZE,
     WS_NOMAD_CHUNK_THRESHOLD,
@@ -144,7 +145,26 @@ def _request_id_fields(data: dict) -> dict:
     rid = data.get("request_id")
     if rid is None:
         return {}
-    return {"request_id": rid}
+    if isinstance(rid, str):
+        rid = rid.strip()
+        if len(rid) > 64 or not rid:
+            return {}
+        return {"request_id": rid}
+    if isinstance(rid, (int, float)) and 0 <= rid < 2**63:
+        return {"request_id": rid}
+    return {}
+
+
+def _is_nomad_image_request(extra: dict | None) -> bool:
+    if not isinstance(extra, dict):
+        return False
+    return extra.get("image_id") is not None
+
+
+def _validate_nomad_image_bytes(file_bytes: bytes | None) -> bool:
+    if not file_bytes:
+        return False
+    return detect_image_format_from_magic(file_bytes) == "webp"
 
 
 async def _send_nomad_file_bytes(
@@ -551,37 +571,63 @@ async def handle_nomadnet_file_download(app, client, data):
 
     rid = _request_id_fields(data)
 
+    page_path = request_data.get("page_path") if isinstance(request_data, dict) else None
     local_file = app._try_serve_local_page_node_file(
         destination_hash,
         file_path,
+        client=client,
+        page_path=page_path,
+        request_data=request_data,
     )
     if local_file is not None:
         file_name, file_bytes = local_file
-        app.download_id_counter += 1
-        download_id = app.download_id_counter
-        AsyncUtils.run_async(
-            _send_nomad_file_bytes(
-                client,
-                download_id=download_id,
-                destination_hash_hex=destination_hash.hex(),
-                file_path=file_path,
-                file_name=file_name,
-                file_bytes=file_bytes,
-                private=private,
-                request_id_fields=rid,
-                extra=request_data,
-            ),
+        if _is_nomad_image_request(request_data) and not _validate_nomad_image_bytes(file_bytes):
+            await client.send_str(
+                json.dumps(
+                    {
+                        "type": "nomadnet.file.download",
+                        "download_id": 0,
+                        **rid,
+                        "nomadnet_file_download": {
+                            "status": "failure",
+                            "failure_reason": "invalid_image",
+                            "destination_hash": destination_hash_hex,
+                            "file_path": file_path,
+                            **({"data": request_data} if request_data is not None else {}),
+                        },
+                    },
+                ),
+            )
+            return
+        async with app.download_id_lock:
+            app.download_id_counter += 1
+            download_id = app.download_id_counter
+        await _send_nomad_file_bytes(
+            client,
+            download_id=download_id,
+            destination_hash_hex=destination_hash.hex(),
+            file_path=file_path,
+            file_name=file_name,
+            file_bytes=file_bytes,
+            private=private,
+            request_id_fields=rid,
+            extra=request_data,
         )
         return
 
     # generate download id
-    app.download_id_counter += 1
-    download_id = app.download_id_counter
+    async with app.download_id_lock:
+        app.download_id_counter += 1
+        download_id = app.download_id_counter
 
     # handle successful file download
     def on_file_download_success(file_name, file_bytes):
         # remove from active downloads (callback thread races cancel)
         app.active_downloads.pop(download_id, None)
+
+        if _is_nomad_image_request(request_data) and not _validate_nomad_image_bytes(file_bytes):
+            on_file_download_failure("invalid_image")
+            return
 
         # Track download speed
         download_size = len(file_bytes)
@@ -730,8 +776,9 @@ async def handle_nomadnet_page_download(app, client, data):
     rid = _request_id_fields(data)
 
     # generate download id early so the client can always clear Loading page
-    app.download_id_counter += 1
-    download_id = app.download_id_counter
+    async with app.download_id_lock:
+        app.download_id_counter += 1
+        download_id = app.download_id_counter
 
     async def send_failure(reason: str, dest_hex: str = "", path: str = "") -> None:
         # Match other Nomad WS callbacks: fire-and-forget so MagicMock clients
@@ -795,6 +842,7 @@ async def handle_nomadnet_page_download(app, client, data):
     if local_page is not None:
         if not private:
             app.archive_page(destination_hash.hex(), page_path, local_page)
+        app._register_page_file_grant(client, destination_hash, page_path, local_page)
         AsyncUtils.run_async(
             _send_nomad_page_content(
                 client,
@@ -816,6 +864,8 @@ async def handle_nomadnet_page_download(app, client, data):
         # archive the page if enabled (never for private browse)
         if not private:
             app.archive_page(destination_hash.hex(), page_path, page_content)
+
+        app._register_page_file_grant(client, destination_hash, page_path, page_content)
 
         AsyncUtils.run_async(
             _send_nomad_page_content(

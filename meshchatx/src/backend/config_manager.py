@@ -700,6 +700,7 @@ class ConfigManager:
             self,
             "nomad_image_loading_policy",
             "manual",
+            validate=lambda v: v.lower() if v.lower() in {"never", "manual", "auto", "always"} else "manual",
         )
         self.default_bootstrap_only = self.BoolConfig(
             self,
@@ -804,16 +805,26 @@ class ConfigManager:
                 self.db.config.set(new_key, old_val)
 
     class StringConfig:
-        def __init__(self, manager, key: str, default_value: str | None = None):
+        def __init__(
+            self,
+            manager,
+            key: str,
+            default_value: str | None = None,
+            *,
+            validate=None,
+        ):
             self.manager = manager
             self.key = key
             self.default_value = default_value
+            self.validate = validate
 
         def get(self, default_value: str | None = None) -> str | None:
             _default_value = default_value or self.default_value
             return self.manager.get(self.key, default_value=_default_value)
 
         def set(self, value: str | None):
+            if value is not None and self.validate is not None:
+                value = self.validate(value)
             self.manager.set(self.key, value)
 
     class BoolConfig:
