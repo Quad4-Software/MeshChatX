@@ -74,8 +74,14 @@ export class BergamotBacking extends TranslatorBacking {
     }
 
     async fetch(url, checksum, extra) {
-        // Same-origin local packs do not need credentials.
-        const response = await fetch(url, { credentials: "same-origin" });
+        const options = { credentials: "same-origin" };
+        if (extra?.signal) {
+            options.signal = extra.signal;
+        }
+        if (checksum) {
+            options.integrity = `sha256-${this.hexToBase64(checksum)}`;
+        }
+        const response = await fetch(url, options);
         if (!response.ok) {
             throw new Error(`Failed to fetch ${url}: ${response.status}`);
         }
