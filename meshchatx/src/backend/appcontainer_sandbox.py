@@ -920,6 +920,13 @@ def launch_backend_sandboxed(
     if forced is None:
         forced = appcontainer_forced()
 
+    if not forced and not appcontainer_requested():
+        logger.info(
+            "AppContainer disabled by %s; running backend unsandboxed",
+            ENV_VAR,
+        )
+        return _run_unsandboxed_child(exe, args)
+
     if not forced and not appcontainer_supported():
         logger.warning(
             "AppContainer APIs are unavailable; running backend unsandboxed",
