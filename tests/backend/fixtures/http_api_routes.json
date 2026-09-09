@@ -1762,15 +1762,15 @@
         },
         {
             "method": "POST",
-            "path": "/api/v1/translator/install-languages"
+            "path": "/api/v1/translation/packs/import"
         },
         {
             "method": "GET",
-            "path": "/api/v1/translator/languages"
+            "path": "/api/v1/translation/packs"
         },
         {
-            "method": "POST",
-            "path": "/api/v1/translator/translate"
+            "method": "DELETE",
+            "path": "/api/v1/translation/packs/{pair}"
         },
         {
             "method": "GET",

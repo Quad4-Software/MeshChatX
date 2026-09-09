@@ -133,6 +133,9 @@ importers:
         specifier: ^4.6.4
         version: 4.6.4(vue@3.5.42(typescript@6.0.3))
     devDependencies:
+      '@browsermt/bergamot-translator':
+        specifier: 0.4.9
+        version: 0.4.9
       '@commitlint/cli':
         specifier: ^21.2.2
         version: 21.2.2(@types/node@24.13.3)(conventional-commits-parser@7.1.2)(typescript@6.0.3)
@@ -435,6 +438,9 @@ packages:
   '@bramus/specificity@2.4.2':
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
+
+  '@browsermt/bergamot-translator@0.4.9':
+    resolution: {integrity: sha512-bNuuCwM/JnsIYQCKXcYKFT4Qc5vLMoB8Nbvz8ReIgs7xzebK8Sa+R8iEK8mLvNBe/WaZ6zrPaUQilLsRT/ea8Q==}
 
   '@commitlint/cli@21.2.2':
     resolution: {integrity: sha512-a+6hQxIxnpdvSvS2apvttPNbEliYsVC3PqFYDiiB2kjbwIsQsj1urvQ4Tkf70pKYozPalKAuRQmm/GHwndduqA==}
@@ -5544,6 +5550,8 @@ snapshots:
   '@bramus/specificity@2.4.2':
     dependencies:
       css-tree: 3.2.1
+
+  '@browsermt/bergamot-translator@0.4.9': {}
 
   '@commitlint/cli@21.2.2(@types/node@24.13.3)(conventional-commits-parser@7.1.2)(typescript@6.0.3)':
     dependencies:

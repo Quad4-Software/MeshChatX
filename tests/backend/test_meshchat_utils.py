@@ -61,9 +61,7 @@ def mock_app(temp_dir):
         stack.enter_context(
             patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        )
+
         stack.enter_context(patch("LXMF.LXMRouter"))
         stack.enter_context(patch("RNS.Identity", MockIdentityClass))
         stack.enter_context(patch("RNS.Reticulum"))
