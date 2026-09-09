@@ -185,6 +185,7 @@ class TestPageRespondersTraversal:
         node.setup()
         node.add_file("blob.bin", b"data")
         responder = node._make_file_responder("blob.bin")
+        node._grant_file_access("l", None)
         out = responder("/file/../blob.bin", None, "r", "l", None, 0)
         assert isinstance(out, list)
         out[0].close()
