@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 - Conversation, Relay chat and the standalone Translator page use the local translation layer with quiet, opt-in message actions, original/translation toggles, remembered target languages and per-message/session caching.
 - Translation pack manager validates imported archives, rejects path traversal, and stores multiple packs under application storage.
 - Relay chat messages can be translated from the message context menu; translated text is shown inline with a toggle.
-- Backend Landlock test probes cover translation-pack read/write under storage and the argos-translate CLI root has been removed.
+- Backend Landlock test probes cover translation-pack read/write under storage and the old Argos Translate CLI root has been removed.
 
 - Built-in geo-wasm converts WGS84, UTM, MGRS and Plus Code locally, so the map works offline without a network round trip.
 - The bundled `starter_world.mbtiles` is now a 30-degree world graticule covering z0-z4 instead of a solid placeholder, so the map is usable offline immediately.
