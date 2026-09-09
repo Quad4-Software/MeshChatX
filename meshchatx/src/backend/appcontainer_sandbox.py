@@ -57,7 +57,7 @@ _CREATE_NO_WINDOW = 0x08000000
 
 # ProcThreadAttributeList numbers (Windows 8+)
 _PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = 0x00020009
-_PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = 0x0002000E
+_PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = 0x0002000F
 _PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT = 1
 
 # WELL_KNOWN_SID_TYPE for AppContainer network capabilities
@@ -947,7 +947,8 @@ def launch_backend_sandboxed(
             # LPAC is best-effort: some Windows builds reject the policy
             # attribute with ERROR_INVALID_PARAMETER (87). Retry without
             # LPAC before falling back to an unsandboxed child.
-            err = getattr(exc, "winerror", exc.errno) or 0
+            winerror = getattr(exc, "winerror", None)
+            err = winerror if winerror is not None else (exc.errno or 0)
             if use_lpac and err == 87:
                 logger.warning(
                     "AppContainer LPAC launch failed with error %s; retrying without LPAC",
