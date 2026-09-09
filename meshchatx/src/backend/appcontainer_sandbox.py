@@ -248,7 +248,7 @@ def appcontainer_requested() -> bool:
         return False
     if override is True:
         return True
-    return False
+    return appcontainer_supported()
 
 
 def appcontainer_auto_enabled() -> bool:
@@ -795,7 +795,6 @@ def create_process_unsandboxed(
     cmdline = ctypes.create_unicode_buffer(_build_command_line(exe, args))
     child_env = dict(os.environ if env is None else env)
     child_env.pop(CHILD_ENV_FLAG, None)
-    child_env.pop("MESHCHAT_APPCONTAINER_LAUNCHER", None)
     env_block = "\0".join(f"{k}={v}" for k, v in child_env.items()) + "\0\0"
     env_buf = ctypes.create_unicode_buffer(env_block)
     ok = kernel32.CreateProcessW(
@@ -824,6 +823,41 @@ def close_handle(handle: ctypes.c_void_p | int | None) -> None:
         pass
 
 
+def _run_unsandboxed_child(exe: str, args: list[str]) -> LaunchResult:
+    """Run the real backend without a sandbox and mark it launcher-handled.
+
+    The MESHCHAT_APPCONTAINER_LAUNCHER marker prevents meshchat.py from
+    re-entering the launcher when this fallback child starts.
+    """
+    child_env = dict(os.environ)
+    child_env.pop(CHILD_ENV_FLAG, None)
+    child_env["MESHCHAT_APPCONTAINER_LAUNCHER"] = "1"
+    try:
+        h_process, h_thread, _pid = create_process_unsandboxed(
+            exe,
+            args,
+            env=child_env,
+        )
+        try:
+            close_handle(h_thread)
+            exit_code = _wait_process(h_process)
+        finally:
+            close_handle(h_process)
+        return LaunchResult(
+            ok=True,
+            exit_code=exit_code,
+            used_appcontainer=False,
+            fell_back=True,
+        )
+    except OSError as fallback_exc:
+        return LaunchResult(
+            ok=False,
+            error=str(fallback_exc),
+            used_appcontainer=False,
+            fell_back=True,
+        )
+
+
 def launch_backend_sandboxed(
     exe: str,
     args: list[str],
@@ -836,11 +870,18 @@ def launch_backend_sandboxed(
 ) -> LaunchResult:
     """Grant ACLs, launch into AppContainer, wait, revoke ACLs.
 
-    Auto mode (forced=False): on AppContainer failure, fall back to unsandboxed.
+    Auto mode (forced=False): use AppContainer when it is supported and fall back
+    to unsandboxed when setup fails.
     Forced mode: return error without fallback.
     """
     if forced is None:
         forced = appcontainer_forced()
+
+    if not forced and not appcontainer_supported():
+        logger.warning(
+            "AppContainer APIs are unavailable; running backend unsandboxed",
+        )
+        return _run_unsandboxed_child(exe, args)
 
     rw_roots = collect_rw_roots(storage_dir, reticulum_config_dir, log_dir)
     ro_roots = collect_ro_roots(exe_dir=os.path.dirname(exe) if exe else None)
@@ -884,26 +925,7 @@ def launch_backend_sandboxed(
                 fell_back=False,
             )
         logger.warning("Falling back to unsandboxed backend launch")
-        try:
-            h_process, h_thread, _pid = create_process_unsandboxed(exe, args)
-            try:
-                close_handle(h_thread)
-                exit_code = _wait_process(h_process)
-            finally:
-                close_handle(h_process)
-            return LaunchResult(
-                ok=True,
-                exit_code=exit_code,
-                used_appcontainer=False,
-                fell_back=True,
-            )
-        except OSError as fallback_exc:
-            return LaunchResult(
-                ok=False,
-                error=str(fallback_exc),
-                used_appcontainer=False,
-                fell_back=True,
-            )
+        return _run_unsandboxed_child(exe, args)
     finally:
         if sid is not None:
             for path, _write in reversed(granted):
