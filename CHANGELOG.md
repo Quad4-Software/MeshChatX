@@ -18,12 +18,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Map tile math clamps latitudes and wraps longitudes at the antimeridian and poles. The offline MBTiles source is capped to its metadata min/max zoom so OpenLayers stops requesting missing tiles.
-- Map export removes the Carto {r} placeholder from tile URLs, handles full-world and wrapped bounding boxes, makes schema creation idempotent and closes SQLite connections on every cleanup path.
-- OpenFreeMap is no longer treated as a raster fallback, Carto providers are now in the failover list and nextRasterTileProviderId skips the current provider.
+- The offline MBTiles source is capped to its metadata min/max zoom so OpenLayers stops requesting missing tiles.
+- OpenFreeMap is no longer treated as a raster fallback and Carto providers are now in the failover list.
 - The tile cache clear waits for pending access writes and counts replacement entries before eviction.
 - Successful tile blob application sets the tile state to LOADED, object URLs revoke on image load or error and dark placeholders are 256x256.
-- Inbound LXMF delivery no longer falls back to the local destination identity for the source hash, so anonymous senders are not misidentified as known strangers.
 - Cancel-send is shown inline, failed and rejected labels are localized and the raw message modal opens immediately with the paper URI loaded in the background.
 - All debounced save timeouts are cleared on unmount so config saves do not fire after the page is closed.
 - Crash tab render deadlines pause when the tab is inactive and the Network page cancels active page downloads on unmount.
@@ -34,7 +32,6 @@ All notable changes to this project will be documented in this file.
 
 - The Flatpak Application ID is now `com.meshchatx.app`, with a matching desktop file, icon and metainfo bundled.
 - The Linux app name and userData path use the new `com.meshchatx.app` scheme while keeping the existing `reticulum-meshchatx` data directory.
-- The Flatpak default pull zone moved from cdn.meshchatx.com/flatpak to cdn.quad4.io/flatpak.
 - Debug logs, RNode panels and flasher, message entry, conversation viewer and plugin settings now use semantic sem-* tokens instead of raw Tailwind colors. A behavior contract test enforces this for future changes.
 - Calls to print in `meshchatx.py`, `nomadnet_downloader.py` and other backend paths now use the application logger.
 - Windows desktop builds spawn the Python backend inside an LPAC AppContainer by default when the APIs are available. Set MESHCHAT_APPCONTAINER=0 to disable. If AppContainer setup fails, the launcher falls back to an unsandboxed backend process.
