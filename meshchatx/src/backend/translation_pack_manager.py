@@ -20,12 +20,18 @@ import zipfile
 
 import RNS
 
-from meshchatx.src.path_utils import is_path_within_dir, resolve_path_under_dir, safe_path_under_dir
+from meshchatx.src.path_utils import (
+    is_path_within_dir,
+    resolve_path_under_dir,
+    safe_path_under_dir,
+)
 
 
 _ALLOWED_FILE_NAME_RE = re.compile(r"^[A-Za-z0-9@\-][A-Za-z0-9_.@\- ]*$")
 _PAIR_CODE_RE = re.compile(r"^[a-zA-Z]{4}$")
-_FILE_TYPE_RE = re.compile(r"^(model|lex|vocab|qualityModel|srcvocab|trgvocab)[^A-Za-z0-9]", re.IGNORECASE)
+_FILE_TYPE_RE = re.compile(
+    r"^(model|lex|vocab|qualityModel|srcvocab|trgvocab)[^A-Za-z0-9]", re.IGNORECASE
+)
 _REQUIRED_PARTS = frozenset({"model", "lex", "vocab"})
 
 
@@ -57,15 +63,19 @@ class TranslationPackManager:
             from_lang = entry.get("from", pair[:2])
             to_lang = entry.get("to", pair[2:4])
             files = entry.get("files", {})
-            total_size = sum(f.get("size", 0) for f in files.values() if isinstance(f, dict))
-            packs.append({
-                "pair": pair,
-                "from": from_lang,
-                "to": to_lang,
-                "version": entry.get("version", ""),
-                "size": total_size,
-                "files": list(files.keys()),
-            })
+            total_size = sum(
+                f.get("size", 0) for f in files.values() if isinstance(f, dict)
+            )
+            packs.append(
+                {
+                    "pair": pair,
+                    "from": from_lang,
+                    "to": to_lang,
+                    "version": entry.get("version", ""),
+                    "size": total_size,
+                    "files": list(files.keys()),
+                }
+            )
         return packs
 
     def import_archive(self, archive_path: str) -> list[str]:
@@ -79,7 +89,9 @@ class TranslationPackManager:
                             continue
                         if member.issym() or member.islnk():
                             continue
-                        if member.name.startswith(("/", "\\")) or os.path.isabs(member.name):
+                        if member.name.startswith(("/", "\\")) or os.path.isabs(
+                            member.name
+                        ):
                             continue
                         target = resolve_path_under_dir(tmp_dir, member.name)
                         if not target or not is_path_within_dir(target, tmp_dir):
@@ -95,7 +107,9 @@ class TranslationPackManager:
                     for info in zf.infolist():
                         if info.is_dir():
                             continue
-                        if info.filename.startswith(("/", "\\")) or os.path.isabs(info.filename):
+                        if info.filename.startswith(("/", "\\")) or os.path.isabs(
+                            info.filename
+                        ):
                             continue
                         target = resolve_path_under_dir(tmp_dir, info.filename)
                         if not target or not is_path_within_dir(target, tmp_dir):
@@ -153,13 +167,19 @@ class TranslationPackManager:
                 pack = json.load(f)
             return self._install_pack(source_dir, pack)
 
-        dirs = sorted(e for e in os.listdir(source_dir) if os.path.isdir(os.path.join(source_dir, e)))
+        dirs = sorted(
+            e
+            for e in os.listdir(source_dir)
+            if os.path.isdir(os.path.join(source_dir, e))
+        )
         if len(dirs) == 1 and _PAIR_CODE_RE.match(dirs[0]):
             pair = dirs[0].lower()
             pack = self._infer_pack_from_directory(os.path.join(source_dir, pair), pair)
             return self._install_pack(source_dir, pack)
 
-        raise TranslationPackError("No registry.json, pack.json, or single pair directory found")
+        raise TranslationPackError(
+            "No registry.json, pack.json, or single pair directory found"
+        )
 
     def _install_registry(self, source_dir: str, registry: dict) -> list[str]:
         installed: list[str] = []
@@ -203,7 +223,9 @@ class TranslationPackManager:
         if os.path.exists(dest_dir):
             shutil.rmtree(dest_dir, ignore_errors=True)
         os.makedirs(dest_dir, exist_ok=True)
-        allowed_basenames = {os.path.basename(meta.get("name", "")) for meta in files.values()}
+        allowed_basenames = {
+            os.path.basename(meta.get("name", "")) for meta in files.values()
+        }
         for filename in os.listdir(source_pair_dir):
             if filename not in allowed_basenames:
                 continue
@@ -226,7 +248,9 @@ class TranslationPackManager:
         parts = set(files.keys())
         missing_required = _REQUIRED_PARTS - parts
         if missing_required:
-            raise TranslationPackError(f"Missing required model parts: {', '.join(sorted(missing_required))}")
+            raise TranslationPackError(
+                f"Missing required model parts: {', '.join(sorted(missing_required))}"
+            )
 
         for part, meta in files.items():
             if not isinstance(meta, dict):
@@ -316,7 +340,9 @@ class TranslationPackManager:
             try:
                 self._validate_pack_metadata(pair_dir, pack["files"])
             except TranslationPackError as e:
-                RNS.log(f"Skipping invalid translation pack {pair}: {e}", RNS.LOG_WARNING)
+                RNS.log(
+                    f"Skipping invalid translation pack {pair}: {e}", RNS.LOG_WARNING
+                )
                 continue
             if pack["files"]:
                 registry[pair] = pack
@@ -331,13 +357,14 @@ class TranslationPackManager:
         if not os.path.isfile(self.registry_path):
             self._registry_cache = {}
             return self._registry_cache
+        registry = {}
         try:
             with open(self.registry_path, "r", encoding="utf-8") as f:
-                self._registry_cache = json.load(f)
+                registry = json.load(f)
         except (OSError, json.JSONDecodeError):
             RNS.log("Failed to load translation pack registry", RNS.LOG_ERROR)
-            self._registry_cache = {}
-        return self._registry_cache
+        self._registry_cache = registry
+        return registry
 
     @staticmethod
     def _sha256_file(file_path: str) -> str:
