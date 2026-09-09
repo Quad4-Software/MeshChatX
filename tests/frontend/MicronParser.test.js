@@ -325,6 +325,45 @@ Content at depth 1`;
             expect(html).not.toContain('class="mu-image"');
             expect(html).toContain('class="Mu-nl"');
         });
+
+        it("rejects image links that do not point into /file/", () => {
+            const markup = "`[x`:/page/x.webp`img=1]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toContain('class="mu-image"');
+            expect(html).toContain('class="Mu-nl"');
+        });
+
+        it("strips query, fragment and backtick data suffix before checking extension", () => {
+            const markup = "`[x`:/file/x.webp?ref=1`img=1]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).toContain('class="mu-image"');
+            expect(html).toContain('data-mu-image-path=":/file/x.webp"');
+        });
+
+        it("clamps oversized w/h/s values", () => {
+            const markup = "`[x`:/file/x.webp`img=1;w=999999;h=999999;s=999999999]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).toContain('data-mu-image-w="8192"');
+            expect(html).toContain('data-mu-image-h="8192"');
+            expect(html).toContain('data-mu-image-s="104857600"');
+        });
+
+        it("truncates long alt text", () => {
+            const alt = "x".repeat(300);
+            const markup = `\`[${alt}\`:/file/x.webp\`img=1]`;
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toContain(alt);
+            expect(html).toContain('data-mu-image-alt="' + "x".repeat(240) + '"');
+        });
+
+        it("sanitizes key and profile values", () => {
+            const markup = "`[x`:/file/x.webp`img=1;k=<script>;profile=fast!]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toContain("<script>");
+            expect(html).not.toContain("fast!");
+            expect(html).not.toContain('data-mu-image-k="<script>"');
+            expect(html).not.toContain('data-mu-image-profile="fast!"');
+        });
     });
 
     describe("partials", () => {

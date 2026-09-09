@@ -2765,11 +2765,12 @@ export default {
             if (!/^[a-f0-9]{32}$/.test(destinationHash)) {
                 return { destinationHash: "", filePath: "" };
             }
-            if (!filePath.startsWith("file/") || !/\.webp$/i.test(filePath)) {
+            const cleanFilePath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+            if (!cleanFilePath.startsWith("file/") || !/\.webp$/i.test(cleanFilePath)) {
                 return { destinationHash: "", filePath: "" };
             }
             // Reject obvious traversal or dangerous characters.
-            if (filePath.includes("..") || [...filePath].some((ch) => ch.charCodeAt(0) < 32 || '<>"|?*'.includes(ch))) {
+            if (cleanFilePath.includes("..") || [...cleanFilePath].some((ch) => ch.charCodeAt(0) < 32 || '<>"|?*'.includes(ch))) {
                 return { destinationHash: "", filePath: "" };
             }
             return { destinationHash, filePath };

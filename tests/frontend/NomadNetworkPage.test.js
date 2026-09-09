@@ -1548,5 +1548,42 @@ describe("NomadNetworkPage.vue", () => {
             expect(payload.nomadnet_file_download.data.image_id).toBe(0);
             expect(payload.nomadnet_file_download.data.image_profile).toBe("fast");
         });
+
+        it("rejects non-webp and traversal image URLs", () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.png").destinationHash).toBe("");
+            expect(wrapper.vm.resolveNomadImageDestination(":/page/index.mu").destinationHash).toBe("");
+            expect(wrapper.vm.resolveNomadImageDestination(":/file/../etc/shadow.webp").destinationHash).toBe("");
+            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.webp?x=1").destinationHash).toBe(hash);
+        });
+
+        it("ignores stale image websocket events with mismatched request_id", async () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
+            wrapper.vm.crashTabImages = [{ url: ":/file/img.webp", alt: "test" }];
+            wrapper.vm.setCrashTabImage = vi.fn();
+            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
+            const badRequestId = "stale-123";
+            const handled = wrapper.vm.ownsNomadImageDownloadEvent(
+                {
+                    request_id: badRequestId,
+                    destination_hash: hash,
+                    file_path: "/file/img.webp",
+                },
+                0
+            );
+            expect(handled).toBe(false);
+        });
+
+        it("does not cache images in private browsing", () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash, isPrivate: true });
+            wrapper.vm.setNomadImageCacheEntry(hash + ":/file/img.webp", { dataUrl: "data:," });
+            expect(wrapper.vm.nomadImageCache.size).toBe(0);
+        });
     });
 });
