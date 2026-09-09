@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -53,19 +54,38 @@ def appcontainer_supported() -> bool:
         return False
 
 
-def wait_for_security(port: int, timeout: float) -> dict:
+def _tail(path: Path, n: int = 60) -> str:
+    if not path.is_file():
+        return ""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return ""
+    lines = text.splitlines()
+    return "\n".join(lines[-n:])
+
+
+def wait_for_security(
+    port: int, timeout: float, proc: subprocess.Popen, log_path: Path
+) -> dict:
     """Poll /api/v1/server/security until it returns JSON or timeout."""
     deadline = time.monotonic() + timeout
     url = f"http://127.0.0.1:{port}/api/v1/server/security"
     last_error = ""
     while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            tail = _tail(log_path)
+            raise RuntimeError(
+                f"backend exited early (code {proc.returncode}); log tail:\n{tail}"
+            )
         try:
             with urllib.request.urlopen(url, timeout=POLL_INTERVAL) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
             last_error = str(exc)
         time.sleep(POLL_INTERVAL)
-    raise RuntimeError(f"security endpoint not ready: {last_error}")
+    tail = _tail(log_path)
+    raise RuntimeError(f"security endpoint not ready: {last_error}\nlog tail:\n{tail}")
 
 
 def shutdown_app(port: int) -> None:
@@ -122,12 +142,19 @@ def run_smoke(build_dir: Path) -> int:
             str(storage),
             "--reticulum-config-dir",
             str(reticulum),
-            "--log-dir",
-            str(logs),
         ]
-        proc = subprocess.Popen(args)  # noqa: S603
+        log_path = tmp / "backend.log"
+        env = os.environ.copy()
+        env["MESHCHAT_LOG_DIR"] = str(logs)
+        with open(log_path, "w", encoding="utf-8") as log_handle:
+            proc = subprocess.Popen(
+                args,
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                env=env,
+            )  # noqa: S603
         try:
-            data = wait_for_security(DEFAULT_PORT, STARTUP_TIMEOUT)
+            data = wait_for_security(DEFAULT_PORT, STARTUP_TIMEOUT, proc, log_path)
 
             required = (
                 "appcontainer_supported",
