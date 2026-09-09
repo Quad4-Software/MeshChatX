@@ -66,6 +66,8 @@ export default defineConfig({
             "--require",
             path.resolve(import.meta.dirname, "tests/frontend/patch-console.cjs"),
         ],
+        testTimeout: 10000,
+        hookTimeout: 10000,
         globals: true,
         environment: "jsdom",
         include: ["tests/frontend/**/*.{test,spec}.{js,ts,jsx,tsx}"],

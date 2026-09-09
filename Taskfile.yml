@@ -481,8 +481,6 @@ tasks:
         desc: Run localization tests
         cmds:
             - "{{.NPM}} exec vitest run tests/frontend/i18n.test.js"
-            # Keep temp-tests so a parallel task test:backend xdist run is not wiped.
-            - "MESHCHAT_TEST_KEEP_TEMP=1 uv run pytest --basetemp=temp-tests/pytest-lang tests/backend/test_translator_handler.py"
 
     test:integrity:
         desc: Run data integrity tests
@@ -490,10 +488,10 @@ tasks:
             - uv run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
 
     test:cov:
-        desc: Run all tests with coverage (Python + frontend JS/Vue + translator pytest)
+        desc: Run all tests with coverage (Python + frontend JS/Vue + translation pytest)
         deps: [test:be:cov, test:fe:cov]
         cmds:
-            - "uv run pytest tests/backend/test_translator_handler.py"
+            - "uv run pytest tests/backend/test_translation_http.py tests/backend/test_translation_pack_manager.py"
 
     bench:
         desc: Default benchmark run (backend comprehensive suite, same as bench:be)

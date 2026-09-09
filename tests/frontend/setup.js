@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { beforeEach, vi } from "vitest";
+import { beforeEach, afterEach, vi } from "vitest";
 import { config } from "@vue/test-utils";
 import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
@@ -15,6 +15,12 @@ beforeEach(() => {
     GlobalState.authEnabled = false;
     GlobalState.authenticated = false;
     GlobalState.demoMode = false;
+});
+
+// Some tests enable fake timers and may throw before calling useRealTimers().
+// Reset them after each test so later suites that rely on real timers do not hang.
+afterEach(() => {
+    vi.useRealTimers();
 });
 
 if (typeof Blob !== "undefined" && typeof Blob.prototype.stream !== "function") {
