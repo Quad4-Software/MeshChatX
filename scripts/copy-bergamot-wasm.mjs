@@ -14,11 +14,7 @@ const repoRoot = path.join(__dirname, "..");
 const vendorDir = path.join(repoRoot, "meshchatx", "src", "frontend", "public", "vendor", "bergamot");
 const packageDir = path.join(repoRoot, "node_modules", "@browsermt", "bergamot-translator", "worker");
 
-const files = [
-    "bergamot-translator-worker.js",
-    "bergamot-translator-worker.wasm",
-    "translator-worker.js",
-];
+const files = ["bergamot-translator-worker.js", "bergamot-translator-worker.wasm", "translator-worker.js"];
 
 function main() {
     if (process.env.MESHCHATX_OFFLINE_BUILD === "1") {
