@@ -322,11 +322,37 @@ def test_nomad_link_cache_evicts_over_cap():
             dest = bytes([i]) * 16
             nd._cache_link_if_active(dest, link)
             links.append((dest, link))
-        assert nd.cached_link_count() == 2
-        assert get_cached_active_link(links[0][0]) is None
-        links[0][1].teardown.assert_called()
-        assert get_cached_active_link(links[1][0]) is links[1][1]
-        assert get_cached_active_link(links[2][0]) is links[2][1]
+        # Active links are retained, so the cap is treated as a soft limit.
+        assert nd.cached_link_count() == 3
+        for dest, link in links:
+            assert get_cached_active_link(dest) is link
+    finally:
+        nd.MAX_CACHED_LINKS = original_max
+
+
+def test_nomad_link_cache_evicts_stale_over_cap():
+    from meshchatx.src.backend import nomadnet_downloader as nd
+
+    original_max = nd.MAX_CACHED_LINKS
+    nd.MAX_CACHED_LINKS = 2
+    try:
+        stale = MagicMock()
+        stale.status = None
+        with nd._nomadnet_links_lock:
+            nd.nomadnet_cached_links[b"\x00" * 16] = stale
+            nd._nomadnet_link_last_used[b"\x00" * 16] = 0.0
+
+        links = []
+        for i in range(3):
+            link = MagicMock()
+            link.status = RNS.Link.ACTIVE
+            dest = bytes([i + 1]) * 16
+            nd._cache_link_if_active(dest, link)
+            links.append((dest, link))
+
+        assert nd.cached_link_count() == 3
+        assert get_cached_active_link(b"\x00" * 16) is None
+        stale.teardown.assert_called()
     finally:
         nd.MAX_CACHED_LINKS = original_max
 

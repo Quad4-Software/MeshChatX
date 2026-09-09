@@ -163,6 +163,18 @@ def _cache_link_if_active(destination_hash: bytes, link) -> None:
             candidates = [k for k in nomadnet_cached_links if k != destination_hash]
             if not candidates:
                 break
+            # Evict idle or stale links before tearing down an active one.
+            non_active = [
+                k
+                for k in candidates
+                if nomadnet_cached_links[k].status is not RNS.Link.ACTIVE
+            ]
+            if non_active:
+                candidates = non_active
+            else:
+                # All other cached links are still active; do not tear down
+                # a link that may be carrying an in-flight request.
+                break
             oldest_key = min(
                 candidates,
                 key=lambda k: _nomadnet_link_last_used.get(k, 0.0),
