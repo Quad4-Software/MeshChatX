@@ -569,6 +569,9 @@ class TestPageNodeResponders:
         node.add_file("data.bin", b"\x01\x02\x03")
         responder = node._make_file_responder("data.bin")
         result = responder("/file/data.bin", None, "req1", "link1", None, 0)
+        assert result is None
+        node._grant_file_access("link1", None)
+        result = responder("/file/data.bin", None, "req2", "link1", None, 0)
         assert isinstance(result, list)
         assert len(result) == 2
         file_handle = result[0]
@@ -583,6 +586,7 @@ class TestPageNodeResponders:
         node.add_file("f.txt", b"hello")
         responder = node._make_file_responder("f.txt")
         assert node._stats["files_served"] == 0
+        node._grant_file_access("l", None)
         responder("/file/f.txt", None, "r", "l", None, 0)
         assert node._stats["files_served"] == 1
         result = responder("/file/f.txt", None, "r", "l", None, 0)

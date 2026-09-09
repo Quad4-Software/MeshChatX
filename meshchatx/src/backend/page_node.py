@@ -304,6 +304,9 @@ class PageNode:
         self._stats = {"pages_served": 0, "files_served": 0, "links_established": 0}
         self._serve_started_at = None
         self._unique_remote_hashes = set()
+        self._file_access_grants = {}
+        self._file_access_grants_by_identity = {}
+        self._file_access_grant_ttl = 300
 
         self.announce_enabled = bool(announce_enabled)
         self.announce_interval_seconds = normalize_announce_interval_seconds(
@@ -687,17 +690,61 @@ class PageNode:
         except Exception:
             return None
 
+    def _cleanup_file_access_grants(self):
+        now = time.time()
+        expired_links = [
+            lid for lid, (_, expires) in self._file_access_grants.items() if expires <= now
+        ]
+        for lid in expired_links:
+            del self._file_access_grants[lid]
+        expired_identities = [
+            rid for rid, expires in self._file_access_grants_by_identity.items() if expires <= now
+        ]
+        for rid in expired_identities:
+            del self._file_access_grants_by_identity[rid]
+
+    def _grant_file_access(self, link_id, remote_identity, ttl=None):
+        if not link_id:
+            return
+        if ttl is None:
+            ttl = self._file_access_grant_ttl
+        expires = time.time() + max(0, ttl)
+        self._file_access_grants[link_id] = (remote_identity, expires)
+        if remote_identity is not None:
+            try:
+                rid = RNS.hexrep(remote_identity.hash, delimit=False)
+            except Exception:
+                rid = str(remote_identity)
+            if rid:
+                self._file_access_grants_by_identity[rid] = expires
+
+    def _check_file_access(self, link_id, remote_identity):
+        self._cleanup_file_access_grants()
+        if link_id and link_id in self._file_access_grants:
+            return True
+        if remote_identity is not None:
+            try:
+                rid = RNS.hexrep(remote_identity.hash, delimit=False)
+            except Exception:
+                rid = str(remote_identity)
+            if rid and rid in self._file_access_grants_by_identity:
+                return True
+        return False
+
     def _make_page_responder(self, page_name):
         """Return a closure that serves a specific page."""
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
             self._note_remote_identity(remote_identity)
-            return self.serve_page_content(
+            content = self.serve_page_content(
                 page_name,
                 data=data,
                 link_id=link_id,
                 remote_identity=remote_identity,
             )
+            if content is not None:
+                self._grant_file_access(link_id, remote_identity)
+            return content
 
         return responder
 
@@ -744,6 +791,8 @@ class PageNode:
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
             self._note_remote_identity(remote_identity)
+            if not self._check_file_access(link_id, remote_identity):
+                return None
             file_path = self._jail_file_path(file_name, must_exist=True)
             if file_path is None:
                 return None
