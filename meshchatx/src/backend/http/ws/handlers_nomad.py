@@ -623,7 +623,11 @@ async def handle_nomadnet_file_download(app, client, data):
                             "failure_reason": failure_reason,
                             "destination_hash": destination_hash.hex(),
                             "file_path": file_path,
-                            **({"data": request_data} if request_data is not None else {}),
+                            **(
+                                {"data": request_data}
+                                if request_data is not None
+                                else {}
+                            ),
                         },
                     },
                 ),
@@ -644,7 +648,11 @@ async def handle_nomadnet_file_download(app, client, data):
                             "progress": progress,
                             "destination_hash": destination_hash.hex(),
                             "file_path": file_path,
-                            **({"data": request_data} if request_data is not None else {}),
+                            **(
+                                {"data": request_data}
+                                if request_data is not None
+                                else {}
+                            ),
                         },
                     },
                 ),

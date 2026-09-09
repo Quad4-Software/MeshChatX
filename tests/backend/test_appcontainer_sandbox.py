@@ -335,7 +335,9 @@ def test_launch_backend_unsupported_fallback(monkeypatch, tmp_path):
         call_log["create_in_appcontainer"] += 1
         return (1, 2, 99)
 
-    monkeypatch.setattr(ac, "create_process_in_appcontainer", fake_create_in_appcontainer)
+    monkeypatch.setattr(
+        ac, "create_process_in_appcontainer", fake_create_in_appcontainer
+    )
 
     def fake_create_unsandboxed(_exe, _args, *, env=None, **_kw):
         captured_env.update(env or {})
