@@ -3,8 +3,10 @@
 import { describe, expect, it, afterEach } from "vitest";
 import { createI18n } from "vue-i18n";
 import {
+    canonicalizeBcp47Locale,
     ensureLocaleMessages,
     listLocaleCodes,
+    listLocaleOptions,
     normalizeUiLocaleCode,
     registerUiI18n,
     setLocale,
@@ -91,5 +93,46 @@ describe("localeLoader", () => {
         registerUiI18n(i18n);
         expect(await setLocale(proxy, "de")).toBe(true);
         expect(i18n.global.locale.value).toBe("de");
+    });
+
+    describe("BCP 47 locale tags", () => {
+        it("canonicalizeBcp47Locale normalizes case and underscores", () => {
+            expect(canonicalizeBcp47Locale("pt-br")).toBe("pt-BR");
+            expect(canonicalizeBcp47Locale("pt_br")).toBe("pt-BR");
+            expect(canonicalizeBcp47Locale("PT-BR")).toBe("pt-BR");
+            expect(canonicalizeBcp47Locale("zh-cn")).toBe("zh-CN");
+            expect(canonicalizeBcp47Locale("ZH_HANS")).toBe("zh-Hans");
+        });
+
+        it("listLocaleCodes exposes BCP 47 canonical tags", () => {
+            const codes = listLocaleCodes();
+            expect(codes).toContain("pt-BR");
+            expect(codes).not.toContain("pt-br");
+            expect(codes).toEqual(expect.arrayContaining(["en", "de", "fr", "ru", "zh"]));
+        });
+
+        it("listLocaleOptions returns native names and BCP 47 codes", () => {
+            const options = listLocaleOptions();
+            const pt = options.find((o) => o.code === "pt-BR");
+            expect(pt).toBeDefined();
+            expect(pt?.name).toBe("Português (Brasil)");
+            expect(options.some((o) => o.code === "zh" && o.name === "中文")).toBe(true);
+        });
+
+        it("normalizeUiLocaleCode maps legacy and mixed-case tags to BCP 47 packs", () => {
+            expect(normalizeUiLocaleCode("pt-br")).toBe("pt-BR");
+            expect(normalizeUiLocaleCode("pt_br")).toBe("pt-BR");
+            expect(normalizeUiLocaleCode("PT-BR")).toBe("pt-BR");
+            expect(normalizeUiLocaleCode("pt")).toBe("en");
+            expect(normalizeUiLocaleCode("zh-cn")).toBe("zh");
+            expect(normalizeUiLocaleCode("zh-Hans")).toBe("zh");
+        });
+
+        it("setLocale loads and applies a BCP 47 region tag", async () => {
+            const i18n = createI18n({ legacy: false, locale: "en", messages: { en: { hi: "hi" } } });
+            expect(await setLocale(i18n, "pt-BR")).toBe(true);
+            expect(i18n.global.locale.value).toBe("pt-BR");
+            expect(i18n.global.getLocaleMessage("pt-BR")._languageName).toBe("Português (Brasil)");
+        });
     });
 });

@@ -43,30 +43,9 @@
 <script>
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
-import { ensureLocaleMessages, listLocaleCodes, setLocale } from "../js/localeLoader.js";
+import { ensureLocaleMessages, listLocaleOptions, setLocale } from "../js/localeLoader.js";
 
-const LANGUAGE_NAMES = {
-    de: "Deutsch",
-    en: "English",
-    es: "Español",
-    fi: "Suomi",
-    fr: "Français",
-    it: "Italiano",
-    ja: "日本語",
-    ko: "한국어",
-    nl: "Nederlands",
-    pl: "Polski",
-    "pt-br": "Português (Brasil)",
-    ru: "Русский",
-    tr: "Türkçe",
-    uk: "Українська",
-    zh: "中文",
-};
-
-const discoveredLanguages = listLocaleCodes().map((code) => ({
-    code,
-    name: LANGUAGE_NAMES[code] || code,
-}));
+const languageOptions = listLocaleOptions();
 
 export default {
     name: "LanguageSelector",
@@ -101,7 +80,7 @@ export default {
             return this.$i18n.locale;
         },
         languages() {
-            return discoveredLanguages;
+            return languageOptions;
         },
         dropdownStyle() {
             const style = {

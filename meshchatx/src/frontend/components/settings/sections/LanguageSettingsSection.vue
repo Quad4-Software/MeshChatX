@@ -10,7 +10,7 @@
             </div>
         </header>
         <div class="settings-section__body space-y-3">
-            <select :value="language" class="input-field" @change="onSelect">
+            <select :value="selectedLanguage" class="input-field" @change="onSelect">
                 <option v-for="lang in languages" :key="lang.code" :value="lang.code">
                     {{ lang.name }}
                 </option>
@@ -20,24 +20,9 @@
 </template>
 
 <script>
-import { listLocaleCodes } from "../../../js/localeLoader.js";
+import { listLocaleOptions, normalizeUiLocaleCode } from "../../../js/localeLoader.js";
 
-const LANGUAGE_NAMES = {
-    de: "Deutsch",
-    en: "English",
-    es: "Español",
-    fi: "Suomi",
-    fr: "Français",
-    it: "Italiano",
-    nl: "Nederlands",
-    ru: "Русский",
-    zh: "中文",
-};
-
-const discoveredLanguages = listLocaleCodes().map((code) => ({
-    code,
-    name: LANGUAGE_NAMES[code] || code,
-}));
+const languageOptions = listLocaleOptions();
 
 export default {
     name: "LanguageSettingsSection",
@@ -53,8 +38,11 @@ export default {
     },
     emits: ["change"],
     computed: {
+        selectedLanguage() {
+            return normalizeUiLocaleCode(this.language);
+        },
         languages() {
-            return discoveredLanguages;
+            return languageOptions;
         },
     },
     methods: {
