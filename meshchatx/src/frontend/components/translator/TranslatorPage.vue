@@ -30,7 +30,9 @@
                         <button type="button" class="primary-chip text-xs px-3.5 py-2" @click="selectPackFile">
                             {{ $t("translator.import_pack") }}
                         </button>
-                        <span v-if="isImporting" class="text-xs text-sem-fg-muted">{{ $t("translator.importing") }}</span>
+                        <span v-if="isImporting" class="text-xs text-sem-fg-muted">{{
+                            $t("translator.importing")
+                        }}</span>
                     </div>
                     <div v-if="packs.length" class="space-y-2">
                         <div
@@ -117,16 +119,15 @@
                             type="button"
                             class="secondary-chip px-3.5 py-2"
                             :disabled="!inputText"
-                            @click="inputText = ''; outputText = ''; error = null"
+                            @click="
+                                inputText = '';
+                                outputText = '';
+                                error = null;
+                            "
                         >
                             {{ $t("translator.clear") }}
                         </button>
-                        <button
-                            v-if="outputText"
-                            type="button"
-                            class="secondary-chip px-3.5 py-2"
-                            @click="copyOutput"
-                        >
+                        <button v-if="outputText" type="button" class="secondary-chip px-3.5 py-2" @click="copyOutput">
                             {{ $t("translator.copy") }}
                         </button>
                     </div>
@@ -137,7 +138,9 @@
 
                     <div v-if="outputText" class="space-y-2">
                         <label class="glass-label">{{ $t("translator.output_text") }}</label>
-                        <div class="p-3 rounded-lg bg-sem-surface/60 border border-sem-border whitespace-pre-wrap text-sm text-sem-fg">
+                        <div
+                            class="p-3 rounded-lg bg-sem-surface/60 border border-sem-border whitespace-pre-wrap text-sm text-sem-fg"
+                        >
                             {{ outputText }}
                         </div>
                     </div>
@@ -170,12 +173,7 @@ export default {
     },
     computed: {
         canTranslate() {
-            return (
-                this.inputText.trim() &&
-                this.sourceLang &&
-                this.targetLang &&
-                this.sourceLang !== this.targetLang
-            );
+            return this.inputText.trim() && this.sourceLang && this.targetLang && this.sourceLang !== this.targetLang;
         },
         installedPairs() {
             return this.packs.map((p) => ({

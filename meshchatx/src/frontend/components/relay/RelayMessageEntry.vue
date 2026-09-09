@@ -76,9 +76,29 @@
         <span
             class="whitespace-pre-wrap wrap-break-word"
             @click="page.handleMessageHtmlClick($event)"
-            v-html="page.renderMessageHtml(entry.msg.text)"
+            v-html="page.renderMessageHtml(page.relayMessageDisplayText(entry.msg))"
         ></span>
         <!-- eslint-enable vue/no-v-html -->
+        <div
+            v-if="translation"
+            class="mt-1 pt-1 border-t border-black/5 dark:border-white/5 text-xs text-sem-fg-muted flex items-center gap-2"
+        >
+            <span>
+                {{
+                    $t("messages.translated_from_to", {
+                        source: translation.from.toUpperCase(),
+                        target: translation.to.toUpperCase(),
+                    })
+                }}
+            </span>
+            <button
+                type="button"
+                class="text-sem-info hover:underline"
+                @click.stop="page.toggleRelayMessageOriginal(entry.msg)"
+            >
+                {{ translation.showOriginal ? $t("messages.show_translation") : $t("messages.show_original") }}
+            </button>
+        </div>
     </div>
 </template>
 
@@ -107,5 +127,12 @@ const expanded = computed(() => {
         return false;
     }
     return props.page.isPresenceGroupExpanded(props.entry.id);
+});
+
+const translation = computed(() => {
+    if (!props.entry?.msg) {
+        return null;
+    }
+    return props.page.relayMessageTranslation(props.entry.msg);
 });
 </script>

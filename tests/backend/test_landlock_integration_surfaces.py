@@ -305,10 +305,6 @@ def test_landlock_executable_page_script_spawn(tmp_path):
     [
         ("local_bin", lambda home: os.path.join(home, ".local", "bin")),
         ("pipx", lambda home: os.path.join(home, ".local", "share", "pipx")),
-        (
-            "argos_share",
-            lambda home: os.path.join(home, ".local", "share", "argos-translate"),
-        ),
     ],
 )
 def test_read_roots_cover_user_local_paths_when_present(path_name, collector):
@@ -345,6 +341,42 @@ def test_landlock_allows_sysfs_tty_and_pyserial_comports(tmp_path):
 
         ports = list_ports.comports()
         print("OK", len(ports))
+        sys.exit(0)
+        """,
+        storage=storage,
+    )
+    assert_probe_ok(result)
+
+
+@requires_landlock_integration
+def test_landlock_allows_translation_pack_storage(tmp_path):
+    """Translation pack archives and extracted models live under storage."""
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    packs_dir = storage / "translation-packs"
+    packs_dir.mkdir()
+    result = run_python_under_landlock(
+        f"""
+        import os
+        import sys
+
+        packs = {str(packs_dir)!r}
+        archive = os.path.join(packs, "test.zip")
+        extracted = os.path.join(packs, "incoming", "enes")
+        with open(archive, "w", encoding="utf-8") as handle:
+            handle.write("fake-zip")
+        os.makedirs(extracted, exist_ok=True)
+        model = os.path.join(extracted, "model.enes.intgemm8.bin")
+        with open(model, "w", encoding="utf-8") as handle:
+            handle.write("fake-model")
+        with open(archive, encoding="utf-8") as handle:
+            a = handle.read()
+        with open(model, encoding="utf-8") as handle:
+            m = handle.read()
+        if a != "fake-zip" or m != "fake-model":
+            print("BAD_READ", a, m)
+            sys.exit(3)
+        print("OK")
         sys.exit(0)
         """,
         storage=storage,

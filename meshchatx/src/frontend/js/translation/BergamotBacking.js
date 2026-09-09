@@ -1,6 +1,19 @@
 import { TranslatorBacking } from "@browsermt/bergamot-translator";
 
-const BASE_URL = `${(import.meta.env.BASE_URL || "/").replace(/\/?$/, "/")}`;
+function appBase() {
+    const base = import.meta.env.BASE_URL || "/";
+    const origin = typeof window !== "undefined" && window.location ? window.location.origin : "http://localhost";
+    return `${origin}${base.replace(/\/?$/, "/")}`;
+}
+
+function absoluteUrl(path) {
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
+    }
+    const base = appBase();
+    const relative = path.replace(/^\//, "");
+    return `${base}${relative}`;
+}
 
 export class BergamotBacking extends TranslatorBacking {
     constructor(options = {}) {
@@ -8,9 +21,9 @@ export class BergamotBacking extends TranslatorBacking {
             ...options,
             cacheSize: options.cacheSize ?? 4096,
             useNativeIntGemm: options.useNativeIntGemm ?? true,
-            registryUrl: options.registryUrl ?? `${BASE_URL}translation-packs/registry.json`,
+            registryUrl: absoluteUrl(options.registryUrl ?? "/translation-packs/registry.json"),
         });
-        this.workerUrl = options.workerUrl ?? `${BASE_URL}vendor/bergamot/translator-worker.js`;
+        this.workerUrl = absoluteUrl(options.workerUrl ?? "/vendor/bergamot/translator-worker.js");
     }
 
     async loadWorker() {
@@ -46,7 +59,7 @@ export class BergamotBacking extends TranslatorBacking {
                     Object.assign(new Error(), error, {
                         message: `${error.message} (response to ${callsite.message})`,
                         stack: error.stack ? `${error.stack}\n${callsite.stack}` : callsite.stack,
-                    }),
+                    })
                 );
             } else {
                 accept(result);
@@ -68,7 +81,7 @@ export class BergamotBacking extends TranslatorBacking {
                         }
                         return (...args) => call(name, ...args);
                     },
-                },
+                }
             ),
         };
     }
@@ -81,7 +94,7 @@ export class BergamotBacking extends TranslatorBacking {
         if (checksum) {
             options.integrity = `sha256-${this.hexToBase64(checksum)}`;
         }
-        const response = await fetch(url, options);
+        const response = await fetch(absoluteUrl(url), options);
         if (!response.ok) {
             throw new Error(`Failed to fetch ${url}: ${response.status}`);
         }
