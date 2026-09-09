@@ -604,6 +604,11 @@ def grant_path_access(sid: ctypes.c_void_p, path: str, *, write: bool) -> None:
     _set_path_access(path, sid, mask, _GRANT_ACCESS)
 
 
+def grant_execute_access(sid: ctypes.c_void_p, path: str) -> None:
+    # Traverse-only: sufficient for parent directories on the way to the exe.
+    _set_path_access(path, sid, _GENERIC_EXECUTE, _GRANT_ACCESS)
+
+
 def revoke_path_access(sid: ctypes.c_void_p, path: str) -> None:
     try:
         _set_path_access(
@@ -925,17 +930,49 @@ def launch_backend_sandboxed(
     ro_roots = collect_ro_roots(exe_dir=os.path.dirname(exe) if exe else None)
     sid: ctypes.c_void_p | None = None
     granted: list[tuple[str, bool]] = []
+    granted_set: set[str] = set()
+
+    def _record_grant(path: str, write: bool) -> None:
+        granted.append((path, write))
+        granted_set.add(path)
 
     try:
         sid = ensure_appcontainer_profile()
         for path in rw_roots:
             grant_path_access(sid, path, write=True)
-            granted.append((path, True))
+            _record_grant(path, True)
         for path in ro_roots:
-            if path in rw_roots:
+            if path in granted_set:
                 continue
             grant_path_access(sid, path, write=False)
-            granted.append((path, False))
+            _record_grant(path, False)
+
+        # Existing files under the exe directory were created before the
+        # inheritable directory ACE was set, so grant each one explicitly.
+        # Also grant traverse-only access to every parent directory so the
+        # AppContainer token can reach the executable.
+        if exe and sys.platform == "win32":
+            exe_dir = os.path.dirname(exe)
+            if exe_dir and os.path.isdir(exe_dir):
+                for root, dirs, files in os.walk(exe_dir):
+                    for name in dirs + files:
+                        file_path = os.path.join(root, name)
+                        if file_path in granted_set:
+                            continue
+                        try:
+                            grant_path_access(sid, file_path, write=False)
+                            _record_grant(file_path, False)
+                        except OSError:
+                            pass
+                parent = os.path.dirname(exe_dir)
+                while parent and parent != os.path.dirname(parent):
+                    if parent not in granted_set:
+                        try:
+                            grant_execute_access(sid, parent)
+                            _record_grant(parent, False)
+                        except OSError:
+                            pass
+                    parent = os.path.dirname(parent)
 
         try:
             h_process, h_thread, _pid = create_process_in_appcontainer(
