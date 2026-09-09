@@ -727,6 +727,10 @@ class ReticulumMeshChat:
         # track active downloads
         self.active_downloads = {}
         self.download_id_counter = 0
+        self.download_id_lock = asyncio.Lock()
+
+        # page -> file grants for local anti-deep-linking
+        self._page_file_grants: dict[int, dict] = {}
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
         self.page_node_manager = PageNodeManager(
@@ -11109,12 +11113,80 @@ class ReticulumMeshChat:
                 return raw.decode("utf-8", errors="replace")
         return None
 
-    def _try_serve_local_page_node_file(self, destination_hash, file_path):
+    def _extract_page_file_links(self, page_content: str) -> set[str]:
+        """Return file paths referenced by a Nomad page for image grants."""
+        if not isinstance(page_content, str):
+            return set()
+        links = set()
+        # Match "hash:/file/..." and relative ":/file/..." WebP links.
+        pattern = re.compile(r"(?:[a-f0-9]{32})?:/file/([^\s)`\"'\\]+\.webp)", re.IGNORECASE)
+        for m in pattern.finditer(page_content):
+            path = m.group(1)
+            if not path or ".." in path:
+                continue
+            links.add(path)
+        return links
+
+    def _register_page_file_grant(
+        self,
+        client,
+        destination_hash: bytes,
+        page_path: str,
+        page_content: str,
+        ttl: float = 300,
+    ) -> None:
+        """Remember the files a client is allowed to fetch from a page."""
+        key = id(client)
+        now = time.time()
+        # Prune expired entries and old clients.
+        self._page_file_grants = {
+            k: v for k, v in self._page_file_grants.items() if v.get("expires", 0) > now
+        }
+        self._page_file_grants[key] = {
+            "expires": now + ttl,
+            "destinations": {destination_hash.hex(): {page_path: self._extract_page_file_links(page_content)}},
+        }
+
+    def _check_page_file_grant(
+        self,
+        client,
+        destination_hash: bytes,
+        page_path: str,
+        file_path: str,
+    ) -> bool:
+        """Check whether a client may fetch a file from a recently loaded page."""
+        key = id(client)
+        grant = self._page_file_grants.get(key)
+        if not grant or grant.get("expires", 0) <= time.time():
+            return False
+        by_dest = grant.get("destinations", {})
+        by_page = by_dest.get(destination_hash.hex(), {}).get(page_path)
+        if not by_page:
+            return False
+        name = file_path.lstrip("/").removeprefix("file/")
+        return name in by_page
+
+    def _try_serve_local_page_node_file(
+        self,
+        destination_hash,
+        file_path,
+        *,
+        client=None,
+        page_path=None,
+        request_data=None,
+    ):
         """Serve a file from disk when the hash matches a local page node.
 
         Returns (file_name, file_bytes), or None.
         """
         from meshchatx.src.backend.page_node import _safe_mesh_file_basename
+
+        # Image downloads must be tied to a recently loaded page grant.
+        if isinstance(request_data, dict) and request_data.get("image_id") is not None:
+            if client is None or page_path is None:
+                return None
+            if not self._check_page_file_grant(client, destination_hash, page_path, file_path):
+                return None
 
         for node in self.page_node_manager.nodes.values():
             if not node.running or not node.destination:
