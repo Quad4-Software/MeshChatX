@@ -293,8 +293,6 @@ describe("ConversationViewer.vue button interactions", () => {
         };
         const wrapper = mountViewer({
             config: {
-                translator_argos_enabled: true,
-                translator_libretranslate_enabled: false,
                 language: "en",
             },
         });
