@@ -11,6 +11,18 @@ const localeModules = import.meta.glob("../locales/*.json");
 let registeredComposer = null;
 
 /**
+ * Cached map from canonical BCP 47 locale code to the on-disk JSON file stem.
+ * @type {Map<string, string> | null}
+ */
+let canonicalToStem = null;
+
+/**
+ * Cached list of locale options for pickers.
+ * @type {Array<{code: string, name: string}> | null}
+ */
+let localeOptionsCache = null;
+
+/**
  * @param {unknown} obj
  * @returns {boolean}
  */
@@ -73,31 +85,135 @@ export function registerUiI18n(i18nOrComposer) {
 }
 
 /**
+ * Build the index that maps canonical BCP 47 locale codes to the bundled JSON
+ * file stems. File names are canonicalized so the rest of the app uses BCP 47.
+ */
+function buildFileIndex() {
+    if (canonicalToStem) {
+        return;
+    }
+    canonicalToStem = new Map();
+    for (const filePath of Object.keys(localeModules)) {
+        const match = filePath.match(/\/([^/]+)\.json$/);
+        if (!match) {
+            continue;
+        }
+        const stem = match[1];
+        const code = canonicalizeBcp47Locale(stem);
+        if (code) {
+            canonicalToStem.set(code, stem);
+        }
+    }
+}
+
+/**
+ * Convert an arbitrary locale string to its canonical BCP 47 form.
+ * This never throws; malformed input falls back to a best-effort normalization.
+ *
+ * @param {string} code
+ * @returns {string}
+ */
+export function canonicalizeBcp47Locale(code) {
+    if (typeof code !== "string" || !code) {
+        return "";
+    }
+    const trimmed = code.trim().replace(/_/g, "-");
+    if (!trimmed) {
+        return "";
+    }
+    if (typeof Intl !== "undefined" && typeof Intl.getCanonicalLocales === "function") {
+        try {
+            return Intl.getCanonicalLocales(trimmed)[0] || "";
+        } catch {
+            // Fall through to best-effort parsing.
+        }
+    }
+    const parts = trimmed.split("-");
+    if (parts.length === 0) {
+        return "";
+    }
+    return parts
+        .map((part, index) => {
+            if (index === 0) {
+                return part.toLowerCase();
+            }
+            if (/^[a-zA-Z]{4}$/.test(part)) {
+                return part.slice(0, 1).toUpperCase() + part.slice(1).toLowerCase();
+            }
+            if (/^[a-zA-Z]{2}$/.test(part) || /^\d{3}$/.test(part)) {
+                return part.toUpperCase();
+            }
+            return part.toLowerCase();
+        })
+        .join("-");
+}
+
+/**
+ * Get the native name for a BCP 47 language tag using the platform
+ * Intl.DisplayNames API. Falls back to the tag itself if unavailable.
+ *
+ * @param {string} code
+ * @returns {string}
+ */
+function getNativeLanguageName(code) {
+    if (typeof Intl === "undefined" || typeof Intl.DisplayNames !== "function") {
+        return code;
+    }
+    try {
+        const rawName = new Intl.DisplayNames(code, { type: "language" }).of(code);
+        if (typeof rawName !== "string") {
+            return code;
+        }
+        return rawName.replace(/^\p{LC}/u, (ch) => ch.toUpperCase());
+    } catch {
+        return code;
+    }
+}
+
+/**
  * Locale codes discovered from bundled JSON without loading message bodies.
  * @returns {string[]}
  */
 export function listLocaleCodes() {
-    return Object.keys(localeModules)
-        .map((filePath) => {
-            const match = filePath.match(/\/([^/]+)\.json$/);
-            return match ? match[1] : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => {
-            if (a === "en") {
-                return -1;
-            }
-            if (b === "en") {
-                return 1;
-            }
-            return a.localeCompare(b);
-        });
+    buildFileIndex();
+    return Array.from(canonicalToStem.keys()).sort((a, b) => {
+        if (a === "en") {
+            return -1;
+        }
+        if (b === "en") {
+            return 1;
+        }
+        return a.localeCompare(b);
+    });
 }
 
-const UI_LOCALE_ALIASES = {
-    "zh-cn": "zh",
-    zh_cn: "zh",
-};
+/**
+ * Return all bundled UI locales with native names for pickers.
+ * English is pinned first; the remaining entries are sorted by native name.
+ *
+ * @returns {Array<{code: string, name: string}>}
+ */
+export function listLocaleOptions() {
+    if (localeOptionsCache) {
+        return localeOptionsCache;
+    }
+    const codes = listLocaleCodes();
+    const options = codes.map((code) => ({
+        code,
+        name: getNativeLanguageName(code),
+    }));
+    options.sort((a, b) => {
+        if (a.code === "en") {
+            return -1;
+        }
+        if (b.code === "en") {
+            return 1;
+        }
+        return a.name.localeCompare(b.name);
+    });
+    localeOptionsCache = options;
+    return localeOptionsCache;
+}
 
 /**
  * Map stored or legacy locale codes to a bundled UI pack code.
@@ -112,22 +228,18 @@ export function normalizeUiLocaleCode(code) {
     if (!trimmed) {
         return "en";
     }
-    const lower = trimmed.toLowerCase();
-    const hyphen = lower.replace(/_/g, "-");
-    const aliased = UI_LOCALE_ALIASES[hyphen] || UI_LOCALE_ALIASES[lower];
-    if (aliased) {
-        return aliased;
+    buildFileIndex();
+    const canonical = canonicalizeBcp47Locale(trimmed);
+    if (canonicalToStem.has(canonical)) {
+        return canonical;
     }
-    const available = listLocaleCodes();
-    if (available.includes(trimmed)) {
-        return trimmed;
-    }
-    if (available.includes(lower)) {
-        return lower;
-    }
-    const base = hyphen.split("-")[0];
-    if (available.includes(base)) {
-        return base;
+    const parts = canonical.split("-");
+    while (parts.length > 1) {
+        parts.pop();
+        const base = parts.join("-");
+        if (canonicalToStem.has(base)) {
+            return base;
+        }
     }
     return "en";
 }
@@ -142,22 +254,28 @@ export async function ensureLocaleMessages(i18nOrComposer, code) {
     if (!code || typeof code !== "string") {
         return false;
     }
+    buildFileIndex();
+    const canonical = canonicalizeBcp47Locale(code.trim());
+    const stem = canonicalToStem.get(canonical);
+    if (!stem) {
+        return false;
+    }
     const composer = resolveComposer(i18nOrComposer);
     if (!composer) {
         return false;
     }
-    if (listAvailableLocales(composer).includes(code)) {
+    if (listAvailableLocales(composer).includes(canonical)) {
         return true;
     }
     if (typeof composer.setLocaleMessage !== "function") {
         return false;
     }
-    const loader = localeModules[`../locales/${code}.json`];
+    const loader = localeModules[`../locales/${stem}.json`];
     if (!loader) {
         return false;
     }
     const mod = await loader();
-    composer.setLocaleMessage(code, mod.default || mod);
+    composer.setLocaleMessage(canonical, mod.default || mod);
     return true;
 }
 
@@ -168,8 +286,8 @@ export async function ensureLocaleMessages(i18nOrComposer, code) {
  * @returns {Promise<boolean>}
  */
 export async function setLocale(i18nOrComposer, code) {
-    const normalized = normalizeUiLocaleCode(code);
-    const ok = await ensureLocaleMessages(i18nOrComposer, normalized);
+    const canonical = normalizeUiLocaleCode(code);
+    const ok = await ensureLocaleMessages(i18nOrComposer, canonical);
     if (!ok) {
         return false;
     }
@@ -178,12 +296,12 @@ export async function setLocale(i18nOrComposer, code) {
         return false;
     }
     if (composer.locale && typeof composer.locale === "object" && "value" in composer.locale) {
-        composer.locale.value = normalized;
+        composer.locale.value = canonical;
     } else {
-        composer.locale = normalized;
+        composer.locale = canonical;
     }
     if (typeof document !== "undefined") {
-        document.documentElement.lang = normalized;
+        document.documentElement.lang = canonical;
     }
     return true;
 }
