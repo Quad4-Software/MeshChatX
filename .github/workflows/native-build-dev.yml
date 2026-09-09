@@ -119,3 +119,7 @@ jobs:
 
             - name: Build distributables
               run: bash "${{ matrix.build_script }}"
+
+            - name: AppContainer smoke (Windows only)
+              if: matrix.label == 'windows'
+              run: uv run python scripts/ci/github-smoke-appcontainer.py --build-dir build/exe
