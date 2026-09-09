@@ -148,6 +148,26 @@ function listPartials() {
     }));
 }
 
+function readImage(el) {
+    return {
+        url: el.getAttribute("data-mu-image-url") || "",
+        alt: el.getAttribute("data-mu-image-alt") || "",
+        w: el.getAttribute("data-mu-image-w") || null,
+        h: el.getAttribute("data-mu-image-h") || null,
+        size: el.getAttribute("data-mu-image-s") || null,
+        key: el.getAttribute("data-mu-image-k") || "",
+        align: el.getAttribute("data-mu-image-a") || "left",
+        profile: el.getAttribute("data-mu-image-profile") || "",
+    };
+}
+
+function listImages() {
+    return [...root.querySelectorAll(".mu-image")].map((el, index) => {
+        el.setAttribute("data-mu-image-index", String(index));
+        return { index, ...readImage(el) };
+    });
+}
+
 function escapeSource(content) {
     return String(content ?? "")
         .replace(/&/g, "&amp;")
@@ -234,6 +254,23 @@ function onClick(event) {
             });
             return;
         }
+    }
+    const imageAction = t.closest(".mu-image-action");
+    if (imageAction) {
+        event.preventDefault();
+        event.stopPropagation();
+        const container = imageAction.closest(".mu-image");
+        if (container) {
+            const info = readImage(container);
+            const index = container.getAttribute("data-mu-image-index");
+            post({
+                type: "image-action",
+                action: imageAction.getAttribute("data-mu-image-action") || "load",
+                index: index != null ? Number(index) : null,
+                ...info,
+            });
+        }
+        return;
     }
     const frag = t.closest("a[href]");
     if (frag) {
@@ -346,7 +383,7 @@ async function renderPage(msg, seq, api) {
         }
     }
     setupMultilineForMicron(api.MicronParser, pagePathWithoutData, opts);
-    post({ type: "render-done", partials: listPartials() });
+    post({ type: "render-done", partials: listPartials(), images: listImages() });
 }
 
 window.addEventListener("message", (ev) => {
@@ -394,6 +431,47 @@ window.addEventListener("message", (ev) => {
         }
         if (target) {
             target.innerHTML = d.html || "";
+        }
+        return;
+    }
+    if (d.type === "set-image") {
+        const index = d.index;
+        if (index == null) {
+            return;
+        }
+        let el = null;
+        try {
+            el = root.querySelector(`.mu-image[data-mu-image-index="${CSS.escape(String(index))}"]`);
+        } catch {
+            el = null;
+        }
+        if (!el) {
+            return;
+        }
+        const img = el.querySelector(".mu-image-output");
+        const load = el.querySelector('.mu-image-action[data-mu-image-action="load"]');
+        if (d.state === "loading") {
+            if (load) {
+                const progress = d.progress != null ? `${Math.round(Number(d.progress) * 100)}%` : "";
+                load.textContent = progress ? `Loading... ${progress}` : "Loading...";
+            }
+        } else if (d.state === "loaded") {
+            if (img) {
+                img.src = d.dataUrl || "";
+                img.removeAttribute("hidden");
+            }
+            if (load) {
+                load.textContent = "Loaded";
+                load.setAttribute("data-mu-image-action", "view");
+            }
+            const size = el.querySelector(".mu-image-size");
+            if (size && d.actualSize != null) {
+                size.textContent = d.actualSize;
+            }
+        } else if (d.state === "error") {
+            if (load) {
+                load.textContent = d.reason ? `Error: ${d.reason}` : "Error";
+            }
         }
         return;
     }

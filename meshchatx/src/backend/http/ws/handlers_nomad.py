@@ -157,6 +157,7 @@ async def _send_nomad_file_bytes(
     file_bytes: bytes,
     private: bool,
     request_id_fields: dict,
+    extra: dict | None = None,
 ):
     """Single-frame for small files; chunked frames for large ones."""
     if len(file_bytes) > WS_NOMAD_FILE_MAX_BYTES:
@@ -190,6 +191,7 @@ async def _send_nomad_file_bytes(
                         "file_name": file_name,
                         "file_bytes": base64.b64encode(file_bytes).decode("utf-8"),
                         "private": private,
+                        **({"data": extra} if extra is not None else {}),
                     },
                 },
             ),
@@ -216,6 +218,7 @@ async def _send_nomad_file_bytes(
                         "chunk_index": chunk_index,
                         "chunk_b64": base64.b64encode(chunk).decode("utf-8"),
                         "private": private,
+                        **({"data": extra} if extra is not None else {}),
                     },
                 },
             ),
@@ -240,6 +243,7 @@ async def _send_nomad_file_bytes(
                     "total": total,
                     "sha256": digest,
                     "private": private,
+                    **({"data": extra} if extra is not None else {}),
                 },
             },
         ),
@@ -565,6 +569,7 @@ async def handle_nomadnet_file_download(app, client, data):
                 file_bytes=file_bytes,
                 private=private,
                 request_id_fields=rid,
+                extra=request_data,
             ),
         )
         return
@@ -597,6 +602,7 @@ async def handle_nomadnet_file_download(app, client, data):
                 file_bytes=file_bytes,
                 private=private,
                 request_id_fields=rid,
+                extra=request_data,
             ),
         )
 
@@ -617,6 +623,7 @@ async def handle_nomadnet_file_download(app, client, data):
                             "failure_reason": failure_reason,
                             "destination_hash": destination_hash.hex(),
                             "file_path": file_path,
+                            **({"data": request_data} if request_data is not None else {}),
                         },
                     },
                 ),
@@ -637,6 +644,7 @@ async def handle_nomadnet_file_download(app, client, data):
                             "progress": progress,
                             "destination_hash": destination_hash.hex(),
                             "file_path": file_path,
+                            **({"data": request_data} if request_data is not None else {}),
                         },
                     },
                 ),

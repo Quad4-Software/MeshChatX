@@ -598,6 +598,8 @@
                             :reveal="!showPageBusyBanner"
                             @navigate="onCrashTabNavigate"
                             @partials="onCrashTabPartials"
+                            @images="onCrashTabImages"
+                            @image-action="onCrashTabImageAction"
                             @view-source="showPageSource"
                             @hung="onCrashTabHung"
                             @render-started="onCrashTabRenderStarted"
@@ -847,6 +849,9 @@ export default {
             partialRefreshTimers: {},
             processPartialsRaf: null,
             crashTabPartials: [],
+            crashTabImages: [],
+            nomadImageCache: new Map(),
+            nomadImageDownloadCallbacks: {},
             isCrashTabRendering: false,
             multilineCleanup: null,
             multilineHintVisible: false,
@@ -1905,6 +1910,28 @@ export default {
                         };
                     }
 
+                    const imageId = nomadnetFileDownload.data?.image_id;
+                    if (imageId != null && this.nomadImageDownloadCallbacks[imageId]) {
+                        const imageCallback = this.nomadImageDownloadCallbacks[imageId];
+                        if (nomadnetFileDownload.status === "success" && imageCallback.onSuccessCallback) {
+                            imageCallback.onSuccessCallback(
+                                nomadnetFileDownload.file_name,
+                                nomadnetFileDownload.file_bytes
+                            );
+                            delete this.nomadImageDownloadCallbacks[imageId];
+                            return;
+                        }
+                        if (nomadnetFileDownload.status === "failure" && imageCallback.onFailureCallback) {
+                            imageCallback.onFailureCallback(nomadnetFileDownload.failure_reason);
+                            delete this.nomadImageDownloadCallbacks[imageId];
+                            return;
+                        }
+                        if (nomadnetFileDownload.status === "progress" && imageCallback.onProgressCallback) {
+                            imageCallback.onProgressCallback(nomadnetFileDownload.progress);
+                            return;
+                        }
+                    }
+
                     if (nomadnetFileDownload.status === "started") {
                         const fileCallbackKey = this.getNomadnetFileDownloadCallbackKey(
                             nomadnetFileDownload.destination_hash,
@@ -2622,6 +2649,133 @@ export default {
                 this.refreshMultilineExpansion();
                 this.syncPageShellBackground();
             });
+        },
+        onCrashTabImages(images) {
+            this.crashTabImages = Array.isArray(images) ? images : [];
+            this.cancelStaleImageDownloads();
+            this.scheduleImageLoads();
+        },
+        onCrashTabImageAction(payload) {
+            if (!payload || payload.action !== "load") {
+                return;
+            }
+            const image = this.crashTabImages[payload.index];
+            if (!image) {
+                return;
+            }
+            this.loadNomadImage(image, payload.index);
+        },
+        getNomadImagePolicy(destinationHash) {
+            const key = `nomad_image_policy_${destinationHash || "_global"}`;
+            const perNode = GlobalState.config?.[key];
+            if (perNode === "never" || perNode === "manual" || perNode === "auto" || perNode === "always") {
+                return perNode;
+            }
+            const global = GlobalState.config?.nomad_image_loading_policy;
+            if (global === "never" || global === "manual" || global === "auto" || global === "always") {
+                return global;
+            }
+            return "manual";
+        },
+        cancelStaleImageDownloads() {
+            for (const id of Object.keys(this.nomadImageDownloadCallbacks)) {
+                delete this.nomadImageDownloadCallbacks[id];
+            }
+        },
+        resolveNomadImageDestination(imageUrl) {
+            const parsed = this.parseNomadnetworkUrl(imageUrl || "");
+            const destinationHash = parsed?.destination_hash || this.selectedNode?.destination_hash || "";
+            const filePath = parsed?.path || "";
+            return { destinationHash, filePath };
+        },
+        getNomadImageCacheKey(destinationHash, filePath) {
+            return `${destinationHash || ""}:${filePath || ""}`;
+        },
+        getNomadImageDataUrl(fileBytes) {
+            if (!fileBytes) {
+                return null;
+            }
+            return `data:image/webp;base64,${fileBytes}`;
+        },
+        scheduleImageLoads() {
+            for (let i = 0; i < this.crashTabImages.length; i++) {
+                const image = this.crashTabImages[i];
+                const { destinationHash } = this.resolveNomadImageDestination(image.url);
+                const policy = this.getNomadImagePolicy(destinationHash);
+                if (policy === "auto" || policy === "always") {
+                    this.loadNomadImage(image, i);
+                } else if (policy === "never") {
+                    this.setCrashTabImage(i, "error", { reason: this.$t("nomadnet.image_policy_never") });
+                }
+            }
+        },
+        setCrashTabImage(index, state, payload = {}) {
+            if (this.$refs.crashTab && typeof this.$refs.crashTab.setImage === "function") {
+                this.$refs.crashTab.setImage(index, state, payload);
+            }
+        },
+        loadNomadImage(image, index) {
+            if (!image || !image.url) {
+                return;
+            }
+            const { destinationHash, filePath } = this.resolveNomadImageDestination(image.url);
+            if (!destinationHash || !filePath) {
+                this.setCrashTabImage(index, "error", { reason: this.$t("nomadnet.image_invalid_url") });
+                return;
+            }
+            const cacheKey = this.getNomadImageCacheKey(destinationHash, filePath);
+            const cached = this.nomadImageCache.get(cacheKey);
+            if (cached) {
+                this.setCrashTabImage(index, "loaded", { dataUrl: cached.dataUrl, actualSize: cached.size });
+                return;
+            }
+            const existing = this.nomadImageDownloadCallbacks[index];
+            if (existing) {
+                return;
+            }
+            this.setCrashTabImage(index, "loading");
+            const data = { image_id: index };
+            if (image.profile) {
+                data.image_profile = image.profile;
+            }
+            const imageId = index;
+            const onSuccess = (fileName, fileBytes) => this.onNomadImageDownloadSuccess(imageId, fileName, fileBytes);
+            const onFailure = (reason) => this.onNomadImageDownloadFailure(imageId, reason);
+            const onProgress = (progress) => this.onNomadImageDownloadProgress(imageId, progress);
+            this.nomadImageDownloadCallbacks[imageId] = {
+                onSuccessCallback: onSuccess,
+                onFailureCallback: onFailure,
+                onProgressCallback: onProgress,
+            };
+            this.downloadNomadNetFile(destinationHash, filePath, data, onSuccess, onFailure, onProgress);
+            const fileCallbackKey = this.getNomadnetFileDownloadCallbackKey(destinationHash, filePath);
+            delete this.nomadnetFileDownloadCallbacks[fileCallbackKey];
+        },
+        onNomadImageDownloadSuccess(imageId, fileName, fileBytes) {
+            const entry = this.nomadImageDownloadCallbacks[imageId];
+            if (!entry) {
+                return;
+            }
+            delete this.nomadImageDownloadCallbacks[imageId];
+            const image = this.crashTabImages[imageId];
+            if (!image) {
+                return;
+            }
+            const { destinationHash, filePath } = this.resolveNomadImageDestination(image.url);
+            const cacheKey = this.getNomadImageCacheKey(destinationHash, filePath);
+            const dataUrl = this.getNomadImageDataUrl(fileBytes);
+            const actualSize = Utils.formatBytes(fileBytes ? Math.ceil(fileBytes.length * 0.75) : 0);
+            this.nomadImageCache.set(cacheKey, { dataUrl, size: actualSize });
+            this.setCrashTabImage(imageId, "loaded", { dataUrl, actualSize });
+        },
+        onNomadImageDownloadFailure(imageId, reason) {
+            if (this.nomadImageDownloadCallbacks[imageId]) {
+                delete this.nomadImageDownloadCallbacks[imageId];
+            }
+            this.setCrashTabImage(imageId, "error", { reason: reason || this.$t("nomadnet.image_load_failed") });
+        },
+        onNomadImageDownloadProgress(imageId, progress) {
+            this.setCrashTabImage(imageId, "loading", { progress });
         },
         onCrashTabHung() {
             this.isCrashTabRendering = false;
