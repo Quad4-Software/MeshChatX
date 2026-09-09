@@ -37,7 +37,7 @@ make install && make build && make run
 
 Dettagli: [`docs/en/installation.md`](../docs/en/installation.md).
 
-Versione attuale nel repository: `4.8.7`.
+Versione attuale nel repository: `4.8.9`.
 
 ## Sicurezza, licenza, crediti
 
