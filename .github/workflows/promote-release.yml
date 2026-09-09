@@ -1,6 +1,7 @@
 # Promote a known-good SHA to Beta or Stable (Testing -> Beta -> Stable).
 # Rebuilds under a new tag so channel bake flips correctly. Never copies assets
 # across tags/run_ids (immutable release model).
+# CI must be green by default; set require_ci_green=false to override manually.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -28,6 +29,11 @@ on:
                 description: Optional beta tag suffix (default YYYY.MM.DD-sha7)
                 required: false
                 default: ""
+            require_ci_green:
+                description: Require a green CI run on the chosen SHA before promoting
+                required: false
+                type: boolean
+                default: true
 
 concurrency:
     group: promote-release-${{ inputs.channel }}
@@ -60,6 +66,7 @@ jobs:
                   CHANNEL: ${{ inputs.channel }}
                   VERSION: ${{ inputs.version }}
                   BETA_SUFFIX: ${{ inputs.beta_suffix }}
+                  MESHCHATX_REQUIRE_CI_GREEN: ${{ inputs.require_ci_green }}
               run: |
                   set -euo pipefail
                   if ! git cat-file -e "${SHA}^{commit}" 2>/dev/null; then

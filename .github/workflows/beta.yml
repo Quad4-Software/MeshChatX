@@ -1,5 +1,6 @@
 # Beta channel cut: tag a chosen ref (default master) as beta-* after CI is green,
 # then dispatch build-release.yml. Also triggers Android emulator smoke.
+# Set require_ci_green=false to skip the CI green check manually.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -17,6 +18,11 @@ on:
                 description: Optional tag suffix (default YYYY.MM.DD-sha7)
                 required: false
                 default: ""
+            require_ci_green:
+                description: Require a green CI run on the chosen ref before cutting the tag
+                required: false
+                type: boolean
+                default: true
 
 concurrency:
     group: beta-release
@@ -51,6 +57,7 @@ jobs:
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   SUFFIX: ${{ inputs.suffix }}
+                  MESHCHATX_REQUIRE_CI_GREEN: ${{ inputs.require_ci_green }}
               run: |
                   set -euo pipefail
                   short_sha="$(git rev-parse --short=7 HEAD)"
