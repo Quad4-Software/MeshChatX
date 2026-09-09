@@ -2,6 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
+
 ## [4.9.0] - [unreleased]
 
 ### Added
@@ -35,6 +36,30 @@ All notable changes to this project will be documented in this file.
 - **Logging cleanup**: `print()` calls in `meshchatx.py`, `nomadnet_downloader.py`, and other backend paths now use the application logger.
 - **Geo-wasm and starter MBTiles**: Rebuilt and regenerated.
 - **Repository format and lint**: Full Ruff, Prettier, ESLint, and typecheck pass across backend and frontend.
+
+
+## [4.8.9] - 2026-09-09 [released]
+
+### Fixed
+
+- Re-releases the LXMF inbound attachment rejection fix from 4.8.8 with corrected test lint. The delivery resource policy no longer treats the local `lxmf.delivery` identity as the sender, so large messages transfer before the backchannel identifies the remote peer. Closes #94.
+
+## [4.8.8] - 2026-09-09 [released]
+
+### Fixed
+
+- Fixed LXMF inbound attachment rejection. The delivery resource policy no longer treats the local `lxmf.delivery` identity as the sender, so large messages transfer before the backchannel identifies the remote peer. Closes #94.
+
+## [4.8.7] - 2026-09-09 [released]
+
+### Security
+
+- Hardened Electron shell, Android navigation, map export, plugin endpoint host checks, identity switch copy, docs ZIP extraction, and local file handling.
+
+### Fixed
+
+- Moved blocking identity teardown and maintenance DB work off the async event loop.
+- Fixed WebSocket coalescing, broadcast ordering, stale cursor recovery, delivery state regression, conversation failed count, active-conversation reset, handler isolation, nomad download race, and map export locking.
 
 ## [4.8.6] - 2026-09-06 [released]
 
