@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # Fail unless the given SHA has a successful CI workflow run (workflow file ci.yml).
 # Usage: github-require-ci-green.sh <sha>
+# Set MESHCHATX_REQUIRE_CI_GREEN=false or 0 to skip this check (manual override).
 set -euo pipefail
+
+if [ "${MESHCHATX_REQUIRE_CI_GREEN:-}" = "false" ] || [ "${MESHCHATX_REQUIRE_CI_GREEN:-}" = "0" ]; then
+    echo "Skipping CI green check (manual override)"
+    exit 0
+fi
 
 SHA="${1:?sha required}"
 
