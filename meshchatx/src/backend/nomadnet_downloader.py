@@ -219,6 +219,7 @@ class NomadnetDownloader:
         self.identify_on_connect = bool(identify_on_connect) and not self.private
         self.request_receipt = None
         self.is_cancelled = False
+        self._outcome_delivered = False
         self.link = None
 
     def _emit_phase(self, phase: str) -> None:
@@ -239,7 +240,33 @@ class NomadnetDownloader:
         except Exception as exc:
             logger.warning("identify failed: %s", exc)
 
+    def _deliver_failure(self, reason: str) -> None:
+        if self._outcome_delivered:
+            return
+        self._outcome_delivered = True
+        try:
+            self._download_failure_callback(reason)
+        except Exception:
+            pass
+
+    def _maybe_teardown_abandoned_link(self) -> None:
+        if self.link is None:
+            return
+        if self.private:
+            self._teardown_private_link()
+            return
+        with _nomadnet_links_lock:
+            is_shared = nomadnet_cached_links.get(self.destination_hash) is self.link
+        if not is_shared:
+            try:
+                self.link.teardown()
+            except Exception:
+                pass
+            self.link = None
+
     def cancel(self):
+        if self.is_cancelled or self._outcome_delivered:
+            return
         self.is_cancelled = True
 
         if self.request_receipt is not None:
@@ -263,14 +290,9 @@ class NomadnetDownloader:
             except Exception as e:
                 logger.warning("failed to cancel request: %s", e)
 
-        if self.link is not None:
-            _uncache_link_if_matches(self.destination_hash, self.link)
-            try:
-                self.link.teardown()
-            except Exception as e:
-                logger.warning("failed to teardown link: %s", e)
+        self._maybe_teardown_abandoned_link()
 
-        self._download_failure_callback("cancelled")
+        self._deliver_failure("cancelled")
 
     def _teardown_private_link(self) -> None:
         if not self.private or self.link is None:
@@ -293,20 +315,18 @@ class NomadnetDownloader:
                 link_establishment_timeout=link_establishment_timeout,
             )
         except Exception as exc:
-            if self.is_cancelled:
+            if self.is_cancelled or self._outcome_delivered:
                 return
             logger.warning("download failed: %s", exc)
-            try:
-                self._download_failure_callback(str(exc) or "download_failed")
-            except Exception:
-                pass
+            self._deliver_failure(str(exc) or "download_failed")
+            self._maybe_teardown_abandoned_link()
 
     async def _download_inner(
         self,
         path_lookup_timeout: float | None = None,
         link_establishment_timeout: float | None = None,
     ):
-        if self.is_cancelled:
+        if self.is_cancelled or self._outcome_delivered:
             return
 
         if not self.private:
@@ -350,12 +370,12 @@ class NomadnetDownloader:
                 not RNS.Transport.has_path(self.destination_hash)
                 and time.time() < timeout_after_seconds
             ):
-                if self.is_cancelled:
+                if self.is_cancelled or self._outcome_delivered:
                     return
                 await asyncio.sleep(_POLL_INTERVAL_S)
 
         if not RNS.Transport.has_path(self.destination_hash):
-            self._download_failure_callback("Could not find path to destination.")
+            self._deliver_failure("Could not find path to destination.")
             return
 
         if not self.private:
@@ -367,7 +387,7 @@ class NomadnetDownloader:
                 self.link_established(cached)
                 return
 
-        if self.is_cancelled:
+        if self.is_cancelled or self._outcome_delivered:
             return
 
         self._emit_phase("establishing_link")
@@ -376,7 +396,7 @@ class NomadnetDownloader:
             # Path table can list a dest before Identity.recall has the key.
             # Requesting the path again often recovers; do not crash the task.
             reticulum_pathfinding.nudge_path_request(self.destination_hash)
-            self._download_failure_callback(
+            self._deliver_failure(
                 "No identity key for destination yet. Try Path Finder or wait for an announce.",
             )
             return
@@ -413,15 +433,17 @@ class NomadnetDownloader:
         while (
             link.status is not RNS.Link.ACTIVE and time.time() < timeout_after_seconds
         ):
-            if self.is_cancelled:
+            if self.is_cancelled or self._outcome_delivered:
                 return
             await asyncio.sleep(_POLL_INTERVAL_S)
 
         if link.status is not RNS.Link.ACTIVE:
-            self._download_failure_callback("Could not establish link to destination.")
+            self._deliver_failure("Could not establish link to destination.")
+            self._maybe_teardown_abandoned_link()
+            return
 
     def link_established(self, link):
-        if self.is_cancelled:
+        if self.is_cancelled or self._outcome_delivered:
             return
 
         self._emit_phase("transferring")
@@ -441,18 +463,28 @@ class NomadnetDownloader:
         )
 
     def on_response(self, request_receipt: RNS.RequestReceipt):
+        if self.is_cancelled or self._outcome_delivered:
+            self._teardown_private_link()
+            return
+        self._outcome_delivered = True
         try:
             self._download_success_callback(request_receipt)
         finally:
             self._teardown_private_link()
 
     def on_failed(self, request_receipt=None):
+        if self.is_cancelled or self._outcome_delivered:
+            self._teardown_private_link()
+            return
+        self._outcome_delivered = True
         try:
             self._download_failure_callback("request_failed")
         finally:
             self._teardown_private_link()
 
     def on_progress(self, request_receipt):
+        if self.is_cancelled or self._outcome_delivered:
+            return
         self.on_progress_update(request_receipt.progress)
 
 
@@ -551,7 +583,17 @@ class NomadnetFileDownloader(NomadnetDownloader):
             base = os.path.basename(str(name).replace("\\", "/"))
         except (AttributeError, TypeError, ValueError):
             return "downloaded_file"
-        return base or "downloaded_file"
+        if not base or base in {".", ".."}:
+            return "downloaded_file"
+        # Drop path separators, control chars, and nulls that survive basename.
+        base = "".join(
+            ch
+            for ch in base
+            if ch.isprintable() and ch not in "/\\\x00"
+        ).strip()
+        if not base or base in {".", ".."}:
+            return "downloaded_file"
+        return base
 
     def _payload_bytes(self, payload) -> bytes | None:
         cap = self._max_bytes
