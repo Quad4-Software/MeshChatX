@@ -480,8 +480,6 @@
         "translator": "Kääntäjä",
         "translator_enabled": "Kytke kääntäjä päälle",
         "translator_description": "Kytke kääntäjä päälle keskusteluissa.",
-        "libretranslate_url": "LibreTranslate-URL",
-        "libretranslate_url_description": "URL LibreTranslate API:lle.",
         "system": "Järjestelmä",
         "reticulum_stack": "Reticulum-pino",
         "reticulum_stack_description": "Hallinnoi taustalla olevaa Reticulum-verkkopinoa.",

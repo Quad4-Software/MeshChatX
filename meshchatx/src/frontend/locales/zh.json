@@ -480,8 +480,6 @@
         "translator": "翻译",
         "translator_enabled": "启用翻译",
         "translator_description": "在对话中启用翻译功能。",
-        "libretranslate_url": "LibreTranslate URL",
-        "libretranslate_url_description": "可访问 LibreTranslate API 的 URL。",
         "system": "系统",
         "reticulum_stack": "Reticulum 堆栈",
         "reticulum_stack_description": "管理基础 Reticulum 网络堆栈。",

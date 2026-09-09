@@ -480,8 +480,6 @@
         "translator": "Tradutor",
         "translator_enabled": "Ativar Tradutor",
         "translator_description": "Ative os recursos de tradução nas conversas.",
-        "libretranslate_url": "URL do LibreTranslate",
-        "libretranslate_url_description": "A URL onde a API do LibreTranslate está acessível.",
         "system": "Sistema",
         "reticulum_stack": "Pilha da Reticulum",
         "reticulum_stack_description": "Gerencie a Pilha de Rede subjacente da Reticulum.",

@@ -2669,14 +2669,7 @@ export default {
             return c.slice(0, 2);
         },
         composeSourceLangForTranslate() {
-            const cfg = this.config;
-            const a = cfg?.translator_argos_enabled;
-            const l = cfg?.translator_libretranslate_enabled;
-            if (!a && !l) {
-                return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
-            }
-
-            return "auto";
+            return this.normalizedLocaleCode(this.config?.language || this.$i18n.locale) || "en";
         },
         _readSavedTranslateTargetLang() {
             let v = null;
@@ -2721,13 +2714,7 @@ export default {
             return this.defaultTranslateTargetForModal();
         },
         _bubbleTranslateSourcePreview() {
-            const cfg = this.config;
-            const a = cfg?.translator_argos_enabled;
-            const l = cfg?.translator_libretranslate_enabled;
-            if (!a && !l) {
-                return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
-            }
-            return "auto";
+            return this.normalizedLocaleCode(this.config?.language || this.$i18n.locale) || "en";
         },
         onTranslateTargetBarClickOutside() {
             if (this.isTranslateTargetModalWorking) {

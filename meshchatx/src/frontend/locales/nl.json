@@ -480,8 +480,6 @@
         "translator": "Vertaler",
         "translator_enabled": "Vertaler inschakelen",
         "translator_description": "Vertaalfuncties inschakelen in gesprekken.",
-        "libretranslate_url": "LibreVertalen",
-        "libretranslate_url_description": "De URL waar LibreTranslate API toegankelijk is.",
         "system": "Systeem",
         "reticulum_stack": "Reticulum-stack",
         "reticulum_stack_description": "Beheer de onderliggende Reticulum Network Stack.",

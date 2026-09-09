@@ -480,8 +480,6 @@
         "translator": "翻訳",
         "translator_enabled": "翻訳機能を有効化",
         "translator_description": "会話内の翻訳機能を有効化します。",
-        "libretranslate_url": "LibreTranslate URL",
-        "libretranslate_url_description": "LibreTranslate API にアクセスできる URL です。",
         "system": "システム",
         "reticulum_stack": "Reticulum スタック",
         "reticulum_stack_description": "基盤となる Reticulum Network Stack を管理します。",
