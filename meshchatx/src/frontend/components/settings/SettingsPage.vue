@@ -1432,6 +1432,20 @@
                             @change="onLanguageSectionChange"
                         />
 
+                        <!-- Translation -->
+                        <section v-show="showSection('translation')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">{{ $t("app.translation_eyebrow") }}</div>
+                                    <h2>{{ $t("app.translation_title") }}</h2>
+                                    <p>{{ $t("app.translation_description") }}</p>
+                                </div>
+                                <RouterLink :to="{ name: 'translator' }" class="primary-chip">
+                                    {{ $t("app.open_translator") }}
+                                </RouterLink>
+                            </header>
+                        </section>
+
                         <!-- Network Security -->
                         <section v-show="showSection('networkSecurity')" class="settings-section break-inside-avoid">
                             <header class="settings-section__header">
