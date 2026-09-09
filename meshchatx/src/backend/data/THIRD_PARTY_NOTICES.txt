@@ -106,7 +106,7 @@ pyOpenSSL 26.4.0
 pyserial 3.5
   License: BSD
   Author: Chris Liechti
-reticulum-meshchatx 4.8.7
+reticulum-meshchatx 4.8.8
   License: 0BSD AND MIT
   Author: Quad4
 rns 1.5.2
