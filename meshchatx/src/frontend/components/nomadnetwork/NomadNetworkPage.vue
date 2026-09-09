@@ -2770,7 +2770,10 @@ export default {
                 return { destinationHash: "", filePath: "" };
             }
             // Reject obvious traversal or dangerous characters.
-            if (cleanFilePath.includes("..") || [...cleanFilePath].some((ch) => ch.charCodeAt(0) < 32 || '<>"|?*'.includes(ch))) {
+            if (
+                cleanFilePath.includes("..") ||
+                [...cleanFilePath].some((ch) => ch.charCodeAt(0) < 32 || '<>"|?*'.includes(ch))
+            ) {
                 return { destinationHash: "", filePath: "" };
             }
             return { destinationHash, filePath };
