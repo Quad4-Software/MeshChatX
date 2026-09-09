@@ -987,7 +987,6 @@ export default {
                     next[hash] = safe;
                 }
                 this.nomadImagePerNodePolicies = next;
-                this.saveNomadImagePerNodePolicies();
             },
         },
         nomadMicronWasmFeatureEffective() {
@@ -1353,6 +1352,7 @@ export default {
         this.nodesListAbortController?.abort();
         this.nodeDetailAbortController?.abort();
         this.clearPartials();
+        this.clearNomadImageState();
         if (this.isLoadingNodePage || this.currentPageDownloadId !== null) {
             this.cancelPageDownload();
         }
@@ -1378,7 +1378,6 @@ export default {
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
         this.refreshMicronWasmReleaseLabel();
-        this.loadNomadImagePerNodePolicies();
 
         this.$watch(
             () => GlobalState.config?.nomad_micron_wasm_enabled,
@@ -1479,6 +1478,8 @@ export default {
             this.nodes = {};
             this.selectedNode = null;
             this.nodePageContent = null;
+            this.nomadImagePerNodePolicies = {};
+            this.clearNomadImageState();
             this.clearPartials?.();
             this.getFavourites();
             this.getNomadnetworkNodeAnnounces();
@@ -1537,6 +1538,10 @@ export default {
                 return true;
             }
             if (this.currentFileDownloadId !== null && this.currentFileDownloadId === downloadId) {
+                return true;
+            }
+            const imageId = nomadnetFileDownload.data?.image_id;
+            if (imageId != null && this.nomadImageDownloadCallbacks[imageId]) {
                 return true;
             }
             return !this.embedded || this.isActive;
@@ -1952,6 +1957,13 @@ export default {
                     const imageId = nomadnetFileDownload.data?.image_id;
                     if (imageId != null && this.nomadImageDownloadCallbacks[imageId]) {
                         const imageCallback = this.nomadImageDownloadCallbacks[imageId];
+                        if (!this.ownsNomadImageDownloadEvent(nomadnetFileDownload, imageId)) {
+                            return;
+                        }
+                        if (nomadnetFileDownload.status === "started") {
+                            imageCallback.downloadId = downloadId;
+                            return;
+                        }
                         if (nomadnetFileDownload.status === "success" && imageCallback.onSuccessCallback) {
                             imageCallback.onSuccessCallback(
                                 nomadnetFileDownload.file_name,
@@ -2723,40 +2735,60 @@ export default {
             }
             return null;
         },
-        loadNomadImagePerNodePolicies() {
-            try {
-                const raw = localStorage.getItem("meshchatx.nomad.image_per_node_policies");
-                const parsed = raw ? JSON.parse(raw) : {};
-                if (parsed && typeof parsed === "object") {
-                    this.nomadImagePerNodePolicies = parsed;
-                }
-            } catch {
-                this.nomadImagePerNodePolicies = {};
-            }
-        },
-        saveNomadImagePerNodePolicies() {
-            try {
-                localStorage.setItem(
-                    "meshchatx.nomad.image_per_node_policies",
-                    JSON.stringify(this.nomadImagePerNodePolicies)
-                );
-            } catch {
-                // Local storage may be unavailable or full.
-            }
-        },
+        // Per-node image policies are kept in memory only. Persisting them to
+        // localStorage would leak browsing choices across private sessions and
+        // identities, so the map is reset on identity switch and on unmount.
         cancelStaleImageDownloads() {
-            for (const id of Object.keys(this.nomadImageDownloadCallbacks)) {
-                delete this.nomadImageDownloadCallbacks[id];
+            for (const key of Object.keys(this.nomadImageDownloadCallbacks)) {
+                const context = this.nomadImageDownloadCallbacks[key];
+                if (context && context.downloadId != null) {
+                    WebSocketConnection.send(
+                        JSON.stringify({
+                            type: "nomadnet.download.cancel",
+                            download_id: context.downloadId,
+                            request_id: context.requestId,
+                        })
+                    );
+                }
+                delete this.nomadImageDownloadCallbacks[key];
             }
         },
-        resolveNomadImageDestination(imageUrl) {
-            const parsed = this.parseNomadnetworkUrl(imageUrl || "");
-            const destinationHash = parsed?.destination_hash || this.selectedNode?.destination_hash || "";
-            const filePath = parsed?.path || "";
+        resolveNomadImageDestination(imageUrl, imagePath) {
+            const raw = (imagePath || imageUrl || "").trim();
+            const parsed = this.parseNomadnetworkUrl(raw);
+            const destinationHash = (parsed?.destination_hash || this.selectedNode?.destination_hash || "").toLowerCase();
+            const filePath = (parsed?.path || "").trim();
+            if (!/^[a-f0-9]{32}$/.test(destinationHash)) {
+                return { destinationHash: "", filePath: "" };
+            }
+            if (!filePath.startsWith("file/") || !/\.webp$/i.test(filePath)) {
+                return { destinationHash: "", filePath: "" };
+            }
+            // Reject obvious traversal or dangerous characters.
+            if (filePath.includes("..") || /[<>"|?*\x00-\x1f]/.test(filePath)) {
+                return { destinationHash: "", filePath: "" };
+            }
             return { destinationHash, filePath };
         },
         getNomadImageCacheKey(destinationHash, filePath) {
             return `${destinationHash || ""}:${filePath || ""}`;
+        },
+        setNomadImageCacheEntry(cacheKey, value) {
+            if (this.isPrivate || !cacheKey) {
+                return;
+            }
+            // Simple LRU: if over 64 entries, delete the oldest.
+            const maxEntries = 64;
+            if (this.nomadImageCache.size >= maxEntries && !this.nomadImageCache.has(cacheKey)) {
+                const firstKey = this.nomadImageCache.keys().next().value;
+                this.nomadImageCache.delete(firstKey);
+            }
+            this.nomadImageCache.set(cacheKey, value);
+        },
+        clearNomadImageState() {
+            this.cancelStaleImageDownloads();
+            this.nomadImageCache.clear();
+            this.crashTabImages = [];
         },
         getNomadImageDataUrl(fileBytes) {
             if (!fileBytes) {
@@ -2767,7 +2799,7 @@ export default {
         scheduleImageLoads() {
             for (let i = 0; i < this.crashTabImages.length; i++) {
                 const image = this.crashTabImages[i];
-                const { destinationHash } = this.resolveNomadImageDestination(image.url);
+                const { destinationHash } = this.resolveNomadImageDestination(image.url, image.path);
                 const policy = this.getNomadImagePolicy(destinationHash);
                 if (policy === "auto" || policy === "always") {
                     this.loadNomadImage(image, i);
@@ -2782,10 +2814,10 @@ export default {
             }
         },
         loadNomadImage(image, index) {
-            if (!image || !image.url) {
+            if (!image || (!image.url && !image.path)) {
                 return;
             }
-            const { destinationHash, filePath } = this.resolveNomadImageDestination(image.url);
+            const { destinationHash, filePath } = this.resolveNomadImageDestination(image.url, image.path);
             if (!destinationHash || !filePath) {
                 this.setCrashTabImage(index, "error", { reason: this.$t("nomadnet.image_invalid_url") });
                 return;
@@ -2801,22 +2833,49 @@ export default {
                 return;
             }
             this.setCrashTabImage(index, "loading");
-            const data = { image_id: index };
+            const requestId = this.generateNomadImageRequestId();
+            const data = {
+                image_id: index,
+                request_id: requestId,
+                page_path: this.nodePagePath || "",
+            };
             if (image.profile) {
                 data.image_profile = image.profile;
             }
-            const imageId = index;
-            const onSuccess = (fileName, fileBytes) => this.onNomadImageDownloadSuccess(imageId, fileName, fileBytes);
-            const onFailure = (reason) => this.onNomadImageDownloadFailure(imageId, reason);
-            const onProgress = (progress) => this.onNomadImageDownloadProgress(imageId, progress);
-            this.nomadImageDownloadCallbacks[imageId] = {
-                onSuccessCallback: onSuccess,
-                onFailureCallback: onFailure,
-                onProgressCallback: onProgress,
+            const context = {
+                destinationHash,
+                filePath,
+                requestId,
+                downloadId: null,
+                onSuccessCallback: (fileName, fileBytes) => this.onNomadImageDownloadSuccess(index, fileName, fileBytes),
+                onFailureCallback: (reason) => this.onNomadImageDownloadFailure(index, reason),
+                onProgressCallback: (progress) => this.onNomadImageDownloadProgress(index, progress),
             };
-            this.downloadNomadNetFile(destinationHash, filePath, data, onSuccess, onFailure, onProgress);
-            const fileCallbackKey = this.getNomadnetFileDownloadCallbackKey(destinationHash, filePath);
-            delete this.nomadnetFileDownloadCallbacks[fileCallbackKey];
+            this.nomadImageDownloadCallbacks[index] = context;
+            this.downloadNomadNetFile(destinationHash, filePath, data, context.onSuccessCallback, context.onFailureCallback, context.onProgressCallback);
+        },
+        generateNomadImageRequestId() {
+            return `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+        },
+        ownsNomadImageDownloadEvent(eventData, index) {
+            const context = this.nomadImageDownloadCallbacks[index];
+            if (!context) {
+                return false;
+            }
+            const eventRequestId = eventData.request_id ?? eventData.data?.request_id;
+            if (eventRequestId != null && String(eventRequestId) !== String(context.requestId)) {
+                return false;
+            }
+            if (eventData.download_id != null && context.downloadId != null && Number(eventData.download_id) !== Number(context.downloadId)) {
+                return false;
+            }
+            if (eventData.destination_hash && eventData.destination_hash !== context.destinationHash) {
+                return false;
+            }
+            if (eventData.file_path && eventData.file_path !== context.filePath) {
+                return false;
+            }
+            return true;
         },
         onNomadImageDownloadSuccess(imageId, fileName, fileBytes) {
             const entry = this.nomadImageDownloadCallbacks[imageId];
@@ -2828,11 +2887,13 @@ export default {
             if (!image) {
                 return;
             }
-            const { destinationHash, filePath } = this.resolveNomadImageDestination(image.url);
+            const { destinationHash, filePath } = entry;
             const cacheKey = this.getNomadImageCacheKey(destinationHash, filePath);
             const dataUrl = this.getNomadImageDataUrl(fileBytes);
             const actualSize = Utils.formatBytes(fileBytes ? Math.ceil(fileBytes.length * 0.75) : 0);
-            this.nomadImageCache.set(cacheKey, { dataUrl, size: actualSize });
+            if (!this.isPrivate) {
+                this.setNomadImageCacheEntry(cacheKey, { dataUrl, size: actualSize });
+            }
             this.setCrashTabImage(imageId, "loaded", { dataUrl, actualSize });
         },
         onNomadImageDownloadFailure(imageId, reason) {
@@ -3728,6 +3789,9 @@ export default {
                 };
                 if (data != null) {
                     payload.nomadnet_file_download.data = data;
+                    if (data.request_id) {
+                        payload.request_id = data.request_id;
+                    }
                 }
                 WebSocketConnection.send(JSON.stringify(payload));
             } catch (e) {

@@ -706,6 +706,7 @@ async def handle_nomadnet_file_download(app, client, data):
                     "status": "started",
                     "destination_hash": destination_hash.hex(),
                     "file_path": file_path,
+                    **({"data": request_data} if request_data is not None else {}),
                 },
             },
         ),

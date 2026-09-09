@@ -9,6 +9,45 @@ const MICRON_IMAGE_FORMATTED_SIZE = new Intl.NumberFormat(undefined, {
     maximumFractionDigits: 1,
 });
 
+const MICRON_IMAGE_MAX_WIDTH = 8192;
+const MICRON_IMAGE_MAX_HEIGHT = 8192;
+const MICRON_IMAGE_MAX_SIZE_HINT = 100 * 1024 * 1024; // 100 MiB
+const MICRON_IMAGE_MAX_ALT_LEN = 240;
+const MICRON_IMAGE_MAX_KEY_LEN = 64;
+const MICRON_IMAGE_MAX_PROFILE_LEN = 32;
+const MICRON_IMAGE_KEY_REGEXP = /^[a-zA-Z0-9_.-]*$/;
+const MICRON_IMAGE_PROFILE_REGEXP = /^[a-zA-Z0-9_-]*$/;
+
+function clampMicronImageNumber(value, max) {
+    const n = Number(value);
+    if (Number.isNaN(n)) {
+        return null;
+    }
+    if (!Number.isFinite(n) || n <= 0) {
+        return null;
+    }
+    return Math.min(Math.floor(n), max);
+}
+
+function sanitizeMicronImageString(value, maxLen, pattern = null) {
+    if (typeof value !== "string") {
+        return "";
+    }
+    const trimmed = value.trim();
+    const limited = [...trimmed].slice(0, maxLen).join("");
+    if (pattern && !pattern.test(limited)) {
+        return "";
+    }
+    return limited;
+}
+
+function truncateMicronImageAlt(value) {
+    if (typeof value !== "string") {
+        return "";
+    }
+    return [...value.trim()].slice(0, MICRON_IMAGE_MAX_ALT_LEN).join("");
+}
+
 function parseMicronImageOptions(fields) {
     const options = {
         img: false,
@@ -37,22 +76,13 @@ function parseMicronImageOptions(fields) {
             if (k === "img") {
                 options.img = ["1", "true", "yes"].includes(v.toLowerCase());
             } else if (k === "w") {
-                const n = parseInt(v, 10);
-                if (!isNaN(n) && n > 0) {
-                    options.w = n;
-                }
+                options.w = clampMicronImageNumber(v, MICRON_IMAGE_MAX_WIDTH);
             } else if (k === "h") {
-                const n = parseInt(v, 10);
-                if (!isNaN(n) && n > 0) {
-                    options.h = n;
-                }
+                options.h = clampMicronImageNumber(v, MICRON_IMAGE_MAX_HEIGHT);
             } else if (k === "s") {
-                const n = parseInt(v, 10);
-                if (!isNaN(n) && n > 0) {
-                    options.size = n;
-                }
+                options.size = clampMicronImageNumber(v, MICRON_IMAGE_MAX_SIZE_HINT);
             } else if (k === "k") {
-                options.key = v;
+                options.key = sanitizeMicronImageString(v, MICRON_IMAGE_MAX_KEY_LEN, MICRON_IMAGE_KEY_REGEXP);
             } else if (k === "a") {
                 const av = v.toLowerCase();
                 if (["left", "l"].includes(av)) {
@@ -63,7 +93,11 @@ function parseMicronImageOptions(fields) {
                     options.align = "right";
                 }
             } else if (k === "profile") {
-                options.profile = v;
+                options.profile = sanitizeMicronImageString(
+                    v,
+                    MICRON_IMAGE_MAX_PROFILE_LEN,
+                    MICRON_IMAGE_PROFILE_REGEXP,
+                );
             }
         }
     }
@@ -713,6 +747,43 @@ export default class MicronParser extends BaseMicronParser {
         return parseMicronImageOptions(fields);
     }
 
+    static extractMicronImageFilePath(rawUrl) {
+        // Strip the Nomad data-suffix backtick, query string or fragment before
+        // checking the extension. Image links must point into the node file tree.
+        if (typeof rawUrl !== "string" || !rawUrl) {
+            return null;
+        }
+        let url = rawUrl.replace(/^nomadnetwork:\/\//i, "");
+        url = url.split("`")[0].split("?")[0].split("#")[0].trim();
+        // Accept "hash:/file/..." and relative ":/file/..." URLs.
+        let path = url;
+        let hash = "";
+        if (url.includes(":/")) {
+            const parts = url.split(":/");
+            hash = parts[0];
+            path = parts.slice(1).join(":/");
+            if (hash && !/^[a-f0-9]{32}$/i.test(hash)) {
+                return null;
+            }
+        } else if (url.startsWith(":")) {
+            path = url.slice(1);
+        }
+        if (!path.startsWith("file/")) {
+            return null;
+        }
+        if (!/\.webp$/i.test(path)) {
+            return null;
+        }
+        // Reject anything that looks like traversal.
+        if (path.includes("..") || /[<>"|?*\x00-\x1f]/.test(path)) {
+            return null;
+        }
+        if (hash) {
+            return `${hash}:/${path}`;
+        }
+        return `:/${path}`;
+    }
+
     parseLink(line, startIndex, state) {
         const linkData = super.parseLink(line, startIndex, state);
         if (!linkData || !linkData.obj) {
@@ -723,7 +794,7 @@ export default class MicronParser extends BaseMicronParser {
             const imgOptions = parseMicronImageOptions(obj.fields);
             if (imgOptions.img) {
                 const rawUrl = String(obj.url || "").replace(/^nomadnetwork:\/\//, "");
-                const isWebP = rawUrl.toLowerCase().endsWith(".webp");
+                const imagePath = MicronParser.extractMicronImageFilePath(rawUrl);
                 const endpos = line.indexOf("]", startIndex);
                 let originalAlt = "";
                 if (endpos >= 0) {
@@ -733,10 +804,11 @@ export default class MicronParser extends BaseMicronParser {
                         originalAlt = linkComponents[0];
                     }
                 }
-                if (originalAlt.trim() && isWebP) {
+                if (originalAlt.trim() && imagePath) {
                     obj.type = "image";
-                    obj.alt = originalAlt.trim();
+                    obj.alt = truncateMicronImageAlt(originalAlt.trim());
                     obj.rawUrl = rawUrl;
+                    obj.imagePath = imagePath;
                     obj.imageOptions = imgOptions;
                 }
             }
@@ -774,12 +846,14 @@ export default class MicronParser extends BaseMicronParser {
             return null;
         }
         const opts = p.imageOptions || {};
-        const alt = p.alt || "";
+        const alt = truncateMicronImageAlt(p.alt || "");
         const url = p.rawUrl || "";
+        const imagePath = p.imagePath || url;
 
         const div = document.createElement("div");
         div.className = "mu-image";
         div.setAttribute("data-mu-image-url", url);
+        div.setAttribute("data-mu-image-path", imagePath);
         div.setAttribute("data-mu-image-alt", alt);
         if (opts.w != null) {
             div.setAttribute("data-mu-image-w", String(opts.w));
