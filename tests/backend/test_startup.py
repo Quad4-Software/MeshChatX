@@ -107,7 +107,6 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
     ):
         mock_db_instance = mock_db_class.return_value
@@ -125,11 +124,9 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         mock_config_instance.lxmf_local_propagation_node_enabled.get.return_value = (
             False
         )
-        mock_config_instance.libretranslate_url.get.return_value = (
-            "http://localhost:5000"
-        )
-        mock_config_instance.translator_argos_enabled.get.return_value = False
-        mock_config_instance.translator_libretranslate_enabled.get.return_value = False
+        mock_config_instance.translation_enabled.get.return_value = False
+        mock_config_instance.translation_default_source_lang.get.return_value = "auto"
+        mock_config_instance.translation_default_target_lang.get.return_value = None
 
         app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
@@ -183,7 +180,6 @@ def test_reticulum_meshchat_init_with_auth(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
     ):
         mock_config_instance = mock_config_class.return_value
@@ -217,7 +213,6 @@ def test_reticulum_meshchat_init_database_failure_recovery(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch.object(ReticulumMeshChat, "_run_startup_auto_recovery") as mock_recovery,
     ):

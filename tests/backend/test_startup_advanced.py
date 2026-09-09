@@ -100,7 +100,6 @@ def test_run_https_logic(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
     ):
         mock_config = mock_config_class.return_value
@@ -114,9 +113,9 @@ def test_run_https_logic(mock_rns, temp_dir):
         mock_config.lxmf_inbound_stamp_cost.get.return_value = 0
         mock_config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
         mock_config.lxmf_local_propagation_node_enabled.get.return_value = False
-        mock_config.libretranslate_url.get.return_value = "http://localhost:5000"
-        mock_config.translator_argos_enabled.get.return_value = False
-        mock_config.translator_libretranslate_enabled.get.return_value = False
+        mock_config.translation_enabled.get.return_value = False
+        mock_config.translation_default_source_lang.get.return_value = "auto"
+        mock_config.translation_default_target_lang.get.return_value = None
 
         app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
@@ -160,7 +159,6 @@ def test_database_integrity_recovery(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
             "meshchatx.src.backend.identity_context.IntegrityManager",
@@ -265,7 +263,6 @@ def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
             "meshchatx.src.backend.identity_context.IntegrityManager",
@@ -287,9 +284,9 @@ def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
         mock_config.lxmf_inbound_stamp_cost.get.return_value = 0
         mock_config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
         mock_config.lxmf_local_propagation_node_enabled.get.return_value = False
-        mock_config.libretranslate_url.get.return_value = "http://localhost:5000"
-        mock_config.translator_argos_enabled.get.return_value = False
-        mock_config.translator_libretranslate_enabled.get.return_value = False
+        mock_config.translation_enabled.get.return_value = False
+        mock_config.translation_default_source_lang.get.return_value = "auto"
+        mock_config.translation_default_target_lang.get.return_value = None
 
         app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],

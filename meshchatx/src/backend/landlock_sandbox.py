@@ -434,11 +434,6 @@ def _collect_rw_roots(
             paths.append(existing)
     if os.path.isdir("/dev"):
         paths.append("/dev")
-    argos_share = _existing_dir(
-        os.path.join(os.path.expanduser("~"), ".local", "share", "argos-translate"),
-    )
-    if argos_share and argos_share not in paths:
-        paths.append(argos_share)
     return paths
 
 

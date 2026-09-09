@@ -133,7 +133,7 @@ from tests.backend.http_api_response_schemas import (
     TELEPHONE_HISTORY_SCHEMA,
     TELEPHONE_RECORDINGS_SCHEMA,
     TELEPHONE_STATUS_SCHEMA,
-    TRANSLATOR_LANGUAGES_SCHEMA,
+    TRANSLATION_PACKS_SCHEMA,
 )
 
 _HEX32 = "a" * 32
@@ -622,8 +622,8 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/spam-keywords", SPAM_KEYWORDS_SCHEMA),
     HttpJsonContract(
         "GET",
-        "/api/v1/translator/languages",
-        TRANSLATOR_LANGUAGES_SCHEMA,
+        "/api/v1/translation/packs",
+        TRANSLATION_PACKS_SCHEMA,
     ),
     HttpJsonContract("GET", "/api/v1/telephone/status", TELEPHONE_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/telephone/history", TELEPHONE_HISTORY_SCHEMA),

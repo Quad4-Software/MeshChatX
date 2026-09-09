@@ -44,7 +44,6 @@ from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 from meshchatx.src.backend.rnx_manager import RNXManager
 from meshchatx.src.backend.rrc import RRCManager, RRCServerManager
 from meshchatx.src.backend.telephone_manager import TelephoneManager
-from meshchatx.src.backend.translator_handler import TranslatorHandler
 from meshchatx.src.backend.voicemail_manager import VoicemailManager
 
 
@@ -110,7 +109,6 @@ class IdentityContext:
         self.rnpath_handler = None
         self.rnpath_trace_handler = None
         self.rnprobe_handler = None
-        self.translator_handler = None
         self.bot_handler = None
         self.rrc_manager = None
         self.rrc_server_manager = None
@@ -446,7 +444,6 @@ class IdentityContext:
         self.rnpath_handler = None
         self.rnpath_trace_handler = None
         self.rnprobe_handler = None
-        self.translator_handler = None
         self.bot_handler = None
         self.rrc_manager = None
         self.rrc_server_manager = None
@@ -647,17 +644,6 @@ class IdentityContext:
                 identity=self.identity,
             )
             if not self._set_if_running("rnprobe_handler", probe):
-                return
-
-            libretranslate_url = self.config.libretranslate_url.get()
-            libretranslate_api_key = self.config.libretranslate_api_key.get()
-            translator = TranslatorHandler(
-                libretranslate_url=libretranslate_url,
-                libretranslate_api_key=libretranslate_api_key,
-                translator_argos_enabled=self.config.translator_argos_enabled.get(),
-                translator_libretranslate_enabled=self.config.translator_libretranslate_enabled.get(),
-            )
-            if not self._set_if_running("translator_handler", translator):
                 return
 
             bots = BotHandler(
@@ -1141,7 +1127,6 @@ class IdentityContext:
 
         self.ringtone_manager = None
         self.notification_sound_manager = None
-        self.translator_handler = None
         self.community_interfaces_manager = None
 
         if self.database:

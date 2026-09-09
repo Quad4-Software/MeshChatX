@@ -234,9 +234,7 @@ def mock_app(db, tmp_path, temp_db):
         stack.enter_context(
             patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        )
+
         stack.enter_context(
             patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         )
