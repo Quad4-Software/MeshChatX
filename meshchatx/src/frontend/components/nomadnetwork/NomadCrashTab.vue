@@ -109,6 +109,8 @@ export default {
     emits: [
         "navigate",
         "partials",
+        "images",
+        "image-action",
         "view-source",
         "ready",
         "hung",
@@ -546,6 +548,7 @@ export default {
                 this.lastPongAt = Date.now();
                 this.$emit("render-done");
                 this.$emit("partials", Array.isArray(data.partials) ? data.partials : []);
+                this.$emit("images", Array.isArray(data.images) ? data.images : []);
                 return;
             }
             if (data.type === "render-error") {
@@ -583,6 +586,23 @@ export default {
                     metaKey: data.metaKey,
                 });
             }
+            if (data.type === "image-action") {
+                this.$emit("image-action", {
+                    action: data.action,
+                    index: data.index,
+                    url: data.url,
+                    alt: data.alt,
+                    w: data.w,
+                    h: data.h,
+                    size: data.size,
+                    key: data.key,
+                    align: data.align,
+                    profile: data.profile,
+                });
+            }
+        },
+        setImage(index, state, payload = {}) {
+            this.postToFrame({ type: "set-image", index, state, ...payload });
         },
         pingNow() {
             if (!this.active || !this.frameReady) {
