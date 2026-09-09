@@ -2,28 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.8.8] - 2026-09-09 [released]
+
+### Fixed
+
+- Fixed LXMF inbound attachment rejection. The delivery resource policy no longer treats the local `lxmf.delivery` identity as the sender, so large messages transfer before the backchannel identifies the remote peer. Closes #94.
+
 ## [4.8.7] - 2026-09-09 [released]
 
 ### Security
 
-- **Electron shell**: only `loading.html` and `crash.html` in the Electron module directory are trusted as shell pages; remote file hosts and arbitrary local paths are rejected.
-- **Android navigation**: external browsers receive only `http`, `https`, and `mailto` URLs; `javascript:`, `data:`, `file:`, and `intent:` stay inside the WebView.
-- **Map export**: bbox is validated as four finite floats, zoom is capped, and tile counts stop early above the cap to avoid event-loop stalls.
-- **Plugins and Sideband**: plugin endpoint host extraction uses `urlparse` instead of regex so loopback decoys do not bypass host checks; plugin and Sideband loads guard against missing or failing APIs.
-- **Identity switch fallback**: symlink sources and non-following copy behavior prevent copying a symlink target into the active identity slot.
-- **Documentation ZIP**: symlink ZIP members are skipped and copy helpers reject symlink sources.
-- **Local file exposure**: database restore errors no longer reflect the server path; MBTiles filenames reject non-strings and NUL bytes; database statement type validation rejects terminators and comments.
+- Hardened Electron shell, Android navigation, map export, plugin endpoint host checks, identity switch copy, docs ZIP extraction, and local file handling.
 
 ### Fixed
 
-- **Identity teardown**: hotswap, RNS reload, and database restore move the blocking `IdentityContext.teardown()` work off the async event loop so the web UI is not frozen for up to 30 seconds.
-- **Maintenance**: `DELETE /api/v1/maintenance/messages` and `POST /api/v1/maintenance/messages/export` no longer block the event loop on large SQLite operations.
-- **WebSocket state sync**: coalesced `announce` and `lxmf.telemetry` events are keyed by peer identity so one peer's update does not drop another's; per-client send locks preserve broadcast seq ordering; stale live-sync cursors from a server restart trigger resync instead of staying stuck.
-- **LXMF delivery state**: a terminal state (`delivered`, `rejected`, `cancelled`, `failed`) can no longer be overwritten by an in-flight `sent`/`sending` update from a stale poll; the conversation failed-message count now tracks per-message state.
-- **Active conversations and identity switch**: open destination hashes are cleared when the identity switches, preventing notifications for the wrong peers.
-- **WebSocket handlers**: a throwing handler no longer prevents the remaining handlers for that event from running.
-- **Nomad downloads**: callback threads no longer race the cancel handler on `active_downloads`.
-- **Map export**: progress/cancel state is locked between the export thread and the event loop.
+- Moved blocking identity teardown and maintenance DB work off the async event loop.
+- Fixed WebSocket coalescing, broadcast ordering, stale cursor recovery, delivery state regression, conversation failed count, active-conversation reset, handler isolation, nomad download race, and map export locking.
 
 ## [4.8.6] - 2026-09-06 [released]
 
