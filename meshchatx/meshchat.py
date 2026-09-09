@@ -6602,6 +6602,12 @@ class ReticulumMeshChat:
                     ):
                         self.config.nomad_default_page_path.set(s)
 
+        if "nomad_image_loading_policy" in data:
+            raw = str(data["nomad_image_loading_policy"] or "").strip().lower()
+            allowed = ("never", "manual", "auto", "always")
+            if raw in allowed:
+                self.config.nomad_image_loading_policy.set(raw)
+
         if "local_message_auto_delete_enabled" in data:
             self.config.local_message_auto_delete_enabled.set(
                 self._parse_bool(data["local_message_auto_delete_enabled"]),
@@ -7944,6 +7950,7 @@ class ReticulumMeshChat:
             "nomad_micron_default_engine": ctx.config.nomad_micron_default_engine.get()
             or "js",
             "nomad_default_page_path": ctx.config.nomad_default_page_path.get(),
+            "nomad_image_loading_policy": ctx.config.nomad_image_loading_policy.get() or "manual",
             "local_message_auto_delete_enabled": ctx.config.local_message_auto_delete_enabled.get(),
             "local_message_auto_delete_value": ctx.config.local_message_auto_delete_value.get(),
             "local_message_auto_delete_unit": ctx.config.local_message_auto_delete_unit.get()
