@@ -19,7 +19,9 @@ from meshchatx.src.backend import self_check_probe as _self_check_probe  # noqa:
 _CRITICAL_IMPORTS = (
     "email.header",
     "RNS",
+    "RNS.vendor.umsgpack",
     "LXMF",
+    "LXST",
     "lxmfy",
     "rns_filesync",
     "aiohttp",
@@ -27,6 +29,7 @@ _CRITICAL_IMPORTS = (
     "cbor2",
     "bleak",
     "websockets",
+    "miniaudio",
     "psutil",
 )
 
@@ -40,13 +43,18 @@ SELF_CHECK_LABELS = {
     "read_write_good": "Storage Read/Write     ",
     "identity_good": "Identity Loaded        ",
     "imports_good": "Critical Imports       ",
+    "umsgpack_roundtrip": "Umsgpack Roundtrip     ",
     "storage_lock_good": "Storage Lock           ",
     "temp_fs_good": "Temp Filesystem        ",
     "fs_sandbox_good": "FS Sandbox Modules     ",
     "public_assets_good": "Public Assets          ",
     "lxmf_router_good": "LXMF Router            ",
+    "lxst_telephony": "LXST Telephony         ",
     "subprocess_good": "Subprocess Spawn       ",
     "run_module_good": "MeshChatX Run-Module   ",
+    "audio_codec_roundtrip": "Audio Codec Roundtrip  ",
+    "miniaudio_decode": "Miniaudio Decode       ",
+    "translation_pack_import": "Translation Pack Import",
     "sqlite_roundtrip": "SQLite Roundtrip       ",
     "identity_roundtrip": "Identity File Roundtrip",
     "loopback_tcp": "Loopback TCP Bind      ",
@@ -694,6 +702,234 @@ def check_bot_launcher() -> dict[str, str]:
         return _status(True)
     except Exception as exc:
         return _status(False, f"Bot launcher check failed: {exc}")
+
+
+def check_umsgpack_roundtrip() -> dict[str, str]:
+    """Verify RNS.vendor.umsgpack pack/unpack roundtrip used by LXMF/RNS ratchet."""
+    try:
+        from RNS.vendor import umsgpack as msgpack
+    except Exception as exc:
+        return _status(False, f"RNS.vendor.umsgpack import failed: {exc}")
+
+    payload = {
+        "bytes": b"\x00\x01\x02\xff",
+        "text": "meshchatx-umsgpack-ok",
+        "number": 42,
+        "flag": True,
+        "empty": None,
+        "list": [1, 2, "three"],
+    }
+    try:
+        packed = msgpack.packb(payload)
+        unpacked = msgpack.unpackb(packed)
+    except Exception as exc:
+        return _status(False, f"umsgpack roundtrip failed: {exc}")
+
+    if unpacked != payload:
+        return _status(False, f"umsgpack roundtrip mismatch: {unpacked!r}")
+    return _status(True)
+
+
+def _lxst_filterlib_path() -> Any:
+    """Return the expected LXST filterlib native artifact path if it exists."""
+    import importlib.util
+    import sysconfig
+    from pathlib import Path
+
+    spec = importlib.util.find_spec("LXST")
+    if spec is None or not spec.submodule_search_locations:
+        return None
+    root = Path(next(iter(spec.submodule_search_locations)))
+    ext = sysconfig.get_config_var("EXT_SUFFIX") or ""
+    if sys.platform == "win32" and (root / "filterlib.dll").is_file():
+        return root / "filterlib.dll"
+    if ext:
+        candidate = root / f"filterlib{ext}"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def check_lxst_telephony() -> dict[str, str]:
+    """Verify LXST, Telephone, Profiles, filterlib, and Codec2 load without crashing."""
+    from meshchatx.src.backend.lxst_pyogg_ctypes_compat import (
+        ensure_lxst_pyogg_ctypes_compat,
+    )
+
+    ensure_lxst_pyogg_ctypes_compat()
+
+    try:
+        filterlib_path = _lxst_filterlib_path()
+        if filterlib_path is None:
+            return _status(False, "LXST filterlib native artifact is missing")
+
+        import LXST
+        from LXST import Telephone
+
+        if not callable(Telephone):
+            return _status(False, "LXST.Telephone is not a callable class")
+
+        from LXST.Primitives.Telephony import Profiles
+
+        profiles = Profiles.available_profiles()
+        modes = Profiles.available_modes()
+        if not profiles:
+            return _status(False, "Profiles.available_profiles() returned empty")
+        if not modes:
+            return _status(False, "Profiles.available_modes() returned empty")
+
+        if not getattr(LXST.Filters, "USE_NATIVE_FILTERS", False):
+            return _status(
+                False,
+                "LXST filterlib native did not load (USE_NATIVE_FILTERS is False)",
+            )
+
+        from LXST.Codecs import Codec2
+
+        if Codec2 is None:
+            return _status(
+                True,
+                "LXST Codec2 is not installed; telephony will use Opus profiles",
+            )
+
+        try:
+            codec2 = Codec2(mode=Codec2.CODEC2_1600)
+        except Exception as exc:
+            return _status(False, f"LXST Codec2 construction failed: {exc}")
+
+        try:
+            import numpy as np
+
+            spf = codec2.c2.samples_per_frame()
+            pcm = (0.1 * np.sin(np.linspace(0, 8 * np.pi, spf))).astype(np.float32)
+            pcm_i16 = (pcm * 32767.0).astype(np.int16)
+            encoded = codec2.c2.encode(pcm_i16)
+            if len(encoded) != codec2.c2.bytes_per_frame():
+                return _status(
+                    False,
+                    f"LXST Codec2 encode size mismatch: {len(encoded)} bytes",
+                )
+            decoded = codec2.c2.decode(encoded)
+            if len(decoded) != spf:
+                return _status(
+                    False,
+                    f"LXST Codec2 decode size mismatch: {len(decoded)} samples",
+                )
+        except Exception as exc:
+            return _status(False, f"LXST Codec2 encode/decode failed: {exc}")
+
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"LXST telephony check failed: {exc}")
+
+
+def _sine_wav_bytes(duration: float = 0.1, samplerate: int = 48000) -> bytes:
+    """Return a tiny mono WAV with a 440 Hz sine tone."""
+    import io
+    import math
+    import struct
+    import wave
+
+    n = max(1, int(samplerate * duration))
+    with io.BytesIO() as out:
+        with wave.open(out, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(samplerate)
+            samples = (
+                int(32767 * math.sin(2 * math.pi * 440 * i / samplerate))
+                for i in range(n)
+            )
+            wf.writeframes(struct.pack(f"<{n}h", *samples))
+        return out.getvalue()
+
+
+def check_miniaudio_decode() -> dict[str, str]:
+    """Verify miniaudio can import and decode a WAV without crashing."""
+    try:
+        import miniaudio
+    except Exception as exc:
+        return _status(False, f"miniaudio import failed: {exc}")
+
+    try:
+        decoded = miniaudio.decode(
+            _sine_wav_bytes(),
+            output_format=miniaudio.SampleFormat.SIGNED16,
+        )
+    except Exception as exc:
+        return _status(False, f"miniaudio decode failed: {exc}")
+
+    if not decoded or decoded.num_frames <= 0 or decoded.nchannels <= 0:
+        return _status(False, "miniaudio decode returned empty frames")
+    return _status(True)
+
+
+def check_audio_codec_roundtrip() -> dict[str, str]:
+    """Verify audio_codec can write and read an OGG/Opus file.
+
+    This exercises pyogg/libopus/libogg plus miniaudio/LXST fallback decoders.
+    """
+    import tempfile
+
+    from meshchatx.src.backend import audio_codec
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            out_path = os.path.join(tmp, "silence.opus")
+            audio_codec.write_silence_ogg_opus(
+                out_path,
+                seconds=0.1,
+                samplerate=48000,
+                channels=1,
+            )
+            decoded = audio_codec.decode_audio(out_path)
+    except Exception as exc:
+        return _status(False, f"audio codec roundtrip failed: {exc}")
+
+    if decoded is None or decoded.samples.shape[0] == 0:
+        return _status(False, "audio codec decode returned empty frames")
+    if decoded.samplerate != 48000 or decoded.channels != 1:
+        return _status(
+            False,
+            f"audio codec decode mismatch: {decoded.samplerate} Hz, "
+            f"{decoded.channels} channels",
+        )
+    return _status(True)
+
+
+def check_translation_pack_import() -> dict[str, str]:
+    """Verify TranslationPackManager can extract and register a minimal pack archive."""
+    import tempfile
+    import zipfile
+
+    from meshchatx.src.backend.translation_pack_manager import (
+        TranslationPackManager,
+    )
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            storage = os.path.join(tmp, "storage")
+            manager = TranslationPackManager(storage)
+            archive = os.path.join(tmp, "test.zip")
+            with zipfile.ZipFile(archive, "w") as zf:
+                zf.writestr("enes/model.enes", b"model")
+                zf.writestr("enes/lex.enes.enes", b"lex")
+                zf.writestr("enes/vocab.enes.enes", b"vocab")
+            pairs = manager.import_archive(archive)
+            if pairs != ["enes"]:
+                return _status(
+                    False,
+                    f"unexpected imported pairs: {pairs!r}",
+                )
+            installed = manager.list_installed()
+            if not installed or installed[0].get("pair") != "enes":
+                return _status(
+                    False,
+                    f"translation pack not listed: {installed!r}",
+                )
+    except Exception as exc:
+        return _status(False, f"translation pack import failed: {exc}")
+    return _status(True)
 
 
 def _ensure_app_session_secret(app: Any) -> None:
