@@ -654,6 +654,40 @@ def create_process_in_appcontainer(
     Returns (hProcess, hThread, pid). Caller must CloseHandle both handles.
     """
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    # Pin argument/return types so x64 pointer-sized arguments are not
+    # truncated or sign-widened by default ctypes conversion.
+    kernel32.InitializeProcThreadAttributeList.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_ulong,
+        ctypes.c_ulong,
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    kernel32.InitializeProcThreadAttributeList.restype = ctypes.c_bool
+    kernel32.UpdateProcThreadAttribute.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_ulong,
+        ctypes.c_size_t,
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    kernel32.UpdateProcThreadAttribute.restype = ctypes.c_bool
+    kernel32.DeleteProcThreadAttributeList.argtypes = [ctypes.c_void_p]
+    kernel32.DeleteProcThreadAttributeList.restype = None
+    kernel32.CreateProcessW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_wchar_p,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.c_bool,
+        ctypes.c_ulong,
+        ctypes.c_void_p,
+        ctypes.c_wchar_p,
+        ctypes.POINTER(_STARTUPINFOEX),
+        ctypes.POINTER(_PROCESS_INFORMATION),
+    ]
+    kernel32.CreateProcessW.restype = ctypes.c_bool
     sid = ensure_appcontainer_profile()
 
     capability_types = (
@@ -693,7 +727,11 @@ def create_process_in_appcontainer(
             ctypes.get_last_error(),
             "InitializeProcThreadAttributeList size failed",
         )
-    attr_buf = (ctypes.c_ubyte * size.value)()
+    # ProcThreadAttributeList must be at least pointer-aligned (8 bytes on x64).
+    aligned_slots = (size.value + ctypes.sizeof(ctypes.c_void_p) - 1) // ctypes.sizeof(
+        ctypes.c_void_p,
+    )
+    attr_buf = (ctypes.c_void_p * aligned_slots)()
     attr_list = ctypes.cast(attr_buf, ctypes.c_void_p)
     if not kernel32.InitializeProcThreadAttributeList(
         attr_list,
