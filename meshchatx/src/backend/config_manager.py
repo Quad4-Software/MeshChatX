@@ -696,6 +696,11 @@ class ConfigManager:
             "nomad_default_page_path",
             "/page/index.mu",
         )
+        self.nomad_image_loading_policy = self.StringConfig(
+            self,
+            "nomad_image_loading_policy",
+            "manual",
+        )
         self.default_bootstrap_only = self.BoolConfig(
             self,
             "default_bootstrap_only",

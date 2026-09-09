@@ -892,6 +892,32 @@
                                         Smart Crawler homepage fetch.
                                     </div>
                                 </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-sem-fg">
+                                        {{ $t("settings.nomad_image_loading_policy_title") }}
+                                    </div>
+                                    <select
+                                        v-model="config.nomad_image_loading_policy"
+                                        class="input-field max-w-xl"
+                                        @change="onNomadImageLoadingPolicyChange"
+                                    >
+                                        <option value="never">
+                                            {{ $t("settings.nomad_image_loading_policy_never") }}
+                                        </option>
+                                        <option value="manual">
+                                            {{ $t("settings.nomad_image_loading_policy_manual") }}
+                                        </option>
+                                        <option value="auto">
+                                            {{ $t("settings.nomad_image_loading_policy_auto") }}
+                                        </option>
+                                        <option value="always">
+                                            {{ $t("settings.nomad_image_loading_policy_always") }}
+                                        </option>
+                                    </select>
+                                    <div class="text-xs text-sem-fg-muted">
+                                        {{ $t("settings.nomad_image_loading_policy_desc") }}
+                                    </div>
+                                </div>
                             </div>
                         </section>
 
@@ -5026,6 +5052,21 @@ export default {
             await this.updateConfig(
                 {
                     nomad_default_page_path: this.config.nomad_default_page_path,
+                },
+                null
+            );
+        },
+        async onNomadImageLoadingPolicyChange() {
+            if (!this.config) {
+                return;
+            }
+            const policy = String(this.config.nomad_image_loading_policy || "manual");
+            const allowed = ["never", "manual", "auto", "always"];
+            const safePolicy = allowed.includes(policy) ? policy : "manual";
+            this.config.nomad_image_loading_policy = safePolicy;
+            await this.updateConfig(
+                {
+                    nomad_image_loading_policy: safePolicy,
                 },
                 null
             );
