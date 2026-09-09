@@ -638,6 +638,12 @@ tasks:
             - uv build --wheel
             - "{{.PYTHON}} scripts/move_wheels.py"
 
+    build:pyz:
+        desc: Build single-file Python zipapp (PYZ)
+        deps: [install]
+        cmds:
+            - bash scripts/build-pyz.sh
+
     # --- Electron Distribution ---
 
     dist:linux:appimage:
