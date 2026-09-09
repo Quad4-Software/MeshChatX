@@ -1510,6 +1510,14 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.getNomadImagePolicy()).toBe("manual");
         });
 
+        it("uses per-node image policy override when present", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
+            wrapper.vm.nomadImagePerNodePolicies = { abc: "always" };
+            expect(wrapper.vm.getNomadImagePolicy("abc")).toBe("always");
+            expect(wrapper.vm.getNomadImagePolicy("def")).toBe("manual");
+        });
+
         it("sends a file download with image metadata", async () => {
             const hash = "a".repeat(32);
             const wrapper = mountNomadNetworkPage({ destinationHash: hash });
