@@ -44,11 +44,22 @@ def test_appcontainer_forced_env(monkeypatch):
         assert ac.appcontainer_forced() is True
 
 
-def test_appcontainer_off_by_default_when_env_unset(monkeypatch):
+def test_appcontainer_on_by_default_when_env_unset(monkeypatch):
     monkeypatch.delenv("MESHCHAT_APPCONTAINER", raising=False)
     with (
         patch.object(ac, "sys") as mock_sys,
         patch.object(ac, "appcontainer_supported", return_value=True),
+    ):
+        mock_sys.platform = "win32"
+        assert ac.appcontainer_requested() is True
+        assert ac.appcontainer_auto_enabled() is True
+
+
+def test_appcontainer_off_by_default_when_unsupported(monkeypatch):
+    monkeypatch.delenv("MESHCHAT_APPCONTAINER", raising=False)
+    with (
+        patch.object(ac, "sys") as mock_sys,
+        patch.object(ac, "appcontainer_supported", return_value=False),
     ):
         mock_sys.platform = "win32"
         assert ac.appcontainer_requested() is False
@@ -275,7 +286,9 @@ def test_launch_backend_auto_fallback(monkeypatch, tmp_path):
     storage = tmp_path / "storage"
     storage.mkdir()
     sid = object()
+    captured_env = {}
 
+    monkeypatch.setattr(ac, "appcontainer_supported", lambda: True)
     monkeypatch.setattr(ac, "ensure_appcontainer_profile", lambda: sid)
     monkeypatch.setattr(ac, "grant_path_access", lambda *a, **k: None)
     monkeypatch.setattr(ac, "revoke_path_access", lambda *a, **k: None)
@@ -284,11 +297,12 @@ def test_launch_backend_auto_fallback(monkeypatch, tmp_path):
         "create_process_in_appcontainer",
         lambda *a, **k: (_ for _ in ()).throw(OSError("create failed")),
     )
-    monkeypatch.setattr(
-        ac,
-        "create_process_unsandboxed",
-        lambda *a, **k: (1, 2, 99),
-    )
+
+    def fake_create_unsandboxed(_exe, _args, *, env=None, **_kw):
+        captured_env.update(env or {})
+        return (1, 2, 99)
+
+    monkeypatch.setattr(ac, "create_process_unsandboxed", fake_create_unsandboxed)
     monkeypatch.setattr(ac, "close_handle", lambda *a, **k: None)
     monkeypatch.setattr(ac, "_wait_process", lambda *a, **k: 0)
     monkeypatch.setattr(ac, "collect_ro_roots", lambda **k: [])
@@ -305,3 +319,41 @@ def test_launch_backend_auto_fallback(monkeypatch, tmp_path):
     assert result.fell_back is True
     assert result.used_appcontainer is False
     assert result.exit_code == 0
+    assert captured_env.get("MESHCHAT_APPCONTAINER_LAUNCHER") == "1"
+    assert captured_env.get(ac.CHILD_ENV_FLAG) is None
+
+
+def test_launch_backend_unsupported_fallback(monkeypatch, tmp_path):
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    captured_env = {}
+    call_log = {"create_in_appcontainer": 0}
+
+    monkeypatch.setattr(ac, "appcontainer_supported", lambda: False)
+
+    def fake_create_in_appcontainer(*a, **k):
+        call_log["create_in_appcontainer"] += 1
+        return (1, 2, 99)
+
+    monkeypatch.setattr(ac, "create_process_in_appcontainer", fake_create_in_appcontainer)
+
+    def fake_create_unsandboxed(_exe, _args, *, env=None, **_kw):
+        captured_env.update(env or {})
+        return (1, 2, 99)
+
+    monkeypatch.setattr(ac, "create_process_unsandboxed", fake_create_unsandboxed)
+    monkeypatch.setattr(ac, "close_handle", lambda *a, **k: None)
+    monkeypatch.setattr(ac, "_wait_process", lambda *a, **k: 0)
+
+    result = ac.launch_backend_sandboxed(
+        str(tmp_path / "exe"),
+        ["--headless"],
+        storage_dir=str(storage),
+        reticulum_config_dir=str(storage),
+        log_dir=str(storage / "logs"),
+        forced=False,
+    )
+    assert result.ok is True
+    assert result.fell_back is True
+    assert call_log["create_in_appcontainer"] == 0
+    assert captured_env.get("MESHCHAT_APPCONTAINER_LAUNCHER") == "1"

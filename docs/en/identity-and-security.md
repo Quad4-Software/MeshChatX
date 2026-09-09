@@ -86,7 +86,7 @@ See **Linux sandboxing** in Platform guides for optional Firejail and Bubblewrap
 
 ## Windows Electron AppContainer
 
-Windows desktop builds can spawn the Python backend inside an LPAC AppContainer when MESHCHAT_APPCONTAINER=1. Default installs start the backend directly without that wrapper. Check /api/v1/server/security for appcontainer_active when debugging sandbox-related SQLite or filesystem errors on Windows.
+Windows desktop builds spawn the Python backend inside an LPAC AppContainer by default when the AppContainer APIs are available. Set MESHCHAT_APPCONTAINER=0 to disable it. If AppContainer setup fails, the launcher falls back to an unsandboxed backend process. Check /api/v1/server/security for appcontainer_active when debugging sandbox-related SQLite or filesystem errors on Windows.
 
 ## Blocking and filtering
 
