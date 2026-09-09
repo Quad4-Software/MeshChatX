@@ -3010,7 +3010,7 @@ import {
     publishPatchedConfig,
 } from "../../js/settings/settingsConfigService";
 import { applyAppearanceTheme } from "../../theme/themeEngine.js";
-import { setLocale } from "../../js/localeLoader.js";
+import { normalizeUiLocaleCode, setLocale } from "../../js/localeLoader.js";
 import {
     applyTransportMode,
     applyReticulumInstanceSettings,
@@ -4610,10 +4610,12 @@ export default {
             await this.onLanguageChange();
         },
         async onLanguageChange() {
-            await setLocale(this.$i18n, this.config.language);
+            const code = normalizeUiLocaleCode(this.config.language);
+            this.config.language = code;
+            await setLocale(this.$i18n, code);
             await this.updateConfig(
                 {
-                    language: this.config.language,
+                    language: code,
                 },
                 "language"
             );
