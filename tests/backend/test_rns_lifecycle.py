@@ -116,7 +116,6 @@ async def test_cleanup_rns_state_for_identity(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -158,7 +157,6 @@ async def test_teardown_identity(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         mock_db_instance = mock_db_class.return_value
@@ -197,7 +195,6 @@ async def test_reload_reticulum(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
         patch("asyncio.sleep", return_value=None),
         patch("socket.socket") as mock_socket,
@@ -281,7 +278,6 @@ def test_require_rns_tool_handler_returns_503_when_missing(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -320,7 +316,6 @@ async def test_reload_reticulum_does_not_probe_unix_fallback_by_default(
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
         patch("asyncio.sleep", return_value=None),
         patch("socket.socket") as mock_socket,
@@ -365,7 +360,6 @@ def test_reticulum_instance_name_helpers(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -403,7 +397,6 @@ async def test_reload_reticulum_switches_instance_name_when_unix_addr_stuck(
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
         patch("asyncio.sleep", return_value=None),
         patch("socket.socket") as mock_socket,
@@ -460,7 +453,6 @@ async def test_reload_reticulum_failure_recovery(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
         patch("asyncio.sleep", return_value=None),
         patch("socket.socket"),
@@ -510,7 +502,6 @@ async def test_hotswap_identity(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
         patch("asyncio.sleep", return_value=None),
         patch("shutil.copy2"),
@@ -558,7 +549,6 @@ async def test_reload_reticulum_restores_same_identity(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
         patch("asyncio.sleep", return_value=None),
         patch("socket.socket") as mock_socket,
@@ -598,7 +588,6 @@ async def test_transport_enable_endpoint_reloads_rns(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -646,7 +635,6 @@ async def test_transport_disable_endpoint_reloads_rns(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -694,7 +682,6 @@ async def test_transport_enable_endpoint_reload_failure(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -742,7 +729,6 @@ async def test_transport_disable_endpoint_reload_failure(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -790,7 +776,6 @@ async def test_reticulum_reload_endpoint_success(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -832,7 +817,6 @@ async def test_reticulum_reload_endpoint_failure(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -874,7 +858,6 @@ async def test_reload_teardown_stops_all_context_services(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(
@@ -932,7 +915,6 @@ def test_teardown_all_contexts_for_reload_clears_mesh_link_caches(mock_rns, temp
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-
         patch("LXMF.LXMRouter"),
     ):
         app = ReticulumMeshChat(

@@ -10,7 +10,10 @@ import zipfile
 
 import pytest
 
-from meshchatx.src.backend.translation_pack_manager import TranslationPackError, TranslationPackManager
+from meshchatx.src.backend.translation_pack_manager import (
+    TranslationPackError,
+    TranslationPackManager,
+)
 
 
 def _make_zip(tmp_path, entries):
@@ -134,11 +137,14 @@ def test_import_rejects_missing_required_files(tmp_path):
 
 def test_remove_pack(tmp_path):
     mgr = TranslationPackManager(str(tmp_path))
-    _make_zip(tmp_path, {
-        "enes/model.npz": b"model",
-        "enes/lex.s2t.bin": b"lex",
-        "enes/vocab.spm": b"vocab",
-    })
+    _make_zip(
+        tmp_path,
+        {
+            "enes/model.npz": b"model",
+            "enes/lex.s2t.bin": b"lex",
+            "enes/vocab.spm": b"vocab",
+        },
+    )
     mgr.import_archive(str(tmp_path / "pack.zip"))
     assert mgr.list_installed()
     assert mgr.remove_pack("enes") is True

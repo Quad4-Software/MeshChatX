@@ -92,7 +92,6 @@ SCENARIOS: tuple[Scenario, ...] = (
         taxonomy="security_surface",
         summary="favourites layout rejects NUL in section ids and hashes",
     ),
-
     Scenario(
         id="hostile.plugin.path_escape",
         pack="HostileMediumPack",

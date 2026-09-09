@@ -4,7 +4,6 @@
 
 from urllib.parse import urlparse
 
-import pytest
 from hypothesis import example, given, settings, strategies as st
 
 from meshchatx.src.backend.plugin_permissions import (
@@ -40,7 +39,9 @@ def _is_external_oracle(value):
 @st.composite
 def url_string(draw, include_userinfo=False):
     scheme = draw(st.sampled_from(["http", "https"]))
-    host = draw(st.sampled_from(["example.com", "api.test", "localhost", "127.0.0.1", "[::1]"]))
+    host = draw(
+        st.sampled_from(["example.com", "api.test", "localhost", "127.0.0.1", "[::1]"])
+    )
     port = draw(st.one_of(st.just(None), st.sampled_from([80, 443, 8080, 9337])))
     path = draw(st.sampled_from(["", "/v1", "/x?y=1"]))
     if include_userinfo and draw(st.booleans()):
@@ -100,6 +101,7 @@ class TestHostRootOracle:
         assert root.endswith("/")
         # The root must not carry path or userinfo.
         from urllib.parse import urlparse as up
+
         parsed = up(root)
         assert parsed.scheme == "https"
         assert parsed.path == "/"
@@ -116,7 +118,9 @@ class TestExtractUrlsOracle:
             assert _is_http_url(url)
             assert _is_external_http_url(url)
 
-    @given(prefix=st.text(alphabet="abcdefghijklmnopqrstuvwxyz", min_size=1, max_size=8))
+    @given(
+        prefix=st.text(alphabet="abcdefghijklmnopqrstuvwxyz", min_size=1, max_size=8)
+    )
     @settings(max_examples=50, deadline=None)
     def test_extract_urls_never_includes_loopback_decoy(self, prefix):
         # A decoy like 127.0.0.1 as a substring in the hostname must not be skipped.

@@ -26,7 +26,9 @@ def register_translation_routes(routes, app) -> None:
     @routes.post("/api/v1/translation/packs/import")
     async def import_translation_pack(request):
         if not app.translation_pack_manager:
-            return web.json_response({"error": "Translation pack manager not available"}, status=503)
+            return web.json_response(
+                {"error": "Translation pack manager not available"}, status=503
+            )
 
         try:
             reader = await request.multipart()

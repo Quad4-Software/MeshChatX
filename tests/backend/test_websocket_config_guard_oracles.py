@@ -19,7 +19,15 @@ TRUSTED_IPS = {"127.0.0.1", "10.0.0.1"}
 
 
 class _WsRequest:
-    def __init__(self, *, host, scheme="http", origin=None, remote="127.0.0.1", forwarded_host=None):
+    def __init__(
+        self,
+        *,
+        host,
+        scheme="http",
+        origin=None,
+        remote="127.0.0.1",
+        forwarded_host=None,
+    ):
         self.host = host
         self.scheme = scheme
         self.remote = remote
@@ -103,19 +111,46 @@ def _patch_client_ip_allowed(monkeypatch):
 
 class TestWebSocketOriginOracle:
     @given(host=authority(), origin=origin_pair())
-    @example(host="127.0.0.1:8000", origin=("http://127.0.0.1:8000", "http", "127.0.0.1:8000"))
-    @example(host="127.0.0.1:8000", origin=("https://evil.example", "https", "evil.example"))
-    @example(host="127.0.0.1:8000", origin=("http://127.0.0.1:8000@evil.example", "http", "127.0.0.1:8000@evil.example"))
-    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @example(
+        host="127.0.0.1:8000",
+        origin=("http://127.0.0.1:8000", "http", "127.0.0.1:8000"),
+    )
+    @example(
+        host="127.0.0.1:8000", origin=("https://evil.example", "https", "evil.example")
+    )
+    @example(
+        host="127.0.0.1:8000",
+        origin=(
+            "http://127.0.0.1:8000@evil.example",
+            "http",
+            "127.0.0.1:8000@evil.example",
+        ),
+    )
+    @settings(
+        max_examples=100,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_origin_allowed_matches_reference_parser(self, host, origin):
         origin_url, scheme, _ = origin
         req = _WsRequest(host=host, scheme=scheme, origin=origin_url)
         expected = _expected_origin_allowed(req, None)
         assert websocket_origin_allowed(req, None) is expected
 
-    @given(host=authority(), origin=origin_pair(), forwarded=authority(), remote=st.sampled_from(["127.0.0.1", "203.0.113.9"]))
-    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
-    def test_origin_allowed_honors_trusted_proxy_forwarded_host(self, host, origin, forwarded, remote):
+    @given(
+        host=authority(),
+        origin=origin_pair(),
+        forwarded=authority(),
+        remote=st.sampled_from(["127.0.0.1", "203.0.113.9"]),
+    )
+    @settings(
+        max_examples=100,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
+    def test_origin_allowed_honors_trusted_proxy_forwarded_host(
+        self, host, origin, forwarded, remote
+    ):
         origin_url, scheme, _ = origin
         req = _WsRequest(
             host=host,
@@ -136,7 +171,9 @@ class TestWebSocketOriginOracle:
     @given(scheme=st.sampled_from(["file", "ftp", "ws", "wss", "data", "javascript"]))
     @settings(max_examples=10, deadline=None)
     def test_non_http_origin_rejected(self, scheme):
-        req = _WsRequest(host="127.0.0.1:8000", scheme="http", origin=f"{scheme}://chat.example")
+        req = _WsRequest(
+            host="127.0.0.1:8000", scheme="http", origin=f"{scheme}://chat.example"
+        )
         assert websocket_origin_allowed(req) is False
 
 
