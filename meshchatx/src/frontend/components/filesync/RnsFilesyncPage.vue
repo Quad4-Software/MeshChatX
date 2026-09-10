@@ -12,366 +12,375 @@
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
-            <div class="space-y-4 w-full max-w-4xl mx-auto">
-                <div class="glass-card space-y-5">
-                    <div
-                        class="p-4 rounded-lg bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20"
-                    >
+            <div class="w-full max-w-4xl mx-auto">
+                <div class="fused-panel">
+                    <div class="fused-section space-y-5">
                         <div
-                            class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2"
+                            class="p-4 rounded-lg bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20"
                         >
-                            {{ $t("rns_filesync.usage_steps") }}
-                        </div>
-                        <div class="space-y-1.5 text-xs text-emerald-800/80 dark:text-emerald-300/80 leading-relaxed">
-                            <p>{{ $t("rns_filesync.step_1") }}</p>
-                            <p>{{ $t("rns_filesync.step_2") }}</p>
-                            <p>{{ $t("rns_filesync.step_3") }}</p>
-                        </div>
-                    </div>
-
-                    <div
-                        class="border-b border-sem-border overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0"
-                    >
-                        <div class="flex w-max min-w-full sm:w-auto gap-1 sm:gap-2">
-                            <button
-                                v-for="tab in tabs"
-                                :key="tab.id"
-                                type="button"
-                                :class="[
-                                    activeTab === tab.id
-                                        ? 'border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                                        : 'text-sem-fg-muted',
-                                    'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
-                                ]"
-                                @click="activeTab = tab.id"
+                            <div
+                                class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2"
                             >
-                                {{ $t(tab.labelKey) }}
-                            </button>
+                                {{ $t("rns_filesync.usage_steps") }}
+                            </div>
+                            <div
+                                class="space-y-1.5 text-xs text-emerald-800/80 dark:text-emerald-300/80 leading-relaxed"
+                            >
+                                <p>{{ $t("rns_filesync.step_1") }}</p>
+                                <p>{{ $t("rns_filesync.step_2") }}</p>
+                                <p>{{ $t("rns_filesync.step_3") }}</p>
+                            </div>
                         </div>
-                    </div>
 
-                    <div v-if="activeTab === 'folder'" class="space-y-4">
-                        <div class="rounded-xl border border-sem-border bg-sem-surface-muted/40 p-4 space-y-4">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span
-                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                                    :class="
-                                        status.running
-                                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                                            : 'bg-sem-surface-muted text-sem-fg-muted'
-                                    "
+                        <div
+                            class="border-b border-sem-border overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0"
+                        >
+                            <div class="flex w-max min-w-full sm:w-auto gap-1 sm:gap-2">
+                                <button
+                                    v-for="tab in tabs"
+                                    :key="tab.id"
+                                    type="button"
+                                    :class="[
+                                        activeTab === tab.id
+                                            ? 'border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                                            : 'text-sem-fg-muted',
+                                        'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
+                                    ]"
+                                    @click="activeTab = tab.id"
                                 >
+                                    {{ $t(tab.labelKey) }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="activeTab === 'folder'" class="space-y-4">
+                            <div class="rounded-xl border border-sem-border bg-sem-surface-muted/40 p-4 space-y-4">
+                                <div class="flex flex-wrap items-center gap-2">
                                     <span
-                                        class="size-1.5 rounded-full"
-                                        :class="status.running ? 'bg-emerald-500' : 'bg-sem-fg-muted'"
-                                    ></span>
-                                    {{
-                                        status.running
-                                            ? $t("rns_filesync.status_syncing")
-                                            : $t("rns_filesync.status_stopped")
-                                    }}
-                                </span>
-                                <span class="text-xs text-sem-fg-muted">
-                                    {{ $t("rns_filesync.peers_count") }}:
-                                    <strong class="text-sem-fg">{{ status.peers || 0 }}</strong>
-                                </span>
-                                <span class="text-xs text-sem-fg-muted">
-                                    {{ $t("rns_filesync.files_count") }}:
-                                    <strong class="text-sem-fg">{{ status.files || 0 }}</strong>
-                                </span>
-                            </div>
-
-                            <div>
-                                <label class="glass-label">{{ $t("rns_filesync.sync_directory") }}</label>
-                                <div class="flex gap-2">
-                                    <input
-                                        v-model="syncDirectory"
-                                        type="text"
-                                        class="input-field flex-1 min-w-0 font-mono text-sm"
-                                        :disabled="status.running"
-                                        :placeholder="$t('rns_filesync.sync_directory_placeholder')"
-                                    />
-                                    <button
-                                        type="button"
-                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
-                                        :disabled="busy || status.running"
-                                        :title="$t('rns_filesync.browse_folder')"
-                                        @click="openDirectoryBrowser"
+                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                                        :class="
+                                            status.running
+                                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                                : 'bg-sem-surface-muted text-sem-fg-muted'
+                                        "
                                     >
-                                        <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
-                                        <span class="hidden sm:inline">{{ $t("rns_filesync.browse_folder") }}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
-                                        :disabled="busy || status.running"
-                                        :title="$t('rns_filesync.use_shared_folder')"
-                                        @click="useSharedFolder"
-                                    >
-                                        <MaterialDesignIcon icon-name="folder-account-outline" class="w-4 h-4" />
-                                        <span class="hidden sm:inline">{{ $t("rns_filesync.use_shared_folder") }}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
-                                        :disabled="busy || !syncDirectory"
-                                        :title="$t('rns_filesync.open_folder')"
-                                        @click="openSyncFolder"
-                                    >
-                                        <MaterialDesignIcon icon-name="folder" class="w-4 h-4" />
-                                        <span class="hidden sm:inline">{{ $t("rns_filesync.open_folder") }}</span>
-                                    </button>
-                                </div>
-                                <p class="mt-1.5 text-xs text-sem-fg-muted">
-                                    {{ $t("rns_filesync.sync_directory_help") }}
-                                </p>
-                            </div>
-
-                            <div class="grid gap-3 sm:grid-cols-2">
-                                <div>
-                                    <label class="glass-label">{{ $t("rns_filesync.announce_interval") }}</label>
-                                    <input
-                                        v-model.number="announceInterval"
-                                        type="number"
-                                        min="10"
-                                        class="input-field w-full"
-                                    />
-                                    <p class="mt-1 text-xs text-sem-fg-muted">
-                                        {{ $t("rns_filesync.announce_interval_help") }}
-                                    </p>
-                                </div>
-                                <div class="flex items-end">
-                                    <label class="flex items-center gap-2 text-sm text-sem-fg pb-2">
-                                        <input v-model="monitor" type="checkbox" class="rounded" />
-                                        {{ $t("rns_filesync.monitor") }}
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-wrap gap-2">
-                                <button
-                                    v-if="!status.running"
-                                    type="button"
-                                    class="primary-chip px-4 py-2 text-sm"
-                                    :disabled="busy"
-                                    @click="startService"
-                                >
-                                    <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
-                                    {{ $t("rns_filesync.start") }}
-                                </button>
-                                <button
-                                    v-else
-                                    type="button"
-                                    class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
-                                    :disabled="busy"
-                                    @click="stopService"
-                                >
-                                    <MaterialDesignIcon icon-name="stop" class="w-4 h-4" />
-                                    {{ $t("rns_filesync.stop") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="secondary-chip px-4 py-2 text-sm"
-                                    :disabled="busy || !status.running"
-                                    @click="announceNow"
-                                >
-                                    <MaterialDesignIcon icon-name="bullhorn" class="w-4 h-4" />
-                                    {{ $t("rns_filesync.announce") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="secondary-chip px-4 py-2 text-sm"
-                                    :disabled="busy"
-                                    @click="refreshStatus"
-                                >
-                                    <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
-                                    {{ $t("rns_filesync.refresh") }}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div v-if="status.destination_hash" class="rounded-xl border border-sem-border p-4 space-y-2">
-                            <div class="text-sm font-semibold text-sem-fg">
-                                {{ $t("rns_filesync.share_id") }}
-                            </div>
-                            <p class="text-xs text-sem-fg-muted">{{ $t("rns_filesync.share_id_help") }}</p>
-                            <button
-                                type="button"
-                                class="w-full text-left font-mono text-xs break-all rounded-lg border border-sem-border bg-sem-surface-muted/50 px-3 py-2 hover:border-emerald-500"
-                                @click="copyHash(status.destination_hash)"
-                            >
-                                {{ status.destination_hash }}
-                            </button>
-                        </div>
-
-                        <div
-                            v-if="lastProgressLabel"
-                            class="rounded-lg border border-sem-border px-3 py-2 text-xs text-sem-fg-muted"
-                        >
-                            {{ $t("rns_filesync.last_progress") }}: {{ lastProgressLabel }}
-                        </div>
-                    </div>
-
-                    <div v-else-if="activeTab === 'devices'" class="space-y-4">
-                        <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.devices_help") }}</p>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <input
-                                v-model="connectHash"
-                                type="text"
-                                class="input-field flex-1 font-mono text-sm"
-                                :placeholder="$t('rns_filesync.peer_hash_placeholder')"
-                            />
-                            <button
-                                type="button"
-                                class="primary-chip px-4 py-2 text-sm"
-                                :disabled="busy || !status.running"
-                                @click="connectPeer"
-                            >
-                                <MaterialDesignIcon icon-name="link-variant" class="w-4 h-4" />
-                                {{ $t("rns_filesync.connect") }}
-                            </button>
-                        </div>
-                        <button
-                            type="button"
-                            class="secondary-chip px-3 py-1.5 text-sm"
-                            :disabled="busy"
-                            @click="refreshPeers"
-                        >
-                            {{ $t("rns_filesync.refresh") }}
-                        </button>
-                        <div v-if="peers.length === 0" class="text-sm text-sem-fg-muted">
-                            {{ $t("rns_filesync.no_peers") }}
-                        </div>
-                        <ul v-else class="space-y-2">
-                            <li
-                                v-for="peer in peers"
-                                :key="peer.peer_id"
-                                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-sem-border"
-                            >
-                                <div class="min-w-0">
-                                    <div class="font-mono text-xs break-all text-sem-fg">{{ peer.peer_id }}</div>
-                                    <div class="text-xs text-sem-fg-muted mt-1">
-                                        {{ peerStatusLabel(peer) }}
-                                        <span v-if="peer.destination_hash" class="font-mono">
-                                            · {{ peer.destination_hash }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="secondary-chip px-3 py-1.5 text-sm text-red-600 dark:text-red-300"
-                                    :disabled="busy"
-                                    @click="disconnectPeer(peer.peer_id)"
-                                >
-                                    {{ $t("rns_filesync.disconnect") }}
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div v-else-if="activeTab === 'files'" class="space-y-4">
-                        <FilesyncFileManager
-                            ref="fileManager"
-                            :sync-directory="syncDirectory"
-                            @open-folder="openSyncFolder"
-                        />
-                    </div>
-
-                    <div v-else-if="activeTab === 'remote'" class="space-y-4">
-                        <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.remote_help") }}</p>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <select v-model="browsePeerId" class="input-field flex-1 font-mono text-sm">
-                                <option value="">{{ $t("rns_filesync.select_peer") }}</option>
-                                <option v-for="peer in peers" :key="peer.peer_id" :value="peer.peer_id">
-                                    {{ peer.peer_id }}
-                                </option>
-                            </select>
-                            <button
-                                type="button"
-                                class="primary-chip px-4 py-2 text-sm"
-                                :disabled="busy || !status.running || !browsePeerId"
-                                @click="browsePeer"
-                            >
-                                <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
-                                {{ $t("rns_filesync.browse") }}
-                            </button>
-                        </div>
-                        <div v-if="remoteFiles.length === 0" class="text-sm text-sem-fg-muted">
-                            {{ $t("rns_filesync.no_remote_files") }}
-                        </div>
-                        <ul v-else class="space-y-2">
-                            <li
-                                v-for="file in remoteFiles"
-                                :key="file.path || file"
-                                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-sem-border"
-                            >
-                                <div class="min-w-0 text-sm break-all text-sem-fg">
-                                    {{ file.path || file }}
-                                    <span v-if="file.size != null" class="text-xs text-sem-fg-muted">
-                                        · {{ formatFileSize(file.size) }}
+                                        <span
+                                            class="size-1.5 rounded-full"
+                                            :class="status.running ? 'bg-emerald-500' : 'bg-sem-fg-muted'"
+                                        ></span>
+                                        {{
+                                            status.running
+                                                ? $t("rns_filesync.status_syncing")
+                                                : $t("rns_filesync.status_stopped")
+                                        }}
+                                    </span>
+                                    <span class="text-xs text-sem-fg-muted">
+                                        {{ $t("rns_filesync.peers_count") }}:
+                                        <strong class="text-sem-fg">{{ status.peers || 0 }}</strong>
+                                    </span>
+                                    <span class="text-xs text-sem-fg-muted">
+                                        {{ $t("rns_filesync.files_count") }}:
+                                        <strong class="text-sem-fg">{{ status.files || 0 }}</strong>
                                     </span>
                                 </div>
+
+                                <div>
+                                    <label class="glass-label">{{ $t("rns_filesync.sync_directory") }}</label>
+                                    <div class="flex gap-2">
+                                        <input
+                                            v-model="syncDirectory"
+                                            type="text"
+                                            class="input-field flex-1 min-w-0 font-mono text-sm"
+                                            :disabled="status.running"
+                                            :placeholder="$t('rns_filesync.sync_directory_placeholder')"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                            :disabled="busy || status.running"
+                                            :title="$t('rns_filesync.browse_folder')"
+                                            @click="openDirectoryBrowser"
+                                        >
+                                            <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                            <span class="hidden sm:inline">{{ $t("rns_filesync.browse_folder") }}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                            :disabled="busy || status.running"
+                                            :title="$t('rns_filesync.use_shared_folder')"
+                                            @click="useSharedFolder"
+                                        >
+                                            <MaterialDesignIcon icon-name="folder-account-outline" class="w-4 h-4" />
+                                            <span class="hidden sm:inline">{{
+                                                $t("rns_filesync.use_shared_folder")
+                                            }}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                            :disabled="busy || !syncDirectory"
+                                            :title="$t('rns_filesync.open_folder')"
+                                            @click="openSyncFolder"
+                                        >
+                                            <MaterialDesignIcon icon-name="folder" class="w-4 h-4" />
+                                            <span class="hidden sm:inline">{{ $t("rns_filesync.open_folder") }}</span>
+                                        </button>
+                                    </div>
+                                    <p class="mt-1.5 text-xs text-sem-fg-muted">
+                                        {{ $t("rns_filesync.sync_directory_help") }}
+                                    </p>
+                                </div>
+
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label class="glass-label">{{ $t("rns_filesync.announce_interval") }}</label>
+                                        <input
+                                            v-model.number="announceInterval"
+                                            type="number"
+                                            min="10"
+                                            class="input-field w-full"
+                                        />
+                                        <p class="mt-1 text-xs text-sem-fg-muted">
+                                            {{ $t("rns_filesync.announce_interval_help") }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <label class="flex items-center gap-2 text-sm text-sem-fg pb-2">
+                                            <input v-model="monitor" type="checkbox" class="rounded" />
+                                            {{ $t("rns_filesync.monitor") }}
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        v-if="!status.running"
+                                        type="button"
+                                        class="primary-chip px-4 py-2 text-sm"
+                                        :disabled="busy"
+                                        @click="startService"
+                                    >
+                                        <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
+                                        {{ $t("rns_filesync.start") }}
+                                    </button>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                        :disabled="busy"
+                                        @click="stopService"
+                                    >
+                                        <MaterialDesignIcon icon-name="stop" class="w-4 h-4" />
+                                        {{ $t("rns_filesync.stop") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-4 py-2 text-sm"
+                                        :disabled="busy || !status.running"
+                                        @click="announceNow"
+                                    >
+                                        <MaterialDesignIcon icon-name="bullhorn" class="w-4 h-4" />
+                                        {{ $t("rns_filesync.announce") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-4 py-2 text-sm"
+                                        :disabled="busy"
+                                        @click="refreshStatus"
+                                    >
+                                        <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
+                                        {{ $t("rns_filesync.refresh") }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="status.destination_hash"
+                                class="rounded-xl border border-sem-border p-4 space-y-2"
+                            >
+                                <div class="text-sm font-semibold text-sem-fg">
+                                    {{ $t("rns_filesync.share_id") }}
+                                </div>
+                                <p class="text-xs text-sem-fg-muted">{{ $t("rns_filesync.share_id_help") }}</p>
                                 <button
                                     type="button"
-                                    class="secondary-chip px-3 py-1.5 text-sm"
-                                    :disabled="busy || !browsePeerId"
-                                    @click="downloadFile(file.path || file)"
+                                    class="w-full text-left font-mono text-xs break-all rounded-lg border border-sem-border bg-sem-surface-muted/50 px-3 py-2 hover:border-emerald-500"
+                                    @click="copyHash(status.destination_hash)"
                                 >
-                                    {{ $t("rns_filesync.download") }}
+                                    {{ status.destination_hash }}
                                 </button>
-                            </li>
-                        </ul>
-                    </div>
+                            </div>
 
-                    <div v-else-if="activeTab === 'sharing'" class="space-y-4">
-                        <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.sharing_help") }}</p>
-                        <label class="flex items-center gap-2 text-sm text-sem-fg">
-                            <input v-model="aclEnforce" type="checkbox" class="rounded" @change="saveEnforce" />
-                            {{ $t("rns_filesync.acl_enforce") }}
-                        </label>
-                        <div class="flex flex-col gap-3">
-                            <input
-                                v-model="aclHash"
-                                type="text"
-                                class="input-field w-full font-mono text-sm"
-                                :placeholder="$t('rns_filesync.peer_hash_placeholder')"
-                            />
-                            <div class="flex flex-wrap items-center gap-4 text-sm text-sem-fg">
-                                <label class="flex items-center gap-1.5">
-                                    <input v-model="aclRead" type="checkbox" class="rounded" />
-                                    {{ $t("rns_filesync.perm_read") }}
-                                </label>
-                                <label class="flex items-center gap-1.5">
-                                    <input v-model="aclWrite" type="checkbox" class="rounded" />
-                                    {{ $t("rns_filesync.perm_write") }}
-                                </label>
-                                <label class="flex items-center gap-1.5">
-                                    <input v-model="aclDelete" type="checkbox" class="rounded" />
-                                    {{ $t("rns_filesync.perm_delete") }}
-                                </label>
+                            <div
+                                v-if="lastProgressLabel"
+                                class="rounded-lg border border-sem-border px-3 py-2 text-xs text-sem-fg-muted"
+                            >
+                                {{ $t("rns_filesync.last_progress") }}: {{ lastProgressLabel }}
+                            </div>
+                        </div>
+
+                        <div v-else-if="activeTab === 'devices'" class="space-y-4">
+                            <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.devices_help") }}</p>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input
+                                    v-model="connectHash"
+                                    type="text"
+                                    class="input-field flex-1 font-mono text-sm"
+                                    :placeholder="$t('rns_filesync.peer_hash_placeholder')"
+                                />
+                                <button
+                                    type="button"
+                                    class="primary-chip px-4 py-2 text-sm"
+                                    :disabled="busy || !status.running"
+                                    @click="connectPeer"
+                                >
+                                    <MaterialDesignIcon icon-name="link-variant" class="w-4 h-4" />
+                                    {{ $t("rns_filesync.connect") }}
+                                </button>
                             </div>
                             <button
                                 type="button"
-                                class="primary-chip px-4 py-2 text-sm self-start"
+                                class="secondary-chip px-3 py-1.5 text-sm"
                                 :disabled="busy"
-                                @click="grantAcl"
+                                @click="refreshPeers"
                             >
-                                {{ $t("rns_filesync.acl_grant") }}
+                                {{ $t("rns_filesync.refresh") }}
                             </button>
+                            <div v-if="peers.length === 0" class="text-sm text-sem-fg-muted">
+                                {{ $t("rns_filesync.no_peers") }}
+                            </div>
+                            <ul v-else class="space-y-2">
+                                <li
+                                    v-for="peer in peers"
+                                    :key="peer.peer_id"
+                                    class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-sem-border"
+                                >
+                                    <div class="min-w-0">
+                                        <div class="font-mono text-xs break-all text-sem-fg">{{ peer.peer_id }}</div>
+                                        <div class="text-xs text-sem-fg-muted mt-1">
+                                            {{ peerStatusLabel(peer) }}
+                                            <span v-if="peer.destination_hash" class="font-mono">
+                                                · {{ peer.destination_hash }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-3 py-1.5 text-sm text-red-600 dark:text-red-300"
+                                        :disabled="busy"
+                                        @click="disconnectPeer(peer.peer_id)"
+                                    >
+                                        {{ $t("rns_filesync.disconnect") }}
+                                    </button>
+                                </li>
+                            </ul>
                         </div>
-                        <div v-if="aclRows.length === 0" class="text-sm text-sem-fg-muted">
-                            {{ $t("rns_filesync.no_acl_rules") }}
+
+                        <div v-else-if="activeTab === 'files'" class="space-y-4">
+                            <FilesyncFileManager
+                                ref="fileManager"
+                                :sync-directory="syncDirectory"
+                                @open-folder="openSyncFolder"
+                            />
                         </div>
-                        <ul v-else class="space-y-2">
-                            <li
-                                v-for="row in aclRows"
-                                :key="row.hash"
-                                class="p-3 rounded-lg border border-sem-border text-sm"
-                            >
-                                <div class="font-mono text-xs break-all text-sem-fg">{{ row.hash }}</div>
-                                <div class="text-xs text-sem-fg-muted mt-1">{{ row.permsLabel }}</div>
-                            </li>
-                        </ul>
+
+                        <div v-else-if="activeTab === 'remote'" class="space-y-4">
+                            <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.remote_help") }}</p>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <select v-model="browsePeerId" class="input-field flex-1 font-mono text-sm">
+                                    <option value="">{{ $t("rns_filesync.select_peer") }}</option>
+                                    <option v-for="peer in peers" :key="peer.peer_id" :value="peer.peer_id">
+                                        {{ peer.peer_id }}
+                                    </option>
+                                </select>
+                                <button
+                                    type="button"
+                                    class="primary-chip px-4 py-2 text-sm"
+                                    :disabled="busy || !status.running || !browsePeerId"
+                                    @click="browsePeer"
+                                >
+                                    <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                    {{ $t("rns_filesync.browse") }}
+                                </button>
+                            </div>
+                            <div v-if="remoteFiles.length === 0" class="text-sm text-sem-fg-muted">
+                                {{ $t("rns_filesync.no_remote_files") }}
+                            </div>
+                            <ul v-else class="space-y-2">
+                                <li
+                                    v-for="file in remoteFiles"
+                                    :key="file.path || file"
+                                    class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-sem-border"
+                                >
+                                    <div class="min-w-0 text-sm break-all text-sem-fg">
+                                        {{ file.path || file }}
+                                        <span v-if="file.size != null" class="text-xs text-sem-fg-muted">
+                                            · {{ formatFileSize(file.size) }}
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-3 py-1.5 text-sm"
+                                        :disabled="busy || !browsePeerId"
+                                        @click="downloadFile(file.path || file)"
+                                    >
+                                        {{ $t("rns_filesync.download") }}
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div v-else-if="activeTab === 'sharing'" class="space-y-4">
+                            <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.sharing_help") }}</p>
+                            <label class="flex items-center gap-2 text-sm text-sem-fg">
+                                <input v-model="aclEnforce" type="checkbox" class="rounded" @change="saveEnforce" />
+                                {{ $t("rns_filesync.acl_enforce") }}
+                            </label>
+                            <div class="flex flex-col gap-3">
+                                <input
+                                    v-model="aclHash"
+                                    type="text"
+                                    class="input-field w-full font-mono text-sm"
+                                    :placeholder="$t('rns_filesync.peer_hash_placeholder')"
+                                />
+                                <div class="flex flex-wrap items-center gap-4 text-sm text-sem-fg">
+                                    <label class="flex items-center gap-1.5">
+                                        <input v-model="aclRead" type="checkbox" class="rounded" />
+                                        {{ $t("rns_filesync.perm_read") }}
+                                    </label>
+                                    <label class="flex items-center gap-1.5">
+                                        <input v-model="aclWrite" type="checkbox" class="rounded" />
+                                        {{ $t("rns_filesync.perm_write") }}
+                                    </label>
+                                    <label class="flex items-center gap-1.5">
+                                        <input v-model="aclDelete" type="checkbox" class="rounded" />
+                                        {{ $t("rns_filesync.perm_delete") }}
+                                    </label>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="primary-chip px-4 py-2 text-sm self-start"
+                                    :disabled="busy"
+                                    @click="grantAcl"
+                                >
+                                    {{ $t("rns_filesync.acl_grant") }}
+                                </button>
+                            </div>
+                            <div v-if="aclRows.length === 0" class="text-sm text-sem-fg-muted">
+                                {{ $t("rns_filesync.no_acl_rules") }}
+                            </div>
+                            <ul v-else class="space-y-2">
+                                <li
+                                    v-for="row in aclRows"
+                                    :key="row.hash"
+                                    class="p-3 rounded-lg border border-sem-border text-sm"
+                                >
+                                    <div class="font-mono text-xs break-all text-sem-fg">{{ row.hash }}</div>
+                                    <div class="text-xs text-sem-fg-muted mt-1">{{ row.permsLabel }}</div>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -136,6 +136,18 @@
     @apply bg-sem-glass backdrop-blur-sm border border-sem-border-card rounded-3xl shadow-xl px-4 py-4;
 }
 
+.fused-panel {
+    @apply w-full bg-sem-surface border border-sem-border rounded-2xl overflow-hidden;
+}
+
+.fused-section {
+    @apply p-4 md:p-5;
+}
+
+.fused-section + .fused-section {
+    @apply border-t border-sem-border;
+}
+
 html[data-ui-glass="0"] .glass-card {
     background-color: var(--mc-surface) !important;
     border-color: var(--mc-border-card) !important;

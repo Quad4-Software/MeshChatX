@@ -11,136 +11,138 @@
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
-            <div class="space-y-4 w-full max-w-4xl mx-auto">
-                <div class="glass-card space-y-5">
-                    <div class="text-sm text-sem-fg-muted">
-                        <!-- eslint-disable vue/no-v-html -- sanitized via $t i18n -->
-                        <span
-                            v-html="
-                                $t('ping.description', {
-                                    code: '<code class=\'font-mono text-xs\'>lxmf.delivery</code>',
-                                })
-                            "
-                        ></span>
-                        <!-- eslint-enable vue/no-v-html -->
-                    </div>
-
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="glass-label">{{ $t("ping.destination_hash") }}</label>
-                            <input
-                                v-model="destinationHash"
-                                type="text"
-                                placeholder="e.g. 7b746057a7294469799cd8d7d429676a"
-                                class="input-field font-mono"
-                            />
+            <div class="w-full max-w-4xl mx-auto">
+                <div class="fused-panel">
+                    <div class="fused-section space-y-5">
+                        <div class="text-sm text-sem-fg-muted">
+                            <!-- eslint-disable vue/no-v-html -- sanitized via $t i18n -->
+                            <span
+                                v-html="
+                                    $t('ping.description', {
+                                        code: '<code class=\'font-mono text-xs\'>lxmf.delivery</code>',
+                                    })
+                                "
+                            ></span>
+                            <!-- eslint-enable vue/no-v-html -->
                         </div>
-                        <div>
-                            <label class="glass-label">{{ $t("ping.timeout_seconds") }}</label>
-                            <input v-model="timeout" type="number" min="1" max="600" class="input-field" />
-                        </div>
-                    </div>
 
-                    <div class="flex flex-wrap gap-2">
-                        <button v-if="!isRunning" type="button" class="primary-chip" @click="start">
-                            <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
-                            {{ $t("ping.start_ping") }}
-                        </button>
-                        <button
-                            v-else
-                            type="button"
-                            class="secondary-chip text-red-600! dark:text-red-300! border-red-200! dark:border-red-500/50!"
-                            @click="stop"
-                        >
-                            <MaterialDesignIcon icon-name="pause" class="w-4 h-4" />
-                            {{ $t("ping.stop") }}
-                        </button>
-                        <button type="button" class="secondary-chip" @click="clear">
-                            <MaterialDesignIcon icon-name="broom" class="w-4 h-4" />
-                            {{ $t("ping.clear_results") }}
-                        </button>
-                        <button type="button" class="danger-chip" @click="dropPath">
-                            <MaterialDesignIcon icon-name="link-variant-remove" class="w-4 h-4" />
-                            {{ $t("ping.drop_path") }}
-                        </button>
-                    </div>
-
-                    <div class="flex flex-wrap gap-2 text-xs font-semibold">
-                        <span
-                            :class="[
-                                isRunning
-                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
-                                    : 'bg-gray-200 text-gray-700 dark:bg-zinc-800 dark:text-gray-200',
-                                'rounded-full px-3 py-1',
-                            ]"
-                        >
-                            {{ $t("ping.status") }}: {{ isRunning ? $t("ping.running") : $t("ping.idle") }}
-                        </span>
-                        <span
-                            v-if="lastPingSummary?.duration"
-                            class="rounded-full px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200"
-                        >
-                            {{ $t("ping.last_rtt") }}: {{ lastPingSummary.duration }}
-                        </span>
-                        <span
-                            v-if="lastPingSummary?.error"
-                            class="rounded-full px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200"
-                        >
-                            {{ $t("ping.last_error") }}: {{ lastPingSummary.error }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="glass-card flex flex-col min-h-[320px] space-y-3">
-                    <div class="flex items-center justify-between gap-4">
-                        <div>
-                            <div class="text-sm font-semibold text-sem-fg">
-                                {{ $t("ping.console_output") }}
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="glass-label">{{ $t("ping.destination_hash") }}</label>
+                                <input
+                                    v-model="destinationHash"
+                                    type="text"
+                                    placeholder="e.g. 7b746057a7294469799cd8d7d429676a"
+                                    class="input-field font-mono"
+                                />
                             </div>
-                            <div class="text-xs text-sem-fg-muted">
-                                {{ $t("ping.streaming_responses") }}
+                            <div>
+                                <label class="glass-label">{{ $t("ping.timeout_seconds") }}</label>
+                                <input v-model="timeout" type="number" min="1" max="600" class="input-field" />
                             </div>
                         </div>
-                        <div class="text-xs text-sem-fg-muted">seq #{{ seq }}</div>
-                    </div>
 
-                    <div
-                        v-if="lastPingSummary && !lastPingSummary.error"
-                        class="flex flex-wrap gap-2 text-xs text-gray-700 dark:text-gray-200"
-                    >
-                        <span v-if="lastPingSummary.hopsThere != null" class="stat-chip"
-                            >{{ $t("rnprobe.hops") }} there: {{ lastPingSummary.hopsThere }}</span
-                        >
-                        <span v-if="lastPingSummary.hopsBack != null" class="stat-chip"
-                            >{{ $t("rnprobe.hops") }} back: {{ lastPingSummary.hopsBack }}</span
-                        >
-                        <span v-if="lastPingSummary.rssi != null" class="stat-chip"
-                            >{{ $t("rnprobe.rssi") }} {{ lastPingSummary.rssi }} dBm</span
-                        >
-                        <span v-if="lastPingSummary.snr != null" class="stat-chip"
-                            >{{ $t("rnprobe.snr") }} {{ lastPingSummary.snr }} dB</span
-                        >
-                        <span v-if="lastPingSummary.quality != null" class="stat-chip"
-                            >{{ $t("rnprobe.quality") }} {{ lastPingSummary.quality }}%</span
-                        >
-                        <span v-if="lastPingSummary.via" class="stat-chip"
-                            >{{ $t("app.interfaces") }} {{ lastPingSummary.via }}</span
-                        >
-                    </div>
-
-                    <div
-                        id="results"
-                        class="flex-1 overflow-y-auto rounded-2xl bg-black/80 text-emerald-300 font-mono text-xs p-3 space-y-1 shadow-inner border border-zinc-900"
-                    >
-                        <div v-if="pingResults.length === 0" class="text-emerald-500/80">
-                            {{ $t("ping.no_pings_yet") }}
+                        <div class="flex flex-wrap gap-2">
+                            <button v-if="!isRunning" type="button" class="primary-chip" @click="start">
+                                <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
+                                {{ $t("ping.start_ping") }}
+                            </button>
+                            <button
+                                v-else
+                                type="button"
+                                class="secondary-chip text-red-600! dark:text-red-300! border-red-200! dark:border-red-500/50!"
+                                @click="stop"
+                            >
+                                <MaterialDesignIcon icon-name="pause" class="w-4 h-4" />
+                                {{ $t("ping.stop") }}
+                            </button>
+                            <button type="button" class="secondary-chip" @click="clear">
+                                <MaterialDesignIcon icon-name="broom" class="w-4 h-4" />
+                                {{ $t("ping.clear_results") }}
+                            </button>
+                            <button type="button" class="danger-chip" @click="dropPath">
+                                <MaterialDesignIcon icon-name="link-variant-remove" class="w-4 h-4" />
+                                {{ $t("ping.drop_path") }}
+                            </button>
                         </div>
+
+                        <div class="flex flex-wrap gap-2 text-xs font-semibold">
+                            <span
+                                :class="[
+                                    isRunning
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+                                        : 'bg-gray-200 text-gray-700 dark:bg-zinc-800 dark:text-gray-200',
+                                    'rounded-full px-3 py-1',
+                                ]"
+                            >
+                                {{ $t("ping.status") }}: {{ isRunning ? $t("ping.running") : $t("ping.idle") }}
+                            </span>
+                            <span
+                                v-if="lastPingSummary?.duration"
+                                class="rounded-full px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200"
+                            >
+                                {{ $t("ping.last_rtt") }}: {{ lastPingSummary.duration }}
+                            </span>
+                            <span
+                                v-if="lastPingSummary?.error"
+                                class="rounded-full px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200"
+                            >
+                                {{ $t("ping.last_error") }}: {{ lastPingSummary.error }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="fused-section flex flex-col min-h-[320px] space-y-3">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <div class="text-sm font-semibold text-sem-fg">
+                                    {{ $t("ping.console_output") }}
+                                </div>
+                                <div class="text-xs text-sem-fg-muted">
+                                    {{ $t("ping.streaming_responses") }}
+                                </div>
+                            </div>
+                            <div class="text-xs text-sem-fg-muted">seq #{{ seq }}</div>
+                        </div>
+
                         <div
-                            v-for="(pingResult, index) in pingResults"
-                            :key="`${index}-${pingResult}`"
-                            class="whitespace-pre-wrap"
+                            v-if="lastPingSummary && !lastPingSummary.error"
+                            class="flex flex-wrap gap-2 text-xs text-gray-700 dark:text-gray-200"
                         >
-                            {{ pingResult }}
+                            <span v-if="lastPingSummary.hopsThere != null" class="stat-chip"
+                                >{{ $t("rnprobe.hops") }} there: {{ lastPingSummary.hopsThere }}</span
+                            >
+                            <span v-if="lastPingSummary.hopsBack != null" class="stat-chip"
+                                >{{ $t("rnprobe.hops") }} back: {{ lastPingSummary.hopsBack }}</span
+                            >
+                            <span v-if="lastPingSummary.rssi != null" class="stat-chip"
+                                >{{ $t("rnprobe.rssi") }} {{ lastPingSummary.rssi }} dBm</span
+                            >
+                            <span v-if="lastPingSummary.snr != null" class="stat-chip"
+                                >{{ $t("rnprobe.snr") }} {{ lastPingSummary.snr }} dB</span
+                            >
+                            <span v-if="lastPingSummary.quality != null" class="stat-chip"
+                                >{{ $t("rnprobe.quality") }} {{ lastPingSummary.quality }}%</span
+                            >
+                            <span v-if="lastPingSummary.via" class="stat-chip"
+                                >{{ $t("app.interfaces") }} {{ lastPingSummary.via }}</span
+                            >
+                        </div>
+
+                        <div
+                            id="results"
+                            class="flex-1 overflow-y-auto rounded-2xl bg-black/80 text-emerald-300 font-mono text-xs p-3 space-y-1 shadow-inner border border-zinc-900"
+                        >
+                            <div v-if="pingResults.length === 0" class="text-emerald-500/80">
+                                {{ $t("ping.no_pings_yet") }}
+                            </div>
+                            <div
+                                v-for="(pingResult, index) in pingResults"
+                                :key="`${index}-${pingResult}`"
+                                class="whitespace-pre-wrap"
+                            >
+                                {{ pingResult }}
+                            </div>
                         </div>
                     </div>
                 </div>

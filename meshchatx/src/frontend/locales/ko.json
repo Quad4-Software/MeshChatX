@@ -82,6 +82,7 @@
     },
     "app": {
         "name": "Reticulum MeshChatX",
+        "skip_to_content": "Skip to main content",
         "sync_messages": "메시지 동기화",
         "compose": "메시지 작성",
         "messages": "메시지",
