@@ -88,10 +88,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     message_fields_have_attachments,
     migrate_legacy_to_target,
     mime_for_image_type,
+    nomad_link_identity_kwargs,
     normalize_identity_storage_hash,
     normalize_lxmf_sieve_filters,
     normalize_message_blocklist,
-    nomad_link_identity_kwargs,
     os,
     parse_bool_query_param,
     parse_import_document,
@@ -130,8 +130,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
-
-
 from meshchatx.src.backend.websocket_runtime import (
     WS_NOMAD_CHUNK_SIZE,
     WS_NOMAD_CHUNK_THRESHOLD,
@@ -160,10 +158,13 @@ def _is_nomad_image_request(extra: dict | None) -> bool:
     return extra.get("image_id") is not None
 
 
+_SUPPORTED_NOMAD_IMAGE_TYPES = frozenset({"webp", "png", "jpeg", "bmp", "gif", "tiff"})
+
+
 def _validate_nomad_image_bytes(file_bytes: bytes | None) -> bool:
     if not file_bytes:
         return False
-    return detect_image_format_from_magic(file_bytes) == "webp"
+    return detect_image_format_from_magic(file_bytes) in _SUPPORTED_NOMAD_IMAGE_TYPES
 
 
 async def _send_nomad_file_bytes(
@@ -733,14 +734,24 @@ async def handle_nomadnet_file_download(app, client, data):
             ),
         )
 
+    # Route /media/ requests through the single /media handler.
+    rns_path = file_path
+    rns_data = request_data
+    if file_path.startswith("/media/"):
+        rns_path = "/media"
+        media_payload = {"path": file_path}
+        if isinstance(request_data, dict):
+            media_payload.update(request_data)
+        rns_data = media_payload
+
     # download the file
     downloader = NomadnetFileDownloader(
         destination_hash,
-        file_path,
+        rns_path,
         on_file_download_success,
         on_file_download_failure,
         on_file_download_progress,
-        data=request_data,
+        data=rns_data,
         on_phase=on_file_download_phase,
         reticulum=getattr(app, "reticulum", None),
         max_bytes=WS_NOMAD_FILE_MAX_BYTES,
