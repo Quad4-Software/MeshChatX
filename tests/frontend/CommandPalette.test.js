@@ -71,17 +71,26 @@ describe("CommandPalette.vue", () => {
         expect(wrapper.find(".fixed").exists()).toBe(false);
     });
 
-    it("opens when Ctrl+K or Cmd+K is pressed", async () => {
+    it("opens when the open-command-palette event fires", async () => {
         const wrapper = mountCommandPalette();
-
-        const event = new KeyboardEvent("keydown", {
-            key: "k",
-            ctrlKey: true,
-        });
-        window.dispatchEvent(event);
+        GlobalEmitter.emit("open-command-palette");
 
         await wrapper.vm.$nextTick();
         expect(wrapper.vm.isOpen).toBe(true);
+    });
+
+    it("exposes dialog ARIA attributes and combobox input", async () => {
+        const wrapper = mountCommandPalette();
+        wrapper.vm.isOpen = true;
+        await wrapper.vm.$nextTick();
+
+        const dialog = wrapper.find('[role="dialog"]');
+        expect(dialog.exists()).toBe(true);
+        expect(dialog.attributes("aria-modal")).toBe("true");
+
+        const input = wrapper.find('input[role="combobox"]');
+        expect(input.exists()).toBe(true);
+        expect(input.attributes("aria-controls")).toBe("command-palette-listbox");
     });
 
     it("opens and closes when toggle is called", async () => {
@@ -259,6 +268,19 @@ describe("CommandPalette.vue", () => {
         if (syncResult) {
             wrapper.vm.executeResult(syncResult);
             expect(emitSpy).toHaveBeenCalledWith("sync-propagation-node");
+        }
+    });
+
+    it("emits toggle_sidebar shortcut when toggle-sidebar action is executed", async () => {
+        const wrapper = mountCommandPalette();
+        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
+        wrapper.vm.isOpen = true;
+        await wrapper.vm.$nextTick();
+
+        const toggleResult = wrapper.vm.filteredResults.find((r) => r.action === "toggle-sidebar");
+        if (toggleResult) {
+            wrapper.vm.executeResult(toggleResult);
+            expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "toggle_sidebar");
         }
     });
 

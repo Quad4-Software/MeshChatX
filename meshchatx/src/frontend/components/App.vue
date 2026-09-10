@@ -6,6 +6,7 @@
         class="h-dvh min-h-0 w-full flex flex-col transition-colors"
         :style="shellCanvasStyle"
     >
+        <a v-if="showMainShell" href="#main-content" class="skip-link">{{ $t("app.skip_to_content") }}</a>
         <FatalErrorPage v-if="fatalError" :error="fatalError" />
         <AppShellBanners
             :show-emergency="Boolean(appInfo?.emergency)"
@@ -45,19 +46,22 @@
             @open-interfaces="onOpenInterfacesForRecovery"
         />
 
-        <RouterView v-if="$route.name === 'auth'" />
+        <main v-if="$route.name === 'auth'" id="main-content" role="main">
+            <RouterView />
+        </main>
 
         <template v-else-if="showMainShell">
-            <div
+            <main
                 v-if="isPopoutMode"
+                id="main-content"
                 class="flex flex-1 h-full w-full overflow-hidden transition-colors"
                 :style="shellCanvasStyle"
             >
                 <RouterView class="flex-1" />
-            </div>
+            </main>
 
             <template v-else>
-                <div
+                <header
                     class="z-100 flex shrink-0 bg-sem-canvas border-sem-border border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
                 >
                     <div
@@ -217,7 +221,7 @@
                             </button>
                         </div>
                     </div>
-                </div>
+                </header>
 
                 <!-- middle -->
                 <div
@@ -377,7 +381,7 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-1 min-w-0 overflow-hidden">
+                    <main id="main-content" class="flex flex-1 min-w-0 overflow-hidden">
                         <RouterView v-slot="{ Component, route }" class="flex-1 min-w-0 h-full bg-sem-canvas">
                             <template v-if="Component">
                                 <KeepAlive>
@@ -398,7 +402,7 @@
                                 </Transition>
                             </template>
                         </RouterView>
-                    </div>
+                    </main>
                 </div>
             </template>
         </template>
@@ -2957,7 +2961,7 @@ export default {
                     this.syncPropagationNode();
                     break;
                 case "command_palette":
-                    // Command palette handles its own shortcut but we emit it just in case
+                    this.$refs.commandPalette?.toggle();
                     break;
                 case "toggle_sidebar":
                     this.isSidebarCollapsed = !this.isSidebarCollapsed;

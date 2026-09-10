@@ -47,12 +47,17 @@ class KeyboardShortcuts {
             return;
         }
 
+        const inModal = document.querySelector('[aria-modal="true"]') !== null;
+
         // Check for matches
         for (const shortcut of this.shortcuts) {
             if (this.matches(shortcut.keys, e)) {
-                if (shortcut.action === "command_palette") {
+                // Block global navigation shortcuts while a modal is open;
+                // the command palette shortcut is still allowed so it can be toggled.
+                if (inModal && shortcut.action !== "command_palette") {
                     continue;
                 }
+
                 // Check if we should ignore because we're in an input
                 const isInput =
                     ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) ||

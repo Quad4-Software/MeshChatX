@@ -290,3 +290,25 @@ pre.text-wrap > div > :last-child {
     color: #60a5fa;
     text-decoration: underline;
 }
+
+/*
+ * Accessibility: the document root is the reading surface, not a widget.
+ * Suppress the default focus ring on the root so a tab stop does not draw a
+ * full-page outline, while keeping visible focus for actual controls.
+ */
+.nodeContainer[role="document"]:focus,
+.nodeContainer[role="document"]:focus-visible {
+    outline: none;
+}
+
+.nodeContainer a.Mu-nl:focus-visible,
+.nodeContainer a.nomadnet-link:focus-visible,
+.nodeContainer a.lxmf-link:focus-visible,
+.nodeContainer a[data-action="openNode"]:focus-visible,
+.nodeContainer .mu-image-action:focus-visible,
+.nodeContainer input[type="text"]:focus,
+.nodeContainer input[type="password"]:focus,
+.nodeContainer textarea:focus {
+    outline: 1px solid currentColor;
+    outline-offset: 1px;
+}

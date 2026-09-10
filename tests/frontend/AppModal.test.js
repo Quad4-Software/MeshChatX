@@ -59,6 +59,15 @@ describe("AppModal.vue", () => {
         wrapper.unmount();
     });
 
+    it("finds focusable elements inside the dialog", async () => {
+        const wrapper = mountModal({ showClose: true });
+        await wrapper.vm.$nextTick();
+
+        const focusable = wrapper.vm.getFocusableElements();
+        expect(focusable.length).toBeGreaterThan(0);
+        expect(focusable[0].getAttribute("aria-label")).toBe("common.close");
+    });
+
     it("fullscreen mode sets full viewport panel dimensions", () => {
         const wrapper = mountModal({ fullscreen: true });
         const panel = wrapper.find('[role="dialog"]');

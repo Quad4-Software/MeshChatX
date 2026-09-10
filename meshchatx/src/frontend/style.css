@@ -104,6 +104,10 @@
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sem-focus focus-visible:ring-offset-2 focus-visible:ring-offset-sem-canvas;
 }
 
+.skip-link {
+  @apply sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[500] focus:px-4 focus:py-2 focus:bg-sem-surface focus:text-sem-fg focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-sem-focus;
+}
+
 .press-feedback {
   @apply active:scale-95 motion-reduce:transform-none;
 }

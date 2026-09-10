@@ -9,6 +9,9 @@
             <div
                 v-click-outside="close"
                 class="w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-sem-border overflow-hidden flex flex-col max-h-[min(70dvh,70vh)] pointer-events-auto mt-2 sm:mt-8"
+                role="dialog"
+                aria-modal="true"
+                :aria-label="$t('command_palette.dialog_label')"
             >
                 <!-- search input -->
                 <div class="relative flex items-center p-4 border-b border-sem-border">
@@ -19,8 +22,19 @@
                         type="text"
                         class="w-full bg-transparent border-none focus:ring-0 text-sem-fg placeholder-gray-400 text-lg"
                         :placeholder="$t('command_palette.search_placeholder')"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded="true"
+                        aria-controls="command-palette-listbox"
+                        :aria-activedescendant="activeDescendantId"
                         @keydown.down.prevent="moveHighlight(1)"
                         @keydown.up.prevent="moveHighlight(-1)"
+                        @keydown.home.prevent="highlightedId = filteredResults[0] ? filteredResults[0].id : null"
+                        @keydown.end.prevent="
+                            highlightedId = filteredResults[filteredResults.length - 1]
+                                ? filteredResults[filteredResults.length - 1].id
+                                : null
+                        "
                         @keydown.enter="executeAction"
                         @keydown.esc="close"
                     />
@@ -33,19 +47,25 @@
                 </div>
 
                 <!-- results -->
-                <div class="flex-1 overflow-y-auto p-2 min-h-0">
+                <div id="command-palette-listbox" class="flex-1 overflow-y-auto p-2 min-h-0" role="listbox">
                     <div v-if="filteredResults.length === 0" class="p-8 text-center text-sem-fg-muted">
                         {{ $t("command_palette.no_results", { query: query }) }}
                     </div>
                     <div v-else class="space-y-1">
-                        <div v-for="(group, groupName) in groupedResults" :key="groupName">
-                            <div class="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <div v-for="(group, groupName) in groupedResults" :key="groupName" role="group">
+                            <div
+                                class="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                                role="presentation"
+                            >
                                 {{ $t(`command_palette.${groupName}`) }}
                             </div>
                             <button
                                 v-for="result in group"
+                                :id="`palette-item-${result.id}`"
                                 :key="result.id"
                                 type="button"
+                                role="option"
+                                :aria-selected="highlightedId === result.id"
                                 class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group"
                                 :class="[
                                     highlightedId === result.id
@@ -132,6 +152,9 @@ export default {
         };
     },
     computed: {
+        activeDescendantId() {
+            return this.highlightedId ? `palette-item-${this.highlightedId}` : null;
+        },
         actions() {
             return listCommands();
         },
@@ -210,21 +233,12 @@ export default {
         },
     },
     mounted() {
-        window.addEventListener("keydown", this.handleGlobalKeydown, true);
         GlobalEmitter.on("open-command-palette", this.open);
     },
     beforeUnmount() {
-        window.removeEventListener("keydown", this.handleGlobalKeydown, true);
         GlobalEmitter.off("open-command-palette", this.open);
     },
     methods: {
-        handleGlobalKeydown(e) {
-            if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggle();
-            }
-        },
         async toggle() {
             if (this.isOpen) {
                 this.close();
@@ -292,6 +306,8 @@ export default {
                     GlobalEmitter.emit("show-tutorial");
                 } else if (result.action === "show-changelog") {
                     GlobalEmitter.emit("show-changelog");
+                } else if (result.action === "toggle-sidebar") {
+                    GlobalEmitter.emit("keyboard-shortcut", "toggle_sidebar");
                 }
             }
         },

@@ -4,6 +4,7 @@
     <Teleport to="body">
         <div
             v-if="modelValue"
+            ref="dialog"
             class="fixed inset-0 z-[200] flex items-center justify-center p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/50 backdrop-blur-xs"
             @click.self="onBackdropClick"
         >
@@ -88,6 +89,12 @@ export default {
         },
     },
     emits: ["update:modelValue", "close"],
+    data() {
+        return {
+            previouslyFocused: null,
+            focusTrapHandler: null,
+        };
+    },
     computed: {
         panelStyle() {
             if (this.fullscreen) {
@@ -101,6 +108,25 @@ export default {
             };
         },
     },
+    watch: {
+        modelValue: {
+            immediate: true,
+            handler(newVal) {
+                if (newVal) {
+                    this.previouslyFocused = document.activeElement;
+                    this.$nextTick(() => {
+                        this.attachFocusTrap();
+                        this.focusFirst();
+                    });
+                } else {
+                    this.detachFocusTrap();
+                    if (this.previouslyFocused && typeof this.previouslyFocused.focus === "function") {
+                        this.previouslyFocused.focus();
+                    }
+                }
+            },
+        },
+    },
     methods: {
         close() {
             this.$emit("update:modelValue", false);
@@ -110,6 +136,50 @@ export default {
             if (!this.persistent) {
                 this.close();
             }
+        },
+        getFocusableElements() {
+            const root = this.$refs.dialog;
+            if (!root) {
+                return [];
+            }
+            const selector =
+                'button:not([disabled]), [href]:not([tabindex="-1"]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+            return Array.from(root.querySelectorAll(selector)).filter(
+                (el) => !el.disabled && el.getAttribute("aria-hidden") !== "true" && el.getAttribute("hidden") === null
+            );
+        },
+        focusFirst() {
+            const focusable = this.getFocusableElements();
+            if (focusable.length > 0) {
+                focusable[0].focus();
+            }
+        },
+        handleFocusTrap(e) {
+            if (e.key !== "Tab") return;
+            const focusable = this.getFocusableElements();
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        },
+        attachFocusTrap() {
+            this.detachFocusTrap();
+            this.focusTrapHandler = (e) => this.handleFocusTrap(e);
+            if (this.$refs.dialog) {
+                this.$refs.dialog.addEventListener("keydown", this.focusTrapHandler, true);
+            }
+        },
+        detachFocusTrap() {
+            if (this.focusTrapHandler && this.$refs.dialog) {
+                this.$refs.dialog.removeEventListener("keydown", this.focusTrapHandler, true);
+            }
+            this.focusTrapHandler = null;
         },
     },
 };

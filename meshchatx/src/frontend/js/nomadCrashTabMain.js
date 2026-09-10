@@ -342,6 +342,8 @@ function applyChrome(msg) {
         parts.push("bg-black");
     }
     root.className = parts.join(" ");
+    root.setAttribute("role", "document");
+    root.setAttribute("tabindex", "0");
     paintShell(msg.background || "#000000", msg.color || "#dddddd");
 }
 
@@ -350,6 +352,9 @@ async function renderPage(msg, seq, api) {
     applyChrome(msg);
     const path = msg.path || "";
     const content = msg.content ?? "";
+    const renderOptions = msg.renderOptions && typeof msg.renderOptions === "object" ? msg.renderOptions : {};
+    document.title = path || "Nomad";
+    document.documentElement.lang = renderOptions.locale || "en";
     if (msg.showSource) {
         root.innerHTML = escapeSource(content);
         if (seq === renderSeq) {
@@ -359,7 +364,6 @@ async function renderPage(msg, seq, api) {
     }
     const [pagePathWithoutData] = String(path).split("`");
     const pagePartials = msg.pagePartials && typeof msg.pagePartials === "object" ? msg.pagePartials : {};
-    const renderOptions = msg.renderOptions && typeof msg.renderOptions === "object" ? msg.renderOptions : {};
     if (renderOptions.nomad_micron_wasm_use === true) {
         await api.preloadNomadMicronWasm();
     }
