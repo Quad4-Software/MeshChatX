@@ -6,11 +6,14 @@ import {
     ALL_SETTINGS_SECTIONS,
     DEFAULT_SETTINGS_TAB,
     getSettingsTab,
+    isAdvancedSettingsSection,
     normalizeSettingsTabId,
     SETTINGS_TABS,
     settingsSectionBelongsToTab,
     settingsSectionSearchExtras,
     settingsTabForSection,
+    settingsTabHasVisibleSections,
+    visibleSectionsForTab,
 } from "../../meshchatx/src/frontend/js/settings/settingsTabs.js";
 
 const KNOWN_SECTIONS_FROM_SETTINGS_PAGE = [
@@ -138,6 +141,37 @@ describe("settingsTabs", () => {
             expect(en.settings.tabs[labelTail]).toBeTruthy();
             expect(en.settings.tabs[descTail]).toBeTruthy();
         }
+    });
+
+    it("classifies technical sections as advanced and everyday ones as simple", () => {
+        expect(isAdvancedSettingsSection("transport")).toBe(true);
+        expect(isAdvancedSettingsSection("interfaces")).toBe(true);
+        expect(isAdvancedSettingsSection("csp")).toBe(true);
+        expect(isAdvancedSettingsSection("plugins")).toBe(true);
+        expect(isAdvancedSettingsSection("appearance")).toBe(false);
+        expect(isAdvancedSettingsSection("language")).toBe(false);
+        expect(isAdvancedSettingsSection("messages")).toBe(false);
+        expect(isAdvancedSettingsSection("unknown-section")).toBe(false);
+    });
+
+    it("visibleSectionsForTab filters advanced sections only in simple mode", () => {
+        const general = getSettingsTab("general");
+        const simple = visibleSectionsForTab(general, "simple");
+        expect(simple).toContain("appearance");
+        expect(simple).toContain("language");
+        expect(simple).not.toContain("experimentalLive");
+        expect(simple).not.toContain("translation");
+        expect(visibleSectionsForTab(general, "advanced")).toEqual(general.sections);
+        expect(visibleSectionsForTab(null, "simple")).toEqual([]);
+    });
+
+    it("tabs made entirely of advanced sections are hidden in simple mode", () => {
+        expect(settingsTabHasVisibleSections(getSettingsTab("network"), "simple")).toBe(false);
+        expect(settingsTabHasVisibleSections(getSettingsTab("nomad"), "simple")).toBe(false);
+        expect(settingsTabHasVisibleSections(getSettingsTab("plugins"), "simple")).toBe(false);
+        expect(settingsTabHasVisibleSections(getSettingsTab("general"), "simple")).toBe(true);
+        expect(settingsTabHasVisibleSections(getSettingsTab("network"), "advanced")).toBe(true);
+        expect(settingsTabHasVisibleSections(getSettingsTab("nomad"), "advanced")).toBe(true);
     });
 
     it("adds tab label and camelCase section id as search extras", () => {

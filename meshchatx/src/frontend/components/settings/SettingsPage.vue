@@ -145,7 +145,9 @@
                     <SettingsNav
                         :active-tab="settingsNavActiveTab"
                         :match-counts="settingsSearchActive ? settingsSearchMatchCounts : null"
+                        :mode="settingsMode"
                         @select="onSettingsNavSelect"
+                        @update:mode="onSettingsModeChange"
                     />
                     <div class="settings-panel__content">
                         <StrangerProtectionSettingsSection
@@ -3049,14 +3051,17 @@ import {
     syncIncomingDeliveryFieldsFromBytes,
 } from "../../js/settings/incomingDeliveryLimit";
 import { normalizeRetentionValue } from "../../js/localMessageRetention";
-import { matchesSettingSearch, normalizeSearchString } from "../../js/settingsSearchUtils";
+import { matchesSettingSearch, matchesSettingSearchFuzzy, normalizeSearchString } from "../../js/settingsSearchUtils";
 import {
     ALL_SETTINGS_SECTIONS,
     DEFAULT_SETTINGS_TAB,
+    getSettingsTab,
+    isAdvancedSettingsSection,
     normalizeSettingsTabId,
     SETTINGS_TABS,
     settingsSectionBelongsToTab,
     settingsSectionSearchExtras,
+    settingsTabHasVisibleSections,
 } from "../../js/settings/settingsTabs.js";
 import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
@@ -3255,6 +3260,7 @@ export default {
             messageAgePurgeBusy: false,
             searchQuery: "",
             searchTabFilter: null,
+            settingsMode: "simple",
             activeSettingsTab: DEFAULT_SETTINGS_TAB,
             micronWasmUpdateModalOpen: false,
             micronWasmReleaseLabel: null,
@@ -3321,6 +3327,44 @@ export default {
         settingsSearchDisplay() {
             return normalizeSearchString(this.searchQuery) || this.searchQuery;
         },
+        // Sections matching the current search query. Strict matching is
+        // tried first; when it finds nothing, a typo-tolerant pass lets
+        // queries like "mesages" still surface the right section.
+        settingsSearchMatchedKeys() {
+            if (!this.settingsSearchActive) {
+                return null;
+            }
+            const translate = (key) => this.$t(key);
+            const strict = ALL_SETTINGS_SECTIONS.filter(
+                (key) =>
+                    this.sectionAvailable(key) &&
+                    matchesSettingSearch(this.sectionSearchTexts(key), translate, this.searchQuery)
+            );
+            if (strict.length > 0) {
+                return new Set(strict);
+            }
+            return new Set(
+                ALL_SETTINGS_SECTIONS.filter(
+                    (key) =>
+                        this.sectionAvailable(key) &&
+                        matchesSettingSearchFuzzy(this.sectionSearchTexts(key), translate, this.searchQuery)
+                )
+            );
+        },
+        // The tab that should actually render when not searching. In simple
+        // mode an all-advanced tab falls back to the first visible tab.
+        effectiveSettingsTab() {
+            if (this.settingsMode === "simple") {
+                const tab = getSettingsTab(this.activeSettingsTab);
+                if (!settingsTabHasVisibleSections(tab, "simple")) {
+                    const first = SETTINGS_TABS.find((t) => settingsTabHasVisibleSections(t, "simple"));
+                    if (first) {
+                        return first.id;
+                    }
+                }
+            }
+            return this.activeSettingsTab;
+        },
         settingsNavActiveTab() {
             if (this.settingsSearchActive) {
                 const filter = this.searchTabFilter;
@@ -3329,18 +3373,19 @@ export default {
                 }
                 return "";
             }
-            return this.activeSettingsTab;
+            return this.effectiveSettingsTab;
         },
         settingsSearchMatchCounts() {
             /** @type {Record<string, number>} */
             const counts = {};
+            const matched = this.settingsSearchMatchedKeys;
             for (const tab of SETTINGS_TABS) {
-                counts[tab.id] = tab.sections.filter((sectionKey) => this.sectionMatchesQuery(sectionKey)).length;
+                counts[tab.id] = matched ? tab.sections.filter((sectionKey) => matched.has(sectionKey)).length : 0;
             }
             return counts;
         },
         settingsSearchMatchTotal() {
-            return ALL_SETTINGS_SECTIONS.filter((sectionKey) => this.sectionMatchesQuery(sectionKey)).length;
+            return this.settingsSearchMatchedKeys ? this.settingsSearchMatchedKeys.size : 0;
         },
         hasSearchResults() {
             if (!this.settingsSearchActive) return true;
@@ -3574,6 +3619,14 @@ export default {
         this.loadScreenSecuritySettings();
         this.loadReticulumInstanceSettings();
         this.loadAndroidShellPrivacy();
+        try {
+            const savedMode = localStorage.getItem("meshchatx_settings_mode");
+            if (savedMode === "simple" || savedMode === "advanced") {
+                this.settingsMode = savedMode;
+            }
+        } catch {
+            /* ignore */
+        }
     },
     methods: {
         onIdentitySwitched() {
@@ -4045,7 +4098,9 @@ export default {
         },
         sectionMatchesQuery(sectionKey) {
             if (!this.sectionAvailable(sectionKey)) return false;
-            return matchesSettingSearch(this.sectionSearchTexts(sectionKey), (k) => this.$t(k), this.searchQuery);
+            const matched = this.settingsSearchMatchedKeys;
+            if (!matched) return true;
+            return matched.has(sectionKey);
         },
         shareAndroidApk() {
             const bridge = new AndroidBridge();
@@ -4143,11 +4198,32 @@ export default {
                 }
                 return true;
             }
-            const tab = SETTINGS_TABS.find((entry) => entry.id === this.activeSettingsTab);
+            if (this.settingsMode === "simple" && isAdvancedSettingsSection(sectionKey)) {
+                return false;
+            }
+            const tab = SETTINGS_TABS.find((entry) => entry.id === this.effectiveSettingsTab);
             return Boolean(tab && tab.sections.includes(sectionKey));
         },
         selectSettingsTab(tabId) {
-            this.activeSettingsTab = normalizeSettingsTabId(tabId);
+            const normalized = normalizeSettingsTabId(tabId);
+            // Programmatic selection of an all-advanced tab while in simple
+            // mode promotes to advanced so the request is not silently dropped.
+            if (
+                this.settingsMode === "simple" &&
+                !this.settingsSearchActive &&
+                !settingsTabHasVisibleSections(getSettingsTab(normalized), "simple")
+            ) {
+                this.onSettingsModeChange("advanced");
+            }
+            this.activeSettingsTab = normalized;
+        },
+        onSettingsModeChange(mode) {
+            this.settingsMode = mode === "simple" ? "simple" : "advanced";
+            try {
+                localStorage.setItem("meshchatx_settings_mode", this.settingsMode);
+            } catch {
+                /* ignore */
+            }
         },
         onConfigEvent(json) {
             if (json.config) {

@@ -2304,6 +2304,9 @@
             "plugins_desc": "安装和管理 MeshChatX 插件"
         },
         "nav_label": "设置分组",
+        "nav_mode_label": "设置模式",
+        "mode_simple": "简单",
+        "mode_advanced": "高级",
         "search_label": "搜索设置",
         "search_no_results": "未找到结果",
         "search_no_match": "没有与“{query}”匹配的设置",

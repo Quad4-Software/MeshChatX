@@ -48,6 +48,47 @@ describe("SettingsNav", () => {
         expect(nav.attributes("aria-label")).toBe("settings.nav_label");
     });
 
+    it("hides all-advanced tabs in simple mode and shows them in advanced mode", () => {
+        const simple = mount(SettingsNav, {
+            props: { activeTab: "general", mode: "simple" },
+            global: { mocks: { $t: (key) => key } },
+        });
+        expect(simple.text()).not.toContain("settings.tabs.network");
+        expect(simple.text()).not.toContain("settings.tabs.nomad");
+        expect(simple.text()).not.toContain("settings.tabs.plugins");
+        expect(simple.text()).toContain("settings.tabs.general");
+        expect(simple.text()).toContain("settings.tabs.privacy");
+
+        const advanced = mount(SettingsNav, {
+            props: { activeTab: "general", mode: "advanced" },
+            global: { mocks: { $t: (key) => key } },
+        });
+        expect(advanced.findAll(".settings-nav__tab")).toHaveLength(SETTINGS_TABS.length);
+    });
+
+    it("emits update:mode from the simple/advanced toggle", async () => {
+        const wrapper = mount(SettingsNav, {
+            props: { activeTab: "general", mode: "simple" },
+            global: { mocks: { $t: (key) => key } },
+        });
+        const buttons = wrapper.findAll(".settings-nav__mode-btn");
+        expect(buttons).toHaveLength(2);
+        await buttons[1].trigger("click");
+        expect(wrapper.emitted("update:mode")).toEqual([["advanced"]]);
+    });
+
+    it("keeps every tab reachable during search even in simple mode", () => {
+        const wrapper = mount(SettingsNav, {
+            props: {
+                activeTab: "",
+                mode: "simple",
+                matchCounts: { general: 0, network: 1 },
+            },
+            global: { mocks: { $t: (key) => key } },
+        });
+        expect(wrapper.text()).toContain("settings.tabs.network");
+    });
+
     it("shows match counts during search and disables empty tabs", async () => {
         const wrapper = mount(SettingsNav, {
             props: {

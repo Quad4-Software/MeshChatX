@@ -12,6 +12,19 @@ export const TILE_PROVIDER_URLS = {
     "carto-light": "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
 };
 
+const OSM_ATTR =
+    '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
+const CARTO_ATTR = `${OSM_ATTR} © <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>`;
+
+/** Required attribution HTML for the known tile providers. */
+export const TILE_PROVIDER_ATTRIBUTIONS = {
+    osm: OSM_ATTR,
+    openfreemap: `© <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> ${OSM_ATTR}`,
+    "carto-dark": CARTO_ATTR,
+    "carto-voyager": CARTO_ATTR,
+    "carto-light": CARTO_ATTR,
+};
+
 /**
  * Parse tile template URLs for hostname and pathname.
  * Leaflet placeholders like {z} are replaced so URL() accepts the string.
@@ -55,6 +68,22 @@ export function detectRasterTileProviderId(tileServerUrl) {
         }
     }
     return null;
+}
+
+/**
+ * Attribution HTML for a tile server URL, or null when the provider is unknown.
+ * @param {string} tileServerUrl
+ * @returns {string | null}
+ */
+export function attributionForTileUrl(tileServerUrl) {
+    // openfreemap serves style JSON, not raster tiles, so it is intentionally
+    // not part of detectRasterTileProviderId; match its host here instead.
+    const { host } = tileUrlParts(tileServerUrl);
+    if (host === "tiles.openfreemap.org" || host.endsWith(".openfreemap.org")) {
+        return TILE_PROVIDER_ATTRIBUTIONS.openfreemap;
+    }
+    const id = detectRasterTileProviderId(tileServerUrl);
+    return id ? (TILE_PROVIDER_ATTRIBUTIONS[id] ?? null) : null;
 }
 
 export function nextRasterTileProviderId(currentId, attemptedIds = []) {

@@ -2304,6 +2304,9 @@
             "plugins_desc": "Install and manage MeshChatX plugins"
         },
         "nav_label": "Settings sections",
+        "nav_mode_label": "Settings mode",
+        "mode_simple": "Simple",
+        "mode_advanced": "Advanced",
         "search_label": "Search settings",
         "search_no_results": "No results found",
         "search_no_match": "No settings match \"{query}\"",

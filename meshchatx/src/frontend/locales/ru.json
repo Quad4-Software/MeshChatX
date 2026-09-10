@@ -2304,6 +2304,9 @@
             "plugins_desc": "Установка и управление плагинами MeshChatX"
         },
         "nav_label": "Разделы настроек",
+        "nav_mode_label": "Режим настроек",
+        "mode_simple": "Простой",
+        "mode_advanced": "Расширенный",
         "search_label": "Поиск настроек",
         "search_no_results": "Ничего не найдено",
         "search_no_match": "Нет настроек по запросу \"{query}\"",

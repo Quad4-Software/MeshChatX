@@ -179,6 +179,50 @@ describe("SettingsPage search", () => {
         expect(document.activeElement).toBe(input.element);
     });
 
+    it("simple mode hides advanced sections but search still finds them", async () => {
+        wrapper = await mountSettingsPage();
+        wrapper.vm.settingsMode = "simple";
+        wrapper.vm.activeSettingsTab = "general";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.showSection("appearance")).toBe(true);
+        expect(wrapper.vm.showSection("experimentalLive")).toBe(false);
+
+        wrapper.vm.searchQuery = "webtransport";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.showSection("experimentalLive")).toBe(true);
+    });
+
+    it("simple mode falls back to a visible tab when the active tab is all-advanced", async () => {
+        wrapper = await mountSettingsPage();
+        wrapper.vm.settingsMode = "simple";
+        wrapper.vm.activeSettingsTab = "network";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.effectiveSettingsTab).not.toBe("network");
+        expect(wrapper.vm.showSection("transport")).toBe(false);
+        expect(wrapper.vm.settingsNavActiveTab).toBe(wrapper.vm.effectiveSettingsTab);
+    });
+
+    it("selecting an all-advanced tab in simple mode promotes to advanced", async () => {
+        wrapper = await mountSettingsPage();
+        wrapper.vm.settingsMode = "simple";
+        await wrapper.vm.$nextTick();
+        wrapper.vm.selectSettingsTab("network");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.settingsMode).toBe("advanced");
+        expect(wrapper.vm.showSection("transport")).toBe(true);
+    });
+
+    it("fuzzy fallback surfaces typo queries without breaking strict no-match", async () => {
+        wrapper = await mountSettingsPage();
+        wrapper.vm.searchQuery = "mesages";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.showSection("messages")).toBe(true);
+
+        wrapper.vm.searchQuery = "zzz-no-such-setting";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.hasSearchResults).toBe(false);
+    });
+
     it("clearSettingsSearch restores tab browsing", async () => {
         wrapper = await mountSettingsPage();
         wrapper.vm.searchQuery = "theme";
