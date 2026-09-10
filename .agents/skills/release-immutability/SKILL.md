@@ -46,9 +46,9 @@ This means a manually created release blocks the workflow from attaching built a
 2. Tag the merge commit: `git tag -a vX.Y.Z -m "Release X.Y.Z"`.
 3. Push the tag: `git push origin vX.Y.Z`.
 4. Wait for the `build-release.yml` workflow to:
-   - build assets,
-   - create a **draft** release,
-   - upload all assets.
+    - build assets,
+    - create a **draft** release,
+    - upload all assets.
 5. Review the draft release on GitHub.
 6. Publish the draft manually when ready.
 
