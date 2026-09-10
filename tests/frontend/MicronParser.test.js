@@ -298,6 +298,14 @@ Content at depth 1`;
                 expect(html).toContain('class="Mu-nl"');
             });
 
+            it("renders a placeholder for a /media non-webp image", () => {
+                const markup = "`[River valley`:/media/harbour.png`w=400]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-image"');
+                expect(html).toContain('data-mu-image-url=":/media/harbour.png"');
+                expect(html).toContain('data-mu-image-alt="River valley"');
+            });
+
             it("respects alignment from the a= option", () => {
                 const markup = "`[Centre`:/file/c.webp`img=1;a=c]";
                 const html = parser.convertMicronToHtml(markup);

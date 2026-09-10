@@ -767,7 +767,8 @@ export default class MicronParser extends BaseMicronParser {
         }
         let url = rawUrl.replace(/^nomadnetwork:\/\//i, "");
         url = url.split("`")[0].split("?")[0].split("#")[0].trim();
-        // Accept "hash:/file/..." and relative ":/file/..." URLs.
+        // Accept "hash:/media/...", "hash:/file/..." and relative ":/media/...",
+        // ":/file/..." URLs.
         let path = url;
         let hash = "";
         if (url.includes(":/")) {
@@ -780,10 +781,15 @@ export default class MicronParser extends BaseMicronParser {
         } else if (url.startsWith(":")) {
             path = url.slice(1);
         }
-        if (!path.startsWith("file/")) {
-            return null;
-        }
-        if (!/\.webp$/i.test(path)) {
+        if (path.startsWith("media/")) {
+            if (!/\.(webp|png|jpe?g|bmp|gif|tiff)$/i.test(path)) {
+                return null;
+            }
+        } else if (path.startsWith("file/")) {
+            if (!/\.webp$/i.test(path)) {
+                return null;
+            }
+        } else {
             return null;
         }
         // Reject anything that looks like traversal.
@@ -804,9 +810,16 @@ export default class MicronParser extends BaseMicronParser {
         const obj = linkData.obj;
         if (obj.type === "link" && Array.isArray(obj.fields) && obj.fields.length > 0) {
             const imgOptions = parseMicronImageOptions(obj.fields);
-            if (imgOptions.img) {
-                const rawUrl = String(obj.url || "").replace(/^nomadnetwork:\/\//, "");
-                const imagePath = MicronParser.extractMicronImageFilePath(rawUrl);
+            const rawUrl = String(obj.url || "").replace(/^nomadnetwork:\/\//, "");
+            const imagePath = MicronParser.extractMicronImageFilePath(rawUrl);
+            let imagePathWithoutHash = imagePath;
+            if (imagePath && imagePath.includes(":/")) {
+                imagePathWithoutHash = imagePath.split(":/", 2)[1];
+            }
+            const isMediaImage =
+                imagePathWithoutHash &&
+                (imagePathWithoutHash.startsWith("/media/") || imagePathWithoutHash.startsWith("media/"));
+            if (imgOptions.img || isMediaImage) {
                 const endpos = line.indexOf("]", startIndex);
                 let originalAlt = "";
                 if (endpos >= 0) {
@@ -816,7 +829,7 @@ export default class MicronParser extends BaseMicronParser {
                         originalAlt = linkComponents[0];
                     }
                 }
-                if (originalAlt.trim() && imagePath) {
+                if (imagePath && originalAlt.trim()) {
                     obj.type = "image";
                     obj.alt = truncateMicronImageAlt(originalAlt.trim());
                     obj.rawUrl = rawUrl;

@@ -685,14 +685,21 @@
                 </div>
                 <div class="font-semibold">{{ $t("nomadnet.no_active_node") }}</div>
                 <div>{{ $t("nomadnet.select_node_to_browse") }}</div>
-                <div class="mx-auto mt-2">
-                    <button
+                <div class="mx-auto mt-3 flex w-full max-w-sm items-center gap-2 px-4">
+                    <input
+                        v-model="emptyNomadUrlInput"
+                        type="text"
+                        :placeholder="$t('nomadnet.enter_nomadnet_url')"
+                        class="nomad-url-input flex-1 block w-full min-w-0"
+                        @keyup.enter="onNodePageUrlClick(emptyNomadUrlInput)"
+                    />
+                    <IconButton
                         type="button"
-                        class="my-auto inline-flex items-center gap-x-1 rounded-md bg-blue-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
-                        @click.stop="openUrl"
+                        :title="$t('nomadnet.nav_go')"
+                        @click="onNodePageUrlClick(emptyNomadUrlInput)"
                     >
-                        {{ $t("nomadnet.open_nomadnet_url") }}
-                    </button>
+                        <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
+                    </IconButton>
                 </div>
             </div>
         </div>
@@ -828,6 +835,7 @@ export default {
             nodePageRequestSequence: 0,
             nodePagePath: null,
             nodePagePathUrlInput: null,
+            emptyNomadUrlInput: "",
             nodePageContent: null,
             nodePageProgress: 0,
             nodePageLoadPhase: null,
@@ -2362,16 +2370,6 @@ export default {
         updateNodeFromAnnounce: function (announce) {
             this.nodes[announce.destination_hash] = announce;
         },
-        async openUrl() {
-            // ask for url
-            const url = await DialogUtils.prompt(this.$t("nomadnet.enter_nomadnet_url"));
-            if (!url) {
-                return;
-            }
-
-            // navigate to the url
-            await this.onNodePageUrlClick(url);
-        },
         async loadNodePage(
             destinationHash,
             pagePath,
@@ -2784,13 +2782,26 @@ export default {
                 this.selectedNode?.destination_hash ||
                 ""
             ).toLowerCase();
-            const filePath = (parsed?.path || "").trim();
+            let filePath = (parsed?.path || "").trim();
+            const backtickIndex = filePath.indexOf("`");
+            if (backtickIndex >= 0) {
+                filePath = filePath.substring(0, backtickIndex);
+            }
             if (!/^[a-f0-9]{32}$/.test(destinationHash)) {
                 return { destinationHash: "", filePath: "" };
             }
             const cleanFilePath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
-            if (!cleanFilePath.startsWith("file/") || !/\.webp$/i.test(cleanFilePath)) {
+            if (!cleanFilePath.startsWith("media/") && !cleanFilePath.startsWith("file/")) {
                 return { destinationHash: "", filePath: "" };
+            }
+            if (cleanFilePath.startsWith("media/")) {
+                if (!/\.(webp|png|jpe?g|bmp|gif|tiff)$/i.test(cleanFilePath)) {
+                    return { destinationHash: "", filePath: "" };
+                }
+            } else if (cleanFilePath.startsWith("file/")) {
+                if (!/\.webp$/i.test(cleanFilePath)) {
+                    return { destinationHash: "", filePath: "" };
+                }
             }
             // Reject obvious traversal or dangerous characters.
             if (
@@ -2821,11 +2832,71 @@ export default {
             this.nomadImageCache.clear();
             this.crashTabImages = [];
         },
+        detectNomadImageMimeFromBase64(fileBytes) {
+            if (typeof fileBytes !== "string" || fileBytes.length === 0) {
+                return "image/webp";
+            }
+            const needed = 24;
+            const chars = Math.ceil((needed / 3) * 4);
+            let prefix = fileBytes.slice(0, chars);
+            while (prefix.length % 4 !== 0) {
+                prefix += "=";
+            }
+            try {
+                const raw = atob(prefix);
+                const bytes = new Uint8Array(raw.length);
+                for (let i = 0; i < raw.length; i++) {
+                    bytes[i] = raw.charCodeAt(i);
+                }
+                if (bytes.length >= 6 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+                    return "image/gif";
+                }
+                if (
+                    bytes.length >= 4 &&
+                    bytes[0] === 0x89 &&
+                    bytes[1] === 0x50 &&
+                    bytes[2] === 0x4e &&
+                    bytes[3] === 0x47
+                ) {
+                    return "image/png";
+                }
+                if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xd8) {
+                    return "image/jpeg";
+                }
+                if (bytes.length >= 4 && bytes[0] === 0x42 && bytes[1] === 0x4d) {
+                    return "image/bmp";
+                }
+                if (
+                    bytes.length >= 12 &&
+                    bytes[0] === 0x52 &&
+                    bytes[1] === 0x49 &&
+                    bytes[2] === 0x46 &&
+                    bytes[3] === 0x46 &&
+                    bytes[8] === 0x57 &&
+                    bytes[9] === 0x45 &&
+                    bytes[10] === 0x42 &&
+                    bytes[11] === 0x50
+                ) {
+                    return "image/webp";
+                }
+                if (
+                    bytes.length >= 4 &&
+                    ((bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2a && bytes[3] === 0x00) ||
+                        (bytes[0] === 0x4d && bytes[1] === 0x4d && bytes[2] === 0x00 && bytes[3] === 0x2a))
+                ) {
+                    return "image/tiff";
+                }
+            } catch {
+                return "image/webp";
+            }
+            return "image/webp";
+        },
         getNomadImageDataUrl(fileBytes) {
             if (!fileBytes) {
                 return null;
             }
-            return `data:image/webp;base64,${fileBytes}`;
+            const mime = this.detectNomadImageMimeFromBase64(fileBytes);
+            return `data:${mime};base64,${fileBytes}`;
         },
         scheduleImageLoads() {
             for (let i = 0; i < this.crashTabImages.length; i++) {
@@ -3401,7 +3472,7 @@ export default {
                 }
 
                 // download file
-                if (parsedUrl.path.startsWith("/file/")) {
+                if (parsedUrl.path.startsWith("/file/") || parsedUrl.path.startsWith("/media/")) {
                     // prevent simultaneous downloads
                     if (this.isDownloadingNodeFile) {
                         ToastUtils.warning(this.$t("nomadnet.existing_download_in_progress"));
@@ -3494,6 +3565,7 @@ export default {
                         }
                     );
 
+                    this.emptyNomadUrlInput = "";
                     return;
                 }
 
@@ -3501,6 +3573,7 @@ export default {
                 this.selectedNode = this.resolveNodeForHash(destinationHash);
 
                 // navigate to node page
+                this.emptyNomadUrlInput = "";
                 this.loadNodePage(destinationHash, parsedUrl.path, fieldData, addToHistory, useCache, navOptions);
                 return;
             }
