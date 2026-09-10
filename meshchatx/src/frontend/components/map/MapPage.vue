@@ -456,6 +456,40 @@
                 </div>
             </div>
 
+            <!-- offline mode with no basemap: friendly empty state with actions -->
+            <div
+                v-if="offlineEnabled && isMapLoaded && !hasOfflineMap"
+                class="absolute inset-0 z-15 flex items-center justify-center p-4 pointer-events-none"
+            >
+                <div
+                    class="pointer-events-auto max-w-sm w-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm border border-sem-border rounded-2xl shadow-2xl p-5 text-center space-y-3"
+                >
+                    <MaterialDesignIcon icon-name="map-outline" class="size-10 mx-auto text-sem-fg-muted" />
+                    <p class="text-sm text-sem-fg leading-snug">
+                        {{ $t("map.offline_empty_hint") }}
+                    </p>
+                    <div class="flex flex-col gap-2 pt-1">
+                        <button type="button" class="primary-chip w-full justify-center" @click="restoreStarterTiles">
+                            {{ $t("map.restore_starter_tiles") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="secondary-chip w-full justify-center"
+                            @click="triggerMbtilesUpload"
+                        >
+                            {{ $t("map.upload_mbtiles") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full px-3 py-2 rounded-xl text-sm font-medium text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted transition-colors focus-ring-sem"
+                            @click="toggleOffline(false)"
+                        >
+                            {{ $t("map.online_mode") }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <MapMarkerPanel
                 v-if="selectedMarker"
                 :marker="selectedMarker"
@@ -561,7 +595,7 @@
             <div
                 v-show="!isMobileScreen"
                 ref="scaleLineMount"
-                class="ol-scale-line-host absolute z-10 bottom-4 right-4 sm:bottom-4 max-sm:bottom-22 pointer-events-auto min-w-[120px] max-w-[min(55vw,14rem)]"
+                class="ol-scale-line-host absolute z-10 bottom-10 right-4 max-sm:bottom-22 pointer-events-auto min-w-[120px] max-w-[min(55vw,14rem)]"
                 :class="{ 'ol-scale-line-host--dark-basemap': isDarkRasterBasemap }"
             ></div>
 
@@ -599,7 +633,7 @@
 
                 <!-- Coordinate readout -->
                 <div
-                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-sem-border p-2 rounded-lg text-[10px] text-sem-fg-muted pointer-events-auto shadow-xs flex flex-col space-y-0.5 min-w-[11rem]"
+                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-sem-border p-2 rounded-lg text-xs text-sem-fg-muted pointer-events-auto shadow-xs flex flex-col space-y-0.5 min-w-[11rem]"
                 >
                     <div class="flex items-center justify-between gap-2 mb-0.5">
                         <label class="opacity-50 uppercase tracking-tighter shrink-0" for="map-coord-format">{{
@@ -608,7 +642,7 @@
                         <select
                             id="map-coord-format"
                             v-model="coordinateFormat"
-                            class="bg-transparent text-sem-fg text-[10px] font-medium border border-sem-border rounded pl-1.5 pr-5 py-0.5 h-7 max-w-[8.5rem] min-w-[5.5rem]"
+                            class="bg-transparent text-sem-fg text-xs font-medium border border-sem-border rounded pl-1.5 pr-5 py-0.5 h-7 max-w-[8.5rem] min-w-[5.5rem]"
                             @change="onCoordinateFormatChange"
                         >
                             <option value="wgs84">{{ $t("map.coord_format_wgs84") }}</option>
@@ -881,7 +915,7 @@
                     @toggle-announce-listen="onToggleAnnounceListen"
                     @toggle-offline="toggleOffline"
                     @toggle-caching="toggleCaching"
-                    @upload-mbtiles="$refs.fileInput.click()"
+                    @upload-mbtiles="triggerMbtilesUpload"
                     @set-active-mbtiles="setActiveMBTiles"
                     @delete-mbtiles="deleteMBTiles"
                     @save-mbtiles-dir="onSaveMbtilesDirFromPanel"
@@ -1106,6 +1140,7 @@ import {
     shouldWarnGeoWasmFallback,
 } from "../../js/mapGeoCoords.js";
 import {
+    attributionForTileUrl,
     detectRasterTileProviderId,
     nextRasterTileProviderId,
     TILE_PROVIDER_URLS,
@@ -1859,6 +1894,12 @@ export default {
                 ToastUtils.error(this.$t("map.failed_set_active"));
             }
         },
+        triggerMbtilesUpload() {
+            const input = this.$refs.fileInput;
+            if (input && typeof input.click === "function") {
+                input.click();
+            }
+        },
         async restoreStarterTiles() {
             try {
                 await window.api.post("/api/v1/map/mbtiles/restore-starter", {});
@@ -2001,7 +2042,7 @@ export default {
                     zoom: startZoom,
                 }),
                 controls: defaultControls({
-                    attribution: false,
+                    attribution: { collapsible: true },
                     rotate: false,
                 }),
                 pixelRatio: mapPixelRatio,
@@ -2842,6 +2883,12 @@ export default {
                 transition: 0,
                 cacheSize: 2048,
             };
+            if (!isOffline) {
+                const attribution = attributionForTileUrl(tileUrl);
+                if (attribution) {
+                    xyzOptions.attributions = attribution;
+                }
+            }
             if (isOffline && tileUrl === OFFLINE_MB_TILES_URL) {
                 const zoom = this.offlineMbtilesZoomRange();
                 xyzOptions.minZoom = zoom.minZoom;
@@ -5934,6 +5981,88 @@ export default {
     opacity: 0;
 }
 
+/* Themed OpenLayers chrome: zoom pill, attribution chip, scale bar. */
+:deep(.ol-zoom) {
+    background: transparent;
+    padding: 0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.18);
+    border: 1px solid var(--mc-border);
+}
+:deep(.ol-zoom button) {
+    width: 2.375rem;
+    height: 2.375rem;
+    margin: 0;
+    border: none;
+    border-bottom: 1px solid var(--mc-border);
+    border-radius: 0;
+    background: var(--mc-surface);
+    color: var(--mc-text);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+:deep(.ol-zoom button:last-child) {
+    border-bottom: none;
+}
+:deep(.ol-zoom button:hover),
+:deep(.ol-zoom button:focus-visible) {
+    background: var(--mc-surface-muted);
+    color: var(--mc-text);
+    outline: none;
+}
+:deep(.ol-zoom button:focus-visible) {
+    box-shadow: inset 0 0 0 2px var(--mc-focus);
+}
+
+:deep(.ol-attribution) {
+    background: var(--mc-surface);
+    border: 1px solid var(--mc-border);
+    border-radius: 0.5rem;
+    padding: 0;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+    overflow: hidden;
+}
+:deep(.ol-attribution ul) {
+    color: var(--mc-text-muted);
+    font-size: 0.625rem;
+    padding: 0.25rem 0.5rem;
+    text-shadow: none;
+}
+:deep(.ol-attribution ul a) {
+    color: var(--mc-focus);
+}
+:deep(.ol-attribution.ol-uncollapsible) {
+    height: auto;
+    padding: 0.25rem 0.5rem;
+}
+:deep(.ol-attribution.ol-uncollapsible ul) {
+    padding: 0;
+}
+:deep(.ol-attribution button) {
+    background: transparent;
+    color: var(--mc-text-muted);
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0;
+    border-radius: 0.5rem;
+}
+:deep(.ol-attribution button:hover),
+:deep(.ol-attribution button:focus-visible) {
+    background: var(--mc-surface-muted);
+    color: var(--mc-text);
+}
+:deep(.ol-attribution button span) {
+    line-height: 1.4;
+}
+
 .ol-scale-line-host :deep(.ol-scale-line),
 .ol-scale-line-host :deep(.ol-scale-bar) {
     position: relative;
@@ -5941,14 +6070,18 @@ export default {
     left: auto;
     right: auto;
     top: auto;
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--mc-surface);
+    border: 1px solid var(--mc-border);
     border-radius: 6px;
-    padding: 2px 4px;
+    padding: 3px 6px;
     max-width: 100%;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
 }
-.dark .ol-scale-line-host :deep(.ol-scale-line),
-.dark .ol-scale-line-host :deep(.ol-scale-bar) {
-    background: rgba(24, 24, 27, 0.9);
+.ol-scale-line-host :deep(.ol-scale-line-inner),
+.ol-scale-line-host :deep(.ol-scale-step-text),
+.ol-scale-line-host :deep(.ol-scale-text) {
+    color: var(--mc-text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 .ol-scale-line-host--dark-basemap :deep(.ol-scale-line),
@@ -5974,6 +6107,10 @@ export default {
         top: auto;
         bottom: 0.75rem;
         z-index: 12;
+    }
+    :deep(.ol-attribution) {
+        bottom: 5.5rem;
+        right: 0.75rem;
     }
 }
 </style>

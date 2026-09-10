@@ -2304,6 +2304,9 @@
             "plugins_desc": "Installa e gestisci i plugin di MeshChatX"
         },
         "nav_label": "Sezioni impostazioni",
+        "nav_mode_label": "Modalità impostazioni",
+        "mode_simple": "Semplice",
+        "mode_advanced": "Avanzata",
         "search_label": "Cerca impostazioni",
         "search_no_results": "Nessun risultato",
         "search_no_match": "Nessuna impostazione corrisponde a \"{query}\"",

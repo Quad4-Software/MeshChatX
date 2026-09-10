@@ -2,8 +2,28 @@
 
 <template>
     <nav class="settings-nav" :aria-label="$t('settings.nav_label')">
+        <div class="settings-nav__mode" role="group" :aria-label="$t('settings.nav_mode_label')">
+            <button
+                type="button"
+                class="settings-nav__mode-btn focus-ring-sem"
+                :class="{ 'settings-nav__mode-btn--active': mode === 'simple' }"
+                :aria-pressed="mode === 'simple' ? 'true' : 'false'"
+                @click="$emit('update:mode', 'simple')"
+            >
+                {{ $t("settings.mode_simple") }}
+            </button>
+            <button
+                type="button"
+                class="settings-nav__mode-btn focus-ring-sem"
+                :class="{ 'settings-nav__mode-btn--active': mode === 'advanced' }"
+                :aria-pressed="mode === 'advanced' ? 'true' : 'false'"
+                @click="$emit('update:mode', 'advanced')"
+            >
+                {{ $t("settings.mode_advanced") }}
+            </button>
+        </div>
         <button
-            v-for="tab in tabs"
+            v-for="tab in visibleTabs"
             :key="tab.id"
             type="button"
             class="settings-nav__tab"
@@ -25,7 +45,7 @@
 </template>
 
 <script>
-import { SETTINGS_TABS } from "../../js/settings/settingsTabs.js";
+import { SETTINGS_TABS, isAdvancedSettingsSection } from "../../js/settings/settingsTabs.js";
 
 export default {
     name: "SettingsNav",
@@ -38,8 +58,12 @@ export default {
             type: Object,
             default: null,
         },
+        mode: {
+            type: String,
+            default: "advanced",
+        },
     },
-    emits: ["select"],
+    emits: ["select", "update:mode"],
     data() {
         return {
             tabs: SETTINGS_TABS,
@@ -48,6 +72,12 @@ export default {
     computed: {
         searchActive() {
             return this.matchCounts != null;
+        },
+        visibleTabs() {
+            if (this.searchActive || this.mode !== "simple") {
+                return this.tabs;
+            }
+            return this.tabs.filter((tab) => tab.sections.some((s) => !isAdvancedSettingsSection(s)));
         },
     },
     methods: {
@@ -72,6 +102,18 @@ export default {
 
 .settings-nav {
     @apply flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-x-visible lg:pb-0 lg:gap-0.5 lg:w-52 lg:shrink-0 lg:sticky lg:top-20 lg:self-start;
+}
+
+.settings-nav__mode {
+    @apply flex gap-0.5 rounded-xl border border-sem-border bg-sem-surface-muted p-1 shrink-0 lg:mb-2 lg:w-full;
+}
+
+.settings-nav__mode-btn {
+    @apply flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-sem-fg-muted transition-colors hover:text-sem-fg;
+}
+
+.settings-nav__mode-btn--active {
+    @apply bg-sem-surface text-sem-fg shadow-xs;
 }
 
 .settings-nav__tab {

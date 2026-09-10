@@ -2304,6 +2304,9 @@
             "plugins_desc": "Installer et gérer les extensions MeshChatX"
         },
         "nav_label": "Sections des paramètres",
+        "nav_mode_label": "Mode des paramètres",
+        "mode_simple": "Simple",
+        "mode_advanced": "Avancé",
         "search_label": "Rechercher dans les paramètres",
         "search_no_results": "Aucun résultat",
         "search_no_match": "Aucun paramètre ne correspond à \"{query}\"",

@@ -2304,6 +2304,9 @@
             "plugins_desc": "MeshChatX-plugins installeren en beheren"
         },
         "nav_label": "Instellingssecties",
+        "nav_mode_label": "Instellingenmodus",
+        "mode_simple": "Eenvoudig",
+        "mode_advanced": "Geavanceerd",
         "search_label": "Zoek in instellingen",
         "search_no_results": "Geen resultaten",
         "search_no_match": "Geen instellingen komen overeen met \"{query}\"",
