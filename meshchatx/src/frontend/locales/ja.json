@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "検索とコマンド（Ctrl+K）",
+        "dialog_label": "検索とコマンド",
         "search_placeholder": "コマンド、ルート、ピアを検索",
         "no_results": "「{query}」の結果は見つかりませんでした",
         "group_actions": "アクション",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "デバイスファームウェアの更新",
         "nav_debug_logs": "デバッグログ",
         "nav_debug_logs_desc": "アプリログとアクセスログ",
+        "nav_archives": "アーカイブ",
+        "nav_archives_desc": "保存したNomadページを閲覧",
         "action_sync": "メッセージを同期",
         "action_sync_desc": "伝播ノードと同期",
         "action_compose": "メッセージを作成",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "はじめに",
         "action_getting_started_desc": "セットアップガイドを開く",
         "action_changelog": "変更履歴",
-        "action_changelog_desc": "最近の変更"
+        "action_changelog_desc": "最近の変更",
+        "action_toggle_sidebar": "サイドバーの切り替え",
+        "action_toggle_sidebar_desc": "サイドナビゲーションを展開または折りたたむ"
     },
     "auth": {
         "setup_title": "初期設定",

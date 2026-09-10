@@ -6075,8 +6075,11 @@ class ReticulumMeshChat:
         propagation_task = asyncio.create_task(
             self._request_propagation_node_messages(context=ctx)
         )
-        self._propagation_node_request_tasks.add(propagation_task)
-        propagation_task.add_done_callback(self._propagation_node_request_tasks.discard)
+        tasks = getattr(self, "_propagation_node_request_tasks", None)
+        if tasks is None:
+            tasks = self._propagation_node_request_tasks = set()
+        tasks.add(propagation_task)
+        propagation_task.add_done_callback(tasks.discard)
 
         await self.send_config_to_websocket_clients(context=ctx)
         return True

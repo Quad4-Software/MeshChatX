@@ -1025,10 +1025,10 @@ class PageNode:
             max_dimension = MEDIA_MAX_DIMENSION
             if isinstance(data, dict):
                 quality = int(data.get("quality", quality))
-                max_dimension = data.get("max_dimension")
-                if max_dimension is not None:
+                max_dimension_raw = data.get("max_dimension")
+                if max_dimension_raw is not None:
                     try:
-                        max_dimension = int(max_dimension)
+                        max_dimension = int(max_dimension_raw)
                     except (TypeError, ValueError):
                         max_dimension = MEDIA_MAX_DIMENSION
 

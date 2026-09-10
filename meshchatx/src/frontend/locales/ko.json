@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "검색 및 명령 (Ctrl+K)",
+        "dialog_label": "검색 및 명령",
         "search_placeholder": "명령, 경로 또는 피어 검색",
         "no_results": "\"{query}\"에 대한 검색 결과가 없습니다",
         "group_actions": "작업",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "기기 펌웨어 업데이트",
         "nav_debug_logs": "디버그 로그",
         "nav_debug_logs_desc": "애플리케이션 및 접근 로그",
+        "nav_archives": "아카이브",
+        "nav_archives_desc": "저장된 Nomad 페이지 탐색",
         "action_sync": "메시지 동기화",
         "action_sync_desc": "전파 노드와 동기화",
         "action_compose": "메시지 작성",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "시작하기",
         "action_getting_started_desc": "설정 가이드 열기",
         "action_changelog": "변경 로그",
-        "action_changelog_desc": "최근 변경 사항"
+        "action_changelog_desc": "최근 변경 사항",
+        "action_toggle_sidebar": "사이드바 전환",
+        "action_toggle_sidebar_desc": "측면 탐색 확장 또는 축소"
     },
     "auth": {
         "setup_title": "초기 설정",

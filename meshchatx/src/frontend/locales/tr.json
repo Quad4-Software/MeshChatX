@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "Ara ve komutlar (Ctrl+K)",
+        "dialog_label": "Ara ve komutlar",
         "search_placeholder": "Komut, rota veya eş ara",
         "no_results": "\"{query}\" için sonuç bulunamadı",
         "group_actions": "Eylemler",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "Cihaz ürün yazılımı güncelleme",
         "nav_debug_logs": "Hata Ayıklama Günlükleri",
         "nav_debug_logs_desc": "Uygulama ve erişim günlükleri",
+        "nav_archives": "Arşivler",
+        "nav_archives_desc": "Kaydedilmiş Nomad sayfalarına göz at",
         "action_sync": "İletileri Eşitle",
         "action_sync_desc": "Aktarım düğümünle eşitle",
         "action_compose": "İleti Oluştur",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "Başlarken",
         "action_getting_started_desc": "Kurulum rehberini aç",
         "action_changelog": "Değişiklik Günlüğü",
-        "action_changelog_desc": "Son değişiklikler"
+        "action_changelog_desc": "Son değişiklikler",
+        "action_toggle_sidebar": "Kenar çubuğunu aç/kapat",
+        "action_toggle_sidebar_desc": "Yan gezinmeyi genişlet veya daralt"
     },
     "auth": {
         "setup_title": "İlk Kurulum",

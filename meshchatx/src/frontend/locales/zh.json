@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "搜索与命令 (Ctrl+K)",
+        "dialog_label": "搜索与命令",
         "search_placeholder": "搜索命令、路径或端点",
         "no_results": "\"{query}\" 无结果",
         "group_actions": "操作",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "设备固件更新",
         "nav_debug_logs": "调试日志",
         "nav_debug_logs_desc": "应用程序和访问日志",
+        "nav_archives": "存档",
+        "nav_archives_desc": "浏览已保存的 Nomad 页面",
         "action_sync": "同步消息",
         "action_sync_desc": "与您的传播节点同步",
         "action_compose": "撰写消息",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "开始使用",
         "action_getting_started_desc": "打开设置指南",
         "action_changelog": "更新日志",
-        "action_changelog_desc": "最近的更改"
+        "action_changelog_desc": "最近的更改",
+        "action_toggle_sidebar": "切换侧边栏",
+        "action_toggle_sidebar_desc": "展开或收起侧边导航"
     },
     "auth": {
         "setup_title": "初始设置",

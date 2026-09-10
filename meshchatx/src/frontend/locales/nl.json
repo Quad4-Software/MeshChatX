@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "Zoeken en opdrachten (Ctrl+K)",
+        "dialog_label": "Zoeken en opdrachten",
         "search_placeholder": "Zoekopdrachten, routes of collega's",
         "no_results": "Geen resultaten gevonden voor \"{query}\"",
         "group_actions": "Acties",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "Apparaat firmware-update",
         "nav_debug_logs": "Debuglogs",
         "nav_debug_logs_desc": "Toepassings- en toegangslogboeken",
+        "nav_archives": "Archieven",
+        "nav_archives_desc": "Opgeslagen Nomad-pagina's bekijken",
         "action_sync": "Berichten synchroniseren",
         "action_sync_desc": "Synchroniseren met uw propagatieknooppunt",
         "action_compose": "Bericht samenstellen",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "Starten",
         "action_getting_started_desc": "De setup-handleiding openen",
         "action_changelog": "Wijzigingslogboek",
-        "action_changelog_desc": "Recente wijzigingen"
+        "action_changelog_desc": "Recente wijzigingen",
+        "action_toggle_sidebar": "Zijbalk in-/uitschakelen",
+        "action_toggle_sidebar_desc": "Zijnavigatie uit- of invouwen"
     },
     "auth": {
         "setup_title": "Eerste installatie",

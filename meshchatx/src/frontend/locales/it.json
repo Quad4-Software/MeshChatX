@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "Ricerca e comandi (Ctrl+K)",
+        "dialog_label": "Ricerca e comandi",
         "search_placeholder": "Cerca comandi, percorsi o peer",
         "no_results": "Nessun risultato trovato per \"{query}\"",
         "group_actions": "Azioni",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "Aggiornamento firmware dispositivo",
         "nav_debug_logs": "Log di Debug",
         "nav_debug_logs_desc": "Log applicazione e accessi",
+        "nav_archives": "Archivi",
+        "nav_archives_desc": "Sfoglia le pagine Nomad salvate",
         "action_sync": "Sincronizza Messaggi",
         "action_sync_desc": "Sincronizza con il nodo di propagazione",
         "action_compose": "Componi Messaggio",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "Guida Introduttiva",
         "action_getting_started_desc": "Apri la guida di configurazione",
         "action_changelog": "Novità",
-        "action_changelog_desc": "Modifiche recenti"
+        "action_changelog_desc": "Modifiche recenti",
+        "action_toggle_sidebar": "Attiva/disattiva barra laterale",
+        "action_toggle_sidebar_desc": "Espandi o comprimi la navigazione laterale"
     },
     "auth": {
         "setup_title": "Configurazione iniziale",
