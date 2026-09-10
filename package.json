@@ -164,6 +164,7 @@
                     "to": "backend",
                     "filter": [
                         "**/*",
+                        "**/.gitkeep",
                         "!backend-manifest.json"
                     ]
                 }
@@ -192,7 +193,8 @@
                     "from": "build/exe/win32-${arch}",
                     "to": "backend",
                     "filter": [
-                        "**/*"
+                        "**/*",
+                        "**/.gitkeep"
                     ]
                 }
             ]
@@ -225,7 +227,8 @@
                     "from": "build/exe/linux-${arch}",
                     "to": "backend",
                     "filter": [
-                        "**/*"
+                        "**/*",
+                        "**/.gitkeep"
                     ]
                 }
             ]
