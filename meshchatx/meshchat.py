@@ -137,9 +137,6 @@ from meshchatx.src.backend.landlock_sandbox import (
     landlock_kernel_supported,
     landlock_requested,
 )
-from meshchatx.src.backend.rns_filesync_handler import (
-    collect_external_filesync_rw_roots,
-)
 from meshchatx.src.backend.legacy_migrator import (
     assert_migration_context_paths,
     fresh_storage_at_target,
@@ -206,12 +203,12 @@ from meshchatx.src.backend.meshchat_utils import (
     hex_identifier_to_bytes,
     interval_action_due,
     list_inbound_deliveries,
+    lxmf_signature_validated,
     message_fields_have_attachments,
     normalize_hex_identifier,
     normalize_identity_storage_hash,
-    parse_bool_query_param,
-    lxmf_signature_validated,
     normalize_lxmf_destination_hash,
+    parse_bool_query_param,
     parse_lxmf_audio_field_value,
     parse_lxmf_display_name,
     parse_lxmf_file_attachments_field_value,
@@ -269,6 +266,9 @@ from meshchatx.src.backend.reticulum_config_guard import (
     reticulum_config_has_required_sections,
 )
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
+from meshchatx.src.backend.rns_filesync_handler import (
+    collect_external_filesync_rw_roots,
+)
 from meshchatx.src.backend.rns_link_manager import (
     RnsLinkManager,
     clear_all_cached_links,
@@ -786,6 +786,9 @@ class ReticulumMeshChat:
         # Track long-running rns.link.* handler tasks per WS client so they can
         # be cancelled when the client disconnects.
         self._rns_link_tasks: dict[web.WebSocketResponse, set[asyncio.Task]] = {}
+        # Keep strong refs to fire-and-forget propagation request tasks so the
+        # event loop cannot garbage-collect them mid-flight.
+        self._propagation_node_request_tasks: set[asyncio.Task] = set()
         # Anchor RequestReceipts returned by link.request() for the lifetime of
         # the request. Keyed by (client, request_id).
         self._rns_request_receipts: dict = {}
@@ -1604,7 +1607,7 @@ class ReticulumMeshChat:
         def restart():
             time.sleep(delay)
             try:
-                os.execv(sys.executable, [sys.executable] + sys.argv)  # nosec: BAN-B606
+                os.execv(sys.executable, [sys.executable, *sys.argv])  # noqa: S606
             except Exception as e:
                 print(f"Failed to restart: {e}")
                 os._exit(0)
@@ -2855,7 +2858,7 @@ class ReticulumMeshChat:
                                                     # Match IP and port for IPv4
                                                     if conn.laddr.port == addr[1] and (
                                                         conn.laddr.ip == addr[0]
-                                                        or addr[0] == "0.0.0.0"  # nosec: BAN-B104
+                                                        or addr[0] == "0.0.0.0"  # noqa: S104
                                                     ):
                                                         match = True
                                                 elif family_str == "AF_UNIX":
@@ -5752,7 +5755,9 @@ class ReticulumMeshChat:
 
             # start memory diagnostics periodic snapshot task
             if self._mem_diag and self._mem_diag.enabled:
-                asyncio.create_task(self._memory_diag_snapshot_loop())
+                self._mem_diag_task = asyncio.create_task(
+                    self._memory_diag_snapshot_loop()
+                )
 
             try:
                 from meshchatx.src.backend.webtransport_sidecar import (
@@ -6067,7 +6072,11 @@ class ReticulumMeshChat:
         # Kick off the LXMF request on a worker thread. Identity.recall and link
         # setup can block on multiprocessing pipes. Running inline would stall the
         # HTTP handler and race with cancel_propagation_node_requests (EOFError).
-        asyncio.create_task(self._request_propagation_node_messages(context=ctx))
+        propagation_task = asyncio.create_task(
+            self._request_propagation_node_messages(context=ctx)
+        )
+        self._propagation_node_request_tasks.add(propagation_task)
+        propagation_task.add_done_callback(self._propagation_node_request_tasks.discard)
 
         await self.send_config_to_websocket_clients(context=ctx)
         return True
@@ -11081,9 +11090,10 @@ class ReticulumMeshChat:
         if not isinstance(page_content, str):
             return set()
         links = set()
-        # Match "hash:/file/..." and relative ":/file/..." WebP links.
+        # Match "hash:/media/..." and "hash:/file/..." image links.
         pattern = re.compile(
-            r"(?:[a-f0-9]{32})?:/file/([^\s)`\"'\\]+\.webp)", re.IGNORECASE
+            r"(?:[a-f0-9]{32})?:/(?:media|file)/([^\s)`\"'\\]+\.(?:webp|png|jpe?g|bmp|gif|tiff))",
+            re.IGNORECASE,
         )
         for m in pattern.finditer(page_content):
             path = m.group(1)
@@ -11132,7 +11142,11 @@ class ReticulumMeshChat:
         by_page = by_dest.get(destination_hash.hex(), {}).get(page_path)
         if not by_page:
             return False
-        name = file_path.lstrip("/").removeprefix("file/")
+        name = file_path.lstrip("/")
+        if name.startswith("media/"):
+            name = name.removeprefix("media/")
+        elif name.startswith("file/"):
+            name = name.removeprefix("file/")
         return name in by_page
 
     def _try_serve_local_page_node_file(
@@ -11163,6 +11177,8 @@ class ReticulumMeshChat:
             if not node.running or not node.destination:
                 continue
             if node.destination.hash == destination_hash:
+                if file_path.startswith("/media/"):
+                    return node.serve_media(file_path)
                 file_name = file_path.lstrip("/")
                 file_name = file_name.removeprefix("file/")
                 try:

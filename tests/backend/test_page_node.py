@@ -82,7 +82,7 @@ class TestPageNodeSetup:
     def test_setup_loads_identity_from_file(self, node_dir, mock_rns):
         from meshchatx.src.backend.page_node import PageNode
 
-        rns_mock, mock_identity, _ = mock_rns
+        rns_mock, _mock_identity, _ = mock_rns
         identity_path = os.path.join(node_dir, "identity")
         with open(identity_path, "w") as f:
             f.write("fake")
@@ -1029,3 +1029,70 @@ class TestPageShebangWindows:
             ["dyn.mu", "dyn.mu", "../x.exe", 12, "ok.md", ""],
         )
         assert names == ["dyn.mu", "ok.md"]
+
+
+class TestPageNodeMedia:
+    def _write_webp(self, path, content):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(content)
+
+    def test_jail_media_path_rejects_traversal(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        assert node._jail_media_path("../etc/passwd", must_exist=False) is None
+        assert node._jail_media_path("/etc/passwd", must_exist=False) is None
+        assert node._jail_media_path("image.exe", must_exist=False) is None
+
+    def test_jail_media_path_resolves_under_files_dir(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        image_path = os.path.join(node.files_dir, "photo.png")
+        self._write_webp(image_path, b"\x89PNG")
+        resolved = node._jail_media_path("photo.png", must_exist=True)
+        assert resolved == image_path
+
+    def test_jail_media_path_resolves_under_pages_dir(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        image_path = os.path.join(node.pages_dir, "photo.jpg")
+        self._write_webp(image_path, b"\xff\xd8")
+        resolved = node._jail_media_path("/media/photo.jpg", must_exist=True)
+        assert resolved == image_path
+
+    def test_serve_media_returns_existing_webp(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        image_path = os.path.join(node.files_dir, "logo.webp")
+        webp_bytes = b"RIFF\x00\x00\x00\x00WEBPVP8 "
+        self._write_webp(image_path, webp_bytes)
+        result = node.serve_media("/media/logo.webp")
+        assert result is not None
+        assert result[0] == "logo.webp"
+        assert result[1] == webp_bytes
+
+    def test_media_responder_requires_file_grant(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        image_path = os.path.join(node.files_dir, "icon.webp")
+        self._write_webp(image_path, b"RIFF\x00\x00\x00\x00WEBPVP8 ")
+        responder = node._make_media_responder()
+        result = responder(
+            "/media", {"path": "/media/icon.webp"}, "r1", b"\xab" * 16, None, 0
+        )
+        assert result is None
+
+    def test_media_responder_serves_webp_with_grant(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        image_path = os.path.join(node.files_dir, "icon.webp")
+        self._write_webp(image_path, b"RIFF\x00\x00\x00\x00WEBPVP8 ")
+        node._grant_file_access(b"\xab" * 16, None, ttl=300)
+        responder = node._make_media_responder()
+        result = responder(
+            "/media", {"path": "/media/icon.webp"}, "r1", b"\xab" * 16, None, 0
+        )
+        assert result is not None
+        assert len(result) == 2
+        assert hasattr(result[0], "read")
+        assert result[1].get("name") == b"image.webp"
