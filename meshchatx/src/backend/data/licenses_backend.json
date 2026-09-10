@@ -31,7 +31,7 @@
     },
     {
         "name": "anyio",
-        "version": "4.14.2",
+        "version": "4.15.1",
         "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
         "license": "MIT"
     },
@@ -211,7 +211,7 @@
     },
     {
         "name": "rns",
-        "version": "1.5.2",
+        "version": "1.5.3",
         "author": "Mark Qvist",
         "license": "Reticulum License"
     },
@@ -226,6 +226,12 @@
         "version": "26.1.0",
         "author": "Hynek Schlawack <hs@ox.cx>",
         "license": "MIT"
+    },
+    {
+        "name": "typing_extensions",
+        "version": "4.16.0",
+        "author": "\"Guido van Rossum, Jukka Lehtosalo, Łukasz Langa, Michael Lee\" <levkivskyi@gmail.com>",
+        "license": "PSF-2.0"
     },
     {
         "name": "wasmtime",
