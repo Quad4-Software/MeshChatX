@@ -2,10 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-
-## [Unreleased]
-
-
 ## [4.9.0] - [unreleased]
 
 ### Added
@@ -20,7 +16,8 @@ All notable changes to this project will be documented in this file.
 - The bundled `starter_world.mbtiles` is now a 30-degree world graticule covering z0-z4 instead of a solid placeholder, so the map is usable offline immediately.
 - Delivery failure tips throttle per peer, order by severity, cap the detail count and deduplicate diagnostic fetches so they do not get noisy.
 - DatabaseProvider closes idle live-thread SQLite handles after 120 seconds and dead-thread handles, preventing unbounded file-descriptor growth in containers.
-- Opt-in WebP image support for Mesh Server and Micron pages. The parser recognizes `img=1` image links, renders placeholders with alt text and size metadata, and loads the image only after an explicit click or when the policy is set to auto or always.
+- Opt-in image support for Mesh Server and Micron pages. The parser recognizes `img=1` image links and `/media/` URLs, renders placeholders with alt text and size metadata, and loads the image only after an explicit click or when the policy is set to auto or always.
+- Page nodes serve `/media/` images in webp, png, jpg, jpeg, bmp, gif and tiff, converting non-webp formats to webp and caching the result. `/file/` stays webp-only, matching NomadNet 1.4.2.
 - Nomad page images download over the Reticulum page socket, report progress, reassemble chunked transfers and are cached per node and page path.
 - Page nodes grant file access only after a page request, so direct links to hosted files fail without first visiting the page.
 - Image loading on Micron pages is controlled by a global policy in Settings: never, manual, auto or always.
@@ -48,6 +45,8 @@ All notable changes to this project will be documented in this file.
 - Crash-tab hung toasts clear when the tab recovers, and the warning is skipped when the page is no longer active.
 - UIComponents SettingsPage mocks config patch responses and unmounts wrappers to prevent EnvironmentTeardownError.
 - Live name bindings in the split HTTP/WS modules support comparison, hashing and string conversion, so constants like `MAX_EXPORT_ZOOM` can be used in chained comparisons and map lookups.
+- AppImage packages now ship the backend `data/map/.gitkeep` marker, so the integrity check passes and onboarding no longer stalls on Connect to Mesh. A packaging test walks the real source tree and package.json filters so a missing file fails CI instead of the AppImage.
+- Direct links to nomadnet page addresses work when no node is selected yet; the destination hash and page path are parsed up front.
 
 ### Changed
 
@@ -57,7 +56,8 @@ All notable changes to this project will be documented in this file.
 - Calls to print in `meshchatx.py`, `nomadnet_downloader.py` and other backend paths now use the application logger.
 - Windows desktop builds spawn the Python backend inside an LPAC AppContainer by default when the APIs are available. Set MESHCHAT_APPCONTAINER=0 to disable. If AppContainer setup fails, the launcher falls back to an unsandboxed backend process.
 - Geo-wasm and the starter MBTiles have been rebuilt and regenerated.
-- Full Ruff, Prettier, ESLint and typecheck pass across the backend and frontend.
+- Full Ruff, Prettier, ESLint and typecheck pass across the backend and frontend. The ruff ruleset now covers pyupgrade, bugbear, bandit security, comprehensions, performance and ruff rules.
+- Tool pages (Translator, Ping, RNCP, RNProbe, Forwarder, RNS Filesync, Debug Logs) render as one continuous fused panel instead of stacked cards.
 
 
 ## [4.8.9] - 2026-09-09 [released]
@@ -128,9 +128,9 @@ All notable changes to this project will be documented in this file.
 - **Vite and Vitest configs**: Renamed to .mjs so the ESM config warning is gone.
 - **Dev script**: task dev output is colored and single-prefixed.
 - **Smart Crawler**: Finished crawls stay finished until you refresh. Fewer crawls run at once.
-- **Reticulum**: RNS 1.5.2.
+- **Reticulum**: RNS 1.5.3.
 - **WebTransport**: aioquic 1.3.0 is a normal dependency. Android builds ship aioquic and pylsqpack Chaquopy wheels.
-- **Micron**: Micron-Parser-Go WASM v1.1.0.
+- **Micron**: Micron-Parser-Go WASM v1.2.0.
 - **Docs**: Short READMEs at the repo root. Full install and contributor guides under docs/en/.
 
 ## [4.8.5] - 2026-08-21 [released]
