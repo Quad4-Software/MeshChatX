@@ -271,6 +271,44 @@
                         />
                     </IconButton>
 
+                    <DropDownMenu v-if="!isPrivate && selectedNode" class="shrink-0 lg:hidden">
+                        <template #button>
+                            <IconButton
+                                class="nomad-icon-btn"
+                                :class="
+                                    selectedNodeImageLoadingPolicy === 'inherit'
+                                        ? 'text-sem-fg-muted'
+                                        : 'text-sem-accent'
+                                "
+                                :title="`${$t('nomadnet.image_loading_policy_title')}: ${selectedNodeImagePolicyLabel}`"
+                                :aria-label="$t('nomadnet.image_loading_policy_title')"
+                                aria-haspopup="menu"
+                            >
+                                <MaterialDesignIcon icon-name="image-outline" class="size-5" />
+                            </IconButton>
+                        </template>
+                        <template #items>
+                            <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted">
+                                {{ $t("nomadnet.image_loading_policy_title") }}
+                            </div>
+                            <DropDownMenuItem
+                                v-for="option in imagePolicyOptions"
+                                :key="option.value"
+                                class="flex items-center"
+                                @click="selectedNodeImageLoadingPolicy = option.value"
+                            >
+                                <span class="flex size-5 shrink-0 items-center justify-center">
+                                    <MaterialDesignIcon
+                                        v-if="selectedNodeImageLoadingPolicy === option.value"
+                                        icon-name="check"
+                                        class="size-4 text-sem-accent"
+                                    />
+                                </span>
+                                <span>{{ option.label }}</span>
+                            </DropDownMenuItem>
+                        </template>
+                    </DropDownMenu>
+
                     <div class="hidden shrink-0 items-center gap-0 lg:flex">
                         <IconButton
                             v-if="!isPrivate"
@@ -305,18 +343,45 @@
                         >
                             <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                         </IconButton>
-                        <select
-                            v-if="!isPrivate && selectedNode"
-                            v-model="selectedNodeImageLoadingPolicy"
-                            class="input-field hidden h-8 w-32 text-xs lg:block"
-                            :title="$t('nomadnet.image_loading_policy_title')"
-                        >
-                            <option value="inherit">{{ $t("nomadnet.image_loading_policy_inherit") }}</option>
-                            <option value="never">{{ $t("nomadnet.image_loading_policy_never_short") }}</option>
-                            <option value="manual">{{ $t("nomadnet.image_loading_policy_manual_short") }}</option>
-                            <option value="auto">{{ $t("nomadnet.image_loading_policy_auto_short") }}</option>
-                            <option value="always">{{ $t("nomadnet.image_loading_policy_always_short") }}</option>
-                        </select>
+                        <DropDownMenu v-if="!isPrivate && selectedNode" class="shrink-0">
+                            <template #button>
+                                <IconButton
+                                    class="nomad-icon-btn"
+                                    :class="
+                                        selectedNodeImageLoadingPolicy === 'inherit'
+                                            ? 'text-sem-fg-muted'
+                                            : 'text-sem-accent'
+                                    "
+                                    :title="`${$t('nomadnet.image_loading_policy_title')}: ${selectedNodeImagePolicyLabel}`"
+                                    :aria-label="$t('nomadnet.image_loading_policy_title')"
+                                    aria-haspopup="menu"
+                                >
+                                    <MaterialDesignIcon icon-name="image-outline" class="size-5" />
+                                </IconButton>
+                            </template>
+                            <template #items>
+                                <div
+                                    class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted"
+                                >
+                                    {{ $t("nomadnet.image_loading_policy_title") }}
+                                </div>
+                                <DropDownMenuItem
+                                    v-for="option in imagePolicyOptions"
+                                    :key="option.value"
+                                    class="flex items-center"
+                                    @click="selectedNodeImageLoadingPolicy = option.value"
+                                >
+                                    <span class="flex size-5 shrink-0 items-center justify-center">
+                                        <MaterialDesignIcon
+                                            v-if="selectedNodeImageLoadingPolicy === option.value"
+                                            icon-name="check"
+                                            class="size-4 text-sem-accent"
+                                        />
+                                    </span>
+                                    <span>{{ option.label }}</span>
+                                </DropDownMenuItem>
+                            </template>
+                        </DropDownMenu>
                         <IconButton
                             class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('common.cancel')"
@@ -1004,6 +1069,19 @@ export default {
                 }
                 this.nomadImagePerNodePolicies = next;
             },
+        },
+        imagePolicyOptions() {
+            return [
+                { value: "inherit", label: this.$t("nomadnet.image_loading_policy_inherit") },
+                { value: "never", label: this.$t("nomadnet.image_loading_policy_never_short") },
+                { value: "manual", label: this.$t("nomadnet.image_loading_policy_manual_short") },
+                { value: "auto", label: this.$t("nomadnet.image_loading_policy_auto_short") },
+                { value: "always", label: this.$t("nomadnet.image_loading_policy_always_short") },
+            ];
+        },
+        selectedNodeImagePolicyLabel() {
+            const active = this.imagePolicyOptions.find((o) => o.value === this.selectedNodeImageLoadingPolicy);
+            return active ? active.label : "";
         },
         nomadMicronWasmFeatureEffective() {
             return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;

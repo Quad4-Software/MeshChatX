@@ -1559,6 +1559,46 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.resolveNomadImageDestination(":/file/img.webp?x=1").destinationHash).toBe(hash);
         });
 
+        it("sets the per-node image policy from the toolbar dropdown", async () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            await wrapper.vm.$nextTick();
+
+            // one instance on mobile toolbar, one inside the desktop toolbar group
+            const imageButtons = wrapper.findAll('[data-icon-name="image-outline"]');
+            expect(imageButtons.length).toBe(2);
+
+            await imageButtons[0].trigger("click");
+            await wrapper.vm.$nextTick();
+
+            const panel = document.body.querySelector(".dropdown-panel");
+            expect(panel).toBeTruthy();
+            const items = [...panel.querySelectorAll("div")].filter((el) =>
+                el.textContent.includes("nomadnet.image_loading_policy_manual_short")
+            );
+            expect(items.length).toBeGreaterThan(0);
+            items[items.length - 1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.nomadImagePerNodePolicies[hash]).toBe("manual");
+
+            // choosing inherit clears the override
+            await imageButtons[0].trigger("click");
+            await wrapper.vm.$nextTick();
+            const panel2 = document.body.querySelectorAll(".dropdown-panel");
+            const lastPanel = panel2[panel2.length - 1];
+            const inheritItem = [...lastPanel.querySelectorAll("div")].filter((el) =>
+                el.textContent.includes("nomadnet.image_loading_policy_inherit")
+            );
+            inheritItem[inheritItem.length - 1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.nomadImagePerNodePolicies[hash]).toBeUndefined();
+            wrapper.unmount();
+            document.body.innerHTML = "";
+        });
+
         it("resolves /media image URLs with any supported extension", () => {
             const hash = "a".repeat(32);
             const wrapper = mountNomadNetworkPage({ destinationHash: hash });
