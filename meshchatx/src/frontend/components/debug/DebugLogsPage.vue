@@ -17,244 +17,244 @@
         <div
             class="flex-1 overflow-y-auto flex flex-col w-full px-3 sm:px-4 md:px-5 lg:px-8 py-3 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
-            <div class="flex flex-col mb-4 w-full max-w-6xl mx-auto space-y-4 min-w-0">
-                <div
-                    class="flex flex-nowrap sm:flex-wrap gap-2 border-b border-sem-border pb-2 overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar"
-                >
-                    <button
-                        type="button"
-                        class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
-                        :class="
-                            activeTab === 'logs'
-                                ? 'bg-sem-action-primary text-white'
-                                : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-raised'
-                        "
-                        @click="switchTab('logs')"
+            <div class="fused-panel flex flex-col flex-1 w-full max-w-6xl mx-auto min-h-0">
+                <div class="fused-section space-y-4">
+                    <div
+                        class="flex flex-nowrap sm:flex-wrap gap-2 border-b border-sem-border pb-2 overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar"
                     >
-                        {{ $t("debug.tab_logs") }}
-                    </button>
-                    <button
-                        type="button"
-                        class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
-                        :class="
-                            activeTab === 'access'
-                                ? 'bg-sem-action-primary text-white'
-                                : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-raised'
-                        "
-                        @click="switchTab('access')"
-                    >
-                        {{ $t("debug.tab_access_attempts") }}
-                    </button>
-                </div>
-
-                <div
-                    v-if="activeTab === 'logs'"
-                    class="flex flex-wrap gap-3 items-center bg-sem-surface/60 p-3 rounded-lg border border-sem-border"
-                >
-                    <div class="relative flex-1 min-w-[200px]">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-sem-fg-muted" />
-                        </div>
-                        <input
-                            v-model="search"
-                            type="text"
-                            class="block w-full pl-10 pr-3 py-2 border border-sem-border rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-sem-fg-muted focus:outline-hidden focus:ring-1 focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm"
-                            :placeholder="$t('debug.search_logs_placeholder')"
-                            @input="debouncedSearch"
-                        />
+                        <button
+                            type="button"
+                            class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
+                            :class="
+                                activeTab === 'logs'
+                                    ? 'bg-sem-action-primary text-white'
+                                    : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-raised'
+                            "
+                            @click="switchTab('logs')"
+                        >
+                            {{ $t("debug.tab_logs") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
+                            :class="
+                                activeTab === 'access'
+                                    ? 'bg-sem-action-primary text-white'
+                                    : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-raised'
+                            "
+                            @click="switchTab('access')"
+                        >
+                            {{ $t("debug.tab_access_attempts") }}
+                        </button>
                     </div>
 
-                    <select
-                        v-model="level"
-                        class="block pl-3 pr-10 py-2 text-base border-sem-border focus:outline-hidden focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm rounded-md bg-sem-surface text-sem-fg"
-                        @change="refreshLogs"
+                    <div
+                        v-if="activeTab === 'logs'"
+                        class="flex flex-wrap gap-3 items-center bg-sem-surface/60 p-3 rounded-lg border border-sem-border"
                     >
-                        <option value="">{{ $t("debug.level_all") }}</option>
-                        <option value="DEBUG">Debug</option>
-                        <option value="INFO">Info</option>
-                        <option value="WARNING">Warning</option>
-                        <option value="ERROR">Error</option>
-                        <option value="CRITICAL">Critical</option>
-                    </select>
+                        <div class="relative flex-1 min-w-[200px]">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-sem-fg-muted" />
+                            </div>
+                            <input
+                                v-model="search"
+                                type="text"
+                                class="block w-full pl-10 pr-3 py-2 border border-sem-border rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-sem-fg-muted focus:outline-hidden focus:ring-1 focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm"
+                                :placeholder="$t('debug.search_logs_placeholder')"
+                                @input="debouncedSearch"
+                            />
+                        </div>
 
-                    <label class="inline-flex items-center cursor-pointer">
-                        <input
-                            v-model="is_anomaly"
-                            type="checkbox"
-                            class="form-checkbox h-4 w-4 text-sem-accent transition duration-150 ease-in-out"
+                        <select
+                            v-model="level"
+                            class="block pl-3 pr-10 py-2 text-base border-sem-border focus:outline-hidden focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm rounded-md bg-sem-surface text-sem-fg"
                             @change="refreshLogs"
-                        />
-                        <span class="ml-2 text-sm text-sem-fg-secondary">{{ $t("debug.anomalies_only") }}</span>
-                    </label>
-                </div>
+                        >
+                            <option value="">{{ $t("debug.level_all") }}</option>
+                            <option value="DEBUG">Debug</option>
+                            <option value="INFO">Info</option>
+                            <option value="WARNING">Warning</option>
+                            <option value="ERROR">Error</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
 
-                <div
-                    v-else
-                    class="flex flex-wrap gap-3 items-center bg-sem-surface/60 p-3 rounded-lg border border-sem-border"
-                >
-                    <div class="relative flex-1 min-w-[200px]">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-sem-fg-muted" />
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input
+                                v-model="is_anomaly"
+                                type="checkbox"
+                                class="form-checkbox h-4 w-4 text-sem-accent transition duration-150 ease-in-out"
+                                @change="refreshLogs"
+                            />
+                            <span class="ml-2 text-sm text-sem-fg-secondary">{{ $t("debug.anomalies_only") }}</span>
+                        </label>
+                    </div>
+
+                    <div
+                        v-else
+                        class="flex flex-wrap gap-3 items-center bg-sem-surface/60 p-3 rounded-lg border border-sem-border"
+                    >
+                        <div class="relative flex-1 min-w-[200px]">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-sem-fg-muted" />
+                            </div>
+                            <input
+                                v-model="accessSearch"
+                                type="text"
+                                class="block w-full pl-10 pr-3 py-2 border border-sem-border rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-sem-fg-muted focus:outline-hidden focus:ring-1 focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm"
+                                :placeholder="$t('debug.search_access_placeholder')"
+                                @input="debouncedAccessSearch"
+                            />
                         </div>
-                        <input
-                            v-model="accessSearch"
-                            type="text"
-                            class="block w-full pl-10 pr-3 py-2 border border-sem-border rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-sem-fg-muted focus:outline-hidden focus:ring-1 focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm"
-                            :placeholder="$t('debug.search_access_placeholder')"
-                            @input="debouncedAccessSearch"
-                        />
-                    </div>
-                    <select
-                        v-model="accessOutcome"
-                        class="block pl-3 pr-10 py-2 text-base border-sem-border focus:outline-hidden focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm rounded-md bg-sem-surface text-sem-fg"
-                        @change="refreshAccessAttempts"
-                    >
-                        <option value="">{{ $t("debug.outcome_all") }}</option>
-                        <option value="success">success</option>
-                        <option value="failed_password">failed_password</option>
-                        <option value="rate_limited">rate_limited</option>
-                        <option value="lockout">lockout</option>
-                        <option value="invalid_json">invalid_json</option>
-                        <option value="auth_not_setup">auth_not_setup</option>
-                        <option value="password_required">password_required</option>
-                        <option value="weak_password">weak_password</option>
-                        <option value="setup_already_done">setup_already_done</option>
-                    </select>
-                </div>
-            </div>
-
-            <div
-                class="flex-1 overflow-hidden glass-card max-w-6xl mx-auto w-full p-0 flex flex-col rounded-xs min-h-0"
-            >
-                <div
-                    v-if="activeTab === 'logs'"
-                    class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-sem-surface min-h-0"
-                >
-                    <div
-                        v-if="logs.length === 0"
-                        class="text-sem-fg-muted italic text-center py-10 text-sm sm:text-base"
-                    >
-                        {{ loading ? $t("debug.loading_logs") : $t("debug.no_logs") }}
-                    </div>
-                    <div
-                        v-for="(log, index) in logs"
-                        :key="index"
-                        class="debug-log-row border-b border-sem-border/50 py-1 sm:py-1.5 flex gap-1.5 sm:gap-3 max-sm:flex-nowrap max-sm:min-w-max hover:bg-sem-surface-muted cursor-copy"
-                        :class="{ 'bg-sem-danger/10': log.is_anomaly }"
-                        title="Tap to copy this log entry"
-                        @click="copyLogLine(log)"
-                    >
-                        <span class="text-sem-fg-muted shrink-0 max-sm:text-[8px]">{{
-                            formatTime(log.timestamp)
-                        }}</span>
-                        <span
-                            :class="levelClass(log.level)"
-                            class="w-11 sm:w-12 shrink-0 font-bold uppercase max-sm:text-[8px] max-sm:tracking-tight"
-                            >{{ log.level }}</span
+                        <select
+                            v-model="accessOutcome"
+                            class="block pl-3 pr-10 py-2 text-base border-sem-border focus:outline-hidden focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm rounded-md bg-sem-surface text-sem-fg"
+                            @change="refreshAccessAttempts"
                         >
-                        <span
-                            class="text-sem-info shrink-0 w-[4.5rem] sm:w-24 overflow-hidden text-ellipsis italic max-sm:text-[8px]"
-                            >[{{ log.module }}]</span
-                        >
-                        <span class="text-sem-fg flex-1 max-sm:whitespace-nowrap sm:wrap-break-word">
-                            {{ log.message }}
-                            <span
-                                v-if="log.is_anomaly"
-                                class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium bg-sem-danger/15 text-sem-danger uppercase"
-                            >
-                                <MaterialDesignIcon icon-name="alert-circle" class="w-2.5 h-2.5 mr-1" />
-                                {{ log.anomaly_type || "anomaly" }}
-                            </span>
-                        </span>
+                            <option value="">{{ $t("debug.outcome_all") }}</option>
+                            <option value="success">success</option>
+                            <option value="failed_password">failed_password</option>
+                            <option value="rate_limited">rate_limited</option>
+                            <option value="lockout">lockout</option>
+                            <option value="invalid_json">invalid_json</option>
+                            <option value="auth_not_setup">auth_not_setup</option>
+                            <option value="password_required">password_required</option>
+                            <option value="weak_password">weak_password</option>
+                            <option value="setup_already_done">setup_already_done</option>
+                        </select>
                     </div>
                 </div>
 
-                <div
-                    v-else
-                    class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-sem-surface min-h-0"
-                >
+                <div class="fused-section p-0 flex-1 flex flex-col min-h-0 overflow-hidden">
                     <div
-                        v-if="accessAttempts.length === 0"
-                        class="text-sem-fg-muted italic text-center py-10 text-sm sm:text-base"
-                    >
-                        {{ accessLoading ? $t("debug.loading_access") : $t("debug.no_access") }}
-                    </div>
-                    <div
-                        v-for="row in accessAttempts"
-                        :key="row.id"
-                        class="border-b border-sem-border/50 py-1.5 sm:py-2 flex flex-col gap-0.5 sm:gap-1 hover:bg-sem-surface-muted cursor-copy"
-                        title="Tap to copy this access entry"
-                        @click="copyAccessLine(row)"
+                        v-if="activeTab === 'logs'"
+                        class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-sem-surface min-h-0"
                     >
                         <div
-                            class="flex flex-wrap gap-x-2 gap-y-0.5 sm:gap-x-3 sm:gap-y-1 items-center max-sm:text-[9px]"
+                            v-if="logs.length === 0"
+                            class="text-sem-fg-muted italic text-center py-10 text-sm sm:text-base"
                         >
-                            <span class="text-sem-fg-muted shrink-0">{{ formatTime(row.created_at) }}</span>
-                            <span class="text-sem-warning font-semibold">{{ row.outcome }}</span>
-                            <span class="text-sem-info max-sm:break-all sm:min-w-0"
-                                >{{ row.method }} {{ row.path }}</span
+                            {{ loading ? $t("debug.loading_logs") : $t("debug.no_logs") }}
+                        </div>
+                        <div
+                            v-for="(log, index) in logs"
+                            :key="index"
+                            class="debug-log-row border-b border-sem-border/50 py-1 sm:py-1.5 flex gap-1.5 sm:gap-3 max-sm:flex-nowrap max-sm:min-w-max hover:bg-sem-surface-muted cursor-copy"
+                            :class="{ 'bg-sem-danger/10': log.is_anomaly }"
+                            title="Tap to copy this log entry"
+                            @click="copyLogLine(log)"
+                        >
+                            <span class="text-sem-fg-muted shrink-0 max-sm:text-[8px]">{{
+                                formatTime(log.timestamp)
+                            }}</span>
+                            <span
+                                :class="levelClass(log.level)"
+                                class="w-11 sm:w-12 shrink-0 font-bold uppercase max-sm:text-[8px] max-sm:tracking-tight"
+                                >{{ log.level }}</span
                             >
-                        </div>
-                        <div class="text-sem-fg-secondary break-all pl-0 max-sm:text-[8px]">
-                            <span class="text-sem-fg-muted">IP</span> {{ row.client_ip }}
-                        </div>
-                        <div class="text-sem-fg-muted break-all max-sm:text-[8px]">
-                            <span class="text-sem-fg-muted">UA</span> {{ row.user_agent || "-" }}
-                        </div>
-                        <div v-if="row.detail" class="text-sem-fg-muted max-sm:text-[8px] sm:text-[10px]">
-                            {{ row.detail }}
+                            <span
+                                class="text-sem-info shrink-0 w-[4.5rem] sm:w-24 overflow-hidden text-ellipsis italic max-sm:text-[8px]"
+                                >[{{ log.module }}]</span
+                            >
+                            <span class="text-sem-fg flex-1 max-sm:whitespace-nowrap sm:wrap-break-word">
+                                {{ log.message }}
+                                <span
+                                    v-if="log.is_anomaly"
+                                    class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium bg-sem-danger/15 text-sem-danger uppercase"
+                                >
+                                    <MaterialDesignIcon icon-name="alert-circle" class="w-2.5 h-2.5 mr-1" />
+                                    {{ log.anomaly_type || "anomaly" }}
+                                </span>
+                            </span>
                         </div>
                     </div>
-                </div>
 
-                <div
-                    class="px-4 py-3 flex items-center justify-between border-t border-sem-border bg-sem-surface-muted/50"
-                >
-                    <div class="flex-1 flex justify-between sm:hidden">
-                        <button
-                            class="relative inline-flex items-center px-4 py-2 border border-sem-border text-sm font-medium rounded-md text-sem-fg bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-50"
-                            :disabled="listOffset === 0"
-                            @click="prevPage"
+                    <div
+                        v-else
+                        class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-sem-surface min-h-0"
+                    >
+                        <div
+                            v-if="accessAttempts.length === 0"
+                            class="text-sem-fg-muted italic text-center py-10 text-sm sm:text-base"
                         >
-                            Previous
-                        </button>
-                        <button
-                            class="ml-3 relative inline-flex items-center px-4 py-2 border border-sem-border text-sm font-medium rounded-md text-sem-fg bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-50"
-                            :disabled="listOffset + limit >= listTotal"
-                            @click="nextPage"
-                        >
-                            Next
-                        </button>
-                    </div>
-                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm text-sem-fg-muted font-mono">
-                                Showing
-                                <span class="font-bold">{{ listTotal === 0 ? 0 : listOffset + 1 }}</span>
-                                to
-                                <span class="font-bold">{{ Math.min(listOffset + limit, listTotal) }}</span>
-                                of
-                                <span class="font-bold">{{ listTotal }}</span>
-                                results
-                            </p>
+                            {{ accessLoading ? $t("debug.loading_access") : $t("debug.no_access") }}
                         </div>
-                        <div class="flex gap-2">
+                        <div
+                            v-for="row in accessAttempts"
+                            :key="row.id"
+                            class="border-b border-sem-border/50 py-1.5 sm:py-2 flex flex-col gap-0.5 sm:gap-1 hover:bg-sem-surface-muted cursor-copy"
+                            title="Tap to copy this access entry"
+                            @click="copyAccessLine(row)"
+                        >
+                            <div
+                                class="flex flex-wrap gap-x-2 gap-y-0.5 sm:gap-x-3 sm:gap-y-1 items-center max-sm:text-[9px]"
+                            >
+                                <span class="text-sem-fg-muted shrink-0">{{ formatTime(row.created_at) }}</span>
+                                <span class="text-sem-warning font-semibold">{{ row.outcome }}</span>
+                                <span class="text-sem-info max-sm:break-all sm:min-w-0"
+                                    >{{ row.method }} {{ row.path }}</span
+                                >
+                            </div>
+                            <div class="text-sem-fg-secondary break-all pl-0 max-sm:text-[8px]">
+                                <span class="text-sem-fg-muted">IP</span> {{ row.client_ip }}
+                            </div>
+                            <div class="text-sem-fg-muted break-all max-sm:text-[8px]">
+                                <span class="text-sem-fg-muted">UA</span> {{ row.user_agent || "-" }}
+                            </div>
+                            <div v-if="row.detail" class="text-sem-fg-muted max-sm:text-[8px] sm:text-[10px]">
+                                {{ row.detail }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="px-4 py-3 flex items-center justify-between border-t border-sem-border bg-sem-surface-muted/50"
+                    >
+                        <div class="flex-1 flex justify-between sm:hidden">
                             <button
-                                class="secondary-chip px-3 py-1 text-xs disabled:opacity-50"
+                                class="relative inline-flex items-center px-4 py-2 border border-sem-border text-sm font-medium rounded-md text-sem-fg bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-50"
                                 :disabled="listOffset === 0"
                                 @click="prevPage"
                             >
-                                <MaterialDesignIcon icon-name="chevron-left" class="w-4 h-4" />
                                 Previous
                             </button>
                             <button
-                                class="secondary-chip px-3 py-1 text-xs disabled:opacity-50"
+                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-sem-border text-sm font-medium rounded-md text-sem-fg bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-50"
                                 :disabled="listOffset + limit >= listTotal"
                                 @click="nextPage"
                             >
                                 Next
-                                <MaterialDesignIcon icon-name="chevron-right" class="w-4 h-4" />
                             </button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-sem-fg-muted font-mono">
+                                    Showing
+                                    <span class="font-bold">{{ listTotal === 0 ? 0 : listOffset + 1 }}</span>
+                                    to
+                                    <span class="font-bold">{{ Math.min(listOffset + limit, listTotal) }}</span>
+                                    of
+                                    <span class="font-bold">{{ listTotal }}</span>
+                                    results
+                                </p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button
+                                    class="secondary-chip px-3 py-1 text-xs disabled:opacity-50"
+                                    :disabled="listOffset === 0"
+                                    @click="prevPage"
+                                >
+                                    <MaterialDesignIcon icon-name="chevron-left" class="w-4 h-4" />
+                                    Previous
+                                </button>
+                                <button
+                                    class="secondary-chip px-3 py-1 text-xs disabled:opacity-50"
+                                    :disabled="listOffset + limit >= listTotal"
+                                    @click="nextPage"
+                                >
+                                    Next
+                                    <MaterialDesignIcon icon-name="chevron-right" class="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -492,9 +492,6 @@ export default {
 </script>
 
 <style scoped>
-.glass-card {
-    border-radius: 2px !important;
-}
 .debug-log-scroll {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;

@@ -82,6 +82,7 @@
     },
     "app": {
         "name": "Reticulum MeshChatX",
+        "skip_to_content": "Skip to main content",
         "sync_messages": "Sync Messages",
         "compose": "Compose",
         "messages": "Messages",
@@ -4876,7 +4877,6 @@
         "restart_desc_page": "Reticulum was hot-reloaded with your new configuration. No manual restart is required for normal use.",
         "back": "Back",
         "skip": "Skip",
-        "skip_to_content": "Skip to main content",
         "next": "Next",
         "restart_start": "Start MeshChatX",
         "finish_setup": "Finish Setup",

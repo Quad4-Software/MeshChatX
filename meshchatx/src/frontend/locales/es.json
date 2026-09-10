@@ -82,6 +82,7 @@
     },
     "app": {
         "name": "Reticulum MeshChatX",
+        "skip_to_content": "Skip to main content",
         "sync_messages": "Mensajes sincronizados",
         "compose": "Composición",
         "messages": "Mensajes",

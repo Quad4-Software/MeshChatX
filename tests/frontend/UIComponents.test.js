@@ -401,9 +401,11 @@ describe("SettingsPage Component", () => {
                 data: { config: { ...baseConfig } },
             }),
             post: vi.fn().mockResolvedValue({ data: { success: true } }),
-            patch: vi.fn().mockImplementation((_, partial) =>
-                Promise.resolve({ data: { config: { ...baseConfig, ...partial } } })
-            ),
+            patch: vi
+                .fn()
+                .mockImplementation((_, partial) =>
+                    Promise.resolve({ data: { config: { ...baseConfig, ...partial } } })
+                ),
         };
         window.api = axiosMock;
 

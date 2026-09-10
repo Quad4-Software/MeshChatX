@@ -12,431 +12,436 @@
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
-            <div class="space-y-4 w-full max-w-4xl mx-auto">
-                <div class="glass-card space-y-5">
-                    <div
-                        class="p-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
-                    >
-                        <div class="text-xs font-bold uppercase tracking-wider text-sem-accent mb-2">
-                            {{ $t("rncp.usage_steps") }}
-                        </div>
-                        <div class="space-y-1.5">
-                            <!-- eslint-disable vue/no-v-html -- sanitized via renderMarkdown -->
-                            <p
-                                class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
-                                @click="handleMessageClick"
-                                v-html="renderMarkdown($t('rncp.step_1'))"
-                            ></p>
-                            <p
-                                class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
-                                @click="handleMessageClick"
-                                v-html="renderMarkdown($t('rncp.step_2'))"
-                            ></p>
-                            <p
-                                class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
-                                @click="handleMessageClick"
-                                v-html="renderMarkdown($t('rncp.step_3'))"
-                            ></p>
-                            <!-- eslint-enable vue/no-v-html -->
-                        </div>
-                    </div>
-
-                    <div
-                        class="border-b border-sem-border overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0"
-                    >
-                        <div class="flex w-max min-w-full sm:w-auto gap-1 sm:gap-2">
-                            <button
-                                type="button"
-                                :class="[
-                                    activeTab === 'send'
-                                        ? 'border-b-2 border-blue-500 text-sem-accent'
-                                        : 'text-gray-600 dark:text-gray-400',
-                                    'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
-                                ]"
-                                @click="activeTab = 'send'"
-                            >
-                                {{ $t("rncp.send_file") }}
-                            </button>
-                            <button
-                                type="button"
-                                :class="[
-                                    activeTab === 'fetch'
-                                        ? 'border-b-2 border-blue-500 text-sem-accent'
-                                        : 'text-gray-600 dark:text-gray-400',
-                                    'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
-                                ]"
-                                @click="activeTab = 'fetch'"
-                            >
-                                {{ $t("rncp.fetch_file") }}
-                            </button>
-                            <button
-                                type="button"
-                                :class="[
-                                    activeTab === 'listen'
-                                        ? 'border-b-2 border-blue-500 text-sem-accent'
-                                        : 'text-gray-600 dark:text-gray-400',
-                                    'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
-                                ]"
-                                @click="activeTab = 'listen'"
-                            >
-                                {{ $t("rncp.listen") }}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div v-if="activeTab === 'send'" class="space-y-4">
-                        <div class="grid lg:grid-cols-2 gap-4">
-                            <div>
-                                <label class="glass-label">{{ $t("rncp.destination_hash") }}</label>
-                                <input
-                                    v-model="sendDestinationHash"
-                                    type="text"
-                                    placeholder="e.g. 7b746057a7294469799cd8d7d429676a"
-                                    class="input-field font-mono"
-                                />
-                            </div>
-                            <div>
-                                <label class="glass-label">{{ $t("rncp.file_path") }}</label>
-                                <div class="flex gap-2">
-                                    <input
-                                        v-model="sendFilePath"
-                                        type="text"
-                                        placeholder="/path/to/file"
-                                        class="input-field flex-1 min-w-0"
-                                    />
-                                    <input
-                                        ref="sendFileInput"
-                                        type="file"
-                                        class="hidden"
-                                        @change="onWebSendFilePicked"
-                                    />
-                                    <button
-                                        type="button"
-                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
-                                        :title="$t('rncp.browse_file')"
-                                        @click="pickSendFile"
-                                    >
-                                        <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
-                                        {{ $t("rncp.browse_file") }}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="grid lg:grid-cols-2 gap-4">
-                            <div>
-                                <label class="glass-label">{{ $t("rncp.timeout_seconds") }}</label>
-                                <input v-model="sendTimeout" type="number" min="1" class="input-field" />
-                            </div>
-                            <div class="flex items-end">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="sendNoCompress" type="checkbox" class="rounded-sm" />
-                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{
-                                        $t("rncp.disable_compression")
-                                    }}</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button
-                                v-if="!sendInProgress"
-                                type="button"
-                                class="primary-chip px-4 py-2 text-sm"
-                                @click="sendFile"
-                            >
-                                <MaterialDesignIcon icon-name="upload" class="w-4 h-4" />
-                                {{ $t("rncp.send_file") }}
-                            </button>
-                            <button
-                                v-else
-                                type="button"
-                                class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
-                                @click="cancelSend"
-                            >
-                                <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
-                                {{ $t("rncp.cancel") }}
-                            </button>
-                        </div>
-                        <div v-if="sendProgress > 0" class="space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-700 dark:text-gray-300">{{ $t("rncp.progress") }}</span>
-                                <span class="text-gray-700 dark:text-gray-300"
-                                    >{{ Math.round(sendProgress * 100) }}%</span
-                                >
-                            </div>
-                            <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
-                                <div
-                                    class="bg-blue-600 h-2 rounded-full transition-all"
-                                    :style="{ width: sendProgress * 100 + '%' }"
-                                ></div>
-                            </div>
-                        </div>
+            <div class="w-full max-w-4xl mx-auto">
+                <div class="fused-panel">
+                    <div class="fused-section space-y-5">
                         <div
-                            v-if="sendResult"
-                            class="p-3 rounded-lg space-y-2"
-                            :class="
-                                sendResult.success
-                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                            "
+                            class="p-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
                         >
-                            <div>{{ sendResult.message }}</div>
-                            <div v-if="sendResult.success && sendResult.filePath" class="font-mono text-xs break-all">
-                                {{ sendResult.filePath }}
+                            <div class="text-xs font-bold uppercase tracking-wider text-sem-accent mb-2">
+                                {{ $t("rncp.usage_steps") }}
                             </div>
-                            <div v-if="sendResult.success && sendResult.filePath" class="flex gap-2">
+                            <div class="space-y-1.5">
+                                <!-- eslint-disable vue/no-v-html -- sanitized via renderMarkdown -->
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
+                                    v-html="renderMarkdown($t('rncp.step_1'))"
+                                ></p>
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
+                                    v-html="renderMarkdown($t('rncp.step_2'))"
+                                ></p>
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
+                                    v-html="renderMarkdown($t('rncp.step_3'))"
+                                ></p>
+                                <!-- eslint-enable vue/no-v-html -->
+                            </div>
+                        </div>
+
+                        <div
+                            class="border-b border-sem-border overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0"
+                        >
+                            <div class="flex w-max min-w-full sm:w-auto gap-1 sm:gap-2">
                                 <button
                                     type="button"
-                                    class="secondary-chip text-xs py-1 px-2"
-                                    @click="openPathInOs(sendResult.filePath)"
+                                    :class="[
+                                        activeTab === 'send'
+                                            ? 'border-b-2 border-blue-500 text-sem-accent'
+                                            : 'text-gray-600 dark:text-gray-400',
+                                        'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
+                                    ]"
+                                    @click="activeTab = 'send'"
                                 >
-                                    {{ $t("rncp.show_in_folder") }}
+                                    {{ $t("rncp.send_file") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="[
+                                        activeTab === 'fetch'
+                                            ? 'border-b-2 border-blue-500 text-sem-accent'
+                                            : 'text-gray-600 dark:text-gray-400',
+                                        'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
+                                    ]"
+                                    @click="activeTab = 'fetch'"
+                                >
+                                    {{ $t("rncp.fetch_file") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="[
+                                        activeTab === 'listen'
+                                            ? 'border-b-2 border-blue-500 text-sem-accent'
+                                            : 'text-gray-600 dark:text-gray-400',
+                                        'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
+                                    ]"
+                                    @click="activeTab = 'listen'"
+                                >
+                                    {{ $t("rncp.listen") }}
                                 </button>
                             </div>
                         </div>
-                    </div>
 
-                    <div v-if="activeTab === 'fetch'" class="space-y-4">
-                        <div class="grid lg:grid-cols-2 gap-4">
-                            <div>
-                                <label class="glass-label">{{ $t("rncp.destination_hash") }}</label>
-                                <input
-                                    v-model="fetchDestinationHash"
-                                    type="text"
-                                    placeholder="e.g. 7b746057a7294469799cd8d7d429676a"
-                                    class="input-field font-mono"
-                                />
-                            </div>
-                            <div>
-                                <label class="glass-label">{{ $t("rncp.remote_file_path") }}</label>
-                                <input
-                                    v-model="fetchFilePath"
-                                    type="text"
-                                    placeholder="/path/to/remote/file"
-                                    class="input-field"
-                                />
-                            </div>
-                        </div>
-                        <div class="grid lg:grid-cols-2 gap-4">
-                            <div>
-                                <label class="glass-label">{{ $t("rncp.save_path_optional") }}</label>
-                                <div class="flex gap-2">
+                        <div v-if="activeTab === 'send'" class="space-y-4">
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="glass-label">{{ $t("rncp.destination_hash") }}</label>
                                     <input
-                                        v-model="fetchSavePath"
+                                        v-model="sendDestinationHash"
                                         type="text"
-                                        :placeholder="$t('rncp.save_path_placeholder')"
-                                        class="input-field flex-1 min-w-0"
+                                        placeholder="e.g. 7b746057a7294469799cd8d7d429676a"
+                                        class="input-field font-mono"
                                     />
-                                    <button
-                                        type="button"
-                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
-                                        :title="$t('rncp.browse_folder')"
-                                        @click="pickFetchSaveDirectory"
-                                    >
-                                        <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
-                                        {{ $t("rncp.browse_folder") }}
-                                    </button>
+                                </div>
+                                <div>
+                                    <label class="glass-label">{{ $t("rncp.file_path") }}</label>
+                                    <div class="flex gap-2">
+                                        <input
+                                            v-model="sendFilePath"
+                                            type="text"
+                                            placeholder="/path/to/file"
+                                            class="input-field flex-1 min-w-0"
+                                        />
+                                        <input
+                                            ref="sendFileInput"
+                                            type="file"
+                                            class="hidden"
+                                            @change="onWebSendFilePicked"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                            :title="$t('rncp.browse_file')"
+                                            @click="pickSendFile"
+                                        >
+                                            <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                            {{ $t("rncp.browse_file") }}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <label class="glass-label">{{ $t("rncp.timeout_seconds") }}</label>
-                                <input v-model="fetchTimeout" type="number" min="1" class="input-field" />
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="glass-label">{{ $t("rncp.timeout_seconds") }}</label>
+                                    <input v-model="sendTimeout" type="number" min="1" class="input-field" />
+                                </div>
+                                <div class="flex items-end">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input v-model="sendNoCompress" type="checkbox" class="rounded-sm" />
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{
+                                            $t("rncp.disable_compression")
+                                        }}</span>
+                                    </label>
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input v-model="fetchAllowOverwrite" type="checkbox" class="rounded-sm" />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">{{
-                                    $t("rncp.allow_overwrite")
-                                }}</span>
-                            </label>
-                        </div>
-                        <div class="flex gap-2">
-                            <button
-                                v-if="!fetchInProgress"
-                                type="button"
-                                class="primary-chip px-4 py-2 text-sm"
-                                @click="fetchFile"
-                            >
-                                <MaterialDesignIcon icon-name="download" class="w-4 h-4" />
-                                {{ $t("rncp.fetch_file") }}
-                            </button>
-                            <button
-                                v-else
-                                type="button"
-                                class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
-                                @click="cancelFetch"
-                            >
-                                <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
-                                {{ $t("rncp.cancel") }}
-                            </button>
-                        </div>
-                        <div v-if="fetchProgress > 0" class="space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-700 dark:text-gray-300">{{ $t("rncp.progress") }}</span>
-                                <span class="text-gray-700 dark:text-gray-300"
-                                    >{{ Math.round(fetchProgress * 100) }}%</span
+                            <div class="flex gap-2">
+                                <button
+                                    v-if="!sendInProgress"
+                                    type="button"
+                                    class="primary-chip px-4 py-2 text-sm"
+                                    @click="sendFile"
                                 >
+                                    <MaterialDesignIcon icon-name="upload" class="w-4 h-4" />
+                                    {{ $t("rncp.send_file") }}
+                                </button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                    @click="cancelSend"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
+                                    {{ $t("rncp.cancel") }}
+                                </button>
                             </div>
-                            <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
-                                <div
-                                    class="bg-blue-600 h-2 rounded-full transition-all"
-                                    :style="{ width: fetchProgress * 100 + '%' }"
-                                ></div>
+                            <div v-if="sendProgress > 0" class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-700 dark:text-gray-300">{{ $t("rncp.progress") }}</span>
+                                    <span class="text-gray-700 dark:text-gray-300"
+                                        >{{ Math.round(sendProgress * 100) }}%</span
+                                    >
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                                    <div
+                                        class="bg-blue-600 h-2 rounded-full transition-all"
+                                        :style="{ width: sendProgress * 100 + '%' }"
+                                    ></div>
+                                </div>
                             </div>
-                        </div>
-                        <div
-                            v-if="fetchResult"
-                            class="p-3 rounded-lg space-y-2"
-                            :class="
-                                fetchResult.success
-                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                            "
-                        >
-                            <div>{{ fetchResult.message }}</div>
                             <div
-                                v-if="fetchResult.success && fetchResult.savedPath"
-                                class="font-mono text-xs break-all"
+                                v-if="sendResult"
+                                class="p-3 rounded-lg space-y-2"
+                                :class="
+                                    sendResult.success
+                                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                                        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                "
                             >
-                                {{ fetchResult.savedPath }}
-                            </div>
-                            <div v-if="fetchResult.success && fetchResult.savedPath" class="flex gap-2">
-                                <button
-                                    type="button"
-                                    class="secondary-chip text-xs py-1 px-2"
-                                    @click="openPathInOs(fetchResult.savedPath)"
+                                <div>{{ sendResult.message }}</div>
+                                <div
+                                    v-if="sendResult.success && sendResult.filePath"
+                                    class="font-mono text-xs break-all"
                                 >
-                                    {{ $t("rncp.show_in_folder") }}
-                                </button>
+                                    {{ sendResult.filePath }}
+                                </div>
+                                <div v-if="sendResult.success && sendResult.filePath" class="flex gap-2">
+                                    <button
+                                        type="button"
+                                        class="secondary-chip text-xs py-1 px-2"
+                                        @click="openPathInOs(sendResult.filePath)"
+                                    >
+                                        {{ $t("rncp.show_in_folder") }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div v-if="activeTab === 'listen'" class="space-y-4">
-                        <div>
-                            <label class="glass-label">{{ $t("rncp.allowed_hashes") }}</label>
-                            <textarea
-                                v-model="listenAllowedHashes"
-                                rows="4"
-                                placeholder="7b746057a7294469799cd8d7d429676a&#10;8c857168b830557080ad9e8e8e539787b"
-                                class="input-field font-mono text-sm"
-                            ></textarea>
-                        </div>
-                        <div class="grid lg:grid-cols-2 gap-4">
-                            <div>
-                                <label class="glass-label">{{ $t("rncp.fetch_jail_path") }}</label>
-                                <input
-                                    v-model="listenFetchJail"
-                                    type="text"
-                                    placeholder="/path/to/jail"
-                                    class="input-field"
-                                />
+                        <div v-if="activeTab === 'fetch'" class="space-y-4">
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="glass-label">{{ $t("rncp.destination_hash") }}</label>
+                                    <input
+                                        v-model="fetchDestinationHash"
+                                        type="text"
+                                        placeholder="e.g. 7b746057a7294469799cd8d7d429676a"
+                                        class="input-field font-mono"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="glass-label">{{ $t("rncp.remote_file_path") }}</label>
+                                    <input
+                                        v-model="fetchFilePath"
+                                        type="text"
+                                        placeholder="/path/to/remote/file"
+                                        class="input-field"
+                                    />
+                                </div>
                             </div>
-                            <div class="flex items-end gap-4">
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="glass-label">{{ $t("rncp.save_path_optional") }}</label>
+                                    <div class="flex gap-2">
+                                        <input
+                                            v-model="fetchSavePath"
+                                            type="text"
+                                            :placeholder="$t('rncp.save_path_placeholder')"
+                                            class="input-field flex-1 min-w-0"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                            :title="$t('rncp.browse_folder')"
+                                            @click="pickFetchSaveDirectory"
+                                        >
+                                            <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                            {{ $t("rncp.browse_folder") }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="glass-label">{{ $t("rncp.timeout_seconds") }}</label>
+                                    <input v-model="fetchTimeout" type="number" min="1" class="input-field" />
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="listenFetchAllowed" type="checkbox" class="rounded-sm" />
-                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{
-                                        $t("rncp.allow_fetch")
-                                    }}</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="listenAllowOverwrite" type="checkbox" class="rounded-sm" />
+                                    <input v-model="fetchAllowOverwrite" type="checkbox" class="rounded-sm" />
                                     <span class="text-sm text-gray-700 dark:text-gray-300">{{
                                         $t("rncp.allow_overwrite")
                                     }}</span>
                                 </label>
                             </div>
-                        </div>
-                        <p class="text-xs text-sem-fg-muted">
-                            {{ $t("rncp.listening_active_background") }}
-                        </p>
-                        <div
-                            v-if="receiveDirectory"
-                            class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/80 border border-sem-border space-y-2"
-                        >
-                            <div class="text-xs font-semibold text-sem-fg-muted">
-                                {{ $t("rncp.receive_folder") }}
+                            <div class="flex gap-2">
+                                <button
+                                    v-if="!fetchInProgress"
+                                    type="button"
+                                    class="primary-chip px-4 py-2 text-sm"
+                                    @click="fetchFile"
+                                >
+                                    <MaterialDesignIcon icon-name="download" class="w-4 h-4" />
+                                    {{ $t("rncp.fetch_file") }}
+                                </button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                    @click="cancelFetch"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
+                                    {{ $t("rncp.cancel") }}
+                                </button>
                             </div>
-                            <div class="font-mono text-xs break-all text-sem-fg">
-                                {{ receiveDirectory }}
+                            <div v-if="fetchProgress > 0" class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-700 dark:text-gray-300">{{ $t("rncp.progress") }}</span>
+                                    <span class="text-gray-700 dark:text-gray-300"
+                                        >{{ Math.round(fetchProgress * 100) }}%</span
+                                    >
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                                    <div
+                                        class="bg-blue-600 h-2 rounded-full transition-all"
+                                        :style="{ width: fetchProgress * 100 + '%' }"
+                                    ></div>
+                                </div>
                             </div>
-                            <button
-                                type="button"
-                                class="secondary-chip text-xs py-1.5 px-2"
-                                @click="openReceiveDirectory"
+                            <div
+                                v-if="fetchResult"
+                                class="p-3 rounded-lg space-y-2"
+                                :class="
+                                    fetchResult.success
+                                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                                        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                "
                             >
-                                <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
-                                {{ $t("rncp.open_folder") }}
-                            </button>
-                        </div>
-                        <div
-                            v-if="lastReceiveEvent"
-                            class="p-3 rounded-lg border space-y-2"
-                            :class="
-                                lastReceiveEvent.status === 'completed'
-                                    ? 'bg-green-50/80 dark:bg-green-900/15 border-green-200 dark:border-green-800'
-                                    : 'bg-amber-50/80 dark:bg-amber-900/15 border-amber-200 dark:border-amber-800'
-                            "
-                        >
-                            <div class="text-sm font-semibold text-sem-fg">
-                                {{
-                                    lastReceiveEvent.status === "completed"
-                                        ? $t("rncp.received_file")
-                                        : $t("rncp.receive_failed")
-                                }}
+                                <div>{{ fetchResult.message }}</div>
+                                <div
+                                    v-if="fetchResult.success && fetchResult.savedPath"
+                                    class="font-mono text-xs break-all"
+                                >
+                                    {{ fetchResult.savedPath }}
+                                </div>
+                                <div v-if="fetchResult.success && fetchResult.savedPath" class="flex gap-2">
+                                    <button
+                                        type="button"
+                                        class="secondary-chip text-xs py-1 px-2"
+                                        @click="openPathInOs(fetchResult.savedPath)"
+                                    >
+                                        {{ $t("rncp.show_in_folder") }}
+                                    </button>
+                                </div>
                             </div>
-                            <div v-if="lastReceiveEvent.saved_path" class="font-mono text-xs break-all">
-                                {{ lastReceiveEvent.saved_path }}
+                        </div>
+
+                        <div v-if="activeTab === 'listen'" class="space-y-4">
+                            <div>
+                                <label class="glass-label">{{ $t("rncp.allowed_hashes") }}</label>
+                                <textarea
+                                    v-model="listenAllowedHashes"
+                                    rows="4"
+                                    placeholder="7b746057a7294469799cd8d7d429676a&#10;8c857168b830557080ad9e8e8e539787b"
+                                    class="input-field font-mono text-sm"
+                                ></textarea>
                             </div>
-                            <div v-if="lastReceiveEvent.error" class="text-xs text-red-600 dark:text-red-400">
-                                {{ lastReceiveEvent.error }}
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="glass-label">{{ $t("rncp.fetch_jail_path") }}</label>
+                                    <input
+                                        v-model="listenFetchJail"
+                                        type="text"
+                                        placeholder="/path/to/jail"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div class="flex items-end gap-4">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input v-model="listenFetchAllowed" type="checkbox" class="rounded-sm" />
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{
+                                            $t("rncp.allow_fetch")
+                                        }}</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input v-model="listenAllowOverwrite" type="checkbox" class="rounded-sm" />
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{
+                                            $t("rncp.allow_overwrite")
+                                        }}</span>
+                                    </label>
+                                </div>
                             </div>
-                            <button
-                                v-if="lastReceiveEvent.saved_path"
-                                type="button"
-                                class="secondary-chip text-xs py-1 px-2"
-                                @click="openPathInOs(lastReceiveEvent.saved_path)"
+                            <p class="text-xs text-sem-fg-muted">
+                                {{ $t("rncp.listening_active_background") }}
+                            </p>
+                            <div
+                                v-if="receiveDirectory"
+                                class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/80 border border-sem-border space-y-2"
                             >
-                                {{ $t("rncp.show_in_folder") }}
-                            </button>
-                        </div>
-                        <div class="flex gap-2">
-                            <button
-                                v-if="!listenActive"
-                                type="button"
-                                class="primary-chip px-4 py-2 text-sm"
-                                @click="startListen"
+                                <div class="text-xs font-semibold text-sem-fg-muted">
+                                    {{ $t("rncp.receive_folder") }}
+                                </div>
+                                <div class="font-mono text-xs break-all text-sem-fg">
+                                    {{ receiveDirectory }}
+                                </div>
+                                <button
+                                    type="button"
+                                    class="secondary-chip text-xs py-1.5 px-2"
+                                    @click="openReceiveDirectory"
+                                >
+                                    <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                    {{ $t("rncp.open_folder") }}
+                                </button>
+                            </div>
+                            <div
+                                v-if="lastReceiveEvent"
+                                class="p-3 rounded-lg border space-y-2"
+                                :class="
+                                    lastReceiveEvent.status === 'completed'
+                                        ? 'bg-green-50/80 dark:bg-green-900/15 border-green-200 dark:border-green-800'
+                                        : 'bg-amber-50/80 dark:bg-amber-900/15 border-amber-200 dark:border-amber-800'
+                                "
                             >
-                                <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
-                                {{ $t("rncp.start_listening") }}
-                            </button>
-                            <button
-                                v-else
-                                type="button"
-                                class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
-                                @click="stopListen"
+                                <div class="text-sm font-semibold text-sem-fg">
+                                    {{
+                                        lastReceiveEvent.status === "completed"
+                                            ? $t("rncp.received_file")
+                                            : $t("rncp.receive_failed")
+                                    }}
+                                </div>
+                                <div v-if="lastReceiveEvent.saved_path" class="font-mono text-xs break-all">
+                                    {{ lastReceiveEvent.saved_path }}
+                                </div>
+                                <div v-if="lastReceiveEvent.error" class="text-xs text-red-600 dark:text-red-400">
+                                    {{ lastReceiveEvent.error }}
+                                </div>
+                                <button
+                                    v-if="lastReceiveEvent.saved_path"
+                                    type="button"
+                                    class="secondary-chip text-xs py-1 px-2"
+                                    @click="openPathInOs(lastReceiveEvent.saved_path)"
+                                >
+                                    {{ $t("rncp.show_in_folder") }}
+                                </button>
+                            </div>
+                            <div class="flex gap-2">
+                                <button
+                                    v-if="!listenActive"
+                                    type="button"
+                                    class="primary-chip px-4 py-2 text-sm"
+                                    @click="startListen"
+                                >
+                                    <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
+                                    {{ $t("rncp.start_listening") }}
+                                </button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                    @click="stopListen"
+                                >
+                                    <MaterialDesignIcon icon-name="stop" class="w-4 h-4" />
+                                    {{ $t("rncp.stop_listening") }}
+                                </button>
+                            </div>
+                            <div
+                                v-if="listenDestinationHash"
+                                class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300"
                             >
-                                <MaterialDesignIcon icon-name="stop" class="w-4 h-4" />
-                                {{ $t("rncp.stop_listening") }}
-                            </button>
-                        </div>
-                        <div
-                            v-if="listenDestinationHash"
-                            class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300"
-                        >
-                            <div class="font-semibold mb-1">{{ $t("rncp.listening_on") }}</div>
-                            <div class="font-mono text-sm">{{ listenDestinationHash }}</div>
-                        </div>
-                        <div
-                            v-if="listenResult"
-                            class="p-3 rounded-lg"
-                            :class="
-                                listenResult.success
-                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                            "
-                        >
-                            {{ listenResult.message }}
+                                <div class="font-semibold mb-1">{{ $t("rncp.listening_on") }}</div>
+                                <div class="font-mono text-sm">{{ listenDestinationHash }}</div>
+                            </div>
+                            <div
+                                v-if="listenResult"
+                                class="p-3 rounded-lg"
+                                :class="
+                                    listenResult.success
+                                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                                        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                "
+                            >
+                                {{ listenResult.message }}
+                            </div>
                         </div>
                     </div>
                 </div>

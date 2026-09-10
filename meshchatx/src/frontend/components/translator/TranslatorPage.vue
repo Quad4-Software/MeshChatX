@@ -11,137 +11,144 @@
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
-            <div class="space-y-5 w-full max-w-4xl mx-auto">
-                <div class="glass-card space-y-4">
-                    <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                        {{ $t("translator.pack_library") }}
-                    </div>
-                    <p class="text-sm text-sem-fg-muted">
-                        {{ $t("translator.pack_library_description") }}
-                    </p>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <input
-                            ref="pack-file-input"
-                            type="file"
-                            accept=".zip,.tar,.tar.gz,.tgz"
-                            class="hidden"
-                            @change="onPackFileSelected"
-                        />
-                        <button type="button" class="primary-chip text-xs px-3.5 py-2" @click="selectPackFile">
-                            {{ $t("translator.import_pack") }}
-                        </button>
-                        <span v-if="isImporting" class="text-xs text-sem-fg-muted">{{
-                            $t("translator.importing")
-                        }}</span>
-                    </div>
-                    <div v-if="packs.length" class="space-y-2">
-                        <div
-                            v-for="pack in packs"
-                            :key="pack.pair"
-                            class="flex items-center justify-between p-2.5 rounded-lg bg-sem-surface/60 border border-sem-border"
-                        >
-                            <div>
-                                <div class="text-sm font-medium text-sem-fg">
-                                    {{ packLabel(pack) }}
+            <div class="w-full max-w-4xl mx-auto">
+                <div class="fused-panel">
+                    <div class="fused-section space-y-4">
+                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                            {{ $t("translator.pack_library") }}
+                        </div>
+                        <p class="text-sm text-sem-fg-muted">
+                            {{ $t("translator.pack_library_description") }}
+                        </p>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <input
+                                ref="pack-file-input"
+                                type="file"
+                                accept=".zip,.tar,.tar.gz,.tgz"
+                                class="hidden"
+                                @change="onPackFileSelected"
+                            />
+                            <button type="button" class="primary-chip text-xs px-3.5 py-2" @click="selectPackFile">
+                                {{ $t("translator.import_pack") }}
+                            </button>
+                            <span v-if="isImporting" class="text-xs text-sem-fg-muted">{{
+                                $t("translator.importing")
+                            }}</span>
+                        </div>
+                        <div v-if="packs.length" class="space-y-2">
+                            <div
+                                v-for="pack in packs"
+                                :key="pack.pair"
+                                class="flex items-center justify-between p-2.5 rounded-lg bg-sem-surface/60 border border-sem-border"
+                            >
+                                <div>
+                                    <div class="text-sm font-medium text-sem-fg">
+                                        {{ packLabel(pack) }}
+                                    </div>
+                                    <div class="text-xs text-sem-fg-muted">
+                                        {{ $t("translator.pair_code", { pair: pack.pair.toUpperCase() }) }}
+                                        ·
+                                        {{ $t("translator.size_kb", { size: Math.ceil(pack.size / 1024) }) }}
+                                    </div>
                                 </div>
-                                <div class="text-xs text-sem-fg-muted">
-                                    {{ $t("translator.pair_code", { pair: pack.pair.toUpperCase() }) }}
-                                    ·
-                                    {{ $t("translator.size_kb", { size: Math.ceil(pack.size / 1024) }) }}
-                                </div>
+                                <button
+                                    type="button"
+                                    class="text-xs text-sem-danger hover:underline"
+                                    @click="removePack(pack.pair)"
+                                >
+                                    {{ $t("translator.remove") }}
+                                </button>
+                            </div>
+                        </div>
+                        <div v-else class="text-sm text-sem-warning">
+                            {{ $t("translator.no_packs") }}
+                        </div>
+                    </div>
+
+                    <div class="fused-section space-y-4">
+                        <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                            <div class="flex-1">
+                                <label class="glass-label mb-2">{{ $t("translator.source_language") }}</label>
+                                <select v-model="sourceLang" class="input-field w-full">
+                                    <option v-for="opt in sourceOptions" :key="opt.value" :value="opt.value">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
                             </div>
                             <button
                                 type="button"
-                                class="text-xs text-sem-danger hover:underline"
-                                @click="removePack(pack.pair)"
+                                class="p-2 rounded-lg border border-sem-border bg-sem-surface text-sem-fg hover:bg-sem-surface-muted"
+                                :title="$t('translator.swap_languages')"
+                                @click="swapLanguages"
                             >
-                                {{ $t("translator.remove") }}
+                                <MaterialDesignIcon icon-name="swap-horizontal" class="size-5" />
+                            </button>
+                            <div class="flex-1">
+                                <label class="glass-label mb-2">{{ $t("translator.target_language") }}</label>
+                                <select v-model="targetLang" class="input-field w-full">
+                                    <option v-for="opt in targetOptions" :key="opt.value" :value="opt.value">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="glass-label mb-2">{{ $t("translator.input_text") }}</label>
+                            <textarea
+                                v-model="inputText"
+                                rows="5"
+                                class="input-field w-full resize-y"
+                                :placeholder="$t('translator.input_placeholder')"
+                            />
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                class="primary-chip px-4 py-2"
+                                :disabled="!canTranslate || isTranslating"
+                                @click="runTranslate"
+                            >
+                                <span v-if="isTranslating" class="flex items-center gap-2">
+                                    <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin" />
+                                    {{ $t("translator.translating") }}
+                                </span>
+                                <span v-else>{{ $t("translator.translate") }}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary-chip px-3.5 py-2"
+                                :disabled="!inputText"
+                                @click="
+                                    inputText = '';
+                                    outputText = '';
+                                    error = null;
+                                "
+                            >
+                                {{ $t("translator.clear") }}
+                            </button>
+                            <button
+                                v-if="outputText"
+                                type="button"
+                                class="secondary-chip px-3.5 py-2"
+                                @click="copyOutput"
+                            >
+                                {{ $t("translator.copy") }}
                             </button>
                         </div>
-                    </div>
-                    <div v-else class="text-sm text-sem-warning">
-                        {{ $t("translator.no_packs") }}
-                    </div>
-                </div>
 
-                <div class="glass-card space-y-4">
-                    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-                        <div class="flex-1">
-                            <label class="glass-label mb-2">{{ $t("translator.source_language") }}</label>
-                            <select v-model="sourceLang" class="input-field w-full">
-                                <option v-for="opt in sourceOptions" :key="opt.value" :value="opt.value">
-                                    {{ opt.label }}
-                                </option>
-                            </select>
+                        <div v-if="error" class="p-3 rounded-lg bg-sem-danger/10 text-sm text-sem-danger">
+                            {{ error }}
                         </div>
-                        <button
-                            type="button"
-                            class="p-2 rounded-lg border border-sem-border bg-sem-surface text-sem-fg hover:bg-sem-surface-muted"
-                            :title="$t('translator.swap_languages')"
-                            @click="swapLanguages"
-                        >
-                            <MaterialDesignIcon icon-name="swap-horizontal" class="size-5" />
-                        </button>
-                        <div class="flex-1">
-                            <label class="glass-label mb-2">{{ $t("translator.target_language") }}</label>
-                            <select v-model="targetLang" class="input-field w-full">
-                                <option v-for="opt in targetOptions" :key="opt.value" :value="opt.value">
-                                    {{ opt.label }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <div>
-                        <label class="glass-label mb-2">{{ $t("translator.input_text") }}</label>
-                        <textarea
-                            v-model="inputText"
-                            rows="5"
-                            class="input-field w-full resize-y"
-                            :placeholder="$t('translator.input_placeholder')"
-                        />
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            class="primary-chip px-4 py-2"
-                            :disabled="!canTranslate || isTranslating"
-                            @click="runTranslate"
-                        >
-                            <span v-if="isTranslating" class="flex items-center gap-2">
-                                <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin" />
-                                {{ $t("translator.translating") }}
-                            </span>
-                            <span v-else>{{ $t("translator.translate") }}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="secondary-chip px-3.5 py-2"
-                            :disabled="!inputText"
-                            @click="
-                                inputText = '';
-                                outputText = '';
-                                error = null;
-                            "
-                        >
-                            {{ $t("translator.clear") }}
-                        </button>
-                        <button v-if="outputText" type="button" class="secondary-chip px-3.5 py-2" @click="copyOutput">
-                            {{ $t("translator.copy") }}
-                        </button>
-                    </div>
-
-                    <div v-if="error" class="p-3 rounded-lg bg-sem-danger/10 text-sm text-sem-danger">
-                        {{ error }}
-                    </div>
-
-                    <div v-if="outputText" class="space-y-2">
-                        <label class="glass-label">{{ $t("translator.output_text") }}</label>
-                        <div
-                            class="p-3 rounded-lg bg-sem-surface/60 border border-sem-border whitespace-pre-wrap text-sm text-sem-fg"
-                        >
-                            {{ outputText }}
+                        <div v-if="outputText" class="space-y-2">
+                            <label class="glass-label">{{ $t("translator.output_text") }}</label>
+                            <div
+                                class="p-3 rounded-lg bg-sem-surface/60 border border-sem-border whitespace-pre-wrap text-sm text-sem-fg"
+                            >
+                                {{ outputText }}
+                            </div>
                         </div>
                     </div>
                 </div>
