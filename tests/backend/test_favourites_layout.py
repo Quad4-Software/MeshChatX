@@ -204,7 +204,7 @@ def test_normalize_fuzz_structured(section_ids, names, hashes):
         )
     raw = {
         "sections": sections,
-        "sectionOrder": section_ids[::-1] + ["missing"],
+        "sectionOrder": [*section_ids[::-1], "missing"],
         "favouritesBySection": dict.fromkeys(section_ids[:3], hashes),
     }
     out = normalize_favourites_layout(raw)

@@ -15,6 +15,7 @@ import re
 import threading
 import time
 from collections import deque
+from typing import ClassVar
 
 import RNS
 
@@ -226,8 +227,7 @@ class RRCHub:
                 if rn and rn in known and rn not in seen:
                     ordered.append(rn)
                     seen.add(rn)
-            for room in sorted(known - seen):
-                ordered.append(room)
+            ordered.extend(sorted(known - seen))
             return ordered
 
     def reorder_rooms(self, room_names):
@@ -1409,7 +1409,7 @@ class RRCHub:
                     "expires": time.monotonic() + 30.0,
                 }
 
-    _PACKET_HANDLERS = {
+    _PACKET_HANDLERS: ClassVar = {
         proto.T_PING: _handle_ping,
         proto.T_PONG: _handle_pong,
         proto.T_WELCOME: _handle_welcome,
@@ -1551,9 +1551,10 @@ class RRCHub:
     def members_dict(self, room):
         """Return serialized members for a room."""
         r = proto.normalize_room(room)
-        out = []
-        for h in self.get_members(r):
-            out.append({"hash": h.hex(), "name": self.display_name_for(h)})
+        out = [
+            {"hash": h.hex(), "name": self.display_name_for(h)}
+            for h in self.get_members(r)
+        ]
         out.sort(key=lambda m: m["name"].lower())
         return out
 
@@ -1966,10 +1967,8 @@ class RRCManager:
         tmp_path = path + ".tmp"
         with self._save_lock:
             try:
-                entries = []
                 with self._lock:
-                    for h in self.hubs:
-                        entries.append(self._hub_entry(h))
+                    entries = [self._hub_entry(h) for h in self.hubs]
                 data = proto.encode({"hubs": entries})
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(tmp_path, "wb") as f:

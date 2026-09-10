@@ -34,7 +34,7 @@ class MapPublishedDAO:
         *,
         map_id: str,
         name: str,
-        format: str,
+        format: str,  # noqa: A002 - column name, keyword API
         size: int,
         sha256: str,
         bbox: str | None,

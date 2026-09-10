@@ -26,7 +26,6 @@ from meshchatx.src.path_utils import (
     safe_path_under_dir,
 )
 
-
 _ALLOWED_FILE_NAME_RE = re.compile(r"^[A-Za-z0-9@\-][A-Za-z0-9_.@\- ]*$")
 _PAIR_CODE_RE = re.compile(r"^[a-zA-Z]{4}$")
 _FILE_TYPE_RE = re.compile(
@@ -156,14 +155,14 @@ class TranslationPackManager:
         registry_path = os.path.join(source_dir, "registry.json")
 
         if os.path.isfile(registry_path):
-            with open(registry_path, "r", encoding="utf-8") as f:
+            with open(registry_path, encoding="utf-8") as f:
                 registry = json.load(f)
             return self._install_registry(source_dir, registry)
 
         # Single-pair archive: look for pack.json or a single pair directory.
         pack_json_path = os.path.join(source_dir, "pack.json")
         if os.path.isfile(pack_json_path):
-            with open(pack_json_path, "r", encoding="utf-8") as f:
+            with open(pack_json_path, encoding="utf-8") as f:
                 pack = json.load(f)
             return self._install_pack(source_dir, pack)
 
@@ -330,7 +329,7 @@ class TranslationPackManager:
             pack: dict = {"from": pair[:2], "to": pair[2:4], "files": {}}
             if os.path.isfile(pack_json):
                 try:
-                    with open(pack_json, "r", encoding="utf-8") as f:
+                    with open(pack_json, encoding="utf-8") as f:
                         pack = json.load(f)
                 except (OSError, json.JSONDecodeError):
                     pass
@@ -359,7 +358,7 @@ class TranslationPackManager:
             return self._registry_cache
         registry = {}
         try:
-            with open(self.registry_path, "r", encoding="utf-8") as f:
+            with open(self.registry_path, encoding="utf-8") as f:
                 registry = json.load(f)
         except (OSError, json.JSONDecodeError):
             RNS.log("Failed to load translation pack registry", RNS.LOG_ERROR)

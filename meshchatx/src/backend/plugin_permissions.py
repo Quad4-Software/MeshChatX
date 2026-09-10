@@ -60,7 +60,7 @@ _LOOPBACK_OR_UNSPECIFIED_HOSTS = frozenset(
         "localhost",
         "127.0.0.1",
         "::1",
-        "0.0.0.0",  # nosec: BAN-B104
+        "0.0.0.0",  # noqa: S104
     },
 )
 
@@ -101,11 +101,7 @@ def normalize_ui_modes(value: Any) -> list[str]:
     if value == "sandboxed-html":
         return ["sandboxed-html"]
     if isinstance(value, list):
-        modes: list[str] = []
-        for item in value:
-            if item == "sandboxed-html":
-                modes.append("sandboxed-html")
-        return modes
+        return ["sandboxed-html" for item in value if item == "sandboxed-html"]
     return []
 
 
@@ -114,20 +110,26 @@ def declared_permission_ids(manifest: dict[str, Any]) -> list[str]:
     if not isinstance(permissions, dict):
         return []
     ids: list[str] = []
-    for hook in permissions.get("hooks") or []:
-        if isinstance(hook, str) and hook.strip():
-            ids.append(permission_id_for_hook(hook.strip()))
-    for manager in permissions.get("managers") or []:
-        if isinstance(manager, str) and manager.strip():
-            ids.append(permission_id_for_manager(manager.strip()))
+    ids.extend(
+        permission_id_for_hook(hook.strip())
+        for hook in permissions.get("hooks") or []
+        if isinstance(hook, str) and hook.strip()
+    )
+    ids.extend(
+        permission_id_for_manager(manager.strip())
+        for manager in permissions.get("managers") or []
+        if isinstance(manager, str) and manager.strip()
+    )
     storage = permissions.get("storage") or "none"
     if isinstance(storage, str) and storage not in ("", "none"):
         ids.append(permission_id_for_storage(storage.strip()))
     network = normalize_network_mode(permissions.get("network"))
     if network != "none":
         ids.append(permission_id_for_network(network))
-    for ui_mode in normalize_ui_modes(permissions.get("ui")):
-        ids.append(permission_id_for_ui(ui_mode))
+    ids.extend(
+        permission_id_for_ui(ui_mode)
+        for ui_mode in normalize_ui_modes(permissions.get("ui"))
+    )
     # Deduplicate while preserving order.
     seen: set[str] = set()
     ordered: list[str] = []

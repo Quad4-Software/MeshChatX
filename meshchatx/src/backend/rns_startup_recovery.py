@@ -415,5 +415,6 @@ def create_reticulum_with_recovery(
                 f"Error: {exc}",
                 flush=True,
             )
-    assert last_exc is not None
+    if last_exc is None:
+        raise RuntimeError("Reticulum init failed")
     raise last_exc

@@ -55,7 +55,7 @@ def test_lxma_bind_does_not_retry_truncated_pubkey():
         calls.append(len(key_bytes))
         return ReticulumMeshChat._identity_from_public_key_bytes(key_bytes)
 
-    with pytest.raises(ValueError, match="Invalid LXMA public key|does not match"):
+    with pytest.raises(ValueError, match=r"Invalid LXMA public key|does not match"):
         bind_lxma_contact(uri, loader)
     assert calls == [64]
 

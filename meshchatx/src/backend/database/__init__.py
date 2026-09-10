@@ -1105,7 +1105,7 @@ class Database:
                 dir=target_dir,
             )
             try:
-                for key, live_path in paths.items():
+                for live_path in paths.values():
                     if os.path.exists(live_path):
                         shutil.move(
                             live_path,

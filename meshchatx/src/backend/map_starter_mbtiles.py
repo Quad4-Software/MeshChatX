@@ -90,7 +90,7 @@ def _graticule_tile_png(
     for lon in range(-180, 181, 30):
         if lon < west or lon > east:
             continue
-        col = int(round((lon - west) / (east - west) * (width - 1)))
+        col = round((lon - west) / (east - west) * (width - 1))
         col = max(0, min(width - 1, col))
         color = prime if lon == 0 else grid
         for row in range(height):
@@ -100,15 +100,15 @@ def _graticule_tile_png(
     for lat in range(-90, 91, 30):
         if lat < south or lat > north:
             continue
-        row = int(round((north - lat) / (north - south) * (height - 1)))
+        row = round((north - lat) / (north - south) * (height - 1))
         row = max(0, min(height - 1, row))
         color = prime if lat == 0 else grid
         row_start = row * width * 4
         pixels[row_start : row_start + width * 4] = color * width
 
     if 0 >= west and 0 <= east and 0 >= south and 0 <= north:
-        col = int(round((0 - west) / (east - west) * (width - 1)))
-        row = int(round((north - 0) / (north - south) * (height - 1)))
+        col = round((0 - west) / (east - west) * (width - 1))
+        row = round((north - 0) / (north - south) * (height - 1))
         col = max(0, min(width - 1, col))
         row = max(0, min(height - 1, row))
         for dc in range(-2, 3):

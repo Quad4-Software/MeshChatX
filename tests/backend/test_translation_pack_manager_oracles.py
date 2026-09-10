@@ -7,26 +7,25 @@ identity) rather than example-based soft assertions. They are designed to catch
 jailbreaks, traversal, and partial-installation bugs that example tests can miss.
 """
 
-import shutil
-import uuid
-
 import io
 import os
+import shutil
 import tarfile
+import uuid
 import zipfile
 from pathlib import Path
 
 import pytest
-from hypothesis import HealthCheck, example, given, settings, strategies as st
+from hypothesis import HealthCheck, example, given, settings
+from hypothesis import strategies as st
 
 from meshchatx.src.backend.translation_pack_manager import (
-    TranslationPackError,
-    TranslationPackManager,
     _ALLOWED_FILE_NAME_RE,
     _PAIR_CODE_RE,
     _REQUIRED_PARTS,
+    TranslationPackError,
+    TranslationPackManager,
 )
-
 
 _ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 _ALLOWED_NAME_CHARS = (
@@ -242,7 +241,7 @@ class TestPackManagerJailOracles:
                     continue
                 if f in archive_names or resolved.name in archive_names:
                     continue
-                assert False, f"unexpected file outside packs_dir: {resolved}"
+                raise AssertionError(f"unexpected file outside packs_dir: {resolved}")
 
 
 class TestPackManagerMetamorphicOracles:
@@ -307,6 +306,7 @@ class TestPackManagerMetamorphicOracles:
         for zip_pack, tar_pack in zip(
             sorted(mgr_zip.list_installed(), key=lambda p: p["pair"]),
             sorted(mgr_tar.list_installed(), key=lambda p: p["pair"]),
+            strict=False,
         ):
             assert zip_pack["from"] == tar_pack["from"]
             assert zip_pack["to"] == tar_pack["to"]

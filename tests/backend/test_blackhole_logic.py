@@ -84,7 +84,7 @@ async def test_banish_identity_with_blackhole(mock_rns_minimal, temp_dir):
 
         # Verify RNS blackhole call
         app_instance.reticulum.blackhole_identity.assert_called()
-        args, kwargs = app_instance.reticulum.blackhole_identity.call_args
+        args, _kwargs = app_instance.reticulum.blackhole_identity.call_args
         assert args[0] == bytes.fromhex(target_hash)
 
 
@@ -360,7 +360,7 @@ def test_oracle_banish_does_not_remove_reticulum_interfaces():
     """Banish blackholes the peer. It must not delete interface config sections."""
     import copy
 
-    app, ctx = _banish_app()
+    app, _ctx = _banish_app()
     app.reticulum.config = {
         "interfaces": {
             "artyom.ddns.net": {

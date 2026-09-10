@@ -91,11 +91,6 @@ def _status(ok: bool, reason: str = "") -> dict[str, str]:
 
 
 def check_python_runtime() -> dict[str, str]:
-    if sys.version_info < (3, 11):
-        return _status(
-            False,
-            f"Python {sys.version_info.major}.{sys.version_info.minor} is below 3.11",
-        )
     if not sys.executable or not os.path.exists(sys.executable):
         return _status(False, f"sys.executable is missing: {sys.executable!r}")
     return _status(True)

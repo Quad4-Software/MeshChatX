@@ -408,7 +408,7 @@ def register_identities_routes(routes, app):
             def restart():
                 time.sleep(1)
                 try:
-                    os.execv(sys.executable, [sys.executable] + sys.argv)
+                    os.execv(sys.executable, [sys.executable, *sys.argv])
                 except Exception as e:
                     print(f"Failed to restart: {e}")
                     os._exit(0)

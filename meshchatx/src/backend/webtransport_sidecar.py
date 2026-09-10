@@ -220,7 +220,9 @@ async def try_start_webtransport_sidecar(app) -> WebTransportSidecarState:
     try:
         state.listen_host = host
         state.listen_port = port
-        display_host = "127.0.0.1" if host in ("0.0.0.0", "::", "[::]") else host
+        display_host = (
+            "127.0.0.1" if host in ("0.0.0.0", "::", "[::]") else host  # noqa: S104
+        )
         state.url = f"https://{display_host}:{port}{WT_PATH}"
         state.server_available = False
         state.reason = WT_REASON_LISTENER_PENDING

@@ -149,7 +149,7 @@ def validate_kml_bytes(
     if "<!DOCTYPE" in head or "<!ENTITY" in head:
         raise GeoValidationError("dtd_forbidden")
     try:
-        root = ET.fromstring(text)  # nosec: BAN-B314
+        root = ET.fromstring(text)  # noqa: S314 - DTD rejected above
     except ET.ParseError as exc:
         raise GeoValidationError("invalid_kml") from exc
     if _strip_ns(root.tag).lower() != "kml":

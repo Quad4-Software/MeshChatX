@@ -5,7 +5,8 @@
 from urllib.parse import urlparse
 
 import pytest
-from hypothesis import HealthCheck, example, given, settings, strategies as st
+from hypothesis import HealthCheck, example, given, settings
+from hypothesis import strategies as st
 
 from meshchatx.src.backend.websocket_config_guard import (
     WEBSOCKET_CONFIG_DENYLIST,
@@ -13,7 +14,6 @@ from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
     websocket_origin_allowed,
 )
-
 
 TRUSTED_IPS = {"127.0.0.1", "10.0.0.1"}
 
@@ -48,7 +48,7 @@ def origin_pair(draw):
     host = draw(st.sampled_from(["127.0.0.1", "localhost", "chat.example", "[::1]"]))
     port = draw(st.one_of(st.just(None), st.sampled_from([80, 443, 8000, 5173, 9337])))
     if port is None:
-        return f"{scheme}://{host}", scheme, f"{host}{'' if port is None else ''}"
+        return f"{scheme}://{host}", scheme, host
     return f"{scheme}://{host}:{port}", scheme, f"{host}:{port}"
 
 

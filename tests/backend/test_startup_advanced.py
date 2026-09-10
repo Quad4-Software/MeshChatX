@@ -128,14 +128,14 @@ def test_run_https_logic(mock_rns, temp_dir):
         mock_gen_cert.assert_called()
         mock_ssl_context.assert_called()
         # Verify run_app was called with ssl_context
-        args, kwargs = mock_run_app.call_args
+        _args, kwargs = mock_run_app.call_args
         assert "ssl_context" in kwargs
         assert kwargs["ssl_context"] is not None
 
         # Test HTTPS disabled
         mock_run_app.reset_mock()
         app.run(host="127.0.0.1", port=8000, launch_browser=False, enable_https=False)
-        args, kwargs = mock_run_app.call_args
+        _args, kwargs = mock_run_app.call_args
         assert kwargs.get("ssl_context") is None
         app.teardown_identity()
 
@@ -318,7 +318,7 @@ def test_cli_flags_and_envs(mock_rns, temp_dir):
             main()
 
             # Verify ReticulumMeshChat was called with values from ENV
-            args, kwargs = mock_app_class.call_args
+            _args, kwargs = mock_app_class.call_args
             assert kwargs["auto_recover"] is True
             assert kwargs["auth_enabled"] is True
 

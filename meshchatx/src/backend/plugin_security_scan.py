@@ -89,7 +89,7 @@ def assess_plugin(
     )
     endpoints = collect_network_endpoints(manifest, directory) if directory else []
     if embedded:
-        for _path, data in embedded.items():
+        for data in embedded.values():
             for url in extract_urls_from_text(data.decode("utf-8", errors="ignore")):
                 if url not in endpoints:
                     endpoints.append(url)

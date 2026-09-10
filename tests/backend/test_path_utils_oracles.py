@@ -5,7 +5,8 @@
 import os
 import uuid
 
-from hypothesis import HealthCheck, example, given, settings, strategies as st
+from hypothesis import HealthCheck, example, given, settings
+from hypothesis import strategies as st
 
 from meshchatx.src.path_utils import (
     is_path_within_dir,
@@ -13,7 +14,6 @@ from meshchatx.src.path_utils import (
     resolve_path_under_dir,
     safe_path_under_dir,
 )
-
 
 _NAME_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
 _SAFE_NAME = st.text(alphabet=_NAME_ALPHABET, min_size=1, max_size=24)

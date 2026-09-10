@@ -101,7 +101,7 @@ def test_anomaly_repeat(handler, db):
 
 
 def test_log_cleanup(handler, db):
-    persistent_handler, logger = handler
+    _persistent_handler, logger = handler
 
     # Insert many logs
     for i in range(100):

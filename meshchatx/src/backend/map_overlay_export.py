@@ -98,7 +98,7 @@ def geojson_to_kml(data: bytes) -> bytes:
 
 
 def kml_to_geojson(data: bytes) -> bytes:
-    root = ET.fromstring(data.decode("utf-8"))  # nosec: BAN-B314
+    root = ET.fromstring(data.decode("utf-8"))  # noqa: S314 - stored overlay already sanitized
     features = []
     for pm in root.iter():
         if _strip_ns(pm.tag).lower() != "placemark":

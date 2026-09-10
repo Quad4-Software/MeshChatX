@@ -141,7 +141,7 @@ class TestStampSolving:
 
     def test_propagation_node_stamp_rounds(self):
         mid = os.urandom(32)
-        stamp, value = LXStamper.generate_stamp(
+        stamp, _value = LXStamper.generate_stamp(
             mid,
             stamp_cost=2,
             expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PN,

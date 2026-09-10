@@ -275,7 +275,7 @@ def sanitize_kml_bytes(data: bytes, *, zip_local_ok: bool = False) -> SanitizeRe
     if _looks_like_dtd(text):
         raise GeoValidationError("dtd_forbidden")
     try:
-        root = ET.fromstring(text)  # nosec: BAN-B314
+        root = ET.fromstring(text)  # noqa: S314 - DTD rejected above
     except ET.ParseError as exc:
         raise GeoValidationError("invalid_kml") from exc
     if _strip_ns(root.tag).lower() != "kml":
@@ -369,7 +369,7 @@ def sanitize_kmz_bytes(data: bytes) -> SanitizeResult:
             raise GeoValidationError("kmz_missing_kml")
         kml_result = sanitize_kml_bytes(kept[kml_name], zip_local_ok=True)
         stripped.extend(kml_result.stripped)
-        root = ET.fromstring(kml_result.data)  # nosec: BAN-B314
+        root = ET.fromstring(kml_result.data)  # noqa: S314 - already sanitized
         referenced: set[str] = set()
         _retain_kmz_local_hrefs(
             root,

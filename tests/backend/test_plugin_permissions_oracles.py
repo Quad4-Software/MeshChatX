@@ -4,7 +4,8 @@
 
 from urllib.parse import urlparse
 
-from hypothesis import example, given, settings, strategies as st
+from hypothesis import example, given, settings
+from hypothesis import strategies as st
 
 from meshchatx.src.backend.plugin_permissions import (
     _host_root,
@@ -12,7 +13,6 @@ from meshchatx.src.backend.plugin_permissions import (
     _is_http_url,
     extract_urls_from_text,
 )
-
 
 _LOOPBACK = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
 
@@ -96,7 +96,9 @@ class TestHostRootOracle:
             hostname = parsed.hostname
             if not hostname or "." not in hostname:
                 return
-            assert False, f"_host_root should have produced https://{hostname.lower()}/"
+            raise AssertionError(
+                f"_host_root should have produced https://{hostname.lower()}/"
+            )
         assert root.startswith("https://")
         assert root.endswith("/")
         # The root must not carry path or userinfo.

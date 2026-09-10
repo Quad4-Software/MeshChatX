@@ -88,7 +88,11 @@ def test_fixture_upgrades_to_latest(tmp_path, offset):
     rows = db.provider.quick_check()
     assert (
         rows
-        and (rows[0][0] if not isinstance(rows[0], dict) else list(rows[0].values())[0])
+        and (
+            rows[0][0]
+            if not isinstance(rows[0], dict)
+            else next(iter(rows[0].values()))
+        )
         == "ok"
     )
     db.close_all()

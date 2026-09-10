@@ -795,10 +795,11 @@ def convert_lxmf_message_to_dict(
                 fields["commands"] = processed_commands
         elif field_type == embedded_field and isinstance(value, list):
             # Standard FIELD_EMBEDDED_LXMS: list of packed LXMF byte blobs.
-            embedded = []
-            for item in value:
-                if isinstance(item, (bytes, bytearray)):
-                    embedded.append({"size": len(item)})
+            embedded = [
+                {"size": len(item)}
+                for item in value
+                if isinstance(item, (bytes, bytearray))
+            ]
             if embedded:
                 fields["embedded_lxms"] = embedded
 

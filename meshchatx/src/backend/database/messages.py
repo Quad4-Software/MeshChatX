@@ -927,9 +927,7 @@ class MessageDAO:
                 (group["peer_hash"], group["is_incoming"], group["content"]),
             )
             # Keep the first (oldest); delete the rest.
-            for row in rows[1:]:
-                if row.get("hash"):
-                    to_delete.append(row["hash"])
+            to_delete.extend(row["hash"] for row in rows[1:] if row.get("hash"))
         return to_delete
 
     def count_duplicate_lxmf_messages_by_content(self) -> int:

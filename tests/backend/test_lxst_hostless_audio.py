@@ -144,8 +144,18 @@ def test_oracle_web_audio_drops_oversized_pcm(extra):
 
 @given(
     pid=st.sampled_from(
-        list(Profiles.available_profiles())
-        + [0, 1, 2, 99, -1, 255, None, "64", "nope"],
+        [
+            *Profiles.available_profiles(),
+            0,
+            1,
+            2,
+            99,
+            -1,
+            255,
+            None,
+            "64",
+            "nope",
+        ],
     ),
 )
 @settings(max_examples=40, deadline=None)

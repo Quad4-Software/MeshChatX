@@ -49,7 +49,8 @@ def _persist_one(destination_hash: bytes, ratchet: bytes) -> None:
 
 
 def _worker_loop() -> None:
-    assert _QUEUE is not None
+    if _QUEUE is None:
+        raise RuntimeError("ratchet persist queue is not initialized")
     while True:
         item = _QUEUE.get()
         if item is None:

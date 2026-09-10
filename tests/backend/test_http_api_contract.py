@@ -49,8 +49,9 @@ def test_path_matches_aiohttp_wildcard_asset_route():
 def test_frontend_api_paths_exist_on_backend():
     backend_paths = [r["path"] for r in extract_meshchat_http_routes(_MESHCHAT_PY)]
     frontend_paths = extract_frontend_api_paths(_FRONTEND_ROOT)
-    missing = []
-    for fp in sorted(frontend_paths):
-        if not any(path_matches_aiohttp_route(br, fp) for br in backend_paths):
-            missing.append(fp)
+    missing = [
+        fp
+        for fp in sorted(frontend_paths)
+        if not any(path_matches_aiohttp_route(br, fp) for br in backend_paths)
+    ]
     assert not missing, f"Frontend references unknown HTTP paths: {missing}"

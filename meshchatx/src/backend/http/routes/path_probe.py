@@ -547,9 +547,7 @@ def register_path_probe_routes(routes, app):
             )
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
-            timeout_seconds = int(
-                round(path_response_window(destination_hash, reticulum)),
-            )
+            timeout_seconds = round(path_response_window(destination_hash, reticulum))
 
         # Split the budget so path discovery cannot consume the whole timeout.
         path_budget_seconds = max(1, timeout_seconds // 2)

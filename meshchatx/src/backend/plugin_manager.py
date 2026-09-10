@@ -346,9 +346,9 @@ class PluginManager:
         if not self._plugins_runtime_enabled():
             return []
         with self._lock:
-            rows = []
-            for record in self._plugins.values():
-                rows.append(self._public_plugin_view(record))
+            rows = [
+                self._public_plugin_view(record) for record in self._plugins.values()
+            ]
             rows.sort(key=lambda item: item["id"])
             return rows
 

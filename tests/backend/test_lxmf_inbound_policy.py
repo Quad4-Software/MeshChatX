@@ -19,13 +19,12 @@ from tests.backend.lxmf_tools_support import PEER_FRIEND, PEER_SPAMMER
 def _resource_for_peer(peer_hash: str):
     identity = SimpleNamespace(hash=bytes.fromhex(peer_hash))
     link = SimpleNamespace(get_remote_identity=lambda: identity)
-    resource = SimpleNamespace(
+    return SimpleNamespace(
         link=link,
         hash=bytes.fromhex("aa" * 16),
         status=0,
         cancel=MagicMock(),
     )
-    return resource
 
 
 def _policy_app(*, is_contact=False, is_blocked=False):

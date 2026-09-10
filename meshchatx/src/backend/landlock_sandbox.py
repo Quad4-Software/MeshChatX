@@ -425,7 +425,7 @@ def _collect_rw_roots(
         reticulum_config_dir,
         log_dir,
         tempfile.gettempdir(),
-        "/dev/shm",
+        "/dev/shm",  # noqa: S108 - sandbox allowlist, not a temp file
         "/run",
     ):
         existing = _existing_dir(candidate)
