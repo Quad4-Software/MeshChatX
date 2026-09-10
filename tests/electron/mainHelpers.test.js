@@ -75,12 +75,7 @@ describe("electron/mainHelpers", () => {
     it("isTrustedShellOrigin allows loading/crash file pages and the local backend only", () => {
         const { isTrustedShellOrigin, isTrustedShellFileUrl } = require("../../electron/mainHelpers.js");
         const { fileURLToPath, pathToFileURL } = require("node:url");
-        const electronDir = path.resolve(
-            path.dirname(fileURLToPath(import.meta.url)),
-            "..",
-            "..",
-            "electron",
-        );
+        const electronDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "electron");
         const loadingUrl = pathToFileURL(path.join(electronDir, "loading.html")).href;
         const crashUrl = pathToFileURL(path.join(electronDir, "crash.html")).href;
         expect(isTrustedShellFileUrl(loadingUrl)).toBe(true);
@@ -89,7 +84,7 @@ describe("electron/mainHelpers", () => {
         // Same filename outside the shell directory is not trusted.
         expect(isTrustedShellFileUrl("file:///tmp/evil/loading.html")).toBe(false);
         expect(isTrustedShellFileUrl("file:///opt/meshchatx/electron/loading.html")).toBe(
-            electronDir === "/opt/meshchatx/electron",
+            electronDir === "/opt/meshchatx/electron"
         );
         // Remote/UNC file: hosts are never trusted.
         expect(isTrustedShellFileUrl("file://evil.example/share/loading.html")).toBe(false);
@@ -108,12 +103,7 @@ describe("electron/mainHelpers", () => {
         expect(isTrustedIpcEvent({ senderFrame: { url: "http://127.0.0.1:9337@example.com/" } })).toBe(false);
         expect(isTrustedIpcEvent({ senderFrame: { url: "https://example.com/" } })).toBe(false);
         const { fileURLToPath, pathToFileURL } = require("node:url");
-        const electronDir = path.resolve(
-            path.dirname(fileURLToPath(import.meta.url)),
-            "..",
-            "..",
-            "electron",
-        );
+        const electronDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "electron");
         const loadingUrl = pathToFileURL(path.join(electronDir, "loading.html")).href;
         expect(
             isTrustedIpcEvent({

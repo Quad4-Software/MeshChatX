@@ -58,7 +58,7 @@ describe("TranslationService", () => {
         const controller = new AbortController();
         controller.abort();
         await expect(
-            TranslationService.translate({ from: "en", to: "es", text: "hello", signal: controller.signal }),
+            TranslationService.translate({ from: "en", to: "es", text: "hello", signal: controller.signal })
         ).rejects.toThrow("Translation cancelled");
     });
 
@@ -89,7 +89,12 @@ describe("TranslationService", () => {
 
     it("waits for an active translation before deleting the translator", async () => {
         let resolveTranslate;
-        mockTranslate.mockImplementation(() => new Promise((resolve) => { resolveTranslate = resolve; }));
+        mockTranslate.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveTranslate = resolve;
+                })
+        );
 
         const p = TranslationService.translate({ from: "en", to: "es", text: "hello" });
         await new Promise((r) => setTimeout(r, 0));

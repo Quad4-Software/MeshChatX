@@ -48,7 +48,7 @@ describe("BergamotBacking", () => {
         vi.stubGlobal("location", { origin: "http://localhost" });
         const backing = new BergamotBacking({});
         await expect(backing.fetch("https://evil.example/model.npz")).rejects.toThrow(
-            "Refusing to fetch translation file from https://evil.example",
+            "Refusing to fetch translation file from https://evil.example"
         );
         vi.unstubAllGlobals();
     });
@@ -120,20 +120,20 @@ describe("BergamotBacking", () => {
         await backing.fetch("/translation-packs/enes/model.npz");
         expect(fetchSpy).toHaveBeenLastCalledWith(
             "http://localhost/translation-packs/enes/model.npz",
-            expect.objectContaining({ credentials: "same-origin" }),
+            expect.objectContaining({ credentials: "same-origin" })
         );
 
         // Same host on a different port is cross-origin.
         await expect(backing.fetch("http://localhost:3000/model.npz")).rejects.toThrow(
-            "Refusing to fetch translation file from http://localhost:3000",
+            "Refusing to fetch translation file from http://localhost:3000"
         );
 
         // Subdomain and HTTPS upgrades are also rejected.
         await expect(backing.fetch("https://localhost/model.npz")).rejects.toThrow(
-            "Refusing to fetch translation file from https://localhost",
+            "Refusing to fetch translation file from https://localhost"
         );
         await expect(backing.fetch("https://evil.example/model.npz")).rejects.toThrow(
-            "Refusing to fetch translation file from https://evil.example",
+            "Refusing to fetch translation file from https://evil.example"
         );
 
         // Non-HTTP schemes should bypass the origin check and pass through to fetch.
@@ -141,7 +141,7 @@ describe("BergamotBacking", () => {
         await backing.fetch("data:application/octet-stream;base64,AAAA");
         expect(fetchSpy).toHaveBeenLastCalledWith(
             "data:application/octet-stream;base64,AAAA",
-            expect.objectContaining({ credentials: "same-origin" }),
+            expect.objectContaining({ credentials: "same-origin" })
         );
 
         vi.unstubAllGlobals();
