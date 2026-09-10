@@ -4876,6 +4876,7 @@
         "restart_desc_page": "Reticulum was hot-reloaded with your new configuration. No manual restart is required for normal use.",
         "back": "Back",
         "skip": "Skip",
+        "skip_to_content": "Skip to main content",
         "next": "Next",
         "restart_start": "Start MeshChatX",
         "finish_setup": "Finish Setup",
@@ -4938,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "Search and commands (Ctrl+K)",
+        "dialog_label": "Search and commands",
         "search_placeholder": "Search commands, routes, or peers",
         "no_results": "No results found for \"{query}\"",
         "group_actions": "Actions",
@@ -4991,6 +4993,8 @@
         "nav_rnode_flasher_desc": "Device firmware update",
         "nav_debug_logs": "Debug Logs",
         "nav_debug_logs_desc": "Application and access logs",
+        "nav_archives": "Archives",
+        "nav_archives_desc": "Browse saved Nomad pages",
         "action_sync": "Sync Messages",
         "action_sync_desc": "Sync with your propagation node",
         "action_compose": "Compose Message",
@@ -4998,7 +5002,9 @@
         "action_getting_started": "Getting Started",
         "action_getting_started_desc": "Open the setup guide",
         "action_changelog": "Changelog",
-        "action_changelog_desc": "Recent changes"
+        "action_changelog_desc": "Recent changes",
+        "action_toggle_sidebar": "Toggle Sidebar",
+        "action_toggle_sidebar_desc": "Expand or collapse the side navigation"
     },
     "auth": {
         "setup_title": "Initial Setup",

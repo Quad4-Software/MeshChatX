@@ -95,9 +95,27 @@ describe("KeyboardShortcuts", () => {
         expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "toggle_sidebar");
     });
 
-    it("does not emit command_palette from KeyboardShortcuts (handled by CommandPalette)", () => {
+    it("emits command_palette for Ctrl+K", () => {
         dispatchKeyDown({ key: "k", ctrlKey: true, code: "KeyK" });
-        expect(emitSpy).not.toHaveBeenCalledWith("keyboard-shortcut", "command_palette");
+        expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "command_palette");
+    });
+
+    it("blocks navigation shortcuts while a modal is open", () => {
+        const modal = document.createElement("div");
+        modal.setAttribute("aria-modal", "true");
+        document.body.appendChild(modal);
+        dispatchKeyDown({ key: "1", altKey: true, code: "Digit1" });
+        document.body.removeChild(modal);
+        expect(emitSpy).not.toHaveBeenCalledWith("keyboard-shortcut", "nav_messages");
+    });
+
+    it("still allows command_palette while a modal is open", () => {
+        const modal = document.createElement("div");
+        modal.setAttribute("aria-modal", "true");
+        document.body.appendChild(modal);
+        dispatchKeyDown({ key: "k", ctrlKey: true, code: "KeyK" });
+        document.body.removeChild(modal);
+        expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "command_palette");
     });
 
     it("allows Alt+digit navigation while focus is in an input (modifier shortcuts)", () => {

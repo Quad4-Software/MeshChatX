@@ -25,6 +25,14 @@ All notable changes to this project will be documented in this file.
 - Page nodes grant file access only after a page request, so direct links to hosted files fail without first visiting the page.
 - Image loading on Micron pages is controlled by a global policy in Settings: never, manual, auto or always.
 - New tests cover the database file-descriptor oracle, delivery help tips, message cancel-send, raw message view, map bounds/provider handling and Micron image parsing.
+- Micron page output now exposes ARIA landmarks and semantic heading levels for screen readers. Rendered pages are wrapped in a main landmark, section headings receive heading role and level, links and inputs get focus and label hints, and the crash tab iframe document is marked as a document, receives the page path as its title, and advertises the current application locale.
+- New frontend tests cover the Micron accessibility attributes, crash tab iframe title, and crash tab document title.
+- The app shell now exposes a header landmark, a main content landmark, and a skip link so screen-reader and keyboard users can jump to the page body.
+- Primary side navigation is wrapped in a nav landmark, and each link receives an accessible name and aria-current when active.
+- AppModal now traps focus and restores it on close, and toast and loading states are announced with live regions.
+- The command palette is exposed as a dialog with role, aria-modal, and a combobox/listbox pattern for screen-reader users, and the Ctrl/Cmd+K shortcut is now routed through the configurable KeyboardShortcuts system.
+- The default keyboard shortcuts for opening the palette and toggling the sidebar are discoverable in the command palette, and navigation shortcuts are suppressed while a modal is open.
+- New frontend tests cover the command palette ARIA, command palette toggle-sidebar action, keyboard shortcut modal guard, and AppModal focusable-element discovery.
 
 ### Fixed
 

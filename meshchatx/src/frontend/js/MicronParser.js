@@ -451,7 +451,7 @@ export default class MicronParser extends BaseMicronParser {
         });
     }
 
-    convertMicronToHtmlWasmHybrid(markup, partialContents = {}) {
+    convertMicronToHtmlWasmHybrid(markup, partialContents = {}, options = {}) {
         const mc = globalThis.micronConvert;
         const segments = MicronParser.splitMicronMarkupWasmSegments(markup);
         let html = "";
@@ -461,10 +461,10 @@ export default class MicronParser extends BaseMicronParser {
                     mc(seg.text, this.darkTheme, this.enableForceMonospace)
                 );
             } else {
-                html += this._convertMicronToHtmlJs(seg.line + "\n", partialContents);
+                html += this._convertMicronToHtmlJs(seg.line + "\n", partialContents, options);
             }
         }
-        return this._wrapMicronPageShell(markup, html);
+        return this._wrapMicronPageShell(markup, html, options);
     }
 
     /**
@@ -472,7 +472,7 @@ export default class MicronParser extends BaseMicronParser {
      * the page so the background fills the host (NomadNet full-page paint).
      * Also wraps with default theme fg (e.g. #ddd) like upstream.
      */
-    _wrapMicronPageShell(markup, innerHtml) {
+    _wrapMicronPageShell(markup, innerHtml, options = {}) {
         let headerColors = { fg: null, bg: null };
         try {
             headerColors = this.parseHeaderTags(markup);
@@ -484,22 +484,22 @@ export default class MicronParser extends BaseMicronParser {
         const defaultBg = headerColors.bg || plainStyle.bg;
         const hasFg = defaultFg && defaultFg !== "default";
         const hasBg = defaultBg && defaultBg !== "default";
-        if (!hasFg && !hasBg) {
-            return innerHtml;
-        }
         const wrap = document.createElement("div");
-        wrap.className = "mu-page";
-        if (hasFg) {
-            wrap.style.color = this.colorToCss(defaultFg);
-        }
-        if (hasBg) {
-            wrap.style.backgroundColor = this.colorToCss(defaultBg);
+        if (hasFg || hasBg) {
+            wrap.className = "mu-page";
+            if (hasFg) {
+                wrap.style.color = this.colorToCss(defaultFg);
+            }
+            if (hasBg) {
+                wrap.style.backgroundColor = this.colorToCss(defaultBg);
+            }
         }
         wrap.innerHTML = innerHtml || "";
+        MicronParser.enhanceA11y(wrap, options);
         return MicronParser.sanitizeRenderedMicronHtml(wrap.outerHTML);
     }
 
-    _convertMicronToHtmlJs(markup, partialContents = {}) {
+    _convertMicronToHtmlJs(markup, partialContents = {}, options = {}) {
         const build = () => {
             let headerColors = { fg: null, bg: null };
             try {
@@ -604,8 +604,8 @@ export default class MicronParser extends BaseMicronParser {
                 console.warn("MicronParser: resolveEmptyAnchors failed", e);
             }
 
-            const hasContainerStyle = hasFg || hasBg;
-            const html = hasContainerStyle ? tempContainer.outerHTML : tempContainer.innerHTML;
+            MicronParser.enhanceA11y(tempContainer, options);
+            const html = tempContainer.outerHTML;
             return MicronParser.sanitizeRenderedMicronHtml(html);
         };
 
@@ -635,16 +635,16 @@ export default class MicronParser extends BaseMicronParser {
         const wantWasm = options.useWasm === true && typeof globalThis.micronConvert === "function";
         if (wantWasm) {
             try {
-                return this.convertMicronToHtmlWasmHybrid(markup, partialContents);
+                return this.convertMicronToHtmlWasmHybrid(markup, partialContents, options);
             } catch (e) {
                 console.warn("MicronParser: WASM Micron conversion failed, using JS parser", e);
             }
         }
 
-        return this._convertMicronToHtmlJs(markup, partialContents);
+        return this._convertMicronToHtmlJs(markup, partialContents, options);
     }
 
-    convertMicronToFragment(markup) {
+    convertMicronToFragment(markup, options = {}) {
         if (markup == null) {
             return document.createDocumentFragment();
         }
@@ -730,12 +730,24 @@ export default class MicronParser extends BaseMicronParser {
                 }
             }
 
-            return fragment;
+            const tempDiv = document.createElement("div");
+            tempDiv.appendChild(fragment);
+            MicronParser.enhanceA11y(tempDiv, options);
+            const outFragment = document.createDocumentFragment();
+            const muPage = tempDiv.querySelector(".mu-page");
+            if (muPage) {
+                outFragment.appendChild(muPage);
+            } else {
+                outFragment.appendChild(tempDiv);
+            }
+            return outFragment;
         } catch (e) {
             console.warn("MicronParser: convertMicronToFragment failed", e);
             const fragment = document.createDocumentFragment();
             const pre = document.createElement("pre");
             pre.className = "mu-parse-fallback";
+            pre.setAttribute("role", "document");
+            pre.setAttribute("tabindex", "0");
             pre.style.whiteSpace = "pre-wrap";
             pre.textContent = markup;
             fragment.appendChild(pre);
@@ -946,7 +958,26 @@ export default class MicronParser extends BaseMicronParser {
                 return [div];
             }
         }
-        return super.parseLine(line, state);
+        const out = super.parseLine(line, state);
+        if (Array.isArray(out) && out.length > 0) {
+            for (const el of out) {
+                if (el && el.nodeType === Node.ELEMENT_NODE) {
+                    const inner = el.firstElementChild;
+                    if (inner && inner.tagName === "DIV") {
+                        const anchor = inner.firstElementChild;
+                        if (
+                            anchor &&
+                            anchor.tagName === "A" &&
+                            /\bmicron-header-anchor\b/.test(anchor.className || "")
+                        ) {
+                            const level = Math.min(Math.max(1, state.depth || 1), 6);
+                            el.setAttribute("data-micron-heading-level", String(level));
+                        }
+                    }
+                }
+            }
+        }
+        return out;
     }
 
     wrapWord(word) {
@@ -1004,5 +1035,124 @@ export default class MicronParser extends BaseMicronParser {
             out += "<span class='" + cellClass + "'>" + escapeHtmlForFallback(char) + "</span>";
         }
         return out;
+    }
+
+    static enhanceA11y(root, options = {}) {
+        if (!root || root.nodeType !== Node.ELEMENT_NODE) {
+            return;
+        }
+
+        const isPartial = options.isPartial === true;
+        let foundMain = false;
+
+        const muPageRe = /(?:^|\s)mu-page(?:\s|$)/;
+        const muPartialRe = /(?:^|\s)mu-partial(?:\s|$)/;
+        const muNlRe = /(?:^|\s)Mu-nl(?:\s|$)/;
+        const nomadnetLinkRe = /(?:^|\s)nomadnet-link(?:\s|$)/;
+        const lxmfLinkRe = /(?:^|\s)lxmf-link(?:\s|$)/;
+
+        const stack = [root];
+        while (stack.length > 0) {
+            const el = stack.pop();
+            if (!el || el.nodeType !== Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            const tag = el.tagName;
+            const className =
+                tag === "DIV" || tag === "A" ? (typeof el.className === "string" ? el.className : "") : "";
+
+            if (tag === "DIV") {
+                if (!isPartial && !el.getAttribute("role")) {
+                    if (muPageRe.test(className)) {
+                        el.setAttribute("role", "main");
+                        foundMain = true;
+                    }
+                }
+
+                const headingLevel = el.getAttribute("data-micron-heading-level");
+                if (headingLevel) {
+                    const level = Math.min(Math.max(1, Number(headingLevel) || 1), 6);
+                    el.setAttribute("role", "heading");
+                    el.setAttribute("aria-level", String(level));
+                }
+
+                if (muPartialRe.test(className)) {
+                    if (!el.getAttribute("role")) {
+                        el.setAttribute("role", "status");
+                    }
+                    if (!el.getAttribute("aria-live")) {
+                        el.setAttribute("aria-live", "polite");
+                    }
+                }
+            } else if (tag === "A" && !el.getAttribute("role")) {
+                const isLink =
+                    muNlRe.test(className) ||
+                    nomadnetLinkRe.test(className) ||
+                    lxmfLinkRe.test(className) ||
+                    el.getAttribute("data-action") === "openNode";
+                if (isLink) {
+                    el.setAttribute("role", "link");
+                    if (el.getAttribute("tabindex") == null) {
+                        el.setAttribute("tabindex", "0");
+                    }
+                    const text = (el.textContent || "").trim();
+                    if (!text) {
+                        const dest =
+                            el.getAttribute("data-destination") ||
+                            el.getAttribute("data-nomadnet-url") ||
+                            el.getAttribute("title") ||
+                            el.getAttribute("href") ||
+                            "";
+                        if (dest && dest !== "#") {
+                            el.setAttribute("aria-label", dest);
+                        }
+                    }
+                }
+            } else if (tag === "INPUT" && (el.type === "text" || el.type === "password")) {
+                if (
+                    !el.getAttribute("aria-label") &&
+                    !el.getAttribute("aria-labelledby") &&
+                    !el.getAttribute("title") &&
+                    !el.getAttribute("placeholder")
+                ) {
+                    let label = "";
+                    let prev = el.previousSibling;
+                    while (prev) {
+                        if (prev.nodeType === Node.TEXT_NODE) {
+                            label = (prev.textContent || "") + label;
+                        } else if (prev.nodeType === Node.ELEMENT_NODE && prev.tagName !== "BR") {
+                            label = (prev.textContent || "") + label;
+                        }
+                        prev = prev.previousSibling;
+                    }
+                    label = label.trim();
+                    if (!label && el.name) {
+                        label = el.name;
+                    }
+                    if (label) {
+                        el.setAttribute("aria-label", label);
+                    }
+                }
+            } else if (tag === "TH" && !el.getAttribute("scope")) {
+                const section = el.parentElement?.parentElement?.tagName;
+                if (section === "THEAD") {
+                    el.setAttribute("scope", "col");
+                } else if (section === "TBODY") {
+                    el.setAttribute("scope", "row");
+                }
+            }
+
+            if (el.firstElementChild) {
+                const children = el.children;
+                for (let i = children.length - 1; i >= 0; i--) {
+                    stack.push(children[i]);
+                }
+            }
+        }
+
+        if (!isPartial && !foundMain && !root.getAttribute("role")) {
+            root.setAttribute("role", "main");
+        }
     }
 }

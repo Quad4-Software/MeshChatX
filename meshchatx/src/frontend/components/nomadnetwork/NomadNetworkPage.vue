@@ -1022,6 +1022,7 @@ export default {
                 nomadDestinationHash: this.selectedNode?.destination_hash || null,
                 nomad_micron_wasm_use:
                     this.nomadMicronWasmFeatureEffective && this.nomadMicronWasmReady === true && engineWasm,
+                locale: typeof this.$i18n?.locale === "string" ? this.$i18n.locale : "en",
             };
         },
         /**
@@ -2621,6 +2622,7 @@ export default {
 
             const micronOpts = {
                 useWasm: this.nomadMicronWasmActive,
+                isPartial: true,
             };
 
             const muParser = new MicronParser();

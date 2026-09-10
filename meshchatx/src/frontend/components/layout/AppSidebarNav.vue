@@ -1,7 +1,12 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex-1 overflow-y-auto" :class="isEditing ? 'select-none' : ''" data-testid="sidebar-nav">
+    <nav
+        class="flex-1 overflow-y-auto"
+        :class="isEditing ? 'select-none' : ''"
+        aria-label="Primary"
+        data-testid="sidebar-nav"
+    >
         <template v-for="group in primaryNavGroups" :key="group.id">
             <div
                 v-if="!isCollapsed"
@@ -86,6 +91,7 @@
                         :to="item.route"
                         :is-collapsed="isCollapsed"
                         :edit-mode="isEditing"
+                        :aria-label="item.label || $t(item.labelKey)"
                     >
                         <template #icon>
                             <span class="relative inline-flex shrink-0">
@@ -191,7 +197,13 @@
                         icon-name="drag-vertical"
                         class="ml-1 size-4 shrink-0 opacity-50"
                     />
-                    <SidebarLink class="min-w-0 flex-1" :to="item.route" :is-collapsed="false" :edit-mode="isEditing">
+                    <SidebarLink
+                        class="min-w-0 flex-1"
+                        :to="item.route"
+                        :is-collapsed="false"
+                        :edit-mode="isEditing"
+                        :aria-label="item.label || $t(item.labelKey)"
+                    >
                         <template #icon>
                             <MaterialDesignIcon :icon-name="item.icon" class="w-6 h-6 text-sem-fg-secondary" />
                         </template>
@@ -222,7 +234,7 @@
                 </li>
             </ul>
         </div>
-    </div>
+    </nav>
 </template>
 
 <script>

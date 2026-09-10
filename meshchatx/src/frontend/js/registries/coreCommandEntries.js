@@ -199,6 +199,22 @@ export const CORE_COMMAND_ENTRIES = [
         route: { name: "debug-logs" },
     },
     {
+        id: "nav-archives",
+        title: "nav_archives",
+        description: "nav_archives_desc",
+        icon: "archive",
+        type: "navigation",
+        route: { name: "archives" },
+    },
+    {
+        id: "action-toggle-sidebar",
+        title: "action_toggle_sidebar",
+        description: "action_toggle_sidebar_desc",
+        icon: "dock-left",
+        type: "action",
+        action: "toggle-sidebar",
+    },
+    {
         id: "action-sync",
         title: "action_sync",
         description: "action_sync_desc",

@@ -6,6 +6,8 @@
             :href="href"
             type="button"
             :draggable="false"
+            :aria-label="ariaLabel"
+            :aria-current="isActive ? 'page' : null"
             :class="[
                 collapsedActiveClass(navActive(isActive)),
                 isCollapsed ? 'overflow-visible justify-center rounded-none' : 'overflow-hidden rounded-r-full mr-2',
@@ -29,6 +31,10 @@ import { navRouteIsActive } from "../js/navRouteActive.js";
 export default {
     name: "SidebarLink",
     props: {
+        ariaLabel: {
+            type: String,
+            default: "",
+        },
         to: {
             type: Object,
             required: true,

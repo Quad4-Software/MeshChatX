@@ -1,7 +1,13 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col items-center justify-center px-4 py-10 text-center" :class="rootClass">
+    <div
+        class="flex flex-col items-center justify-center px-4 py-10 text-center"
+        :class="rootClass"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+    >
         <MaterialDesignIcon
             icon-name="loading"
             class="size-8 animate-spin text-sem-accent motion-reduce:animate-none"

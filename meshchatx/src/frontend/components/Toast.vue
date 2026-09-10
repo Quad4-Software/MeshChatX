@@ -3,6 +3,9 @@
 <template>
     <div
         class="fixed max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
     >
         <TransitionGroup name="toast">
             <div

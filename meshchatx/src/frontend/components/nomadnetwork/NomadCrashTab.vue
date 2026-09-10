@@ -5,7 +5,8 @@
         <iframe
             ref="frame"
             class="nomad-crash-tab__frame absolute inset-0 h-full w-full border-0 bg-black"
-            title="Nomad page renderer"
+            :title="crashTabTitle"
+            name="nomad-page-renderer"
             sandbox="allow-scripts"
             allow="local-network-access"
             :src="frameSrc"
@@ -151,6 +152,9 @@ export default {
                 backgroundColor: bg,
                 opacity: show ? "1" : "0",
             };
+        },
+        crashTabTitle() {
+            return this.path || "Nomad";
         },
         renderOptionsKey() {
             try {

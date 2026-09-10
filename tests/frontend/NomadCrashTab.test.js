@@ -119,6 +119,13 @@ describe("NomadCrashTab.vue", () => {
         expect(wrapper.vm.skipRenderUntilPropChange).toBe(false);
     });
 
+    it("exposes an accessible iframe name and title", () => {
+        const wrapper = mountCrashTab({ path: "aabb:/page/index.mu" });
+        const frame = wrapper.find("iframe");
+        expect(frame.attributes("name")).toBe("nomad-page-renderer");
+        expect(frame.attributes("title")).toBe("aabb:/page/index.mu");
+    });
+
     it("ignores aborted echo from frame after hard cancel", () => {
         const wrapper = mountCrashTab();
         const frame = wrapper.find("iframe").element;

@@ -268,105 +268,105 @@ Content at depth 1`;
         });
 
         describe("images", () => {
-        it("renders a placeholder for a valid WebP image link", () => {
-            const markup = "`[River valley`:/file/harbour.webp`img=1;w=400;h=267;s=18088]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).toContain('class="mu-image"');
-            expect(html).toContain('data-mu-image-url=":/file/harbour.webp"');
-            expect(html).toContain('data-mu-image-alt="River valley"');
-            expect(html).toContain('data-mu-image-w="400"');
-            expect(html).toContain('data-mu-image-h="267"');
-            expect(html).toContain('data-mu-image-s="18088"');
-            expect(html).toContain("River valley");
-            expect(html).toContain("17.7 kB");
-            expect(html).toContain("Load image");
-            expect(html).toContain('data-mu-image-a="left"');
+            it("renders a placeholder for a valid WebP image link", () => {
+                const markup = "`[River valley`:/file/harbour.webp`img=1;w=400;h=267;s=18088]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-image"');
+                expect(html).toContain('data-mu-image-url=":/file/harbour.webp"');
+                expect(html).toContain('data-mu-image-alt="River valley"');
+                expect(html).toContain('data-mu-image-w="400"');
+                expect(html).toContain('data-mu-image-h="267"');
+                expect(html).toContain('data-mu-image-s="18088"');
+                expect(html).toContain("River valley");
+                expect(html).toContain("17.7 kB");
+                expect(html).toContain("Load image");
+                expect(html).toContain('data-mu-image-a="left"');
+            });
+
+            it("falls back to a normal link when img=1 is missing alt text", () => {
+                const markup = "`[`:/file/harbour.webp`img=1]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain('class="mu-image"');
+                expect(html).toContain('class="Mu-nl"');
+                expect(html).toContain("/file/harbour.webp");
+            });
+
+            it("falls back to a normal link for non-webp images", () => {
+                const markup = "`[River valley`:/file/harbour.jpg`img=1]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain('class="mu-image"');
+                expect(html).toContain('class="Mu-nl"');
+            });
+
+            it("respects alignment from the a= option", () => {
+                const markup = "`[Centre`:/file/c.webp`img=1;a=c]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('data-mu-image-a="center"');
+            });
+
+            it("preserves key and profile metadata", () => {
+                const markup = "`[Map`:/file/m.webp`img=1;k=map1;profile=fast]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('data-mu-image-k="map1"');
+                expect(html).toContain('data-mu-image-profile="fast"');
+            });
+
+            it("ignores unknown image option fields", () => {
+                const markup = "`[x`:/file/x.webp`img=1;foo=bar;w=abc;h=-1]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-image"');
+                expect(html).not.toContain("data-mu-image-w");
+                expect(html).not.toContain("data-mu-image-h");
+            });
+
+            it("treats img=0 as a normal link", () => {
+                const markup = "`[x`:/file/x.webp`img=0]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain('class="mu-image"');
+                expect(html).toContain('class="Mu-nl"');
+            });
+
+            it("rejects image links that do not point into /file/", () => {
+                const markup = "`[x`:/page/x.webp`img=1]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain('class="mu-image"');
+                expect(html).toContain('class="Mu-nl"');
+            });
+
+            it("strips query, fragment and backtick data suffix before checking extension", () => {
+                const markup = "`[x`:/file/x.webp?ref=1`img=1]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-image"');
+                expect(html).toContain('data-mu-image-path=":/file/x.webp"');
+            });
+
+            it("clamps oversized w/h/s values", () => {
+                const markup = "`[x`:/file/x.webp`img=1;w=999999;h=999999;s=999999999]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('data-mu-image-w="8192"');
+                expect(html).toContain('data-mu-image-h="8192"');
+                expect(html).toContain('data-mu-image-s="104857600"');
+            });
+
+            it("truncates long alt text", () => {
+                const alt = "x".repeat(300);
+                const markup = `\`[${alt}\`:/file/x.webp\`img=1]`;
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain(alt);
+                expect(html).toContain('data-mu-image-alt="' + "x".repeat(240) + '"');
+            });
+
+            it("sanitizes key and profile values", () => {
+                const markup = "`[x`:/file/x.webp`img=1;k=<script>;profile=fast!]";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain("<script>");
+                expect(html).not.toContain("fast!");
+                expect(html).not.toContain('data-mu-image-k="<script>"');
+                expect(html).not.toContain('data-mu-image-profile="fast!"');
+            });
         });
 
-        it("falls back to a normal link when img=1 is missing alt text", () => {
-            const markup = "`[`:/file/harbour.webp`img=1]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).not.toContain('class="mu-image"');
-            expect(html).toContain('class="Mu-nl"');
-            expect(html).toContain("/file/harbour.webp");
-        });
-
-        it("falls back to a normal link for non-webp images", () => {
-            const markup = "`[River valley`:/file/harbour.jpg`img=1]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).not.toContain('class="mu-image"');
-            expect(html).toContain('class="Mu-nl"');
-        });
-
-        it("respects alignment from the a= option", () => {
-            const markup = "`[Centre`:/file/c.webp`img=1;a=c]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).toContain('data-mu-image-a="center"');
-        });
-
-        it("preserves key and profile metadata", () => {
-            const markup = "`[Map`:/file/m.webp`img=1;k=map1;profile=fast]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).toContain('data-mu-image-k="map1"');
-            expect(html).toContain('data-mu-image-profile="fast"');
-        });
-
-        it("ignores unknown image option fields", () => {
-            const markup = "`[x`:/file/x.webp`img=1;foo=bar;w=abc;h=-1]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).toContain('class="mu-image"');
-            expect(html).not.toContain('data-mu-image-w');
-            expect(html).not.toContain('data-mu-image-h');
-        });
-
-        it("treats img=0 as a normal link", () => {
-            const markup = "`[x`:/file/x.webp`img=0]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).not.toContain('class="mu-image"');
-            expect(html).toContain('class="Mu-nl"');
-        });
-
-        it("rejects image links that do not point into /file/", () => {
-            const markup = "`[x`:/page/x.webp`img=1]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).not.toContain('class="mu-image"');
-            expect(html).toContain('class="Mu-nl"');
-        });
-
-        it("strips query, fragment and backtick data suffix before checking extension", () => {
-            const markup = "`[x`:/file/x.webp?ref=1`img=1]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).toContain('class="mu-image"');
-            expect(html).toContain('data-mu-image-path=":/file/x.webp"');
-        });
-
-        it("clamps oversized w/h/s values", () => {
-            const markup = "`[x`:/file/x.webp`img=1;w=999999;h=999999;s=999999999]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).toContain('data-mu-image-w="8192"');
-            expect(html).toContain('data-mu-image-h="8192"');
-            expect(html).toContain('data-mu-image-s="104857600"');
-        });
-
-        it("truncates long alt text", () => {
-            const alt = "x".repeat(300);
-            const markup = `\`[${alt}\`:/file/x.webp\`img=1]`;
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).not.toContain(alt);
-            expect(html).toContain('data-mu-image-alt="' + "x".repeat(240) + '"');
-        });
-
-        it("sanitizes key and profile values", () => {
-            const markup = "`[x`:/file/x.webp`img=1;k=<script>;profile=fast!]";
-            const html = parser.convertMicronToHtml(markup);
-            expect(html).not.toContain("<script>");
-            expect(html).not.toContain("fast!");
-            expect(html).not.toContain('data-mu-image-k="<script>"');
-            expect(html).not.toContain('data-mu-image-profile="fast!"');
-        });
-    });
-
-    describe("partials", () => {
+        describe("partials", () => {
             it("emits placeholder for partial line without refresh", () => {
                 const dest = "f64a846313b874ee4a357040807f8c77";
                 const path = "/page/partial_1.mu";
@@ -408,8 +408,7 @@ Content at depth 1`;
                 const dest = "a".repeat(32);
                 const markup = "`{" + dest + ":/page/partial.mu}";
                 const html = parser.convertMicronToHtml(markup, {
-                    "partial-0":
-                        '<img src="x" onerror="alert(1)"><script>alert(2)</script>',
+                    "partial-0": '<img src="x" onerror="alert(1)"><script>alert(2)</script>',
                 });
                 expect(html).not.toContain("onerror");
                 expect(html).not.toContain("<script");
@@ -962,6 +961,69 @@ Content at depth 1`;
             expect(html).toContain("wasm-body");
             expect(html).toContain("mu-partial");
             expect(html).toContain("data-dest");
+        });
+
+        it("adds main role to WASM rendered output", () => {
+            globalThis.micronConvert = vi.fn(() => "<p>wasm paragraph</p>");
+            const p = new MicronParser(true, false);
+            const html = p.convertMicronToHtml("# Hello", {}, { useWasm: true });
+            expect(html).toMatch(/<div[^>]+role="main"/);
+        });
+    });
+
+    describe("accessibility (A11y) attributes", () => {
+        it("wraps rendered Micron in a main landmark", () => {
+            const html = parser.convertMicronToHtml("Hello");
+            expect(html).toMatch(/<div[^>]+role="main"/);
+        });
+
+        it("marks Micron section headings with role and aria-level", () => {
+            const html = parser.convertMicronToHtml("> Top level\n>> Second level\n>>> Third level");
+            const roles = (html.match(/role="heading"/g) || []).length;
+            expect(roles).toBeGreaterThanOrEqual(3);
+            expect(html).toContain('aria-level="1"');
+            expect(html).toContain('aria-level="2"');
+            expect(html).toContain('aria-level="3"');
+        });
+
+        it("marks nomad network links as links with tabindex", () => {
+            const html = parser.convertMicronToHtml("`[Example`http://example.com]");
+            expect(html).toContain('role="link"');
+            expect(html).toContain('tabindex="0"');
+        });
+
+        it("marks partial placeholders as polite live regions", () => {
+            const dest = "b".repeat(32);
+            const html = parser.convertMicronToHtml(`\`{${dest}:/page/partial.mu}`);
+            expect(html).toContain('class="mu-partial"');
+            expect(html).toContain('role="status"');
+            expect(html).toContain('aria-live="polite"');
+        });
+
+        it("adds an accessible name to text inputs from the prompt", () => {
+            const html = parser.convertMicronToHtml("Name: `<name`>");
+            expect(html).toContain('aria-label="Name:"');
+        });
+
+        it("does not wrap partial content in a main landmark", () => {
+            const html = parser.convertMicronToHtml("partial text", {}, { isPartial: true });
+            expect(html).toContain("partial text");
+            expect(html).not.toMatch(/<div[^>]+role="main"/);
+        });
+
+        it("preserves ARIA attributes through DOMPurify", () => {
+            const html = parser.convertMicronToHtml(
+                `> Heading
+\`[Link\`http://safe.com]`
+            );
+            expect(html).toContain('role="main"');
+            expect(html).toContain('role="heading"');
+            expect(html).toContain('role="link"');
+        });
+
+        it("adds scope to table headers", () => {
+            const html = parser.convertMicronToHtml("`t\n|Col A|Col B|\n|-----|-----|\n|Row|Val|\n`t");
+            expect(html).toContain('scope="col"');
         });
     });
 });
