@@ -8,6 +8,7 @@ There are many changes from MeshChat: LXST, [RRC](https://rrc.kc1awv.net/0) rela
 
 MeshChatX is also focused on security and privacy, including usage of native OS sandboxing like AppContainer for windows and Landlock for linux.
 
+AI Disclaimer: Open-weight LLMs may used to assist with development and maintaining the project, but all code is reviewed by humans and follows best practices.
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
@@ -21,7 +22,7 @@ MeshChatX is also focused on security and privacy, including usage of native OS 
 
 rngit NomadNet Node: `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 
-## Install/Usage Methods 
+## Install/Usage Methods
 
 There are many ways you can use MeshChatX.
 
