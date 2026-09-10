@@ -1559,6 +1559,27 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.resolveNomadImageDestination(":/file/img.webp?x=1").destinationHash).toBe(hash);
         });
 
+        it("resolves /media image URLs with any supported extension", () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            for (const ext of ["webp", "png", "jpg", "jpeg", "bmp", "gif", "tiff"]) {
+                const resolved = wrapper.vm.resolveNomadImageDestination(`${hash}:/media/img.${ext}`);
+                expect(resolved.destinationHash).toBe(hash);
+                expect(resolved.filePath).toBe(`/media/img.${ext}`);
+            }
+        });
+
+        it("detects the MIME type from downloaded image bytes", () => {
+            const wrapper = mountNomadNetworkPage();
+            const pngB64 = btoa("\x89PNG\r\n\x1a\n");
+            const gifB64 = btoa("GIF89a");
+            const webpB64 = btoa("RIFF\x00\x00\x00\x00WEBPVP8 ");
+            expect(wrapper.vm.getNomadImageDataUrl(pngB64)).toBe(`data:image/png;base64,${pngB64}`);
+            expect(wrapper.vm.getNomadImageDataUrl(gifB64)).toBe(`data:image/gif;base64,${gifB64}`);
+            expect(wrapper.vm.getNomadImageDataUrl(webpB64)).toBe(`data:image/webp;base64,${webpB64}`);
+        });
+
         it("ignores stale image websocket events with mismatched request_id", async () => {
             const hash = "a".repeat(32);
             const wrapper = mountNomadNetworkPage({ destinationHash: hash });
