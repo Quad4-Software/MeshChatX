@@ -46,9 +46,12 @@ function packagedBackendPaths() {
         }
         paths.push(`lib/meshchatx/${rel}`);
     }
+    // meshchatx/public is frontend build output; absent from a clean checkout.
     const publicDir = join(meshchatxDir, "public");
-    for (const abs of walkFiles(publicDir)) {
-        paths.push(`public/${relative(publicDir, abs).split("\\").join("/")}`);
+    if (existsSync(publicDir)) {
+        for (const abs of walkFiles(publicDir)) {
+            paths.push(`public/${relative(publicDir, abs).split("\\").join("/")}`);
+        }
     }
     for (const name of ["CHANGELOG.md", "licenses_frontend.json", "licenses_backend.json", "THIRD_PARTY_NOTICES.txt"]) {
         paths.push(name);

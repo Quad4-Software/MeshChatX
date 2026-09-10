@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "Haku ja komennot (Ctrl+K)",
+        "dialog_label": "Haku ja komennot",
         "search_placeholder": "Hae komentoja, reittejä tai vertaisia",
         "no_results": "Ei tuloksia haulle \"{query}\"",
         "group_actions": "Toiminnot",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "Laitteen laiteohjelmistopäivitys",
         "nav_debug_logs": "Vianetsintälokit",
         "nav_debug_logs_desc": "Sovellus- ja pääsylokit",
+        "nav_archives": "Arkistot",
+        "nav_archives_desc": "Selaa tallennettuja Nomad-sivuja",
         "action_sync": "Synkronoi viestit",
         "action_sync_desc": "Synkronoi levityssolmun kanssa",
         "action_compose": "Kirjoita viesti",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "Aloitus",
         "action_getting_started_desc": "Avaa aloitusopas",
         "action_changelog": "Muutosloki",
-        "action_changelog_desc": "Viimeaikaiset muutokset"
+        "action_changelog_desc": "Viimeaikaiset muutokset",
+        "action_toggle_sidebar": "Vaihda sivupalkki",
+        "action_toggle_sidebar_desc": "Laajenna tai pienennä sivunavigointi"
     },
     "auth": {
         "setup_title": "Alkuasennus",

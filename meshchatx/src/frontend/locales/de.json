@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "Suche und Befehle (Strg+K)",
+        "dialog_label": "Suche und Befehle",
         "search_placeholder": "Befehle, Routen oder Peers suchen",
         "no_results": "Keine Ergebnisse für \"{query}\" gefunden",
         "group_actions": "Aktionen",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "Geräte-Firmware aktualisieren",
         "nav_debug_logs": "Debug-Logs",
         "nav_debug_logs_desc": "Anwendungs- und Zugriffsprotokolle",
+        "nav_archives": "Archive",
+        "nav_archives_desc": "Gespeicherte Nomad-Seiten durchsuchen",
         "action_sync": "Nachrichten synchronisieren",
         "action_sync_desc": "Mit dem Propagationsknoten synchronisieren",
         "action_compose": "Nachricht verfassen",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "Erste Schritte",
         "action_getting_started_desc": "Einrichtungsanleitung öffnen",
         "action_changelog": "Änderungsprotokoll",
-        "action_changelog_desc": "Letzte Änderungen"
+        "action_changelog_desc": "Letzte Änderungen",
+        "action_toggle_sidebar": "Seitenleiste umschalten",
+        "action_toggle_sidebar_desc": "Seitennavigation ein- oder ausklappen"
     },
     "auth": {
         "setup_title": "Ersteinrichtung",

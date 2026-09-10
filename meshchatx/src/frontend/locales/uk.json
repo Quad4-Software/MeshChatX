@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "Пошук і команди (Ctrl+K)",
+        "dialog_label": "Пошук і команди",
         "search_placeholder": "Пошук команд, маршрутів або пірів",
         "no_results": "Результатів для «{query}» не знайдено",
         "group_actions": "Дії",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "Оновлення прошивки пристрою",
         "nav_debug_logs": "Журнали налагодження",
         "nav_debug_logs_desc": "Журнали застосунку та доступу",
+        "nav_archives": "Архіви",
+        "nav_archives_desc": "Перегляд збережених сторінок Nomad",
         "action_sync": "Синхронізувати повідомлення",
         "action_sync_desc": "Синхронізація з вашим вузлом поширення",
         "action_compose": "Створити повідомлення",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "Початок роботи",
         "action_getting_started_desc": "Відкрити посібник з налаштування",
         "action_changelog": "Журнал змін",
-        "action_changelog_desc": "Останні зміни"
+        "action_changelog_desc": "Останні зміни",
+        "action_toggle_sidebar": "Перемкнути бічну панель",
+        "action_toggle_sidebar_desc": "Розгорнути або згорнути бокову навігацію"
     },
     "auth": {
         "setup_title": "Початкове налаштування",

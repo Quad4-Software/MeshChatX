@@ -4939,6 +4939,7 @@
     },
     "command_palette": {
         "open_hint": "Поиск и команды (Ctrl+K)",
+        "dialog_label": "Поиск и команды",
         "search_placeholder": "Команды, маршруты или узлы",
         "no_results": "Результатов для \"{query}\" не найдено",
         "group_actions": "Действия",
@@ -4992,6 +4993,8 @@
         "nav_rnode_flasher_desc": "Обновление прошивки устройства",
         "nav_debug_logs": "Логи отладки",
         "nav_debug_logs_desc": "Журналы приложения и доступа",
+        "nav_archives": "Архивы",
+        "nav_archives_desc": "Просмотр сохранённых страниц Nomad",
         "action_sync": "Синхронизация",
         "action_sync_desc": "Синхронизация с узлом ретрансляции",
         "action_compose": "Написать сообщение",
@@ -4999,7 +5002,9 @@
         "action_getting_started": "Начало работы",
         "action_getting_started_desc": "Открыть мастер настройки",
         "action_changelog": "Список изменений",
-        "action_changelog_desc": "Последние изменения"
+        "action_changelog_desc": "Последние изменения",
+        "action_toggle_sidebar": "Переключить боковую панель",
+        "action_toggle_sidebar_desc": "Развернуть или свернуть боковую навигацию"
     },
     "auth": {
         "setup_title": "Первоначальная настройка",
