@@ -946,7 +946,7 @@ class DocsManager:
         if not os.path.isdir(path):
             return
         try:
-            os.chmod(path, 0o750)
+            os.chmod(path, 0o750)  # noqa: S103 - group-readable docs dir
         except OSError:
             pass
 

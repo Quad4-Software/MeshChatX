@@ -83,7 +83,7 @@ def list_i2p_names(interfaces: object) -> list[str]:
 def _i2p_block_is_suffix(interfaces: dict) -> bool:
     """True when every I2P entry is at the end (no non-I2P after the first I2P)."""
     seen_i2p = False
-    for _name, iface in interfaces.items():
+    for iface in interfaces.values():
         if is_i2p_interface(iface):
             seen_i2p = True
         elif seen_i2p:
@@ -174,8 +174,7 @@ def reorder_interfaces_i2p_last(interfaces: dict) -> bool:
 
     for name in list(interfaces.keys()):
         del interfaces[name]
-    for name, iface in non_i2p + i2p:
-        interfaces[name] = iface
+    interfaces.update(non_i2p + i2p)
     return True
 
 

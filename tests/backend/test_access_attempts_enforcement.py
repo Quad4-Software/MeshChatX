@@ -236,7 +236,7 @@ def test_enforce_untrusted_monotone_hypothesis(mock_app, n):
 def _make_aio_app(mock_app, use_https: bool):
     mock_app.session_secret_key = secrets.token_urlsafe(32)
     routes = web.RouteTableDef()
-    sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = (
+    sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, _demo_mw = (
         mock_app._define_routes(routes)
     )
     aio_app = web.Application()

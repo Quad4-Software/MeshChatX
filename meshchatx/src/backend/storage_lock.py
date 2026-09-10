@@ -97,7 +97,8 @@ class StorageLock:
         atexit.register(self.release)
 
     def _acquire_soft(self) -> None:
-        assert self._handle is not None
+        if self._handle is None:
+            raise StorageLockError("lock file is not open")
         self._handle.seek(0)
         raw = self._handle.read().strip()
         other_pid = None
@@ -116,7 +117,8 @@ class StorageLock:
         self._write_pid()
 
     def _write_pid(self) -> None:
-        assert self._handle is not None
+        if self._handle is None:
+            raise StorageLockError("lock file is not open")
         self._handle.seek(0)
         self._handle.truncate()
         self._handle.write(str(os.getpid()).encode())

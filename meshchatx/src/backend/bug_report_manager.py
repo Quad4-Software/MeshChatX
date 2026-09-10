@@ -281,7 +281,8 @@ class BugReportManager:
             return self.status()
 
     def _announce_locked(self) -> None:
-        assert self._destination is not None
+        if self._destination is None:
+            raise RuntimeError("collector is not running")
         display = ""
         try:
             ctx = getattr(self.app, "current_context", None)

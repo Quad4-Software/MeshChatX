@@ -111,7 +111,7 @@ _PAGE_CONTENT = (
 )
 
 _SERVER_SCRIPT = textwrap.dedent(
-    """\
+    f"""\
     import json, os, sys, time
     import RNS
     from meshchatx.src.backend.page_node import PageNode
@@ -131,8 +131,8 @@ _SERVER_SCRIPT = textwrap.dedent(
         announce_enabled=True,
     )
     node.setup()
-    node.add_file("test.webp", {webp!r})
-    node.add_page("index.mu", {page!r})
+    node.add_file("test.webp", {_WEBP_BYTES!r})
+    node.add_page("index.mu", {_PAGE_CONTENT!r})
 
     with open(ready_path, "w", encoding="utf-8") as handle:
         json.dump({{"dest": node.destination.hash.hex()}}, handle)
@@ -142,11 +142,11 @@ _SERVER_SCRIPT = textwrap.dedent(
         node.announce()
         time.sleep(4)
     RNS.exit(0)
-    """.format(webp=_WEBP_BYTES, page=_PAGE_CONTENT),
+    """,
 )
 
 _CLIENT_SCRIPT = textwrap.dedent(
-    """\
+    f"""\
     import asyncio, json, os, sys, time
     import RNS
     from meshchatx.src.backend.nomadnet_downloader import (
@@ -272,13 +272,13 @@ _CLIENT_SCRIPT = textwrap.dedent(
         state["result"]["reason"] = "ok"
         state["result"]["file_name"] = state["image_file_name"]
         state["result"]["file_bytes_b64"] = base64.b64encode(state["image_bytes"]).decode("utf-8")
-        state["result"]["file_matches"] = state["image_bytes"] == {webp!r}
+        state["result"]["file_matches"] = state["image_bytes"] == {_WEBP_BYTES!r}
 
     with open(result_path, "w", encoding="utf-8") as handle:
         json.dump(state["result"], handle)
 
     RNS.exit(0)
-    """.format(webp=_WEBP_BYTES),
+    """,
 )
 
 

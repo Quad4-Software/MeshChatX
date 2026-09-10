@@ -2,6 +2,7 @@
 
 import html
 import re
+from typing import ClassVar
 
 _SAFE_LINK_PREFIXES = ("https://", "http://", "/", "#", "mailto:")
 _UNSAFE_PROTOCOLS = ("javascript:", "data:", "vbscript:", "file:")
@@ -28,7 +29,7 @@ def _safe_href(url):
 class MarkdownRenderer:
     """A simple Markdown to HTML renderer."""
 
-    _heading_ids: dict[str, int] = {}
+    _heading_ids: ClassVar[dict[str, int]] = {}
 
     @classmethod
     def _reset_heading_ids(cls):
@@ -299,9 +300,7 @@ class MarkdownRenderer:
             return match.group(0)
 
         text = re.sub(r"\[\[IC(\d+)\]\]", _restore_inline, text)
-        text = re.sub(r"\[\[CB(\d+)\]\]", _restore_fenced, text)
-
-        return text
+        return re.sub(r"\[\[CB(\d+)\]\]", _restore_fenced, text)
 
     @staticmethod
     def _is_table_row(line):

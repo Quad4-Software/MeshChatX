@@ -28,8 +28,8 @@ class TelemetryDAO:
             """
             INSERT INTO lxmf_telemetry (destination_hash, timestamp, data, received_from, physical_link, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(destination_hash, timestamp) DO UPDATE SET 
-                data = EXCLUDED.data, 
+            ON CONFLICT(destination_hash, timestamp) DO UPDATE SET
+                data = EXCLUDED.data,
                 received_from = EXCLUDED.received_from,
                 physical_link = EXCLUDED.physical_link,
                 updated_at = EXCLUDED.updated_at
@@ -105,7 +105,7 @@ class TelemetryDAO:
             """
             INSERT INTO telemetry_tracking (destination_hash, is_tracking, updated_at)
             VALUES (?, ?, ?)
-            ON CONFLICT(destination_hash) DO UPDATE SET 
+            ON CONFLICT(destination_hash) DO UPDATE SET
                 is_tracking = EXCLUDED.is_tracking,
                 updated_at = EXCLUDED.updated_at
         """,

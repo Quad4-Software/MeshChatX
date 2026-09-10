@@ -114,8 +114,8 @@ def generate_manifest(root: Path) -> str:
         stdout=subprocess.PIPE,
         env=env,
     )
-    assert proc.stdin is not None
-    assert proc.stdout is not None
+    if proc.stdin is None or proc.stdout is None:
+        raise RuntimeError("git cat-file pipes are unavailable")
 
     # Writer thread feeds oids while this thread reads blobs. Writing the full
     # oid list first deadlocks once cat-file fills the stdout pipe (about 64KiB).

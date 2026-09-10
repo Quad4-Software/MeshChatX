@@ -29,9 +29,9 @@ class ConfigDAO:
 
             self.provider.execute(
                 """
-                INSERT INTO config (key, value, created_at, updated_at) 
+                INSERT INTO config (key, value, created_at, updated_at)
                 VALUES (?, ?, ?, ?)
-                ON CONFLICT(key) DO UPDATE SET 
+                ON CONFLICT(key) DO UPDATE SET
                     value = EXCLUDED.value,
                     updated_at = EXCLUDED.updated_at
                 """,

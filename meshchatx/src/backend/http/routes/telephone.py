@@ -1206,7 +1206,7 @@ def register_telephone_routes(routes, app):
 
                 ringtones = app.database.ringtones.get_all()
                 if ringtones:
-                    ringtone_id = random.choice(ringtones)["id"]
+                    ringtone_id = random.choice(ringtones)["id"]  # noqa: S311 - UI ringtone pick
                 else:
                     ringtone_id = None
 

@@ -179,7 +179,7 @@ async def test_auto_propagation_skips_when_sync_active_and_path_exists():
     When a sync is active and the current node still has a path, the manager
     should leave it alone so the transfer can finish.
     """
-    manager, app, context, config, database, _store = _make_manager()
+    manager, app, context, config, _database, _store = _make_manager()
 
     config.lxmf_preferred_propagation_node_auto_select.get.return_value = True
     config.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
@@ -406,7 +406,7 @@ async def test_auto_propagation_interrupts_sync_when_path_unresponsive():
 @pytest.mark.asyncio
 async def test_probe_propagation_sync_treats_complete_as_success():
     """LXMF finishes successful sync at PR_COMPLETE, not only PR_IDLE."""
-    manager, app, context, config, database, _store = _make_manager()
+    manager, _app, context, _config, _database, _store = _make_manager()
     router = context.message_router
     router.propagation_transfer_state = LXMRouter.PR_IDLE
 
@@ -434,7 +434,7 @@ async def test_probe_propagation_sync_treats_complete_as_success():
 @pytest.mark.asyncio
 async def test_probe_propagation_sync_uses_scarce_message_budget():
     """Auto-select probes must not pull a full mailbox (Zen scarcity)."""
-    manager, app, context, config, database, _store = _make_manager()
+    manager, _app, context, _config, _database, _store = _make_manager()
     router = context.message_router
     router.propagation_transfer_state = LXMRouter.PR_IDLE
 
@@ -471,18 +471,17 @@ async def test_auto_propagation_caps_probes_per_cycle():
     """Do not sync-probe every announced peer in one cycle."""
     from meshchatx.src.backend.auto_propagation_manager import MAX_PROBES_PER_CYCLE
 
-    manager, app, context, config, database, _store = _make_manager()
+    manager, _app, _context, config, database, _store = _make_manager()
     config.lxmf_preferred_propagation_node_auto_select.get.return_value = True
     config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
 
-    announces = []
-    for i in range(MAX_PROBES_PER_CYCLE + 3):
-        announces.append(
-            {
-                "destination_hash": f"{i:02x}" * 16,
-                "app_data": _APP_DATA_ENABLED,
-            },
-        )
+    announces = [
+        {
+            "destination_hash": f"{i:02x}" * 16,
+            "app_data": _APP_DATA_ENABLED,
+        }
+        for i in range(MAX_PROBES_PER_CYCLE + 3)
+    ]
     database.announces.get_announces.return_value = announces
 
     with (
@@ -514,7 +513,7 @@ async def test_probe_propagation_sync_ignores_stale_state():
     """
     import time
 
-    manager, app, context, config, database, _store = _make_manager()
+    manager, app, context, _config, _database, _store = _make_manager()
     router = context.message_router
 
     router.propagation_transfer_state = LXMRouter.PR_RECEIVING

@@ -334,9 +334,7 @@ def test_live_embedded_lxms_not_converted_as_commands():
 
     fields = {}
     for key, value in live["fields"].items():
-        rebuilt = []
-        for item in value:
-            rebuilt.append(base64.b64decode(item["__b64__"]))
+        rebuilt = [base64.b64decode(item["__b64__"]) for item in value]
         fields[int(key)] = rebuilt
     msg = make_inbound_lxmf(
         source_hash=live["src"],

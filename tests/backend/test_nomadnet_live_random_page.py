@@ -125,7 +125,7 @@ def _write_client_config(
 _PAGE_CONTENT = b"# MeshChatX live page\nThis page was served over a real network\n"
 
 _SERVER_SCRIPT = textwrap.dedent(
-    """\
+    f"""\
     import json, os, sys, time
     import RNS
 
@@ -145,7 +145,7 @@ _SERVER_SCRIPT = textwrap.dedent(
 
     def responder(path, data, request_id, link_id, remote_identity, requested_at):
         if path == "/index.mu":
-            return {page_content!r}
+            return {_PAGE_CONTENT!r}
         return None
 
     dest.register_request_handler(
@@ -162,7 +162,7 @@ _SERVER_SCRIPT = textwrap.dedent(
         dest.announce(app_data=b"live-page")
         time.sleep(4)
     RNS.exit(0)
-    """.format(page_content=_PAGE_CONTENT),
+    """,
 )
 
 _CLIENT_SCRIPT = textwrap.dedent(

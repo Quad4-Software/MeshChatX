@@ -120,10 +120,10 @@ def test_audioop_lts_resolves_when_applicable():
 def test_get_package_version_works_without_packaging_module():
     real_import = __import__
 
-    def _import(name, globals=None, locals=None, fromlist=(), level=0):
+    def _import(name, globals_=None, locals_=None, fromlist=(), level=0):
         if name.startswith("packaging"):
             raise ModuleNotFoundError("No module named 'packaging'")
-        return real_import(name, globals, locals, fromlist, level)
+        return real_import(name, globals_, locals_, fromlist, level)
 
     with (
         patch("builtins.__import__", side_effect=_import),

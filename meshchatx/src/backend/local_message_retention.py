@@ -124,7 +124,7 @@ def purge_messages_before_cutoff(
                 continue
             try:
                 cancel_outbound(bytes.fromhex(h))
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.debug("purge_messages_before_cutoff cancel_outbound: %s", exc)
     messages.delete_lxmf_messages_by_hashes(hashes)
     messages.prune_conversation_metadata_for_peers_with_no_messages()

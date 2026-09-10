@@ -169,7 +169,7 @@ class AutoPropagationManager:
             )
 
         keep = sorted(memory.items(), key=rank, reverse=True)[:MAX_MEMORY_NODES]
-        return {key: value for key, value in keep}
+        return dict(keep)
 
     def _memory_entry(self, node_hex: str) -> dict[str, Any]:
         return self._memory.setdefault(

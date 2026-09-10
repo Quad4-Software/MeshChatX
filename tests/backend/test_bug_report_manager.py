@@ -384,6 +384,6 @@ def test_set_issue_status(tmp_path):
 
 
 # Patch the manager to add a list helper for cross-platform robustness
-BugReportManager._storage_dir_list = lambda _self, path: [
-    name for name in __import__("os").listdir(path)
-]
+BugReportManager._storage_dir_list = lambda _self, path: list(
+    __import__("os").listdir(path)
+)

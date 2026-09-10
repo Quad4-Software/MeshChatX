@@ -96,13 +96,13 @@ def coerce_rnode_frequency_hz(value):
             break
     f = float(s) * mult
     if f <= 0:
-        return int(round(f))
+        return round(f)
     if f >= 1_000_000:
-        return int(round(f))
+        return round(f)
     is_integer = abs(f - round(f)) < 1e-9
     if (not is_integer) or (is_integer and f < 10_000):
         f *= 1_000_000.0
-    return int(round(f))
+    return round(f)
 
 
 RNODE_TXPOWER_MIN = 0

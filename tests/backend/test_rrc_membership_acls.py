@@ -455,7 +455,7 @@ def test_oracle_invite_only_part_still_requires_fresh_invite():
 
 def test_oracle_invite_consumed_after_join():
     server = make_server()
-    link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
+    _link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
     link_guest, sess_guest = add_session(server, b"\xbb" * 16, nick="guest")
     server.register_room("club", invite_only=True, founder=sess_op.peer)
     server.rooms.add_invite("club", sess_guest.peer, ttl_s=60)
@@ -536,7 +536,7 @@ def test_oracle_rooms_toml_dotted_and_unicode_roundtrip(tmp_path):
 
 def test_oracle_invite_ttl_boundary_denies_join():
     server = make_server()
-    link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
+    _link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
     link_guest, sess_guest = add_session(server, b"\xbb" * 16, nick="guest")
     server.register_room("club", invite_only=True, founder=sess_op.peer)
     server.rooms.add_invite("club", sess_guest.peer, ttl_s=0.05)

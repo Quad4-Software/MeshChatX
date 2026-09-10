@@ -26,7 +26,7 @@ def test_flood_announces_no_limit(mock_db):
     identity.hash.hex.return_value = "id_hash"
     identity.get_public_key.return_value = b"pub_key"
 
-    for i in range(500):
+    for _i in range(500):
         manager.upsert_announce(
             reticulum,
             identity,
@@ -55,7 +55,7 @@ def test_flood_announces_trims_each_upsert(mock_db):
     identity.hash.hex.return_value = "id_hash"
     identity.get_public_key.return_value = b"pub_key"
 
-    for i in range(100):
+    for _i in range(100):
         manager.upsert_announce(
             reticulum,
             identity,
@@ -100,7 +100,7 @@ def test_load_rapid_propagation_announces(mock_db):
     identity.hash.hex.return_value = "id_hash"
     identity.get_public_key.return_value = b"pub_key"
 
-    for i in range(100):
+    for _i in range(100):
         manager.upsert_announce(
             reticulum,
             identity,

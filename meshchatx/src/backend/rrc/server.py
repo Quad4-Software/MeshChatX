@@ -284,7 +284,7 @@ class RRCHubServer:
                 if isinstance(sess.peer, (bytes, bytearray))
                 and bytes(sess.peer) == bytes(peer_hash)
             ]
-        for lnk, sess in targets:
+        for lnk, _sess in targets:
             self._queue_error(outgoing, lnk, message)
             with contextlib.suppress(Exception):
                 if hasattr(lnk, "teardown"):

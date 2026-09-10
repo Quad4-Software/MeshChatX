@@ -112,23 +112,35 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-extend-select = ["D"]
-extend-ignore = [
-    "D100",
-    "D101",
-    "D102",
-    "D103",
-    "D104",
-    "D105",
-    "D106",
-    "D107",
-    "D203",
-    "D213",
-    "D401",
+select = [
+    "E4",   # pycodestyle errors: indentation
+    "E7",   # pycodestyle errors: statements
+    "E9",   # pycodestyle errors: runtime
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # comprehensions
+    "RET",  # return style
+    "RUF",  # ruff rules
+    "PERF", # performance
+    "DTZ",  # timezone-aware datetimes
+    "A",    # builtins shadowing
+    "S",    # bandit security
+    "D",    # pydocstyle (partial, see ignore)
+]
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    "D203", "D213", "D401",
+    "S110",  # try-except-pass: audited defensive pattern throughout the daemon
+    "S112",  # try-except-continue: same
+    "S603",  # subprocess calls are audited; Landlock/AppContainer sandbox applies
+    "S608",  # SQL text uses bound parameters; bandit flags any non-literal
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/backend/**" = ["E402"]
+"tests/**" = ["S", "E402"]
 "cx_setup.py" = ["E402"]
 "scripts/**" = ["E402"]
 "meshchatx/src/backend/web_audio_bridge.py" = ["E731"]

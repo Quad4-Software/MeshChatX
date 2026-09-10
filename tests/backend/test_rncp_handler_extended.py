@@ -475,7 +475,7 @@ def test_fetch_request_path_oracle(rncp_handler, tmp_path, data):
 )
 @given(
     file_path=st.one_of(
-        st.sampled_from(_TRAVERSAL_PATHS + ("identity", "identity.bak", "")),
+        st.sampled_from((*_TRAVERSAL_PATHS, "identity", "identity.bak", "")),
         st.text(min_size=0, max_size=200),
     ),
 )

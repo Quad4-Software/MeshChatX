@@ -131,7 +131,7 @@ def test_save_list_delete_upload(tmp_path):
 
 def test_save_rejects_bad_filename(tmp_path):
     mgr = RepositoryServerManager(str(tmp_path))
-    ok, err = mgr.save_upload("../evil.whl", b"x")
+    ok, _err = mgr.save_upload("../evil.whl", b"x")
     assert not ok
 
 
@@ -148,7 +148,7 @@ def test_save_rejects_bad_filename(tmp_path):
 )
 def test_save_rejects_invalid_upload_filenames(tmp_path, name):
     mgr = RepositoryServerManager(str(tmp_path))
-    ok, err = mgr.save_upload(name, b"x")
+    ok, _err = mgr.save_upload(name, b"x")
     assert not ok
 
 

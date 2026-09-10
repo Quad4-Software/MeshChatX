@@ -202,5 +202,5 @@ class TestPluginGuard:
     )
     def test_fuzz_random_install_payloads_are_rejected(self, tmp_path, payload):
         manager = _make_manager(tmp_path)
-        with pytest.raises(Exception):
+        with pytest.raises(PluginSecurityError):
             manager.install_from_zip_bytes(payload)

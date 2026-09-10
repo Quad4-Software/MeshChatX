@@ -47,7 +47,7 @@ CLOSED_ERRORS = frozenset(
 )
 @settings(max_examples=120, deadline=None)
 def test_validate_ws_envelope_closed_outcomes(data):
-    msg_type, err = validate_ws_envelope(data, KNOWN)
+    _msg_type, err = validate_ws_envelope(data, KNOWN)
     if err is not None:
         assert err in CLOSED_ERRORS
     if not isinstance(data, dict):

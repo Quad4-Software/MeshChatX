@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 _SKIP_IPS = {
-    ipaddress.ip_address("0.0.0.0"),  # nosec: BAN-B104
+    ipaddress.ip_address("0.0.0.0"),  # noqa: S104
     ipaddress.ip_address("255.255.255.255"),
     ipaddress.ip_address("::"),
 }
@@ -88,7 +88,7 @@ def collect_tls_san_entries():
         _add(_dns_name(name))
         _add(_ip_name(name))
 
-    for name in list(hostnames) + ["localhost"]:
+    for name in [*hostnames, "localhost"]:
         try:
             infos = socket.getaddrinfo(name, None)
         except OSError:

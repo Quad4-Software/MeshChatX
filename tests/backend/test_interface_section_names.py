@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
-from RNS.vendor.configobj import ConfigObj
+from RNS.vendor.configobj import ConfigObj, NestingError
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
@@ -37,7 +37,7 @@ def test_configobj_write_succeeds_but_reload_fails_for_brackets(tmp_path):
         "target_port": "4242",
     }
     cfg.write()
-    with pytest.raises(Exception):
+    with pytest.raises(NestingError):
         ConfigObj(str(path))
 
 

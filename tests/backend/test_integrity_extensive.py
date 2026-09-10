@@ -261,7 +261,7 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
         """_check_db_integrity on a non-SQLite file returns (False, ...)."""
         bad = self.test_dir / "bad.db"
         bad.write_text("this is not sqlite")
-        ok, msg = self.manager._check_db_integrity(bad)
+        ok, _msg = self.manager._check_db_integrity(bad)
         self.assertFalse(ok)
 
     def test_check_db_integrity_missing(self):
@@ -297,7 +297,7 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
         with open(self.manager.manifest_path, "w") as f:
             json.dump(manifest, f)
 
-        is_ok, issues = self.manager.check_integrity()
+        _is_ok, issues = self.manager.check_integrity()
         self.assertFalse(
             any("structural anomaly" in i for i in issues),
             f"Should not flag anomaly at delta=0.99: {issues}",
@@ -344,7 +344,7 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
         with open(self.manager.manifest_path, "w") as f:
             json.dump(manifest, f)
 
-        is_ok, issues = self.manager.check_integrity()
+        _is_ok, issues = self.manager.check_integrity()
         self.assertFalse(
             any("Non-linear content shift" in i for i in issues),
             f"Should not flag content shift at delta=1.49: {issues}",

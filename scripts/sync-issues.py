@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -38,6 +39,12 @@ GH_COMMENT_MARKER_RE = re.compile(r"<!--\s*gh-comment:(\S+)\s*-->")
 
 MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 HTML_IMG_RE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+
+
+def _which(name: str) -> str:
+    """Resolve a CLI to an absolute path, falling back to PATH lookup."""
+    return shutil.which(name) or name
+
 
 MAX_TITLE = 140
 
@@ -321,7 +328,7 @@ def fetch_issues(repo, state="open", limit=500, with_comments=False):
         fields.append("comments")
     out = subprocess.run(
         [
-            "gh",
+            _which("gh"),
             "issue",
             "list",
             "--repo",
@@ -342,7 +349,15 @@ def fetch_issues(repo, state="open", limit=500, with_comments=False):
 
 def default_repo():
     out = subprocess.run(
-        ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+        [
+            _which("gh"),
+            "repo",
+            "view",
+            "--json",
+            "nameWithOwner",
+            "-q",
+            ".nameWithOwner",
+        ],
         capture_output=True,
         text=True,
     )
@@ -352,7 +367,9 @@ def default_repo():
 
 
 def default_remote():
-    out = subprocess.run(["git", "remote", "-v"], capture_output=True, text=True)
+    out = subprocess.run(
+        [_which("git"), "remote", "-v"], capture_output=True, text=True
+    )
     for line in out.stdout.splitlines():
         m = re.search(r"rns://[0-9a-fA-F]+/\S+/\S+", line)
         if m:

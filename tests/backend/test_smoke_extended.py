@@ -28,7 +28,7 @@ def test_import_all_backend_modules():
     backend_path = "meshchatx.src.backend"
     root_dir = os.path.join("meshchatx", "src", "backend")
 
-    for root, dirs, files in os.walk(root_dir):
+    for root, _dirs, files in os.walk(root_dir):
         for file in files:
             if file.endswith(".py") and not file.startswith("__"):
                 rel_path = os.path.relpath(os.path.join(root, file), root_dir)

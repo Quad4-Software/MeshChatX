@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+from typing import ClassVar
 
 import pytest
 
@@ -142,7 +143,7 @@ async def test_keep_last_good_on_failed_refresh(manager):
     bad = b"not-geo"
 
     class FakeDownloader:
-        payloads = [good, bad]
+        payloads: ClassVar = [good, bad]
 
         def __init__(self, **kwargs):
             self._success = kwargs["on_file_download_success"]
@@ -279,7 +280,7 @@ async def test_export_passthrough_and_transcode(manager):
     assert body == payload
     assert "geo" in ctype
     assert name.endswith(".geojson")
-    kml_body, kml_ctype, kml_name = manager.export_overlay(identity, oid, "kml")
+    kml_body, _kml_ctype, kml_name = manager.export_overlay(identity, oid, "kml")
     assert b"<kml" in kml_body
     assert kml_name.endswith(".kml")
     kmz_body, _, kmz_name = manager.export_overlay(identity, oid, "kmz")

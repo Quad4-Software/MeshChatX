@@ -457,7 +457,8 @@ class RNXSession:
         if notify_failure:
             self.manager._on_session_change(self)
             self.manager.save()
-            assert failure is not None
+            if failure is None:
+                raise RuntimeError("session start failed")
             raise failure
 
         self.manager._on_session_change(self)
@@ -548,7 +549,7 @@ class RNXSession:
             rows = max(1, int(rows))
             cols = max(1, int(cols))
         except (TypeError, ValueError):
-            raise ValueError("rows and cols must be integers")
+            raise ValueError("rows and cols must be integers") from None
         with self._lock:
             self._rows = rows
             self._cols = cols

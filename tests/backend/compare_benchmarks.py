@@ -65,7 +65,7 @@ def _load_entries(path):
         # github-action-benchmark external-data shape
         if "entries" in data and isinstance(data["entries"], dict):
             # Prefer the first suite key (usually the tool name)
-            for _suite, entries in data["entries"].items():
+            for entries in data["entries"].values():
                 if isinstance(entries, list) and entries:
                     # Prefer the newest commit's last values: entries are
                     # historical lists of {commit, date, tool, benches}

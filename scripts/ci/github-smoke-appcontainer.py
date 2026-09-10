@@ -79,7 +79,7 @@ def wait_for_security(
                 f"backend exited early (code {proc.returncode}); log tail:\n{tail}"
             )
         try:
-            with urllib.request.urlopen(url, timeout=POLL_INTERVAL) as resp:
+            with urllib.request.urlopen(url, timeout=POLL_INTERVAL) as resp:  # noqa: S310 - loopback smoke endpoint
                 return json.loads(resp.read().decode("utf-8"))
         except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
             last_error = str(exc)
@@ -92,8 +92,8 @@ def shutdown_app(port: int) -> None:
     """Ask the backend to shut down cleanly."""
     url = f"http://127.0.0.1:{port}/api/v1/app/shutdown"
     try:
-        req = urllib.request.Request(url, method="POST")
-        with urllib.request.urlopen(req, timeout=10.0) as resp:
+        req = urllib.request.Request(url, method="POST")  # noqa: S310 - loopback smoke endpoint
+        with urllib.request.urlopen(req, timeout=10.0) as resp:  # noqa: S310 - loopback smoke endpoint
             resp.read()
     except urllib.error.URLError:
         pass
@@ -102,8 +102,9 @@ def shutdown_app(port: int) -> None:
 def terminate_tree(pid: int) -> None:
     """Kill a process and its descendants on Windows."""
     if sys.platform == "win32":
+        taskkill = shutil.which("taskkill") or "taskkill"
         subprocess.run(
-            ["taskkill", "/F", "/T", "/PID", str(pid)],
+            [taskkill, "/F", "/T", "/PID", str(pid)],
             check=False,
             capture_output=True,
         )
@@ -158,7 +159,7 @@ def run_smoke(build_dir: Path) -> int:
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
                 env=env,
-            )  # noqa: S603
+            )
         try:
             data = wait_for_security(
                 DEFAULT_PORT,

@@ -22,7 +22,7 @@ def test_install_rns_panic_containment_raises_instead_of_exit(monkeypatch):
     assert recovery.install_rns_panic_containment(force=True) is True
     try:
         RNS.panic()
-        assert False, "expected RnsPanicError"
+        raise AssertionError("expected RnsPanicError")
     except recovery.RnsPanicError:
         pass
     assert calls["exit"] == 0

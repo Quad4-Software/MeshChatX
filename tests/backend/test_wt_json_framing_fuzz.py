@@ -40,7 +40,7 @@ def test_valid_objects_round_trip(obj):
 @given(chunk=st.text(max_size=200))
 @settings(max_examples=80, deadline=None)
 def test_arbitrary_chunks_closed_errors_or_partial_buffer(chunk):
-    objects, buf, errors = wt_frame_feed("", chunk if chunk.endswith("\n") else chunk)
+    objects, buf, errors = wt_frame_feed("", chunk)
     for err in errors:
         assert err in CLOSED_ERRORS
     assert isinstance(objects, list)
@@ -55,7 +55,7 @@ def test_truncated_line_stays_in_buffer():
 
 
 def test_embedded_nul_rejected():
-    _objects, _buf, errors = wt_frame_feed("", '{"type":"x\\u0000"}\n')
+    _objects, _buf, _errors = wt_frame_feed("", '{"type":"x\\u0000"}\n')
     # JSON may accept unicode nul as character; binary NUL path:
     _objects2, _buf2, errors2 = wt_frame_feed("", '{"type":"x\x00"}\n')
     assert "embedded_nul" in errors2 or "invalid_json" in errors2

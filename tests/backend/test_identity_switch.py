@@ -131,7 +131,7 @@ async def test_hotswap_identity_success(mock_rns, temp_dir):
     # Mock methods
     app.teardown_identity = MagicMock()
     app.setup_identity = MagicMock(
-        side_effect=lambda id: setattr(app, "current_context", mock_context),
+        side_effect=lambda _id: setattr(app, "current_context", mock_context),
     )
     app.websocket_broadcast = AsyncMock()
 
@@ -182,7 +182,7 @@ async def test_hotswap_identity_keep_alive(mock_rns, temp_dir):
     app.teardown_identity = MagicMock()
     app._clear_mesh_link_caches = MagicMock()
     app.setup_identity = MagicMock(
-        side_effect=lambda id: setattr(app, "current_context", mock_context),
+        side_effect=lambda _id: setattr(app, "current_context", mock_context),
     )
     app.websocket_broadcast = AsyncMock()
 

@@ -8,6 +8,7 @@ import json
 from unittest.mock import MagicMock
 
 import pytest
+from cryptography.exceptions import InvalidTag
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -71,7 +72,7 @@ def test_encrypt_decrypt_roundtrip():
 
 def test_decrypt_fails_for_other_identity():
     nonce, ciphertext = encrypt_room_key(PRIVATE_A, "secret-key")
-    with pytest.raises(Exception):
+    with pytest.raises(InvalidTag):
         decrypt_room_key(PRIVATE_B, nonce, ciphertext)
 
 

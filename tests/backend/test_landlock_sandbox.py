@@ -2,6 +2,7 @@
 
 import os
 import sys
+from typing import ClassVar
 from unittest.mock import patch
 
 import pytest
@@ -160,7 +161,7 @@ def test_collect_read_roots_includes_venv_root_for_pyvenv_cfg(tmp_path, monkeypa
         executable = str(fake_python)
         prefix = str(venv)
         base_prefix = "/usr"
-        path = list(sys.path)
+        path: ClassVar = list(sys.path)
 
     monkeypatch.setattr(ll, "sys", _FakeSys)
     monkeypatch.setattr(ll.site, "getsitepackages", list)
