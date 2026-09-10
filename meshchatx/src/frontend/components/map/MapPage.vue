@@ -582,7 +582,7 @@
                     </div>
                 </div>
                 <div
-                    v-if="metadata && metadata.name && !metadata.name.startsWith('Map Export')"
+                    v-if="showMetadataBadge"
                     class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-sem-border p-2 rounded-lg text-xs text-sem-fg-muted pointer-events-auto shadow-xs"
                 >
                     <div class="font-semibold text-sem-fg mb-1">
@@ -1369,6 +1369,16 @@ export default {
         };
     },
     computed: {
+        showMetadataBadge() {
+            if (!this.metadata || !this.metadata.name) {
+                return false;
+            }
+            if (this.metadata.name.startsWith("Map Export")) {
+                return false;
+            }
+            const path = String(this.metadata.path || "");
+            return !path.endsWith("starter_world.mbtiles");
+        },
         mapStateKey() {
             const identityHash = this.config?.identity_hash || GlobalState.config?.identity_hash || null;
             return mapViewStateKey(identityHash, this.tabStorageId || null);
