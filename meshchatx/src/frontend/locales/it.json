@@ -678,6 +678,7 @@
         "reveal": "Rivela",
         "refresh": "Aggiorna",
         "copy": "Copia",
+        "paste": "Incolla",
         "copy_to_clipboard": "Copia negli appunti",
         "vacuum": "Pulisci",
         "auto_recover": "Recupero Automatico",

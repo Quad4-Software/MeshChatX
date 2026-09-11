@@ -678,6 +678,7 @@
         "reveal": "표시",
         "refresh": "새로 고침",
         "copy": "복사",
+        "paste": "붙여넣기",
         "copy_to_clipboard": "클립보드에 복사",
         "vacuum": "VACUUM",
         "auto_recover": "자동 복구",

@@ -1620,6 +1620,31 @@ public class MainActivity extends AppCompatActivity {
             activity.runOnUiThread(() -> activity.setClearClipboardOnBackgroundEnabled(enabled));
         }
 
+        /**
+         * Read the system clipboard for the in-app Paste menu. Android WebView
+         * cannot raise the paste ActionMode for fields inside iframes (nomad
+         * crash tab), so the frontend shows its own menu and reads through here.
+         */
+        @JavascriptInterface
+        public String getClipboardText() {
+            try {
+                ClipboardManager clipboard =
+                    (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard == null || !clipboard.hasPrimaryClip()) {
+                    return null;
+                }
+                ClipData clip = clipboard.getPrimaryClip();
+                if (clip == null || clip.getItemCount() < 1) {
+                    return null;
+                }
+                CharSequence text = clip.getItemAt(0).coerceToText(activity);
+                return text != null ? text.toString() : null;
+            } catch (Exception ignored) {
+                // Clipboard access can fail on locked devices or OEM builds.
+                return null;
+            }
+        }
+
         @JavascriptInterface
         public String getRemoteBackendUrl() {
             String stored = activity.resolveStoredRemoteBackendUrl();

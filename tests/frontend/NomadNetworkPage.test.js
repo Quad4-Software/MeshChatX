@@ -1647,4 +1647,50 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.nomadImageCache.size).toBe(0);
         });
     });
+
+    describe("crash tab context menu forwarding", () => {
+        it("opens the standalone context menu at the forwarded coordinates", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.onCrashTabContextMenu({ clientX: 30, clientY: 40 });
+            expect(wrapper.vm.standaloneContextMenu.show).toBe(true);
+            expect(wrapper.vm.standaloneContextMenu.x).toBe(30);
+            expect(wrapper.vm.standaloneContextMenu.y).toBe(40);
+        });
+
+        it("routes to the browser tab context menu when embedded", () => {
+            const openContextMenu = vi.fn();
+            const wrapper = mount(NomadNetworkPage, {
+                props: { destinationHash: "", embedded: true },
+                global: {
+                    mocks: {
+                        $t: (key) => key,
+                        $route: { query: {} },
+                        $router: { replace: vi.fn() },
+                    },
+                    provide: {
+                        nomadBrowserTabActions: { openContextMenu },
+                    },
+                    stubs: {
+                        MaterialDesignIcon: {
+                            template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
+                            props: ["iconName"],
+                        },
+                        LoadingSpinner: true,
+                        NomadNetworkSidebar: {
+                            template: '<div class="sidebar-stub"></div>',
+                            props: ["nodes", "selectedDestinationHash"],
+                        },
+                        NomadBrowserContextMenu: true,
+                        NomadCrashTab: true,
+                        VTooltip: {
+                            template: '<div class="v-tooltip-stub"><slot /></div>',
+                        },
+                    },
+                },
+            });
+            wrapper.vm.onCrashTabContextMenu({ clientX: 11, clientY: 22 });
+            expect(openContextMenu).toHaveBeenCalledWith({ clientX: 11, clientY: 22 });
+            expect(wrapper.vm.standaloneContextMenu.show).toBe(false);
+        });
+    });
 });

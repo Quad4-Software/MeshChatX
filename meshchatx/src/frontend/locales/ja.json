@@ -678,6 +678,7 @@
         "reveal": "表示",
         "refresh": "更新",
         "copy": "コピー",
+        "paste": "貼り付け",
         "copy_to_clipboard": "クリップボードにコピー",
         "vacuum": "最適化",
         "auto_recover": "自動復旧",

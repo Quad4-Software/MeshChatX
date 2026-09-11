@@ -678,6 +678,7 @@
         "reveal": "Göster",
         "refresh": "Yenile",
         "copy": "Kopyala",
+        "paste": "Yapıştır",
         "copy_to_clipboard": "Panoya kopyala",
         "vacuum": "Vakumla",
         "auto_recover": "Otomatik Kurtarma",
