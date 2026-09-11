@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "인터페이스 비트레이트 강제 적용"
         },
         "top_memory_consumer": "메모리 최다 사용",
-        "top_cpu_consumer": "CPU 최다 사용"
+        "top_cpu_consumer": "CPU 최다 사용",
+        "sandbox_abi": "커널 ABI v{abi}"
     },
     "interfaces": {
         "title": "인터페이스",

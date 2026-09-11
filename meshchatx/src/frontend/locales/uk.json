@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Примусові бітрейти інтерфейсів"
         },
         "top_memory_consumer": "Найбільше пам'яті",
-        "top_cpu_consumer": "Найбільше ЦП"
+        "top_cpu_consumer": "Найбільше ЦП",
+        "sandbox_abi": "ABI ядра v{abi}"
     },
     "interfaces": {
         "title": "Інтерфейси",

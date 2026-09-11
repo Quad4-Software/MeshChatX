@@ -1861,19 +1861,57 @@ export default {
             }
 
             const applyLimit = Math.max(graphNodes.length, graphEdges.length);
-            for (let i = 0; i < applyLimit; i += chunkSize) {
-                if (!isCurrentRun()) return;
-                this.currentBatch++;
-                const batchNodes = graphNodes.slice(i, i + chunkSize);
-                const batchEdges = graphEdges.slice(i, i + chunkSize);
-                if (batchNodes.length > 0) this.nodes.update(batchNodes);
-                if (batchEdges.length > 0) this.edges.update(batchEdges);
-                this.loadedNodesCount = Math.min(this.pathTable.length, i + chunkSize);
-                if (!silent) {
-                    this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
+            /*
+             * Silent auto-refresh normally keeps Live Layout running so nodes do
+             * not jump. When the device is already struggling (measured fps low)
+             * or the batch is large, running barnesHut per DataSet update turns
+             * into the 1-2 fps freeze users report. Pause the solver for the
+             * apply, then restore it, and shrink the chunk size so each batch
+             * fits a frame instead of stalling the whole graph.
+             */
+            const lowFps = this.fps > 0 && this.fps < 20;
+            const pauseSilentPhysics =
+                silent &&
+                this.network &&
+                this.enablePhysics &&
+                !this.physicsPausedForDrag &&
+                (lowFps || applyLimit > 1000);
+            if (pauseSilentPhysics) {
+                this.network.setOptions({
+                    physics: { enabled: false },
+                    edges: { smooth: VIZ_EDGE_SMOOTH },
+                });
+            }
+            let adaptiveChunk = chunkSize;
+            try {
+                for (let i = 0; i < applyLimit; i += adaptiveChunk) {
+                    if (!isCurrentRun()) return;
+                    this.currentBatch++;
+                    const batchNodes = graphNodes.slice(i, i + adaptiveChunk);
+                    const batchEdges = graphEdges.slice(i, i + adaptiveChunk);
+                    const t0 = performance.now();
+                    if (batchNodes.length > 0) this.nodes.update(batchNodes);
+                    if (batchEdges.length > 0) this.edges.update(batchEdges);
+                    const elapsed = performance.now() - t0;
+                    if (elapsed > 40 && adaptiveChunk > 30) {
+                        adaptiveChunk = Math.max(30, Math.floor(adaptiveChunk / 2));
+                    } else if (elapsed < 12 && adaptiveChunk < chunkSize) {
+                        adaptiveChunk = Math.min(chunkSize, adaptiveChunk * 2);
+                    }
+                    this.loadedNodesCount = Math.min(this.pathTable.length, i + adaptiveChunk);
+                    if (!silent) {
+                        this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
+                    }
+                    if (this.pathTable.length > VIZ_SYNC_PATH_THRESHOLD || elapsed > 8) {
+                        await yieldToMain();
+                    }
                 }
-                if (this.pathTable.length > VIZ_SYNC_PATH_THRESHOLD) {
-                    await yieldToMain();
+            } finally {
+                if (pauseSilentPhysics && this.network && !this.physicsPausedForDrag) {
+                    this.network.setOptions({
+                        physics: { enabled: this.enablePhysics },
+                        edges: { smooth: VIZ_EDGE_SMOOTH },
+                    });
                 }
             }
             if (!isCurrentRun()) return;

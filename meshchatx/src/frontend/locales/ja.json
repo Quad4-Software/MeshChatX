@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "インターフェースのビットレート制限を強制"
         },
         "top_memory_consumer": "メモリ上位",
-        "top_cpu_consumer": "CPU 上位"
+        "top_cpu_consumer": "CPU 上位",
+        "sandbox_abi": "カーネル ABI v{abi}"
     },
     "interfaces": {
         "title": "インターフェース",

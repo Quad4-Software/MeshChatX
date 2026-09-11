@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "强制接口比特率"
         },
         "top_memory_consumer": "内存占用最高",
-        "top_cpu_consumer": "CPU 占用最高"
+        "top_cpu_consumer": "CPU 占用最高",
+        "sandbox_abi": "内核 ABI v{abi}"
     },
     "interfaces": {
         "title": "接口",

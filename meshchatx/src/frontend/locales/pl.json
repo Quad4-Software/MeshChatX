@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Wymuszone przepływności interfejsów"
         },
         "top_memory_consumer": "Najwięcej pamięci",
-        "top_cpu_consumer": "Najwięcej CPU"
+        "top_cpu_consumer": "Najwięcej CPU",
+        "sandbox_abi": "ABI jądra v{abi}"
     },
     "interfaces": {
         "title": "Interfejsy",

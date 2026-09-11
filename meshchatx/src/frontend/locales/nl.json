@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Geforceerde interfacebitsnelheden"
         },
         "top_memory_consumer": "Hoogste geheugenverbruik",
-        "top_cpu_consumer": "Hoogste CPU-verbruik"
+        "top_cpu_consumer": "Hoogste CPU-verbruik",
+        "sandbox_abi": "Kernel-ABI v{abi}"
     },
     "interfaces": {
         "title": "Interfaces",
