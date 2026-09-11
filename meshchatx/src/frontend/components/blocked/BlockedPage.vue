@@ -16,15 +16,10 @@
                         </p>
                     </div>
                     <div class="flex items-center gap-2 sm:shrink-0">
-                        <div class="relative min-w-0 flex-1 sm:w-64 lg:w-80">
-                            <MaterialDesignIcon
-                                icon-name="magnify"
-                                class="pointer-events-none absolute left-2.5 top-1/2 z-10 size-4 shrink-0 -translate-y-1/2 text-sem-fg-muted"
-                            />
-                            <input
+                        <div class="min-w-0 flex-1 sm:w-64 lg:w-80">
+                            <SearchInput
                                 v-model="searchQuery"
-                                type="text"
-                                class="w-full rounded-full border-0 bg-sem-surface-muted py-2 pl-9 pr-3 text-sm text-sem-fg outline-hidden ring-1 ring-sem-border/50 focus:ring-sem-accent/40"
+                                compact
                                 :placeholder="$t('banishment.search_placeholder')"
                                 @input="onSearchInput"
                             />
@@ -257,6 +252,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
@@ -265,6 +261,7 @@ export default {
     name: "BlockedPage",
     components: {
         MaterialDesignIcon,
+        SearchInput,
     },
     data() {
         return {

@@ -114,7 +114,7 @@
             </div>
         </div>
 
-        <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5 min-w-0 shrink-0">
+        <div class="ml-auto flex items-center gap-0 min-w-0 shrink-0">
             <DropDownMenu v-if="!compactPeerActions" class="shrink-0" data-testid="conversation-path-ops">
                 <template #button>
                     <IconButton :title="$t('nomadnet.path_finder')" :disabled="pathfinderInProgress">

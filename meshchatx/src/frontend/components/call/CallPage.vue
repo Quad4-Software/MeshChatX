@@ -851,19 +851,12 @@
                                                 {{ $t("app.clear_history") }}
                                             </button>
                                         </div>
-                                        <div class="relative">
-                                            <input
-                                                v-model="callHistorySearch"
-                                                type="text"
-                                                :placeholder="$t('call.search_history')"
-                                                class="input-field py-2! pl-10!"
-                                                @input="onCallHistorySearchInput"
-                                            />
-                                            <MaterialDesignIcon
-                                                icon-name="magnify"
-                                                class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-sem-fg-muted"
-                                            />
-                                        </div>
+                                        <SearchInput
+                                            v-model="callHistorySearch"
+                                            compact
+                                            :placeholder="$t('call.search_history')"
+                                            @input="onCallHistorySearchInput"
+                                        />
                                     </div>
                                     <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
                                         <li
@@ -1416,18 +1409,11 @@
                     <!-- Recordings Tab -->
                     <div v-if="activeTab === 'recordings'" class="flex-1 flex flex-col max-w-3xl mx-auto w-full">
                         <div class="mb-4">
-                            <div class="relative">
-                                <input
-                                    v-model="recordingSearch"
-                                    type="text"
-                                    :placeholder="$t('call.search_recordings')"
-                                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-sem-fg-muted focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
-                                    @input="onRecordingSearchInput"
-                                />
-                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
-                                </div>
-                            </div>
+                            <SearchInput
+                                v-model="recordingSearch"
+                                :placeholder="$t('call.search_recordings')"
+                                @input="onRecordingSearchInput"
+                            />
                         </div>
 
                         <div class="flex-1 overflow-y-auto min-h-0">
@@ -1734,6 +1720,7 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import Utils from "../../js/Utils";
 import Compressor from "compressorjs";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
@@ -1759,6 +1746,7 @@ export default {
     name: "CallPage",
     components: {
         MaterialDesignIcon,
+        SearchInput,
         LxmfUserIcon,
         Toggle,
         RingtoneEditor,

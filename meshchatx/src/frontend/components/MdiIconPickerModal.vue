@@ -23,19 +23,11 @@
                 </button>
             </div>
             <div class="px-5 pt-3">
-                <div class="relative">
-                    <input
-                        ref="searchInput"
-                        v-model="search"
-                        type="text"
-                        :placeholder="$t('relay_chat.hub_icon_search', { count: iconNames.length })"
-                        class="input-field py-2.5! pr-10"
-                    />
-                    <MaterialDesignIcon
-                        icon-name="magnify"
-                        class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-sem-fg-muted"
-                    />
-                </div>
+                <SearchInput
+                    ref="searchInput"
+                    v-model="search"
+                    :placeholder="$t('relay_chat.hub_icon_search', { count: iconNames.length })"
+                />
             </div>
             <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-3">
                 <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
@@ -77,6 +69,7 @@
 <script>
 import { nextTick } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+import SearchInput from "./SearchInput.vue";
 import { buildMdiIconNames } from "../js/mdiIconNames.js";
 
 const BTN_SECONDARY =
@@ -84,7 +77,7 @@ const BTN_SECONDARY =
 
 export default {
     name: "MdiIconPickerModal",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, SearchInput },
     props: {
         open: {
             type: Boolean,
@@ -120,7 +113,8 @@ export default {
             if (isOpen) {
                 this.search = "";
                 nextTick(() => {
-                    const el = this.$refs.searchInput;
+                    const root = this.$refs.searchInput?.$el;
+                    const el = root?.querySelector ? root.querySelector("input") : null;
                     if (el && typeof el.focus === "function") {
                         el.focus();
                     }

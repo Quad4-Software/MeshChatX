@@ -63,18 +63,12 @@
         <div v-else-if="tab === 'rooms'" :class="RELAY_HOST_PAGE_BODY">
             <div :class="[RELAY_HOST_PAGE_LIST, isNarrow && selectedRoom ? 'hidden' : 'flex flex-1 lg:flex-none']">
                 <div class="shrink-0 space-y-3 border-b border-sem-border p-3 sm:p-4">
-                    <div class="relative">
-                        <MaterialDesignIcon
-                            icon-name="magnify"
-                            class="pointer-events-none absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-sem-fg-muted"
-                        />
-                        <input
-                            v-model="roomsSearch"
-                            type="search"
-                            :placeholder="$t('relay_chat.host_rooms_search')"
-                            class="input-field py-2! pl-9! pr-3!"
-                        />
-                    </div>
+                    <SearchInput
+                        v-model="roomsSearch"
+                        compact
+                        type="search"
+                        :placeholder="$t('relay_chat.host_rooms_search')"
+                    />
                     <button
                         v-if="!showAddRoomForm"
                         type="button"
@@ -265,18 +259,12 @@
         <div v-else :class="RELAY_HOST_PAGE_BODY">
             <div :class="[RELAY_HOST_PAGE_LIST, isNarrow && selectedMember ? 'hidden' : 'flex flex-1 lg:flex-none']">
                 <div class="shrink-0 border-b border-sem-border p-3 sm:p-4">
-                    <div class="relative">
-                        <MaterialDesignIcon
-                            icon-name="magnify"
-                            class="pointer-events-none absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-sem-fg-muted"
-                        />
-                        <input
-                            v-model="membersSearch"
-                            type="search"
-                            :placeholder="$t('relay_chat.host_members_search')"
-                            class="input-field py-2! pl-9! pr-3!"
-                        />
-                    </div>
+                    <SearchInput
+                        v-model="membersSearch"
+                        compact
+                        type="search"
+                        :placeholder="$t('relay_chat.host_members_search')"
+                    />
                 </div>
                 <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4">
                     <div v-if="membersLoading" class="py-12 text-center text-sm text-sem-fg-muted">
@@ -396,6 +384,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import {
@@ -423,7 +412,7 @@ const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b
 
 export default {
     name: "RelayHostModerationPage",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, SearchInput },
     props: {
         hub: { type: Object, default: null },
         initialTab: { type: String, default: "rooms" },

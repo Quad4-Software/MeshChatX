@@ -526,11 +526,11 @@
                                 </button>
                             </div>
                             <div class="shrink-0 border-b border-sem-border p-2">
-                                <input
+                                <SearchInput
                                     v-model="membersSearch"
+                                    compact
                                     type="search"
                                     :placeholder="$t('relay_chat.members_search_placeholder')"
-                                    class="input-field py-1.5! text-xs!"
                                 />
                             </div>
                             <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
@@ -643,11 +643,10 @@
                                 </button>
                             </div>
                             <div class="shrink-0 border-b border-sem-border p-2">
-                                <input
+                                <SearchInput
                                     v-model="messageSearch"
-                                    type="text"
+                                    compact
                                     :placeholder="$t('relay_chat.search_messages_placeholder')"
-                                    class="input-field py-1.5! text-xs!"
                                 />
                             </div>
                             <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
@@ -712,19 +711,11 @@
                         </button>
                     </div>
 
-                    <div class="relative">
-                        <MaterialDesignIcon
-                            icon-name="magnify"
-                            class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-sem-fg-muted"
-                        />
-                        <input
-                            v-model="discoverySearch"
-                            type="text"
-                            :placeholder="$t('relay_chat.discovery_search', { count: discovered.length })"
-                            class="input-field pl-9!"
-                            @input="onDiscoverySearch"
-                        />
-                    </div>
+                    <SearchInput
+                        v-model="discoverySearch"
+                        :placeholder="$t('relay_chat.discovery_search', { count: discovered.length })"
+                        @input="onDiscoverySearch"
+                    />
 
                     <div
                         v-if="discovered.length === 0"
@@ -1403,6 +1394,7 @@ import {
     announceSliderPosToMinutes,
 } from "../../js/announceIntervalSliderMap.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import MdiIconPickerModal from "../MdiIconPickerModal.vue";
 import RelayHostModerationPage from "./RelayHostModerationPage.vue";
 import RelayMessageEntry from "./RelayMessageEntry.vue";
@@ -1469,6 +1461,7 @@ export default {
     name: "RelayChatPage",
     components: {
         MaterialDesignIcon,
+        SearchInput,
         MdiIconPickerModal,
         RelayHostModerationPage,
         RelayMessageEntry,

@@ -160,6 +160,15 @@ html[data-ui-glass="0"] .glass-card {
     @apply bg-sem-surface-muted border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
 }
 
+.search-input {
+    @apply block w-full bg-sem-surface-muted border border-sem-border rounded-xl text-sm text-sem-fg transition placeholder:text-sem-fg-muted py-2.5 pl-10 pr-9;
+    @apply focus:outline-hidden focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border;
+}
+
+.search-input-compact {
+    @apply py-1.5 pl-9 pr-8 text-xs rounded-lg;
+}
+
 input[type="color"].color-fill-input {
     -webkit-appearance: none;
     appearance: none;

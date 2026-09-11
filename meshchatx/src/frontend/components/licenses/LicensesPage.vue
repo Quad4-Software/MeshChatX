@@ -24,31 +24,15 @@
                     </div>
 
                     <div class="w-full lg:max-w-md xl:max-w-sm shrink-0">
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <MaterialDesignIcon
-                                    icon-name="magnify"
-                                    class="size-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
-                                />
-                            </div>
-                            <input
-                                v-model="searchQuery"
-                                type="search"
-                                enterkeyhint="search"
-                                autocomplete="off"
-                                :placeholder="$t('licenses.search_placeholder')"
-                                class="w-full min-h-[44px] sm:min-h-0 pl-10 pr-10 py-3 bg-sem-surface-muted border border-sem-border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-sem-focus/40 focus:border-sem-focus-border text-sem-fg placeholder:text-sem-fg-muted text-base sm:text-sm"
-                            />
-                            <button
-                                v-if="searchQuery"
-                                class="absolute inset-y-0 right-0 pr-3 flex items-center min-w-[44px] justify-end text-sem-fg-muted hover:text-sem-fg"
-                                type="button"
-                                aria-label="Clear search"
-                                @click="searchQuery = ''"
-                            >
-                                <MaterialDesignIcon icon-name="close-circle" class="size-5" />
-                            </button>
-                        </div>
+                        <SearchInput
+                            v-model="searchQuery"
+                            type="search"
+                            enterkeyhint="search"
+                            autocomplete="off"
+                            :placeholder="$t('licenses.search_placeholder')"
+                            class="min-h-[44px] sm:min-h-0"
+                            clear-title="Clear search"
+                        />
                     </div>
                 </div>
             </div>
@@ -226,10 +210,11 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 
 export default {
     name: "LicensesPage",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, SearchInput },
     data() {
         return {
             loading: true,

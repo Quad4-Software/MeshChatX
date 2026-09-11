@@ -53,30 +53,15 @@
                         </button>
                     </div>
 
-                    <div v-if="status.has_docs || status.has_meshchatx_docs" class="relative w-full">
-                        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                            <MaterialDesignIcon icon-name="magnify" class="h-3.5 w-3.5 text-gray-400" />
-                        </div>
-                        <input
+                    <div v-if="status.has_docs || status.has_meshchatx_docs" class="w-full">
+                        <SearchInput
                             v-model="searchQuery"
-                            type="text"
-                            class="block w-full pl-8 pr-8 py-1.5 border border-sem-border rounded-lg bg-gray-50 dark:bg-zinc-800 text-sem-fg text-[11px] focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            compact
                             :placeholder="$t('docs.search_placeholder')"
-                            @input="debounceSearch"
+                            :loading="isSearching"
+                            @update:model-value="debounceSearch"
+                            @clear="clearSearch"
                         />
-                        <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-2.5 flex items-center">
-                            <MaterialDesignIcon icon-name="loading" class="h-3 w-3 text-gray-400 animate-spin" />
-                        </div>
-                        <button
-                            v-else-if="searchQuery"
-                            class="absolute inset-y-0 right-0 pr-2.5 flex items-center"
-                            @click="clearSearch"
-                        >
-                            <MaterialDesignIcon
-                                icon-name="close"
-                                class="h-3 w-3 text-gray-400 hover:text-gray-600 hover:text-sem-fg cursor-pointer"
-                            />
-                        </button>
                     </div>
 
                     <div class="flex items-center flex-wrap gap-1">
@@ -371,30 +356,15 @@
                         </button>
                     </div>
 
-                    <div v-if="status.has_docs || status.has_meshchatx_docs" class="relative w-full">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <MaterialDesignIcon icon-name="magnify" class="h-3.5 w-3.5 text-gray-400" />
-                        </div>
-                        <input
+                    <div v-if="status.has_docs || status.has_meshchatx_docs" class="w-full">
+                        <SearchInput
                             v-model="searchQuery"
-                            type="text"
-                            class="block w-full pl-9 pr-9 py-2 border border-sem-border rounded-lg bg-gray-50 dark:bg-zinc-800 text-sem-fg text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            compact
                             :placeholder="$t('docs.search_placeholder_mobile')"
-                            @input="debounceSearch"
+                            :loading="isSearching"
+                            @update:model-value="debounceSearch"
+                            @clear="clearSearch"
                         />
-                        <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                            <MaterialDesignIcon icon-name="loading" class="h-3 w-3 text-gray-400 animate-spin" />
-                        </div>
-                        <button
-                            v-else-if="searchQuery"
-                            class="absolute inset-y-0 right-0 pr-3 flex items-center"
-                            @click="clearSearch"
-                        >
-                            <MaterialDesignIcon
-                                icon-name="close"
-                                class="h-3 w-3 text-gray-400 hover:text-gray-600 hover:text-sem-fg cursor-pointer"
-                            />
-                        </button>
                     </div>
 
                     <div
@@ -681,6 +651,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";
@@ -688,6 +659,7 @@ import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";
 export default {
     components: {
         MaterialDesignIcon,
+        SearchInput,
     },
     data() {
         return {

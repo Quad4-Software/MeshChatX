@@ -257,29 +257,14 @@
         </div>
 
         <div class="sm:ml-auto w-full sm:w-auto pointer-events-auto">
-            <div class="relative group">
-                <div
-                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-sem-accent transition-colors"
-                >
-                    <MaterialDesignIcon icon-name="magnify" class="w-4 h-4" />
-                </div>
-                <input
-                    :value="searchQuery"
-                    type="text"
-                    :placeholder="$t('visualiser.search_nodes_placeholder', { count: nodeCount })"
-                    class="block w-full sm:w-64 pl-9 pr-10 py-2.5 sm:py-3 bg-white/90 dark:bg-zinc-900/90 border border-gray-200/50 dark:border-zinc-800/50 rounded-2xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 sm:focus:w-80 md:max-lg:focus:w-72 lg:focus:w-80 transition-all text-sem-fg shadow-xs"
-                    @input="$emit('update:searchQuery', $event.target.value)"
-                />
-                <button
-                    v-if="searchQuery"
-                    type="button"
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hover:text-sem-fg transition-colors"
-                    :aria-label="$t('visualiser.clear_search')"
-                    @click="$emit('update:searchQuery', '')"
-                >
-                    <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
-                </button>
-            </div>
+            <SearchInput
+                :model-value="searchQuery"
+                compact
+                :placeholder="$t('visualiser.search_nodes_placeholder', { count: nodeCount })"
+                :clear-title="$t('visualiser.clear_search')"
+                class="sm:w-64 sm:focus:w-80 md:max-lg:focus:w-72 lg:focus:w-80 transition-all font-semibold"
+                @update:model-value="$emit('update:searchQuery', $event)"
+            />
         </div>
     </div>
 </template>
@@ -287,6 +272,7 @@
 <script>
 import Toggle from "../../forms/Toggle.vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import SearchInput from "../../SearchInput.vue";
 import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
 import { HOP_SLIDER_POS_ALL, hopSliderPosToMaxHops, hopMaxHopsToSliderPos } from "./hopMaxFilterSliderMap.js";
 
@@ -294,7 +280,7 @@ const ENGINE_VALUES = ["auto", "webgl", "vis"];
 
 export default {
     name: "NetworkVisualiserToolbar",
-    components: { Toggle, MaterialDesignIcon },
+    components: { Toggle, MaterialDesignIcon, SearchInput },
     props: {
         isShowingControls: { type: Boolean, default: true },
         isUpdating: { type: Boolean, default: false },

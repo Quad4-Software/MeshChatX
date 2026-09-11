@@ -264,15 +264,11 @@
                     v-if="conversations.length > 0 || isFilterActive"
                     class="p-1 border-b border-sem-border space-y-1.5"
                 >
-                    <div class="flex gap-2">
-                        <input
-                            :value="conversationSearchTerm"
-                            type="text"
-                            :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
-                            class="input-field flex-1 w-full"
-                            @input="onConversationSearchInput"
-                        />
-                    </div>
+                    <SearchInput
+                        :model-value="conversationSearchTerm"
+                        :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
+                        @update:model-value="onConversationSearchInput"
+                    />
                     <div class="flex flex-wrap items-center gap-1">
                         <button
                             type="button"
@@ -850,23 +846,12 @@
             >
                 <!-- search -->
                 <div class="p-1 border-b border-sem-border">
-                    <div class="relative">
-                        <input
-                            :value="peersSearchTerm"
-                            type="text"
-                            :placeholder="$t('messages.search_placeholder_announces', { count: totalPeersCount })"
-                            class="input-field w-full"
-                            :class="{ 'pr-7': isSearchingAnnounces }"
-                            @input="onPeersSearchInput"
-                        />
-                        <span
-                            v-if="isSearchingAnnounces"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-sem-fg-muted"
-                            :title="$t('messages.searching_announces')"
-                        >
-                            <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin" />
-                        </span>
-                    </div>
+                    <SearchInput
+                        :model-value="peersSearchTerm"
+                        :placeholder="$t('messages.search_placeholder_announces', { count: totalPeersCount })"
+                        :loading="isSearchingAnnounces"
+                        @update:model-value="onPeersSearchInput"
+                    />
                 </div>
 
                 <!-- peers -->
@@ -998,6 +983,7 @@ import EmptyState from "../EmptyState.vue";
 import LoadingState from "../LoadingState.vue";
 import Skeleton from "../Skeleton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
@@ -1019,6 +1005,7 @@ export default {
         LoadingState,
         Skeleton,
         MaterialDesignIcon,
+        SearchInput,
         LxmfUserIcon,
         SidebarVirtualList,
         ContextMenuDivider,
@@ -1636,8 +1623,8 @@ export default {
         formatTimeAgo: function (datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
         },
-        onConversationSearchInput(event) {
-            this.$emit("conversation-search-changed", event.target.value);
+        onConversationSearchInput(value) {
+            this.$emit("conversation-search-changed", value);
         },
         toggleFilter(filterKey) {
             this.$emit("conversation-filter-changed", filterKey);
@@ -1660,8 +1647,8 @@ export default {
                 }
             }
         },
-        onPeersSearchInput(event) {
-            this.$emit("peers-search-changed", event.target.value);
+        onPeersSearchInput(value) {
+            this.$emit("peers-search-changed", value);
         },
         filterChipClasses(isActive) {
             const base = "px-2 py-0.5 rounded-full text-xs font-medium transition-colors";
