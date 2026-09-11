@@ -397,7 +397,7 @@ select option {
 }
 
 .context-menu-panel {
-    @apply fixed min-w-48 rounded-xl border shadow-xl bg-sem-surface;
+    @apply fixed min-w-48 rounded-xl border shadow-xl bg-sem-surface z-300;
     border-color: var(--mc-border);
 }
 

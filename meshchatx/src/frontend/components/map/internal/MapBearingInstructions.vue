@@ -2,7 +2,7 @@
 
 <template>
     <div
-        class="absolute top-[calc(0.5rem+2.75rem+0.5rem+2.75rem)] left-1/2 -translate-x-1/2 z-19 w-[min(100vw-2rem,24rem)] pointer-events-auto"
+        class="absolute top-[calc(0.5rem+2.75rem+0.5rem+2.75rem)] left-1/2 -translate-x-1/2 z-19 w-[min(100vw-2rem,24rem)] pointer-events-auto sm:top-[10.25rem] xl:top-[calc(0.5rem+2.75rem+0.5rem+2.75rem)]"
     >
         <div
             class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-sem-border rounded-xl shadow-lg px-3 py-2 text-xs text-sem-fg"

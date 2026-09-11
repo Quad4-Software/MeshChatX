@@ -2,7 +2,7 @@
 
 <template>
     <div
-        class="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col gap-2 transform-gpu w-max max-w-[98vw] sm:top-2"
+        class="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col gap-2 transform-gpu w-max max-w-[98vw] sm:top-14 xl:top-2"
     >
         <div
             class="bg-sem-surface rounded-2xl shadow-2xl overflow-hidden flex flex-row items-center p-0.5 sm:p-1 gap-0 sm:gap-0.5 border-0"
