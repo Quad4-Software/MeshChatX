@@ -370,8 +370,11 @@ def register_reticulum_instance_routes(routes, app):
 
         return web.json_response({"discovery": discovery_config})
 
-    @routes.get("/api/v1/reticulum/discovered-interfaces")
-    async def reticulum_discovered_interfaces(request):
+    def _collect_discovered_interfaces():
+        now = time.time()
+        cache = getattr(app, "_discovered_interfaces_cache", None)
+        if cache and now - cache["ts"] < 3.0:
+            return cache["payload"]
         try:
             discovery = InterfaceDiscovery(discover_interfaces=False)
             interfaces = discovery.list_discovered_interfaces()
@@ -479,12 +482,20 @@ def register_reticulum_instance_routes(routes, app):
                     else False
                 )
 
-            return web.json_response(
-                {
-                    "interfaces": normalized_interfaces,
-                    "active": to_jsonable(active),
-                },
-            )
+            payload = {
+                "interfaces": normalized_interfaces,
+                "active": to_jsonable(active),
+            }
+            app._discovered_interfaces_cache = {"ts": now, "payload": payload}
+            return payload
+        except Exception as e:
+            raise RuntimeError(f"Failed to load discovered interfaces: {e!s}") from e
+
+    @routes.get("/api/v1/reticulum/discovered-interfaces")
+    async def reticulum_discovered_interfaces(request):
+        try:
+            payload = await asyncio.to_thread(_collect_discovered_interfaces)
+            return web.json_response(payload)
         except Exception as e:
             return web.json_response(
                 {"message": f"Failed to load discovered interfaces: {e!s}"},

@@ -91,6 +91,26 @@ describe("ToolsPage.vue", () => {
         expect(filesyncRow?.text()).toContain("tools.alpha_badge");
     });
 
+    it("collapses and expands a tool group, persisting state", async () => {
+        const wrapper = mountToolsPage();
+        const section = wrapper.vm.groupedToolSections[0];
+        const rowsBefore = wrapper.findAll(".tool-row").length;
+        expect(rowsBefore).toBeGreaterThan(0);
+
+        wrapper.vm.toggleGroup(section.id);
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.isGroupCollapsed(section.id)).toBe(true);
+        const stored = JSON.parse(localStorage.getItem("meshchatx.tools.collapsedGroups"));
+        expect(stored).toContain(section.id);
+        const collapsedSection = wrapper.findAll("button").find((b) => b.attributes("aria-expanded") === "false");
+        expect(collapsedSection).toBeTruthy();
+
+        wrapper.vm.toggleGroup(section.id);
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isGroupCollapsed(section.id)).toBe(false);
+    });
+
     it("clears search query when close button is clicked", async () => {
         const wrapper = mountToolsPage();
         const searchInput = wrapper.find("input");

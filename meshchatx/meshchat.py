@@ -132,6 +132,7 @@ from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.landlock_sandbox import (
     apply_landlock_sandbox,
     extra_read_roots_from_app,
+    landlock_abi_version,
     landlock_auto_enabled,
     landlock_disabled_by_env,
     landlock_kernel_supported,
@@ -5518,6 +5519,7 @@ class ReticulumMeshChat:
     def _landlock_status_dict(self) -> dict:
         return {
             "landlock_kernel_supported": landlock_kernel_supported(),
+            "landlock_abi": landlock_abi_version(),
             "landlock_requested": landlock_requested(),
             "landlock_auto_enabled": landlock_auto_enabled(),
             "landlock_disabled_by_env": landlock_disabled_by_env(),

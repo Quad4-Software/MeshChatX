@@ -477,6 +477,12 @@
                                             <div class="text-sm font-bold text-sem-fg">
                                                 {{ $t(card.titleKey) }}
                                             </div>
+                                            <div
+                                                v-if="card.abi"
+                                                class="text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted"
+                                            >
+                                                {{ $t("about.sandbox_abi", { abi: card.abi }) }}
+                                            </div>
                                         </div>
                                         <span
                                             class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider shrink-0"

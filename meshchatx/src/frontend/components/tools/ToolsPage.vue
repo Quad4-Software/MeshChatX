@@ -26,7 +26,7 @@
                                 v-model="searchQuery"
                                 type="text"
                                 :placeholder="$t('common.search')"
-                                class="input-field w-full pl-10 pr-10 py-3!"
+                                class="input-field w-full pl-10! pr-10! py-3!"
                             />
                             <button
                                 v-if="searchQuery"
@@ -48,13 +48,28 @@
                         :key="section.id"
                         class="mb-6 rounded-lg overflow-hidden border border-sem-border bg-sem-surface"
                     >
-                        <div
-                            class="px-4 py-3 border-b border-sem-border text-xs font-bold uppercase tracking-widest text-sem-fg-muted"
+                        <button
+                            type="button"
+                            class="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-xs font-bold uppercase tracking-widest text-sem-fg-muted transition-colors hover:bg-sem-surface-muted/60"
+                            :aria-expanded="!isGroupCollapsed(section.id)"
+                            @click="toggleGroup(section.id)"
                         >
-                            {{ $t(`tools.group.${section.id}`) }}
-                        </div>
+                            <span class="flex items-center gap-2">
+                                {{ $t(`tools.group.${section.id}`) }}
+                                <span
+                                    class="rounded-full bg-sem-surface-muted px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal"
+                                    >{{ section.tools.length }}</span
+                                >
+                            </span>
+                            <MaterialDesignIcon
+                                icon-name="chevron-down"
+                                class="size-4 shrink-0 transition-transform"
+                                :class="{ '-rotate-90': isGroupCollapsed(section.id) }"
+                            />
+                        </button>
                         <div
-                            class="grid grid-cols-1 lg:grid-cols-2 divide-y divide-sem-border divide-x-0 lg:divide-x lg:divide-y"
+                            v-show="!isGroupCollapsed(section.id)"
+                            class="border-t border-sem-border grid grid-cols-1 lg:grid-cols-2 divide-y divide-sem-border divide-x-0 lg:divide-x lg:divide-y"
                         >
                             <RouterLink
                                 v-for="tool in section.tools"
@@ -106,6 +121,17 @@ import ToolListRow from "./ToolListRow.vue";
 import { listTools } from "../../js/registries/toolsRegistry.js";
 
 const TOOL_GROUP_ORDER = ["diagnostics", "transfer", "messaging", "network", "other"];
+const COLLAPSED_GROUPS_KEY = "meshchatx.tools.collapsedGroups";
+
+function loadCollapsedGroups() {
+    try {
+        const raw = localStorage.getItem(COLLAPSED_GROUPS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+        return new Set();
+    }
+}
 
 export default {
     name: "ToolsPage",
@@ -117,6 +143,7 @@ export default {
     data() {
         return {
             searchQuery: "",
+            collapsedGroups: loadCollapsedGroups(),
         };
     },
     computed: {
@@ -163,6 +190,23 @@ export default {
         },
     },
     methods: {
+        isGroupCollapsed(groupId) {
+            return this.collapsedGroups.has(groupId);
+        },
+        toggleGroup(groupId) {
+            const next = new Set(this.collapsedGroups);
+            if (next.has(groupId)) {
+                next.delete(groupId);
+            } else {
+                next.add(groupId);
+            }
+            this.collapsedGroups = next;
+            try {
+                localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...next]));
+            } catch {
+                /* storage unavailable */
+            }
+        },
         toolRowClass(tool) {
             return [
                 "tool-row",

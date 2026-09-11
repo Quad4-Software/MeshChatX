@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Sovittimien bittinopeudet pakotettu"
         },
         "top_memory_consumer": "Suurin muistinkäyttäjä",
-        "top_cpu_consumer": "Suurin CPU-käyttäjä"
+        "top_cpu_consumer": "Suurin CPU-käyttäjä",
+        "sandbox_abi": "Ytimen ABI v{abi}"
     },
     "interfaces": {
         "title": "Sovittimet",

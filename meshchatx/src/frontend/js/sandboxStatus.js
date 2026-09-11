@@ -71,6 +71,11 @@ export function resolveSandboxFeature(info, feature) {
         noteKey = spec.notes.disabledEnv;
     }
 
+    const abi =
+        feature === "landlock" && Number.isInteger(data.landlock_abi) && data.landlock_abi > 0
+            ? data.landlock_abi
+            : null;
+
     return {
         id: feature,
         titleKey: spec.title,
@@ -78,6 +83,7 @@ export function resolveSandboxFeature(info, feature) {
         noteKey,
         active,
         unavailable,
+        abi,
         warn: !active && !unavailable && disabledByEnv,
     };
 }

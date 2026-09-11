@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Erzwungene Schnittstellen-Bitraten"
         },
         "top_memory_consumer": "Top-Speicher",
-        "top_cpu_consumer": "Top-CPU"
+        "top_cpu_consumer": "Top-CPU",
+        "sandbox_abi": "Kernel-ABI v{abi}"
     },
     "interfaces": {
         "title": "Schnittstellen",

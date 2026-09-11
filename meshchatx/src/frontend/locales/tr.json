@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Zorlanan arayüz bit hızları"
         },
         "top_memory_consumer": "En yüksek bellek",
-        "top_cpu_consumer": "En yüksek CPU"
+        "top_cpu_consumer": "En yüksek CPU",
+        "sandbox_abi": "Çekirdek ABI'si v{abi}"
     },
     "interfaces": {
         "title": "Arayüzler",

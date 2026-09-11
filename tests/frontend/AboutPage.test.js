@@ -78,6 +78,7 @@ describe("AboutPage.vue", () => {
             landlock_requested: true,
             landlock_active: true,
             landlock_auto_enabled: true,
+            landlock_abi: 5,
             appcontainer_requested: false,
             appcontainer_active: false,
             appcontainer_supported: false,
@@ -144,6 +145,7 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("app.enabled");
         expect(wrapper.text()).toContain("app.seccomp_status");
         expect(wrapper.text()).toContain("about.sandbox_type_landlock");
+        expect(wrapper.text()).toContain("about.sandbox_abi");
 
         expect(wrapper.text()).toContain("about.backend_stack");
         expect(wrapper.text()).toContain("aiohttp");

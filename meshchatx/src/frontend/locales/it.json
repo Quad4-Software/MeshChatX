@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Bitrate interfacce forzati"
         },
         "top_memory_consumer": "Top memoria",
-        "top_cpu_consumer": "Maggior consumatore di CPU"
+        "top_cpu_consumer": "Maggior consumatore di CPU",
+        "sandbox_abi": "ABI del kernel v{abi}"
     },
     "interfaces": {
         "title": "Interfacce",

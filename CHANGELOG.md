@@ -41,6 +41,10 @@ All notable changes to this project will be documented in this file.
 - Archives can be exported in bulk: an Export all (.zip) action below the search box downloads a zip bundle of the filtered set with a manifest, and each archive card gains an Export action that downloads the snapshot as a .mu file.
 - Relay chat member lists show avatar initials with presence dots, sticky online/offline headers, and a mention hint on hover; right-clicking a member copies their identity hash.
 - Relay chat room headers now show the hub MOTD inline next to the room and hub name instead of a separate banner row.
+- Discovered interfaces fetch faster: the endpoint runs its filesystem scan and interface stats collection off the event loop and caches results briefly, and the map builds marker features in chunks so large sets stay responsive.
+- Tools page search icon no longer overlaps the placeholder text, and tool groups are now collapsible with count badges and persisted state.
+- The About page sandbox section shows the kernel Landlock ABI version when available.
+- The network visualiser adapts its batch size to measured apply time and pauses physics during silent refreshes when the frame rate is low, avoiding the 1-2 fps freeze on large graphs.
 - Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
 - Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
 

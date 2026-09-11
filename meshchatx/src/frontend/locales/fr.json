@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Débits d’interface forcés"
         },
         "top_memory_consumer": "Top mémoire",
-        "top_cpu_consumer": "Top CPU"
+        "top_cpu_consumer": "Top CPU",
+        "sandbox_abi": "ABI du noyau v{abi}"
     },
     "interfaces": {
         "title": "Interfaces",

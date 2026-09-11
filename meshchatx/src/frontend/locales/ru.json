@@ -1459,7 +1459,8 @@
             "applyInterfaceBitrateLimits": "Принудительные битрейты интерфейсов"
         },
         "top_memory_consumer": "Лидер по памяти",
-        "top_cpu_consumer": "Лидер по ЦП"
+        "top_cpu_consumer": "Лидер по ЦП",
+        "sandbox_abi": "ABI ядра v{abi}"
     },
     "interfaces": {
         "title": "Интерфейсы",

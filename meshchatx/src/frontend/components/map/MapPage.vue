@@ -5872,16 +5872,22 @@ export default {
                 const extent = createEmptyExtent();
                 this.discoveredMarkers = [];
 
-                for (const node of nodesDeduped) {
-                    const coord = fromLonLat([node.longitude, node.latitude]);
-                    extendExtent(extent, coord);
+                const CHUNK = 250;
+                for (let i = 0; i < nodesDeduped.length; i += CHUNK) {
+                    for (const node of nodesDeduped.slice(i, i + CHUNK)) {
+                        const coord = fromLonLat([node.longitude, node.latitude]);
+                        extendExtent(extent, coord);
 
-                    const feature = new Feature({
-                        geometry: new Point(coord),
-                        originalCoord: coord,
-                        discovered: node,
-                    });
-                    this.discoveredMarkers.push(feature);
+                        const feature = new Feature({
+                            geometry: new Point(coord),
+                            originalCoord: coord,
+                            discovered: node,
+                        });
+                        this.discoveredMarkers.push(feature);
+                    }
+                    if (i + CHUNK < nodesDeduped.length) {
+                        await new Promise((resolve) => setTimeout(resolve, 0));
+                    }
                 }
 
                 this.discoveredVisible = true;
