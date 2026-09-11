@@ -20,6 +20,7 @@
                         : 'text-sem-fg-muted hover:bg-sem-surface/80'
                 "
                 @click="selectTab(tab.id)"
+                @contextmenu.prevent="openTabContextMenu($event, tab)"
             >
                 <MaterialDesignIcon icon-name="map" class="size-4 shrink-0 opacity-70" />
                 <input
@@ -73,11 +74,29 @@
                 @update-title="onMapUpdateTitle(tab.id, $event)"
             />
         </div>
+
+        <MapTabContextMenu
+            :show="tabContextMenu.show"
+            :x="tabContextMenu.x"
+            :y="tabContextMenu.y"
+            :just-opened="tabContextMenu.justOpened"
+            :can-close-right="tabContextMenuCanCloseRight"
+            :can-close-others="tabs.length > 1"
+            :can-close-all="tabs.length > 1"
+            @close="tabContextMenu.show = false"
+            @rename="onContextRenameTab"
+            @new-tab="onContextNewTab"
+            @close-tab="onContextCloseTab"
+            @close-right="onContextCloseTabsRight"
+            @close-others="onContextCloseOtherTabs"
+            @close-all="onContextCloseAllTabs"
+        />
     </div>
 </template>
 
 <script>
 import MapPage from "./MapPage.vue";
+import MapTabContextMenu from "./internal/MapTabContextMenu.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import TileCache from "../../js/TileCache";
 import GlobalEmitter from "../../js/GlobalEmitter";
@@ -98,6 +117,7 @@ export default {
     name: "MapBrowser",
     components: {
         MapPage,
+        MapTabContextMenu,
         MaterialDesignIcon,
     },
     data() {
@@ -113,6 +133,13 @@ export default {
             renameDraft: "",
             lastLabelTap: { tabId: null, time: 0 },
             isRouteActive: true,
+            tabContextMenu: {
+                show: false,
+                justOpened: false,
+                x: 0,
+                y: 0,
+                tabId: null,
+            },
         };
     },
     computed: {
@@ -121,6 +148,13 @@ export default {
         },
         activeTab() {
             return this.tabs.find((tab) => tab.id === this.activeTabId) || null;
+        },
+        tabContextMenuTabIndex() {
+            return this.tabs.findIndex((tab) => tab.id === this.tabContextMenu.tabId);
+        },
+        tabContextMenuCanCloseRight() {
+            const index = this.tabContextMenuTabIndex;
+            return index >= 0 && index < this.tabs.length - 1;
         },
         tabLayoutSignature() {
             const tabs = this.tabs
@@ -408,6 +442,63 @@ export default {
                 })),
                 activeIndex: activeIndex < 0 ? 0 : activeIndex,
             });
+        },
+        openTabContextMenu(event, tab) {
+            this.selectTab(tab.id);
+            this.tabContextMenu = {
+                show: true,
+                justOpened: true,
+                x: event.clientX,
+                y: event.clientY,
+                tabId: tab.id,
+            };
+            setTimeout(() => {
+                this.tabContextMenu.justOpened = false;
+            }, 50);
+        },
+        onContextRenameTab() {
+            const tabId = this.tabContextMenu.tabId;
+            this.tabContextMenu.show = false;
+            if (tabId != null) {
+                this.startRename(tabId);
+            }
+        },
+        onContextNewTab() {
+            this.tabContextMenu.show = false;
+            this.addTab();
+        },
+        onContextCloseTab() {
+            const tabId = this.tabContextMenu.tabId;
+            this.tabContextMenu.show = false;
+            if (tabId != null) {
+                this.closeTab(tabId);
+            }
+        },
+        onContextCloseTabsRight() {
+            const tabId = this.tabContextMenu.tabId;
+            this.tabContextMenu.show = false;
+            const index = this.tabs.findIndex((tab) => tab.id === tabId);
+            if (index === -1) {
+                return;
+            }
+            for (const tab of this.tabs.slice(index + 1)) {
+                this.closeTab(tab.id);
+            }
+        },
+        onContextCloseOtherTabs() {
+            const keepId = this.tabContextMenu.tabId;
+            this.tabContextMenu.show = false;
+            for (const tab of [...this.tabs]) {
+                if (tab.id !== keepId) {
+                    this.closeTab(tab.id);
+                }
+            }
+        },
+        onContextCloseAllTabs() {
+            this.tabContextMenu.show = false;
+            for (const tab of [...this.tabs]) {
+                this.closeTab(tab.id);
+            }
         },
         selectTab(tabId) {
             if (this.renamingTabId != null) {

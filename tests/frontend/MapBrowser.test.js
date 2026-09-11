@@ -250,4 +250,91 @@ describe("MapBrowser.vue", () => {
         wrapper.vm.$options.activated.call(wrapper.vm);
         expect(wrapper.vm.isRouteActive).toBe(true);
     });
+
+    it("right-click on a tab selects it and opens the tab context menu", async () => {
+        const wrapper = await mountBrowser();
+        wrapper.vm.isWideViewport = true;
+        wrapper.vm.addTab("Second");
+        await wrapper.vm.$nextTick();
+
+        const firstId = wrapper.vm.tabs[0].id;
+        const tabButtons = wrapper.findAll('[role="tab"]');
+        expect(tabButtons).toHaveLength(2);
+
+        await tabButtons[0].trigger("contextmenu", { clientX: 40, clientY: 12 });
+        expect(wrapper.vm.tabContextMenu.show).toBe(true);
+        expect(wrapper.vm.tabContextMenu.tabId).toBe(firstId);
+        expect(wrapper.vm.tabContextMenu.x).toBe(40);
+        expect(wrapper.vm.tabContextMenu.y).toBe(12);
+        expect(wrapper.vm.activeTabId).toBe(firstId);
+    });
+
+    it("context menu renders tab actions in the teleported panel", async () => {
+        const wrapper = await mountBrowser();
+        wrapper.vm.isWideViewport = true;
+        wrapper.vm.addTab("Second");
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.openTabContextMenu({ clientX: 10, clientY: 10 }, wrapper.vm.tabs[0]);
+        await wrapper.vm.$nextTick();
+
+        const menu = document.body.querySelector(".context-menu-panel, [class*='context']");
+        expect(menu).toBeTruthy();
+        expect(document.body.textContent).toContain("common.rename");
+        expect(document.body.textContent).toContain("map.close_other_tabs");
+    });
+
+    it("close tabs to the right removes only later tabs", async () => {
+        const wrapper = await mountBrowser();
+        const keep = wrapper.vm.tabs[0].id;
+        wrapper.vm.addTab("B");
+        wrapper.vm.addTab("C");
+        expect(wrapper.vm.tabs).toHaveLength(3);
+
+        wrapper.vm.tabContextMenu.tabId = keep;
+        wrapper.vm.onContextCloseTabsRight();
+        expect(wrapper.vm.tabs).toHaveLength(1);
+        expect(wrapper.vm.tabs[0].id).toBe(keep);
+        expect(wrapper.vm.tabContextMenu.show).toBe(false);
+    });
+
+    it("close other tabs keeps only the context tab and keeps it active", async () => {
+        const wrapper = await mountBrowser();
+        wrapper.vm.addTab("B");
+        const keep = wrapper.vm.addTab("C");
+        expect(wrapper.vm.tabs).toHaveLength(3);
+
+        wrapper.vm.tabContextMenu.tabId = keep;
+        wrapper.vm.onContextCloseOtherTabs();
+        expect(wrapper.vm.tabs).toHaveLength(1);
+        expect(wrapper.vm.tabs[0].id).toBe(keep);
+        expect(wrapper.vm.activeTabId).toBe(keep);
+    });
+
+    it("close all tabs leaves one fresh tab", async () => {
+        const wrapper = await mountBrowser();
+        wrapper.vm.addTab("B");
+        wrapper.vm.addTab("C");
+        wrapper.vm.onContextCloseAllTabs();
+        expect(wrapper.vm.tabs).toHaveLength(1);
+        expect(wrapper.vm.activeTabId).toBe(wrapper.vm.tabs[0].id);
+    });
+
+    it("canCloseRight is false for the last tab", async () => {
+        const wrapper = await mountBrowser();
+        const last = wrapper.vm.addTab("Last");
+        wrapper.vm.tabContextMenu.tabId = last;
+        expect(wrapper.vm.tabContextMenuCanCloseRight).toBe(false);
+        wrapper.vm.tabContextMenu.tabId = wrapper.vm.tabs[0].id;
+        expect(wrapper.vm.tabContextMenuCanCloseRight).toBe(true);
+    });
+
+    it("rename from the context menu starts rename for that tab", async () => {
+        const wrapper = await mountBrowser();
+        const second = wrapper.vm.addTab("Second");
+        wrapper.vm.tabContextMenu = { show: true, tabId: second, x: 0, y: 0, justOpened: false };
+        wrapper.vm.onContextRenameTab();
+        expect(wrapper.vm.renamingTabId).toBe(second);
+        expect(wrapper.vm.tabContextMenu.show).toBe(false);
+    });
 });

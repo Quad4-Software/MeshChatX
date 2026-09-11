@@ -31,7 +31,9 @@ All notable changes to this project will be documented in this file.
 - The default keyboard shortcuts for opening the palette and toggling the sidebar are discoverable in the command palette, and navigation shortcuts are suppressed while a modal is open.
 - New frontend tests cover the command palette ARIA, command palette toggle-sidebar action, keyboard shortcut modal guard, and AppModal focusable-element discovery.
 - Settings sidebar gains a Simple and Advanced mode toggle. Simple mode hides technical sections (interfaces, transport, plugins and friends) while Advanced shows everything; search always finds advanced settings.
-- The map restores proper tile attribution with a collapsible chip for OpenStreetMap, CARTO and OpenFreeMap sources, and the zoom control and scale bar are themed to match the app.
+- The map restores proper tile attribution with a collapsible chip for OpenStreetMap, CARTO and OpenFreeMap sources, and the zoom control and scale line are themed to match the app.
+- Map tabs on wide screens gain a right-click context menu with rename, new tab, close, close others, close tabs to the right and close all.
+- The discovered-nodes toolbar button shows a spinner while nodes are being fetched.
 - Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
 - Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
 
