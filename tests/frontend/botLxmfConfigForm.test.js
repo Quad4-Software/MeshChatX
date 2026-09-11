@@ -69,10 +69,7 @@ describe("botLxmfConfigForm", () => {
             max_warnings: 2,
             warning_timeout: 120,
             message_queue_size: 80,
-            admins: [
-                "a".repeat(32),
-                "b".repeat(32),
-            ],
+            admins: ["a".repeat(32), "b".repeat(32)],
         });
     });
 
@@ -90,9 +87,10 @@ describe("botLxmfConfigForm", () => {
     });
 
     it("parseAdminsDraft filters non-hash tokens and normalizes", () => {
-        expect(
-            parseAdminsDraft("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, x\n" + "b".repeat(32))
-        ).toEqual(["a".repeat(32), "b".repeat(32)]);
+        expect(parseAdminsDraft("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, x\n" + "b".repeat(32))).toEqual([
+            "a".repeat(32),
+            "b".repeat(32),
+        ]);
         expect(parseAdminsDraft("")).toEqual([]);
     });
 });
