@@ -563,10 +563,29 @@
                                                 :style="{ color: colorForHash(m.hash) }"
                                                 >{{ m.name }}</span
                                             >
-                                            <MaterialDesignIcon
-                                                icon-name="at"
-                                                class="size-3.5 shrink-0 text-sem-fg-muted opacity-0 transition-opacity group-hover/member:opacity-70"
-                                            />
+                                            <span class="flex items-center gap-1 shrink-0">
+                                                <MaterialDesignIcon
+                                                    v-if="memberDmLoadingHash === m.hash"
+                                                    icon-name="loading"
+                                                    class="size-3.5 animate-spin text-sem-accent"
+                                                />
+                                                <button
+                                                    v-else
+                                                    type="button"
+                                                    class="flex items-center rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:text-sem-accent focus-ring-sem group-hover/member:opacity-70 max-sm:opacity-60"
+                                                    :title="$t('relay_chat.dm_member')"
+                                                    @click.stop="openMemberDm(m)"
+                                                >
+                                                    <MaterialDesignIcon
+                                                        icon-name="message-text-outline"
+                                                        class="size-3.5"
+                                                    />
+                                                </button>
+                                                <MaterialDesignIcon
+                                                    icon-name="at"
+                                                    class="size-3.5 text-sem-fg-muted opacity-0 transition-opacity group-hover/member:opacity-70"
+                                                />
+                                            </span>
                                         </li>
                                     </ul>
                                 </div>
@@ -591,10 +610,29 @@
                                                 {{ memberInitial(m.name) }}
                                             </span>
                                             <span class="min-w-0 flex-1 truncate text-sm">{{ m.name }}</span>
-                                            <MaterialDesignIcon
-                                                icon-name="at"
-                                                class="size-3.5 shrink-0 text-sem-fg-muted opacity-0 transition-opacity group-hover/member:opacity-70"
-                                            />
+                                            <span class="flex items-center gap-1 shrink-0">
+                                                <MaterialDesignIcon
+                                                    v-if="memberDmLoadingHash === m.hash"
+                                                    icon-name="loading"
+                                                    class="size-3.5 animate-spin text-sem-accent"
+                                                />
+                                                <button
+                                                    v-else
+                                                    type="button"
+                                                    class="flex items-center rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:text-sem-accent focus-ring-sem group-hover/member:opacity-70 max-sm:opacity-60"
+                                                    :title="$t('relay_chat.dm_member')"
+                                                    @click.stop="openMemberDm(m)"
+                                                >
+                                                    <MaterialDesignIcon
+                                                        icon-name="message-text-outline"
+                                                        class="size-3.5"
+                                                    />
+                                                </button>
+                                                <MaterialDesignIcon
+                                                    icon-name="at"
+                                                    class="size-3.5 text-sem-fg-muted opacity-0 transition-opacity group-hover/member:opacity-70"
+                                                />
+                                            </span>
                                         </li>
                                     </ul>
                                 </div>
@@ -1535,6 +1573,7 @@ export default {
             showSearch: false,
             messageSearch: "",
             membersSearch: "",
+            memberDmLoadingHash: null,
             dragHubIndex: null,
             dragRoomHubHash: null,
             dragRoomIndex: null,
@@ -2712,6 +2751,35 @@ export default {
                 ToastUtils.success(this.$t("relay_chat.copy_hash"));
             } else {
                 ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
+        },
+        async openMemberDm(member) {
+            const hash = member?.hash;
+            if (!hash || this.memberDmLoadingHash) {
+                return;
+            }
+            this.memberDmLoadingHash = hash;
+            try {
+                const res = await window.api.get(`/api/v1/identity/${hash}/lxmf-address`);
+                const lxmf = res?.data?.lxmf_destination_hash;
+                if (!lxmf) {
+                    throw new Error(this.$t("relay_chat.dm_no_lxmf"));
+                }
+                if (!res.data.has_path) {
+                    try {
+                        await window.api.post(`/api/v1/destination/${lxmf}/path`);
+                    } catch {
+                        // path request best-effort; the messages page retries on send
+                    }
+                }
+                this.$router.push({
+                    name: "messages",
+                    params: { destinationHash: lxmf },
+                });
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || e.message || this.$t("relay_chat.dm_failed"));
+            } finally {
+                this.memberDmLoadingHash = null;
             }
         },
         formatTime(ts) {

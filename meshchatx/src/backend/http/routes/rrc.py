@@ -735,6 +735,15 @@ def register_rrc_routes(routes, app):
             return error
         return web.json_response(hub.rooms_activity())
 
+    @routes.get("/api/v1/rrc/servers/{hub_id}/stats")
+    async def rrc_server_stats(request):
+        _, hub, error = _rrc_server_require_hub(
+            request.match_info.get("hub_id", ""),
+        )
+        if error is not None:
+            return error
+        return web.json_response(hub.stats_dict())
+
     @routes.get("/api/v1/rrc/servers/{hub_id}/messages")
     async def rrc_server_messages(request):
         _, hub, error = _rrc_server_require_hub(

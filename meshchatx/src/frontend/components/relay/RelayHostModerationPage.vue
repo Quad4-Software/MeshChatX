@@ -54,6 +54,16 @@
                 <MaterialDesignIcon icon-name="account-group" class="size-4" />
                 {{ $t("relay_chat.host_moderation_tab_members") }}
             </button>
+            <button
+                type="button"
+                role="tab"
+                :aria-selected="tab === 'status'"
+                :class="[RELAY_HOST_PAGE_TAB, tab === 'status' ? RELAY_HOST_PAGE_TAB_ACTIVE : RELAY_HOST_PAGE_TAB_IDLE]"
+                @click="setTab('status')"
+            >
+                <MaterialDesignIcon icon-name="chart-box-outline" class="size-4" />
+                {{ $t("relay_chat.host_moderation_tab_status") }}
+            </button>
         </div>
 
         <div v-if="!hub" class="flex flex-1 items-center justify-center p-6 text-sm text-sem-fg-muted">
@@ -256,7 +266,7 @@
             </div>
         </div>
 
-        <div v-else :class="RELAY_HOST_PAGE_BODY">
+        <div v-else-if="tab === 'members'" :class="RELAY_HOST_PAGE_BODY">
             <div :class="[RELAY_HOST_PAGE_LIST, isNarrow && selectedMember ? 'hidden' : 'flex flex-1 lg:flex-none']">
                 <div class="shrink-0 border-b border-sem-border p-3 sm:p-4">
                     <SearchInput
@@ -379,6 +389,67 @@
                 </template>
             </div>
         </div>
+
+        <div v-else :class="RELAY_HOST_PAGE_BODY">
+            <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4 space-y-4">
+                <div v-if="statsLoading" class="py-12 text-center text-sm text-sem-fg-muted">
+                    {{ $t("common.loading") }}
+                </div>
+                <template v-else>
+                    <div>
+                        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-sem-fg-muted">
+                            {{ $t("relay_chat.host_stats_title") }}
+                        </h3>
+                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                            <div
+                                v-for="stat in statCards"
+                                :key="stat.key"
+                                class="rounded-xl border border-sem-border bg-sem-surface px-3 py-2.5"
+                            >
+                                <div class="text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted">
+                                    {{ stat.label }}
+                                </div>
+                                <div
+                                    class="mt-0.5 text-lg font-semibold tabular-nums"
+                                    :class="stat.warn ? 'text-sem-warning' : ''"
+                                >
+                                    {{ stat.value }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-sem-fg-muted">
+                            {{ $t("relay_chat.host_events_title") }}
+                        </h3>
+                        <div
+                            v-if="hubEvents.length === 0"
+                            class="rounded-xl border border-dashed border-sem-border px-3 py-6 text-center text-sm text-sem-fg-muted"
+                        >
+                            {{ $t("relay_chat.host_events_empty") }}
+                        </div>
+                        <ul v-else class="space-y-1">
+                            <li
+                                v-for="(ev, idx) in hubEvents"
+                                :key="idx"
+                                class="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-sem-surface px-3 py-1.5 text-xs"
+                                :class="isWarnEvent(ev) ? 'text-sem-warning' : 'text-sem-fg'"
+                            >
+                                <span class="font-medium">{{ eventLabel(ev) }}</span>
+                                <span v-if="ev.peer" class="font-mono text-sem-fg-muted">{{
+                                    formatHash(ev.peer)
+                                }}</span>
+                                <span v-if="ev.room" class="text-sem-fg-muted">#{{ ev.room }}</span>
+                                <span v-if="ev.detail" class="truncate text-sem-fg-muted">{{ ev.detail }}</span>
+                                <span class="ml-auto shrink-0 text-[10px] text-sem-fg-muted">{{
+                                    formatTimeAgo(ev.ts)
+                                }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </template>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -442,6 +513,9 @@ export default {
             mq: null,
             roomsLoading: false,
             membersLoading: false,
+            statsLoading: false,
+            hubStats: null,
+            hubEvents: [],
             creatingRoom: false,
             messagesLoading: false,
             showAddRoomForm: false,
@@ -461,6 +535,41 @@ export default {
         };
     },
     computed: {
+        statCards() {
+            const s = this.hubStats || {};
+            const drops =
+                (s.rate_limited_drops || 0) +
+                (s.control_drops || 0) +
+                (s.session_cap_drops || 0) +
+                (s.peer_cap_drops || 0);
+            const moderation = (s.kicks || 0) + (s.bans || 0) + (s.banned_disconnects || 0);
+            return [
+                { key: "sessions", label: this.$t("relay_chat.host_stats_sessions"), value: s.sessions ?? 0 },
+                { key: "links", label: this.$t("relay_chat.host_stats_links"), value: s.links_total ?? 0 },
+                {
+                    key: "messages",
+                    label: this.$t("relay_chat.host_stats_messages"),
+                    value: s.messages_relayed ?? 0,
+                },
+                {
+                    key: "drops",
+                    label: this.$t("relay_chat.host_stats_drops"),
+                    value: drops,
+                    warn: drops > 0,
+                },
+                {
+                    key: "moderation",
+                    label: this.$t("relay_chat.host_stats_moderation"),
+                    value: moderation,
+                    warn: moderation > 0,
+                },
+                {
+                    key: "uptime",
+                    label: this.$t("relay_chat.host_stats_uptime"),
+                    value: this.formatUptime(s.uptime_s ?? 0),
+                },
+            ];
+        },
         liveUptimeSeconds() {
             void this.uptimeTick;
             if (!this.hub?.running) {
@@ -552,6 +661,8 @@ export default {
         tab(val) {
             if (val === "rooms") {
                 this.fetchActivity();
+            } else if (val === "status") {
+                this.fetchStats();
             } else {
                 this.fetchMembers();
             }
@@ -607,6 +718,8 @@ export default {
             }
             if (this.tab === "rooms") {
                 this.fetchActivity();
+            } else if (this.tab === "status") {
+                this.fetchStats();
             }
         },
         cancelAddRoom() {
@@ -641,6 +754,21 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             } finally {
                 this.membersLoading = false;
+            }
+        },
+        async fetchStats() {
+            if (!this.hub?.id) {
+                return;
+            }
+            this.statsLoading = true;
+            try {
+                const response = await window.api.get(`/api/v1/rrc/servers/${this.hub.id}/stats`);
+                this.hubStats = response.data?.stats || null;
+                this.hubEvents = response.data?.events || [];
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            } finally {
+                this.statsLoading = false;
             }
         },
         async createRoom() {
@@ -867,6 +995,39 @@ export default {
                 return "";
             }
             return new Date(ts).toLocaleString();
+        },
+        formatTimeAgo(ts) {
+            if (!ts) {
+                return "";
+            }
+            const diffMs = Date.now() - ts * 1000;
+            const s = Math.max(0, Math.floor(diffMs / 1000));
+            if (s < 60) {
+                return `${s}s`;
+            }
+            if (s < 3600) {
+                return `${Math.floor(s / 60)}m`;
+            }
+            if (s < 86400) {
+                return `${Math.floor(s / 3600)}h`;
+            }
+            return `${Math.floor(s / 86400)}d`;
+        },
+        eventLabel(ev) {
+            const key = `relay_chat.host_ev_${ev?.type}`;
+            const translated = this.$te(key) ? this.$t(key) : null;
+            return translated || ev?.type || "";
+        },
+        isWarnEvent(ev) {
+            return [
+                "rate_limited",
+                "banned_disconnect",
+                "session_cap_drop",
+                "peer_cap_drop",
+                "kick",
+                "ban",
+                "room_ban",
+            ].includes(ev?.type);
         },
         formatUptime(seconds) {
             if (seconds == null || seconds < 0) {

@@ -46,6 +46,9 @@ All notable changes to this project will be documented in this file.
 - The About page sandbox section shows the kernel Landlock ABI version when available.
 - The network visualiser adapts its batch size to measured apply time and pauses physics during silent refreshes when the frame rate is low, avoiding the 1-2 fps freeze on large graphs.
 - The messages split-view drop strip now only appears while dragging a conversation, freeing the space it occupied at rest; a conversation can also be opened in split view from its right-click menu.
+- Relay chat member rows gain a hover/tap direct-message action that lazily derives the member's LXMF address from their identity, waits for a path, then opens the conversation.
+- RRC hub hosts get anti-spam protections: per-peer session caps, a total session cap, and a rate limit on join/part/control traffic, plus a new Status tab in hub moderation showing relayed-message counts, drop counters, and a recent-events log.
+- All search inputs across the app now share a SearchInput component with consistent icon, clear button, loading spinner, and escape-to-clear; the icon-over-placeholder bug class is gone.
 - Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
 - Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
 
