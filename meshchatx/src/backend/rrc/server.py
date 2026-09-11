@@ -342,7 +342,9 @@ class RRCHubServer:
         links = [
             lnk
             for lnk, s in self._sessions.items()
-            if isinstance(s.peer, (bytes, bytearray)) and bytes(s.peer) == peer_b
+            if not isinstance(lnk, _LoopbackEndpoint)
+            and isinstance(s.peer, (bytes, bytearray))
+            and bytes(s.peer) == peer_b
         ]
         cap = max(MIN_SESSIONS_PER_PEER, int(self.max_sessions_per_peer))
         over = len(links) - cap
@@ -362,9 +364,12 @@ class RRCHubServer:
             return
         with self._lock:
             sess = self._sessions.get(link)
+            extras = []
             if sess is not None:
                 sess.peer = identity.hash
-            extras = self._peer_cap_extras(identity.hash)
+                # Only enforce the cap for links that are live sessions: a
+                # stale identify on a cap-dropped link must not evict others.
+                extras = self._peer_cap_extras(identity.hash)
         if identity is not None and self.policy.is_banned(identity.hash):
             self._log(
                 "Disconnecting banned peer " + identity.hash.hex()[:12],
@@ -513,13 +518,22 @@ class RRCHubServer:
             sess = self._sessions.get(link)
             if sess is None:
                 return
+            extras = []
             if sess.peer is None:
                 ri = link.get_remote_identity()
                 if ri is None:
                     return
                 sess.peer = ri.hash
+                # The identified callback may never fire for this link, so
+                # enforce the per-peer session cap on first packet too.
+                extras = self._peer_cap_extras(ri.hash)
             outgoing = []
-            self._route(link, sess, env, outgoing)
+            if link not in extras:
+                self._route(link, sess, env, outgoing)
+        for lnk in extras:
+            with contextlib.suppress(Exception):
+                if hasattr(lnk, "teardown"):
+                    lnk.teardown()
         for out_link, payload in outgoing:
             self._send_payload(out_link, payload)
 
@@ -1120,6 +1134,7 @@ class RRCHubServer:
         r = self._norm_room(room)
         outgoing = []
         target_link = None
+        tsess = None
         with self._lock:
             for link, sess in self._sessions.items():
                 if (
@@ -1128,11 +1143,11 @@ class RRCHubServer:
                     and r in sess.rooms
                 ):
                     target_link = link
+                    tsess = sess
                     break
         if target_link is None:
             msg = "peer not in room"
             raise ValueError(msg)
-        tsess = self._sessions[target_link]
         self._force_leave_room(
             target_link,
             tsess,

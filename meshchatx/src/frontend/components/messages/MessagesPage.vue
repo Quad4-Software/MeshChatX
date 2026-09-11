@@ -56,8 +56,8 @@
             @messages-imported="onMessagesImported"
             @toggle-conversation-pin="onToggleConversationPin"
             @toggle-collapse="messagesListSidebarCollapsed = !messagesListSidebarCollapsed"
-            @conversation-drag-start="isConversationDragging = true"
-            @conversation-drag-end="isConversationDragging = false"
+            @conversation-drag-start="onConversationDragStart"
+            @conversation-drag-end="onConversationDragEnd"
             @open-in-split="openPeerInSplit"
         />
 
@@ -558,6 +558,7 @@ export default {
         this.stopIngestScanner();
         this.teardownPaneViewportWatchers();
         this.teardownPaneResize();
+        this.teardownConversationDragWatch();
         setOpenDestinationHashes([]);
 
         // stop listening for websocket events
@@ -1787,6 +1788,26 @@ export default {
             const id = this.nextPaneId++;
             this.panes.push({ id, peer: null });
             this.openConversationInPane(id, hash);
+        },
+        onConversationDragStart() {
+            this.isConversationDragging = true;
+            // dragend normally ends the drag on the source row, but if that row
+            // unmounts mid-drag (list re-sort, sidebar teardown) the event can
+            // be lost; window-level drop/dragend settle the state regardless.
+            window.addEventListener("dragend", this.onWindowDragSettled);
+            window.addEventListener("drop", this.onWindowDragSettled);
+        },
+        onConversationDragEnd() {
+            this.isConversationDragging = false;
+            this.teardownConversationDragWatch();
+        },
+        onWindowDragSettled() {
+            this.isConversationDragging = false;
+            this.teardownConversationDragWatch();
+        },
+        teardownConversationDragWatch() {
+            window.removeEventListener("dragend", this.onWindowDragSettled);
+            window.removeEventListener("drop", this.onWindowDragSettled);
         },
         onPanePeerUpdate(paneId, peer) {
             this.focusPane(paneId);
