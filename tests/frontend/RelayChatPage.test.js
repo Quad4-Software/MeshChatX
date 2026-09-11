@@ -449,6 +449,36 @@ describe("RelayChatPage.vue", () => {
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/read`);
     });
 
+    it("shows hub motd inline in the room header", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.messages.length).toBe(1));
+        wrapper.vm.hubs[0].motd = "Be kind to each other";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("Be kind to each other");
+    });
+
+    it("member rows render avatar initials and copy the hash on context menu", async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.members.length).toBe(1));
+        wrapper.vm.showMembers = true;
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("carol");
+        expect(wrapper.vm.memberInitial("carol")).toBe("C");
+        expect(wrapper.vm.memberInitial("<abc123>")).toBe("A");
+        expect(wrapper.vm.memberInitial("")).toBe("?");
+
+        await wrapper.vm.copyMemberHash({ hash: "aabb", name: "carol" });
+        expect(writeText).toHaveBeenCalledWith("aabb");
+        delete navigator.clipboard;
+    });
+
     it("clears local mention unread when marking an open room read", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

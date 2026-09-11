@@ -2874,7 +2874,12 @@
         "recrawl_pending": "正在获取实时页面...",
         "recrawl_done": "页面已重新抓取",
         "recrawl_failed": "重新抓取失败。请重试。",
-        "rendering": "正在渲染..."
+        "rendering": "正在渲染...",
+        "export": "导出",
+        "exporting": "导出中...",
+        "export_all": "全部导出 (.zip)",
+        "export_failed": "导出快照失败。",
+        "export_all_failed": "导出存档失败，请重试。"
     },
     "docs": {
         "title": "文档",

@@ -2874,7 +2874,12 @@
         "recrawl_pending": "ライブページを取得中...",
         "recrawl_done": "ページを再クロールしました",
         "recrawl_failed": "再クロールに失敗しました。もう一度お試しください。",
-        "rendering": "描画中..."
+        "rendering": "描画中...",
+        "export": "エクスポート",
+        "exporting": "エクスポート中...",
+        "export_all": "すべてエクスポート (.zip)",
+        "export_failed": "スナップショットのエクスポートに失敗しました。",
+        "export_all_failed": "アーカイブのエクスポートに失敗しました。もう一度お試しください。"
     },
     "docs": {
         "title": "ドキュメント",

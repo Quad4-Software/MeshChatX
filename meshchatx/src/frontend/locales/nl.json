@@ -2874,7 +2874,12 @@
         "recrawl_pending": "Live pagina ophalen...",
         "recrawl_done": "Pagina opnieuw gearchiveerd",
         "recrawl_failed": "Opnieuw crawlen mislukt. Probeer het opnieuw.",
-        "rendering": "Bezig met renderen..."
+        "rendering": "Bezig met renderen...",
+        "export": "Exporteren",
+        "exporting": "Exporteren...",
+        "export_all": "Alles exporteren (.zip)",
+        "export_failed": "Snapshot exporteren mislukt.",
+        "export_all_failed": "Archieven exporteren mislukt. Probeer opnieuw."
     },
     "docs": {
         "title": "Documentatie",

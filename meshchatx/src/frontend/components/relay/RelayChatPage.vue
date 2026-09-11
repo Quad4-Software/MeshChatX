@@ -367,7 +367,17 @@
                             <MaterialDesignIcon icon-name="pound" class="size-5 shrink-0 text-sem-accent" />
                             <div class="min-w-0">
                                 <div class="font-semibold truncate leading-tight">{{ selectedRoom }}</div>
-                                <div class="text-xs text-sem-fg-muted truncate">{{ hubDisplayName(selectedHub) }}</div>
+                                <div
+                                    class="text-xs text-sem-fg-muted truncate"
+                                    :title="
+                                        selectedHub.motd
+                                            ? `${hubDisplayName(selectedHub)} - ${selectedHub.motd}`
+                                            : hubDisplayName(selectedHub)
+                                    "
+                                >
+                                    {{ hubDisplayName(selectedHub)
+                                    }}<template v-if="selectedHub.motd"> · {{ selectedHub.motd }}</template>
+                                </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
@@ -420,17 +430,6 @@
                                 <MaterialDesignIcon icon-name="exit-to-app" class="size-5" />
                             </button>
                         </div>
-                    </div>
-
-                    <div
-                        v-if="selectedHub && selectedHub.motd && selectedRoom"
-                        class="flex items-start gap-2 px-3 py-2 text-xs border-b border-sem-border bg-sem-canvas text-sem-fg-secondary"
-                    >
-                        <MaterialDesignIcon
-                            icon-name="information-outline"
-                            class="size-4 shrink-0 mt-0.5 text-sem-accent"
-                        />
-                        <span>{{ selectedHub.motd }}</span>
                     </div>
 
                     <div class="relative flex flex-1 min-h-0 overflow-hidden">
@@ -534,43 +533,68 @@
                                     class="input-field py-1.5! text-xs!"
                                 />
                             </div>
-                            <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-2 space-y-3">
+                            <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
                                 <div>
                                     <div
-                                        class="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted"
+                                        class="sticky top-0 z-10 border-b border-sem-border/50 bg-sem-canvas/95 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted backdrop-blur"
                                     >
                                         {{ $t("relay_chat.members_online") }} ({{ filteredOnlineMembers.length }})
                                     </div>
-                                    <ul class="space-y-0.5">
+                                    <ul class="p-1.5">
                                         <li
                                             v-for="m in filteredOnlineMembers"
                                             :key="m.hash"
-                                            class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
+                                            class="group/member flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
                                             :title="m.hash"
                                             @click="insertMention(m.name)"
+                                            @contextmenu.prevent="copyMemberHash(m)"
                                         >
-                                            <span class="size-2 shrink-0 rounded-full bg-sem-success"></span>
-                                            <span class="truncate" :style="{ color: colorForHash(m.hash) }">{{
-                                                m.name
-                                            }}</span>
+                                            <span
+                                                class="relative flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold uppercase"
+                                                :style="memberAvatarStyle(m.hash)"
+                                            >
+                                                {{ memberInitial(m.name) }}
+                                                <span
+                                                    class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-sem-canvas bg-sem-success"
+                                                ></span>
+                                            </span>
+                                            <span
+                                                class="min-w-0 flex-1 truncate text-sm font-medium"
+                                                :style="{ color: colorForHash(m.hash) }"
+                                                >{{ m.name }}</span
+                                            >
+                                            <MaterialDesignIcon
+                                                icon-name="at"
+                                                class="size-3.5 shrink-0 text-sem-fg-muted opacity-0 transition-opacity group-hover/member:opacity-70"
+                                            />
                                         </li>
                                     </ul>
                                 </div>
                                 <div v-if="filteredOfflineMembers.length > 0">
                                     <div
-                                        class="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted"
+                                        class="sticky top-0 z-10 border-b border-sem-border/50 bg-sem-canvas/95 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted backdrop-blur"
                                     >
                                         {{ $t("relay_chat.members_offline") }} ({{ filteredOfflineMembers.length }})
                                     </div>
-                                    <ul class="space-y-0.5">
+                                    <ul class="p-1.5">
                                         <li
                                             v-for="m in filteredOfflineMembers"
                                             :key="m.hash"
-                                            class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm opacity-60"
+                                            class="group/member flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 opacity-60 transition-all hover:bg-sem-surface/60 hover:opacity-100 dark:hover:bg-sem-surface/30"
                                             :title="m.hash"
+                                            @click="insertMention(m.name)"
+                                            @contextmenu.prevent="copyMemberHash(m)"
                                         >
-                                            <span class="size-2 shrink-0 rounded-full bg-sem-fg-muted"></span>
-                                            <span class="truncate">{{ m.name }}</span>
+                                            <span
+                                                class="flex size-7 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-[11px] font-bold uppercase text-sem-fg-muted"
+                                            >
+                                                {{ memberInitial(m.name) }}
+                                            </span>
+                                            <span class="min-w-0 flex-1 truncate text-sm">{{ m.name }}</span>
+                                            <MaterialDesignIcon
+                                                icon-name="at"
+                                                class="size-3.5 shrink-0 text-sem-fg-muted opacity-0 transition-opacity group-hover/member:opacity-70"
+                                            />
                                         </li>
                                     </ul>
                                 </div>
@@ -1353,6 +1377,7 @@ import { DEFAULT_RRC_HUB_ICON, normalizeMdiIconName } from "../../js/mdiIconName
 import { countRelayMentions } from "../../js/relayMentionCount.js";
 import { unjoinedAvailableRooms } from "../../js/rrcAvailableRooms.js";
 import { filterRelayMembers, filterRelayMessages } from "../../js/relayMessageSearch.js";
+import { copyTextToClipboard } from "../../js/clipboardUtils.js";
 import {
     buildRelayMessageTimeline,
     mergeRelayMessages,
@@ -2674,6 +2699,27 @@ export default {
         },
         nameStyle(msg) {
             return { color: this.colorForHash(msg.src) };
+        },
+        memberInitial(name) {
+            const ch = String(name || "")
+                .trim()
+                .match(/[a-zA-Z0-9]/);
+            return ch ? ch[0].toUpperCase() : "?";
+        },
+        memberAvatarStyle(hash) {
+            const color = this.colorForHash(hash);
+            return { backgroundColor: `${color}26`, color };
+        },
+        async copyMemberHash(member) {
+            if (!member?.hash) {
+                return;
+            }
+            const ok = await copyTextToClipboard(member.hash);
+            if (ok) {
+                ToastUtils.success(this.$t("relay_chat.copy_hash"));
+            } else {
+                ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
         },
         formatTime(ts) {
             if (!ts) {

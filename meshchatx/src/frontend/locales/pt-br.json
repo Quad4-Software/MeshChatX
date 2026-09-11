@@ -2874,7 +2874,12 @@
         "recrawl_pending": "Buscando página ao vivo...",
         "recrawl_done": "Página rastreada novamente",
         "recrawl_failed": "Falha no re-rastreamento. Tente novamente.",
-        "rendering": "Renderizando..."
+        "rendering": "Renderizando...",
+        "export": "Exportar",
+        "exporting": "Exportando...",
+        "export_all": "Exportar tudo (.zip)",
+        "export_failed": "Falha ao exportar o snapshot.",
+        "export_all_failed": "Falha ao exportar arquivos. Tente novamente."
     },
     "docs": {
         "title": "Documentação",

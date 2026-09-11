@@ -64,6 +64,19 @@
                                   })
                         }}
                     </span>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium text-sem-accent transition-colors hover:bg-sem-surface-muted disabled:opacity-50"
+                        :disabled="isExportingAll"
+                        @click="exportAllArchives"
+                    >
+                        <MaterialDesignIcon
+                            :icon-name="isExportingAll ? 'loading' : 'download'"
+                            class="size-3"
+                            :class="{ 'animate-spin': isExportingAll }"
+                        />
+                        {{ $t("archives.export_all") }}
+                    </button>
                     <label class="ml-auto flex items-center gap-1.5">
                         <span>{{ $t("archives.filter_node") }}</span>
                         <select
@@ -167,10 +180,25 @@
                                 >
                                     {{ shortHash(archive.destination_hash) }}
                                 </span>
-                                <span
-                                    class="text-[10px] font-medium text-sem-accent opacity-0 transition-opacity group-hover:opacity-100"
-                                >
-                                    {{ $t("archives.view") }}
+                                <span class="flex items-center gap-2.5">
+                                    <button
+                                        type="button"
+                                        class="text-[10px] font-medium text-sem-fg-muted transition-colors hover:text-sem-accent disabled:opacity-60"
+                                        :disabled="exportingArchiveId === archive.id"
+                                        :title="$t('archives.export_mu')"
+                                        @click.stop="exportArchiveCard(archive)"
+                                    >
+                                        {{
+                                            exportingArchiveId === archive.id
+                                                ? $t("archives.exporting")
+                                                : $t("archives.export")
+                                        }}
+                                    </button>
+                                    <span
+                                        class="text-[10px] font-medium text-sem-accent opacity-0 transition-opacity group-hover:opacity-100"
+                                    >
+                                        {{ $t("archives.view") }}
+                                    </span>
                                 </span>
                             </div>
                         </article>
@@ -333,6 +361,8 @@ export default {
             loadError: false,
             viewingArchive: null,
             renderedContent: "",
+            exportingArchiveId: null,
+            isExportingAll: false,
             searchQuery: "",
             nodeFilter: "",
             nodeOptions: [],
@@ -776,6 +806,51 @@ export default {
                 return;
             }
             this.downloadTextAsFile(archive.content, this.muExportFilename(archive));
+        },
+        async exportArchiveCard(archive) {
+            if (!archive || this.exportingArchiveId === archive.id) {
+                return;
+            }
+            this.exportingArchiveId = archive.id;
+            try {
+                let content = archive.content;
+                if (content == null) {
+                    const response = await window.api.get(`/api/v1/nomadnet/archives/${archive.id}`);
+                    content = response.data.archive?.content ?? "";
+                }
+                await this.downloadTextAsFile(content, this.muExportFilename(archive));
+            } catch (e) {
+                console.error("Archive export failed:", e);
+                ToastUtils.error(this.$t("archives.export_failed"));
+            } finally {
+                this.exportingArchiveId = null;
+            }
+        },
+        async exportAllArchives() {
+            if (this.isExportingAll) {
+                return;
+            }
+            this.isExportingAll = true;
+            try {
+                const params = {};
+                if (this.searchQuery) {
+                    params.q = this.searchQuery;
+                }
+                if (this.nodeFilter) {
+                    params.destination_hash = this.nodeFilter;
+                }
+                const response = await window.api.get("/api/v1/nomadnet/archives/export", {
+                    params,
+                    responseType: "blob",
+                });
+                const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+                await DownloadUtils.downloadFromApiResponse(response, `meshchatx-archives-${stamp}.zip`);
+            } catch (e) {
+                console.error("Export all archives failed:", e);
+                ToastUtils.error(this.$t("archives.export_all_failed"));
+            } finally {
+                this.isExportingAll = false;
+            }
         },
         renderContentByPath(pagePath, content, destinationHash) {
             const pathPart = (pagePath || "").split("`")[0];
