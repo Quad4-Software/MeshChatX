@@ -73,25 +73,7 @@
                     </div>
 
                     <div class="w-full md:w-96 shrink-0 space-y-4">
-                        <div class="relative group">
-                            <MaterialDesignIcon
-                                icon-name="magnify"
-                                class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
-                            />
-                            <input
-                                v-model="searchTerm"
-                                type="text"
-                                :placeholder="$t('interfaces.search_placeholder')"
-                                class="w-full pl-12 pr-4 py-3 bg-sem-surface border border-sem-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sem-fg placeholder:text-sem-fg-muted shadow-xs"
-                            />
-                            <button
-                                v-if="searchTerm"
-                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-sem-fg-muted hover:text-sem-fg"
-                                @click="searchTerm = ''"
-                            >
-                                <MaterialDesignIcon icon-name="close-circle" class="size-5" />
-                            </button>
-                        </div>
+                        <SearchInput v-model="searchTerm" :placeholder="$t('interfaces.search_placeholder')" />
                         <div>
                             <select
                                 v-model="typeFilter"
@@ -778,6 +760,7 @@ import Utils from "../../js/Utils";
 import ImportInterfacesModal from "./ImportInterfacesModal.vue";
 import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import ToastUtils from "../../js/ToastUtils";
 import GlobalState from "../../js/GlobalState";
 import Toggle from "../forms/Toggle.vue";
@@ -792,6 +775,7 @@ export default {
         ImportInterfacesModal,
         Interface,
         MaterialDesignIcon,
+        SearchInput,
         BundledDocsHint,
     },
     data() {

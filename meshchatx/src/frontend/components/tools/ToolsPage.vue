@@ -15,28 +15,7 @@
                     </div>
 
                     <div class="w-full lg:max-w-sm shrink-0">
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <MaterialDesignIcon
-                                    icon-name="magnify"
-                                    class="size-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
-                                />
-                            </div>
-                            <input
-                                v-model="searchQuery"
-                                type="text"
-                                :placeholder="$t('common.search')"
-                                class="input-field w-full pl-10! pr-10! py-3!"
-                            />
-                            <button
-                                v-if="searchQuery"
-                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-sem-fg-muted hover:text-sem-fg focus-ring-sem rounded-lg"
-                                type="button"
-                                @click="searchQuery = ''"
-                            >
-                                <MaterialDesignIcon icon-name="close-circle" class="size-5" />
-                            </button>
-                        </div>
+                        <SearchInput v-model="searchQuery" :placeholder="$t('common.search')" />
                     </div>
                 </div>
             </div>
@@ -116,6 +95,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import EmptyState from "../EmptyState.vue";
 import ToolListRow from "./ToolListRow.vue";
 import { listTools } from "../../js/registries/toolsRegistry.js";
@@ -137,6 +117,7 @@ export default {
     name: "ToolsPage",
     components: {
         MaterialDesignIcon,
+        SearchInput,
         EmptyState,
         ToolListRow,
     },

@@ -52,14 +52,10 @@
                         v-if="activeTab === 'logs'"
                         class="flex flex-wrap gap-3 items-center bg-sem-surface/60 p-3 rounded-lg border border-sem-border"
                     >
-                        <div class="relative flex-1 min-w-[200px]">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-sem-fg-muted" />
-                            </div>
-                            <input
+                        <div class="flex-1 min-w-[200px]">
+                            <SearchInput
                                 v-model="search"
-                                type="text"
-                                class="block w-full pl-10 pr-3 py-2 border border-sem-border rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-sem-fg-muted focus:outline-hidden focus:ring-1 focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm"
+                                compact
                                 :placeholder="$t('debug.search_logs_placeholder')"
                                 @input="debouncedSearch"
                             />
@@ -93,14 +89,10 @@
                         v-else
                         class="flex flex-wrap gap-3 items-center bg-sem-surface/60 p-3 rounded-lg border border-sem-border"
                     >
-                        <div class="relative flex-1 min-w-[200px]">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-sem-fg-muted" />
-                            </div>
-                            <input
+                        <div class="flex-1 min-w-[200px]">
+                            <SearchInput
                                 v-model="accessSearch"
-                                type="text"
-                                class="block w-full pl-10 pr-3 py-2 border border-sem-border rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-sem-fg-muted focus:outline-hidden focus:ring-1 focus:ring-sem-focus focus:border-sem-focus-border sm:text-sm"
+                                compact
                                 :placeholder="$t('debug.search_access_placeholder')"
                                 @input="debouncedAccessSearch"
                             />
@@ -265,6 +257,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
@@ -272,6 +265,7 @@ export default {
     name: "DebugLogsPage",
     components: {
         MaterialDesignIcon,
+        SearchInput,
         ToolsPageHeader,
     },
     data() {

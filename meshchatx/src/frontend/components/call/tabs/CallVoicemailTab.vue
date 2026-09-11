@@ -3,18 +3,11 @@
 <template>
     <div v-if="active" class="flex-1 flex flex-col max-w-3xl mx-auto w-full pt-2">
         <div class="mb-4">
-            <div class="relative">
-                <input
-                    :value="voicemailSearch"
-                    type="text"
-                    :placeholder="$t('call.search_voicemails')"
-                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
-                    @input="onSearchInput"
-                />
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
-                </div>
-            </div>
+            <SearchInput
+                :model-value="voicemailSearch"
+                :placeholder="$t('call.search_voicemails')"
+                @update:model-value="onSearchInput"
+            />
         </div>
 
         <!-- Voicemail Settings Card -->
@@ -390,6 +383,7 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import SearchInput from "../../SearchInput.vue";
 import LxmfUserIcon from "../../LxmfUserIcon.vue";
 import AudioWaveformPlayer from "../../messages/AudioWaveformPlayer.vue";
 
@@ -397,6 +391,7 @@ export default {
     name: "CallVoicemailTab",
     components: {
         MaterialDesignIcon,
+        SearchInput,
         LxmfUserIcon,
         AudioWaveformPlayer,
     },
@@ -472,8 +467,8 @@ export default {
         };
     },
     methods: {
-        onSearchInput(event) {
-            this.$emit("update:voicemailSearch", event.target.value);
+        onSearchInput(value) {
+            this.$emit("update:voicemailSearch", value);
             this.$emit("search-input");
         },
     },

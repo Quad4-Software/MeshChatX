@@ -45,19 +45,11 @@
 
             <div class="max-w-5xl mx-auto w-full flex flex-col flex-1 min-h-0 space-y-0 pt-4">
                 <div class="shrink-0 border-b border-sem-border pb-3">
-                    <div class="relative group">
-                        <MaterialDesignIcon
-                            icon-name="magnify"
-                            class="absolute left-3 top-1/2 -translate-y-1/2 size-5 shrink-0 text-gray-400 group-focus-within:text-sem-accent transition-colors pointer-events-none z-10"
-                        />
-                        <input
-                            v-model="contactsSearch"
-                            type="text"
-                            :placeholder="$t('contacts.search_placeholder')"
-                            class="input-field pl-11!"
-                            @input="onContactsSearchInput"
-                        />
-                    </div>
+                    <SearchInput
+                        v-model="contactsSearch"
+                        :placeholder="$t('contacts.search_placeholder')"
+                        @input="onContactsSearchInput"
+                    />
                 </div>
 
                 <div class="min-w-0 flex-1 min-h-0 flex flex-col">
@@ -508,6 +500,7 @@ import Utils from "../../js/Utils";
 import EmptyState from "../EmptyState.vue";
 import LoadingState from "../LoadingState.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
@@ -534,6 +527,7 @@ export default {
         EmptyState,
         LoadingState,
         MaterialDesignIcon,
+        SearchInput,
         LxmfUserIcon,
         SidebarVirtualList,
         ContextMenuDivider,

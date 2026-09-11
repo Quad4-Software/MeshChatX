@@ -114,18 +114,7 @@
                         <h3 class="text-lg font-semibold text-sem-fg">Icon</h3>
                     </div>
                     <div class="p-4 space-y-4">
-                        <div class="relative">
-                            <input
-                                v-model="search"
-                                type="text"
-                                :placeholder="`Search ${iconNames.length} icons...`"
-                                class="w-full px-4 py-3 text-sm border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg placeholder-gray-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                            <MaterialDesignIcon
-                                icon-name="magnify"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 size-5 text-sem-fg-muted pointer-events-none"
-                            />
-                        </div>
+                        <SearchInput v-model="search" :placeholder="`Search ${iconNames.length} icons...`" />
                         <div
                             class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[500px] overflow-y-auto p-1"
                         >
@@ -205,6 +194,7 @@ import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ColourPickerDropdown from "../ColourPickerDropdown.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { mergeGlobalConfig } from "../../js/GlobalState";
 
@@ -214,6 +204,7 @@ export default {
         ColourPickerDropdown,
         LxmfUserIcon,
         MaterialDesignIcon,
+        SearchInput,
     },
     data() {
         return {

@@ -20,31 +20,16 @@
                     </button>
                 </div>
 
-                <div v-show="!viewingArchive || isWideSplit" class="relative">
-                    <MaterialDesignIcon
-                        icon-name="magnify"
-                        class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-sem-fg-muted"
-                    />
-                    <input
-                        v-model="searchQuery"
-                        type="search"
-                        :placeholder="$t('archives.search_placeholder')"
-                        class="w-full rounded-xl border border-sem-border bg-sem-surface py-2.5 pl-10 pr-10 text-sm text-sem-fg placeholder:text-sem-fg-muted focus:border-sem-accent focus:outline-hidden focus:ring-2 focus:ring-sem-accent/20"
-                        @input="onSearchInput"
-                    />
-                    <div v-if="isSearching" class="absolute inset-y-0 right-3 flex items-center">
-                        <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin text-sem-fg-muted" />
-                    </div>
-                    <button
-                        v-else-if="searchQuery"
-                        type="button"
-                        class="absolute inset-y-0 right-2 flex items-center rounded p-1 text-sem-fg-muted hover:text-sem-fg"
-                        :title="$t('archives.clear_search')"
-                        @click="clearSearch"
-                    >
-                        <MaterialDesignIcon icon-name="close" class="size-4" />
-                    </button>
-                </div>
+                <SearchInput
+                    v-show="!viewingArchive || isWideSplit"
+                    v-model="searchQuery"
+                    type="search"
+                    :placeholder="$t('archives.search_placeholder')"
+                    :loading="isSearching"
+                    :clear-title="$t('archives.clear_search')"
+                    @input="onSearchInput"
+                    @clear="clearSearch"
+                />
 
                 <div
                     v-show="!viewingArchive || isWideSplit"
@@ -330,6 +315,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import SearchInput from "../SearchInput.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import MicronParser from "../../js/MicronParser.js";
@@ -350,6 +336,7 @@ export default {
     name: "ArchivesPage",
     components: {
         MaterialDesignIcon,
+        SearchInput,
     },
     data() {
         return {

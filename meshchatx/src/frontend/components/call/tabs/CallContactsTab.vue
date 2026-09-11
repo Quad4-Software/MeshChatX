@@ -3,17 +3,12 @@
 <template>
     <div v-if="active" class="flex-1 flex flex-col max-w-3xl mx-auto w-full pt-2">
         <div class="mb-4 flex gap-2">
-            <div class="relative flex-1">
-                <input
-                    :value="contactsSearch"
-                    type="text"
+            <div class="flex-1">
+                <SearchInput
+                    :model-value="contactsSearch"
                     :placeholder="$t('contacts.search_placeholder')"
-                    class="input-field w-full pl-10"
-                    @input="onSearchInput"
+                    @update:model-value="onSearchInput"
                 />
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
-                </div>
             </div>
             <button type="button" class="primary-chip rounded-lg! focus-ring-sem" @click="$emit('add')">
                 <MaterialDesignIcon icon-name="plus" class="size-5" />
@@ -144,6 +139,7 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import SearchInput from "../../SearchInput.vue";
 import LxmfUserIcon from "../../LxmfUserIcon.vue";
 import EmptyState from "../../EmptyState.vue";
 
@@ -151,6 +147,7 @@ export default {
     name: "CallContactsTab",
     components: {
         MaterialDesignIcon,
+        SearchInput,
         LxmfUserIcon,
         EmptyState,
     },
@@ -174,8 +171,8 @@ export default {
     },
     emits: ["update:contactsSearch", "search-input", "add", "edit", "delete", "copy-hash", "call"],
     methods: {
-        onSearchInput(event) {
-            this.$emit("update:contactsSearch", event.target.value);
+        onSearchInput(value) {
+            this.$emit("update:contactsSearch", value);
             this.$emit("search-input");
         },
     },

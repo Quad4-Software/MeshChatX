@@ -23,18 +23,11 @@
             </div>
             <div class="p-6">
                 <div class="mb-4">
-                    <div class="relative">
-                        <input
-                            :value="search"
-                            type="text"
-                            :placeholder="$t('messages.share_contact_search_placeholder')"
-                            class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-sem-fg-muted focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
-                            @input="$emit('update:search', $event.target.value)"
-                        />
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
-                        </div>
-                    </div>
+                    <SearchInput
+                        :model-value="search"
+                        :placeholder="$t('messages.share_contact_search_placeholder')"
+                        @update:model-value="$emit('update:search', $event)"
+                    />
                 </div>
                 <div class="max-h-64 overflow-y-auto space-y-2">
                     <button
@@ -76,12 +69,14 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import SearchInput from "../../SearchInput.vue";
 import LxmfUserIcon from "../../LxmfUserIcon.vue";
 
 export default {
     name: "ShareContactModal",
     components: {
         MaterialDesignIcon,
+        SearchInput,
         LxmfUserIcon,
     },
     props: {
