@@ -89,6 +89,6 @@ describe("shared component theming contract", () => {
         expect(btn.classes()).toContain("min-w-11");
         expect(btn.classes()).toContain("min-h-11");
         expect(btn.classes()).toContain("focus-ring-sem");
-        expect(btn.html()).toContain("<i class=\"x\"");
+        expect(btn.html()).toContain('<i class="x"');
     });
 });
