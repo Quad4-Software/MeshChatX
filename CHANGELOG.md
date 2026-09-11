@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
 - The discovered-nodes toolbar button shows a spinner while nodes are being fetched.
 - Fixed pasting into nomad page input fields on Android. The WebView cannot show its own Paste menu for fields inside the rendered page frame, so long-press now opens an app Paste action that reads the system clipboard and inserts the text at the cursor.
 - Long-press on nomad page content on Android now opens the page/tab context menu, matching desktop right-click.
+- Fixed map tab right-click menu rendering behind the map toolbar: context menus now sit above page chrome.
+- The map scale now sits in a row with the credits chip at bottom-right, and map overlays are capped and stacked so toolbars, search, and info cards no longer overlap each other on narrow screens.
 - Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
 - Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
 

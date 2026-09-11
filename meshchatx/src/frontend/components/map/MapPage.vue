@@ -110,6 +110,7 @@
         <div ref="mapViewOverlayRoot" class="relative flex-1 min-h-0 h-full">
             <MapDrawingToolbar
                 ref="mapDrawingToolbar"
+                :class="{ 'max-sm:top-30': isMobileSearchOpen }"
                 :tools="drawingTools"
                 :draw-type="drawType"
                 :measuring="isMeasuring"
@@ -597,17 +598,25 @@
                 </div>
             </div>
 
-            <!-- scale line: bottom-right so it never stacks over the lat/lon readout (bottom-left). Hidden on small screens -->
+            <!-- bottom-right chrome row: scale line sits left of the attribution chip so they can never overlap. On small screens only the attribution shows, above the zoom pill -->
             <div
-                v-show="!isMobileScreen"
-                ref="scaleLineMount"
-                class="ol-scale-line-host absolute z-10 bottom-10 right-4 max-sm:bottom-22 pointer-events-auto min-w-[120px] max-w-[min(55vw,14rem)]"
-                :class="{ 'ol-scale-line-host--dark-basemap': isDarkRasterBasemap }"
-            ></div>
+                class="absolute bottom-4 right-4 z-10 flex items-end justify-end gap-2 pointer-events-none max-sm:bottom-[5.5rem] max-sm:right-3"
+            >
+                <div
+                    v-show="!isMobileScreen"
+                    ref="scaleLineMount"
+                    class="ol-scale-line-host pointer-events-auto min-w-[120px] max-w-[min(55vw,14rem)]"
+                    :class="{ 'ol-scale-line-host--dark-basemap': isDarkRasterBasemap }"
+                ></div>
+                <div
+                    ref="attributionMount"
+                    class="ol-attribution-mount pointer-events-auto min-w-0 max-sm:max-w-[34vw]"
+                ></div>
+            </div>
 
             <!-- map info overlay (north + metadata + coords) -->
             <div
-                class="absolute bottom-4 left-4 z-10 flex flex-col gap-2 pointer-events-none max-w-[min(100vw-2rem,22rem)]"
+                class="absolute bottom-4 left-4 z-10 flex flex-col gap-2 pointer-events-none max-w-[min(100vw-2rem,22rem)] max-sm:max-w-[60vw]"
             >
                 <div
                     class="flex flex-col items-center justify-end text-sem-fg bg-white/80 dark:bg-zinc-900/80 border border-sem-border rounded-lg px-2 py-1 shadow-xs pointer-events-auto w-fit"
@@ -2049,7 +2058,10 @@ export default {
                     zoom: startZoom,
                 }),
                 controls: defaultControls({
-                    attribution: { collapsible: true },
+                    attribution: {
+                        collapsible: true,
+                        ...(this.$refs.attributionMount ? { target: this.$refs.attributionMount } : {}),
+                    },
                     rotate: false,
                 }),
                 pixelRatio: mapPixelRatio,
@@ -6071,6 +6083,15 @@ export default {
 }
 :deep(.ol-attribution button span) {
     line-height: 1.4;
+}
+
+/* When the attribution control is mounted into the corner row it must flow
+   inline next to the scale chip instead of using OpenLayers absolute corners. */
+.ol-attribution-mount :deep(.ol-attribution) {
+    position: static;
+    right: auto;
+    bottom: auto;
+    max-width: 100%;
 }
 
 .ol-scale-line-host :deep(.ol-scale-line) {
