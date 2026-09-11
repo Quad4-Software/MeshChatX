@@ -129,6 +129,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.meshchat_utils import normalize_hex_identifier
 from meshchatx.src.backend.path_utils import path_response_window
 
 # Same ceiling as RNProbeHandler.MAX_TIMEOUT_S
@@ -705,6 +706,42 @@ def register_path_probe_routes(routes, app):
             {
                 "path_table": path_table,
                 "total_count": total_count,
+            },
+        )
+
+    # derive lxmf delivery address from an identity hash
+
+    @routes.get("/api/v1/identity/{identity_hash}/lxmf-address")
+    async def identity_lxmf_address(request):
+        raw = request.match_info.get("identity_hash", "")
+        norm = normalize_hex_identifier(raw)
+        if not norm or len(norm) != 64:
+            return web.json_response(
+                {"message": "invalid identity hash"},
+                status=400,
+            )
+
+        lxmf_hex = await asyncio.to_thread(
+            app.get_lxmf_destination_hash_for_identity_hash,
+            norm,
+        )
+        if not lxmf_hex:
+            return web.json_response(
+                {"message": "no LXMF address could be derived for this identity"},
+                status=404,
+            )
+
+        has_path = False
+        try:
+            has_path = RNS.Transport.has_path(bytes.fromhex(lxmf_hex))
+        except Exception:
+            pass
+
+        return web.json_response(
+            {
+                "identity_hash": norm,
+                "lxmf_destination_hash": lxmf_hex,
+                "has_path": has_path,
             },
         )
 

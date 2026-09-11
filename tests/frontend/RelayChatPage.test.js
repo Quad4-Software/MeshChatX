@@ -479,6 +479,51 @@ describe("RelayChatPage.vue", () => {
         delete navigator.clipboard;
     });
 
+    it("openMemberDm resolves the LXMF address and navigates to messages", async () => {
+        const wrapper = mountPage();
+        const lxmfHash = "d".repeat(64);
+        window.api.get.mockImplementation((url) => {
+            if (url === "/api/v1/identity/" + "e".repeat(64) + "/lxmf-address") {
+                return Promise.resolve({
+                    data: { lxmf_destination_hash: lxmfHash, has_path: true },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const push = vi.fn();
+        wrapper.vm.$router = { push };
+
+        await wrapper.vm.openMemberDm({ hash: "e".repeat(64), name: "carol" });
+        expect(push).toHaveBeenCalledWith({ name: "messages", params: { destinationHash: lxmfHash } });
+        expect(wrapper.vm.memberDmLoadingHash).toBeNull();
+    });
+
+    it("openMemberDm requests a path when the LXMF address has none", async () => {
+        const wrapper = mountPage();
+        const lxmfHash = "f".repeat(64);
+        window.api.get.mockResolvedValue({
+            data: { lxmf_destination_hash: lxmfHash, has_path: false },
+        });
+        window.api.post.mockResolvedValue({ data: {} });
+        const push = vi.fn();
+        wrapper.vm.$router = { push };
+
+        await wrapper.vm.openMemberDm({ hash: "1".repeat(64), name: "dan" });
+        expect(window.api.post).toHaveBeenCalledWith(`/api/v1/destination/${lxmfHash}/path`);
+        expect(push).toHaveBeenCalledWith({ name: "messages", params: { destinationHash: lxmfHash } });
+    });
+
+    it("openMemberDm shows an error toast when no LXMF address can be derived", async () => {
+        const wrapper = mountPage();
+        window.api.get.mockRejectedValue({ response: { status: 404, data: { message: "none" } } });
+        const push = vi.fn();
+        wrapper.vm.$router = { push };
+
+        await wrapper.vm.openMemberDm({ hash: "2".repeat(64), name: "eve" });
+        expect(push).not.toHaveBeenCalled();
+        expect(wrapper.vm.memberDmLoadingHash).toBeNull();
+    });
+
     it("clears local mention unread when marking an open room read", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

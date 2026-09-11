@@ -266,6 +266,8 @@ class HubCommandHandler:
             outgoing,
             error_text=f"kicked from {r}",
         )
+        server._bump("kicks")
+        server._record_event("kick", peer=tsess.peer, room=r)
         server._queue_notice(outgoing, link, room, f"kicked {parts[2]} from {r}")
         return True
 
@@ -316,6 +318,8 @@ class HubCommandHandler:
         if op == "add":
             server.policy.add_ban(target_hash)
             server.policy.save()
+            server._bump("bans")
+            server._record_event("ban", peer=target_hash)
             server._disconnect_banned(target_hash, outgoing, "banned (kline)")
             server._queue_notice(
                 outgoing,
@@ -636,6 +640,8 @@ class HubCommandHandler:
             return True
         if op == "add":
             bans.add(target_hash)
+            server._bump("bans")
+            server._record_event("room_ban", peer=target_hash, room=r)
             server.rooms.touch_room(r)
             server.rooms.persist(r)
             for member in list(server._room_members.get(r, set())):

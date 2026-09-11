@@ -70,6 +70,52 @@ describe("RelayHostModerationPage.vue", () => {
             global: mountToolsPageGlobals(),
         });
 
+    it("status tab fetches stats and renders stat cards and events", async () => {
+        const wrapper = mountPage();
+        window.api.get.mockImplementation(async (url) => {
+            if (url === "/api/v1/config") {
+                return { data: { identity_hash: LOCAL_HASH } };
+            }
+            if (url.includes("/stats")) {
+                return {
+                    data: {
+                        stats: {
+                            sessions: 2,
+                            links_total: 5,
+                            messages_relayed: 42,
+                            rate_limited_drops: 3,
+                            control_drops: 1,
+                            session_cap_drops: 0,
+                            peer_cap_drops: 0,
+                            kicks: 1,
+                            bans: 0,
+                            banned_disconnects: 0,
+                            uptime_s: 120,
+                        },
+                        events: [
+                            { ts: 1700000000, type: "join", peer: "a".repeat(64), room: "general", detail: null },
+                            { ts: 1700000050, type: "rate_limited", peer: "b".repeat(64), room: null, detail: "msg" },
+                        ],
+                    },
+                };
+            }
+            return { data: {} };
+        });
+
+        wrapper.vm.setTab("status");
+        await wrapper.vm.$nextTick();
+        await vi.waitFor(() => expect(wrapper.vm.hubStats).toBeTruthy());
+
+        expect(wrapper.vm.statCards.find((c) => c.key === "messages").value).toBe(42);
+        expect(wrapper.vm.statCards.find((c) => c.key === "drops").value).toBe(4);
+        expect(wrapper.vm.statCards.find((c) => c.key === "drops").warn).toBe(true);
+        expect(wrapper.vm.eventLabel({ type: "join" })).toBe("joined");
+        expect(wrapper.vm.eventLabel({ type: "unknown_type" })).toBe("unknown_type");
+        expect(wrapper.vm.isWarnEvent({ type: "rate_limited" })).toBe(true);
+        expect(wrapper.vm.isWarnEvent({ type: "join" })).toBe(false);
+        expect(wrapper.vm.formatTimeAgo(Date.now() / 1000 - 5)).toMatch(/s$/);
+    });
+
     it("kicks using the member room when there is no room filter", async () => {
         const wrapper = mountPage();
         await wrapper.vm.fetchMembers();
