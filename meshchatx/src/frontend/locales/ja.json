@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "2点目をクリックして方位を設定",
         "location_unavailable": "位置情報を利用できません",
         "export_failed": "エクスポートに失敗しました",
-        "coords_copied": "座標をクリップボードにコピーしました"
+        "coords_copied": "座標をクリップボードにコピーしました",
+        "geo_parse_failed": "その位置を解決できませんでした"
     },
     "interface": {
         "disable": "無効化",
@@ -4015,8 +4016,6 @@
         "demote_op": "オペレーターから降格",
         "promote_op": "オペレーターに昇格",
         "composer_placeholder": "メッセージを入力...",
-        "search_placeholder": "メッセージを検索...",
-        "search_results_count": "{count}件の結果",
         "type_to_search": "入力するとメッセージを検索します",
         "no_search_results": "検索に一致するメッセージはありません",
         "dm_member": "ダイレクトメッセージ",
@@ -4059,7 +4058,15 @@
         "bots_hub": "ハブ",
         "bots_rooms": "ルーム",
         "bots_delete_confirm": "ボット \"{name}\" を削除しますか？",
-        "host_ev_history": "履歴リクエスト"
+        "host_ev_history": "履歴リクエスト",
+        "tab_search": "検索",
+        "search_global_placeholder": "すべてのハブのメッセージを検索…",
+        "search_global_hint": "ヒント: \"完全一致フレーズ\"、a または b、-除外、from:ニック、room:ルーム、hub:ハッシュ",
+        "search_global_count": "{count} 件の結果",
+        "search_global_empty": "接続中のすべてのハブとルームのメッセージ履歴を検索します。",
+        "search_global_none": "一致するメッセージはありません。",
+        "search_placeholder": "メッセージを検索...",
+        "search_results_count": "{count}件の結果"
     },
     "rncp": {
         "file_transfer": "ファイル転送",

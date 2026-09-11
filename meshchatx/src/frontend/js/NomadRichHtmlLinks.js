@@ -39,6 +39,7 @@ function scrollToElementId(id, scrollRoot) {
  * @param {Element|null} [options.scrollRoot] - scope fragment anchor scrolling
  * @param {(url: string) => void} [options.onNomadUrl] - data-nomadnet-url handler
  * @param {(address: string) => void} [options.onLxmfAddress] - data-lxmf-address handler
+ * @param {(text: string) => void} [options.onGeo] - data-geo-text handler
  * @param {(destination: string, fields: string|null) => void} [options.onOpenNode]
  * @param {(url: string) => void|Promise<void>} [options.openExternalHttp]
  * @param {boolean} [options.blockUnhandledAnchors=true]
@@ -49,6 +50,7 @@ export function handleRichHtmlLinkClick(event, options = {}) {
         scrollRoot = null,
         onNomadUrl,
         onLxmfAddress,
+        onGeo,
         onOpenNode,
         openExternalHttp = openExternalHttpUrl,
         blockUnhandledAnchors = true,
@@ -60,6 +62,16 @@ export function handleRichHtmlLinkClick(event, options = {}) {
         const url = nomadLink.getAttribute("data-nomadnet-url");
         if (url) {
             onNomadUrl(url);
+        }
+        return true;
+    }
+
+    const geoLink = event.target.closest("a.geo-link[data-geo-text]");
+    if (geoLink && onGeo) {
+        stopEvent(event);
+        const geoText = geoLink.getAttribute("data-geo-text");
+        if (geoText) {
+            onGeo(geoText);
         }
         return true;
     }

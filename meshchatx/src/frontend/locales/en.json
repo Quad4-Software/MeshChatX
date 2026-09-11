@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Click second point to set bearing",
         "location_unavailable": "Location unavailable",
         "export_failed": "Export failed",
-        "coords_copied": "Coordinates copied to clipboard"
+        "coords_copied": "Coordinates copied to clipboard",
+        "geo_parse_failed": "Could not resolve that location"
     },
     "interface": {
         "disable": "Disable",
@@ -4015,8 +4016,6 @@
         "demote_op": "Demote Operator",
         "promote_op": "Promote to Operator",
         "composer_placeholder": "Write a message...",
-        "search_placeholder": "Search messages...",
-        "search_results_count": "{count} results",
         "type_to_search": "Type to search messages",
         "no_search_results": "No messages matching search",
         "dm_member": "Direct message",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Rooms",
         "bots_delete_confirm": "Delete bot \"{name}\"?",
-        "host_ev_history": "history requested"
+        "host_ev_history": "history requested",
+        "tab_search": "Search",
+        "search_global_placeholder": "Search messages across all hubs…",
+        "search_global_hint": "Tip: \"quoted phrase\", a OR b, -exclude, from:nick, room:name, hub:hash",
+        "search_global_count": "{count} results",
+        "search_global_empty": "Search message history in every connected hub and room.",
+        "search_global_none": "No matching messages.",
+        "search_placeholder": "Search messages...",
+        "search_results_count": "{count} results"
     },
     "rncp": {
         "file_transfer": "File Transfer",

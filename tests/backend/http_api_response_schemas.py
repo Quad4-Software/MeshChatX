@@ -607,6 +607,29 @@ RRC_MESSAGES_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+RRC_SEARCH_SCHEMA: dict = {
+    "type": "object",
+    "required": ["results"],
+    "properties": {"results": _ARRAY},
+    "additionalProperties": True,
+}
+
+RRC_SERVER_STATS_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": True,
+}
+
+IDENTITY_LXMF_ADDRESS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["identity_hash", "lxmf_destination_hash", "has_path"],
+    "properties": {
+        "identity_hash": _STRING,
+        "lxmf_destination_hash": _STRING,
+        "has_path": _BOOLEAN,
+    },
+    "additionalProperties": True,
+}
+
 RRC_MEMBERS_SCHEMA: dict = {
     "type": "object",
     "required": ["members"],

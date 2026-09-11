@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Haz clic en un segundo punto para fijar el rumbo",
         "location_unavailable": "Ubicación no disponible",
         "export_failed": "Error al exportar",
-        "coords_copied": "Coordenadas copiadas al portapapeles"
+        "coords_copied": "Coordenadas copiadas al portapapeles",
+        "geo_parse_failed": "No se pudo resolver esa ubicación"
     },
     "interface": {
         "disable": "Inhabilitación",
@@ -4015,8 +4016,6 @@
         "demote_op": "Degradar a operador",
         "promote_op": "Promover a operador",
         "composer_placeholder": "Escribe un mensaje...",
-        "search_placeholder": "Buscar mensajes...",
-        "search_results_count": "{count} resultados",
         "type_to_search": "Escribe para buscar mensajes",
         "no_search_results": "Ningún mensaje coincide con la búsqueda",
         "dm_member": "Mensaje directo",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Salas",
         "bots_delete_confirm": "¿Eliminar el bot \"{name}\"?",
-        "host_ev_history": "historial solicitado"
+        "host_ev_history": "historial solicitado",
+        "tab_search": "Buscar",
+        "search_global_placeholder": "Buscar mensajes en todos los hubs…",
+        "search_global_hint": "Consejo: \"frase exacta\", a O b, -excluir, from:nick, room:nombre, hub:hash",
+        "search_global_count": "{count} resultados",
+        "search_global_empty": "Busca en el historial de mensajes de todos los hubs y salas conectados.",
+        "search_global_none": "Sin mensajes coincidentes.",
+        "search_placeholder": "Buscar mensajes...",
+        "search_results_count": "{count} resultados"
     },
     "rncp": {
         "file_transfer": "Transferencia de Archivos",

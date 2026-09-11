@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Kerteriz ayarlamak için ikinci noktaya tıklayın",
         "location_unavailable": "Konum kullanılamıyor",
         "export_failed": "Dışa aktarma başarısız oldu",
-        "coords_copied": "Koordinatlar panoya kopyalandı"
+        "coords_copied": "Koordinatlar panoya kopyalandı",
+        "geo_parse_failed": "Bu konum çözümlenemedi"
     },
     "interface": {
         "disable": "Devre dışı bırak",
@@ -4015,8 +4016,6 @@
         "demote_op": "Operatörden Düşür",
         "promote_op": "Operatöre Yükselt",
         "composer_placeholder": "Bir ileti yazın...",
-        "search_placeholder": "İletileri ara...",
-        "search_results_count": "{count} sonuç",
         "type_to_search": "İletileri aramak için yazın",
         "no_search_results": "Aramayla eşleşen ileti yok",
         "dm_member": "Doğrudan mesaj",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Odalar",
         "bots_delete_confirm": "\"{name}\" botu silinsin mi?",
-        "host_ev_history": "geçmiş istendi"
+        "host_ev_history": "geçmiş istendi",
+        "tab_search": "Ara",
+        "search_global_placeholder": "Tüm hub'larda mesaj ara…",
+        "search_global_hint": "İpucu: \"tam ifade\", a VEYA b, -hariç tut, from:takmaad, room:oda, hub:hash",
+        "search_global_count": "{count} sonuç",
+        "search_global_empty": "Bağlı tüm hub ve odalardaki mesaj geçmişinde arayın.",
+        "search_global_none": "Eşleşen mesaj yok.",
+        "search_placeholder": "İletileri ara...",
+        "search_results_count": "{count} sonuç"
     },
     "rncp": {
         "file_transfer": "Dosya Aktarımı",

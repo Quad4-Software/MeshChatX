@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Kliknij drugi punkt, aby ustawić azymut",
         "location_unavailable": "Lokalizacja niedostępna",
         "export_failed": "Eksport nie powiódł się",
-        "coords_copied": "Współrzędne skopiowane do schowka"
+        "coords_copied": "Współrzędne skopiowane do schowka",
+        "geo_parse_failed": "Nie udało się rozwiązać tej lokalizacji"
     },
     "interface": {
         "disable": "Wyłącz",
@@ -4015,8 +4016,6 @@
         "demote_op": "Odbierz status operatora",
         "promote_op": "Nadaj status operatora",
         "composer_placeholder": "Napisz wiadomość...",
-        "search_placeholder": "Szukaj wiadomości...",
-        "search_results_count": "{count} wyników",
         "type_to_search": "Wpisz, aby szukać wiadomości",
         "no_search_results": "Brak wiadomości pasujących do wyszukiwania",
         "dm_member": "Wiadomość prywatna",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Pokoje",
         "bots_delete_confirm": "Usunąć bota \"{name}\"?",
-        "host_ev_history": "żądanie historii"
+        "host_ev_history": "żądanie historii",
+        "tab_search": "Szukaj",
+        "search_global_placeholder": "Szukaj wiadomości we wszystkich hubach…",
+        "search_global_hint": "Wskazówka: \"dokładna fraza\", a LUB b, -wyklucz, from:nick, room:pokój, hub:hash",
+        "search_global_count": "{count} wyników",
+        "search_global_empty": "Przeszukaj historię wiadomości we wszystkich połączonych hubach i pokojach.",
+        "search_global_none": "Brak pasujących wiadomości.",
+        "search_placeholder": "Szukaj wiadomości...",
+        "search_results_count": "{count} wyników"
     },
     "rncp": {
         "file_transfer": "Transfer plików",

@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Нажмите вторую точку, чтобы задать пеленг",
         "location_unavailable": "Местоположение недоступно",
         "export_failed": "Не удалось экспортировать",
-        "coords_copied": "Координаты скопированы в буфер обмена"
+        "coords_copied": "Координаты скопированы в буфер обмена",
+        "geo_parse_failed": "Не удалось определить это местоположение"
     },
     "interface": {
         "disable": "Выключить",
@@ -4015,8 +4016,6 @@
         "demote_op": "Снять оператора",
         "promote_op": "Повысить до оператора",
         "composer_placeholder": "Напишите сообщение...",
-        "search_placeholder": "Поиск сообщений...",
-        "search_results_count": "Результатов: {count}",
         "type_to_search": "Введите текст для поиска сообщений",
         "no_search_results": "Сообщений по запросу не найдено",
         "dm_member": "Личное сообщение",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Хаб",
         "bots_rooms": "Комнаты",
         "bots_delete_confirm": "Удалить бота \"{name}\"?",
-        "host_ev_history": "запрошена история"
+        "host_ev_history": "запрошена история",
+        "tab_search": "Поиск",
+        "search_global_placeholder": "Поиск сообщений во всех хабах…",
+        "search_global_hint": "Подсказка: \"точная фраза\", a ИЛИ b, -исключить, from:ник, room:комната, hub:хеш",
+        "search_global_count": "Результатов: {count}",
+        "search_global_empty": "Поиск по истории сообщений во всех подключённых хабах и комнатах.",
+        "search_global_none": "Совпадений нет.",
+        "search_placeholder": "Поиск сообщений...",
+        "search_results_count": "Результатов: {count}"
     },
     "rncp": {
         "file_transfer": "Передача файлов",

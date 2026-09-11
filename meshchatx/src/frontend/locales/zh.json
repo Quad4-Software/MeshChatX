@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "点击第二个点以设置方位",
         "location_unavailable": "位置不可用",
         "export_failed": "导出失败",
-        "coords_copied": "坐标已复制到剪贴板"
+        "coords_copied": "坐标已复制到剪贴板",
+        "geo_parse_failed": "无法解析该位置"
     },
     "interface": {
         "disable": "禁用",
@@ -4015,8 +4016,6 @@
         "demote_op": "降级操作员",
         "promote_op": "提升为操作员",
         "composer_placeholder": "输入消息...",
-        "search_placeholder": "搜索消息...",
-        "search_results_count": "{count} 条结果",
         "type_to_search": "输入以搜索消息",
         "no_search_results": "没有匹配搜索的消息",
         "dm_member": "私信",
@@ -4059,7 +4058,15 @@
         "bots_hub": "枢纽",
         "bots_rooms": "房间",
         "bots_delete_confirm": "删除机器人 \"{name}\"？",
-        "host_ev_history": "请求历史记录"
+        "host_ev_history": "请求历史记录",
+        "tab_search": "搜索",
+        "search_global_placeholder": "在所有枢纽中搜索消息…",
+        "search_global_hint": "提示：\"精确短语\"、a 或 b、-排除、from:昵称、room:房间、hub:哈希",
+        "search_global_count": "{count} 条结果",
+        "search_global_empty": "在所有已连接的枢纽和房间中搜索消息历史。",
+        "search_global_none": "没有匹配的消息。",
+        "search_placeholder": "搜索消息...",
+        "search_results_count": "{count} 条结果"
     },
     "rncp": {
         "file_transfer": "文件传输",
