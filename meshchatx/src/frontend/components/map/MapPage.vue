@@ -30,12 +30,18 @@
                                 ? 'bg-white dark:bg-zinc-700 shadow-xs text-emerald-600 dark:text-emerald-400'
                                 : 'text-gray-500 dark:text-gray-300 hover:bg-gray-200 hover:bg-sem-surface-muted'
                         "
-                        class="p-1.5 sm:p-2 rounded-lg transition-colors shrink-0"
+                        class="p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 mr-1"
                         :title="discoveredVisible ? 'Hide Discovered Interfaces' : 'Show Discovered Interfaces'"
                         :aria-pressed="discoveredVisible"
+                        :disabled="discoveredLoading"
                         @click="toggleDiscoveredNodes"
                     >
-                        <MaterialDesignIcon icon-name="map-marker-radius" class="size-[18px] sm:size-5" />
+                        <MaterialDesignIcon
+                            v-if="discoveredLoading"
+                            icon-name="loading"
+                            class="size-[18px] sm:size-5 animate-spin"
+                        />
+                        <MaterialDesignIcon v-else icon-name="map-marker-radius" class="size-[18px] sm:size-5" />
                     </button>
                     <button
                         :class="
@@ -1272,6 +1278,7 @@ export default {
             queryMarker: null,
             discoveredMarkers: [],
             discoveredVisible: false,
+            discoveredLoading: false,
 
             // caching
             cachingEnabled: true,
@@ -2348,8 +2355,6 @@ export default {
                     new ScaleLine({
                         target: this.$refs.scaleLineMount,
                         units: "metric",
-                        bar: true,
-                        text: true,
                     })
                 );
             }
@@ -5836,6 +5841,9 @@ export default {
         async mapDiscoveredNodes(options = {}) {
             const skipFit = options.skipFit === true;
             const silent = options.silent === true;
+            if (!silent) {
+                this.discoveredLoading = true;
+            }
             try {
                 const response = await window.api.get("/api/v1/reticulum/discovered-interfaces");
                 const discovered = response.data?.interfaces ?? [];
@@ -5883,6 +5891,8 @@ export default {
                 if (!silent) {
                     ToastUtils.error(this.$t("map.failed_fetch_nodes"));
                 }
+            } finally {
+                this.discoveredLoading = false;
             }
         },
         openMapPopout() {
@@ -6063,38 +6073,41 @@ export default {
     line-height: 1.4;
 }
 
-.ol-scale-line-host :deep(.ol-scale-line),
-.ol-scale-line-host :deep(.ol-scale-bar) {
+.ol-scale-line-host :deep(.ol-scale-line) {
     position: relative;
     bottom: auto;
     left: auto;
     right: auto;
     top: auto;
-    background: var(--mc-surface);
+    background: color-mix(in srgb, var(--mc-surface) 88%, transparent);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--mc-border);
-    border-radius: 6px;
-    padding: 3px 6px;
+    border-radius: 0.5rem;
+    padding: 3px 8px;
     max-width: 100%;
     box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+    --ol-foreground-color: var(--mc-text);
+    --ol-subtle-foreground-color: var(--mc-text);
 }
-.ol-scale-line-host :deep(.ol-scale-line-inner),
-.ol-scale-line-host :deep(.ol-scale-step-text),
-.ol-scale-line-host :deep(.ol-scale-text) {
-    color: var(--mc-text-muted);
+.ol-scale-line-host :deep(.ol-scale-line-inner) {
+    border-color: var(--mc-text);
+    color: var(--mc-text);
+    font-size: 0.625rem;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
 
-.ol-scale-line-host--dark-basemap :deep(.ol-scale-line),
-.ol-scale-line-host--dark-basemap :deep(.ol-scale-bar) {
+.ol-scale-line-host--dark-basemap :deep(.ol-scale-line) {
     background: transparent;
-    --ol-background-color: rgba(255, 255, 255, 0.14);
-    --ol-partial-background-color: transparent;
-    --ol-foreground-color: rgba(255, 255, 255, 0.8);
-    --ol-subtle-foreground-color: rgba(255, 255, 255, 0.3);
+    border-color: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    --ol-foreground-color: rgba(255, 255, 255, 0.85);
+    --ol-subtle-foreground-color: rgba(255, 255, 255, 0.85);
 }
-
-.ol-scale-line-host--dark-basemap :deep(.ol-scale-step-text),
-.ol-scale-line-host--dark-basemap :deep(.ol-scale-text) {
+.ol-scale-line-host--dark-basemap :deep(.ol-scale-line-inner) {
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.85);
     text-shadow:
         0 0 2px rgba(0, 0, 0, 0.9),
         0 1px 3px rgba(0, 0, 0, 0.85);
