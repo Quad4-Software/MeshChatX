@@ -124,6 +124,23 @@
                                     </button>
                                     <button
                                         type="button"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        :title="$t('bots.edit_icon')"
+                                        @click="openIconEditor(bot)"
+                                    >
+                                        <MaterialDesignIcon icon-name="palette" class="size-5" />
+                                    </button>
+                                    <button
+                                        v-if="(bot.template_id || bot.template) === 'custom'"
+                                        type="button"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        :title="$t('bots.edit_custom_commands')"
+                                        @click="openCustomEditor(bot)"
+                                    >
+                                        <MaterialDesignIcon icon-name="format-list-bulleted" class="size-5" />
+                                    </button>
+                                    <button
+                                        type="button"
                                         class="p-2 rounded-lg text-sem-fg-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.edit_lxmf_config')"
                                         @click="openLxmfConfig(bot)"
@@ -149,7 +166,14 @@
                                 </div>
 
                                 <div class="flex items-start gap-3 min-w-0">
-                                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
+                                    <LxmfUserIcon
+                                        v-if="bot.icon && bot.icon.icon_name"
+                                        :icon-name="bot.icon.icon_name"
+                                        :icon-foreground-colour="bot.icon.fg_color"
+                                        :icon-background-colour="bot.icon.bg_color"
+                                        icon-class="size-10"
+                                    />
+                                    <div v-else class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
                                         <MaterialDesignIcon icon-name="robot" class="size-6 text-sem-accent" />
                                     </div>
                                     <div class="min-w-0 flex-1 space-y-1.5 sm:pr-2">
@@ -207,6 +231,32 @@
                                             <span>{{
                                                 bot.running ? $t("bots.status_running") : $t("bots.status_stopped")
                                             }}</span>
+                                            <span v-if="bot.running && bot.uptime_seconds != null"
+                                                >&middot; {{ $t("bots.uptime") }}
+                                                {{ formatUptime(bot.uptime_seconds) }}</span
+                                            >
+                                        </div>
+                                        <div
+                                            v-if="bot.rrc && bot.rrc.hub"
+                                            class="text-[11px] text-sem-fg-muted min-w-0"
+                                        >
+                                            <span class="font-mono break-all"
+                                                >{{ $t("bots.rrc_hub") }}: {{ bot.rrc.hub }}</span
+                                            >
+                                            <span v-if="bot.rrc.rooms && bot.rrc.rooms.length">
+                                                &middot;
+                                                {{ bot.rrc.rooms.map((r) => "#" + r).join(", ") }}</span
+                                            >
+                                        </div>
+                                        <div
+                                            v-if="bot.custom && bot.custom.commands && bot.custom.commands.length"
+                                            class="text-[11px] text-sem-fg-muted"
+                                        >
+                                            {{
+                                                $t("bots.custom_command_count", {
+                                                    count: bot.custom.commands.length,
+                                                })
+                                            }}
                                         </div>
                                         <dl class="space-y-2.5 text-[11px] text-sem-fg-muted min-w-0">
                                             <div class="min-w-0">
@@ -367,6 +417,29 @@
                         {{ selectedTemplate.description }}
                     </div>
 
+                    <div v-if="selectedTemplate.id === 'custom'" class="rounded-lg border border-sem-border p-3">
+                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                            {{ $t("bots.custom_section") }}
+                        </div>
+                        <BotCustomCommandsEditor v-model="newBotCustomDraft" />
+                    </div>
+
+                    <div v-if="selectedTemplate.id === 'rrc'" class="rounded-lg border border-sem-border p-3">
+                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                            {{ $t("bots.rrc_section") }}
+                        </div>
+                        <BotRrcFields v-model="newBotRrcDraft" />
+                    </div>
+
+                    <details class="rounded-lg border border-sem-border p-3">
+                        <summary class="cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
+                            {{ $t("bots.appearance") }}
+                        </summary>
+                        <div class="mt-3">
+                            <LxmfIconEditor v-model="newBotIconDraft" />
+                        </div>
+                    </details>
+
                     <details class="rounded-lg border border-sem-border p-3">
                         <summary class="cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
                             {{ $t("bots.advanced_lxmf_settings") }}
@@ -397,6 +470,118 @@
                             <MaterialDesignIcon v-else icon-name="check" class="size-6" />
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="iconModalBot"
+            class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+            @click.self="closeIconEditor"
+        >
+            <div
+                class="w-full sm:max-w-lg rounded-t-2xl sm:rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0 pr-2">
+                        <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
+                            {{ $t("bots.icon_modal_title") }}
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                            {{ iconModalBot.name }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        @click="closeIconEditor"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+
+                <LxmfIconEditor v-model="iconDraft" />
+
+                <p v-if="iconModalBot.running" class="text-xs text-amber-700 dark:text-amber-400">
+                    {{ $t("bots.restart_hint_generic") }}
+                </p>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        @click="closeIconEditor"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
+                        :disabled="iconSaving"
+                        @click="saveIcon"
+                    >
+                        <span
+                            v-if="iconSaving"
+                            class="inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
+                        ></span>
+                        <MaterialDesignIcon v-else icon-name="check" class="size-6" />
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="customModalBot"
+            class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+            @click.self="closeCustomEditor"
+        >
+            <div
+                class="w-full sm:max-w-lg rounded-t-2xl sm:rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0 pr-2">
+                        <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
+                            {{ $t("bots.custom_modal_title") }}
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                            {{ customModalBot.name }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        @click="closeCustomEditor"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+
+                <BotCustomCommandsEditor v-model="customDraft" />
+
+                <p v-if="customModalBot.running" class="text-xs text-amber-700 dark:text-amber-400">
+                    {{ $t("bots.restart_hint_generic") }}
+                </p>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        @click="closeCustomEditor"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
+                        :disabled="customSaving"
+                        @click="saveCustom"
+                    >
+                        <span
+                            v-if="customSaving"
+                            class="inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
+                        ></span>
+                        <MaterialDesignIcon v-else icon-name="check" class="size-6" />
+                    </button>
                 </div>
             </div>
         </div>
@@ -477,7 +662,16 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import GlobalState from "../../js/GlobalState";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
+import LxmfIconEditor from "../LxmfIconEditor.vue";
 import LxmfConfigFields from "./internal/BotLxmfConfigFields.vue";
+import BotCustomCommandsEditor, {
+    buildCustomPayload,
+    defaultCustomDraft,
+    draftFromBotCustom,
+} from "./internal/BotCustomCommandsEditor.vue";
+import BotRrcFields, { buildRrcPayload, defaultRrcDraft } from "./internal/BotRrcFields.vue";
+import { defaultBotIconDraft } from "../LxmfIconEditor.vue";
 import { buildLxmfConfigPatch, defaultLxmfConfigDraft, draftFromBotLxmfConfig } from "./internal/botLxmfConfigForm.js";
 
 export default {
@@ -485,7 +679,11 @@ export default {
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        LxmfUserIcon,
+        LxmfIconEditor,
         LxmfConfigFields,
+        BotCustomCommandsEditor,
+        BotRrcFields,
     },
     data() {
         return {
@@ -494,6 +692,9 @@ export default {
             selectedTemplate: null,
             newBotName: "",
             newBotLxmfDraft: defaultLxmfConfigDraft(),
+            newBotIconDraft: null,
+            newBotCustomDraft: defaultCustomDraft(),
+            newBotRrcDraft: defaultRrcDraft(),
             isStarting: false,
             loading: true,
             refreshInterval: null,
@@ -508,6 +709,12 @@ export default {
             lxmfConfigModalBot: null,
             lxmfConfigDraft: defaultLxmfConfigDraft(),
             lxmfConfigSaving: false,
+            iconModalBot: null,
+            iconDraft: null,
+            iconSaving: false,
+            customModalBot: null,
+            customDraft: defaultCustomDraft(),
+            customSaving: false,
         };
     },
     computed: {
@@ -572,18 +779,42 @@ export default {
             this.selectedTemplate = template;
             this.newBotName = template.name;
             this.newBotLxmfDraft = defaultLxmfConfigDraft();
+            this.newBotIconDraft = template.default_icon ? defaultBotIconDraft(template.default_icon) : null;
+            this.newBotCustomDraft = defaultCustomDraft();
+            this.newBotRrcDraft = defaultRrcDraft();
         },
         async startBot() {
             if (this.isStarting) return;
+            const templateId = this.selectedTemplate.id;
+            if (templateId === "rrc") {
+                const hub = (this.newBotRrcDraft.hub || "").trim().toLowerCase();
+                if (!/^[0-9a-f]{32}$/.test(hub)) {
+                    ToastUtils.error(this.$t("bots.rrc_hub_required"));
+                    return;
+                }
+            }
+            if (templateId === "custom" && buildCustomPayload(this.newBotCustomDraft).commands.length === 0) {
+                ToastUtils.error(this.$t("bots.custom_requires_command"));
+                return;
+            }
             this.isStarting = true;
             try {
                 const payload = {
-                    template_id: this.selectedTemplate.id,
+                    template_id: templateId,
                     name: this.newBotName,
                 };
                 const lxmfPatch = buildLxmfConfigPatch(this.newBotLxmfDraft);
                 if (Object.keys(lxmfPatch).length > 0) {
                     payload.lxmf_config = lxmfPatch;
+                }
+                if (this.newBotIconDraft && this.newBotIconDraft.icon_name) {
+                    payload.icon = this.newBotIconDraft;
+                }
+                if (templateId === "custom") {
+                    payload.custom = buildCustomPayload(this.newBotCustomDraft);
+                }
+                if (templateId === "rrc") {
+                    payload.rrc = buildRrcPayload(this.newBotRrcDraft);
                 }
                 await window.api.post("/api/v1/bots/start", payload);
                 ToastUtils.success(this.$t("bots.bot_started"));
@@ -608,11 +839,15 @@ export default {
         },
         async startExisting(bot) {
             try {
-                await window.api.post("/api/v1/bots/start", {
+                const payload = {
                     bot_id: bot.id,
                     template_id: bot.template_id || bot.template,
                     name: bot.name,
-                });
+                };
+                if (payload.template_id === "rrc" && bot.rrc) {
+                    payload.rrc = bot.rrc;
+                }
+                await window.api.post("/api/v1/bots/start", payload);
                 ToastUtils.success(this.$t("bots.bot_started"));
                 this.getStatus();
             } catch (e) {
@@ -843,6 +1078,94 @@ export default {
             } finally {
                 this.lxmfConfigSaving = false;
             }
+        },
+        openIconEditor(bot) {
+            this.iconModalBot = bot;
+            this.iconDraft = bot.icon && bot.icon.icon_name ? { ...bot.icon } : null;
+        },
+        closeIconEditor() {
+            this.iconModalBot = null;
+            this.iconDraft = null;
+            this.iconSaving = false;
+        },
+        async saveIcon() {
+            if (!this.iconModalBot || this.iconSaving) {
+                return;
+            }
+            this.iconSaving = true;
+            try {
+                await window.api.patch("/api/v1/bots/update", {
+                    bot_id: this.iconModalBot.id,
+                    icon: this.iconDraft,
+                });
+                ToastUtils.success(this.$t("bots.icon_saved"));
+                if (this.iconModalBot.running) {
+                    ToastUtils.info(this.$t("bots.restart_hint_generic"));
+                }
+                this.closeIconEditor();
+                this.getStatus();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(e.response?.data?.message || this.$t("bots.icon_save_failed"));
+            } finally {
+                this.iconSaving = false;
+            }
+        },
+        openCustomEditor(bot) {
+            this.customModalBot = bot;
+            this.customDraft = draftFromBotCustom(bot.custom);
+        },
+        closeCustomEditor() {
+            this.customModalBot = null;
+            this.customDraft = defaultCustomDraft();
+            this.customSaving = false;
+        },
+        async saveCustom() {
+            if (!this.customModalBot || this.customSaving) {
+                return;
+            }
+            const payload = buildCustomPayload(this.customDraft);
+            if (payload.commands.length === 0) {
+                ToastUtils.error(this.$t("bots.custom_requires_command"));
+                return;
+            }
+            this.customSaving = true;
+            try {
+                await window.api.patch("/api/v1/bots/update", {
+                    bot_id: this.customModalBot.id,
+                    custom: payload,
+                });
+                ToastUtils.success(this.$t("bots.custom_saved"));
+                if (this.customModalBot.running) {
+                    ToastUtils.info(this.$t("bots.restart_hint_generic"));
+                }
+                this.closeCustomEditor();
+                this.getStatus();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(e.response?.data?.message || this.$t("bots.custom_save_failed"));
+            } finally {
+                this.customSaving = false;
+            }
+        },
+        formatUptime(seconds) {
+            let s = Math.max(0, Number(seconds) || 0);
+            const d = Math.floor(s / 86400);
+            s -= d * 86400;
+            const h = Math.floor(s / 3600);
+            s -= h * 3600;
+            const m = Math.floor(s / 60);
+            s -= m * 60;
+            if (d) {
+                return `${d}d ${h}h`;
+            }
+            if (h) {
+                return `${h}h ${m}m`;
+            }
+            if (m) {
+                return `${m}m ${Math.floor(s)}s`;
+            }
+            return `${Math.floor(s)}s`;
         },
     },
 };
