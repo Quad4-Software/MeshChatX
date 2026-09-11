@@ -130,6 +130,8 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 
+_MISSING = object()
+
 
 def register_bots_routes(routes, app):
 
@@ -182,6 +184,11 @@ def register_bots_routes(routes, app):
             )
 
         try:
+            extra = {}
+            if "icon" in data:
+                extra["icon"] = data.get("icon")
+            if "custom" in data:
+                extra["custom"] = data.get("custom")
             bot_id = await asyncio.to_thread(
                 app.bot_handler.start_bot,
                 template_id,
@@ -189,8 +196,15 @@ def register_bots_routes(routes, app):
                 bot_id,
                 None,
                 data.get("lxmf_config"),
+                data.get("rrc"),
+                **extra,
             )
             return web.json_response({"bot_id": bot_id, "success": True})
+        except ValueError as e:
+            return web.json_response(
+                {"message": str(e)},
+                status=400,
+            )
         except Exception as e:
             return web.json_response(
                 {"message": str(e)},
@@ -293,6 +307,9 @@ def register_bots_routes(routes, app):
         bot_id = data.get("bot_id")
         name = data.get("name")
         lxmf_config = data.get("lxmf_config")
+        rrc_config = data.get("rrc")
+        icon = data.get("icon", _MISSING)
+        custom = data.get("custom", _MISSING)
 
         if not bot_id:
             return web.json_response(
@@ -307,14 +324,38 @@ def register_bots_routes(routes, app):
                     bot_id,
                     name,
                 )
+            saved_lxmf = None
             if lxmf_config is not None:
-                saved = await asyncio.to_thread(
+                saved_lxmf = await asyncio.to_thread(
                     app.bot_handler.update_bot_lxmf_config,
                     bot_id,
                     lxmf_config,
                 )
-                return web.json_response({"success": True, "lxmf_config": saved})
-            return web.json_response({"success": True})
+            saved_rrc = None
+            if rrc_config is not None:
+                saved_rrc = await asyncio.to_thread(
+                    app.bot_handler.update_bot_rrc_config,
+                    bot_id,
+                    rrc_config,
+                )
+            response = {"success": True}
+            if saved_lxmf is not None:
+                response["lxmf_config"] = saved_lxmf
+            if saved_rrc is not None:
+                response["rrc"] = saved_rrc
+            if icon is not _MISSING:
+                response["icon"] = await asyncio.to_thread(
+                    app.bot_handler.update_bot_icon,
+                    bot_id,
+                    icon,
+                )
+            if custom is not _MISSING:
+                response["custom"] = await asyncio.to_thread(
+                    app.bot_handler.update_bot_custom,
+                    bot_id,
+                    custom,
+                )
+            return web.json_response(response)
         except ValueError as e:
             return web.json_response(
                 {"message": str(e)},

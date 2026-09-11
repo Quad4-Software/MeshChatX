@@ -8,16 +8,21 @@ import time
 import traceback
 
 from meshchatx.src.backend.bot_lxmf_config import load_bot_lxmf_config_sidecar
+from meshchatx.src.backend.bot_options import load_bot_runtime_sidecar
 from meshchatx.src.backend.bot_templates import (
+    CustomBotTemplate,
     EchoBotTemplate,
     NoteBotTemplate,
     ReminderBotTemplate,
+    RRCBotTemplate,
 )
 
 TEMPLATE_MAP = {
     "echo": EchoBotTemplate,
     "note": NoteBotTemplate,
     "reminder": ReminderBotTemplate,
+    "custom": CustomBotTemplate,
+    "rrc": RRCBotTemplate,
 }
 
 
@@ -53,6 +58,13 @@ def main():
         ),
     )
     parser.add_argument("--lxmf-config-file", default=None)
+    parser.add_argument("--runtime-config-file", default=None)
+    parser.add_argument("--rrc-hub", default=None)
+    parser.add_argument("--rrc-rooms", default="")
+    parser.add_argument("--rrc-nick", default=None)
+    parser.add_argument("--rrc-mention-only", type=int, choices=(0, 1), default=1)
+    parser.add_argument("--rrc-prefix", default="!")
+    parser.add_argument("--rrc-rate", type=int, default=8)
     args = parser.parse_args()
 
     storage_abs = os.path.abspath(args.storage)
@@ -74,6 +86,24 @@ def main():
     os.makedirs(reticulum_config_dir, exist_ok=True)
 
     lxmf_settings = load_bot_lxmf_config_sidecar(args.lxmf_config_file)
+    runtime_opts = load_bot_runtime_sidecar(args.runtime_config_file)
+
+    template_kwargs = {}
+    if "icon" in runtime_opts:
+        template_kwargs["icon"] = runtime_opts["icon"]
+    if args.template == "custom":
+        template_kwargs["custom"] = runtime_opts.get("custom")
+    if args.template == "rrc":
+        template_kwargs = {
+            "rrc_hub": args.rrc_hub,
+            "rrc_rooms": [
+                r.strip() for r in (args.rrc_rooms or "").split(",") if r.strip()
+            ],
+            "rrc_nick": args.rrc_nick,
+            "rrc_mention_only": bool(args.rrc_mention_only),
+            "rrc_command_prefix": args.rrc_prefix,
+            "rrc_rate_seconds": args.rrc_rate,
+        }
 
     try:
         BotCls = TEMPLATE_MAP[args.template]
@@ -84,6 +114,7 @@ def main():
             config_path=config_path,
             reticulum_config_dir=reticulum_config_dir,
             lxmf_settings=lxmf_settings,
+            **template_kwargs,
         )
     except BaseException:
         try:

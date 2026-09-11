@@ -978,6 +978,11 @@
                 </div>
             </div>
 
+            <!-- bots view -->
+            <div v-show="view === 'bots'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <RelayBotsPage v-if="view === 'bots'" :known-hubs="botsKnownHubs" />
+            </div>
+
             <!-- create hub dialog -->
             <div v-if="showCreateHub" :class="RELAY_HOST_MODAL_OVERLAY" @click.self="showCreateHub = false">
                 <div :class="RELAY_HOST_MODAL_PANEL_COMPACT" @click.stop>
@@ -1434,6 +1439,7 @@ import {
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import MdiIconPickerModal from "../MdiIconPickerModal.vue";
+import RelayBotsPage from "./RelayBotsPage.vue";
 import RelayHostModerationPage from "./RelayHostModerationPage.vue";
 import RelayMessageEntry from "./RelayMessageEntry.vue";
 import RelayMessageListVirtual from "./RelayMessageListVirtual.vue";
@@ -1501,6 +1507,7 @@ export default {
         MaterialDesignIcon,
         SearchInput,
         MdiIconPickerModal,
+        RelayBotsPage,
         RelayHostModerationPage,
         RelayMessageEntry,
         RelayMessageListVirtual,
@@ -1531,6 +1538,7 @@ export default {
                 { id: "chat", label: "relay_chat.tab_connect", icon: "forum" },
                 { id: "discovery", label: "relay_chat.tab_discovery", icon: "radar" },
                 { id: "host", label: "relay_chat.tab_host", icon: "server-network" },
+                { id: "bots", label: "relay_chat.tab_bots", icon: "robot" },
             ],
             view: "chat",
             discovered: [],
@@ -1647,6 +1655,23 @@ export default {
                 return false;
             }
             return this.serverHubs.some((s) => s.running && s.dest_hash === this.selectedHub.hub_hash);
+        },
+        botsKnownHubs() {
+            const seen = new Set();
+            const out = [];
+            for (const h of this.serverHubs) {
+                if (h.dest_hash && !seen.has(h.dest_hash)) {
+                    seen.add(h.dest_hash);
+                    out.push({ hash: h.dest_hash, name: h.name });
+                }
+            }
+            for (const h of this.hubs) {
+                if (h.hub_hash && !seen.has(h.hub_hash)) {
+                    seen.add(h.hub_hash);
+                    out.push({ hash: h.hub_hash, name: h.hub_name });
+                }
+            }
+            return out;
         },
         effectiveSidebarCollapsed() {
             return this.relaySidebarCollapsed && this.smUp && !this.isPopoutMode;
@@ -1932,7 +1957,7 @@ export default {
             if (!saved) {
                 return;
             }
-            if (saved.view === "chat" || saved.view === "discovery" || saved.view === "host") {
+            if (["chat", "discovery", "host", "bots"].includes(saved.view)) {
                 this.view = saved.view;
             }
             if (typeof saved.relaySidebarCollapsed === "boolean") {
