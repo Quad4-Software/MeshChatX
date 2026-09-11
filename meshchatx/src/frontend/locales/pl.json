@@ -2874,7 +2874,12 @@
         "recrawl_pending": "Pobieranie bieżącej strony...",
         "recrawl_done": "Strona ponownie zaindeksowana",
         "recrawl_failed": "Ponowne indeksowanie nie powiodło się. Spróbuj ponownie.",
-        "rendering": "Renderowanie..."
+        "rendering": "Renderowanie...",
+        "export": "Eksportuj",
+        "exporting": "Eksportowanie...",
+        "export_all": "Eksportuj wszystko (.zip)",
+        "export_failed": "Nie udało się wyeksportować migawki.",
+        "export_all_failed": "Nie udało się wyeksportować archiwów. Spróbuj ponownie."
     },
     "docs": {
         "title": "Dokumentacja",

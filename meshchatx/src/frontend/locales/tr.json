@@ -2874,7 +2874,12 @@
         "recrawl_pending": "Canlı sayfa getiriliyor...",
         "recrawl_done": "Sayfa yeniden tarandı",
         "recrawl_failed": "Yeniden tarama başarısız oldu. Tekrar dene.",
-        "rendering": "Oluşturuluyor..."
+        "rendering": "Oluşturuluyor...",
+        "export": "Dışa aktar",
+        "exporting": "Dışa aktarılıyor...",
+        "export_all": "Tümünü dışa aktar (.zip)",
+        "export_failed": "Anlık görüntü dışa aktarılamadı.",
+        "export_all_failed": "Arşivler dışa aktarılamadı. Tekrar deneyin."
     },
     "docs": {
         "title": "Belgeler",

@@ -2874,7 +2874,12 @@
         "recrawl_pending": "Haetaan live-sivua...",
         "recrawl_done": "Sivu haettu uudelleen",
         "recrawl_failed": "Uudelleenhaku epäonnistui. Yritä uudelleen.",
-        "rendering": "Hahmonnetaan..."
+        "rendering": "Hahmonnetaan...",
+        "export": "Vie",
+        "exporting": "Viedään...",
+        "export_all": "Vie kaikki (.zip)",
+        "export_failed": "Tilannevedoksen vienti epäonnistui.",
+        "export_all_failed": "Arkistojen vienti epäonnistui. Yritä uudelleen."
     },
     "docs": {
         "title": "Dokumentaatio",

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ArchivesPage from "@/components/archives/ArchivesPage.vue";
 import { createTestI18n } from "./testI18n.js";
@@ -125,5 +125,60 @@ describe("ArchivesPage.vue", () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+
+    it("card export link fetches the snapshot and downloads the .mu", async () => {
+        api.get
+            .mockResolvedValueOnce({
+                data: {
+                    archives: [
+                        {
+                            id: 7,
+                            destination_hash: "ab".repeat(16),
+                            node_name: "Node",
+                            page_path: "/page/index.mu",
+                            hash: "aabbccddeeff0011",
+                            created_at: "2024-01-01T00:00:00Z",
+                        },
+                    ],
+                    pagination: { page: 1, limit: 25, total_count: 1, total_pages: 1 },
+                },
+            })
+            .mockResolvedValueOnce({
+                data: { archive: { id: 7, content: "# hi", page_path: "/page/index.mu" } },
+            });
+        const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+        const wrapper = mountPage();
+        await flushPromises();
+        const exportBtn = wrapper.find('button[title="Export .mu"]');
+        expect(exportBtn.exists()).toBe(true);
+        await exportBtn.trigger("click");
+        await flushPromises();
+        expect(api.get).toHaveBeenCalledWith("/api/v1/nomadnet/archives/7");
+        expect(createObjectURLSpy).toHaveBeenCalled();
+        expect(clickSpy).toHaveBeenCalled();
+        clickSpy.mockRestore();
+    });
+
+    it("export all requests the zip endpoint with active filters and downloads", async () => {
+        const wrapper = mountPage();
+        await flushPromises();
+        wrapper.vm.searchQuery = "mesh";
+        wrapper.vm.nodeFilter = "cc".repeat(16);
+        const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+        const exportAllBtn = wrapper.findAll("button").find((b) => b.text().includes("Export all"));
+        expect(exportAllBtn).toBeTruthy();
+        await exportAllBtn.trigger("click");
+        await flushPromises();
+        expect(api.get).toHaveBeenCalledWith(
+            "/api/v1/nomadnet/archives/export",
+            expect.objectContaining({
+                responseType: "blob",
+                params: { q: "mesh", destination_hash: "cc".repeat(16) },
+            })
+        );
+        expect(createObjectURLSpy).toHaveBeenCalled();
+        expect(clickSpy).toHaveBeenCalled();
+        clickSpy.mockRestore();
     });
 });

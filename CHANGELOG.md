@@ -38,6 +38,9 @@ All notable changes to this project will be documented in this file.
 - Long-press on nomad page content on Android now opens the page/tab context menu, matching desktop right-click.
 - Fixed map tab right-click menu rendering behind the map toolbar: context menus now sit above page chrome.
 - The map scale now sits in a row with the credits chip at bottom-right, and map overlays are capped and stacked so toolbars, search, and info cards no longer overlap each other on narrow screens.
+- Archives can be exported in bulk: an Export all (.zip) action below the search box downloads a zip bundle of the filtered set with a manifest, and each archive card gains an Export action that downloads the snapshot as a .mu file.
+- Relay chat member lists show avatar initials with presence dots, sticky online/offline headers, and a mention hint on hover; right-clicking a member copies their identity hash.
+- Relay chat room headers now show the hub MOTD inline next to the room and hub name instead of a separate banner row.
 - Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
 - Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
 

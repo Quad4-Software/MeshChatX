@@ -2874,7 +2874,12 @@
         "recrawl_pending": "Récupération de la page en direct...",
         "recrawl_done": "Page crawlée à nouveau",
         "recrawl_failed": "Échec du crawl. Réessaie.",
-        "rendering": "Rendu..."
+        "rendering": "Rendu...",
+        "export": "Exporter",
+        "exporting": "Exportation...",
+        "export_all": "Tout exporter (.zip)",
+        "export_failed": "Échec de l'exportation de l'instantané.",
+        "export_all_failed": "Échec de l'exportation des archives. Réessayez."
     },
     "docs": {
         "title": "Documentation",

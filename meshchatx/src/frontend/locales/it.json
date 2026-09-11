@@ -2874,7 +2874,12 @@
         "recrawl_pending": "Recupero pagina live...",
         "recrawl_done": "Pagina crawlata di nuovo",
         "recrawl_failed": "Crawl non riuscito. Riprova.",
-        "rendering": "Rendering in corso..."
+        "rendering": "Rendering in corso...",
+        "export": "Esporta",
+        "exporting": "Esportazione...",
+        "export_all": "Esporta tutto (.zip)",
+        "export_failed": "Esportazione dello snapshot non riuscita.",
+        "export_all_failed": "Esportazione degli archivi non riuscita. Riprova."
     },
     "docs": {
         "title": "Documentazione",

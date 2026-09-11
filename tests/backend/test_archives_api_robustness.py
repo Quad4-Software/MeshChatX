@@ -204,3 +204,66 @@ async def test_nomadnet_page_download_invalid_hex_does_not_raise(mock_app):
             },
         },
     )
+
+
+@pytest.mark.asyncio
+async def test_export_archives_returns_zip_with_manifest(mock_app):
+    import io
+    import zipfile
+
+    handler = _handler(mock_app, "GET", "/api/v1/nomadnet/archives/export")
+    assert handler is not None
+
+    misc = mock_app.database.misc
+    misc.archive_page("aa" * 16, "/page/index.mu", "# Hello", "a" * 64)
+    misc.archive_page("aa" * 16, "/page/index.mu", "# Hello v2", "b" * 64)
+    misc.archive_page("bb" * 16, "/notes.txt", "note body", "c" * 64)
+
+    request = MagicMock()
+    request.query = {}
+    response = await handler(request)
+    assert response.status == 200
+    assert response.content_type == "application/zip"
+    assert "attachment" in response.headers["Content-Disposition"]
+
+    zf = zipfile.ZipFile(io.BytesIO(response.body))
+    names = set(zf.namelist())
+    assert "manifest.json" in names
+    manifest = json.loads(zf.read("manifest.json"))
+    assert manifest["format"] == "meshchatx-archives"
+    assert len(manifest["archives"]) == 3
+    files = [m["file"] for m in manifest["archives"]]
+    assert len(files) == len(set(files))
+    bodies = {
+        m["file"]: zf.read(m["file"]).decode("utf-8") for m in manifest["archives"]
+    }
+    assert "# Hello" in bodies.values()
+    assert "note body" in bodies.values()
+
+
+@pytest.mark.asyncio
+async def test_export_archives_respects_filters(mock_app):
+    import io
+    import zipfile
+
+    handler = _handler(mock_app, "GET", "/api/v1/nomadnet/archives/export")
+    misc = mock_app.database.misc
+    misc.archive_page("aa" * 16, "/page/index.mu", "# Hello", "a" * 64)
+    misc.archive_page("bb" * 16, "/notes.txt", "note body", "c" * 64)
+
+    request = MagicMock()
+    request.query = {"destination_hash": "bb" * 16}
+    response = await handler(request)
+    assert response.status == 200
+    zf = zipfile.ZipFile(io.BytesIO(response.body))
+    manifest = json.loads(zf.read("manifest.json"))
+    assert len(manifest["archives"]) == 1
+    assert manifest["archives"][0]["destination_hash"] == "bb" * 16
+
+    request = MagicMock()
+    request.query = {"q": "note body"}
+    response = await handler(request)
+    zf = zipfile.ZipFile(io.BytesIO(response.body))
+    manifest = json.loads(zf.read("manifest.json"))
+    assert len(manifest["archives"]) == 1
+    assert manifest["archives"][0]["page_path"] == "/notes.txt"

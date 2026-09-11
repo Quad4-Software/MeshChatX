@@ -2874,7 +2874,12 @@
         "recrawl_pending": "라이브 페이지를 가져오는 중...",
         "recrawl_done": "페이지가 다시 크롤링되었습니다",
         "recrawl_failed": "다시 크롤링에 실패했습니다. 다시 시도하세요.",
-        "rendering": "렌더링 중..."
+        "rendering": "렌더링 중...",
+        "export": "보내기",
+        "exporting": "보내는 중...",
+        "export_all": "모두보내기 (.zip)",
+        "export_failed": "스냅샷보내기에 실패했습니다.",
+        "export_all_failed": "아카이브보내기에 실패했습니다. 다시 시도하세요."
     },
     "docs": {
         "title": "문서",
