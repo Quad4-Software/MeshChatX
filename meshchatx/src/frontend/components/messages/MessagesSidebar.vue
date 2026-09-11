@@ -424,6 +424,7 @@
                                     @touchcancel="onConversationTouchEnd"
                                     @contextmenu="onRightClick($event, conversation.destination_hash)"
                                     @dragstart="onDragStart($event, conversation.destination_hash)"
+                                    @dragend="onDragEnd"
                                 >
                                     <!-- Selection Checkbox -->
                                     <div v-if="selectionMode" class="my-auto mr-3 px-1">
@@ -575,6 +576,7 @@
                                 @touchcancel="onConversationTouchEnd"
                                 @contextmenu="onRightClick($event, conversation.destination_hash)"
                                 @dragstart="onDragStart($event, conversation.destination_hash)"
+                                @dragend="onDragEnd"
                             >
                                 <div v-if="selectionMode" class="my-auto mr-3 px-1">
                                     <input
@@ -710,6 +712,10 @@
                                         ? $t("messages.unpin_conversation")
                                         : $t("messages.pin_conversation")
                                 }}
+                            </ContextMenuItem>
+                            <ContextMenuItem v-if="contextMenu.targetHash" @click="openInSplitFromContextMenu">
+                                <MaterialDesignIcon icon-name="dock-right" class="size-4 text-sem-fg-muted" />
+                                {{ $t("messages.open_in_split") }}
                             </ContextMenuItem>
                             <ContextMenuItem v-if="contextMenu.targetHash" @click="copyLxmfFromContextMenu">
                                 <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-fg-muted" />
@@ -1126,6 +1132,9 @@ export default {
         "messages-imported",
         "toggle-conversation-pin",
         "toggle-collapse",
+        "conversation-drag-start",
+        "conversation-drag-end",
+        "open-in-split",
     ],
     setup() {
         return { MIN_VIRTUAL_SIDEBAR_ITEMS };
@@ -1373,6 +1382,18 @@ export default {
             this.draggedHash = hash;
             event.dataTransfer.setData("text/plain", hash);
             event.dataTransfer.effectAllowed = "move";
+            this.$emit("conversation-drag-start");
+        },
+        onDragEnd() {
+            this.draggedHash = null;
+            this.$emit("conversation-drag-end");
+        },
+        openInSplitFromContextMenu() {
+            const hash = this.contextMenu.targetHash;
+            this.contextMenu.show = false;
+            if (hash) {
+                this.$emit("open-in-split", hash);
+            }
         },
         onDragOver(event, folderId) {
             event.preventDefault();

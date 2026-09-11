@@ -56,6 +56,9 @@
             @messages-imported="onMessagesImported"
             @toggle-conversation-pin="onToggleConversationPin"
             @toggle-collapse="messagesListSidebarCollapsed = !messagesListSidebarCollapsed"
+            @conversation-drag-start="isConversationDragging = true"
+            @conversation-drag-end="isConversationDragging = false"
+            @open-in-split="openPeerInSplit"
         />
 
         <div
@@ -111,7 +114,7 @@
             </template>
 
             <div
-                v-if="canAddPane"
+                v-if="canAddPane && isConversationDragging"
                 class="hidden shrink-0 items-center border-l border-sem-border bg-sem-surface-muted sm:flex transition-colors"
                 :class="{ 'bg-sem-accent/10 ring-2 ring-inset ring-sem-accent': isDragOverAddZone }"
                 @dragover.prevent="onAddZoneDragOver"
@@ -379,6 +382,7 @@ export default {
             resizingPaneIds: null,
             dragOverPaneId: null,
             isDragOverAddZone: false,
+            isConversationDragging: false,
             isWideViewport: false,
             isWideEnoughForThreePanes: false,
             paneViewportQuery: null,
@@ -1770,6 +1774,14 @@ export default {
             this.isDragOverAddZone = false;
             const hash = event?.dataTransfer?.getData("text/plain");
             if (!hash || this.panes.length >= this.maxPanes) {
+                return;
+            }
+            const id = this.nextPaneId++;
+            this.panes.push({ id, peer: null });
+            this.openConversationInPane(id, hash);
+        },
+        openPeerInSplit(hash) {
+            if (!hash || this.panes.length >= this.maxPanes || !this.isWideViewport) {
                 return;
             }
             const id = this.nextPaneId++;

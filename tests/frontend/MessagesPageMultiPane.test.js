@@ -127,6 +127,37 @@ describe("MessagesPage multi-pane", () => {
         expect(wrapper.vm.panes).toHaveLength(2);
     });
 
+    it("shows the add-pane strip only while a conversation drag is active", async () => {
+        const wrapper = mountMessagesPage();
+        wrapper.vm.isWideViewport = true;
+        wrapper.vm.selectedPeer = { destination_hash: "a".repeat(32) };
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.canAddPane).toBe(true);
+        const findStrip = () =>
+            wrapper.findAll("button").find((b) => b.attributes("title") === "messages.open_in_split");
+
+        expect(findStrip()).toBeUndefined();
+
+        wrapper.vm.isConversationDragging = true;
+        await wrapper.vm.$nextTick();
+        expect(findStrip()).toBeTruthy();
+
+        wrapper.vm.isConversationDragging = false;
+        await wrapper.vm.$nextTick();
+        expect(findStrip()).toBeUndefined();
+    });
+
+    it("openPeerInSplit adds a pane and opens the peer in it", async () => {
+        const wrapper = mountMessagesPage();
+        wrapper.vm.isWideViewport = true;
+        wrapper.vm.selectedPeer = { destination_hash: "b".repeat(32) };
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.openPeerInSplit("c".repeat(32));
+        expect(wrapper.vm.panes).toHaveLength(2);
+    });
+
     it("onPanePeerUpdate focuses the pane and assigns its peer", async () => {
         const wrapper = mountMessagesPage();
         wrapper.vm.isWideViewport = true;
