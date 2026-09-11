@@ -116,10 +116,17 @@ class IdentityContext:
         self.community_interfaces_manager = None
         self.local_lxmf_destination = None
         self.announce_handlers = []
+        app_version = None
+        with contextlib.suppress(Exception):
+            version = app.get_app_version()
+            if isinstance(version, str):
+                app_version = version
         self.integrity_manager = IntegrityManager(
             self.storage_path,
             self.database_path,
             self.identity_hash,
+            trust_dir=os.path.join(app.storage_dir, "integrity"),
+            app_version=app_version,
         )
 
         self.running = False
@@ -726,7 +733,7 @@ class IdentityContext:
 
         if not getattr(self.app, "emergency", False):
             try:
-                is_ok, issues = self.integrity_manager.check_integrity()
+                is_ok, issues = self.integrity_manager.check_integrity(live=True)
                 if not is_ok:
                     print(
                         f"INTEGRITY WARNING (deferred) for {self.identity_hash}: {', '.join(issues)}",
@@ -736,8 +743,17 @@ class IdentityContext:
                     for issue in issues:
                         if issue not in self.app.integrity_issues:
                             self.app.integrity_issues.append(issue)
-                if self._deferred_still_active():
-                    self.integrity_manager.save_manifest()
+                # First run establishes the baseline here. Later runs only
+                # re-baseline at clean shutdown or explicit acknowledge so
+                # flagged issues are never silently blessed mid-session.
+                if (
+                    self._deferred_still_active()
+                    and self.integrity_manager.baseline_pending
+                    and not select_critical_integrity_issues(
+                        self.integrity_manager.issues,
+                    )
+                ):
+                    self.integrity_manager.save_manifest(reason="initial")
             except Exception as exc:
                 print(f"Failed deferred integrity pass: {exc}")
 
@@ -1161,9 +1177,17 @@ class IdentityContext:
                     f"Error checking database health after close for {self.identity_hash}: {e}",
                 )
 
-            # Save integrity manifest AFTER closing to capture final stable state
-            if self.integrity_manager:
-                self.integrity_manager.save_manifest()
+            # Save integrity manifest AFTER closing to capture final stable state.
+            # Unacknowledged critical findings keep the old baseline so they
+            # are detected again at next startup instead of being blessed.
+            if self.integrity_manager and not getattr(self.app, "emergency", False):
+                if select_critical_integrity_issues(self.integrity_manager.issues):
+                    print(
+                        "Skipping integrity baseline update: "
+                        "unacknowledged critical issues",
+                    )
+                else:
+                    self.integrity_manager.save_manifest(reason="shutdown")
             self.database = None
 
         if self.config:

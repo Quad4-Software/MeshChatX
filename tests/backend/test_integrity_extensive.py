@@ -53,25 +53,22 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
             f"Expected structural issue in: {issues}",
         )
 
-    def test_entropy_shift_detection(self):
-        """Test detection of content type change (e.g. replacing text with random bytes)."""
-        # 1. Start with a highly structured file (low entropy)
-        # Use a non-critical filename to trigger the entropy check branch
+    def test_content_replacement_detection(self):
+        """Replacing a monitored file's content must flag a signature mismatch."""
         data_file = self.test_dir / "user_data.bin"
         with open(data_file, "wb") as f:
             f.write(b"A" * 5000)
 
         self.manager.save_manifest()
 
-        # 2. Replace with high-entropy data (random bytes)
         with open(data_file, "wb") as f:
             f.write(os.urandom(5000))
 
         is_ok, issues = self.manager.check_integrity()
         self.assertFalse(is_ok, f"Integrity should fail. Issues: {issues}")
         self.assertTrue(
-            any("Non-linear content shift" in i or "Entropy Δ" in i for i in issues),
-            f"Expected entropy shift in: {issues}",
+            any("File signature mismatch" in i for i in issues),
+            f"Expected signature mismatch in: {issues}",
         )
 
     def test_ignore_patterns_extensive(self):
@@ -174,29 +171,30 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
         with open(self.manager.manifest_path) as f:
             manifest = json.load(f)
 
-        self.assertEqual(manifest["version"], 2)
+        self.assertEqual(manifest["version"], 3)
         self.assertIn("metadata", manifest)
+        self.assertIn("clean_exit", manifest)
+        self.assertIn("pending_issues", manifest)
 
         # Check if database metadata exists
         db_rel = str(self.db_path.relative_to(self.test_dir))
         self.assertIn(db_rel, manifest["metadata"])
-        self.assertIn("entropy", manifest["metadata"][db_rel])
         self.assertIn("size", manifest["metadata"][db_rel])
+        self.assertIn("mtime_ns", manifest["metadata"][db_rel])
 
     def test_database_size_divergence(self):
-        """Verify size changes are caught when hash changes but entropy is similar."""
+        """Verify content changes to the database are flagged."""
         self.manager.save_manifest()
 
-        # Grow the database with similar content
+        # Grow the database
         conn = sqlite3.connect(self.db_path)
         conn.execute("INSERT INTO data (val) VALUES (?)", ("more content" * 100,))
         conn.commit()
         conn.close()
 
         is_ok, issues = self.manager.check_integrity()
-        # Even if entropy shift is low, hash and size changed
-        if not is_ok:
-            self.assertTrue(any("Database" in i for i in issues))
+        self.assertFalse(is_ok)
+        self.assertTrue(any("database.db" in i for i in issues))
 
     # ------------------------------------------------------------------
     # Corrupt / malformed manifest
@@ -280,99 +278,245 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
         self.assertIsInstance(msg, str)
 
     # ------------------------------------------------------------------
-    # Entropy threshold boundaries
+    # Clean-exit tracking / lenient mode
     # ------------------------------------------------------------------
 
-    def test_entropy_threshold_db_just_below(self):
-        """DB entropy delta of 0.99 should NOT trigger anomaly warning."""
-        self.manager.save_manifest()
+    def test_unclean_shutdown_demotes_noncritical_drift(self):
+        """Demote drift in non-critical files after an unclean shutdown."""
+        notes = self.test_dir / "notes.bin"
+        notes.write_bytes(b"before crash")
+        self.manager.save_manifest(reason="initial")
 
-        with open(self.manager.manifest_path) as f:
-            manifest = json.load(f)
-
-        db_rel = str(self.db_path.relative_to(self.test_dir))
-        real_entropy = manifest["metadata"][db_rel]["entropy"]
-        manifest["metadata"][db_rel]["entropy"] = real_entropy + 0.99
-
-        with open(self.manager.manifest_path, "w") as f:
-            json.dump(manifest, f)
-
-        _is_ok, issues = self.manager.check_integrity()
-        self.assertFalse(
-            any("structural anomaly" in i for i in issues),
-            f"Should not flag anomaly at delta=0.99: {issues}",
-        )
-
-    def test_entropy_threshold_db_just_above(self):
-        """DB entropy delta of 1.01 should trigger anomaly warning."""
-        self.manager.save_manifest()
-
-        with open(self.manager.manifest_path) as f:
-            manifest = json.load(f)
-
-        db_rel = str(self.db_path.relative_to(self.test_dir))
-        real_entropy = manifest["metadata"][db_rel]["entropy"]
-        manifest["metadata"][db_rel]["entropy"] = real_entropy + 1.01
-
-        # Also change the file hash so it triggers the comparison path
-        manifest["files"][db_rel] = "0" * 64
-
-        with open(self.manager.manifest_path, "w") as f:
-            json.dump(manifest, f)
+        notes.write_bytes(b"changed during crashed run")
 
         is_ok, issues = self.manager.check_integrity()
         self.assertFalse(is_ok)
         self.assertTrue(
-            any("structural anomaly" in i or "Entropy" in i for i in issues),
-            f"Should flag anomaly at delta=1.01: {issues}",
+            any("Expected change" in i and "notes.bin" in i for i in issues),
+            f"Expected demoted drift in: {issues}",
         )
-
-    def test_entropy_threshold_file_1_49_no_flag(self):
-        """Non-DB file entropy delta of 1.49 should NOT trigger content shift."""
-        data_file = self.test_dir / "payload.bin"
-        data_file.write_bytes(b"X" * 2000)
-        self.manager.save_manifest()
-
-        with open(self.manager.manifest_path) as f:
-            manifest = json.load(f)
-
-        rel = str(data_file.relative_to(self.test_dir))
-        real_entropy = manifest["metadata"][rel]["entropy"]
-        manifest["metadata"][rel]["entropy"] = real_entropy + 1.49
-        manifest["files"][rel] = "0" * 64
-
-        with open(self.manager.manifest_path, "w") as f:
-            json.dump(manifest, f)
-
-        _is_ok, issues = self.manager.check_integrity()
         self.assertFalse(
-            any("Non-linear content shift" in i for i in issues),
-            f"Should not flag content shift at delta=1.49: {issues}",
+            any("File signature mismatch" in i for i in issues),
+            f"Strict mismatch should not fire after unclean shutdown: {issues}",
         )
 
-    def test_entropy_threshold_file_1_51_flags(self):
-        """Non-DB file entropy delta of 1.51 should trigger content shift."""
-        data_file = self.test_dir / "payload.bin"
-        data_file.write_bytes(b"X" * 2000)
-        self.manager.save_manifest()
+    def test_clean_shutdown_keeps_strict_drift(self):
+        """A clean shutdown baseline flags the same drift as a mismatch."""
+        notes = self.test_dir / "notes.bin"
+        notes.write_bytes(b"before shutdown")
+        self.manager.save_manifest(reason="shutdown")
 
-        with open(self.manager.manifest_path) as f:
-            manifest = json.load(f)
+        notes.write_bytes(b"changed while app was off")
 
-        rel = str(data_file.relative_to(self.test_dir))
-        real_entropy = manifest["metadata"][rel]["entropy"]
-        manifest["metadata"][rel]["entropy"] = real_entropy + 1.51
-        manifest["files"][rel] = "0" * 64
+        is_ok, issues = self.manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(any("File signature mismatch" in i for i in issues))
 
-        with open(self.manager.manifest_path, "w") as f:
-            json.dump(manifest, f)
+    def test_unclean_shutdown_still_flags_critical(self):
+        """Critical files stay strict even after an unclean shutdown."""
+        (self.test_dir / "identity").write_bytes(b"key-bytes")
+        self.manager.save_manifest(reason="initial")
+
+        (self.test_dir / "identity").write_bytes(b"tampered-key")
 
         is_ok, issues = self.manager.check_integrity()
         self.assertFalse(is_ok)
         self.assertTrue(
-            any("Non-linear content shift" in i for i in issues),
-            f"Should flag content shift at delta=1.51: {issues}",
+            any("Critical security component" in i for i in issues),
+            f"Identity drift must stay critical after crash: {issues}",
         )
+
+    def test_app_version_change_is_lenient(self):
+        """A baseline saved by an older app version tolerates drift."""
+        self.manager.save_manifest(reason="shutdown")
+
+        with open(self.manager.manifest_path) as f:
+            manifest = json.load(f)
+        manifest["app_version"] = "0.0.0-old"
+        with open(self.manager.manifest_path, "w") as f:
+            json.dump(manifest, f)
+
+        manager = IntegrityManager(self.test_dir, self.db_path, app_version="9.9.9")
+        notes = self.test_dir / "notes.bin"
+        notes.write_bytes(b"installer touched this")
+
+        is_ok, issues = manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(
+            any("Expected change" in i and "notes.bin" in i for i in issues),
+            f"Expected demoted drift after upgrade: {issues}",
+        )
+
+    # ------------------------------------------------------------------
+    # Pending issues persist until acknowledged
+    # ------------------------------------------------------------------
+
+    def test_pending_issues_resurface_next_run(self):
+        """Unacknowledged findings carry into the next manifest and resurface."""
+        notes = self.test_dir / "notes.bin"
+        notes.write_bytes(b"original")
+        self.manager.save_manifest()
+
+        notes.write_bytes(b"tampered while off")
+        is_ok, _issues = self.manager.check_integrity()
+        self.assertFalse(is_ok)
+
+        # Simulate the app shutting down with the warning unacknowledged
+        notes.write_bytes(b"tampered while off")  # state still differs
+        self.manager.save_manifest(reason="shutdown")
+
+        fresh = IntegrityManager(self.test_dir, self.db_path)
+        is_ok, issues = fresh.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(
+            any("Previously reported" in i for i in issues),
+            f"Pending issues should resurface: {issues}",
+        )
+
+    def test_acknowledge_clears_pending_issues(self):
+        """save_manifest(reason='acknowledge') drops carried findings."""
+        notes = self.test_dir / "notes.bin"
+        notes.write_bytes(b"original")
+        self.manager.save_manifest()
+
+        notes.write_bytes(b"tampered while off")
+        is_ok, _issues = self.manager.check_integrity()
+        self.assertFalse(is_ok)
+
+        self.manager.save_manifest(reason="acknowledge")
+
+        with open(self.manager.manifest_path) as f:
+            manifest = json.load(f)
+        self.assertEqual(manifest["pending_issues"], [])
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertTrue(is_ok, f"Baseline should be clean after ack: {issues}")
+
+    # ------------------------------------------------------------------
+    # Manifest authenticity (trust_dir)
+    # ------------------------------------------------------------------
+
+    def _trusted_manager(self):
+        trust_dir = self.test_dir / "trust"
+        storage = self.test_dir / "identities" / "id1"
+        storage.mkdir(parents=True)
+        db = storage / "database.db"
+        conn = sqlite3.connect(db)
+        conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY)")
+        conn.close()
+        (storage / "identity").write_bytes(b"key")
+        return (
+            IntegrityManager(
+                storage,
+                db,
+                identity_hash="id1",
+                trust_dir=trust_dir,
+            ),
+            storage,
+            db,
+        )
+
+    def test_signed_manifest_detects_tamper(self):
+        """Hand-editing a signed manifest must be flagged."""
+        manager, _storage, _db = self._trusted_manager()
+        manager.save_manifest()
+
+        with open(manager.manifest_path) as f:
+            manifest = json.load(f)
+        self.assertIn("hmac", manifest)
+        manifest["files"] = {}
+        with open(manager.manifest_path, "w") as f:
+            json.dump(manifest, f)
+
+        is_ok, issues = manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(
+            any("manifest tampered" in i.lower() for i in issues),
+            f"Expected manifest tamper detection: {issues}",
+        )
+
+    def test_deleted_manifest_detected_via_registry(self):
+        """Deleting the manifest must not downgrade the check to a pass."""
+        manager, _storage, _db = self._trusted_manager()
+        manager.save_manifest()
+
+        manager.manifest_path.unlink()
+
+        is_ok, issues = manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(
+            any("manifest removed" in i.lower() for i in issues),
+            f"Expected manifest-removal detection: {issues}",
+        )
+
+    def test_cross_identity_manifest_swap_detected(self):
+        """A manifest copied from another identity fails signature binding."""
+        manager1, _storage1, _db1 = self._trusted_manager()
+        manager1.save_manifest()
+
+        storage2 = self.test_dir / "identities" / "id2"
+        storage2.mkdir(parents=True)
+        db2 = storage2 / "database.db"
+        conn = sqlite3.connect(db2)
+        conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY)")
+        conn.close()
+        (storage2 / "identity").write_bytes(b"other-key")
+
+        # Attacker copies the valid manifest from identity 1 to identity 2
+        shutil.copy(manager1.manifest_path, storage2 / manager1.MANIFEST_NAME)
+
+        manager2 = IntegrityManager(
+            storage2,
+            db2,
+            identity_hash="id2",
+            trust_dir=manager1.trust_dir,
+        )
+        is_ok, issues = manager2.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(any("Identity mismatch" in i for i in issues))
+
+    def test_unsigned_legacy_manifest_accepted(self):
+        """Manifests written before signing existed still work once."""
+        manager, _storage, _db = self._trusted_manager()
+        # Write a v2-style manifest without hmac
+        scanned = manager._scan_storage()
+        manifest = {
+            "version": 2,
+            "identity": "id1",
+            "files": {rel: e["sha256"] for rel, e in scanned.items()},
+            "metadata": {},
+        }
+        manager.manifest_path.write_text(json.dumps(manifest))
+
+        is_ok, issues = manager.check_integrity()
+        self.assertTrue(is_ok, f"Legacy manifest should pass: {issues}")
+
+    # ------------------------------------------------------------------
+    # Stat pre-filter
+    # ------------------------------------------------------------------
+
+    def test_mtime_only_touch_does_not_flag(self):
+        """Changing mtime without changing content must not alert."""
+        notes = self.test_dir / "notes.bin"
+        notes.write_bytes(b"stable content")
+        self.manager.save_manifest()
+
+        os.utime(notes, (1_700_000_000, 1_700_000_000))
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertTrue(is_ok, f"mtime-only change should pass: {issues}")
+
+    def test_live_mode_skips_database_hash(self):
+        """During a run the open database is expected to differ."""
+        self.manager.save_manifest()
+
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("INSERT INTO data (val) VALUES ('live write')")
+        conn.commit()
+        conn.close()
+
+        is_ok, issues = self.manager.check_integrity(live=True)
+        self.assertTrue(is_ok, f"Live check must not flag db writes: {issues}")
 
     # ------------------------------------------------------------------
     # DB outside storage_dir
@@ -395,28 +539,6 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
             self.assertTrue(is_ok or isinstance(issues, list))
         finally:
             shutil.rmtree(ext_dir)
-
-    # ------------------------------------------------------------------
-    # Hypothesis: entropy for any binary data
-    # ------------------------------------------------------------------
-
-    @settings(
-        suppress_health_check=[HealthCheck.too_slow],
-        deadline=None,
-        derandomize=True,
-    )
-    @given(st.binary(min_size=1, max_size=4096))
-    def test_entropy_monotonic_with_unique_bytes(self, data):
-        """More unique byte values should produce higher entropy."""
-        f = self.test_dir / "hyp_ent"
-        f.write_bytes(data)
-        e = self.manager._calculate_entropy(f)
-        unique = len(set(data))
-        if unique == 1:
-            self.assertAlmostEqual(e, 0.0, places=5)
-        else:
-            self.assertGreater(e, 0.0)
-        self.assertLessEqual(e, 8.0 + 1e-9)
 
     # ------------------------------------------------------------------
     # Hypothesis: save_manifest then check_integrity always consistent

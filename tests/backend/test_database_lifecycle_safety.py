@@ -230,7 +230,8 @@ def test_migration_failure_does_not_bump_version(temp_dir):
     provider.close_all()
 
 
-def test_integrity_allows_hash_change_when_sqlite_ok(temp_dir):
+def test_integrity_flags_offline_db_change_without_blocking(temp_dir):
+    """A healthy db modified while the app was off warns but stays non-critical."""
     db_path = os.path.join(temp_dir, "database.db")
     conn = sqlite3.connect(db_path)
     conn.execute("CREATE TABLE data (id INTEGER PRIMARY KEY, val TEXT)")
@@ -247,7 +248,10 @@ def test_integrity_allows_hash_change_when_sqlite_ok(temp_dir):
     conn.close()
 
     is_ok, issues = manager.check_integrity()
-    assert is_ok, issues
+    assert not is_ok
+    assert any("signature mismatch" in i for i in issues)
+    # Structurally valid offline change is a warning, not a critical block.
+    assert not any("structural" in i.lower() for i in issues)
 
 
 def test_integrity_flags_structural_damage(temp_dir):
@@ -455,6 +459,7 @@ class TestMeshchatRestoreFlow(unittest.TestCase):
             app.current_context = None
             app.storage_dir = temp
             app.identity_file_path = None
+            app._restore_lock = threading.Lock()
             app._teardown_all_contexts_for_reload = unittest.mock.Mock()
 
             db = Database(db_path)

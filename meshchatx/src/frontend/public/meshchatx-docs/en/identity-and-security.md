@@ -153,6 +153,12 @@ If you pass --storage-dir or --reticulum-config-dir, delete those directories in
 
 Startup integrity verification runs in packaged Electron builds and can be triggered from the backend. Failed checks surface recovery options instead of silently corrupting data.
 
+Each identity storage directory keeps a signed manifest (`integrity-manifest.json`) of SHA-256 hashes for files that should be stable at rest: the `identity` private key, `database.db`, and any unexpected top-level file. Directories the app or remote peers rewrite during normal operation (lxmf_router, docs, database-backups, filesync, map data, RRC state, media folders) are excluded, since monitoring them only produces false alarms.
+
+The baseline is refreshed at clean shutdown or when you press **Acknowledge** under About, never right after a check flagged a problem. If the previous run ended without a clean shutdown, or the app version changed, drift in non-critical files is reported once as expected change instead of an alarm. Critical findings (identity or database tampering, a missing or forged manifest, an identity hash mismatch) block startup until you acknowledge them through the recovery path or restore the files.
+
+Unacknowledged findings are stored in the manifest and resurface on every boot until acknowledged. A signing key and registry under `<storage>/integrity/` bind manifests to this install, so deleting or swapping `integrity-manifest.json` is detected rather than treated as a first run. This detects offline tampering of one identity tree, disk corruption, and restores of the wrong identity data. It cannot stop an attacker who controls the whole storage directory, since the key lives next to the data.
+
 ## Plugin signing and trust
 
 Packaged plugins may include a Reticulum Signature (.rsg) over a canonical ZIP payload (sorted paths, fixed 1980-01-01 mtimes, signature file excluded). MeshChatX plugin signing writes meshchatx.plugin.rsg and WASM sections meshchatx.plugin / meshchatx.files / meshchatx.signature.

@@ -702,6 +702,7 @@ class ReticulumMeshChat:
         self.appcontainer_active: bool = False
         self.seccomp_active: bool = False
         self._pending_identity = identity
+        self._restore_lock = threading.Lock()
         self._network_setup_lock = threading.Lock()
         self._network_ready_event = threading.Event()
         self._network_setup_thread: threading.Thread | None = None
@@ -1616,6 +1617,12 @@ class ReticulumMeshChat:
         threading.Thread(target=restart, daemon=True).start()
 
     def restore_database(self, backup_path, *, relaunch: bool = False):
+        # Two concurrent restores would interleave aside/staging moves and
+        # corrupt the live database; serialize them.
+        with self._restore_lock:
+            return self._restore_database_locked(backup_path, relaunch=relaunch)
+
+    def _restore_database_locked(self, backup_path, *, relaunch: bool = False):
         db_path = self.prepare_for_database_restore()
         if not db_path:
             raise RuntimeError("Database path is unknown")
@@ -1631,12 +1638,101 @@ class ReticulumMeshChat:
             self.storage_dir,
             "identity",
         )
+        restored_identity_hash = None
         if os.path.isfile(identity_storage_file):
-            os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
-            shutil.copy2(identity_storage_file, main_identity_file)
+            try:
+                restored_identity = RNS.Identity.from_file(identity_storage_file)
+                restored_identity_hash = restored_identity.hash.hex()
+            except Exception as exc:
+                print(
+                    "Restored identity file is invalid; keeping the current "
+                    f"identity key: {exc}",
+                )
+            else:
+                os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
+                shutil.copy2(identity_storage_file, main_identity_file)
+        final_db_path = db_path
+        if restored_identity_hash:
+            final_db_path = self._relocate_restored_identity_dir(
+                db_path,
+                restored_identity_hash,
+            )
+        self._rebaseline_integrity_after_restore(
+            final_db_path,
+            restored_identity_hash,
+        )
         if relaunch:
             self._schedule_process_restart()
         return result
+
+    def _relocate_restored_identity_dir(self, db_path, restored_identity_hash):
+        """Move a restored tree into the slot matching its identity.
+
+        Identity storage is keyed by identity hash. A backup zip carries its
+        own identity file, so restoring a different identity's backup leaves
+        the tree under the old hash while the next launch looks under
+        identities/<restored hash> and finds nothing. Relocate the restored
+        tree so the restored identity actually finds its data.
+        """
+        identity_dir = os.path.dirname(db_path)
+        db_name = os.path.basename(db_path)
+        identities_root = os.path.join(self.storage_dir, "identities")
+        if not is_path_within_dir(identity_dir, identities_root):
+            return os.path.join(identity_dir, db_name)
+        if os.path.basename(identity_dir) == restored_identity_hash:
+            return os.path.join(identity_dir, db_name)
+        target_dir = os.path.join(identities_root, restored_identity_hash)
+        try:
+            if os.path.exists(target_dir):
+                aside = f"{target_dir}.prerestore-{int(time.time())}"
+                os.rename(target_dir, aside)
+                print(f"Existing identity dir moved aside to {aside}")
+            os.rename(identity_dir, target_dir)
+            print(f"Restored tree moved to identity slot {restored_identity_hash}")
+            return os.path.join(target_dir, db_name)
+        except OSError as exc:
+            print(f"Failed to relocate restored identity dir: {exc}")
+            return os.path.join(identity_dir, db_name)
+
+    def _rebaseline_integrity_after_restore(self, db_path, restored_identity_hash):
+        """Re-baseline file integrity over the restored identity dir.
+
+        The backup's signed manifest is install-local state and is excluded
+        from restore, so the manifest on disk still describes the pre-restore
+        tree. Without a fresh baseline the next boot flags every restored
+        file. Restore is an explicit user action, so blessing the restored
+        state here matches the acknowledge flow.
+        """
+        try:
+            from meshchatx.src.backend.integrity_manager import IntegrityManager
+
+            identity_dir = os.path.dirname(db_path)
+            identity_hash = restored_identity_hash
+            if identity_hash is None:
+                current = getattr(self, "identity", None)
+                if current is not None:
+                    identity_hash = current.hash.hex()
+            app_version = None
+            with contextlib.suppress(Exception):
+                version = self.get_app_version()
+                if isinstance(version, str):
+                    app_version = version
+            manager = IntegrityManager(
+                identity_dir,
+                db_path,
+                identity_hash=identity_hash,
+                trust_dir=os.path.join(self.storage_dir, "integrity"),
+                app_version=app_version,
+            )
+            if identity_hash is None:
+                # Without an identity to bind to, a saved manifest would only
+                # raise a mismatch next boot. Drop the stale baseline so the
+                # next run rebuilds it.
+                manager.clear_baseline()
+            else:
+                manager.save_manifest(reason="acknowledge")
+        except Exception as exc:
+            print(f"Failed to refresh integrity baseline after restore: {exc}")
 
     def auto_recover_database(self, *, relaunch: bool = True) -> dict:
         from meshchatx.src.backend.database.auto_recover import (
