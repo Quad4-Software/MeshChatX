@@ -3,7 +3,6 @@
 """Oracles for the non-LXMF bot options: icon appearance and custom commands."""
 
 import json
-import os
 
 import pytest
 
@@ -89,7 +88,12 @@ class TestCustomNormalizer:
             {"commands": "notalist"},
             {"commands": [{"name": "bad name", "response": "x"}]},
             {"commands": [{"name": "ok"}]},
-            {"commands": [{"name": "a", "response": "1"}, {"name": "A", "response": "2"}]},
+            {
+                "commands": [
+                    {"name": "a", "response": "1"},
+                    {"name": "A", "response": "2"},
+                ]
+            },
             {"welcome": 42},
         ],
     )
