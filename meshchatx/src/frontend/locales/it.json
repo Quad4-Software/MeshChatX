@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Clicca il secondo punto per impostare l'azimut",
         "location_unavailable": "Posizione non disponibile",
         "export_failed": "Esportazione non riuscita",
-        "coords_copied": "Coordinate copiate negli appunti"
+        "coords_copied": "Coordinate copiate negli appunti",
+        "geo_parse_failed": "Impossibile risolvere la posizione"
     },
     "interface": {
         "disable": "Disabilita",
@@ -4015,8 +4016,6 @@
         "demote_op": "Declassa operatore",
         "promote_op": "Promuovi a operatore",
         "composer_placeholder": "Scrivi un messaggio...",
-        "search_placeholder": "Cerca messaggi...",
-        "search_results_count": "{count} risultati",
         "type_to_search": "Digita per cercare messaggi",
         "no_search_results": "Nessun messaggio corrisponde alla ricerca",
         "dm_member": "Messaggio diretto",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Stanze",
         "bots_delete_confirm": "Eliminare il bot \"{name}\"?",
-        "host_ev_history": "cronologia richiesta"
+        "host_ev_history": "cronologia richiesta",
+        "tab_search": "Cerca",
+        "search_global_placeholder": "Cerca messaggi in tutti gli hub…",
+        "search_global_hint": "Suggerimento: \"frase esatta\", a OPPURE b, -escludi, from:nick, room:stanza, hub:hash",
+        "search_global_count": "{count} risultati",
+        "search_global_empty": "Cerca nella cronologia dei messaggi di tutti gli hub e le stanze connessi.",
+        "search_global_none": "Nessun messaggio corrispondente.",
+        "search_placeholder": "Cerca messaggi...",
+        "search_results_count": "{count} risultati"
     },
     "rncp": {
         "file_transfer": "Trasferimento File",

@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Клацніть другу точку, щоб задати азимут",
         "location_unavailable": "Місцезнаходження недоступне",
         "export_failed": "Експорт не вдався",
-        "coords_copied": "Координати скопійовано в буфер обміну"
+        "coords_copied": "Координати скопійовано в буфер обміну",
+        "geo_parse_failed": "Не вдалося визначити це місцезнаходження"
     },
     "interface": {
         "disable": "Вимкнути",
@@ -4015,8 +4016,6 @@
         "demote_op": "Понизити оператора",
         "promote_op": "Підвищити до оператора",
         "composer_placeholder": "Напишіть повідомлення...",
-        "search_placeholder": "Пошук повідомлень...",
-        "search_results_count": "{count} результатів",
         "type_to_search": "Введіть текст для пошуку повідомлень",
         "no_search_results": "Немає повідомлень, що відповідають пошуку",
         "dm_member": "Особисте повідомлення",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Хаб",
         "bots_rooms": "Кімнати",
         "bots_delete_confirm": "Видалити бота \"{name}\"?",
-        "host_ev_history": "запит історії"
+        "host_ev_history": "запит історії",
+        "tab_search": "Пошук",
+        "search_global_placeholder": "Пошук повідомлень у всіх хабах…",
+        "search_global_hint": "Порада: \"точна фраза\", a АБО b, -виключити, from:нік, room:кімната, hub:хеш",
+        "search_global_count": "Результатів: {count}",
+        "search_global_empty": "Шукайте в історії повідомлень усіх підключених хабів і кімнат.",
+        "search_global_none": "Відповідних повідомлень немає.",
+        "search_placeholder": "Пошук повідомлень...",
+        "search_results_count": "{count} результатів"
     },
     "rncp": {
         "file_transfer": "Передача файлів",

@@ -983,6 +983,11 @@
                 <RelayBotsPage v-if="view === 'bots'" :known-hubs="botsKnownHubs" />
             </div>
 
+            <!-- search view -->
+            <div v-show="view === 'search'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <RelaySearchPage v-if="view === 'search'" @open-room="openSearchResult" />
+            </div>
+
             <!-- create hub dialog -->
             <div v-if="showCreateHub" :class="RELAY_HOST_MODAL_OVERLAY" @click.self="showCreateHub = false">
                 <div :class="RELAY_HOST_MODAL_PANEL_COMPACT" @click.stop>
@@ -1441,6 +1446,7 @@ import SearchInput from "../SearchInput.vue";
 import MdiIconPickerModal from "../MdiIconPickerModal.vue";
 import RelayBotsPage from "./RelayBotsPage.vue";
 import RelayHostModerationPage from "./RelayHostModerationPage.vue";
+import RelaySearchPage from "./RelaySearchPage.vue";
 import RelayMessageEntry from "./RelayMessageEntry.vue";
 import RelayMessageListVirtual from "./RelayMessageListVirtual.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
@@ -1509,6 +1515,7 @@ export default {
         MdiIconPickerModal,
         RelayBotsPage,
         RelayHostModerationPage,
+        RelaySearchPage,
         RelayMessageEntry,
         RelayMessageListVirtual,
         ContextMenuPanel,
@@ -1539,6 +1546,7 @@ export default {
                 { id: "discovery", label: "relay_chat.tab_discovery", icon: "radar" },
                 { id: "host", label: "relay_chat.tab_host", icon: "server-network" },
                 { id: "bots", label: "relay_chat.tab_bots", icon: "robot" },
+                { id: "search", label: "relay_chat.tab_search", icon: "magnify" },
             ],
             view: "chat",
             discovered: [],
@@ -1957,7 +1965,7 @@ export default {
             if (!saved) {
                 return;
             }
-            if (["chat", "discovery", "host", "bots"].includes(saved.view)) {
+            if (["chat", "discovery", "host", "bots", "search"].includes(saved.view)) {
                 this.view = saved.view;
             }
             if (typeof saved.relaySidebarCollapsed === "boolean") {
@@ -2842,7 +2850,31 @@ export default {
                         params: { destinationHash: address },
                     });
                 },
+                onGeo: (geoText) => {
+                    this.openGeoOnMap(geoText);
+                },
             });
+        },
+        async openGeoOnMap(geoText) {
+            try {
+                const { resolveGeoText } = await import("../../js/geoLinkify.js");
+                const point = await resolveGeoText(geoText);
+                if (!point) {
+                    ToastUtils.error(this.$t("map.geo_parse_failed"));
+                    return;
+                }
+                this.$router.push({
+                    name: "map",
+                    query: {
+                        lat: point.lat.toFixed(6),
+                        lon: point.lon.toFixed(6),
+                        zoom: "12",
+                        label: String(geoText).trim(),
+                    },
+                });
+            } catch {
+                ToastUtils.error(this.$t("map.geo_parse_failed"));
+            }
         },
         formatHash(hash) {
             if (!hash) {
@@ -2871,6 +2903,14 @@ export default {
         },
         selectHub(hubHash) {
             this.selectedHubHash = hubHash;
+        },
+        openSearchResult({ hubHash, room }) {
+            if (!hubHash || !room) {
+                return;
+            }
+            this.view = "chat";
+            this.persistRelayLayout();
+            this.selectRoom(hubHash, room);
         },
         async selectRoom(hubHash, room) {
             this.selectedHubHash = hubHash;

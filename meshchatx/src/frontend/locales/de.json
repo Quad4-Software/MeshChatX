@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Klicken Sie auf den zweiten Punkt, um die Peilung festzulegen",
         "location_unavailable": "Standort nicht verfügbar",
         "export_failed": "Export fehlgeschlagen",
-        "coords_copied": "Koordinaten in die Zwischenablage kopiert"
+        "coords_copied": "Koordinaten in die Zwischenablage kopiert",
+        "geo_parse_failed": "Dieser Ort konnte nicht aufgelöst werden"
     },
     "interface": {
         "disable": "Deaktivieren",
@@ -4015,8 +4016,6 @@
         "demote_op": "Operator zurückstufen",
         "promote_op": "Zum Operator befördern",
         "composer_placeholder": "Nachricht schreiben...",
-        "search_placeholder": "Nachrichten durchsuchen...",
-        "search_results_count": "{count} Ergebnisse",
         "type_to_search": "Tippen, um Nachrichten zu suchen",
         "no_search_results": "Keine Nachrichten entsprechen der Suche",
         "dm_member": "Direktnachricht",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Räume",
         "bots_delete_confirm": "Bot \"{name}\" löschen?",
-        "host_ev_history": "Verlauf angefordert"
+        "host_ev_history": "Verlauf angefordert",
+        "tab_search": "Suche",
+        "search_global_placeholder": "Nachrichten in allen Hubs durchsuchen…",
+        "search_global_hint": "Tipp: \"exakte Phrase\", a ODER b, -ausschließen, from:nick, raum:name, hub:hash",
+        "search_global_count": "{count} Ergebnisse",
+        "search_global_empty": "Nachrichtenverlauf in allen verbundenen Hubs und Räumen durchsuchen.",
+        "search_global_none": "Keine passenden Nachrichten.",
+        "search_placeholder": "Nachrichten durchsuchen...",
+        "search_results_count": "{count} Ergebnisse"
     },
     "rncp": {
         "file_transfer": "Dateiübertragung",

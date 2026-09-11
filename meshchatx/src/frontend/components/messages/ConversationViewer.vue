@@ -2604,7 +2604,31 @@ export default {
                     }
                     window.open(safeHttp, "_blank", "noopener,noreferrer");
                 },
+                onGeo: (geoText) => {
+                    this.openGeoOnMap(geoText);
+                },
             });
+        },
+        async openGeoOnMap(geoText) {
+            try {
+                const { resolveGeoText } = await import("../../js/geoLinkify.js");
+                const point = await resolveGeoText(geoText);
+                if (!point) {
+                    ToastUtils.error(this.$t("map.geo_parse_failed"));
+                    return;
+                }
+                this.$router.push({
+                    name: "map",
+                    query: {
+                        lat: point.lat.toFixed(6),
+                        lon: point.lon.toFixed(6),
+                        zoom: "12",
+                        label: String(geoText).trim(),
+                    },
+                });
+            } catch {
+                ToastUtils.error(this.$t("map.geo_parse_failed"));
+            }
         },
         async updatePropagationNodeStatus() {
             try {

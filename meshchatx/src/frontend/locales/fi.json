@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Napsauta toista pistettä asettaaksesi suunnan",
         "location_unavailable": "Sijainti ei ole käytettävissä",
         "export_failed": "Vienti epäonnistui",
-        "coords_copied": "Koordinaatit kopioitu leikepöydälle"
+        "coords_copied": "Koordinaatit kopioitu leikepöydälle",
+        "geo_parse_failed": "Sijaintia ei voitu selvittää"
     },
     "interface": {
         "disable": "Älä käytä",
@@ -4015,8 +4016,6 @@
         "demote_op": "Alenna operaattori",
         "promote_op": "Ylennä operaattoriksi",
         "composer_placeholder": "Kirjoita viesti...",
-        "search_placeholder": "Hae viesteistä...",
-        "search_results_count": "{count} tulosta",
         "type_to_search": "Kirjoita hakeaksesi viestejä",
         "no_search_results": "Hakuun vastaavia viestejä ei löytynyt",
         "dm_member": "Yksityisviesti",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hubi",
         "bots_rooms": "Huoneet",
         "bots_delete_confirm": "Poistetaanko botti \"{name}\"?",
-        "host_ev_history": "historia pyydetty"
+        "host_ev_history": "historia pyydetty",
+        "tab_search": "Haku",
+        "search_global_placeholder": "Hae viestejä kaikista hubeista…",
+        "search_global_hint": "Vinkki: \"tarkka lause\", a TAI b, -poissulje, from:nick, room:nimi, hub:hash",
+        "search_global_count": "{count} tulosta",
+        "search_global_empty": "Hae viestihistoriasta kaikissa yhdistetyissä hubeissa ja huoneissa.",
+        "search_global_none": "Ei osumia.",
+        "search_placeholder": "Hae viesteistä...",
+        "search_results_count": "{count} tulosta"
     },
     "rncp": {
         "file_transfer": "Tiedostonsiirto",

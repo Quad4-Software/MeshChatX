@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Klik op een tweede punt om de peiling in te stellen",
         "location_unavailable": "Locatie niet beschikbaar",
         "export_failed": "Exporteren mislukt",
-        "coords_copied": "Coördinaten naar klembord gekopieerd"
+        "coords_copied": "Coördinaten naar klembord gekopieerd",
+        "geo_parse_failed": "Kan die locatie niet omzetten"
     },
     "interface": {
         "disable": "Uitschakelen",
@@ -4015,8 +4016,6 @@
         "demote_op": "Operator degraderen",
         "promote_op": "Tot operator promoveren",
         "composer_placeholder": "Schrijf een bericht...",
-        "search_placeholder": "Berichten zoeken...",
-        "search_results_count": "{count} resultaten",
         "type_to_search": "Typ om berichten te zoeken",
         "no_search_results": "Geen berichten die overeenkomen met de zoekopdracht",
         "dm_member": "Direct bericht",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Kamers",
         "bots_delete_confirm": "Bot \"{name}\" verwijderen?",
-        "host_ev_history": "geschiedenis opgevraagd"
+        "host_ev_history": "geschiedenis opgevraagd",
+        "tab_search": "Zoeken",
+        "search_global_placeholder": "Zoek berichten in alle hubs…",
+        "search_global_hint": "Tip: \"exacte zin\", a OF b, -uitsluiten, from:bijnaam, room:kamer, hub:hash",
+        "search_global_count": "{count} resultaten",
+        "search_global_empty": "Zoek in de berichtgeschiedenis van alle verbonden hubs en kamers.",
+        "search_global_none": "Geen overeenkomende berichten.",
+        "search_placeholder": "Berichten zoeken...",
+        "search_results_count": "{count} resultaten"
     },
     "rncp": {
         "file_transfer": "Bestandsoverdracht",

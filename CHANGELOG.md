@@ -38,6 +38,8 @@ All notable changes to this project will be documented in this file.
 - Long-press on nomad page content on Android now opens the page/tab context menu, matching desktop right-click.
 - Fixed map tab right-click menu rendering behind the map toolbar: context menus now sit above page chrome.
 - The map scale now sits in a row with the credits chip at bottom-right, and map overlays are capped and stacked so toolbars, search, and info cards no longer overlap each other on narrow screens.
+- Relay chat gains a global Search tab that scans message history across every connected hub and room. Queries support quoted phrases, OR groups, NOT/-exclusion, field filters (from:, room:, hub:, kind:, date:) and fuzzy matching with result ranking. Results jump straight to the room.
+- Chat text now auto-links geographic references: Maidenhead grid locators (6+ characters, or any locator after a geo:/grid: prefix), lat/lon pairs, and other coordinate formats resolve locally and open the map with a marker.
 
 - Archives can be exported in bulk: an Export all (.zip) action below the search box downloads a zip bundle of the filtered set with a manifest, and each archive card gains an Export action that downloads the snapshot as a .mu file.
 - Relay chat member lists show avatar initials with presence dots, sticky online/offline headers, and a mention hint on hover; right-clicking a member copies their identity hash.

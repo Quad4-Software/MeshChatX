@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Cliquez un deuxième point pour définir le relèvement",
         "location_unavailable": "Position indisponible",
         "export_failed": "Échec de l’export",
-        "coords_copied": "Coordonnées copiées dans le presse-papiers"
+        "coords_copied": "Coordonnées copiées dans le presse-papiers",
+        "geo_parse_failed": "Impossible de résoudre cet emplacement"
     },
     "interface": {
         "disable": "Désactiver",
@@ -4015,8 +4016,6 @@
         "demote_op": "Rétrograder l’opérateur",
         "promote_op": "Promouvoir en opérateur",
         "composer_placeholder": "Écrivez un message...",
-        "search_placeholder": "Rechercher des messages...",
-        "search_results_count": "{count} résultats",
         "type_to_search": "Tapez pour rechercher des messages",
         "no_search_results": "Aucun message correspondant à la recherche",
         "dm_member": "Message direct",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Salons",
         "bots_delete_confirm": "Supprimer le bot \"{name}\" ?",
-        "host_ev_history": "historique demandé"
+        "host_ev_history": "historique demandé",
+        "tab_search": "Recherche",
+        "search_global_placeholder": "Rechercher dans tous les hubs…",
+        "search_global_hint": "Astuce : \"phrase exacte\", a OU b, -exclure, from:pseudo, room:salon, hub:hash",
+        "search_global_count": "{count} résultats",
+        "search_global_empty": "Recherchez l'historique des messages dans tous les hubs et salons connectés.",
+        "search_global_none": "Aucun message correspondant.",
+        "search_placeholder": "Rechercher des messages...",
+        "search_results_count": "{count} résultats"
     },
     "rncp": {
         "file_transfer": "Transfert de fichiers",

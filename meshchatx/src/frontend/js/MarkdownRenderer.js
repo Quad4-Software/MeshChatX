@@ -1,5 +1,6 @@
 import Utils from "./Utils";
 import LinkUtils from "./LinkUtils";
+import { linkifyGeoRefs } from "./geoLinkify.js";
 
 export default class MarkdownRenderer {
     /**
@@ -102,6 +103,10 @@ export default class MarkdownRenderer {
 
         const { protectedText, anchors } = LinkUtils.protectAnchors(text);
         text = protectedText;
+
+        // Geo references become in-app map links before inline code so that
+        // text inside backticks is not linkified.
+        text = linkifyGeoRefs(text);
 
         const inline_codes = [];
         const pushInline = (code) => {

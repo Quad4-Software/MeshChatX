@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "Clique no segundo ponto para definir o rumo",
         "location_unavailable": "Localização indisponível",
         "export_failed": "Falha na exportação",
-        "coords_copied": "Coordenadas copiadas para a área de transferência"
+        "coords_copied": "Coordenadas copiadas para a área de transferência",
+        "geo_parse_failed": "Não foi possível resolver essa localização"
     },
     "interface": {
         "disable": "Desativar",
@@ -4015,8 +4016,6 @@
         "demote_op": "Rebaixar Operador",
         "promote_op": "Promover a Operador",
         "composer_placeholder": "Escreva uma mensagem...",
-        "search_placeholder": "Buscar mensagens...",
-        "search_results_count": "{count} resultados",
         "type_to_search": "Digite para buscar mensagens",
         "no_search_results": "Nenhuma mensagem corresponde à busca",
         "dm_member": "Mensagem direta",
@@ -4059,7 +4058,15 @@
         "bots_hub": "Hub",
         "bots_rooms": "Salas",
         "bots_delete_confirm": "Excluir o bot \"{name}\"?",
-        "host_ev_history": "histórico solicitado"
+        "host_ev_history": "histórico solicitado",
+        "tab_search": "Buscar",
+        "search_global_placeholder": "Buscar mensagens em todos os hubs…",
+        "search_global_hint": "Dica: \"frase exata\", a OU b, -excluir, from:apelido, room:sala, hub:hash",
+        "search_global_count": "{count} resultados",
+        "search_global_empty": "Busque no histórico de mensagens de todos os hubs e salas conectados.",
+        "search_global_none": "Nenhuma mensagem correspondente.",
+        "search_placeholder": "Buscar mensagens...",
+        "search_results_count": "{count} resultados"
     },
     "rncp": {
         "file_transfer": "Transferência de Arquivos",

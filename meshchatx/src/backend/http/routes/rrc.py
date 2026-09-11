@@ -129,6 +129,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.rrc import search as rrc_search
 
 
 def register_rrc_routes(routes, app):
@@ -448,6 +449,25 @@ def register_rrc_routes(routes, app):
         )
         return web.json_response(
             {"messages": messages, "members": members, "has_more": has_more},
+        )
+
+    @routes.get("/api/v1/rrc/search")
+    async def rrc_search_messages(request):
+        manager, error = _rrc_require_manager()
+        if error is not None:
+            return error
+        query = request.query.get("q", "")
+        if not isinstance(query, str) or not query.strip():
+            return web.json_response({"results": []})
+        try:
+            limit = int(request.query.get("limit", rrc_search.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            limit = rrc_search.DEFAULT_LIMIT
+        limit = max(1, min(limit, rrc_search.MAX_LIMIT))
+        with manager._lock:
+            hubs = list(manager.hubs)
+        return web.json_response(
+            {"results": rrc_search.search_hubs(hubs, query, limit=limit)},
         )
 
     @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")

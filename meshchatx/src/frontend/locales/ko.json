@@ -1976,7 +1976,8 @@
         "bearing_second_click_prompt": "두 번째 지점을 클릭해 방위를 설정하세요",
         "location_unavailable": "위치를 사용할 수 없습니다",
         "export_failed": "내보내기 실패",
-        "coords_copied": "좌표가 클립보드에 복사되었습니다"
+        "coords_copied": "좌표가 클립보드에 복사되었습니다",
+        "geo_parse_failed": "해당 위치를 확인할 수 없습니다"
     },
     "interface": {
         "disable": "비활성화",
@@ -4015,8 +4016,6 @@
         "demote_op": "운영자 강등",
         "promote_op": "운영자로 승격",
         "composer_placeholder": "메시지 쓰기...",
-        "search_placeholder": "메시지 검색...",
-        "search_results_count": "결과 {count}개",
         "type_to_search": "메시지를 검색하려면 입력하세요",
         "no_search_results": "검색과 일치하는 메시지가 없습니다",
         "dm_member": "다이렉트 메시지",
@@ -4059,7 +4058,15 @@
         "bots_hub": "허브",
         "bots_rooms": "방",
         "bots_delete_confirm": "봇 \"{name}\"을(를) 삭제하시겠습니까?",
-        "host_ev_history": "기록 요청됨"
+        "host_ev_history": "기록 요청됨",
+        "tab_search": "검색",
+        "search_global_placeholder": "모든 허브의 메시지 검색…",
+        "search_global_hint": "팁: \"정확한 구문\", a 또는 b, -제외, from:닉네임, room:방, hub:해시",
+        "search_global_count": "결과 {count}개",
+        "search_global_empty": "연결된 모든 허브와 방의 메시지 기록을 검색합니다.",
+        "search_global_none": "일치하는 메시지가 없습니다.",
+        "search_placeholder": "메시지 검색...",
+        "search_results_count": "결과 {count}개"
     },
     "rncp": {
         "file_transfer": "파일 전송",
