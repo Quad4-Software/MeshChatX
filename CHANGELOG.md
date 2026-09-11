@@ -51,6 +51,10 @@ All notable changes to this project will be documented in this file.
 - All search inputs across the app now share a SearchInput component with consistent icon, clear button, loading spinner, and escape-to-clear; the icon-over-placeholder bug class is gone.
 - Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
 - Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
+- Hosted relay hubs answer /history [room] [n] by replaying recent room messages to the requester only. Membership in the room is required, the count clamps to 50, and each request is logged in the host status events.
+- Relay chat gains a Bots tab for running LXMFy bots that join hubs as normal clients. Pick a hub and room list, set a nickname, mention-only mode, command prefix and reply cooldown, and the bot answers commands like uptime, ping, help and status in the rooms it joins.
+- The Bots page gains a custom command template with user-defined canned replies and a welcome message, a per-bot icon picker, and an expanded per-bot LXMF options form covering announce, signature verification, permissions, rate limits and admin hashes.
+- New tests cover the history command privacy and edge cases, RRC bot reply logic and validation, bot option normalizers, and restore hardening.
 
 ### Fixed
 
@@ -68,6 +72,10 @@ All notable changes to this project will be documented in this file.
 - Live name bindings in the split HTTP/WS modules support comparison, hashing and string conversion, so constants like `MAX_EXPORT_ZOOM` can be used in chained comparisons and map lookups.
 - AppImage packages now ship the backend `data/map/.gitkeep` marker, so the integrity check passes and onboarding no longer stalls on Connect to Mesh. A packaging test walks the real source tree and package.json filters so a missing file fails CI instead of the AppImage.
 - Direct links to nomadnet page addresses work when no node is selected yet; the destination hash and page path are parsed up front.
+- Restoring a backup now serializes concurrent restores, validates the restored identity key before replacing the current one, moves the restored tree into the slot matching its own identity hash, and rebaselines integrity state after the restore.
+- The RRC identity LXMF address endpoint now accepts real 16-byte identity hashes instead of only the 32-byte form, so the member direct-message action actually resolves.
+- RRC per-peer session caps no longer evict the host's own loopback client, can no longer be bypassed by links whose identify callback never fired, and cannot evict live sessions through a stale identify on an already-dropped link.
+- The split-view drop strip no longer stays visible if a conversation row unmounts mid-drag; window-level drop and dragend handlers settle the state.
 
 ### Changed
 
