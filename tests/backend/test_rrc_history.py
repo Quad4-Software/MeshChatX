@@ -234,6 +234,92 @@ def test_history_command_body_not_logged():
     assert texts == ["real message"]
 
 
+def test_history_clamps_zero_negative_and_huge_counts():
+    server = make_server()
+    link, sess = add_session(server, b"\xaa" * 16, nick="alice")
+    join(server, link, sess, "lobby")
+    for i in range(3):
+        say(server, link, sess, "lobby", f"m{i}")
+
+    for args in ("0", "-5", "+1"):
+        out = history(server, link, sess, args=args)
+        assert notices_for(link, out)[0] == "--- history for lobby (1 messages) ---", (
+            args
+        )
+
+    # int() accepts arbitrarily long digit strings; clamp still applies.
+    out = history(server, link, sess, args="9" * 40)
+    assert notices_for(link, out)[0] == "--- history for lobby (3 messages) ---"
+
+    # A digit string beyond Python's int limit is not a number at all.
+    out = history(server, link, sess, args="9" * 5000)
+    assert notices_for(link, out)[0].startswith("bad room")
+
+
+def test_history_via_notice_envelope():
+    server = make_server()
+    link, sess = add_session(server, b"\xaa" * 16, nick="alice")
+    join(server, link, sess, "lobby")
+    say(server, link, sess, "lobby", "hello")
+
+    out = route(
+        server,
+        link,
+        sess,
+        proto.make_envelope(
+            proto.T_NOTICE, src=sess.peer, room="lobby", body="/history 2"
+        ),
+    )
+    notices = notices_for(link, out)
+    assert notices[0] == "--- history for lobby (1 messages) ---"
+
+
+def test_history_formats_action_and_missing_nick_entries():
+    server = make_server()
+    link, sess = add_session(server, b"\xaa" * 16)
+    link2, sess2 = add_session(server, b"\xbb" * 16, nick="bob")
+    join(server, link, sess, "lobby")
+    join(server, link2, sess2, "lobby")
+    route(
+        server,
+        link2,
+        sess2,
+        proto.make_envelope(proto.T_ACTION, src=sess2.peer, room="lobby", body="waves"),
+    )
+
+    out = history(server, link, sess)
+    lines = notices_for(link, out)[1:-1]
+    assert len(lines) == 1
+    assert re.match(r"^\[\d{2}:\d{2}\] \* bob waves$", lines[0])
+
+    # A log entry with no nick falls back to the peer hex prefix.
+    server._message_log.append(
+        {
+            "room": "lobby",
+            "ts": "not-a-number",
+            "nick": None,
+            "peer": "ab" * 16,
+            "text": "x",
+        }
+    )
+    out = history(server, link, sess)
+    lines = notices_for(link, out)[1:-1]
+    assert lines[-1].endswith("abababababab: x")
+    assert lines[-1].startswith("[??:??]")
+
+
+def test_history_non_member_cannot_pull_room_history():
+    server = make_server()
+    link, sess = add_session(server, b"\xaa" * 16, nick="alice")
+    link2, sess2 = add_session(server, b"\xbb" * 16, nick="bob")
+    join(server, link, sess, "lobby")
+    say(server, link, sess, "lobby", "member only")
+
+    # bob is not in lobby; without +n he could MSG it, but /history refuses.
+    out = history(server, link2, sess2, room="lobby")
+    assert notices_for(link2, out) == ["not a member of lobby"]
+
+
 def test_help_lists_history():
     server = make_server()
     link, sess = add_session(server, b"\xaa" * 16, nick="alice")
