@@ -1482,8 +1482,22 @@ class RRCHub:
                     with self._lock:
                         self.motd = text
                     self.manager._notify_change(self)
-                msg = proto.RRCMessage("notice", room, None, None, text, proto.now_ms())
-                self._record_notice(msg)
+                    msg = proto.RRCMessage(
+                        "notice", room, None, None, text, proto.now_ms()
+                    )
+                    self._record_notice(msg)
+                else:
+                    # An oversized notice (eg a big /list) still carries the
+                    # same command responses; run it through the normal notice
+                    # path so room lists and /who results actually populate.
+                    self._handle_notice(
+                        {
+                            proto.K_T: proto.T_NOTICE,
+                            proto.K_BODY: text,
+                            proto.K_ROOM: room,
+                            proto.K_SRC: None,
+                        }
+                    )
         except Exception as e:
             self._log("resource handling failed: " + str(e), RNS.LOG_ERROR)
 
