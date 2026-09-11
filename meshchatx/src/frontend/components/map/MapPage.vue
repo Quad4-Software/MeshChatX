@@ -2058,7 +2058,7 @@ export default {
                     zoom: startZoom,
                 }),
                 controls: defaultControls({
-                    attribution: {
+                    attributionOptions: {
                         collapsible: true,
                         ...(this.$refs.attributionMount ? { target: this.$refs.attributionMount } : {}),
                     },
