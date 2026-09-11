@@ -41,7 +41,9 @@ from .voicemails import VoicemailDAO
 
 BACKUP_BASELINE_FILENAME = "backup-baseline.json"
 BACKUP_MANIFEST_NAME = "backup-manifest.json"
-BACKUP_SKIP_DIR_NAMES = frozenset({"database-backups", "snapshots"})
+INTEGRITY_MANIFEST_NAME = "integrity-manifest.json"
+BACKUP_SKIP_DIR_NAMES = frozenset({"database-backups", "snapshots", "sqlite-tmp"})
+BACKUP_SKIP_DIR_PREFIXES = (".meshchatx-",)
 PRE_MIGRATE_BACKUP_PREFIX = "backup-pre-migrate-"
 MIN_SIZE_RATIO = 0.2
 MIN_WIPE_MESSAGE_COUNT = 5
@@ -68,12 +70,16 @@ def _zip_write_file(
     arcname: str | None = None,
 ) -> None:
     name = arcname if arcname is not None else os.path.basename(file_path)
-    with open(file_path, "rb") as handle:
-        data = handle.read()
+    # O_NOFOLLOW closes the walk-to-open race: a file swapped for a symlink
+    # between listing and read fails here instead of leaking outside data
+    # into the backup.
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+    fd = os.open(file_path, flags)
     zinfo = zipfile.ZipInfo(filename=name)
     zinfo.date_time = _zip_file_date_time(file_path)
     zinfo.compress_type = zipfile.ZIP_DEFLATED
-    zf.writestr(zinfo, data)
+    with os.fdopen(fd, "rb") as src, zf.open(zinfo, mode="w") as dst:
+        shutil.copyfileobj(src, dst, length=1024 * 1024)
 
 
 _log = logging.getLogger("meshchatx.database")
@@ -164,6 +170,9 @@ class Database:
         self.rrc_room_keys = RrcRoomKeysDAO(self.provider)
         self._sqlite_memory_relaxed = False
         self._last_pre_migrate_backup_path: str | None = None
+        # Runs at construction so restore_database's own staging/aside dirs
+        # are never mistaken for leftovers mid-restore.
+        self._repair_interrupted_restore()
 
     def initialize(self):
         self._tune_sqlite_pragmas()
@@ -278,6 +287,77 @@ class Database:
             with suppress(OSError):
                 os.remove(path)
             entries.pop(idx)
+
+    def _repair_interrupted_restore(self) -> None:
+        """Recover when a restore was killed between the aside and staged moves.
+
+        A hard kill in the middle of restore_database can leave the live
+        database file moved into a .meshchatx-aside-* dir with nothing at the
+        real path; booting then creates an empty database and silently drops
+        all history. Move the aside files back when the live file is absent.
+        Staging leftovers are copies of a zip that still exists, so they are
+        removed; aside dirs that still hold a db while a live one exists are
+        kept as a manual rollback artifact.
+        """
+        try:
+            target_dir = self._identity_storage_dir()
+        except ValueError:
+            return
+        db_path = self.provider.db_path
+        if not db_path or db_path == ":memory:":
+            return
+        main_name = os.path.basename(db_path)
+        try:
+            names = os.listdir(target_dir)
+        except OSError:
+            return
+        asides_with_db: list[str] = []
+        for name in names:
+            if not name.startswith(".meshchatx-"):
+                continue
+            full = os.path.join(target_dir, name)
+            if not os.path.isdir(full):
+                continue
+            if name.startswith(".meshchatx-aside-"):
+                for suffix in ("", "-wal", "-shm"):
+                    aside_file = os.path.join(full, main_name + suffix)
+                    live_file = db_path + suffix
+                    if os.path.isfile(aside_file) and not os.path.exists(live_file):
+                        try:
+                            os.replace(aside_file, live_file)
+                            _log.warning(
+                                "Restored %s from interrupted restore aside %s",
+                                live_file,
+                                name,
+                            )
+                        except OSError as exc:
+                            _log.warning(
+                                "Failed to restore %s from aside %s: %s",
+                                live_file,
+                                name,
+                                exc,
+                            )
+                try:
+                    if not os.listdir(full):
+                        os.rmdir(full)
+                        continue
+                except OSError:
+                    pass
+                if os.path.isfile(os.path.join(full, main_name)):
+                    asides_with_db.append(full)
+            elif name.startswith(".meshchatx-extras-aside-"):
+                with suppress(Exception):
+                    Database._restore_extras_aside(full, target_dir)
+                shutil.rmtree(full, ignore_errors=True)
+            elif name.startswith(".meshchatx-restore-"):
+                shutil.rmtree(full, ignore_errors=True)
+        # Keep only the newest aside holding a db as a manual rollback
+        # artifact; older ones are an unbounded disk leak.
+        if len(asides_with_db) > 1:
+            asides_with_db.sort(key=os.path.getmtime, reverse=True)
+            for stale in asides_with_db[1:]:
+                _log.warning("Removing stale interrupted-restore aside %s", stale)
+                shutil.rmtree(stale, ignore_errors=True)
 
     def execute_sql(self, query, params=None):
         return self.provider.execute(query, params)
@@ -751,10 +831,14 @@ class Database:
                 d
                 for d in dirs
                 if d not in BACKUP_SKIP_DIR_NAMES
+                and not d.startswith(BACKUP_SKIP_DIR_PREFIXES)
                 and not os.path.islink(os.path.join(root, d))
             ]
             for name in files:
-                if name in db_basenames or name == BACKUP_MANIFEST_NAME:
+                if name in db_basenames or name in (
+                    BACKUP_MANIFEST_NAME,
+                    INTEGRITY_MANIFEST_NAME,
+                ):
                     continue
                 full_path = os.path.join(root, name)
                 if os.path.islink(full_path):
@@ -791,9 +875,26 @@ class Database:
             raise DatabaseRestoreError(msg)
         zf.extract(member, target_dir)
 
+    @staticmethod
+    def _check_zip_fits_disk(zf: zipfile.ZipFile, target_dir: str) -> None:
+        """Refuse a restore whose uncompressed payload cannot fit on disk.
+
+        Extraction failing halfway leaves a half-restored staging dir; a
+        failed zip bomb also fills the disk the database lives on.
+        """
+        total = sum(info.file_size for info in zf.infolist() if not info.is_dir())
+        free = shutil.disk_usage(target_dir).free
+        headroom = max(total // 10, 64 * 1024 * 1024)
+        if total + headroom > free:
+            msg = (
+                f"Backup needs {total + headroom} bytes free but only "
+                f"{free} bytes are available on the storage disk"
+            )
+            raise DatabaseRestoreError(msg)
+
     def _backup_to_zip(self, backup_path: str):
         paths = self._database_paths()
-        os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+        os.makedirs(os.path.dirname(backup_path) or ".", exist_ok=True)
         # ensure WAL is checkpointed to get a consistent snapshot
         self._checkpoint_wal()
 
@@ -830,9 +931,10 @@ class Database:
         backup_dir = os.path.join(storage_path, "database-backups")
         os.makedirs(backup_dir, exist_ok=True)
         timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-        backup_path = os.path.join(
+        backup_path = self._unique_backup_path(
             backup_dir,
-            f"{PRE_MIGRATE_BACKUP_PREFIX}v{from_version}-to-v{to_version}-{timestamp}.zip",
+            f"{PRE_MIGRATE_BACKUP_PREFIX}v{from_version}-to-v{to_version}-",
+            timestamp,
         )
         result = self._backup_to_zip(backup_path)
         print(
@@ -913,13 +1015,8 @@ class Database:
         suspicious = self._is_backup_suspicious(current_stats, baseline)
 
         if backup_path is None:
-            if suspicious:
-                backup_path = os.path.join(
-                    default_dir,
-                    f"backup-SUSPICIOUS-{timestamp}.zip",
-                )
-            else:
-                backup_path = os.path.join(default_dir, f"backup-{timestamp}.zip")
+            prefix = "backup-SUSPICIOUS-" if suspicious else "backup-"
+            backup_path = self._unique_backup_path(default_dir, prefix, timestamp)
 
         result = self._backup_to_zip(backup_path)
 
@@ -954,23 +1051,28 @@ class Database:
         if max_count is not None and max_count > 0:
             try:
                 backups = []
+                suspicious_backups = []
                 for file in os.listdir(default_dir):
                     if (
-                        file.endswith(".zip")
-                        and file.startswith("backup-")
-                        and not file.startswith(PRE_MIGRATE_BACKUP_PREFIX)
-                        and "SUSPICIOUS" not in file
+                        not file.endswith(".zip")
+                        or not file.startswith("backup-")
+                        or file.startswith(PRE_MIGRATE_BACKUP_PREFIX)
                     ):
-                        full_path = os.path.join(default_dir, file)
-                        stats = os.stat(full_path)
+                        continue
+                    full_path = os.path.join(default_dir, file)
+                    stats = os.stat(full_path)
+                    if "SUSPICIOUS" in file:
+                        suspicious_backups.append((full_path, stats.st_mtime))
+                    else:
                         backups.append((full_path, stats.st_mtime))
 
-                if len(backups) > max_count:
-                    backups.sort(key=lambda x: x[1])
-                    to_delete = backups[: len(backups) - max_count]
-                    for path, _ in to_delete:
-                        if os.path.exists(path):
-                            os.remove(path)
+                for pool in (backups, suspicious_backups):
+                    if len(pool) > max_count:
+                        pool.sort(key=lambda x: x[1])
+                        to_delete = pool[: len(pool) - max_count]
+                        for path, _ in to_delete:
+                            if os.path.exists(path):
+                                os.remove(path)
             except Exception as e:
                 print(f"Failed to cleanup old backups: {e}")
 
@@ -981,6 +1083,19 @@ class Database:
             current_stats.get("main_bytes"),
         )
         return result
+
+    @staticmethod
+    def _unique_backup_path(directory: str, prefix: str, timestamp: str) -> str:
+        """Second-resolution timestamps collide; never overwrite a backup."""
+        candidate = os.path.join(directory, f"{prefix}{timestamp}.zip")
+        counter = 2
+        while os.path.exists(candidate):
+            candidate = os.path.join(
+                directory,
+                f"{prefix}{timestamp}-{counter}.zip",
+            )
+            counter += 1
+        return candidate
 
     def create_snapshot(self, storage_path, name: str):
         """Creates a named snapshot of the database."""
@@ -1073,6 +1188,7 @@ class Database:
         try:
             if zipfile.is_zipfile(backup_path):
                 with zipfile.ZipFile(backup_path, "r") as zf:
+                    self._check_zip_fits_disk(zf, target_dir)
                     for member in zf.namelist():
                         if member.endswith("/"):
                             continue
@@ -1160,6 +1276,24 @@ class Database:
                     raise DatabaseRestoreError(
                         f"Restored database but identity files failed to copy: {exc!s}",
                     ) from exc
+                # The manifest on disk still describes the pre-restore tree.
+                # Drop it so a bare restore cannot block the next boot; the
+                # app-level restore writes a fresh signed baseline.
+                with suppress(OSError):
+                    os.remove(
+                        os.path.join(target_dir, INTEGRITY_MANIFEST_NAME),
+                    )
+                # The pre-restore backup baseline would flag the restored db
+                # as a content anomaly at next open; re-baseline it.
+                with suppress(Exception):
+                    stats = self._get_current_db_content_stats()
+                    if stats.get("message_count", -1) >= 0:
+                        self._write_backup_baseline(
+                            target_dir,
+                            stats["message_count"],
+                            stats["total_bytes"],
+                            stats.get("main_bytes"),
+                        )
             finally:
                 shutil.rmtree(aside_dir, ignore_errors=True)
         finally:
@@ -1189,7 +1323,12 @@ class Database:
                 for name in files:
                     src = os.path.join(root, name)
                     rel = os.path.relpath(src, staging_dir)
-                    if rel in skip:
+                    rel_parts = rel.split(os.sep)
+                    if any(
+                        part.startswith(BACKUP_SKIP_DIR_PREFIXES) for part in rel_parts
+                    ):
+                        continue
+                    if rel in skip or rel == INTEGRITY_MANIFEST_NAME:
                         continue
                     if name.endswith(("-wal", "-shm")) and name.startswith(main_stem):
                         continue

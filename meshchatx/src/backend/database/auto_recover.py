@@ -123,7 +123,13 @@ def probe_backup_zip(zip_path: str) -> dict[str, Any]:
     if not zipfile.is_zipfile(zip_path):
         return {"version": None, "quick_check": None, "error": "not a zip backup"}
 
-    with tempfile.TemporaryDirectory(prefix="meshchatx-backup-probe-") as tmp:
+    # Probe inside the backup's own directory: the process may be filesystem
+    # sandboxed (Landlock/AppContainer) with system temp out of reach.
+    probe_parent = os.path.dirname(os.path.abspath(zip_path))
+    with tempfile.TemporaryDirectory(
+        prefix="meshchatx-backup-probe-",
+        dir=probe_parent,
+    ) as tmp:
         try:
             with zipfile.ZipFile(zip_path, "r") as zf:
                 member = _find_primary_db_member(zf)

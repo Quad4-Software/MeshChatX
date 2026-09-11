@@ -630,8 +630,9 @@ def register_app_info_routes(routes, app):
     # acknowledge and reset integrity issues
     @routes.post("/api/v1/app/integrity/acknowledge")
     async def app_integrity_acknowledge(request):
-        if app.current_context:
-            app.current_context.integrity_manager.save_manifest()
+        manager = getattr(app.current_context, "integrity_manager", None)
+        if manager:
+            manager.save_manifest(reason="acknowledge")
         app.integrity_issues = []
         return web.json_response(
             {"message": "Integrity issues acknowledged and manifest reset"},
