@@ -34,6 +34,8 @@ All notable changes to this project will be documented in this file.
 - The map restores proper tile attribution with a collapsible chip for OpenStreetMap, CARTO and OpenFreeMap sources, and the zoom control and scale line are themed to match the app.
 - Map tabs on wide screens gain a right-click context menu with rename, new tab, close, close others, close tabs to the right and close all.
 - The discovered-nodes toolbar button shows a spinner while nodes are being fetched.
+- Fixed pasting into nomad page input fields on Android. The WebView cannot show its own Paste menu for fields inside the rendered page frame, so long-press now opens an app Paste action that reads the system clipboard and inserts the text at the cursor.
+- Long-press on nomad page content on Android now opens the page/tab context menu, matching desktop right-click.
 - Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
 - Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
 

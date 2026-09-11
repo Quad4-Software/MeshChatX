@@ -681,6 +681,7 @@
                             :background="nomadCrashTabBackground"
                             :active="isActive"
                             :reveal="!showPageBusyBanner"
+                            @contextmenu="onCrashTabContextMenu"
                             @navigate="onCrashTabNavigate"
                             @partials="onCrashTabPartials"
                             @images="onCrashTabImages"
@@ -3282,6 +3283,14 @@ export default {
                 }
                 this.openStandaloneContextMenu(ev);
             });
+        },
+        onCrashTabContextMenu(coords) {
+            const ev = { clientX: coords.clientX, clientY: coords.clientY };
+            if (this.embedded && this.nomadBrowserTabActions) {
+                this.nomadBrowserTabActions.openContextMenu(ev);
+                return;
+            }
+            this.openStandaloneContextMenu(ev);
         },
         openStandaloneContextMenu(event) {
             this.standaloneContextMenu = {

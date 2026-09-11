@@ -441,6 +441,10 @@ window.addEventListener("message", (ev) => {
         applyChrome(d);
         return;
     }
+    if (d.type === "paste-text") {
+        applyPastedText(d.text);
+        return;
+    }
     if (d.type === "set-partial") {
         const id = d.id || "";
         if (!id) {
@@ -550,9 +554,98 @@ function onImageKeyDown(event) {
     }
 }
 
+/**
+ * Android WebView cannot raise the insertion/paste ActionMode for fields
+ * inside an iframe, so micron inputs on nomad pages get no long-press Paste.
+ * When running in the Android shell, intercept contextmenu on text fields and
+ * ask the parent to show an app-level Paste menu instead. Desktop browsers
+ * keep the native context menu untouched.
+ */
+let pendingFieldPasteEl = null;
+
+const NON_TEXT_INPUT_TYPES = new Set([
+    "button",
+    "checkbox",
+    "file",
+    "hidden",
+    "image",
+    "radio",
+    "range",
+    "reset",
+    "submit",
+]);
+
+function isAndroidWebViewShell() {
+    try {
+        const bridge = window.MeshChatXAndroid;
+        if (bridge && typeof bridge.getPlatform === "function" && bridge.getPlatform() === "android") {
+            return true;
+        }
+    } catch {
+        // Bridge object may be inaccessible; fall through to UA detection.
+    }
+    try {
+        const ua = navigator.userAgent || "";
+        return /Android/i.test(ua) && /;\s*wv\)/.test(ua);
+    } catch {
+        return false;
+    }
+}
+
+function fieldFromContextTarget(target) {
+    const el = target && target.closest ? target.closest("input, textarea") : null;
+    if (!el || el.disabled || el.readOnly) {
+        return null;
+    }
+    if (el.tagName === "INPUT" && NON_TEXT_INPUT_TYPES.has((el.getAttribute("type") || "text").toLowerCase())) {
+        return null;
+    }
+    return el;
+}
+
+function onFieldContextMenu(event) {
+    pendingFieldPasteEl = null;
+    if (!isAndroidWebViewShell()) {
+        return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const el = fieldFromContextTarget(event.target);
+    if (el) {
+        pendingFieldPasteEl = el;
+        post({ type: "field-contextmenu", x: event.clientX, y: event.clientY });
+        return;
+    }
+    post({ type: "page-contextmenu", x: event.clientX, y: event.clientY });
+}
+
+function applyPastedText(text) {
+    const el = pendingFieldPasteEl;
+    pendingFieldPasteEl = null;
+    if (!el || !root.contains(el)) {
+        return;
+    }
+    const value = String(text ?? "");
+    try {
+        el.focus();
+    } catch {
+        // Field may have been removed between the long-press and the tap.
+    }
+    const start = typeof el.selectionStart === "number" ? el.selectionStart : el.value.length;
+    const end = typeof el.selectionEnd === "number" ? el.selectionEnd : start;
+    if (typeof el.setRangeText === "function") {
+        el.setRangeText(value, start, end, "end");
+    } else {
+        el.value = el.value.slice(0, start) + value + el.value.slice(end);
+    }
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
 root.addEventListener("click", onClick, true);
 root.addEventListener("auxclick", onClick, true);
 root.addEventListener("keydown", onImageKeyDown, true);
+root.addEventListener("contextmenu", onFieldContextMenu, true);
 paintShell("#000000", "#dddddd");
 // Warm the parser chunk while the shell downloads the page.
 void loadRenderer();

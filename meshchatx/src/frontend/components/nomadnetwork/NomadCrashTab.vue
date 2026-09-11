@@ -45,11 +45,34 @@
                 </button>
             </div>
         </div>
+
+        <Teleport to="body">
+            <ContextMenuPanel
+                v-click-outside="{
+                    handler: () => {
+                        if (!fieldContextMenu.justOpened) fieldContextMenu.show = false;
+                    },
+                    capture: true,
+                }"
+                :show="fieldContextMenu.show"
+                :x="fieldContextMenu.x"
+                :y="fieldContextMenu.y"
+            >
+                <ContextMenuItem @click="pasteIntoFrameField">
+                    <MaterialDesignIcon icon-name="content-paste" class="size-5" />
+                    <span>{{ $t("common.paste") }}</span>
+                </ContextMenuItem>
+            </ContextMenuPanel>
+        </Teleport>
     </div>
 </template>
 
 <script>
 import { nomadCrashTabRendererUrl, NOMAD_CRASH_TAB_CHANNEL } from "../../js/nomadCrashTabShell";
+import { readTextFromClipboard } from "../../js/clipboardUtils";
+import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
+import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 const WATCHDOG_MS = 12000;
 const PING_INTERVAL_MS = 2000;
@@ -64,6 +87,11 @@ const RENDER_DEADLINE_MIN_RESUME_MS = 1000;
 
 export default {
     name: "NomadCrashTab",
+    components: {
+        ContextMenuItem,
+        ContextMenuPanel,
+        MaterialDesignIcon,
+    },
     props: {
         path: {
             type: String,
@@ -109,6 +137,7 @@ export default {
     },
     emits: [
         "navigate",
+        "contextmenu",
         "partials",
         "images",
         "image-action",
@@ -142,6 +171,12 @@ export default {
             renderDeadlineParked: false,
             renderDeadlineRemainingMs: 0,
             renderDeadlineArmedAt: 0,
+            fieldContextMenu: {
+                show: false,
+                justOpened: false,
+                x: 0,
+                y: 0,
+            },
         };
     },
     computed: {
@@ -590,6 +625,14 @@ export default {
                     metaKey: data.metaKey,
                 });
             }
+            if (data.type === "field-contextmenu") {
+                this.openFieldContextMenu(data);
+                return;
+            }
+            if (data.type === "page-contextmenu") {
+                this.forwardPageContextMenu(data);
+                return;
+            }
             if (data.type === "image-action") {
                 this.$emit("image-action", {
                     action: data.action,
@@ -607,6 +650,50 @@ export default {
         },
         setImage(index, state, payload = {}) {
             this.postToFrame({ type: "set-image", index, state, ...payload });
+        },
+        frameOffsetCoords(data) {
+            const frame = this.$refs.frame;
+            const rect =
+                frame && typeof frame.getBoundingClientRect === "function" ? frame.getBoundingClientRect() : null;
+            return {
+                x: Math.round((rect ? rect.left : 0) + (Number(data.x) || 0)),
+                y: Math.round((rect ? rect.top : 0) + (Number(data.y) || 0)),
+            };
+        },
+        forwardPageContextMenu(data) {
+            const { x, y } = this.frameOffsetCoords(data);
+            this.$emit("contextmenu", { clientX: x, clientY: y });
+        },
+        openFieldContextMenu(data) {
+            const { x, y } = this.frameOffsetCoords(data);
+            this.fieldContextMenu = {
+                show: true,
+                justOpened: true,
+                x,
+                y,
+            };
+            setTimeout(() => {
+                this.fieldContextMenu.justOpened = false;
+            }, 50);
+        },
+        async pasteIntoFrameField() {
+            this.fieldContextMenu.show = false;
+            const res = await readTextFromClipboard();
+            let text = res.ok ? res.text : null;
+            if (text == null) {
+                const bridge = typeof window !== "undefined" ? window.MeshChatXAndroid : null;
+                if (bridge && typeof bridge.getClipboardText === "function") {
+                    try {
+                        text = bridge.getClipboardText();
+                    } catch {
+                        text = null;
+                    }
+                }
+            }
+            if (text == null || text === "") {
+                return;
+            }
+            this.postToFrame({ type: "paste-text", text });
         },
         pingNow() {
             if (!this.active || !this.frameReady) {

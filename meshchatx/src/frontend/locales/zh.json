@@ -678,6 +678,7 @@
         "reveal": "显示",
         "refresh": "刷新",
         "copy": "复制",
+        "paste": "粘贴",
         "copy_to_clipboard": "复制到剪贴板",
         "vacuum": "清理",
         "auto_recover": "自动恢复",

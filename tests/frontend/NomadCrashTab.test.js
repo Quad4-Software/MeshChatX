@@ -651,4 +651,103 @@ describe("NomadCrashTab.vue", () => {
         expect(src).toMatch(/try \{\s*id = decodeURIComponent\(id\)/);
         expect(src).not.toContain('replace(/"/g, "")');
     });
+
+    it("opens the field paste menu when the frame posts field-contextmenu", async () => {
+        const wrapper = mountReadyCrashTab();
+        const fakeWindow = attachFrame(wrapper);
+
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "field-contextmenu", x: 12, y: 34 },
+        });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.fieldContextMenu.show).toBe(true);
+        expect(wrapper.vm.fieldContextMenu.x).toBe(12);
+        expect(wrapper.vm.fieldContextMenu.y).toBe(34);
+        expect(document.body.textContent).toContain("common.paste");
+        wrapper.vm.fieldContextMenu.show = false;
+    });
+
+    it("forwards page-contextmenu from the frame with iframe-offset coords", async () => {
+        const wrapper = mountReadyCrashTab();
+        const fakeWindow = attachFrame(wrapper);
+
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "page-contextmenu", x: 5, y: 9 },
+        });
+
+        const emitted = wrapper.emitted("contextmenu");
+        expect(emitted).toBeTruthy();
+        expect(emitted[0][0]).toEqual({ clientX: 5, clientY: 9 });
+    });
+
+    it("ignores field-contextmenu messages from other sources", async () => {
+        const wrapper = mountReadyCrashTab();
+        wrapper.vm.onWindowMessage({
+            source: { postMessage: vi.fn() },
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "field-contextmenu", x: 1, y: 1 },
+        });
+        expect(wrapper.vm.fieldContextMenu.show).toBe(false);
+    });
+
+    it("posts paste-text into the frame after a successful clipboard read", async () => {
+        const wrapper = mountReadyCrashTab();
+        attachFrame(wrapper);
+        Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
+        Object.defineProperty(navigator, "clipboard", {
+            configurable: true,
+            value: { readText: vi.fn().mockResolvedValue("aabbcc:/page/index.mu") },
+        });
+
+        postMessageSpy.mockClear();
+        await wrapper.vm.pasteIntoFrameField();
+        expect(postMessageSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ type: "paste-text", text: "aabbcc:/page/index.mu" }),
+            "*"
+        );
+    });
+
+    it("falls back to the Android bridge when async clipboard read is unavailable", async () => {
+        const wrapper = mountReadyCrashTab();
+        attachFrame(wrapper);
+        Object.defineProperty(window, "isSecureContext", { configurable: true, value: false });
+        window.MeshChatXAndroid = { getClipboardText: vi.fn(() => "bridge-text") };
+
+        postMessageSpy.mockClear();
+        await wrapper.vm.pasteIntoFrameField();
+        expect(window.MeshChatXAndroid.getClipboardText).toHaveBeenCalled();
+        expect(postMessageSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ type: "paste-text", text: "bridge-text" }),
+            "*"
+        );
+        delete window.MeshChatXAndroid;
+    });
+
+    it("does not post when the clipboard is empty", async () => {
+        const wrapper = mountReadyCrashTab();
+        attachFrame(wrapper);
+        Object.defineProperty(window, "isSecureContext", { configurable: true, value: false });
+
+        postMessageSpy.mockClear();
+        await wrapper.vm.pasteIntoFrameField();
+        expect(postMessageSpy.mock.calls.filter((c) => c[0]?.type === "paste-text")).toHaveLength(0);
+    });
+
+    it("crash-tab entry routes field long-press to the parent paste flow", async () => {
+        const fs = await import("node:fs");
+        const path = await import("node:path");
+        const src = fs.readFileSync(
+            path.resolve(__dirname, "../../meshchatx/src/frontend/js/nomadCrashTabMain.js"),
+            "utf8"
+        );
+        expect(src).toContain('post({ type: "field-contextmenu"');
+        expect(src).toContain('d.type === "paste-text"');
+        expect(src).toContain('root.addEventListener("contextmenu", onFieldContextMenu, true)');
+        expect(src).toContain('el.setRangeText(value, start, end, "end")');
+    });
 });
