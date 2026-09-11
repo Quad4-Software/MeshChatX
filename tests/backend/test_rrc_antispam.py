@@ -4,8 +4,10 @@
 
 import time
 
+import RNS
+
 from meshchatx.src.backend.rrc import protocol as proto
-from meshchatx.src.backend.rrc.server import RRCHubServer
+from meshchatx.src.backend.rrc.server import RRCHubServer, _LoopbackEndpoint
 
 
 class FakeIdentity:
@@ -323,3 +325,134 @@ def test_event_log_bounded():
     events = server.stats_dict()["events"]
     assert len(events) == 200
     assert events[0]["room"] == "r259"
+
+
+class FakeClientHub:
+    """Loopback client stand-in: just enough surface for _LoopbackEndpoint."""
+
+    def __init__(self, identity):
+        self.manager = FakeManager()
+        self.manager.identity = identity
+        self.closed = False
+        self.packets = []
+
+    def _on_packet(self, payload):
+        self.packets.append(payload)
+
+    def _on_closed(self, link):
+        self.closed = True
+
+
+def test_loopback_link_survives_peer_cap():
+    """The host's own in-process client must not be evicted by the peer cap."""
+    server = make_server()
+    server.max_sessions_per_peer = 2
+    peer = b"\xaa" * 16
+    remotes = []
+    for _ in range(2):
+        link = FakeLink(FakeIdentity(peer))
+        server._on_link(link)
+        server._on_remote_identified(link, FakeIdentity(peer))
+        remotes.append(link)
+
+    client = FakeClientHub(FakeIdentity(peer))
+    loop = _LoopbackEndpoint(client, server)
+    server._attach_loopback(loop, FakeIdentity(peer))
+
+    assert loop.status == RNS.Link.ACTIVE, "loopback must not be torn down by peer cap"
+    assert client.closed is False
+    assert loop in server._sessions
+    # Loopback links are exempt: the remote sessions stay too.
+    assert all(link in server._sessions for link in remotes)
+    assert server._stats["peer_cap_drops"] == 0
+
+
+def test_loopback_does_not_count_against_peer_cap():
+    """A loopback session must not shrink the remote-link budget for a peer."""
+    server = make_server()
+    server.max_sessions_per_peer = 2
+    peer = b"\xaa" * 16
+
+    client = FakeClientHub(FakeIdentity(peer))
+    loop = _LoopbackEndpoint(client, server)
+    server._attach_loopback(loop, FakeIdentity(peer))
+
+    remotes = []
+    for _ in range(2):
+        link = FakeLink(FakeIdentity(peer))
+        server._on_link(link)
+        server._on_remote_identified(link, FakeIdentity(peer))
+        remotes.append(link)
+
+    assert all(link.torn_down is False for link in remotes), (
+        "loopback must not consume the per-peer session budget"
+    )
+    assert all(link in server._sessions for link in remotes)
+
+
+def test_peer_cap_enforced_when_peer_learned_from_packet():
+    """A link whose identified callback never ran still hits the peer cap."""
+    server = make_server()
+    server.max_sessions_per_peer = 2
+    peer = b"\xaa" * 16
+    links = []
+    for _ in range(3):
+        link = FakeLink(FakeIdentity(peer))
+        server._on_link(link)
+        links.append(link)
+
+    # _on_remote_identified never fired; peer is learned lazily by _on_packet.
+    for link in links:
+        server._on_packet(
+            link,
+            proto.encode(proto.make_envelope(proto.T_HELLO, src=peer)),
+        )
+
+    assert links[2].torn_down is True, "third link must be dropped once peer is known"
+    assert links[2] not in server._sessions
+    assert all(link in server._sessions for link in links[:2])
+    assert server._stats["peer_cap_drops"] == 1
+
+
+def test_identify_on_non_session_link_cannot_evict_sessions():
+    """A stale identify for a link with no session must not drop live links."""
+    server = make_server()
+    server.max_sessions_per_peer = 3
+    peer = b"\xaa" * 16
+    links = []
+    for _ in range(3):
+        link = FakeLink(FakeIdentity(peer))
+        server._on_link(link)
+        server._on_remote_identified(link, FakeIdentity(peer))
+        links.append(link)
+
+    # Pretend the cap was lowered (or session drifted) so existing sessions
+    # exceed it, then fire a stale identify for a link that is not a session.
+    server.max_sessions_per_peer = 2
+    stale = FakeLink(FakeIdentity(peer))
+    server._on_remote_identified(stale, FakeIdentity(peer))
+
+    assert all(link.torn_down is False for link in links), (
+        "identify for a non-session link must not evict real sessions"
+    )
+
+
+def test_admin_kick_tolerates_session_close_race():
+    """_on_close popping the link mid-kick must not turn into a KeyError."""
+    server = make_server()
+    peer_v = b"\xbb" * 16
+    link_v, sess_v = add_session(server, peer_v, nick="victim")
+    join(server, link_v, sess_v, "lobby")
+
+    class RacingSessions(dict):
+        # Simulates _on_close winning the race between the target lookup and
+        # the session re-read outside the lock.
+        def __getitem__(self, key):
+            self.pop(key, None)
+            return super().__getitem__(key)
+
+    server._sessions = RacingSessions(server._sessions)
+
+    # Must not raise; the kick proceeds on the session captured under lock.
+    assert server.admin_kick_from_room(peer_v.hex(), "lobby") is True
+    assert server._stats["kicks"] == 1

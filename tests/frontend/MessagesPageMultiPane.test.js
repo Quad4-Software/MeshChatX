@@ -148,6 +148,21 @@ describe("MessagesPage multi-pane", () => {
         expect(findStrip()).toBeUndefined();
     });
 
+    it("settles isConversationDragging when the drag ends outside the sidebar row", async () => {
+        const wrapper = mountMessagesPage();
+        // The sidebar emitted drag-start but the row's dragend was lost (row
+        // unmounted mid-drag); a window-level drop/dragend must still clear it.
+        wrapper.vm.onConversationDragStart();
+        expect(wrapper.vm.isConversationDragging).toBe(true);
+
+        window.dispatchEvent(new Event("drop"));
+        expect(wrapper.vm.isConversationDragging).toBe(false);
+
+        wrapper.vm.onConversationDragStart();
+        window.dispatchEvent(new Event("dragend"));
+        expect(wrapper.vm.isConversationDragging).toBe(false);
+    });
+
     it("openPeerInSplit adds a pane and opens the peer in it", async () => {
         const wrapper = mountMessagesPage();
         wrapper.vm.isWideViewport = true;
