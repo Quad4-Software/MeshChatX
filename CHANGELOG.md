@@ -38,6 +38,7 @@ All notable changes to this project will be documented in this file.
 - Long-press on nomad page content on Android now opens the page/tab context menu, matching desktop right-click.
 - Fixed map tab right-click menu rendering behind the map toolbar: context menus now sit above page chrome.
 - The map scale now sits in a row with the credits chip at bottom-right, and map overlays are capped and stacked so toolbars, search, and info cards no longer overlap each other on narrow screens.
+
 - Archives can be exported in bulk: an Export all (.zip) action below the search box downloads a zip bundle of the filtered set with a manifest, and each archive card gains an Export action that downloads the snapshot as a .mu file.
 - Relay chat member lists show avatar initials with presence dots, sticky online/offline headers, and a mention hint on hover; right-clicking a member copies their identity hash.
 - Relay chat room headers now show the hub MOTD inline next to the room and hub name instead of a separate banner row.
@@ -76,6 +77,7 @@ All notable changes to this project will be documented in this file.
 - The RRC identity LXMF address endpoint now accepts real 16-byte identity hashes instead of only the 32-byte form, so the member direct-message action actually resolves.
 - RRC per-peer session caps no longer evict the host's own loopback client, can no longer be bypassed by links whose identify callback never fired, and cannot evict live sessions through a stale identify on an already-dropped link.
 - The split-view drop strip no longer stays visible if a conversation row unmounts mid-drag; window-level drop and dragend handlers settle the state.
+- RRC room lists delivered over link resources (oversized /list and /who responses from hubs that negotiate resource envelopes) now populate the available-room list and member lists instead of being recorded as plain text.
 
 ### Changed
 
