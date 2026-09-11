@@ -45,6 +45,7 @@ All notable changes to this project will be documented in this file.
 - Tools page search icon no longer overlaps the placeholder text, and tool groups are now collapsible with count badges and persisted state.
 - The About page sandbox section shows the kernel Landlock ABI version when available.
 - The network visualiser adapts its batch size to measured apply time and pauses physics during silent refreshes when the frame rate is low, avoiding the 1-2 fps freeze on large graphs.
+- The messages split-view drop strip now only appears while dragging a conversation, freeing the space it occupied at rest; a conversation can also be opened in split view from its right-click menu.
 - Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
 - Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
 
