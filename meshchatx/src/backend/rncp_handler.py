@@ -9,6 +9,15 @@ from collections.abc import Callable
 
 import RNS
 
+from meshchatx.src.path_utils import (
+    PathJailError,
+    first_component_under,
+    is_under_root,
+    resolve_under_root,
+    resolve_user_path,
+    safe_basename,
+)
+
 from .path_utils import link_establishment_window, path_response_window
 
 # Identity-storage tops that must not be RNCP-sent or used as fetch save dirs.
@@ -101,24 +110,22 @@ class RNCPHandler:
         try:
             if isinstance(name, (bytes, bytearray)):
                 name = name.decode("utf-8", errors="replace")
-            raw = str(name).replace("\\", "/")
-            base = os.path.basename(raw)
+            raw = str(name)
         except (AttributeError, TypeError, ValueError):
             return "downloaded_file"
-        if not base or base in {".", ".."} or "\x00" in base:
-            return "downloaded_file"
-        if base in _FORBIDDEN_RECEIVED_NAMES:
-            return "downloaded_file"
-        return base
+        base = safe_basename(
+            raw.replace("\x00", ""),
+            forbidden=lambda n: n in _FORBIDDEN_RECEIVED_NAMES,
+        )
+        return base if base is not None else "downloaded_file"
 
     def _path_under_dir(self, directory: str, filename: str) -> str:
         """Join and require the final real path stays under directory."""
-        directory = os.path.realpath(directory)
-        candidate = os.path.realpath(os.path.join(directory, filename))
-        if candidate != directory and not candidate.startswith(directory + os.sep):
+        try:
+            return resolve_under_root(directory, filename)
+        except PathJailError:
             msg = "Refusing path escape outside receive directory"
-            raise PermissionError(msg)
-        return candidate
+            raise PermissionError(msg) from None
 
     def cancel_transfer(self, transfer_id: str | None = None) -> dict:
         """Mark one or all active transfers as cancelled."""
@@ -404,7 +411,7 @@ class RNCPHandler:
         except (OSError, ValueError):
             return self.REQ_FETCH_NOT_ALLOWED
         jail_real = os.path.realpath(self.fetch_jail)
-        if file_path != jail_real and not file_path.startswith(jail_real + os.sep):
+        if not is_under_root(file_path, jail_real):
             return self.REQ_FETCH_NOT_ALLOWED
 
         target_link = None
@@ -435,32 +442,30 @@ class RNCPHandler:
         root = os.path.realpath(self.storage_dir)
         if real == root:
             return True
-        if not real.startswith(root + os.sep):
+        first = first_component_under(real, root)
+        if first is None:
             return False
-        first = os.path.relpath(real, root).split(os.sep, 1)[0]
         return first in _RESERVED_RNCP_TOP or first.endswith(".db")
 
     def _resolve_fetch_save_dir(self, save_path: str) -> str:
         """Jail fetch downloads under identity storage (or default downloads dir)."""
-        if (
-            not isinstance(save_path, str)
-            or not save_path.strip()
-            or "\x00" in save_path
-        ):
-            msg = "Invalid save path"
-            raise ValueError(msg)
-        expanded = os.path.expanduser(save_path.strip())
-        if not os.path.isabs(expanded):
-            expanded = os.path.join(self.storage_dir, expanded)
-        real = os.path.realpath(expanded)
-        root = os.path.realpath(self.storage_dir)
-        if real != root and not real.startswith(root + os.sep):
+        try:
+            real = resolve_user_path(
+                save_path,
+                default_root=self.storage_dir,
+                allowed_roots=(self.storage_dir,),
+                expanduser=True,
+                forbidden_names=frozenset({".ssh", ".gnupg"}),
+            )
+        except PathJailError as exc:
+            if exc.reason == "invalid":
+                msg = "Invalid save path"
+                raise ValueError(msg) from exc
+            if exc.reason == "forbidden":
+                msg = "Refusing to save into credential directories"
+                raise PermissionError(msg) from exc
             msg = "Save path is outside the RNCP download jail"
-            raise PermissionError(msg)
-        parts = {part for part in real.split(os.sep) if part}
-        if parts & {".ssh", ".gnupg"}:
-            msg = "Refusing to save into credential directories"
-            raise PermissionError(msg)
+            raise PermissionError(msg) from exc
         if self._is_reserved_storage_path(real):
             msg = "Save path is a reserved identity-storage top"
             raise PermissionError(msg)
@@ -469,22 +474,21 @@ class RNCPHandler:
 
     def _resolve_send_path(self, file_path: str) -> str:
         """Resolve a local send path under storage or home, never identity keys."""
-        if not isinstance(file_path, str) or not file_path or "\x00" in file_path:
-            msg = "Invalid file path"
-            raise ValueError(msg)
-        expanded = os.path.expanduser(file_path)
-        if not os.path.isabs(expanded):
-            expanded = os.path.join(self.storage_dir, expanded)
-        real = os.path.realpath(expanded)
-        allowed_roots = [os.path.realpath(self.storage_dir)]
         home = os.path.expanduser("~")
-        if home and home != "~":
-            allowed_roots.append(os.path.realpath(home))
-        if not any(
-            real == root or real.startswith(root + os.sep) for root in allowed_roots
-        ):
+        home = home if home and home != "~" else None
+        try:
+            real = resolve_user_path(
+                file_path,
+                default_root=self.storage_dir,
+                allowed_roots=(self.storage_dir, home),
+                expanduser=True,
+            )
+        except PathJailError as exc:
+            if exc.reason == "invalid":
+                msg = "Invalid file path"
+                raise ValueError(msg) from exc
             msg = "File path is outside the RNCP send jail"
-            raise PermissionError(msg)
+            raise PermissionError(msg) from exc
         base = os.path.basename(real)
         if base in _FORBIDDEN_RECEIVED_NAMES:
             msg = "Refusing to send identity private key material"

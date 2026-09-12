@@ -23,7 +23,7 @@ import time
 import uuid
 from collections import deque
 
-from meshchatx.src.path_utils import is_path_within_dir
+from meshchatx.src.path_utils import PathJailError, resolve_user_path
 
 try:
     import fcntl
@@ -713,30 +713,16 @@ class RNSHManager:
 
         Returns the realpath on success, or None when the path escapes the jail.
         """
-        if (
-            not isinstance(user_path, str)
-            or not user_path.strip()
-            or "\x00" in user_path
-        ):
+        try:
+            return resolve_user_path(
+                user_path,
+                default_root=self.storage_dir,
+                allowed_roots=(self.storage_dir, self.reticulum_config_dir),
+                expanduser=True,
+                forbidden_names=frozenset({".ssh", ".gnupg"}),
+            )
+        except PathJailError:
             return None
-        expanded = os.path.expanduser(user_path.strip())
-        if not os.path.isabs(expanded):
-            if not self.storage_dir:
-                return None
-            expanded = os.path.join(self.storage_dir, expanded)
-        real = os.path.realpath(expanded)
-        parts = {part for part in real.split(os.sep) if part}
-        if parts & {".ssh", ".gnupg"}:
-            return None
-        allowed_roots = []
-        if self.storage_dir:
-            allowed_roots.append(self.storage_dir)
-        if self.reticulum_config_dir:
-            allowed_roots.append(self.reticulum_config_dir)
-        for root in allowed_roots:
-            if is_path_within_dir(real, root):
-                return real
-        return None
 
     def sanitize_session_config(self, config):
         """Fail closed on path overrides and reject free-form extra_args."""
