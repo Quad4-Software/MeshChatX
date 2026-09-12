@@ -45,6 +45,68 @@ describe("ArchivesPage.vue", () => {
             },
         });
 
+    it("shows skeleton cards while the first page is loading", async () => {
+        let resolveGet;
+        api.get.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveGet = resolve;
+                })
+        );
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findAll(".animate-pulse").length).toBeGreaterThan(0);
+        resolveGet({
+            data: {
+                archives: [],
+                pagination: { page: 1, limit: 25, total_count: 0, total_pages: 0 },
+            },
+        });
+        await flushPromises();
+        expect(wrapper.findAll(".animate-pulse").length).toBe(0);
+        expect(wrapper.text()).toContain("No archives yet");
+    });
+
+    it("keeps showing current cards while the next page loads", async () => {
+        api.get.mockResolvedValue({
+            data: {
+                archives: [
+                    {
+                        id: 3,
+                        destination_hash: "ab".repeat(16),
+                        node_name: "Node",
+                        page_path: "/page/index.mu",
+                        hash: "aabbccddeeff0011",
+                        created_at: "2024-01-01T00:00:00Z",
+                    },
+                ],
+                pagination: { page: 1, limit: 25, total_count: 60, total_pages: 3 },
+            },
+        });
+        const wrapper = mountPage();
+        await flushPromises();
+        expect(wrapper.text()).toContain("Node");
+
+        let resolvePage2;
+        api.get.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolvePage2 = resolve;
+                })
+        );
+        wrapper.vm.goPage(2);
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isLoading).toBe(true);
+        expect(wrapper.text()).toContain("Node");
+        resolvePage2({
+            data: {
+                archives: [],
+                pagination: { page: 2, limit: 25, total_count: 60, total_pages: 3 },
+            },
+        });
+        await flushPromises();
+    });
+
     it("renders translated archives title instead of raw key", async () => {
         const wrapper = mountPage();
         await wrapper.vm.$nextTick();
