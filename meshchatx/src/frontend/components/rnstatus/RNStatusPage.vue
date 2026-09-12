@@ -418,6 +418,8 @@ import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ToastUtils from "../../js/ToastUtils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import * as rnstatusApi from "../../js/api/rnstatus.js";
 
 export default {
     name: "RNStatusPage",
@@ -510,13 +512,13 @@ export default {
         },
     },
     mounted() {
-        onWsEvent("reticulum_reload_status", this.onReloadStatus);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        onWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReloadStatus);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this.refreshStatus();
     },
     beforeUnmount() {
-        offWsEvent("reticulum_reload_status", this.onReloadStatus);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        offWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReloadStatus);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
     },
     methods: {
         onWebsocketReconnected() {
@@ -688,7 +690,7 @@ export default {
                         params.timeout = this.remoteTimeout;
                     }
                 }
-                const response = await window.api.get("/api/v1/rnstatus", { params });
+                const response = await rnstatusApi.listRnstatus({ params });
                 const data = response.data || {};
                 this.interfaces = data.interfaces || [];
                 this.linkCount = data.link_count;

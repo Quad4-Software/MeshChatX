@@ -458,6 +458,8 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { apiPath } from "../../js/constants.js";
+import * as rrcApi from "../../js/api/rrc.js";
 import {
     RELAY_HOST_DETAIL_HEADER,
     RELAY_HOST_ICON_BTN,
@@ -732,7 +734,7 @@ export default {
             }
             this.roomsLoading = true;
             try {
-                const response = await window.api.get(`/api/v1/rrc/servers/${this.hub.id}/activity`);
+                const response = await window.api.get(apiPath(`/rrc/servers/${this.hub.id}/activity`));
                 this.rooms = response.data?.rooms || [];
                 this.recent = response.data?.recent || [];
             } catch (e) {
@@ -748,7 +750,7 @@ export default {
             this.membersLoading = true;
             try {
                 const params = this.roomFilter ? { params: { room: this.roomFilter } } : {};
-                const response = await window.api.get(`/api/v1/rrc/servers/${this.hub.id}/members`, params);
+                const response = await rrcApi.getServersMembers(this.hub.id, params);
                 this.members = response.data?.members || [];
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
@@ -762,7 +764,7 @@ export default {
             }
             this.statsLoading = true;
             try {
-                const response = await window.api.get(`/api/v1/rrc/servers/${this.hub.id}/stats`);
+                const response = await window.api.get(apiPath(`/rrc/servers/${this.hub.id}/stats`));
                 this.hubStats = response.data?.stats || null;
                 this.hubEvents = response.data?.events || [];
             } catch (e) {
@@ -779,7 +781,7 @@ export default {
             }
             this.creatingRoom = true;
             try {
-                await window.api.post(`/api/v1/rrc/servers/${this.hub.id}/rooms`, {
+                await window.api.post(apiPath(`/rrc/servers/${this.hub.id}/rooms`), {
                     name,
                     topic: (this.newRoom.topic || "").trim() || undefined,
                     key: (this.newRoom.key || "").trim() || undefined,
@@ -814,7 +816,7 @@ export default {
             }
             try {
                 await window.api.put(
-                    `/api/v1/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(this.selectedRoom)}/key`,
+                    apiPath(`/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(this.selectedRoom)}/key`),
                     { key }
                 );
                 ToastUtils.success(this.$t("relay_chat.host_room_key_saved"));
@@ -834,7 +836,7 @@ export default {
             }
             try {
                 await window.api.put(
-                    `/api/v1/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(this.selectedRoom)}/key`,
+                    apiPath(`/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(this.selectedRoom)}/key`),
                     { key: null }
                 );
                 ToastUtils.success(this.$t("relay_chat.host_room_key_cleared"));
@@ -850,7 +852,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(room)}`);
+                await window.api.delete(apiPath(`/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(room)}`));
                 ToastUtils.success(this.$t("relay_chat.host_room_deleted"));
                 if (this.selectedRoom === room) {
                     this.selectedRoom = null;
@@ -875,7 +877,7 @@ export default {
                 if (this.roomFilter) {
                     params.room = this.roomFilter;
                 }
-                const response = await window.api.get(`/api/v1/rrc/servers/${this.hub.id}/messages`, {
+                const response = await rrcApi.getServersMessages(this.hub.id, {
                     params,
                 });
                 this.memberMessages = response.data?.messages || [];
@@ -890,7 +892,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.get("/api/v1/config");
+                const response = await window.api.get(apiPath("/config"));
                 const hash = response.data?.identity_hash;
                 if (typeof hash === "string" && hash.trim()) {
                     this.localIdentityHash = hash.trim().toLowerCase();
@@ -958,7 +960,7 @@ export default {
                 return;
             }
             try {
-                await window.api.post(`/api/v1/rrc/servers/${this.hub.id}/moderate`, {
+                await window.api.post(apiPath(`/rrc/servers/${this.hub.id}/moderate`), {
                     action,
                     peer: member.hash,
                     room: room || undefined,

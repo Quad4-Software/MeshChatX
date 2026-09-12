@@ -1344,6 +1344,8 @@ import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import * as databaseApi from "../../js/api/database.js";
 import {
     appBatteryUsageToneClass,
     batteryStatusIconName,
@@ -1621,12 +1623,12 @@ export default {
             this.restartAboutPollIntervals();
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this.sessionsWsHandler = (payload) => {
             this.applyActiveSessionsPayload(payload);
         };
-        onWsEvent("app.sessions.updated", this.sessionsWsHandler);
+        onWsEvent(WS_EVENTS.APP_SESSIONS_UPDATED, this.sessionsWsHandler);
         this.restartAboutPollIntervals();
         this.$nextTick(() => {
             this.scrollToDatabaseBackupsIfNeeded();
@@ -1642,10 +1644,10 @@ export default {
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (this.sessionsWsHandler) {
-            offWsEvent("app.sessions.updated", this.sessionsWsHandler);
+            offWsEvent(WS_EVENTS.APP_SESSIONS_UPDATED, this.sessionsWsHandler);
             this.sessionsWsHandler = null;
         }
     },
@@ -1697,7 +1699,7 @@ export default {
         },
         async listSnapshots() {
             try {
-                const response = await window.api.get("/api/v1/database/snapshots", {
+                const response = await databaseApi.listSnapshots({
                     params: {
                         limit: this.snapshotsLimit,
                         offset: this.snapshotsOffset,
@@ -1711,7 +1713,7 @@ export default {
         },
         async listAutoBackups() {
             try {
-                const response = await window.api.get("/api/v1/database/backups", {
+                const response = await databaseApi.listBackups({
                     params: {
                         limit: this.autoBackupsLimit,
                         offset: this.autoBackupsOffset,
@@ -1726,7 +1728,7 @@ export default {
         async downloadSnapshot(filename) {
             try {
                 const downloadName = filename.endsWith(".zip") ? filename : `${filename}.zip`;
-                const response = await window.api.post(`/api/v1/database/snapshots/${filename}/download`, null, {
+                const response = await databaseApi.downloadSnapshots(filename, null, {
                     responseType: "arraybuffer",
                 });
                 await DownloadUtils.downloadFromApiResponse(response, downloadName);
@@ -1737,7 +1739,7 @@ export default {
         },
         async downloadBackupFile(filename) {
             try {
-                const response = await window.api.post(`/api/v1/database/backups/${filename}/download`, null, {
+                const response = await databaseApi.downloadBackups(filename, null, {
                     responseType: "arraybuffer",
                 });
                 await DownloadUtils.downloadFromApiResponse(response, filename);
@@ -1749,7 +1751,7 @@ export default {
         async deleteSnapshot(filename) {
             if (!(await DialogUtils.confirm(this.$t("about.delete_snapshot_confirm")))) return;
             try {
-                await window.api.delete(`/api/v1/database/snapshots/${filename}`);
+                await window.api.delete(apiPath(`/database/snapshots/${filename}`));
                 ToastUtils.success(this.$t("about.snapshot_deleted"));
                 await this.listSnapshots();
             } catch {
@@ -1759,7 +1761,7 @@ export default {
         async deleteBackup(filename) {
             if (!(await DialogUtils.confirm(this.$t("about.delete_backup_confirm")))) return;
             try {
-                await window.api.delete(`/api/v1/database/backups/${filename}`);
+                await window.api.delete(apiPath(`/database/backups/${filename}`));
                 ToastUtils.success(this.$t("about.backup_deleted"));
                 await this.listAutoBackups();
             } catch {
@@ -1796,7 +1798,7 @@ export default {
             this.snapshotMessage = "";
             this.snapshotError = "";
             try {
-                await window.api.post("/api/v1/database/snapshot", {
+                await window.api.post(apiPath("/database/snapshot"), {
                     name: this.snapshotName || `snapshot-${Math.floor(Date.now() / 1000)}`,
                 });
                 this.snapshotMessage = "Snapshot created successfully";
@@ -1817,7 +1819,7 @@ export default {
                 if (!(await DialogUtils.confirm(this.$t("about.restore_snapshot_confirm")))) {
                     return;
                 }
-                const response = await window.api.post("/api/v1/database/restore", { path });
+                const response = await window.api.post(apiPath("/database/restore"), { path });
                 if (response.data.status === "success") {
                     ToastUtils.success(this.$t("about.database_restored"));
                     this.scheduleRestoreRelaunch();
@@ -1839,7 +1841,7 @@ export default {
         },
         async getAppInfo() {
             try {
-                const response = await window.api.get("/api/v1/app/info");
+                const response = await window.api.get(apiPath("/app/info"));
                 this.appInfo = {
                     ...(this.appInfo || {}),
                     ...(response?.data?.app_info || {}),
@@ -1864,7 +1866,7 @@ export default {
         },
         async getActiveSessions() {
             try {
-                const response = await window.api.get("/api/v1/app/sessions");
+                const response = await window.api.get(apiPath("/app/sessions"));
                 this.applyActiveSessionsPayload(response?.data || {});
             } catch (e) {
                 console.log(e);
@@ -1891,7 +1893,7 @@ export default {
         async acknowledgeIntegrity() {
             if (await DialogUtils.confirm(this.$t("about.integrity_acknowledge_confirm"))) {
                 try {
-                    await window.api.post("/api/v1/app/integrity/acknowledge");
+                    await window.api.post(apiPath("/app/integrity/acknowledge"));
                     ToastUtils.success(this.$t("about.integrity_acknowledged"));
                     await this.getAppInfo();
                 } catch {
@@ -1902,7 +1904,7 @@ export default {
         async getDatabaseHealth(showMessage = false) {
             this.healthLoading = true;
             try {
-                const response = await window.api.get("/api/v1/database/health");
+                const response = await window.api.get(apiPath("/database/health"));
                 this.databaseHealth = response.data.database;
                 if (showMessage) {
                     this.databaseActionMessage = "Database health refreshed";
@@ -1923,7 +1925,7 @@ export default {
             this.databaseActionError = "";
             this.databaseRecoveryActions = [];
             try {
-                const response = await window.api.post("/api/v1/database/vacuum");
+                const response = await window.api.post(apiPath("/database/vacuum"));
                 if (response.data.database?.health) {
                     this.databaseHealth = response.data.database.health;
                 }
@@ -1947,7 +1949,7 @@ export default {
             this.backupMessage = "";
             this.backupError = "";
             try {
-                const response = await window.api.post("/api/v1/database/backup/download", null, {
+                const response = await databaseApi.downloadBackup(null, {
                     responseType: "arraybuffer",
                 });
                 const filename =
@@ -1982,7 +1984,7 @@ export default {
             try {
                 const formData = new FormData();
                 formData.append("file", this.restoreFile);
-                const response = await window.api.post("/api/v1/database/restore", formData, {
+                const response = await databaseApi.restoreDatabase(formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 this.restoreMessage = response.data.message || this.$t("about.database_restored");
@@ -2012,7 +2014,7 @@ export default {
             this.databaseActionMessage = "";
             this.databaseActionError = "";
             try {
-                const response = await window.api.post("/api/v1/database/auto-recover", { relaunch: true });
+                const response = await window.api.post(apiPath("/database/auto-recover"), { relaunch: true });
                 const strategy = response.data?.strategy;
                 const msg = response.data?.message;
                 if (strategy === "restore_backup") {
@@ -2050,7 +2052,7 @@ export default {
             this.databaseActionMessage = "";
             this.databaseActionError = "";
             try {
-                const response = await window.api.post("/api/v1/database/recover");
+                const response = await window.api.post(apiPath("/database/recover"));
                 if (response.data.database?.health) {
                     this.databaseHealth = response.data.database.health;
                 }
@@ -2087,7 +2089,7 @@ export default {
             try {
                 this.reloadingRns = true;
                 ToastUtils.loading(this.$t("app.reloading_rns"), 0, "about-rns-reload");
-                const response = await window.api.post("/api/v1/reticulum/reload");
+                const response = await window.api.post(apiPath("/reticulum/reload"));
                 ToastUtils.success(response?.data?.message || this.$t("app.reloaded_rns"));
                 await this.getAppInfo();
             } catch (e) {
@@ -2101,7 +2103,7 @@ export default {
             if (await DialogUtils.confirm(this.$t("about.shutdown_confirm"))) {
                 try {
                     // try to notify backend first
-                    await window.api.post("/api/v1/app/shutdown");
+                    await window.api.post(apiPath("/app/shutdown"));
                 } catch {
                     // ignore errors if backend is already stopping
                 }
@@ -2139,10 +2141,10 @@ export default {
             }
         },
         showChangelog() {
-            GlobalEmitter.emit("show-changelog");
+            GlobalEmitter.emit(EMITTER_EVENTS.SHOW_CHANGELOG);
         },
         showTutorial() {
-            GlobalEmitter.emit("show-tutorial");
+            GlobalEmitter.emit(EMITTER_EVENTS.SHOW_TUTORIAL);
         },
         async showReticulumConfigFile() {
             const reticulumConfigPath = this.appInfo.reticulum_config_path;

@@ -160,6 +160,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import StickerView from "./StickerView.vue";
 import ToastUtils from "../../js/ToastUtils.js";
 import DialogUtils from "../../js/DialogUtils.js";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "StickerPacksManager",
@@ -181,7 +182,7 @@ export default {
     methods: {
         async loadPacks() {
             try {
-                const r = await window.api.get("/api/v1/sticker-packs");
+                const r = await window.api.get(apiPath("/sticker-packs"));
                 this.packs = r.data?.packs || [];
             } catch (e) {
                 console.error(e);
@@ -189,7 +190,7 @@ export default {
             }
         },
         stickerImageUrl(id) {
-            return `/api/v1/stickers/${id}/image`;
+            return apiPath(`/stickers/${id}/image`);
         },
         openCreatePack() {
             this.newPackTitle = "";
@@ -201,7 +202,7 @@ export default {
         },
         async confirmCreatePack() {
             try {
-                await window.api.post("/api/v1/sticker-packs", {
+                await window.api.post(apiPath("/sticker-packs"), {
                     title: this.newPackTitle,
                     short_name: this.newPackShortName || null,
                     description: this.newPackDescription || null,
@@ -218,7 +219,7 @@ export default {
         },
         async exportPack(pack) {
             try {
-                const r = await window.api.get(`/api/v1/sticker-packs/${pack.id}/export`);
+                const r = await window.api.get(apiPath(`/sticker-packs/${pack.id}/export`));
                 const blob = new Blob([JSON.stringify(r.data, null, 2)], {
                     type: "application/json",
                 });
@@ -242,7 +243,7 @@ export default {
             const confirmed = await DialogUtils.confirm(this.$t("sticker_packs.confirm_delete", { title: pack.title }));
             if (!confirmed) return;
             try {
-                await window.api.delete(`/api/v1/sticker-packs/${pack.id}?with_stickers=true`);
+                await window.api.delete(apiPath(`/sticker-packs/${pack.id}`));
                 ToastUtils.success(this.$t("sticker_packs.deleted"));
                 await this.loadPacks();
             } catch (e) {
@@ -260,7 +261,10 @@ export default {
             try {
                 const text = await file.text();
                 const doc = JSON.parse(text);
-                const r = await window.api.post("/api/v1/sticker-packs/install", { ...doc, replace_duplicates: false });
+                const r = await window.api.post(apiPath("/sticker-packs/install"), {
+                    ...doc,
+                    replace_duplicates: false,
+                });
                 const data = r.data || {};
                 ToastUtils.success(
                     this.$t("sticker_packs.installed", {

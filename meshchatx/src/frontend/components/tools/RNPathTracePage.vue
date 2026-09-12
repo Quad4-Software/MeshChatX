@@ -275,6 +275,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "RNPathTracePage",
@@ -312,7 +313,7 @@ export default {
             this.traceResult = null;
 
             try {
-                const res = await window.api.get(`/api/v1/rnpath/trace/${this.destinationHash}`);
+                const res = await window.api.get(apiPath(`/rnpath/trace/${this.destinationHash}`));
                 if (res.data.error) {
                     this.error = res.data.error;
                 } else {

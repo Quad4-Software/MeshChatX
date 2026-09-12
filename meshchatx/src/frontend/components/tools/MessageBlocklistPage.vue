@@ -211,6 +211,7 @@ import ToolsPageHeader from "./ToolsPageHeader.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
+import { apiPath } from "../../js/constants.js";
 
 function newEntryId() {
     return Math.random().toString(16).slice(2, 18);
@@ -289,7 +290,7 @@ export default {
         },
         async reload() {
             try {
-                const res = await window.api.get("/api/v1/lxmf/message-blocklist");
+                const res = await window.api.get(apiPath("/lxmf/message-blocklist"));
                 this.enabled = !!res.data.enabled;
                 this.blocklist = this.mapFromApi(res.data.blocklist || {});
             } catch (e) {
@@ -304,7 +305,7 @@ export default {
                     enabled: this.enabled,
                     blocklist: this.normalizeForSave(),
                 };
-                const res = await window.api.put("/api/v1/lxmf/message-blocklist", payload);
+                const res = await window.api.put(apiPath("/lxmf/message-blocklist"), payload);
                 this.enabled = !!res.data.enabled;
                 this.blocklist = this.mapFromApi(res.data.blocklist || {});
                 ToastUtils.success(this.$t("tools.message_blocklist.saved"));
@@ -320,7 +321,7 @@ export default {
         },
         async onEnabledChange() {
             try {
-                await window.api.put("/api/v1/lxmf/message-blocklist", {
+                await window.api.put(apiPath("/lxmf/message-blocklist"), {
                     enabled: this.enabled,
                     blocklist: this.normalizeForSave(),
                 });
@@ -336,7 +337,7 @@ export default {
         },
         async exportList() {
             try {
-                const res = await window.api.get("/api/v1/lxmf/message-blocklist/export");
+                const res = await window.api.get(apiPath("/lxmf/message-blocklist/export"));
                 const blob = new Blob([JSON.stringify(res.data, null, 2)], {
                     type: "application/json",
                 });
@@ -360,7 +361,7 @@ export default {
             try {
                 const text = await file.text();
                 const document = JSON.parse(text);
-                const res = await window.api.post("/api/v1/lxmf/message-blocklist/import", {
+                const res = await window.api.post(apiPath("/lxmf/message-blocklist/import"), {
                     document,
                     merge,
                 });

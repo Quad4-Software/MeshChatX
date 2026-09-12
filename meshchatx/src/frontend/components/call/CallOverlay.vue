@@ -344,6 +344,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import AudioWaveformPlayer from "../messages/AudioWaveformPlayer.vue";
 import Utils from "../../js/Utils";
+import { apiPath } from "../../js/constants.js";
 import ToastUtils from "../../js/ToastUtils";
 import { promptMicrophoneAccessFromWindow } from "../../js/webAudioMicPermission";
 
@@ -466,7 +467,7 @@ export default {
                     // CallPage surfaces mic errors after navigation. Keep answer
                     // on the click gesture so Brave can still show a prompt.
                 }
-                await window.api.post("/api/v1/telephone/answer");
+                await window.api.post(apiPath("/telephone/answer"));
                 // Native Android audio (and desktop web-audio) only attach from
                 // CallPage. Overlay accept must open the phone tab or the call
                 // stays silent after answer.
@@ -480,14 +481,14 @@ export default {
         async hangupCall() {
             try {
                 this.$emit("hangup");
-                await window.api.post("/api/v1/telephone/hangup");
+                await window.api.post(apiPath("/telephone/hangup"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_hangup_call"));
             }
         },
         async sendToVoicemail() {
             try {
-                await window.api.post("/api/v1/telephone/send-to-voicemail");
+                await window.api.post(apiPath("/telephone/send-to-voicemail"));
                 ToastUtils.success(this.$t("call.call_sent_to_voicemail"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_send_to_voicemail"));
@@ -503,8 +504,8 @@ export default {
                 this.$emit("toggle-mic", !isCurrentlyMuted);
 
                 const endpoint = isCurrentlyMuted
-                    ? "/api/v1/telephone/unmute-transmit"
-                    : "/api/v1/telephone/mute-transmit";
+                    ? apiPath("/telephone/unmute-transmit")
+                    : apiPath("/telephone/mute-transmit");
                 await window.api.post(endpoint);
 
                 setTimeout(() => {
@@ -527,8 +528,8 @@ export default {
                 this.$emit("toggle-speaker", !isCurrentlyMuted);
 
                 const endpoint = isCurrentlyMuted
-                    ? "/api/v1/telephone/unmute-receive"
-                    : "/api/v1/telephone/mute-receive";
+                    ? apiPath("/telephone/unmute-receive")
+                    : apiPath("/telephone/mute-receive");
                 await window.api.post(endpoint);
 
                 setTimeout(() => {
@@ -545,7 +546,7 @@ export default {
             if (!this.activeCall || this.activeCall.status !== 6) return;
             const nextMode = this.localHalfDuplex ? 1 : 2;
             try {
-                const response = await window.api.post(`/api/v1/telephone/switch-call-mode/${nextMode}`);
+                const response = await window.api.post(apiPath(`/telephone/switch-call-mode/${nextMode}`));
                 this.localPttActive = Boolean(response.data?.is_ptt_active);
                 this.localHalfDuplex = Boolean(response.data?.is_half_duplex);
             } catch {
@@ -560,7 +561,7 @@ export default {
             if (this.localPttActive === wantActive) return;
             this.localPttActive = wantActive;
             try {
-                await window.api.post("/api/v1/telephone/ptt", { active: wantActive });
+                await window.api.post(apiPath("/telephone/ptt"), { active: wantActive });
             } catch {
                 this.localPttActive = !wantActive;
                 if (wantActive) {
@@ -581,7 +582,7 @@ export default {
             if (!voicemailId) return;
 
             this.isPlayingVoicemail = true;
-            this.audioPlayer = new Audio(`/api/v1/telephone/voicemails/${voicemailId}/audio`);
+            this.audioPlayer = new Audio(apiPath(`/telephone/voicemails/${voicemailId}/audio`));
             this.audioPlayer.onended = () => {
                 this.isPlayingVoicemail = false;
                 this.audioPlayer = null;

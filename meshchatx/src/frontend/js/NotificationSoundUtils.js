@@ -1,3 +1,5 @@
+import { apiPath } from "./constants.js";
+
 class NotificationSoundUtils {
     static _player = null;
     static autoplayBlocked = false;
@@ -41,7 +43,7 @@ class NotificationSoundUtils {
         if (typeof window === "undefined" || !window.api) {
             return null;
         }
-        const response = await window.api.get("/api/v1/notification-sounds/status");
+        const response = await window.api.get(apiPath("/notification-sounds/status"));
         return response?.data ?? null;
     }
 
@@ -64,7 +66,7 @@ class NotificationSoundUtils {
 
             NotificationSoundUtils.stop();
 
-            const player = new Audio(`/api/v1/notification-sounds/${status.id}/audio`);
+            const player = new Audio(apiPath(`/notification-sounds/${status.id}/audio`));
             player.loop = false;
             player.volume = NotificationSoundUtils._normalizeVolume(
                 status.volume ?? config.notification_sound_volume / 100.0
@@ -97,7 +99,7 @@ class NotificationSoundUtils {
         NotificationSoundUtils.stop();
 
         try {
-            const player = new Audio(`/api/v1/notification-sounds/${soundId}/audio`);
+            const player = new Audio(apiPath(`/notification-sounds/${soundId}/audio`));
             player.loop = false;
             player.volume = NotificationSoundUtils._normalizeVolume(volumePercent / 100.0);
             player.onended = () => {

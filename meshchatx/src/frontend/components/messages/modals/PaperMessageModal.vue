@@ -173,6 +173,7 @@
 import QRCode from "qrcode";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import ToastUtils from "../../../js/ToastUtils";
+import { apiPath } from "../../../js/constants.js";
 import Utils from "../../../js/Utils";
 
 export default {
@@ -216,7 +217,7 @@ export default {
         async fetchUri() {
             try {
                 this.isLoading = true;
-                const response = await window.api.get(`/api/v1/lxmf-messages/${this.messageHash}/uri`);
+                const response = await window.api.get(apiPath(`/lxmf-messages/${this.messageHash}/uri`));
                 this.uri = response.data.uri;
                 if (this.uri) {
                     this.$nextTick(() => {
@@ -303,7 +304,7 @@ export default {
                 }
 
                 // send message
-                const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
+                const response = await window.api.post(apiPath("/lxmf-messages/send"), {
                     delivery_method: "opportunistic",
                     lxmf_message: lxmf_message,
                 });

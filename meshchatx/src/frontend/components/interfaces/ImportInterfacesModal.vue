@@ -139,6 +139,7 @@
 
 <script>
 import DialogUtils from "../../js/DialogUtils";
+import { apiPath } from "../../js/constants.js";
 import Utils from "../../js/Utils";
 import Toggle from "../forms/Toggle.vue";
 
@@ -186,7 +187,7 @@ export default {
 
             try {
                 // fetch preview of interfaces to import
-                const response = await window.api.post("/api/v1/reticulum/interfaces/import-preview", {
+                const response = await window.api.post(apiPath("/reticulum/interfaces/import-preview"), {
                     config: await file.text(),
                 });
 
@@ -249,7 +250,7 @@ export default {
 
             try {
                 // import interfaces
-                await window.api.post("/api/v1/reticulum/interfaces/import", {
+                await window.api.post(apiPath("/reticulum/interfaces/import"), {
                     config: await this.selectedFile.text(),
                     selected_interface_names: this.selectedInterfaces,
                 });

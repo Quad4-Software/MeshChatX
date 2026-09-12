@@ -270,6 +270,8 @@ import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import PublishSiteModal from "./PublishSiteModal.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import * as pageNodesApi from "../../js/api/pageNodes.js";
 
 const NOMAD_DESTINATION_HASH = /^[a-fA-F0-9]{32}$/;
 const PAGE_EXTENSIONS = [".mu", ".html", ".md", ".txt"];
@@ -332,7 +334,7 @@ export default {
         },
     },
     async mounted() {
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         await this.loadContent();
         await this.loadLocalImages();
         this.handleResize();
@@ -340,7 +342,7 @@ export default {
         this.renderActiveTab();
     },
     beforeUnmount() {
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         window.removeEventListener("resize", this.handleResize);
         this.revokeLocalImageUrls();
     },
@@ -650,7 +652,7 @@ export default {
                 try {
                     const formData = new FormData();
                     formData.append("file", asset.blob, asset.name);
-                    await window.api.post(`/api/v1/page-nodes/${node.node_id}/files`, formData, {
+                    await pageNodesApi.createFiles(node.node_id, formData, {
                         headers: { "Content-Type": "multipart/form-data" },
                     });
                 } catch (error) {
@@ -1502,7 +1504,7 @@ ${b}=
             this.showPublishMenu = !this.showPublishMenu;
             if (this.showPublishMenu) {
                 try {
-                    const response = await window.api.get("/api/v1/page-nodes");
+                    const response = await window.api.get(apiPath("/page-nodes"));
                     this.pageNodes = response.data;
                 } catch {
                     this.pageNodes = [];
@@ -1510,7 +1512,7 @@ ${b}=
             }
         },
         async fetchNodePages(node) {
-            const response = await window.api.get(`/api/v1/page-nodes/${node.node_id}/pages`);
+            const response = await window.api.get(apiPath(`/page-nodes/${node.node_id}/pages`));
             return response.data?.pages ?? [];
         },
         tabNameToPageBase(tab) {
@@ -1590,7 +1592,7 @@ ${b}=
             if (!node?.node_id) {
                 throw new Error("missing_node");
             }
-            const startRes = await window.api.post(`/api/v1/page-nodes/${node.node_id}/start`);
+            const startRes = await window.api.post(apiPath(`/page-nodes/${node.node_id}/start`));
             const destinationHash = startRes.data?.destination_hash || node.destination_hash || "";
             return {
                 ...node,
@@ -1673,7 +1675,7 @@ ${b}=
             const serverName = String(entered).trim();
             this.publishBusy = true;
             try {
-                const createRes = await window.api.post("/api/v1/page-nodes", { name: serverName });
+                const createRes = await window.api.post(apiPath("/page-nodes"), { name: serverName });
                 const created = createRes.data || {};
                 if (!created.node_id) {
                     throw new Error("create_failed");
@@ -1708,7 +1710,7 @@ ${b}=
                     return;
                 }
                 const publishName = this.pageBaseWithExtension(pageBase, tab);
-                const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
+                const response = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
                     name: publishName,
                     content: tab.content,
                 });
@@ -1734,7 +1736,7 @@ ${b}=
             this.showPublishMenu = false;
             this.showPublishSiteModal = true;
             try {
-                const response = await window.api.get("/api/v1/page-nodes");
+                const response = await window.api.get(apiPath("/page-nodes"));
                 this.pageNodes = response.data;
             } catch {
                 this.pageNodes = [];
@@ -1771,7 +1773,7 @@ ${b}=
                         DialogUtils.alert(this.$t("tools.micron_editor.publish_site_no_server"));
                         return;
                     }
-                    const createRes = await window.api.post("/api/v1/page-nodes", { name: payload.newServerName });
+                    const createRes = await window.api.post(apiPath("/page-nodes"), { name: payload.newServerName });
                     node = createRes.data || {};
                     if (!node.node_id) {
                         throw new Error("create_failed");
@@ -1783,7 +1785,7 @@ ${b}=
                 let lastSavedName = null;
                 for (const page of pages) {
                     try {
-                        const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
+                        const response = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
                             name: page.name,
                             content: page.content,
                         });
@@ -1800,7 +1802,7 @@ ${b}=
                 if (payload.generateIndex && running.destination_hash && published > 0) {
                     try {
                         const indexContent = this.buildSiteIndexPage(running.destination_hash, pages);
-                        const indexRes = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
+                        const indexRes = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
                             name: "index.mu",
                             content: indexContent,
                         });

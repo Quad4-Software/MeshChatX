@@ -107,6 +107,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "FilesyncDirectoryBrowserModal",
@@ -155,8 +156,8 @@ export default {
             this.busy = true;
             try {
                 const url = path
-                    ? `/api/v1/filesync/directories?path=${encodeURIComponent(path)}`
-                    : "/api/v1/filesync/directories";
+                    ? apiPath(`/filesync/directories?path=${encodeURIComponent(path)}`)
+                    : apiPath("/filesync/directories");
                 const response = await window.api.get(url);
                 const data = response?.data || {};
                 this.root = data.root || "";
@@ -187,7 +188,7 @@ export default {
             }
             this.busy = true;
             try {
-                const response = await window.api.post("/api/v1/filesync/directories", {
+                const response = await window.api.post(apiPath("/filesync/directories"), {
                     parent: this.current,
                     name,
                 });

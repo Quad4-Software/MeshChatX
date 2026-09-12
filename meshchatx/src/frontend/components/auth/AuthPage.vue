@@ -82,6 +82,7 @@
 
 <script>
 import logoUrl from "../../assets/images/logo.png";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "AuthPage",
@@ -102,7 +103,7 @@ export default {
     methods: {
         async checkAuthStatus() {
             try {
-                const response = await window.api.get("/api/v1/auth/status");
+                const response = await window.api.get(apiPath("/auth/status"));
                 const status = response.data;
 
                 if (!status.auth_enabled) {
@@ -141,7 +142,7 @@ export default {
             this.isLoading = true;
 
             try {
-                const endpoint = this.isSetup ? "/api/v1/auth/setup" : "/api/v1/auth/login";
+                const endpoint = this.isSetup ? apiPath("/auth/setup") : apiPath("/auth/login");
                 const body = { password: this.password };
                 await window.api.post(endpoint, body);
 

@@ -426,6 +426,9 @@ import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import * as identitiesApi from "../../js/api/identities.js";
+import * as identityApi from "../../js/api/identity.js";
 
 export default {
     name: "IdentitiesPage",
@@ -459,12 +462,12 @@ export default {
     },
     mounted() {
         this.getIdentities();
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.on("identity-switching-abort", this.onIdentitySwitchAborted);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT, this.onIdentitySwitchAborted);
     },
     beforeUnmount() {
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.off("identity-switching-abort", this.onIdentitySwitchAborted);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT, this.onIdentitySwitchAborted);
     },
     methods: {
         onIdentitySwitchAborted() {
@@ -492,7 +495,7 @@ export default {
         async getIdentities() {
             this.isLoading = true;
             try {
-                const response = await window.api.get("/api/v1/identities");
+                const response = await window.api.get(apiPath("/identities"));
                 this.identities = response.data?.identities ?? [];
             } catch (e) {
                 console.error(e);
@@ -503,8 +506,7 @@ export default {
         },
         async downloadIdentityFile() {
             try {
-                const response = await window.api.post(
-                    "/api/v1/identity/backup/download",
+                const response = await identityApi.downloadBackup(
                     {},
                     {
                         responseType: "arraybuffer",
@@ -518,7 +520,7 @@ export default {
         },
         async copyIdentityBase32() {
             try {
-                const response = await window.api.post("/api/v1/identity/backup/base32");
+                const response = await window.api.post(apiPath("/identity/backup/base32"));
                 const base32 = response.data?.identity_base32 ?? "";
                 if (!base32) {
                     ToastUtils.error(this.$t("identities.no_identity_available"));
@@ -532,8 +534,7 @@ export default {
         },
         async downloadAllIdentities() {
             try {
-                const response = await window.api.post(
-                    "/api/v1/identities/export-all",
+                const response = await identitiesApi.postExportAll(
                     {},
                     {
                         responseType: "arraybuffer",
@@ -600,7 +601,7 @@ export default {
             try {
                 const formData = new FormData();
                 formData.append("file", this.identityRestoreFile);
-                const response = await window.api.post("/api/v1/identity/restore", formData, {
+                const response = await identityApi.restoreIdentity(formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 const message = response.data?.message ?? this.$t("identities.identity_restored");
@@ -625,7 +626,7 @@ export default {
             this.identityRestoreMessage = "";
             this.identityRestoreError = "";
             try {
-                const response = await window.api.post("/api/v1/identity/restore", {
+                const response = await window.api.post(apiPath("/identity/restore"), {
                     base32: normalized,
                 });
                 const message = response.data?.message ?? this.$t("identities.identity_restored");
@@ -651,7 +652,7 @@ export default {
 
             this.isCreating = true;
             try {
-                await window.api.post("/api/v1/identities/create", {
+                await window.api.post(apiPath("/identities/create"), {
                     display_name: this.newIdentityName,
                 });
                 ToastUtils.success(this.$t("identities.created"));
@@ -674,14 +675,14 @@ export default {
 
             try {
                 this.isCreating = true;
-                GlobalEmitter.emit("identity-switching-start");
+                GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_START);
 
-                const response = await window.api.post("/api/v1/identities/switch", {
+                const response = await window.api.post(apiPath("/identities/switch"), {
                     identity_hash: identity.hash,
                 });
 
                 if (response.data.hotswapped) {
-                    GlobalEmitter.emit("identity-switched-apply", {
+                    GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHED_APPLY, {
                         identity_hash: response.data.identity_hash ?? identity.hash,
                         display_name: response.data.display_name ?? identity.display_name ?? "",
                         requires_reauth: Boolean(response.data.requires_reauth),
@@ -689,7 +690,7 @@ export default {
                 } else {
                     ToastUtils.info(this.$t("identities.switch_scheduled"));
                     this.isCreating = false;
-                    GlobalEmitter.emit("identity-switching-abort");
+                    GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT);
                     setTimeout(() => {
                         window.location.reload();
                     }, 2000);
@@ -702,7 +703,7 @@ export default {
                 this.isCreating = false;
                 // Do not emit identity-switched on failure. Keep-alive pages treat
                 // that event as a real switch and clear identity-scoped UI.
-                GlobalEmitter.emit("identity-switching-abort");
+                GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT);
             }
         },
         async deleteIdentity(identity) {
@@ -711,7 +712,7 @@ export default {
             }
 
             try {
-                await window.api.delete(`/api/v1/identities/${identity.hash}`);
+                await window.api.delete(apiPath(`/identities/${identity.hash}`));
                 ToastUtils.success(this.$t("identities.deleted"));
                 await this.getIdentities();
             } catch (e) {

@@ -1,4 +1,6 @@
-const destinationPath = (hash) => `/api/v1/destination/${hash}/path`;
+import { apiPath } from "./constants.js";
+
+const destinationPath = (hash) => apiPath(`/destination/${hash}/path`);
 
 /**
  * @typedef {{ path: object | null, path_stale: boolean, path_unresponsive: boolean }} PeerPathSnapshot
@@ -98,11 +100,11 @@ export function postDestinationPath(api, hash, options) {
 }
 
 export function postRequestPath(api, hash) {
-    return api.post(`/api/v1/destination/${hash}/request-path`);
+    return api.post(apiPath(`/destination/${hash}/request-path`));
 }
 
 export function postDropPath(api, hash) {
-    return api.post(`/api/v1/destination/${hash}/drop-path`);
+    return api.post(apiPath(`/destination/${hash}/drop-path`));
 }
 
 /**

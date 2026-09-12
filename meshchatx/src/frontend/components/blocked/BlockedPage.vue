@@ -254,6 +254,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import DialogUtils from "../../js/DialogUtils";
+import { apiPath } from "../../js/constants.js";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
 
@@ -327,12 +328,12 @@ export default {
         async loadBlockedDestinations() {
             this.isLoading = true;
             try {
-                const response = await window.api.get("/api/v1/blocked-destinations");
+                const response = await window.api.get(apiPath("/blocked-destinations"));
                 const blockedHashes = response.data.blocked_destinations || [];
 
                 let reticulumBlackholed = {};
                 try {
-                    const rnsResponse = await window.api.get("/api/v1/reticulum/blackhole");
+                    const rnsResponse = await window.api.get(apiPath("/reticulum/blackhole"));
                     reticulumBlackholed = rnsResponse.data.blackholed_identities || {};
                 } catch (e) {
                     console.error("Failed to load Reticulum blackhole", e);
@@ -363,7 +364,7 @@ export default {
                     let isNode = false;
 
                     try {
-                        const announceResponse = await window.api.get("/api/v1/announces", {
+                        const announceResponse = await window.api.get(apiPath("/announces"), {
                             params: {
                                 destination_hash: hash,
                                 include_blocked: true,
@@ -401,7 +402,7 @@ export default {
 
                     if (!identity.display_name) {
                         try {
-                            const announceResponse = await window.api.get("/api/v1/announces", {
+                            const announceResponse = await window.api.get(apiPath("/announces"), {
                                 params: {
                                     identity_hash: hash,
                                     include_blocked: true,
@@ -486,7 +487,7 @@ export default {
                 identity.blocked_destinations.length > 0
                     ? identity.blocked_destinations[0].destination_hash
                     : identity.identity_hash;
-            await window.api.delete(`/api/v1/blocked-destinations/${targetHash}`);
+            await window.api.delete(apiPath(`/blocked-destinations/${targetHash}`));
         },
         toggleSelectAll() {
             if (this.isAllSelected) {

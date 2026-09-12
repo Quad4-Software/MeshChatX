@@ -244,6 +244,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SieveFlowNetwork from "./internal/SieveFlowNetwork.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import { apiPath } from "../../js/constants.js";
 
 function newRuleId() {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -381,8 +382,8 @@ export default {
         async reload() {
             try {
                 const [fRes, foldersRes] = await Promise.all([
-                    window.api.get("/api/v1/lxmf/sieve-filters"),
-                    window.api.get("/api/v1/lxmf/folders"),
+                    window.api.get(apiPath("/lxmf/sieve-filters")),
+                    window.api.get(apiPath("/lxmf/folders")),
                 ]);
                 const raw = fRes.data.filters || [];
                 this.filters = raw.map((r) => this.mapRuleFromApi(r));
@@ -400,7 +401,7 @@ export default {
             this.isSaving = true;
             try {
                 const payload = { filters: this.normalizeForSave() };
-                const res = await window.api.put("/api/v1/lxmf/sieve-filters", payload);
+                const res = await window.api.put(apiPath("/lxmf/sieve-filters"), payload);
                 this.filters = (res.data.filters || []).map((r) => this.mapRuleFromApi(r));
                 ToastUtils.success(this.$t("tools.sieve_filters.saved"));
             } catch (e) {

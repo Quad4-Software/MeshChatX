@@ -284,6 +284,7 @@ import AndroidBridge from "../../js/rnode/AndroidBridge";
 import { permissionLabel } from "../../js/plugins/pluginPermissions.js";
 import { pluginHost } from "../../js/plugins/PluginHost.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, WS_EVENTS } from "../../js/constants.js";
 
 export default {
     name: "PluginsSettingsSection",
@@ -323,10 +324,10 @@ export default {
                 void this.refresh();
             }
         };
-        onWsEvent("plugin.event", this.onPluginDisabled);
+        onWsEvent(WS_EVENTS.PLUGIN_EVENT, this.onPluginDisabled);
     },
     beforeUnmount() {
-        offWsEvent("plugin.event", this.onPluginDisabled);
+        offWsEvent(WS_EVENTS.PLUGIN_EVENT, this.onPluginDisabled);
     },
     methods: {
         currentLocale() {
@@ -344,7 +345,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.get("/api/v1/plugins");
+                const response = await window.api.get(apiPath("/plugins"));
                 this.plugins = response.data?.plugins || [];
             } catch (e) {
                 console.error("Failed to load plugins", e);
@@ -355,7 +356,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.get("/api/v1/sideband-plugins");
+                const response = await window.api.get(apiPath("/sideband-plugins"));
                 const config = response.data?.config || {};
                 this.sidebandConfig = {
                     service_plugins_enabled: Boolean(config.service_plugins_enabled),
@@ -409,7 +410,7 @@ export default {
         async saveSidebandConfig() {
             this.sidebandBusy = true;
             try {
-                const response = await window.api.post("/api/v1/sideband-plugins/config", {
+                const response = await window.api.post(apiPath("/plugins/config"), {
                     service_plugins_enabled: this.sidebandConfig.service_plugins_enabled,
                     command_plugins_enabled: this.sidebandConfig.command_plugins_enabled,
                     command_plugins_path: this.sidebandConfig.command_plugins_path || null,
@@ -427,7 +428,7 @@ export default {
         async reloadSideband() {
             this.sidebandBusy = true;
             try {
-                const response = await window.api.post("/api/v1/sideband-plugins/reload");
+                const response = await window.api.post(apiPath("/sideband-plugins/reload"));
                 this.sidebandPlugins = response.data?.plugins || [];
                 ToastUtils.success(this.$t("plugins.sideband.reloaded"));
             } catch (error) {
@@ -441,7 +442,7 @@ export default {
         async enablePlugin(pluginId) {
             this.busyPluginId = pluginId;
             try {
-                await window.api.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/enable`);
+                await window.api.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/enable`));
                 await pluginHost.loadEnabledPlugins(window.api, this.currentLocale());
                 await this.refresh();
                 ToastUtils.success(this.$t("plugins.settings.enabled"));
@@ -457,7 +458,7 @@ export default {
         async disablePlugin(pluginId) {
             this.busyPluginId = pluginId;
             try {
-                await window.api.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/disable`);
+                await window.api.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/disable`));
                 pluginHost.unloadPlugin(pluginId);
                 await this.refresh();
                 ToastUtils.info(this.$t("plugins.settings.disabled"));
@@ -475,7 +476,7 @@ export default {
         async removePlugin(pluginId) {
             this.busyPluginId = pluginId;
             try {
-                await window.api.delete(`/api/v1/plugins/${encodeURIComponent(pluginId)}`);
+                await window.api.delete(apiPath(`/plugins/${encodeURIComponent(pluginId)}`));
                 pluginHost.unloadPlugin(pluginId);
                 await this.refresh();
                 ToastUtils.info(this.$t("plugins.settings.removed"));
@@ -492,7 +493,7 @@ export default {
             try {
                 const formData = new FormData();
                 formData.append("archive", file);
-                const response = await window.api.post("/api/v1/plugins/preview", formData);
+                const response = await window.api.post(apiPath("/plugins/preview"), formData);
                 this.installPreview = response.data;
                 this.dialogOpen = true;
             } catch (error) {
@@ -522,7 +523,7 @@ export default {
             this.installing = true;
             try {
                 if (trustPublisher && signer) {
-                    await window.api.post("/api/v1/plugins/trusted-publishers", {
+                    await window.api.post(apiPath("/plugins/trusted-publishers"), {
                         identity: signer,
                         name: signerName || signer,
                     });
@@ -530,7 +531,7 @@ export default {
                 const formData = new FormData();
                 formData.append("archive", this.pendingArchive);
                 formData.append("granted_permissions", JSON.stringify(grantedPermissions || []));
-                await window.api.post("/api/v1/plugins/install", formData);
+                await window.api.post(apiPath("/plugins/install"), formData);
                 await this.refresh();
                 ToastUtils.success(this.$t("plugins.settings.installed"));
                 this.cancelInstallPreview();

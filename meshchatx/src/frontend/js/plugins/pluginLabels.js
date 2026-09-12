@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { apiPath } from "../constants.js";
+
 /**
  * Flatten nested locale objects into dotted keys for plugin worker translation.
  *
@@ -49,7 +51,7 @@ export async function loadPluginLabelMap(apiClient, pluginId, locale, manifest =
             const assetPath = `${directory}/${code}.json`;
             const version = manifest.version || "1";
             const response = await apiClient.get(
-                `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${assetPath}?v=${encodeURIComponent(version)}`,
+                apiPath(`/plugins/${encodeURIComponent(pluginId)}/asset/${assetPath}?v=${encodeURIComponent(version)}`),
                 {
                     responseType: "json",
                 }

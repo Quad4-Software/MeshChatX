@@ -118,6 +118,8 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import { apiPath } from "../../js/constants.js";
+import * as filesyncApi from "../../js/api/filesync.js";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
 import Utils from "../../js/Utils";
@@ -182,7 +184,7 @@ export default {
                 if (this.currentPath) {
                     params.path = this.currentPath;
                 }
-                const response = await window.api.get("/api/v1/filesync/tree", { params });
+                const response = await filesyncApi.getTree({ params });
                 const data = response?.data || {};
                 this.entries = Array.isArray(data.entries) ? data.entries : [];
                 this.currentPath = data.current != null ? String(data.current) : "";
@@ -220,7 +222,7 @@ export default {
                 if (this.currentPath) {
                     formData.append("path", this.currentPath);
                 }
-                await window.api.post("/api/v1/filesync/upload", formData);
+                await window.api.post(apiPath("/filesync/upload"), formData);
                 ToastUtils.success(this.$t("rns_filesync.upload_done"));
                 await this.refresh();
             } catch (err) {
@@ -240,7 +242,7 @@ export default {
             this.busy = true;
             try {
                 const path = this.joinPath(this.currentPath, name);
-                await window.api.post("/api/v1/filesync/mkdir", { path });
+                await window.api.post(apiPath("/filesync/mkdir"), { path });
                 ToastUtils.success(this.$t("rns_filesync.browser_created"));
                 this.newFolderName = "";
                 await this.refresh();
@@ -257,7 +259,7 @@ export default {
             }
             this.busy = true;
             try {
-                const response = await window.api.get("/api/v1/filesync/content", {
+                const response = await filesyncApi.getContent({
                     params: { path },
                     responseType: "blob",
                 });
@@ -280,7 +282,7 @@ export default {
             }
             this.busy = true;
             try {
-                await window.api.delete("/api/v1/filesync/entry", { data: { path } });
+                await filesyncApi.deleteEntry({ data: { path } });
                 ToastUtils.success(this.$t("rns_filesync.delete_done"));
                 await this.refresh();
             } catch (err) {

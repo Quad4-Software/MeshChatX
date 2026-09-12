@@ -22,6 +22,7 @@
     "include": [
         "meshchatx/src/frontend/**/*.vue",
         "meshchatx/src/frontend/**/*.js",
+        "meshchatx/src/frontend/**/*.d.ts",
         "electron/**/*.js",
         "vite.config.mjs"
     ],

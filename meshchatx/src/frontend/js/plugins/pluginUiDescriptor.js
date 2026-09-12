@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { apiPath } from "../constants.js";
+
 /** Versioned plugin UI descriptor schema (uiDescriptor v1). */
 
 export const UI_DESCRIPTOR_VERSION = 1;
@@ -54,8 +56,8 @@ export function sanitizePluginAssetSrc(pluginId, src) {
     if (typeof src !== "string" || !src.trim()) {
         return null;
     }
-    const prefix = `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/`;
-    if (!src.startsWith(prefix) && !src.startsWith(`/api/v1/plugins/${pluginId}/asset/`)) {
+    const prefix = apiPath(`/plugins/${encodeURIComponent(pluginId)}/asset/`);
+    if (!src.startsWith(prefix) && !src.startsWith(apiPath(`/plugins/${pluginId}/asset/`))) {
         return null;
     }
     if (src.includes("..") || src.includes("://")) {
