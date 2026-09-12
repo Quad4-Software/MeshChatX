@@ -146,7 +146,18 @@
         "message_persistence_enabled": "Persister la file d'envoi",
         "admins": "Adresses LXMF des admins",
         "admins_placeholder": "un hash de 32 caractères par ligne",
-        "admins_hint": "Les admins contournent les restrictions de commandes et le anti-spam."
+        "admins_hint": "Les admins contournent les restrictions de commandes et le anti-spam.",
+        "setup_title": "Nouveau bot",
+        "setup_description": "Configurer un nouveau bot LXMFy",
+        "choose_template": "Choisir un modèle",
+        "loading": "Chargement...",
+        "create_and_start": "Créer et démarrer",
+        "advanced_lxmf_settings_hint": "Contrôles LXMF optionnels de livraison, sécurité et anti-spam. Les défauts conviennent à la plupart des bots.",
+        "failed_to_load": "Impossible de charger les modèles de bots",
+        "edit_rrc": "Modifier les paramètres du chat relayé",
+        "rrc_modal_title": "Paramètres du chat relayé",
+        "rrc_saved": "Paramètres enregistrés",
+        "rrc_save_failed": "Impossible d'enregistrer les paramètres"
     },
     "app": {
         "name": "Réticulum MeshChatX",

@@ -146,7 +146,18 @@
         "message_persistence_enabled": "Uitgaande wachtrij bewaren",
         "admins": "Admin LXMF-adressen",
         "admins_placeholder": "één 32-tekens hash per regel",
-        "admins_hint": "Admins omzeilen commandobeperkingen en spamcontroles."
+        "admins_hint": "Admins omzeilen commandobeperkingen en spamcontroles.",
+        "setup_title": "Nieuwe bot",
+        "setup_description": "Een nieuwe LXMFy-bot configureren",
+        "choose_template": "Kies een sjabloon",
+        "loading": "Laden...",
+        "create_and_start": "Aanmaken & starten",
+        "advanced_lxmf_settings_hint": "Optionele LXMF-levering-, beveiliging- en spam-instellingen. Standaardwaarden zijn voor de meeste bots prima.",
+        "failed_to_load": "Bot-sjablonen konden niet worden geladen",
+        "edit_rrc": "Relay-chat-instellingen bewerken",
+        "rrc_modal_title": "Relay-chat-instellingen",
+        "rrc_saved": "Relay-chat-instellingen opgeslagen",
+        "rrc_save_failed": "Instellingen konden niet worden opgeslagen"
     },
     "app": {
         "name": "Reticulum MeshChatX",

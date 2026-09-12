@@ -146,7 +146,18 @@
         "message_persistence_enabled": "Persisti coda in uscita",
         "admins": "Indirizzi LXMF admin",
         "admins_placeholder": "un hash di 32 caratteri per riga",
-        "admins_hint": "Gli admin ignorano restrizioni comandi e controlli spam."
+        "admins_hint": "Gli admin ignorano restrizioni comandi e controlli spam.",
+        "setup_title": "Nuovo bot",
+        "setup_description": "Configura un nuovo bot LXMFy",
+        "choose_template": "Scegli un modello",
+        "loading": "Caricamento...",
+        "create_and_start": "Crea e avvia",
+        "advanced_lxmf_settings_hint": "Controlli LXMF opzionali di consegna, sicurezza e anti-spam. I valori predefiniti vanno bene per la maggior parte.",
+        "failed_to_load": "Impossibile caricare i modelli di bot",
+        "edit_rrc": "Modifica impostazioni chat relay",
+        "rrc_modal_title": "Impostazioni chat relay",
+        "rrc_saved": "Impostazioni salvate",
+        "rrc_save_failed": "Impossibile salvare le impostazioni"
     },
     "app": {
         "name": "Reticulum MeshChatX",

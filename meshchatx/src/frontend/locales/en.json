@@ -146,7 +146,18 @@
         "message_persistence_enabled": "Persist outbound queue",
         "admins": "Admin LXMF addresses",
         "admins_placeholder": "one 32-character hash per line",
-        "admins_hint": "Admins bypass command restrictions and spam checks."
+        "admins_hint": "Admins bypass command restrictions and spam checks.",
+        "setup_title": "New Bot",
+        "setup_description": "Configure a new LXMFy bot",
+        "choose_template": "Choose a template",
+        "loading": "Loading...",
+        "create_and_start": "Create & Start",
+        "advanced_lxmf_settings_hint": "Optional LXMF delivery, security, and spam controls. Defaults are fine for most bots.",
+        "failed_to_load": "Could not load bot templates",
+        "edit_rrc": "Edit relay chat settings",
+        "rrc_modal_title": "Relay chat settings",
+        "rrc_saved": "Relay chat settings saved",
+        "rrc_save_failed": "Could not save relay chat settings"
     },
     "app": {
         "name": "Reticulum MeshChatX",

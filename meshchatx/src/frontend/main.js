@@ -214,6 +214,11 @@ const router = createRouter({
             component: () => import("./components/tools/BotsPage.vue"),
         },
         {
+            name: "bot-setup",
+            path: "/bots/new",
+            component: () => import("./components/tools/BotSetupPage.vue"),
+        },
+        {
             name: "forwarder",
             path: "/forwarder",
             component: () => import("./components/forwarder/ForwarderPage.vue"),

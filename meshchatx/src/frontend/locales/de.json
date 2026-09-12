@@ -146,7 +146,18 @@
         "message_persistence_enabled": "Ausgangswarteschlange speichern",
         "admins": "Admin-LXMF-Adressen",
         "admins_placeholder": "ein 32-stelliger Hash pro Zeile",
-        "admins_hint": "Admins umgehen Befehlsbeschränkungen und Spam-Prüfungen."
+        "admins_hint": "Admins umgehen Befehlsbeschränkungen und Spam-Prüfungen.",
+        "setup_title": "Neuer Bot",
+        "setup_description": "Konfiguriere einen neuen LXMFy-Bot",
+        "choose_template": "Vorlage wählen",
+        "loading": "Laden...",
+        "create_and_start": "Erstellen & Starten",
+        "advanced_lxmf_settings_hint": "Optionale LXMF-Zustell-, Sicherheits- und Spam-Optionen. Die Standards reichen meistens.",
+        "failed_to_load": "Bot-Vorlagen konnten nicht geladen werden",
+        "edit_rrc": "Relay-Chat-Einstellungen bearbeiten",
+        "rrc_modal_title": "Relay-Chat-Einstellungen",
+        "rrc_saved": "Relay-Chat-Einstellungen gespeichert",
+        "rrc_save_failed": "Einstellungen konnten nicht gespeichert werden"
     },
     "app": {
         "name": "Reticulum MeshChatX",

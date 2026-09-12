@@ -22,29 +22,25 @@
                                 v-for="template in templates"
                                 :key="template.id"
                                 class="relative rounded-lg border border-sem-border bg-sem-surface p-4 hover:border-blue-400 dark:hover:border-blue-600 transition cursor-pointer flex flex-col justify-between min-h-[140px] pr-12"
-                                @click="selectTemplate(template)"
+                                @click="openSetup(template)"
                             >
-                                <div class="min-w-0">
-                                    <div class="font-bold text-sem-fg">{{ template.name }}</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                        {{ template.description }}
+                                <div class="flex items-start gap-3 min-w-0">
+                                    <LxmfUserIcon
+                                        v-if="template.default_icon"
+                                        :icon-name="template.default_icon"
+                                        icon-class="size-9 shrink-0"
+                                    />
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-sem-fg">{{ template.name }}</div>
+                                        <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                            {{ template.description }}
+                                        </div>
                                     </div>
                                 </div>
                                 <div
                                     class="absolute bottom-3 right-3 p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors pointer-events-none"
                                 >
                                     <MaterialDesignIcon icon-name="chevron-right" class="size-6" />
-                                </div>
-                            </div>
-
-                            <div
-                                class="rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/50 p-4 flex flex-col items-center justify-center min-h-[140px] opacity-70"
-                            >
-                                <div class="p-2 bg-sem-surface-muted rounded-lg mb-2">
-                                    <MaterialDesignIcon icon-name="plus" class="size-6 text-sem-fg-muted" />
-                                </div>
-                                <div class="text-sm font-medium text-sem-fg-muted text-center">
-                                    {{ $t("bots.more_bots_coming") }}
                                 </div>
                             </div>
                         </div>
@@ -138,6 +134,15 @@
                                         @click="openCustomEditor(bot)"
                                     >
                                         <MaterialDesignIcon icon-name="format-list-bulleted" class="size-5" />
+                                    </button>
+                                    <button
+                                        v-if="(bot.template_id || bot.template) === 'rrc'"
+                                        type="button"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-teal-600 dark:hover:text-teal-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        :title="$t('bots.edit_rrc')"
+                                        @click="openRrcEditor(bot)"
+                                    >
+                                        <MaterialDesignIcon icon-name="access-point" class="size-5" />
                                     </button>
                                     <button
                                         type="button"
@@ -382,99 +387,6 @@
         </div>
 
         <div
-            v-if="selectedTemplate"
-            class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
-            @click.self="selectedTemplate = null"
-        >
-            <div
-                class="w-full sm:max-w-md rounded-t-2xl sm:rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
-            >
-                <div class="flex justify-between items-start gap-2">
-                    <h3 class="text-lg sm:text-xl font-bold text-sem-fg pr-2">
-                        {{ $t("bots.start_bot") }}: {{ selectedTemplate.name }}
-                    </h3>
-                    <button
-                        type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
-                        @click="selectedTemplate = null"
-                    >
-                        <MaterialDesignIcon icon-name="close" class="size-5" />
-                    </button>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="glass-label">{{ $t("bots.bot_name") }}</label>
-                        <input
-                            v-model="newBotName"
-                            type="text"
-                            :placeholder="selectedTemplate.name"
-                            class="input-field"
-                        />
-                    </div>
-
-                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                        {{ selectedTemplate.description }}
-                    </div>
-
-                    <div v-if="selectedTemplate.id === 'custom'" class="rounded-lg border border-sem-border p-3">
-                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
-                            {{ $t("bots.custom_section") }}
-                        </div>
-                        <BotCustomCommandsEditor v-model="newBotCustomDraft" />
-                    </div>
-
-                    <div v-if="selectedTemplate.id === 'rrc'" class="rounded-lg border border-sem-border p-3">
-                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
-                            {{ $t("bots.rrc_section") }}
-                        </div>
-                        <BotRrcFields v-model="newBotRrcDraft" />
-                    </div>
-
-                    <details class="rounded-lg border border-sem-border p-3">
-                        <summary class="cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
-                            {{ $t("bots.appearance") }}
-                        </summary>
-                        <div class="mt-3">
-                            <LxmfIconEditor v-model="newBotIconDraft" />
-                        </div>
-                    </details>
-
-                    <details class="rounded-lg border border-sem-border p-3">
-                        <summary class="cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
-                            {{ $t("bots.advanced_lxmf_settings") }}
-                        </summary>
-                        <div class="mt-3 space-y-3">
-                            <LxmfConfigFields v-model="newBotLxmfDraft" />
-                        </div>
-                    </details>
-
-                    <div class="flex justify-end gap-2 pt-2">
-                        <button
-                            type="button"
-                            class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
-                            @click="selectedTemplate = null"
-                        >
-                            <MaterialDesignIcon icon-name="close" class="size-6" />
-                        </button>
-                        <button
-                            type="button"
-                            class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
-                            :disabled="isStarting"
-                            @click="startBot"
-                        >
-                            <span
-                                v-if="isStarting"
-                                class="inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
-                            ></span>
-                            <MaterialDesignIcon v-else icon-name="check" class="size-6" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div
             v-if="iconModalBot"
             class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
             @click.self="closeIconEditor"
@@ -587,6 +499,62 @@
         </div>
 
         <div
+            v-if="rrcModalBot"
+            class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+            @click.self="closeRrcEditor"
+        >
+            <div
+                class="w-full sm:max-w-lg rounded-t-2xl sm:rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0 pr-2">
+                        <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
+                            {{ $t("bots.rrc_modal_title") }}
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                            {{ rrcModalBot.name }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        @click="closeRrcEditor"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+
+                <BotRrcFields v-model="rrcDraft" />
+
+                <p v-if="rrcModalBot.running" class="text-xs text-amber-700 dark:text-amber-400">
+                    {{ $t("bots.restart_hint_generic") }}
+                </p>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        @click="closeRrcEditor"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
+                        :disabled="rrcSaving"
+                        @click="saveRrc"
+                    >
+                        <span
+                            v-if="rrcSaving"
+                            class="inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
+                        ></span>
+                        <MaterialDesignIcon v-else icon-name="check" class="size-6" />
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div
             v-if="lxmfConfigModalBot"
             class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
             @click.self="closeLxmfConfig"
@@ -670,8 +638,7 @@ import BotCustomCommandsEditor, {
     defaultCustomDraft,
     draftFromBotCustom,
 } from "./internal/BotCustomCommandsEditor.vue";
-import BotRrcFields, { buildRrcPayload, defaultRrcDraft } from "./internal/BotRrcFields.vue";
-import { defaultBotIconDraft } from "../LxmfIconEditor.vue";
+import BotRrcFields, { buildRrcPayload, defaultRrcDraft, draftFromBotRrc } from "./internal/BotRrcFields.vue";
 import { buildLxmfConfigPatch, defaultLxmfConfigDraft, draftFromBotLxmfConfig } from "./internal/botLxmfConfigForm.js";
 
 export default {
@@ -689,13 +656,6 @@ export default {
         return {
             bots: [],
             templates: [],
-            selectedTemplate: null,
-            newBotName: "",
-            newBotLxmfDraft: defaultLxmfConfigDraft(),
-            newBotIconDraft: null,
-            newBotCustomDraft: defaultCustomDraft(),
-            newBotRrcDraft: defaultRrcDraft(),
-            isStarting: false,
             loading: true,
             refreshInterval: null,
             relativeTimerTick: 0,
@@ -715,6 +675,9 @@ export default {
             customModalBot: null,
             customDraft: defaultCustomDraft(),
             customSaving: false,
+            rrcModalBot: null,
+            rrcDraft: defaultRrcDraft(),
+            rrcSaving: false,
         };
     },
     computed: {
@@ -775,57 +738,11 @@ export default {
                 console.error("[BotsPage] getStatus failed", e?.response?.data || e?.message || e);
             }
         },
-        selectTemplate(template) {
-            this.selectedTemplate = template;
-            this.newBotName = template.name;
-            this.newBotLxmfDraft = defaultLxmfConfigDraft();
-            this.newBotIconDraft = template.default_icon ? defaultBotIconDraft(template.default_icon) : null;
-            this.newBotCustomDraft = defaultCustomDraft();
-            this.newBotRrcDraft = defaultRrcDraft();
-        },
-        async startBot() {
-            if (this.isStarting) return;
-            const templateId = this.selectedTemplate.id;
-            if (templateId === "rrc") {
-                const hub = (this.newBotRrcDraft.hub || "").trim().toLowerCase();
-                if (!/^[0-9a-f]{32}$/.test(hub)) {
-                    ToastUtils.error(this.$t("bots.rrc_hub_required"));
-                    return;
-                }
-            }
-            if (templateId === "custom" && buildCustomPayload(this.newBotCustomDraft).commands.length === 0) {
-                ToastUtils.error(this.$t("bots.custom_requires_command"));
-                return;
-            }
-            this.isStarting = true;
-            try {
-                const payload = {
-                    template_id: templateId,
-                    name: this.newBotName,
-                };
-                const lxmfPatch = buildLxmfConfigPatch(this.newBotLxmfDraft);
-                if (Object.keys(lxmfPatch).length > 0) {
-                    payload.lxmf_config = lxmfPatch;
-                }
-                if (this.newBotIconDraft && this.newBotIconDraft.icon_name) {
-                    payload.icon = this.newBotIconDraft;
-                }
-                if (templateId === "custom") {
-                    payload.custom = buildCustomPayload(this.newBotCustomDraft);
-                }
-                if (templateId === "rrc") {
-                    payload.rrc = buildRrcPayload(this.newBotRrcDraft);
-                }
-                await window.api.post("/api/v1/bots/start", payload);
-                ToastUtils.success(this.$t("bots.bot_started"));
-                this.selectedTemplate = null;
-                this.getStatus();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(e.response?.data?.message || this.$t("bots.failed_to_start"));
-            } finally {
-                this.isStarting = false;
-            }
+        openSetup(template) {
+            this.$router.push({
+                name: "bot-setup",
+                query: { template: template.id },
+            });
         },
         async stopBot(botId) {
             try {
@@ -1146,6 +1063,43 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("bots.custom_save_failed"));
             } finally {
                 this.customSaving = false;
+            }
+        },
+        openRrcEditor(bot) {
+            this.rrcModalBot = bot;
+            this.rrcDraft = draftFromBotRrc(bot.rrc);
+        },
+        closeRrcEditor() {
+            this.rrcModalBot = null;
+            this.rrcDraft = defaultRrcDraft();
+            this.rrcSaving = false;
+        },
+        async saveRrc() {
+            if (!this.rrcModalBot || this.rrcSaving) {
+                return;
+            }
+            const payload = buildRrcPayload(this.rrcDraft);
+            if (!/^[0-9a-f]{32}$/.test(payload.hub)) {
+                ToastUtils.error(this.$t("bots.rrc_hub_required"));
+                return;
+            }
+            this.rrcSaving = true;
+            try {
+                await window.api.patch("/api/v1/bots/update", {
+                    bot_id: this.rrcModalBot.id,
+                    rrc: payload,
+                });
+                ToastUtils.success(this.$t("bots.rrc_saved"));
+                if (this.rrcModalBot.running) {
+                    ToastUtils.info(this.$t("bots.restart_hint_generic"));
+                }
+                this.closeRrcEditor();
+                this.getStatus();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(e.response?.data?.message || this.$t("bots.rrc_save_failed"));
+            } finally {
+                this.rrcSaving = false;
             }
         },
         formatUptime(seconds) {

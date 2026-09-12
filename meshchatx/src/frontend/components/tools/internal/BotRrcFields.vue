@@ -84,6 +84,32 @@ export function defaultRrcDraft() {
     };
 }
 
+export function draftFromBotRrc(rrc) {
+    const draft = defaultRrcDraft();
+    if (!rrc || typeof rrc !== "object") {
+        return draft;
+    }
+    if (rrc.hub) {
+        draft.hub = String(rrc.hub);
+    }
+    if (Array.isArray(rrc.rooms)) {
+        draft.rooms = rrc.rooms.join(", ");
+    }
+    if (rrc.nick) {
+        draft.nick = String(rrc.nick);
+    }
+    if (rrc.mention_only !== undefined) {
+        draft.mention_only = Boolean(rrc.mention_only);
+    }
+    if (rrc.prefix) {
+        draft.prefix = String(rrc.prefix);
+    }
+    if (rrc.rate_seconds !== undefined && rrc.rate_seconds !== null) {
+        draft.rate_seconds = String(rrc.rate_seconds);
+    }
+    return draft;
+}
+
 export function buildRrcPayload(draft) {
     const rooms = String(draft.rooms || "")
         .split(",")
