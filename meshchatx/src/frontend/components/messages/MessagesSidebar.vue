@@ -1002,7 +1002,8 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants.js";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import ToastUtils from "../../js/ToastUtils";
-import { importMessagesFromFile } from "../../js/messageImport";
+import { getCurrentInstance } from "vue";
+import { useSidebarDrag } from "../../js/messages/useSidebarDrag.js";
 import { sortConversationsPinnedFirst } from "../../js/lxmfConversationListSync";
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
@@ -1134,7 +1135,14 @@ export default {
         "open-in-split",
     ],
     setup() {
-        return { MIN_VIRTUAL_SIDEBAR_ITEMS };
+        const inst = getCurrentInstance();
+        return {
+            MIN_VIRTUAL_SIDEBAR_ITEMS,
+            ...useSidebarDrag({
+                emit: (...args) => inst?.proxy.$emit(...args),
+                t: (key, params) => inst?.proxy.$t(key, params),
+            }),
+        };
     },
     data() {
         let foldersExpanded = true;
@@ -1164,10 +1172,7 @@ export default {
                 targetHash: null,
                 targetContact: null,
             },
-            draggedHash: null,
-            dragOverFolderId: null,
-            messageImportDragOver: false,
-            messageImportDragDepth: 0,
+
             smUp: typeof window !== "undefined" ? window.innerWidth >= 640 : true,
             conversationLongPressTimer: null,
             conversationLongPressFired: false,
@@ -1381,95 +1386,11 @@ export default {
             event.preventDefault();
             // Show folder management menu
         },
-        onDragStart(event, hash) {
-            this.draggedHash = hash;
-            event.dataTransfer.setData("text/plain", hash);
-            event.dataTransfer.effectAllowed = "move";
-            this.$emit("conversation-drag-start");
-        },
-        onDragEnd() {
-            this.draggedHash = null;
-            this.$emit("conversation-drag-end");
-        },
         openInSplitFromContextMenu() {
             const hash = this.contextMenu.targetHash;
             this.contextMenu.show = false;
             if (hash) {
                 this.$emit("open-in-split", hash);
-            }
-        },
-        onDragOver(event, folderId) {
-            event.preventDefault();
-            this.dragOverFolderId = folderId;
-            event.dataTransfer.dropEffect = "move";
-        },
-        onDragLeave() {
-            this.dragOverFolderId = null;
-        },
-        onDropOnFolder(event, folderId) {
-            event.preventDefault();
-            this.dragOverFolderId = null;
-            const hash = event.dataTransfer.getData("text/plain");
-            if (hash) {
-                this.$emit("move-to-folder", {
-                    peer_hashes: [hash],
-                    folder_id: folderId,
-                });
-            }
-            this.draggedHash = null;
-        },
-        isMessagesImportFileDrag(event) {
-            if (this.draggedHash) {
-                return false;
-            }
-            const dataTransfer = event.dataTransfer;
-            if (!dataTransfer) {
-                return false;
-            }
-            return Array.from(dataTransfer.types || []).includes("Files");
-        },
-        onMessagesImportDragEnter(event) {
-            if (!this.isMessagesImportFileDrag(event)) {
-                return;
-            }
-            this.messageImportDragDepth += 1;
-            this.messageImportDragOver = true;
-        },
-        onMessagesImportDragOver(event) {
-            if (!this.isMessagesImportFileDrag(event)) {
-                return;
-            }
-            event.dataTransfer.dropEffect = "copy";
-        },
-        onMessagesImportDragLeave() {
-            if (this.messageImportDragDepth > 0) {
-                this.messageImportDragDepth -= 1;
-            }
-            if (this.messageImportDragDepth === 0) {
-                this.messageImportDragOver = false;
-            }
-        },
-        async onMessagesImportDrop(event) {
-            this.messageImportDragDepth = 0;
-            this.messageImportDragOver = false;
-            if (!this.isMessagesImportFileDrag(event)) {
-                return;
-            }
-            const file = event.dataTransfer?.files?.[0];
-            if (!file) {
-                return;
-            }
-            const name = file.name.toLowerCase();
-            if (!name.endsWith(".json") && file.type !== "application/json") {
-                ToastUtils.error(this.$t("maintenance.import_failed"));
-                return;
-            }
-            try {
-                const { imported } = await importMessagesFromFile(file);
-                ToastUtils.success(this.$t("maintenance.import_success", { count: imported }));
-                this.$emit("messages-imported");
-            } catch {
-                ToastUtils.error(this.$t("maintenance.import_failed"));
             }
         },
         async createFolder() {
