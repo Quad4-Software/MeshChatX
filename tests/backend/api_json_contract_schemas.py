@@ -245,6 +245,7 @@ API_V1_STATUS_SCHEMA: dict = {
         "network_ready": {"type": "boolean"},
         "network_degraded": {"type": "boolean"},
         "ui_ready": {"type": "boolean"},
+        "landlock_abi": {"type": "integer"},
         "error": {"type": "string"},
         **_SERVER_BIND_STATUS_SCHEMA,
         **_DEMO_PUBLIC_STATUS_FIELDS,

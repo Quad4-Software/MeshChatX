@@ -9,6 +9,7 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import JsonContent
 
 
 @pytest.fixture
@@ -64,6 +65,7 @@ async def test_banish_identity_with_blackhole(mock_rns_minimal, temp_dir):
         # Mock request
         request = MagicMock()
         request.json = AsyncMock(return_value={"destination_hash": target_hash})
+        request.content = JsonContent({"destination_hash": target_hash})
 
         # Find handler
         handler = None
@@ -114,6 +116,7 @@ async def test_banish_identity_with_resolution(mock_rns_minimal, temp_dir):
 
         request = MagicMock()
         request.json = AsyncMock(return_value={"destination_hash": dest_hash})
+        request.content = JsonContent({"destination_hash": dest_hash})
 
         handler = None
         for route in app_instance.get_routes():
@@ -148,6 +151,7 @@ async def test_banish_identity_disabled_integration(mock_rns_minimal, temp_dir):
         target_hash = "b" * 32
         request = MagicMock()
         request.json = AsyncMock(return_value={"destination_hash": target_hash})
+        request.content = JsonContent({"destination_hash": target_hash})
 
         handler = None
         for route in app_instance.get_routes():
