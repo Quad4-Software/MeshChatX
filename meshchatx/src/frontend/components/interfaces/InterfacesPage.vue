@@ -758,6 +758,7 @@ import { useInterfaceChangesStore } from "../../js/stores/interfaceChangesStore.
 import DialogUtils from "../../js/DialogUtils";
 import ElectronUtils from "../../js/ElectronUtils";
 import Interface from "./Interface.vue";
+import { getCurrentInstance } from "vue";
 import Utils from "../../js/Utils";
 import ImportInterfacesModal from "./ImportInterfacesModal.vue";
 import DownloadUtils from "../../js/DownloadUtils";
@@ -768,6 +769,7 @@ import Toggle from "../forms/Toggle.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants.js";
+import { useInterfaceListFilters } from "../../js/interfaces/useInterfaceListFilters.js";
 import { BATTERY_SAVER_CHANGED_EVENT, loadBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
 
 export default {
@@ -780,14 +782,19 @@ export default {
         SearchInput,
         BundledDocsHint,
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useInterfaceListFilters({
+                getInterfaces: () => inst?.proxy.interfacesWithStats ?? [],
+            }),
+        };
+    },
     data() {
         return {
             interfaces: {},
             interfaceStats: {},
             reloadInterval: null,
-            searchTerm: "",
-            statusFilter: "all",
-            typeFilter: "all",
             reloadingRns: false,
             isReticulumRunning: true,
             discoveryConfig: {
@@ -842,41 +849,6 @@ export default {
         },
         disabledInterfaces() {
             return this.interfacesWithStats.filter((iface) => !this.isInterfaceEnabled(iface));
-        },
-        filteredInterfaces() {
-            const search = this.searchTerm.toLowerCase().trim();
-            return this.interfacesWithStats
-                .filter((iface) => {
-                    if (this.statusFilter === "enabled" && !this.isInterfaceEnabled(iface)) {
-                        return false;
-                    }
-                    if (this.statusFilter === "disabled" && this.isInterfaceEnabled(iface)) {
-                        return false;
-                    }
-                    if (this.typeFilter !== "all" && iface.type !== this.typeFilter) {
-                        return false;
-                    }
-                    if (!search) {
-                        return true;
-                    }
-                    const haystack = [
-                        iface._name,
-                        iface.type,
-                        iface.target_host,
-                        iface.target_port,
-                        iface.listen_ip,
-                        iface.listen_port,
-                    ]
-                        .filter(Boolean)
-                        .join(" ")
-                        .toLowerCase();
-                    return haystack.includes(search);
-                })
-                .sort((a, b) => {
-                    const enabledDiff = Number(this.isInterfaceEnabled(b)) - Number(this.isInterfaceEnabled(a));
-                    if (enabledDiff !== 0) return enabledDiff;
-                    return a._name.localeCompare(b._name);
-                });
         },
         sortedInterfaceTypes() {
             const types = new Set();
@@ -959,13 +931,6 @@ export default {
         },
     },
     watch: {
-        statusFilter(value) {
-            try {
-                localStorage.setItem(STORAGE_KEYS.INTERFACES_STATUS_FILTER, value);
-            } catch {
-                /* ignore */
-            }
-        },
         discoveredStatusFilter(value) {
             try {
                 localStorage.setItem(STORAGE_KEYS.INTERFACES_DISCOVERED_STATUS_FILTER, value);
@@ -989,10 +954,6 @@ export default {
     },
     mounted() {
         try {
-            const sf = localStorage.getItem(STORAGE_KEYS.INTERFACES_STATUS_FILTER);
-            if (sf === "all" || sf === "enabled" || sf === "disabled") {
-                this.statusFilter = sf;
-            }
             const df = localStorage.getItem(STORAGE_KEYS.INTERFACES_DISCOVERED_STATUS_FILTER);
             if (df === "all" || df === "connected") {
                 this.discoveredStatusFilter = df;
@@ -1677,9 +1638,7 @@ export default {
                 query: { from_discovered: "1" },
             });
         },
-        setStatusFilter(value) {
-            this.statusFilter = value;
-        },
+
         async refreshDiscoveredInterfacesList() {
             const ok = await this.loadDiscoveredInterfaces();
             if (ok) {
