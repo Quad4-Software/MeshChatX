@@ -1660,7 +1660,6 @@ import {
     runDestinationPathFinder,
     warmPathIfNeeded,
 } from "../../js/reticulumPathfinding.js";
-import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import AddAudioButton from "./composer/AddAudioButton.vue";
@@ -1700,6 +1699,7 @@ import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } fro
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import { useImageModal } from "../../js/messages/useImageModal.js";
+import { useAudioAttachment } from "../../js/messages/useAudioAttachment.js";
 import {
     isOpportunisticDeferredDelivery as isOpportunisticDeferredDeliveryStatus,
     lxmfStateWouldRegress,
@@ -1778,6 +1778,11 @@ export default {
                 onDownload: (chatItem) => inst?.proxy.downloadMessageImage(chatItem),
                 onCopyToClipboard: (chatItem) => inst?.proxy.copyMessageImageToClipboard(chatItem),
             }),
+            ...useAudioAttachment({
+                t: (key) => inst?.proxy.$t(key),
+                isMeshChatXAndroid: () => inst?.proxy.isMeshChatXAndroid(),
+                androidNativeWavAttachmentAllowed: () => inst?.proxy.androidNativeWavAttachmentAllowed(),
+            }),
         };
     },
     data() {
@@ -1806,7 +1811,6 @@ export default {
             newMessageText: "",
             newMessageImages: [],
             newMessageImageUrls: [],
-            newMessageAudio: null,
             newMessageTelemetry: null,
             newMessageFiles: [],
             pendingSendAsCommandOrRequest: false,
@@ -1821,13 +1825,6 @@ export default {
             contacts: [],
             contactsSearch: "",
 
-            isRecordingAudioAttachment: false,
-            audioAttachmentMicrophoneRecorder: null,
-            audioAttachmentMicrophoneRecorderCodec: null,
-            audioAttachmentRecordingStartedAt: null,
-            audioAttachmentRecordingDuration: null,
-            audioAttachmentRecordingTimer: null,
-            androidNativeOpusAttachment: false,
             lxmfMessageAudioAttachmentCache: {},
             lxmfMessageAudioAttachmentOrder: [],
             isDownloadingAudio: {},
@@ -2472,6 +2469,7 @@ export default {
         this.disconnectOpenConversationScrollObserver();
         this.cancelAutoLoadAudioAttachments();
         this.clearAudioAttachmentCache();
+        this.revokeNewMessageAudioPreview();
     },
     methods: {
         updateKeyboardInset() {
@@ -5707,6 +5705,7 @@ export default {
             }
             this.newMessageImages = [];
             this.newMessageImageUrls = [];
+            this.revokeNewMessageAudioPreview();
             this.newMessageAudio = null;
             this.newMessageTelemetry = null;
             this.newMessageFiles = [];
@@ -7066,259 +7065,6 @@ export default {
                     ToastUtils.error(this.$t("gifs.save_failed"));
                 }
             }
-        },
-        async startRecordingAudioAttachment(args) {
-            // do nothing if already recording
-            if (this.isRecordingAudioAttachment) {
-                return;
-            }
-
-            // ask user to confirm recording new audio attachment, if an existing audio attachment exists
-            if (
-                this.newMessageAudio &&
-                !(await DialogUtils.confirm(
-                    "An audio recording is already attached. A new recording will replace it. Do you want to continue?"
-                ))
-            ) {
-                return;
-            }
-
-            // handle selected codec
-            switch (args.codec) {
-                case "codec2": {
-                    // start recording microphone
-                    this.audioAttachmentMicrophoneRecorderCodec = "codec2";
-                    this.audioAttachmentMicrophoneRecorder = new Codec2MicrophoneRecorder();
-                    this.audioAttachmentMicrophoneRecorder.codec2Mode = args.mode;
-                    this.audioAttachmentRecordingStartedAt = Date.now();
-                    this.isRecordingAudioAttachment = await this.audioAttachmentMicrophoneRecorder.start();
-
-                    // update recording time in ui every second
-                    this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
-                    this.audioAttachmentRecordingTimer = setInterval(() => {
-                        const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
-                        const recordingDurationSeconds = recordingDurationMillis / 1000;
-                        this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(recordingDurationSeconds);
-                    }, 1000);
-
-                    // alert if failed to start recording
-                    if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                    }
-
-                    break;
-                }
-                case "opus": {
-                    if (this.isMeshChatXAndroid() && this.androidNativeWavAttachmentAllowed()) {
-                        const res = window.MeshChatXAndroid.startNativeWavAttachment();
-                        if (res === "ok") {
-                            this.androidNativeOpusAttachment = true;
-                            this.audioAttachmentMicrophoneRecorderCodec = "opus";
-                            this.audioAttachmentMicrophoneRecorder = { _androidNative: true };
-                            this.audioAttachmentRecordingStartedAt = Date.now();
-                            this.isRecordingAudioAttachment = true;
-                            this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
-                            this.audioAttachmentRecordingTimer = setInterval(() => {
-                                const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
-                                const recordingDurationSeconds = recordingDurationMillis / 1000;
-                                this.audioAttachmentRecordingDuration =
-                                    Utils.formatMinutesSeconds(recordingDurationSeconds);
-                            }, 1000);
-                            break;
-                        }
-                    }
-                    this.audioAttachmentMicrophoneRecorderCodec = "opus";
-                    this.audioAttachmentMicrophoneRecorder = new MicrophoneRecorder();
-                    this.audioAttachmentRecordingStartedAt = Date.now();
-                    this.isRecordingAudioAttachment = await this.audioAttachmentMicrophoneRecorder.start();
-
-                    this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
-                    this.audioAttachmentRecordingTimer = setInterval(() => {
-                        const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
-                        const recordingDurationSeconds = recordingDurationMillis / 1000;
-                        this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(recordingDurationSeconds);
-                    }, 1000);
-
-                    if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                    }
-
-                    break;
-                }
-                default: {
-                    DialogUtils.alert(`Unhandled microphone recorder codec: ${args.codec}`);
-                    break;
-                }
-            }
-        },
-        async stopRecordingAudioAttachment() {
-            // clear audio recording timer
-            clearInterval(this.audioAttachmentRecordingTimer);
-
-            if (!this.isRecordingAudioAttachment) {
-                return;
-            }
-
-            this.isRecordingAudioAttachment = false;
-            if (this.androidNativeOpusAttachment) {
-                this.androidNativeOpusAttachment = false;
-                const p = new Promise((resolve) => {
-                    const done = () => {
-                        try {
-                            if (window.__meshchatXNative) {
-                                window.__meshchatXNative = undefined;
-                            }
-                        } catch {
-                            // ignore
-                        }
-                        resolve();
-                    };
-                    window.__meshchatXNative = {
-                        onWav: (payload) => {
-                            if (!payload || !payload.ok) {
-                                const err = payload && payload.error ? String(payload.error) : "unknown";
-                                if (err !== "empty") {
-                                    DialogUtils.alert(`${this.$t("messages.failed")}${err ? ` (${err})` : ""}`);
-                                }
-                                done();
-                                return;
-                            }
-                            try {
-                                const binary = atob(payload.data);
-                                const bytes = new Uint8Array(binary.length);
-                                for (let i = 0; i < binary.length; i += 1) {
-                                    bytes[i] = binary.charCodeAt(i);
-                                }
-                                const audio = new Blob([bytes], { type: "audio/wav" });
-                                this.newMessageAudio = {
-                                    audio_mode: 0x10,
-                                    audio_blob: audio,
-                                    audio_preview_url: URL.createObjectURL(audio),
-                                };
-                            } catch {
-                                DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                            }
-                            done();
-                        },
-                    };
-                    try {
-                        window.MeshChatXAndroid.stopNativeWavAttachment();
-                    } catch {
-                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                        done();
-                    }
-                });
-                await p;
-                this.audioAttachmentMicrophoneRecorder = null;
-                this.audioAttachmentMicrophoneRecorderCodec = null;
-                return;
-            }
-
-            const audio = await this.audioAttachmentMicrophoneRecorder.stop();
-
-            // handle audio based on codec
-            switch (this.audioAttachmentMicrophoneRecorderCodec) {
-                case "codec2": {
-                    // do nothing if no audio was provided
-                    if (audio.length === 0) {
-                        return;
-                    }
-
-                    // decode codec2 audio back to wav so we can show a preview audio player before user sends it
-                    const codec2Mode = this.audioAttachmentMicrophoneRecorder.codec2Mode;
-                    const encoded = assertByteLengthAtMost(new Uint8Array(audio), MAX_CODEC2_ENCODED_BYTES);
-                    const decoded = assertByteLengthAtMost(
-                        await Codec2Lib.runDecode(codec2Mode, encoded),
-                        MAX_CODEC2_DECODED_RAW_BYTES
-                    );
-
-                    // convert decoded codec2 to wav audio and create a blob
-                    const wavAudio = assertByteLengthAtMost(await Codec2Lib.rawToWav(decoded), MAX_CODEC2_WAV_BYTES);
-                    const wavBlob = new Blob([wavAudio], {
-                        type: "audio/wav",
-                    });
-
-                    // determine audio mode
-                    var audioMode = null;
-                    switch (codec2Mode) {
-                        case "1200": {
-                            audioMode = 0x04; // LXMF.AM_CODEC2_1200
-                            break;
-                        }
-                        case "3200": {
-                            audioMode = 0x09; // LXMF.AM_CODEC2_3200
-                            break;
-                        }
-                        default: {
-                            DialogUtils.alert(`Unhandled microphone recorder codec2Mode: ${codec2Mode}`);
-                            return;
-                        }
-                    }
-
-                    // update message audio attachment
-                    this.newMessageAudio = {
-                        audio_mode: audioMode,
-                        audio_blob: new Blob([audio]),
-                        audio_preview_url: URL.createObjectURL(wavBlob),
-                    };
-
-                    break;
-                }
-                case "opus": {
-                    // do nothing if no audio was provided
-                    if (audio.size === 0) {
-                        return;
-                    }
-
-                    // update message audio attachment
-                    this.newMessageAudio = {
-                        audio_mode: 0x10, // LXMF.AM_OPUS_OGG
-                        audio_blob: audio, // opus microphone recorder returns a blob
-                        audio_preview_url: URL.createObjectURL(audio),
-                    };
-
-                    break;
-                }
-            }
-        },
-        async removeAudioAttachment() {
-            // remove audio
-            this.newMessageAudio = null;
-        },
-        buildAudioRecordingFailureMessage() {
-            if (!navigator?.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
-                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_mediadevices")}`;
-            }
-            const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
-            if (typeof AudioContextCtor !== "function") {
-                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_web_audio")}`;
-            }
-            let probe = null;
-            try {
-                probe = new AudioContextCtor();
-                const canWorklet =
-                    globalThis.isSecureContext !== false &&
-                    probe.audioWorklet &&
-                    typeof probe.audioWorklet.addModule === "function";
-                const canScriptProcessor = typeof probe.createScriptProcessor === "function";
-                if (!canWorklet && !canScriptProcessor) {
-                    return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_audio_worklet")}`;
-                }
-            } catch {
-                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_web_audio")}`;
-            } finally {
-                try {
-                    if (probe && typeof probe.close === "function") {
-                        const closed = probe.close();
-                        if (closed && typeof closed.catch === "function") {
-                            void closed.catch(() => {});
-                        }
-                    }
-                } catch {
-                    // ignore
-                }
-            }
-            return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_permission")}`;
         },
         removeFileAttachment: function (file) {
             this.newMessageFiles = this.newMessageFiles.filter((newMessageFile) => {
