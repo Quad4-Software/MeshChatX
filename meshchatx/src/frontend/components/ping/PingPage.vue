@@ -153,6 +153,8 @@
 
 <script>
 import DialogUtils from "../../js/DialogUtils";
+import { apiPath } from "../../js/constants.js";
+import * as pingApi from "../../js/api/ping.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
@@ -240,8 +242,8 @@ export default {
                 this.seq++;
 
                 // ping destination
-                const response = await window.api.post(
-                    `/api/v1/ping/${this.destinationHash}/lxmf.delivery`,
+                const response = await pingApi.postLxmfDelivery(
+                    this.destinationHash,
                     {},
                     {
                         signal: this.abortController.signal,
@@ -314,7 +316,7 @@ export default {
             }
 
             try {
-                const response = await window.api.post(`/api/v1/destination/${this.destinationHash}/drop-path`);
+                const response = await window.api.post(apiPath(`/destination/${this.destinationHash}/drop-path`));
                 DialogUtils.alert(response.data.message);
             } catch (e) {
                 console.log(e);

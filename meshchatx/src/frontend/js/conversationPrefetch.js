@@ -4,6 +4,8 @@
 // warm it on hover/focus so opening a conversation skips the network round
 // trip, and the viewer stashes each loaded first page so re-opening a peer
 // paints instantly while the resync catches up in the background.
+import { apiPath } from "./constants.js";
+
 const PREFETCH_TTL_MS = 10000;
 const STASH_TTL_MS = 5 * 60 * 1000;
 const MAX_ENTRIES = 20;
@@ -32,7 +34,7 @@ export function prefetchConversationFirstPage(api, peerHash, pageSize) {
         return;
     }
     const promise = api
-        .get(`/api/v1/lxmf-messages/conversation/${peerHash}`, {
+        .get(apiPath(`/lxmf-messages/conversation/${peerHash}`), {
             params: { count: pageSize, order: "desc" },
         })
         .catch(() => null);

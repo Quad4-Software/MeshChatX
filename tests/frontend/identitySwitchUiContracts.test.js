@@ -114,14 +114,14 @@ describe("identity switch and settings UI contracts", () => {
             join(process.cwd(), "meshchatx/src/frontend/components/settings/SettingsPage.vue"),
             "utf8"
         );
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/GlobalEmitter\.on\(\s*(EMITTER_EVENTS\.IDENTITY_SWITCHED|"identity-switched")/);
         expect(src).toContain("onIdentitySwitched()");
         expect(src).toMatch(/onIdentitySwitched\(\)\s*\{[\s\S]*getConfig\(\)/);
     });
 
     it("AboutPage listens for identity-switched and refreshes backups/snapshots", () => {
         const src = readFileSync(join(process.cwd(), "meshchatx/src/frontend/components/about/AboutPage.vue"), "utf8");
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/GlobalEmitter\.on\(\s*(EMITTER_EVENTS\.IDENTITY_SWITCHED|"identity-switched")/);
         expect(src).toMatch(/onIdentitySwitched\(\)\s*\{[\s\S]*listSnapshots\(\)/);
         expect(src).toMatch(/onIdentitySwitched\(\)\s*\{[\s\S]*listAutoBackups\(\)/);
     });
@@ -131,7 +131,7 @@ describe("identity switch and settings UI contracts", () => {
             join(process.cwd(), "meshchatx/src/frontend/components/interfaces/InterfacesPage.vue"),
             "utf8"
         );
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/GlobalEmitter\.on\(\s*(EMITTER_EVENTS\.IDENTITY_SWITCHED|"identity-switched")/);
         expect(src).toMatch(/onIdentitySwitched\(\)\s*\{[\s\S]*loadInterfaces\(\)/);
     });
 

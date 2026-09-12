@@ -89,6 +89,8 @@
 import ToastUtils from "../../../js/ToastUtils";
 import GlobalEmitter from "../../../js/GlobalEmitter";
 import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../../js/constants.js";
+import * as mapApi from "../../../js/api/map.js";
 
 function errorMessage(t, code) {
     if (code === "missing_path") {
@@ -153,12 +155,12 @@ export default {
                 this.reload();
             }
         };
-        onWsEvent("announce", this.onAnnounce);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        onWsEvent(WS_EVENTS.ANNOUNCE, this.onAnnounce);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
     },
     beforeUnmount() {
-        offWsEvent("announce", this.onAnnounce);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        offWsEvent(WS_EVENTS.ANNOUNCE, this.onAnnounce);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (this.reloadTimer) {
             clearTimeout(this.reloadTimer);
         }
@@ -197,7 +199,7 @@ export default {
             this.loading = true;
             this.error = "";
             try {
-                const response = await window.api.get("/api/v1/map/data/heard", {
+                const response = await mapApi.getDataHeard({
                     params: { search: this.search || undefined, limit: 250 },
                 });
                 this.announces = response.data.announces || [];
@@ -214,7 +216,7 @@ export default {
             const toastKey = this.catalogToastKey(hash);
             ToastUtils.loading(this.$t("map.data_catalog_loading"), 0, toastKey);
             try {
-                const response = await window.api.post("/api/v1/map/data/catalog", {
+                const response = await window.api.post(apiPath("/map/data/catalog"), {
                     destination_hash: hash,
                 });
                 const maps = response.data.maps || [];
@@ -240,7 +242,7 @@ export default {
         async addOverlay(destinationHash, mapId) {
             this.busyHash = destinationHash + mapId;
             try {
-                await window.api.post("/api/v1/map/data/add-overlay", {
+                await window.api.post(apiPath("/map/data/add-overlay"), {
                     destination_hash: destinationHash,
                     map_id: mapId,
                 });

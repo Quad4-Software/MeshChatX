@@ -471,6 +471,8 @@ import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import * as pageNodesApi from "../../js/api/pageNodes.js";
 
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
@@ -542,11 +544,11 @@ export default {
         },
     },
     async mounted() {
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         await this.loadNodes();
     },
     beforeUnmount() {
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
     },
     methods: {
         onWebsocketReconnected() {
@@ -555,7 +557,7 @@ export default {
         async loadNodes() {
             this.loading = true;
             try {
-                const response = await window.api.get("/api/v1/page-nodes");
+                const response = await window.api.get(apiPath("/page-nodes"));
                 this.nodes = response.data;
                 if (this.selectedNode) {
                     const updated = this.nodes.find((n) => n.node_id === this.selectedNode.node_id);
@@ -584,7 +586,7 @@ export default {
         async createNode() {
             if (!this.createNodeName.trim()) return;
             try {
-                await window.api.post("/api/v1/page-nodes", { name: this.createNodeName.trim() });
+                await window.api.post(apiPath("/page-nodes"), { name: this.createNodeName.trim() });
                 this.createNodeName = "";
                 this.showCreateDialog = false;
                 ToastUtils.success(this.$t("tools.mesh_server.created"));
@@ -596,7 +598,7 @@ export default {
         async deleteNode(nodeId) {
             if (!(await DialogUtils.confirm(this.$t("tools.mesh_server.delete_confirm")))) return;
             try {
-                await window.api.delete(`/api/v1/page-nodes/${nodeId}`);
+                await window.api.delete(apiPath(`/page-nodes/${nodeId}`));
                 if (this.selectedNode && this.selectedNode.node_id === nodeId) {
                     this.selectedNode = null;
                 }
@@ -608,7 +610,7 @@ export default {
         },
         async startNode(nodeId) {
             try {
-                const response = await window.api.post(`/api/v1/page-nodes/${nodeId}/start`);
+                const response = await window.api.post(apiPath(`/page-nodes/${nodeId}/start`));
                 ToastUtils.success(
                     this.$t("tools.mesh_server.started", {
                         hash: response.data.destination_hash,
@@ -621,7 +623,7 @@ export default {
         },
         async stopNode(nodeId) {
             try {
-                await window.api.post(`/api/v1/page-nodes/${nodeId}/stop`);
+                await window.api.post(apiPath(`/page-nodes/${nodeId}/stop`));
                 ToastUtils.success(this.$t("tools.mesh_server.stopped"));
                 await this.loadNodes();
             } catch {
@@ -630,7 +632,7 @@ export default {
         },
         async announceNode(nodeId) {
             try {
-                await window.api.post(`/api/v1/page-nodes/${nodeId}/announce`);
+                await window.api.post(apiPath(`/page-nodes/${nodeId}/announce`));
                 ToastUtils.success(this.$t("tools.mesh_server.announced"));
                 await this.loadNodes();
             } catch {
@@ -641,7 +643,7 @@ export default {
             if (!this.selectedNode) return;
             try {
                 const response = await window.api.patch(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/announce-settings`,
+                    apiPath(`/page-nodes/${this.selectedNode.node_id}/announce-settings`),
                     {
                         announce_enabled: this.announceSettingsForm.announce_enabled,
                         announce_interval_seconds: this.announceSettingsForm.announce_interval_seconds,
@@ -666,7 +668,7 @@ export default {
         async renameNode() {
             if (!this.renameNodeName.trim() || !this.selectedNode) return;
             try {
-                await window.api.put(`/api/v1/page-nodes/${this.selectedNode.node_id}/rename`, {
+                await window.api.put(apiPath(`/page-nodes/${this.selectedNode.node_id}/rename`), {
                     name: this.renameNodeName.trim(),
                 });
                 this.renameNodeName = "";
@@ -680,7 +682,7 @@ export default {
         async addPage() {
             if (!this.newPageName.trim() || !this.selectedNode) return;
             try {
-                await window.api.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/pages`, {
+                await window.api.post(apiPath(`/page-nodes/${this.selectedNode.node_id}/pages`), {
                     name: this.newPageName.trim(),
                     content: "",
                 });
@@ -694,7 +696,7 @@ export default {
         async editPage(pageName) {
             try {
                 const response = await window.api.get(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
+                    apiPath(`/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`)
                 );
                 let body = response.data;
                 if (typeof body === "string") {
@@ -714,7 +716,7 @@ export default {
         async savePage() {
             if (!this.editingPage || !this.selectedNode) return;
             try {
-                await window.api.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/pages`, {
+                await window.api.post(apiPath(`/page-nodes/${this.selectedNode.node_id}/pages`), {
                     name: this.editingPage,
                     content: this.editingPageContent,
                     executable: this.editingPageExecutable,
@@ -740,7 +742,7 @@ export default {
             }
             try {
                 await window.api.delete(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
+                    apiPath(`/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`)
                 );
                 if (this.editingPage === pageName) {
                     this.editingPage = null;
@@ -757,7 +759,7 @@ export default {
             const formData = new FormData();
             formData.append("file", file);
             try {
-                await window.api.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/files`, formData, {
+                await pageNodesApi.createFiles(this.selectedNode.node_id, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 ToastUtils.success(this.$t("tools.mesh_server.file_uploaded"));
@@ -779,7 +781,7 @@ export default {
             }
             try {
                 await window.api.delete(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/files/${encodeURIComponent(fileName)}`
+                    apiPath(`/page-nodes/${this.selectedNode.node_id}/files/${encodeURIComponent(fileName)}`)
                 );
                 ToastUtils.success(this.$t("tools.mesh_server.file_deleted"));
                 await this.loadNodes();

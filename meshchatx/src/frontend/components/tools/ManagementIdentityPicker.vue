@@ -45,6 +45,7 @@
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "ManagementIdentityPicker",
@@ -87,7 +88,7 @@ export default {
         async loadIdentities() {
             this.loading = true;
             try {
-                const response = await window.api.get("/api/v1/reticulum/management-identities");
+                const response = await window.api.get(apiPath("/reticulum/management-identities"));
                 this.identities = Array.isArray(response.data?.identities) ? response.data.identities : [];
                 this.$emit("loaded", this.identities);
                 if (this.modelValue && !this.identities.some((item) => item.path === this.modelValue)) {
@@ -107,7 +108,7 @@ export default {
             }
             this.creating = true;
             try {
-                const response = await window.api.post("/api/v1/reticulum/management-identities", {
+                const response = await window.api.post(apiPath("/reticulum/management-identities"), {
                     name: String(name).trim(),
                 });
                 const identity = response.data?.identity;

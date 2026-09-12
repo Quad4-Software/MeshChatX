@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { apiPath } from "../constants.js";
+
 /**
  * Reticulum shared-instance / RPC / hop-obfuscation settings (Sideband parity).
  *
@@ -7,7 +9,7 @@
  * @returns {Promise<object>}
  */
 export async function fetchReticulumInstanceSettings(api) {
-    const response = await api.get("/api/v1/reticulum/instance");
+    const response = await api.get(apiPath("/reticulum/instance"));
     return response?.data?.instance ?? {};
 }
 
@@ -17,5 +19,5 @@ export async function fetchReticulumInstanceSettings(api) {
  * @returns {Promise<{ data?: { instance?: object, message?: string } }>}
  */
 export async function applyReticulumInstanceSettings(patch, api) {
-    return api.patch("/api/v1/reticulum/instance", patch);
+    return api.patch(apiPath("/reticulum/instance"), patch);
 }

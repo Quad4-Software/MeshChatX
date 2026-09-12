@@ -159,6 +159,8 @@
 </template>
 
 <script>
+import { apiPath } from "../../../js/constants.js";
+
 export default {
     name: "MapRemoteOverlayPanel",
     props: {
@@ -197,7 +199,7 @@ export default {
         async reload() {
             this.loading = true;
             try {
-                const res = await window.api.get("/api/v1/map/overlays");
+                const res = await window.api.get(apiPath("/map/overlays"));
                 this.overlays = res?.overlays || [];
                 this.$emit("overlays-changed", this.overlays);
             } catch (e) {
@@ -222,7 +224,7 @@ export default {
             this.importing = true;
             this.jobPhase = "queued";
             try {
-                const res = await window.api.post("/api/v1/map/overlays", body);
+                const res = await window.api.post(apiPath("/map/overlays"), body);
                 this.overlays = res?.overlays || this.overlays;
                 this.$emit("overlays-changed", this.overlays);
                 if (res?.job_id) {
@@ -243,7 +245,7 @@ export default {
                     return;
                 }
                 try {
-                    const job = await window.api.get(`/api/v1/map/overlays/jobs/${jobId}`);
+                    const job = await window.api.get(apiPath(`/map/overlays/jobs/${jobId}`));
                     if (gen !== this.jobGeneration) {
                         return;
                     }
@@ -265,7 +267,7 @@ export default {
         },
         async refresh(overlay) {
             try {
-                const res = await window.api.post(`/api/v1/map/overlays/${overlay.id}/refresh`, {});
+                const res = await window.api.post(apiPath(`/map/overlays/${overlay.id}/refresh`), {});
                 if (res?.job_id) {
                     this.importing = true;
                     this.watchJob(res.job_id);
@@ -276,7 +278,7 @@ export default {
         },
         async toggleVisible(overlay, visible) {
             try {
-                await window.api.patch(`/api/v1/map/overlays/${overlay.id}`, { visible: Boolean(visible) });
+                await window.api.patch(apiPath(`/map/overlays/${overlay.id}`), { visible: Boolean(visible) });
                 await this.reload();
             } catch (e) {
                 this.$emit("error", e);
@@ -284,7 +286,7 @@ export default {
         },
         async remove(overlay) {
             try {
-                await window.api.delete(`/api/v1/map/overlays/${overlay.id}`);
+                await window.api.delete(apiPath(`/map/overlays/${overlay.id}`));
                 await this.reload();
             } catch (e) {
                 this.$emit("error", e);

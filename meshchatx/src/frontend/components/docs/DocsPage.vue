@@ -654,6 +654,9 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
+import { apiPath } from "../../js/constants.js";
+import * as docsApi from "../../js/api/docs.js";
+import * as meshchatxDocsApi from "../../js/api/meshchatxDocs.js";
 import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";
 
 export default {
@@ -781,7 +784,7 @@ export default {
     methods: {
         async fetchStatus() {
             try {
-                const response = await window.api.get("/api/v1/docs/status");
+                const response = await window.api.get(apiPath("/docs/status"));
                 this.status = response.data;
 
                 if (!this.status.has_docs && this.status.has_meshchatx_docs && this.activeTab === "reticulum") {
@@ -803,7 +806,7 @@ export default {
             this.meshchatxListError = null;
             this.manifestWarning = null;
             try {
-                const response = await window.api.get("/api/v1/meshchatx-docs/list", {
+                const response = await meshchatxDocsApi.getList({
                     params: { lang: this.meshchatxDocsLang },
                 });
                 const data = response.data;
@@ -853,7 +856,7 @@ export default {
             this.selectedDocPath = path;
             this.docLoadError = null;
             try {
-                const response = await window.api.get("/api/v1/meshchatx-docs/content", {
+                const response = await meshchatxDocsApi.getContent({
                     params: { path },
                 });
                 if (!response.data?.html && !response.data?.content) {
@@ -907,7 +910,7 @@ export default {
         },
         async switchVersion(version) {
             try {
-                await window.api.post("/api/v1/docs/switch", { version });
+                await window.api.post(apiPath("/docs/switch"), { version });
                 this.showVersions = false;
                 this.selectedReticulumPath = null;
                 this.fetchStatus();
@@ -928,7 +931,7 @@ export default {
             }
 
             try {
-                await window.api.delete(`/api/v1/docs/version/${encodeURIComponent(version)}`);
+                await window.api.delete(apiPath(`/docs/version/${encodeURIComponent(version)}`));
                 this.fetchStatus();
                 ToastUtils.success(`Version ${version} deleted`);
             } catch (error) {
@@ -952,15 +955,11 @@ export default {
             formData.append("file", file);
 
             try {
-                await window.api.post(
-                    `/api/v1/docs/upload?version=${encodeURIComponent(String(version).trim())}`,
-                    formData,
-                    {
-                        headers: {
-                            "Content-Type": "multipart/form-data",
-                        },
-                    }
-                );
+                await docsApi.postUpload(encodeURIComponent(String(version).trim()), formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
                 this.fetchStatus();
                 this.reticulumDocsCacheBust = Date.now();
                 ToastUtils.success(this.$t("docs.upload_success"));
@@ -971,10 +970,10 @@ export default {
             }
         },
         async exportDocs() {
-            window.location.href = "/api/v1/docs/export";
+            window.location.href = apiPath("/docs/export");
         },
         async exportReticulumDocs() {
-            window.location.href = "/api/v1/docs/export/reticulum";
+            window.location.href = apiPath("/docs/export/reticulum");
         },
         copyDocLink() {
             if (!this.selectedDocPath) return;
@@ -1011,7 +1010,7 @@ export default {
             this.isSearching = true;
             this.searchError = null;
             try {
-                const response = await window.api.get("/api/v1/docs/search", {
+                const response = await docsApi.getSearch({
                     params: {
                         q: this.searchQuery,
                         lang: this.currentLang,

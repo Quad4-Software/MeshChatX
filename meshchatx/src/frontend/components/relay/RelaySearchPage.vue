@@ -60,6 +60,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import MarkdownRenderer from "../../js/MarkdownRenderer.js";
 import Utils from "../../js/Utils.js";
+import * as rrcApi from "../../js/api/rrc.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -108,7 +109,7 @@ export default {
             const gen = ++this.searchGen;
             this.searching = true;
             try {
-                const res = await window.api.get("/api/v1/rrc/search", {
+                const res = await rrcApi.getSearch({
                     params: { q, limit: 100 },
                 });
                 if (gen !== this.searchGen) return;

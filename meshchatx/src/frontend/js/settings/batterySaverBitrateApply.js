@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: 0BSD AND MIT
 
+import { apiPath } from "../constants.js";
 import { buildBitrateApplyPayload, loadBatterySaverPrefs, saveBatterySaverPrefs } from "./batterySaverPrefs.js";
 
 /**
@@ -21,7 +22,7 @@ export async function applyBatterySaverBitrateLimits(opts = {}) {
         return { updated: [], reloaded: false };
     }
 
-    const listResp = await api.get("/api/v1/reticulum/interfaces");
+    const listResp = await api.get(apiPath("/reticulum/interfaces"));
     const interfaces = listResp?.data?.interfaces || {};
     const { bitrates, previous } = buildBitrateApplyPayload(interfaces, limits);
     if (Object.keys(bitrates).length === 0) {
@@ -29,7 +30,7 @@ export async function applyBatterySaverBitrateLimits(opts = {}) {
     }
 
     const reload = opts.reload !== false;
-    const resp = await api.post("/api/v1/reticulum/interfaces/bitrates", {
+    const resp = await api.post(apiPath("/reticulum/interfaces/bitrates"), {
         bitrates,
         reload,
     });
@@ -60,7 +61,7 @@ export async function restoreBatterySaverBitrateLimits(opts = {}) {
         return { updated: [], reloaded: false };
     }
     const reload = opts.reload !== false;
-    const resp = await api.post("/api/v1/reticulum/interfaces/bitrates", {
+    const resp = await api.post(apiPath("/reticulum/interfaces/bitrates"), {
         bitrates: previous,
         reload,
     });

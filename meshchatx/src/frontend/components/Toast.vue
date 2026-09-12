@@ -72,6 +72,7 @@
 
 <script>
 import GlobalEmitter from "../js/GlobalEmitter";
+import { EMITTER_EVENTS } from "../js/constants.js";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
 export default {
@@ -99,12 +100,12 @@ export default {
                 this.remove(this.toasts[index].id);
             }
         };
-        GlobalEmitter.on("toast", this.toastHandler);
-        GlobalEmitter.on("toast-dismiss", this.dismissHandler);
+        GlobalEmitter.on(EMITTER_EVENTS.TOAST, this.toastHandler);
+        GlobalEmitter.on(EMITTER_EVENTS.TOAST_DISMISS, this.dismissHandler);
     },
     beforeUnmount() {
-        GlobalEmitter.off("toast", this.toastHandler);
-        GlobalEmitter.off("toast-dismiss", this.dismissHandler);
+        GlobalEmitter.off(EMITTER_EVENTS.TOAST, this.toastHandler);
+        GlobalEmitter.off(EMITTER_EVENTS.TOAST_DISMISS, this.dismissHandler);
     },
     methods: {
         toastMessage(message) {
@@ -178,7 +179,7 @@ export default {
                 }
                 this.toasts.splice(index, 1);
                 if (toast.key != null) {
-                    GlobalEmitter.emit("toast-dismissed", { key: toast.key });
+                    GlobalEmitter.emit(EMITTER_EVENTS.TOAST_DISMISSED, { key: toast.key });
                 }
             }
         },
