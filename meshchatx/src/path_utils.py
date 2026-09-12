@@ -397,29 +397,52 @@ def resolve_path_under_dir(directory: str, user_path: str) -> str | None:
     return realpath_or_none(joined)
 
 
+def _fsync_dir(path: str) -> None:
+    """Best-effort fsync of the directory holding path.
+
+    Called after os.replace so the rename survives a crash. Directory
+    fsync is unsupported on some filesystems and platforms, so failures
+    are ignored.
+    """
+    if not hasattr(os, "O_DIRECTORY"):
+        return
+    try:
+        dir_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    except OSError:
+        return
+    try:
+        os.fsync(dir_fd)
+    except OSError:
+        pass
+    finally:
+        os.close(dir_fd)
+
+
 def atomic_write_bytes(
     path: str | os.PathLike[str],
     data: bytes,
     *,
     mode: int = 0o644,
+    fsync_dir: bool = True,
 ) -> None:
     """Write data to path via a sibling tmp file, then os.replace.
 
-    The tmp sibling is opened with O_NOFOLLOW where the platform supports it
-    so a planted symlink cannot redirect the write. fchmod pins mode even
-    when a stale regular tmp is truncated in place; pass 0o600 for private
-    state.
+    The tmp sibling is created with tempfile.mkstemp (O_CREAT | O_EXCL)
+    in the same directory so concurrent writers never share a tmp path
+    and a planted symlink cannot redirect the write. fchmod pins mode
+    because mkstemp always creates 0o600; pass mode 0o600 for private
+    state anyway so it stays correct if the implementation changes.
+    fsync_dir fsyncs the parent directory after the rename; disable it
+    on hot paths that accept losing the rename on power loss.
     """
     path = os.fspath(path)
     parent = os.path.dirname(path) or "."
     os.makedirs(parent, exist_ok=True)
-    tmp = path + ".tmp"
-    if os.path.lexists(tmp) and (os.path.islink(tmp) or os.path.isdir(tmp)):
-        raise OSError("invalid atomic write destination")
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
-    fd = os.open(tmp, flags, mode)
+    fd, tmp = tempfile.mkstemp(
+        prefix=f".{os.path.basename(path)}.",
+        suffix=".tmp",
+        dir=parent,
+    )
     try:
         if hasattr(os, "fchmod"):
             os.fchmod(fd, mode)
@@ -427,11 +450,13 @@ def atomic_write_bytes(
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
+        os.replace(tmp, path)
     except Exception:
         with contextlib.suppress(OSError):
             os.unlink(tmp)
         raise
-    os.replace(tmp, path)
+    if fsync_dir:
+        _fsync_dir(parent)
 
 
 def atomic_write_text(
@@ -440,9 +465,15 @@ def atomic_write_text(
     *,
     encoding: str = "utf-8",
     mode: int = 0o644,
+    fsync_dir: bool = True,
 ) -> None:
     """Write text to path via atomic_write_bytes."""
-    atomic_write_bytes(os.fspath(path), text.encode(encoding), mode=mode)
+    atomic_write_bytes(
+        os.fspath(path),
+        text.encode(encoding),
+        mode=mode,
+        fsync_dir=fsync_dir,
+    )
 
 
 def resolve_log_dir():

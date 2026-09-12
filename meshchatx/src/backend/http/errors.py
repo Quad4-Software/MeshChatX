@@ -60,6 +60,7 @@ def http_error_from_exception(
     *,
     fallback_status: int = 400,
     key: str = "error",
+    extra: dict | None = None,
 ):
     """Map an exception to a JSON error response without leaking internals.
 
@@ -68,16 +69,22 @@ def http_error_from_exception(
     this codebase treats them as user-facing. OSError and anything else
     get a generic message so absolute paths, errno details, and stack
     internals stay server-side; log the real exception at the call site.
+    extra merges fixed keys into the payload (for example
+    {"status": "error"} on routes that use that shape).
     """
+    payload = dict(extra) if extra else {}
+
+    def respond(status: int, message: str):
+        return web.json_response({**payload, key: message}, status=status)
+
     if isinstance(exc, PathJailError):
-        status = _PATH_JAIL_STATUS.get(exc.reason, 400)
-        return web.json_response({key: str(exc)}, status=status)
+        return respond(_PATH_JAIL_STATUS.get(exc.reason, 400), str(exc))
     if isinstance(exc, FileNotFoundError):
-        return web.json_response({key: "Not found"}, status=404)
+        return respond(404, "Not found")
     if isinstance(exc, PermissionError):
-        return web.json_response({key: "Not allowed"}, status=403)
+        return respond(403, "Not allowed")
     if isinstance(exc, ValueError):
-        return web.json_response({key: str(exc)}, status=400)
+        return respond(400, str(exc))
     if isinstance(exc, OSError):
-        return web.json_response({key: "Internal server error"}, status=500)
-    return web.json_response({key: "Request failed"}, status=fallback_status)
+        return respond(500, "Internal server error")
+    return respond(fallback_status, "Request failed")
