@@ -13,11 +13,33 @@ from collections.abc import Callable
 from typing import Any
 
 from rns_filesync.constants import ANNOUNCE_INTERVAL_DEFAULT
-from rns_filesync.paths import PathJailError, normalize_relpath, relative_to_root
 from rns_filesync.permissions import PermissionStore
 from rns_filesync.service import FileSyncService
 
+from meshchatx.src.path_utils import (
+    PathJailError,
+    is_under_root,
+    normalize_relpath,
+    relative_to_root,
+    resolve_under_root,
+    safe_basename,
+)
+
 _ALL_ALIASES = frozenset({"all", "a", "everyone", "*"})
+
+# Mirrors the reserved sidecar rules baked into vendored
+# rns_filesync.paths.normalize_relpath so both implementations agree.
+_SYNC_RESERVED_NAMES = frozenset({".rns-filesync.db"})
+_SYNC_RESERVED_PREFIXES = (".rns-xfer-",)
+
+
+def _normalize_sync_relpath(relpath: str) -> str:
+    return normalize_relpath(
+        relpath,
+        reserved_names=_SYNC_RESERVED_NAMES,
+        reserved_prefixes=_SYNC_RESERVED_PREFIXES,
+    )
+
 
 # Cap for in-app sync-tree uploads (local control plane only).
 MANAGER_UPLOAD_MAX_BYTES = 64 * 1024 * 1024
@@ -56,15 +78,9 @@ def _is_forbidden_entry_name(name: str) -> bool:
 
 def _sanitize_upload_basename(filename: str | None) -> str | None:
     """Keep only a safe basename for uploads. Fail closed on escape tricks."""
-    raw = str(filename or "").strip()
-    if not raw or "\x00" in raw:
-        return None
-    base = os.path.basename(raw.replace("\\", "/"))
-    if not base or base in (".", "..") or _is_forbidden_entry_name(base):
-        return None
-    if "/" in base or "\\" in base:
-        return None
-    return base
+    if not isinstance(filename, str):
+        filename = str(filename or "")
+    return safe_basename(filename, forbidden=_is_forbidden_entry_name)
 
 
 _RESERVED_SYNC_TOP = frozenset(
@@ -133,9 +149,7 @@ def _identity_hex(identity) -> str:
 
 
 def _is_under_path(candidate: str, root: str) -> bool:
-    if not candidate or not root:
-        return False
-    return candidate == root or candidate.startswith(root + os.sep)
+    return is_under_root(candidate, root)
 
 
 def _looks_like_windows_system_path(resolved: str) -> bool:
@@ -388,7 +402,7 @@ class RnsFilesyncHandler:
     def _is_under_sync_root(self, candidate: str) -> bool:
         root = self._sync_root()
         real = os.path.realpath(candidate)
-        return real == root or real.startswith(root + os.sep)
+        return is_under_root(real, root)
 
     def _resolve_manager_path(
         self,
@@ -410,15 +424,8 @@ class RnsFilesyncHandler:
             return None, "path is required"
 
         # Absolute client paths are never accepted for the manager.
-        if "\x00" in cleaned:
-            return None, "path not allowed"
-        if os.path.isabs(cleaned) or cleaned.startswith(("/", "\\")):
-            return None, "path not allowed"
-        if len(cleaned) >= 2 and cleaned[1] == ":":
-            return None, "path not allowed"
-
         try:
-            safe_rel = normalize_relpath(cleaned)
+            safe_rel = _normalize_sync_relpath(cleaned)
         except PathJailError:
             return None, "path not allowed"
 
@@ -426,36 +433,28 @@ class RnsFilesyncHandler:
         if any(_is_forbidden_entry_name(part) for part in parts):
             return None, "path not allowed"
 
-        joined = os.path.join(root, safe_rel)
-        # Reject symlink parents that escape before realpath of missing leaves.
-        parent = os.path.dirname(joined)
-        if parent != root and not self._is_under_sync_root(parent):
-            return None, "path not allowed"
-        if os.path.lexists(joined) and os.path.islink(joined):
-            real = os.path.realpath(joined)
-            if real != root and not real.startswith(root + os.sep):
-                return None, "path not allowed"
-            if must_exist and not os.path.exists(real):
-                return None, "path not found"
-            return real, None
-
-        if must_exist and not os.path.lexists(joined):
-            return None, "path not found"
-
         try:
-            real = os.path.realpath(joined)
-        except OSError:
-            return None, "path not allowed"
-
-        if real != root and not real.startswith(root + os.sep):
-            return None, "path not allowed"
-        if not allow_root and real == root:
+            real = resolve_under_root(
+                root,
+                safe_rel,
+                allow_root=allow_root,
+                must_exist=must_exist,
+                check_symlinked_parents=True,
+            )
+        except PathJailError as exc:
+            if exc.reason == "not_found":
+                return None, "path not found"
             return None, "path not allowed"
         return real, None
 
     def _relpath_under_sync(self, abspath: str) -> str | None:
         try:
-            return relative_to_root(self._sync_root(), abspath)
+            return relative_to_root(
+                self._sync_root(),
+                abspath,
+                reserved_names=_SYNC_RESERVED_NAMES,
+                reserved_prefixes=_SYNC_RESERVED_PREFIXES,
+            )
         except PathJailError:
             return None
 
@@ -491,14 +490,9 @@ class RnsFilesyncHandler:
                 if _is_forbidden_entry_name(name):
                     continue
                 full = os.path.join(target, name)
-                if os.path.islink(full):
-                    real = os.path.realpath(full)
-                    if real != root and not real.startswith(root + os.sep):
-                        continue
-                else:
-                    real = os.path.realpath(full)
-                    if real != root and not real.startswith(root + os.sep):
-                        continue
+                real = os.path.realpath(full)
+                if not is_under_root(real, root):
+                    continue
 
                 is_dir = os.path.isdir(real) and not os.path.islink(full)
                 # Treat in-jail symlinks to dirs as dirs for navigation only when target stays inside.
@@ -548,7 +542,7 @@ class RnsFilesyncHandler:
                 return {"ok": False, "error": "path is required"}
             # Resolve parent and create leaf so we do not require the leaf to exist.
             try:
-                safe_rel = normalize_relpath(cleaned)
+                safe_rel = _normalize_sync_relpath(cleaned)
             except PathJailError:
                 return {"ok": False, "error": "path not allowed"}
             parts = safe_rel.replace("\\", "/").split("/")
@@ -664,7 +658,7 @@ class RnsFilesyncHandler:
         with self._lock:
             root = self._sync_root()
             try:
-                safe_rel = normalize_relpath(str(path or "").strip())
+                safe_rel = _normalize_sync_relpath(str(path or "").strip())
             except PathJailError:
                 return {"ok": False, "error": "path not allowed"}
             lex_path = os.path.join(root, safe_rel)
@@ -706,7 +700,7 @@ class RnsFilesyncHandler:
         with self._lock:
             root = self._sync_root()
             try:
-                safe_rel = normalize_relpath(str(path or "").strip())
+                safe_rel = _normalize_sync_relpath(str(path or "").strip())
             except PathJailError:
                 return {"ok": False, "error": "path not allowed"}
             lex_path = os.path.join(root, safe_rel)
@@ -1148,7 +1142,7 @@ class RnsFilesyncHandler:
             if not cleaned_path:
                 return {"ok": False, "error": "path is required"}
             try:
-                safe_path = normalize_relpath(cleaned_path)
+                safe_path = _normalize_sync_relpath(cleaned_path)
             except PathJailError as exc:
                 return {"ok": False, "error": str(exc)}
             return self.service.download_file(cleaned_peer, safe_path)
