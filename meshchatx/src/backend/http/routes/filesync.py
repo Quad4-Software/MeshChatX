@@ -136,6 +136,9 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_field_limited,
+    read_field_text_limited,
+    read_json_limited,
+    write_field_to_path,
 )
 from meshchatx.src.backend.rns_filesync_handler import MANAGER_UPLOAD_MAX_BYTES
 
@@ -162,8 +165,12 @@ def register_filesync_routes(routes, app):
         if not_ready is not None:
             return not_ready
         data = {}
-        with contextlib.suppress(Exception):
-            data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            data = {}
         if not isinstance(data, dict):
             data = {}
         try:
@@ -232,7 +239,10 @@ def register_filesync_routes(routes, app):
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
             return web.json_response({"message": "Invalid JSON body"}, status=400)
         try:
@@ -256,7 +266,7 @@ def register_filesync_routes(routes, app):
             return not_ready
         subdir = None
         filename = None
-        file_data = None
+        tmp_path = None
         try:
             reader = await request.multipart()
             while True:
@@ -265,35 +275,52 @@ def register_filesync_routes(routes, app):
                     break
                 name = field.name or ""
                 if name == "path":
-                    subdir = (await field.text()).strip() or None
+                    subdir = (await read_field_text_limited(field)).strip() or None
                 elif name == "file":
                     filename = field.filename or "upload"
-                    file_data = await read_field_limited(
+                    if tmp_path is not None:
+                        with contextlib.suppress(OSError):
+                            os.unlink(tmp_path)
+                    tmp_path = await asyncio.to_thread(
+                        app.rns_filesync_handler.manager_upload_staging_path,
+                    )
+                    await write_field_to_path(
                         field,
+                        tmp_path,
                         MANAGER_UPLOAD_MAX_BYTES,
                     )
                 else:
                     with contextlib.suppress(Exception):
                         await read_field_limited(field, MANAGER_UPLOAD_MAX_BYTES)
         except PayloadTooLargeError:
+            if tmp_path is not None:
+                with contextlib.suppress(OSError):
+                    os.unlink(tmp_path)
             return http_payload_too_large()
         except Exception as e:
+            if tmp_path is not None:
+                with contextlib.suppress(OSError):
+                    os.unlink(tmp_path)
             return web.json_response(
                 {"message": f"Invalid upload request: {e}"},
                 status=400,
             )
-        if file_data is None:
+        if tmp_path is None:
             return web.json_response({"message": "No file uploaded"}, status=400)
         try:
             result = await asyncio.to_thread(
-                app.rns_filesync_handler.manager_upload,
+                app.rns_filesync_handler.manager_upload_file,
                 filename=filename,
-                data=file_data,
+                src_path=tmp_path,
                 subdir=subdir,
             )
         except Exception as e:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
             return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
             return web.json_response(
                 {"message": result.get("error", "upload failed")},
                 status=400,
@@ -306,8 +333,12 @@ def register_filesync_routes(routes, app):
         if not_ready is not None:
             return not_ready
         data = {}
-        with contextlib.suppress(Exception):
-            data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            data = {}
         if not isinstance(data, dict):
             data = {}
         path = data.get("path", "")
@@ -404,7 +435,10 @@ def register_filesync_routes(routes, app):
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
             return web.json_response({"message": "Invalid JSON body"}, status=400)
         try:
@@ -427,7 +461,10 @@ def register_filesync_routes(routes, app):
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
             return web.json_response({"message": "Invalid JSON body"}, status=400)
         identity_hash = data.get("identity_hash", "")
@@ -450,7 +487,10 @@ def register_filesync_routes(routes, app):
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
             return web.json_response({"message": "Invalid JSON body"}, status=400)
         peer_id = data.get("peer_id", "")
@@ -489,7 +529,10 @@ def register_filesync_routes(routes, app):
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
             return web.json_response({"message": "Invalid JSON body"}, status=400)
         peer_id = data.get("peer_id", "")
@@ -517,7 +560,10 @@ def register_filesync_routes(routes, app):
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
             return web.json_response({"message": "Invalid JSON body"}, status=400)
         peer_id = data.get("peer_id", "")
@@ -549,7 +595,10 @@ def register_filesync_routes(routes, app):
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
             return web.json_response({"message": "Invalid JSON body"}, status=400)
         perms = data.get("perms")
@@ -581,7 +630,10 @@ def register_filesync_routes(routes, app):
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
             return web.json_response({"message": "Invalid JSON body"}, status=400)
         try:
