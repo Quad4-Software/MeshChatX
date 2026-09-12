@@ -146,7 +146,18 @@
         "message_persistence_enabled": "송신 큐 저장",
         "admins": "관리자 LXMF 주소",
         "admins_placeholder": "한 줄에 32자리 해시 하나",
-        "admins_hint": "관리자는 명령 제한과 스팸 검사를 우회합니다."
+        "admins_hint": "관리자는 명령 제한과 스팸 검사를 우회합니다.",
+        "setup_title": "새 봇",
+        "setup_description": "새 LXMFy 봇 구성",
+        "choose_template": "템플릿 선택",
+        "loading": "불러오는 중...",
+        "create_and_start": "만들고 시작",
+        "advanced_lxmf_settings_hint": "선택적 LXMF 전송, 보안, 스팸 설정입니다. 대부분의 봇은 기본값으로 충분합니다.",
+        "failed_to_load": "봇 템플릿을 불러올 수 없습니다",
+        "edit_rrc": "릴레이 채팅 설정 편집",
+        "rrc_modal_title": "릴레이 채팅 설정",
+        "rrc_saved": "릴레이 채팅 설정 저장됨",
+        "rrc_save_failed": "설정을 저장할 수 없습니다"
     },
     "app": {
         "name": "Reticulum MeshChatX",

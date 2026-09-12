@@ -146,7 +146,18 @@
         "message_persistence_enabled": "持久化发送队列",
         "admins": "管理员 LXMF 地址",
         "admins_placeholder": "每行一个 32 位哈希",
-        "admins_hint": "管理员不受命令限制和垃圾检查约束。"
+        "admins_hint": "管理员不受命令限制和垃圾检查约束。",
+        "setup_title": "新建机器人",
+        "setup_description": "配置新的 LXMFy 机器人",
+        "choose_template": "选择模板",
+        "loading": "加载中...",
+        "create_and_start": "创建并启动",
+        "advanced_lxmf_settings_hint": "可选的 LXMF 投递、安全与反垃圾设置。大多数机器人用默认值即可。",
+        "failed_to_load": "无法加载机器人模板",
+        "edit_rrc": "编辑中继聊天设置",
+        "rrc_modal_title": "中继聊天设置",
+        "rrc_saved": "中继聊天设置已保存",
+        "rrc_save_failed": "无法保存设置"
     },
     "app": {
         "name": "Reticulum MeshChatX",

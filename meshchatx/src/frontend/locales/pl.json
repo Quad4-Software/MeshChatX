@@ -146,7 +146,18 @@
         "message_persistence_enabled": "Zachowuj kolejkę wychodzącą",
         "admins": "Adresy LXMF administratorów",
         "admins_placeholder": "jeden 32-znakowy hash na wiersz",
-        "admins_hint": "Administratorzy omijają ograniczenia poleceń i kontrole spamu."
+        "admins_hint": "Administratorzy omijają ograniczenia poleceń i kontrole spamu.",
+        "setup_title": "Nowy bot",
+        "setup_description": "Skonfiguruj nowego bota LXMFy",
+        "choose_template": "Wybierz szablon",
+        "loading": "Ładowanie...",
+        "create_and_start": "Utwórz i uruchom",
+        "advanced_lxmf_settings_hint": "Opcjonalne ustawienia dostarczania, bezpieczeństwa i antyspam LXMF. Domyślne wystarczą większości botów.",
+        "failed_to_load": "Nie można załadować szablonów botów",
+        "edit_rrc": "Edytuj ustawienia czatu przekaźnikowego",
+        "rrc_modal_title": "Ustawienia czatu przekaźnikowego",
+        "rrc_saved": "Ustawienia zapisane",
+        "rrc_save_failed": "Nie można zapisać ustawień"
     },
     "app": {
         "name": "Reticulum MeshChatX",

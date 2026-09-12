@@ -146,7 +146,18 @@
         "message_persistence_enabled": "Säilytä lähtevä jono",
         "admins": "Ylläpitäjien LXMF-osoitteet",
         "admins_placeholder": "yksi 32-merkin tiiviste per rivi",
-        "admins_hint": "Ylläpitäjät ohittavat komentorajoitukset ja spam-tarkistukset."
+        "admins_hint": "Ylläpitäjät ohittavat komentorajoitukset ja spam-tarkistukset.",
+        "setup_title": "Uusi botti",
+        "setup_description": "Määritä uusi LXMFy-botti",
+        "choose_template": "Valitse malli",
+        "loading": "Ladataan...",
+        "create_and_start": "Luo ja käynnistä",
+        "advanced_lxmf_settings_hint": "Valinnaiset LXMF-toimitus-, turva- ja spam-asetukset. Oletukset riittävät useimmille.",
+        "failed_to_load": "Bottimalleja ei voitu ladata",
+        "edit_rrc": "Muokkaa välitetchat-asetuksia",
+        "rrc_modal_title": "Välitetchatin asetukset",
+        "rrc_saved": "Välitetchat-asetukset tallennettu",
+        "rrc_save_failed": "Asetuksia ei voitu tallentaa"
     },
     "app": {
         "name": "Reticulum MeshChatX",

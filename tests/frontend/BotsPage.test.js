@@ -87,7 +87,7 @@ describe("BotsPage.vue", () => {
         expect(wrapper.text()).toContain("Test Bot");
     });
 
-    it("opens start bot modal when a template is selected", async () => {
+    it("navigates to the setup page when a template is selected", async () => {
         const wrapper = mountBotsPage();
         await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
 
@@ -97,24 +97,9 @@ describe("BotsPage.vue", () => {
         )[0];
         await templateCard.trigger("click");
 
-        expect(wrapper.vm.selectedTemplate).not.toBeNull();
-        expect(wrapper.text()).toContain("bots.start_bot: Echo Bot");
-    });
-
-    it("calls start bot API when form is submitted", async () => {
-        const wrapper = mountBotsPage();
-        await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
-
-        await wrapper.setData({
-            selectedTemplate: { id: "echo", name: "Echo Bot" },
-            newBotName: "My New Bot",
-        });
-
-        await wrapper.vm.startBot();
-
-        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/bots/start", {
-            template_id: "echo",
-            name: "My New Bot",
+        expect(routerPush).toHaveBeenCalledWith({
+            name: "bot-setup",
+            query: { template: "echo" },
         });
     });
 

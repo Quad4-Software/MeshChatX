@@ -146,7 +146,18 @@
         "message_persistence_enabled": "送信キューを永続化",
         "admins": "管理者LXMFアドレス",
         "admins_placeholder": "1行に32文字のハッシュを1つ",
-        "admins_hint": "管理者はコマンド制限とスパムチェックを回避します。"
+        "admins_hint": "管理者はコマンド制限とスパムチェックを回避します。",
+        "setup_title": "新しいボット",
+        "setup_description": "新しいLXMFyボットを設定",
+        "choose_template": "テンプレートを選択",
+        "loading": "読み込み中...",
+        "create_and_start": "作成して起動",
+        "advanced_lxmf_settings_hint": "オプションのLXMF配信・セキュリティ・スパム設定。ほとんどのボットはデフォルトで十分です。",
+        "failed_to_load": "ボットテンプレートを読み込めませんでした",
+        "edit_rrc": "リレーチャット設定を編集",
+        "rrc_modal_title": "リレーチャット設定",
+        "rrc_saved": "リレーチャット設定を保存しました",
+        "rrc_save_failed": "設定を保存できませんでした"
     },
     "app": {
         "name": "Reticulum MeshChatX",

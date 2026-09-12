@@ -146,7 +146,18 @@
         "message_persistence_enabled": "Giden kuyruğu sakla",
         "admins": "Yönetici LXMF adresleri",
         "admins_placeholder": "satır başına bir 32 karakterlik hash",
-        "admins_hint": "Yöneticiler komut kısıtlarını ve spam denetimlerini atlar."
+        "admins_hint": "Yöneticiler komut kısıtlarını ve spam denetimlerini atlar.",
+        "setup_title": "Yeni bot",
+        "setup_description": "Yeni bir LXMFy botu yapılandır",
+        "choose_template": "Şablon seç",
+        "loading": "Yükleniyor...",
+        "create_and_start": "Oluştur ve Başlat",
+        "advanced_lxmf_settings_hint": "İsteğe bağlı LXMF teslimat, güvenlik ve spam denetimleri. Varsayılanlar çoğu bot için yeterli.",
+        "failed_to_load": "Bot şablonları yüklenemedi",
+        "edit_rrc": "Aktarma sohbeti ayarlarını düzenle",
+        "rrc_modal_title": "Aktarma sohbeti ayarları",
+        "rrc_saved": "Aktarma sohbeti ayarları kaydedildi",
+        "rrc_save_failed": "Ayarlar kaydedilemedi"
     },
     "app": {
         "name": "Reticulum MeshChatX",
