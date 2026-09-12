@@ -117,12 +117,15 @@ class AnnounceManager:
         }
 
         if app_data is not None:
+            # Check length before bytes() so an oversized bytearray or
+            # memoryview is rejected without materializing a full copy.
             raw = (
                 bytes(app_data)
                 if isinstance(app_data, (bytes, bytearray, memoryview))
+                and len(app_data) <= MAX_ANNOUNCE_APP_DATA_BYTES
                 else None
             )
-            if raw is not None and len(raw) <= MAX_ANNOUNCE_APP_DATA_BYTES:
+            if raw is not None:
                 data["app_data"] = base64.b64encode(raw).decode("utf-8")
 
         self.db.announces.upsert_announce(data)

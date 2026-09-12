@@ -11,8 +11,9 @@ from aiohttp import web
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
+    http_error_from_exception,
     http_payload_too_large,
-    http_unexpected,
+    http_unavailable,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -40,6 +41,15 @@ def register_status_routes(routes, app):
         identity = app._pending_identity or app.identity
         if identity is None:
             return http_bad_request("No identity available for recovery")
+
+        # A background setup thread may still be mid-run; recovering now
+        # would run setup_identity twice and corrupt the context state.
+        setup_thread = getattr(app, "_network_setup_thread", None)
+        if setup_thread is not None and setup_thread.is_alive():
+            return http_unavailable(
+                "Network setup already in progress, retry shortly",
+                status=app._startup_status_payload(),
+            )
 
         config_path = app._reticulum_config_file_path()
         actions: list[str] = []
@@ -113,10 +123,13 @@ def register_status_routes(routes, app):
         except Exception as exc:
             traceback.print_exc()
             app._mark_network_degraded(str(exc))
-            return http_unexpected(
-                "Recovery attempt failed",
-                disabled_interfaces=actions,
-                status=app._startup_status_payload(),
+            return http_error_from_exception(
+                exc,
+                fallback_status=503,
+                extra={
+                    "disabled_interfaces": actions,
+                    "status": app._startup_status_payload(),
+                },
             )
 
     @routes.get(API_V1_PREFIX + "/self-test")
