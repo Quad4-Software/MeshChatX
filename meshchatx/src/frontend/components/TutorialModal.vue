@@ -2284,17 +2284,17 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
 import { useConfigStore } from "../js/stores/configStore.js";
 import { useInterfaceChangesStore } from "../js/stores/interfaceChangesStore.js";
 import logoUrl from "../assets/images/logo.png";
 import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
-import Utils from "../js/Utils";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import GlobalEmitter from "../js/GlobalEmitter";
 import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
-import * as identityApi from "../js/api/identity.js";
 import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
+import { useTutorialIdentity } from "../js/tutorial/useTutorialIdentity.js";
 import AppModal from "./AppModal.vue";
 import LanguageSelector from "./LanguageSelector.vue";
 import { normalizeUiLocaleCode, setLocale } from "../js/localeLoader.js";
@@ -2311,23 +2311,27 @@ export default {
         Toggle,
         TutorialPrivacyStep,
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useTutorialIdentity({
+                t: (key, params) => inst?.proxy.$t(key, params),
+                goToStep: (step) => {
+                    if (inst?.proxy) {
+                        inst.proxy.currentStep = step;
+                    }
+                },
+            }),
+        };
+    },
     data() {
         return {
             visible: false,
             currentStep: 1,
             totalSteps: 8,
             logoUrl,
-            identityMode: "new",
-            identityName: "",
-            identityImportBase32: "",
-            identityImportFile: null,
-            identityImportInProgress: false,
-            identityImportError: "",
-            identityImportedHash: null,
-            originalIdentityHash: null,
             communityInterfaces: [],
             loadingInterfaces: false,
-            finishingTutorial: false,
             interfaceAddedViaTutorial: false,
             connectionMode: null,
             selectedBootstrapKeys: [],
@@ -2420,12 +2424,6 @@ export default {
         reticulumBundledDocsUrl() {
             return bundledReticulumDocsUrl(this.$i18n.locale);
         },
-        defaultUsername() {
-            return "Anonymous Peer";
-        },
-        hasIdentityImportInput() {
-            return Boolean(this.identityImportFile || this.normalizeBase32(this.identityImportBase32));
-        },
         bootstrapSelectedLabels() {
             return this.selectedBootstrapKeys.map((k) => this.bootstrapDisplayLabelForKey(k)).filter(Boolean);
         },
@@ -2498,133 +2496,6 @@ export default {
         }
     },
     methods: {
-        resetIdentitySetupState() {
-            this.identityMode = "new";
-            this.identityName = "";
-            this.identityImportBase32 = "";
-            this.identityImportFile = null;
-            this.identityImportError = "";
-            this.identityImportInProgress = false;
-            this.identityImportedHash = null;
-            this.originalIdentityHash = null;
-            this.finishingTutorial = false;
-        },
-        setIdentityMode(mode) {
-            this.identityMode = mode;
-            this.identityImportError = "";
-            if (mode === "new") {
-                this.identityImportFile = null;
-                this.identityImportBase32 = "";
-                this.identityImportedHash = null;
-            }
-        },
-        normalizeBase32(value) {
-            return String(value || "").replace(/\s+/g, "");
-        },
-        formatIdentityHash(hash) {
-            return Utils.formatDestinationHash(hash);
-        },
-        onIdentityImportBase32Input() {
-            this.identityImportedHash = null;
-            this.identityImportError = "";
-        },
-        async loadIdentitySetupDefaults() {
-            try {
-                const [identitiesRes, configRes] = await Promise.all([
-                    window.api.get(apiPath("/identities")),
-                    window.api.get(apiPath("/config")),
-                ]);
-                const identities = identitiesRes.data?.identities ?? [];
-                const currentIdentity = identities.find((item) => item.is_current);
-                this.originalIdentityHash = currentIdentity?.hash || null;
-                this.identityName = configRes.data?.config?.display_name || this.defaultUsername;
-            } catch (e) {
-                console.error("Failed to load identity setup defaults:", e);
-                this.identityName = this.defaultUsername;
-            }
-        },
-        onIdentityImportFileChange(event) {
-            const files = event?.target?.files;
-            const file = files?.[0] || null;
-            this.identityImportedHash = null;
-            this.identityImportError = "";
-            if (file && file.size === 0) {
-                this.identityImportFile = null;
-                this.identityImportError = this.$t("tutorial.identity_import_empty_file");
-            } else if (file && file.size > 65536) {
-                this.identityImportFile = null;
-                this.identityImportError = this.$t("tutorial.identity_import_file_too_large");
-            } else {
-                this.identityImportFile = file;
-            }
-            if (event?.target) {
-                event.target.value = "";
-            }
-        },
-        async importIdentityFromFile(file, displayName) {
-            const formData = new FormData();
-            formData.append("file", file);
-            if (displayName) {
-                formData.append("display_name", displayName);
-            }
-            const response = await identityApi.restoreIdentity(formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
-            return response.data?.identity?.hash || null;
-        },
-        async importIdentityFromBase32(base32, displayName) {
-            const payload = { base32: this.normalizeBase32(base32) };
-            if (displayName) {
-                payload.display_name = displayName;
-            }
-            const response = await window.api.post(apiPath("/identity/restore"), payload);
-            return response.data?.identity?.hash || null;
-        },
-        async handleIdentityContinue() {
-            if (this.identityImportInProgress) {
-                return;
-            }
-            const trimmedName = this.identityName.trim() || this.defaultUsername;
-            this.identityImportError = "";
-            if (this.identityMode === "new") {
-                try {
-                    await window.api.patch(apiPath("/config"), {
-                        display_name: trimmedName,
-                    });
-                    useConfigStore().config.display_name = trimmedName;
-                    this.identityImportedHash = null;
-                    this.currentStep = 3;
-                } catch (e) {
-                    this.identityImportError =
-                        e.response?.data?.message || this.$t("tutorial.identity_name_update_failed");
-                }
-                return;
-            }
-            if (!this.hasIdentityImportInput) {
-                this.identityImportError = this.$t("tutorial.identity_import_required");
-                return;
-            }
-            this.identityImportInProgress = true;
-            try {
-                let importedHash = null;
-                if (this.identityImportFile) {
-                    importedHash = await this.importIdentityFromFile(this.identityImportFile, trimmedName);
-                    this.identityImportFile = null;
-                } else {
-                    importedHash = await this.importIdentityFromBase32(this.identityImportBase32, trimmedName);
-                    this.identityImportBase32 = "";
-                }
-                if (!importedHash) {
-                    throw new Error("Missing imported identity hash");
-                }
-                this.identityImportedHash = importedHash;
-                this.currentStep = 3;
-            } catch (e) {
-                this.identityImportError = e.response?.data?.message || this.$t("tutorial.identity_import_failed");
-            } finally {
-                this.identityImportInProgress = false;
-            }
-        },
         async toggleTheme() {
             const newTheme = this.config.theme === "dark" ? "light" : "dark";
             try {
@@ -3391,47 +3262,6 @@ export default {
                 console.error("Failed to mark tutorial as seen:", e);
             } finally {
                 this.markingSeen = false;
-            }
-        },
-        async activateImportedIdentity() {
-            if (!this.identityImportedHash) {
-                return true;
-            }
-            if (this.identityImportedHash === this.originalIdentityHash) {
-                return true;
-            }
-            try {
-                GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_START);
-                const response = await window.api.post(apiPath("/identities/switch"), {
-                    identity_hash: this.identityImportedHash,
-                });
-                if (this.originalIdentityHash) {
-                    try {
-                        await window.api.delete(apiPath(`/identities/${this.originalIdentityHash}`));
-                    } catch (deleteError) {
-                        console.error("Failed to delete default identity after import:", deleteError);
-                        ToastUtils.warning(this.$t("tutorial.identity_default_delete_failed"));
-                    }
-                }
-                if (response?.data?.hotswapped) {
-                    GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHED_APPLY, {
-                        identity_hash: response.data.identity_hash ?? this.identityImportedHash,
-                        display_name: response.data.display_name ?? "",
-                        requires_reauth: Boolean(response.data.requires_reauth),
-                    });
-                } else if (response?.data?.hotswapped === false) {
-                    ToastUtils.info(this.$t("identities.switch_scheduled"));
-                    GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                }
-                this.identityImportedHash = null;
-                return true;
-            } catch (e) {
-                ToastUtils.error(e.response?.data?.message || this.$t("tutorial.identity_switch_failed"));
-                GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT);
-                return false;
             }
         },
         async finishTutorial() {
