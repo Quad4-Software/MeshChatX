@@ -265,7 +265,16 @@ function skipVueDevToolsInCrashTab() {
                 if (!file.includes("nomad-crash-tab")) {
                     return html;
                 }
-                return html.replace(/<script[^>]+(?:vue-devtools-path|vue-inspector-path)[^>]*>\s*<\/script>\s*/gi, "");
+                let out = html;
+                let prev;
+                do {
+                    prev = out;
+                    out = out.replace(
+                        /<script[^>]+(?:vue-devtools-path|vue-inspector-path)[^>]*>\s*<\/script\s*>/gi,
+                        ""
+                    );
+                } while (out !== prev);
+                return out;
             },
         },
     };
