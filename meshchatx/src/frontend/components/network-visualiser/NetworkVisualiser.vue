@@ -61,8 +61,10 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
 import { useNetworkStore } from "../../js/stores/networkStore.js";
 import { useConfigStore } from "../../js/stores/configStore.js";
+import { useVisualiserIconQueue } from "../../js/network/useVisualiserIconQueue.js";
 
 import "vis-network/styles/vis-network.css";
 import { Network } from "vis-network";
@@ -80,7 +82,6 @@ import {
     VIZ_PATH_TABLE_SOFT_CAP,
     buildFullGraph,
     computeLodUpdates,
-    dedupeIconQueueEntries,
     lodLevelFromScale,
     pathHashesWithinHopFilter,
     layoutSpringLength,
@@ -193,6 +194,18 @@ export default {
         NetworkVisualiserToolbar,
         NetworkVisualiserLegend,
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useVisualiserIconQueue({
+                getAbortSignal: () => inst?.proxy.abortController?.signal,
+                getNodes: () => inst?.proxy.nodes,
+                getWebglEngine: () => inst?.proxy.webglEngine,
+                createIconImage: (iconName, fg, bg, size) => inst?.proxy.createIconImage(iconName, fg, bg, size),
+                yieldToMain,
+            }),
+        };
+    },
     data() {
         const displayPrefs = loadVisualiserDisplayPrefs();
         return {
@@ -229,7 +242,6 @@ export default {
             hoverTooltip: null,
             nodes: new DataSet(),
             edges: new DataSet(),
-            iconCache: {},
 
             pageSize: 1000,
             searchQuery: "",
@@ -237,13 +249,9 @@ export default {
             hopFilterDebounceTimer: null,
             searchDebounceTimer: null,
             abortController: new AbortController(),
-            currentLOD: "high",
             didDisableStabilization: false,
             vizChunkSize: pickAdaptiveChunkSize(),
             pathFetchConcurrency: pickAdaptiveFetchConcurrency(),
-            iconQueue: [],
-            iconQueueRunning: false,
-            iconQueueGeneration: 0,
             lodRafId: null,
             vizRunGeneration: 0,
             physicsPausedForDrag: false,
@@ -1935,72 +1943,6 @@ export default {
             this.currentBatch = 0;
             this.totalBatches = 0;
             this.scheduleIconQueue();
-        },
-        scheduleIconQueue() {
-            if (this.currentLOD === "low" || this.iconQueue.length === 0) {
-                return;
-            }
-            if (this.iconQueueRunning) {
-                return;
-            }
-            const run = () => {
-                this.runIconQueue();
-            };
-            if (typeof requestIdleCallback === "function") {
-                requestIdleCallback(run, { timeout: 1500 });
-            } else {
-                run();
-            }
-        },
-        /*
-         * Drains the deferred lxmf custom-icon queue. Runs sequentially with
-         * a yield between each icon so painting many icons cannot pin the
-         * main thread the way the old inline-await version did. Items tagged
-         * with a stale generation (a newer processVisualization started while
-         * we were running) are skipped, as are nodes that no longer exist.
-         */
-        async runIconQueue() {
-            if (this.iconQueueRunning || this.currentLOD === "low") return;
-            this.iconQueueRunning = true;
-            try {
-                const work = dedupeIconQueueEntries(this.iconQueue);
-                this.iconQueue = [];
-                for (const item of work) {
-                    if (this.abortController.signal.aborted) return;
-                    if (item.generation !== this.iconQueueGeneration) {
-                        continue;
-                    }
-                    let url = this.iconCache[item.cacheKey];
-                    if (!url) {
-                        url = await this.createIconImage(item.iconName, item.fg, item.bg, item.size);
-                        if (this.abortController.signal.aborted) return;
-                    }
-                    if (!url) {
-                        continue;
-                    }
-                    const updates = [];
-                    for (const nodeId of item.nodeIds) {
-                        if (this.webglEngine) {
-                            updates.push({ id: nodeId, image: url });
-                        } else if (this.nodes.get(nodeId)) {
-                            updates.push({ id: nodeId, image: url });
-                        }
-                    }
-                    if (updates.length > 0) {
-                        if (this.webglEngine) {
-                            this.webglEngine.updateNodeImages(updates);
-                        } else {
-                            this.nodes.update(updates);
-                        }
-                    }
-                    await yieldToMain();
-                }
-            } finally {
-                this.iconQueueRunning = false;
-                if (this.iconQueue.length > 0 && this.currentLOD !== "low") {
-                    this.scheduleIconQueue();
-                }
-            }
         },
     },
 };
