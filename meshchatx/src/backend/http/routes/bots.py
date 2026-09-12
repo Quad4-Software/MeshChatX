@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -165,10 +166,7 @@ def register_bots_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/bots/start")
     async def bots_start(request):
@@ -206,10 +204,7 @@ def register_bots_routes(routes, app):
                 status=400,
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/bots/stop")
     async def bots_stop(request):
@@ -226,10 +221,7 @@ def register_bots_routes(routes, app):
             success = await asyncio.to_thread(app.bot_handler.stop_bot, bot_id)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/bots/restart")
     async def bots_restart(request):
@@ -249,10 +241,7 @@ def register_bots_routes(routes, app):
             )
             return web.json_response({"bot_id": new_id, "success": True})
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/bots/delete")
     async def bots_delete(request):
@@ -269,10 +258,7 @@ def register_bots_routes(routes, app):
             success = await asyncio.to_thread(app.bot_handler.delete_bot, bot_id)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/bots/subprocess-log")
     async def bots_subprocess_log(request):
@@ -296,10 +282,7 @@ def register_bots_routes(routes, app):
                 status=404,
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.patch("/api/v1/bots/update")
     async def bots_update(request):
@@ -362,10 +345,7 @@ def register_bots_routes(routes, app):
                 status=400,
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.patch("/api/v1/bots/lxmf-config")
     async def bots_lxmf_config(request):
@@ -397,10 +377,7 @@ def register_bots_routes(routes, app):
                 status=400,
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/bots/announce")
     async def bots_announce(request):
@@ -427,10 +404,7 @@ def register_bots_routes(routes, app):
                 status=409,
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/bots/export")
     async def bots_export(request):
@@ -465,9 +439,6 @@ def register_bots_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # get custom destination display name

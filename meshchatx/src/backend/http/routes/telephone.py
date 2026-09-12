@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +133,13 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
+    write_field_to_path,
+)
+
+_AUDIO_UPLOAD_MAX_BYTES = 64 * 1024 * 1024
 
 
 async def first_multipart_file_field(reader, field_name="file"):
@@ -141,7 +152,7 @@ async def first_multipart_file_field(reader, field_name="file"):
         if name == field_name or field.filename:
             return field
         with contextlib.suppress(Exception):
-            await field.read()
+            await read_field_limited(field, _AUDIO_UPLOAD_MAX_BYTES)
 
 
 def register_telephone_routes(routes, app):
@@ -559,7 +570,7 @@ def register_telephone_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/telephone/ptt")
     async def telephone_ptt(request):
@@ -684,7 +695,7 @@ def register_telephone_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # Codec2 / audio backend readiness (Android packaging + LXST)
 
@@ -1094,7 +1105,7 @@ def register_telephone_routes(routes, app):
                 {"message": "Greeting generated", "path": path},
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # upload greeting
 
@@ -1121,11 +1132,7 @@ def register_telephone_routes(routes, app):
             # Save temp file
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    f.write(chunk)
+            await write_field_to_path(field, temp_path, _AUDIO_UPLOAD_MAX_BYTES)
 
             try:
                 # Convert to greeting
@@ -1140,8 +1147,10 @@ def register_telephone_routes(routes, app):
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
 
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # delete greeting
 
@@ -1152,7 +1161,7 @@ def register_telephone_routes(routes, app):
             app.voicemail_manager.remove_greeting()
             return web.json_response({"message": "Greeting deleted"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # ringtone routes
 
@@ -1291,11 +1300,7 @@ def register_telephone_routes(routes, app):
             # Save temp file
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    f.write(chunk)
+            await write_field_to_path(field, temp_path, _AUDIO_UPLOAD_MAX_BYTES)
 
             try:
                 # Convert to ringtone
@@ -1322,8 +1327,10 @@ def register_telephone_routes(routes, app):
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
 
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.patch("/api/v1/telephone/ringtones/{id}")
     async def telephone_ringtone_patch(request):
@@ -1342,7 +1349,7 @@ def register_telephone_routes(routes, app):
 
             return web.json_response({"message": "Ringtone updated"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.delete("/api/v1/telephone/ringtones/{id}")
     async def telephone_ringtone_delete(request):
@@ -1354,7 +1361,7 @@ def register_telephone_routes(routes, app):
                 app.database.ringtones.delete(ringtone_id)
             return web.json_response({"message": "Ringtone deleted"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # notification sound routes
 
@@ -1472,11 +1479,7 @@ def register_telephone_routes(routes, app):
 
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    f.write(chunk)
+            await write_field_to_path(field, temp_path, _AUDIO_UPLOAD_MAX_BYTES)
 
             try:
                 storage_filename = await asyncio.to_thread(
@@ -1501,8 +1504,10 @@ def register_telephone_routes(routes, app):
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
 
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.patch("/api/v1/notification-sounds/{id}")
     async def notification_sound_patch(request):
@@ -1521,7 +1526,7 @@ def register_telephone_routes(routes, app):
 
             return web.json_response({"message": "Notification sound updated"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.delete("/api/v1/notification-sounds/{id}")
     async def notification_sound_delete(request):
@@ -1536,6 +1541,6 @@ def register_telephone_routes(routes, app):
                 app.database.notification_sounds.delete(sound_id)
             return web.json_response({"message": "Notification sound deleted"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # contacts routes

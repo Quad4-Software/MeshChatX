@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,12 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
+)
+
+_PAGE_NODE_FILE_MAX_BYTES = 64 * 1024 * 1024
 
 
 def register_page_nodes_routes(routes, app):
@@ -375,10 +382,15 @@ def register_page_nodes_routes(routes, app):
                 name = field.name or ""
                 if name == "file" or field.filename:
                     filename = field.filename or "upload"
-                    file_data = await field.read()
+                    file_data = await read_field_limited(
+                        field,
+                        _PAGE_NODE_FILE_MAX_BYTES,
+                    )
                 else:
                     with contextlib.suppress(Exception):
-                        await field.read()
+                        await read_field_limited(field, _PAGE_NODE_FILE_MAX_BYTES)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return web.json_response(
                 {"message": f"Failed to read upload: {e}"},

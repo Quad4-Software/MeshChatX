@@ -5,6 +5,10 @@ from __future__ import annotations
 
 import math
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -132,6 +136,12 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    write_field_to_path,
+)
+
+_MBTILES_MAX_BYTES = 2 * 1024 * 1024 * 1024
 
 
 def register_map_routes(routes, app):
@@ -502,14 +512,7 @@ def register_map_routes(routes, app):
                     status=400,
                 )
 
-            size = 0
-            with open(dest_path, "wb") as f:
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    f.write(chunk)
+            await write_field_to_path(field, dest_path, _MBTILES_MAX_BYTES)
 
             # close old connection and clear cache before update
             app.map_manager.close()
@@ -539,9 +542,11 @@ def register_map_routes(routes, app):
                     "metadata": metadata,
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             RNS.log(f"Error uploading map: {e}", RNS.LOG_ERROR)
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # start map export
 
@@ -611,7 +616,7 @@ def register_map_routes(routes, app):
         except OutboundHttpBlockedError as e:
             return web.json_response({"error": str(e)}, status=403)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # get map export status
 

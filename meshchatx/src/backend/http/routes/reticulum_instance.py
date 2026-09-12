@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -715,7 +716,7 @@ def register_reticulum_instance_routes(routes, app):
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response({"identity": identity})
 
     @routes.post("/api/v1/reticulum/reload")
@@ -753,7 +754,7 @@ def register_reticulum_instance_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.put("/api/v1/reticulum/config/raw")
     async def reticulum_config_raw_put(request):
@@ -822,7 +823,7 @@ def register_reticulum_instance_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.post("/api/v1/reticulum/config/reset")
     async def reticulum_config_reset(request):
@@ -844,4 +845,4 @@ def register_reticulum_instance_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)

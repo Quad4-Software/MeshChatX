@@ -8,6 +8,7 @@ from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -1326,7 +1327,7 @@ def register_lxmf_routes(routes, app):
             app.database.messages.create_folder(name)
             return web.json_response({"message": "Folder created"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.patch("/api/v1/lxmf/folders/{id}")
     async def lxmf_folders_patch(request):

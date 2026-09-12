@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +133,12 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
+)
+
+_REPOSITORY_UPLOAD_MAX_BYTES = 256 * 1024 * 1024
 
 
 def register_repository_server_routes(routes, app):
@@ -162,7 +172,7 @@ def register_repository_server_routes(routes, app):
                     status=400,
                 )
             filename = field.filename or "upload.bin"
-            data = await field.read()
+            data = await read_field_limited(field, _REPOSITORY_UPLOAD_MAX_BYTES)
             ok, err = mgr.save_upload(filename, data)
             if not ok:
                 return web.json_response(
@@ -170,8 +180,10 @@ def register_repository_server_routes(routes, app):
                     status=400,
                 )
             return web.json_response({"success": True})
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.delete("/api/v1/repository-server/upload/{name}")
     async def repository_server_delete_upload(request):
@@ -215,7 +227,7 @@ def register_repository_server_routes(routes, app):
             )
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.post("/api/v1/repository-server/http/stop")
     async def repository_server_http_stop(_request):
@@ -226,7 +238,7 @@ def register_repository_server_routes(routes, app):
             result = await asyncio.to_thread(mgr.stop_http_server)
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.post("/api/v1/repository-server/http/restart")
     async def repository_server_http_restart(request):
@@ -258,6 +270,6 @@ def register_repository_server_routes(routes, app):
             )
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # export docs

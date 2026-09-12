@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -128,6 +129,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     web,
     websocket_type_requires_auth,
     zipfile,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
 )
 from meshchatx.src.backend.interface_enabled_flag import apply_interface_enabled_flag
 from meshchatx.src.backend.serial_comports import list_serial_comports
@@ -469,6 +474,7 @@ def register_interfaces_routes(routes, app):
     @routes.post("/api/v1/reticulum/interface-modules")
     async def reticulum_interface_modules_install(request):
         from meshchatx.src.backend.interface_module_store import (
+            _MAX_MODULE_BYTES,
             install_interface_module,
         )
 
@@ -483,13 +489,7 @@ def register_interfaces_routes(routes, app):
                 while field is not None:
                     if field.name == "file":
                         filename = field.filename or filename
-                        chunks = []
-                        while True:
-                            chunk = await field.read_chunk()
-                            if not chunk:
-                                break
-                            chunks.append(chunk)
-                        data = b"".join(chunks)
+                        data = await read_field_limited(field, _MAX_MODULE_BYTES)
                     elif field.name == "overwrite":
                         overwrite = (await field.text()).strip().lower() in (
                             "1",
@@ -532,6 +532,8 @@ def register_interfaces_routes(routes, app):
                     **result,
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=422)
         except Exception as e:
