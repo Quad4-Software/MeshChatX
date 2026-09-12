@@ -1973,11 +1973,7 @@ export default {
             }
             if (this._persistedDrawings && this.drawSource) {
                 try {
-                    const format = new GeoJSON();
-                    const features = format.readFeatures(this._persistedDrawings, {
-                        dataProjection: "EPSG:4326",
-                        featureProjection: "EPSG:3857",
-                    });
+                    const features = readGeoJsonToFeatures(this._persistedDrawings, "EPSG:3857");
                     this.drawSource.addFeatures(features);
                     this.rebuildMeasurementOverlays();
                 } catch (e) {
@@ -2092,7 +2088,7 @@ export default {
                         }
                         return own;
                     }
-                    const fromProps = styleFromMcxProperties(feature, resolution);
+                    const fromProps = styleFromMcxProperties(feature);
                     if (fromProps) {
                         return fromProps;
                     }
@@ -4929,11 +4925,7 @@ export default {
         },
 
         async loadDrawing(drawing) {
-            const format = new GeoJSON();
-            const features = format.readFeatures(drawing.data, {
-                dataProjection: "EPSG:4326",
-                featureProjection: "EPSG:3857",
-            });
+            const features = readGeoJsonToFeatures(drawing.data, "EPSG:3857");
             this.drawSource.clear();
             if (this.select) {
                 this.select.getFeatures().clear();
