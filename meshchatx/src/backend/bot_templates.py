@@ -679,6 +679,7 @@ class CustomBotTemplate(StoppableBot):
 
     def setup_commands(self):
         if self.welcome_message:
+            welcome_message = self.welcome_message
 
             @self.bot.on_first_message()
             def welcome(sender, message):
@@ -686,7 +687,7 @@ class CustomBotTemplate(StoppableBot):
                     return True
                 self.bot.send(
                     sender,
-                    self.welcome_message,
+                    welcome_message,
                     lxmf_fields=self.icon_lxmf_field,
                 )
                 return True

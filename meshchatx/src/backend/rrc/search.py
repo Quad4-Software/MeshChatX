@@ -29,6 +29,7 @@ exclusions stay predictable.
 import contextlib
 import re
 import time
+from typing import Any
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
@@ -121,7 +122,7 @@ def parse_query(query):
     return groups
 
 
-def _msg_field(msg, name, default=None):
+def _msg_field(msg, name, default=None) -> Any:
     if isinstance(msg, dict):
         return msg.get(name, default)
     return getattr(msg, name, default)

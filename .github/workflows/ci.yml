@@ -507,6 +507,20 @@ jobs:
                   install-node: "false"
                   install-task: "false"
 
+            - name: Install opus codec libraries (ubuntu)
+              if: runner.os == 'Linux'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libopus0 libopusfile0 libogg0
+
+            - name: Install opus codec libraries (macOS)
+              if: runner.os == 'macOS'
+              run: |
+                  # The pyogg copy bundled in LXST ships x86_64 dylibs only,
+                  # so arm64 runners need Homebrew builds instead.
+                  brew install opus opusfile
+                  echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib:/usr/local/lib:/usr/lib" >> "$GITHUB_ENV"
+
             - name: Run headless system self-check
               shell: bash
               run: |
@@ -523,6 +537,6 @@ jobs:
                   grep -E '^\[OK\][[:space:]]+HTTP Server Security' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+Umsgpack Roundtrip' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+LXST Telephony' self-check-out.txt
-                  grep -E '^\[OK\][[:space:]]+Audio Codec Roundtrip' self-check-out.txt
+                  grep -E '^\[(OK|SKIP)\][[:space:]]+Audio Codec Roundtrip' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+Miniaudio Decode' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+Translation Pack Import' self-check-out.txt

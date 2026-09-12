@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib
+import json
 import os
 import shutil
 import subprocess
@@ -863,10 +864,25 @@ def check_audio_codec_roundtrip() -> dict[str, str]:
     """Verify audio_codec can write and read an OGG/Opus file.
 
     This exercises pyogg/libopus/libogg plus miniaudio/LXST fallback decoders.
+    Reports skipped when the opus system libraries are not installed, which
+    happens on hosts (CI images, minimal containers) without libopusfile.
     """
     import tempfile
 
     from meshchatx.src.backend import audio_codec
+
+    try:
+        from LXST.Codecs.libs.pyogg import opus as _pyogg_opus
+    except ImportError:
+        return {
+            "status": "skipped",
+            "reason": "pyogg codec bindings not installed",
+        }
+    if getattr(_pyogg_opus, "libopus", None) is None:
+        return {
+            "status": "skipped",
+            "reason": "libopus system library not available",
+        }
 
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -879,6 +895,13 @@ def check_audio_codec_roundtrip() -> dict[str, str]:
             )
             decoded = audio_codec.decode_audio(out_path)
     except Exception as exc:
+        if getattr(_pyogg_opus, "libopusfile", None) is None and (
+            "could not decode with" in str(exc)
+        ):
+            return {
+                "status": "skipped",
+                "reason": "libopusfile not available; decode unsupported",
+            }
         return _status(False, f"audio codec roundtrip failed: {exc}")
 
     if decoded is None or decoded.samples.shape[0] == 0:
@@ -1422,3 +1445,77 @@ def check_web_stack(app: Any) -> dict[str, dict[str, str]]:
     except Exception as exc:
         failed = _status(False, f"Web stack check failed: {exc}")
         return dict.fromkeys(_WEB_PROBE_KEYS, failed)
+
+
+_PROBE_RESULT_PREFIX = "SELF_CHECK_JSON:"
+
+# Native-code checks that can hard-crash the interpreter when host codec
+# libraries are missing or mismatched. They run in a probe subprocess via
+# run_isolated so a segfault reports as a failed row instead of killing
+# the entire self-check.
+_PROBE_CHECKS = {
+    "lxst_telephony": check_lxst_telephony,
+    "audio_codec_roundtrip": check_audio_codec_roundtrip,
+    "miniaudio_decode": check_miniaudio_decode,
+}
+
+
+def run_probe(name: str) -> dict[str, str]:
+    """Run a named check in this process (invoked by the probe subprocess)."""
+    fn = _PROBE_CHECKS.get(name)
+    if fn is None:
+        return _status(False, f"unknown self-check probe: {name}")
+    try:
+        result = fn()
+    except Exception as exc:
+        return _status(False, f"{name} probe failed: {exc}")
+    if not isinstance(result, dict) or "status" not in result:
+        return _status(False, f"{name} probe returned invalid result")
+    return result
+
+
+def run_isolated(name: str, timeout: float = 120.0) -> dict[str, str]:
+    """Run a probe-registered check in a subprocess and return its status."""
+    if _is_frozen_executable():
+        cmd = [
+            sys.executable,
+            _MESHCHATX_RUN_MODULE_FLAG,
+            _SELF_CHECK_PROBE_MODULE,
+            "--check",
+            name,
+        ]
+    else:
+        cmd = [
+            sys.executable,
+            "-m",
+            _SELF_CHECK_PROBE_MODULE,
+            "--check",
+            name,
+        ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            stdin=subprocess.DEVNULL,
+        )
+    except subprocess.TimeoutExpired:
+        return _status(False, f"{name} probe timed out")
+    except OSError as exc:
+        return _status(False, f"{name} probe could not start: {exc}")
+    for line in (proc.stdout or "").splitlines():
+        if not line.startswith(_PROBE_RESULT_PREFIX):
+            continue
+        try:
+            result = json.loads(line[len(_PROBE_RESULT_PREFIX) :])
+        except ValueError:
+            continue
+        if isinstance(result, dict) and "status" in result:
+            return {
+                "status": str(result["status"]),
+                "reason": str(result.get("reason") or ""),
+            }
+    detail = (proc.stderr or proc.stdout or "")[-300:]
+    return _status(False, f"{name} probe exited rc={proc.returncode} {detail}")
