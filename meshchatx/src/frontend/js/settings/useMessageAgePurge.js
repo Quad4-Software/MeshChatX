@@ -16,6 +16,7 @@ import ToastUtils from "../ToastUtils.js";
 export function useMessageAgePurge(options = {}) {
     const t = options.t || ((key) => key);
 
+    /** @type {import("vue").Ref<"days" | "date">} */
     const messageAgePurgeMode = ref("days");
     const messageAgePurgeDays = ref(90);
     const messageAgePurgeBeforeDate = ref("");
