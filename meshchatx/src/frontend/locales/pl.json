@@ -3617,7 +3617,14 @@
             "publish_site_index_hint": "Overwrites index.mu on the server with a link list to the selected pages.",
             "publish_site_publish": "Publish {count} pages",
             "publish_site_done": "Published {published}/{total} pages to {server}",
-            "publish_site_no_server": "Select a mesh server or enter a name for a new one."
+            "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
+            "insert_image": "Wstaw obraz",
+            "insert_image_hint": "Upuść lub wklej obrazy, aby je wstawić",
+            "image_added": "Dodano obraz \"{name}\"",
+            "image_not_supported": "\"{name}\" nie jest obsługiwanym plikiem obrazu",
+            "image_too_large": "\"{name}\" jest zbyt duży (maks. {max})",
+            "image_local_loaded": "Wczytano",
+            "publish_images_failed": "Nie udało się przesłać {failed} z {total} obrazów do {server}"
         },
         "reticulum_config_editor": {
             "title": "Edytor konfiguracji Reticulum",

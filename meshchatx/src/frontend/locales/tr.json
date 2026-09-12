@@ -3617,7 +3617,14 @@
             "publish_site_index_hint": "Overwrites index.mu on the server with a link list to the selected pages.",
             "publish_site_publish": "Publish {count} pages",
             "publish_site_done": "Published {published}/{total} pages to {server}",
-            "publish_site_no_server": "Select a mesh server or enter a name for a new one."
+            "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
+            "insert_image": "Resim ekle",
+            "insert_image_hint": "Eklemek için resimleri sürükleyin veya yapıştırın",
+            "image_added": "\"{name}\" resmi eklendi",
+            "image_not_supported": "\"{name}\" desteklenmeyen bir resim dosyası",
+            "image_too_large": "\"{name}\" çok büyük (en fazla {max})",
+            "image_local_loaded": "Yüklendi",
+            "publish_images_failed": "{total} resimden {failed} tanesi {server} sunucusuna yüklenemedi"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Yapılandırma Düzenleyici",

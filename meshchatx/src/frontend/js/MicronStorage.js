@@ -2,8 +2,9 @@
 import { isIndexedDbAccessError, openIndexedDb } from "./idbOpen.js";
 
 const DB_NAME = "micron_editor_db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "tabs";
+const IMAGE_STORE_NAME = "images";
 
 class MicronStorage {
     constructor() {
@@ -38,6 +39,9 @@ class MicronStorage {
             onUpgrade: (db) => {
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+                }
+                if (!db.objectStoreNames.contains(IMAGE_STORE_NAME)) {
+                    db.createObjectStore(IMAGE_STORE_NAME, { keyPath: "path" });
                 }
             },
         });
@@ -96,18 +100,71 @@ class MicronStorage {
         });
     }
 
+    async saveImage(image) {
+        await this._ensureInit();
+        if (!this.db || !image || !image.path || !image.blob) {
+            return;
+        }
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([IMAGE_STORE_NAME], "readwrite");
+            const store = transaction.objectStore(IMAGE_STORE_NAME);
+            store.put({
+                path: image.path,
+                name: image.name,
+                type: image.type || "application/octet-stream",
+                size: image.size != null ? image.size : image.blob.size,
+                blob: image.blob,
+            });
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (event) => reject(event.target.error);
+        });
+    }
+
+    async loadImages() {
+        await this._ensureInit();
+        if (!this.db) {
+            return [];
+        }
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([IMAGE_STORE_NAME], "readonly");
+            const store = transaction.objectStore(IMAGE_STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                resolve(request.result || []);
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+
+    async deleteImage(path) {
+        await this._ensureInit();
+        if (!this.db || !path) {
+            return;
+        }
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([IMAGE_STORE_NAME], "readwrite");
+            const store = transaction.objectStore(IMAGE_STORE_NAME);
+            store.delete(path);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (event) => reject(event.target.error);
+        });
+    }
+
     async clearAll() {
         await this._ensureInit();
         if (!this.db) {
             return;
         }
         return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([STORE_NAME], "readwrite");
-            const store = transaction.objectStore(STORE_NAME);
-            const request = store.clear();
-
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+            const transaction = this.db.transaction([STORE_NAME, IMAGE_STORE_NAME], "readwrite");
+            transaction.objectStore(STORE_NAME).clear();
+            transaction.objectStore(IMAGE_STORE_NAME).clear();
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (event) => reject(event.target.error);
         });
     }
 }

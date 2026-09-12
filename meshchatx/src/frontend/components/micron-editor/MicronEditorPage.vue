@@ -189,18 +189,47 @@
             <div
                 v-if="tabs.length > 0"
                 :class="[
-                    'flex-1 overflow-hidden flex flex-col',
+                    'relative flex-1 overflow-hidden flex flex-col',
                     isMobileView && !showEditor ? 'hidden' : '',
                     !isMobileView ? 'border-r border-sem-border' : '',
                 ]"
+                @dragover.prevent="onEditorDragOver"
+                @dragleave="onEditorDragLeave"
+                @drop.prevent="onEditorDrop"
             >
+                <div class="flex items-center gap-1 px-2 py-1 border-b border-sem-border bg-sem-surface-muted shrink-0">
+                    <button
+                        type="button"
+                        class="flex items-center justify-center size-8 rounded-lg text-sem-fg-muted hover:text-teal-500 hover:bg-sem-surface transition-colors focus-ring-sem"
+                        :title="$t('tools.micron_editor.insert_image')"
+                        @click="onInsertImageClick"
+                    >
+                        <MaterialDesignIcon icon-name="image-plus" class="size-4" />
+                    </button>
+                    <span class="hidden sm:inline text-xs text-sem-fg-muted select-none">
+                        {{ $t("tools.micron_editor.insert_image_hint") }}
+                    </span>
+                    <input
+                        ref="imageInputRef"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/tiff"
+                        multiple
+                        class="hidden"
+                        @change="onImageFilePicked"
+                    />
+                </div>
                 <textarea
                     ref="editorRef"
                     v-model="tabs[activeTabIndex].content"
                     class="flex-1 w-full bg-sem-surface text-sem-fg p-4 font-mono text-sm resize-none focus:outline-hidden"
                     :placeholder="$t('tools.micron_editor.placeholder')"
                     @input="handleInput"
+                    @paste="onEditorPaste"
                 ></textarea>
+                <div
+                    v-if="imageDragOver"
+                    class="pointer-events-none absolute inset-0 ring-2 ring-inset ring-teal-500 bg-teal-500/10"
+                ></div>
             </div>
 
             <!-- Preview Pane (Always dark to match NomadNet browser vibe) -->
@@ -240,6 +269,7 @@ import { preloadNomadMicronWasm, isMicronWasmBundled } from "../../js/MicronWasm
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import LinkUtils from "../../js/LinkUtils.js";
+import Utils from "../../js/Utils";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import PublishSiteModal from "./PublishSiteModal.vue";
@@ -247,6 +277,22 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 
 const NOMAD_DESTINATION_HASH = /^[a-fA-F0-9]{32}$/;
 const PAGE_EXTENSIONS = [".mu", ".html", ".md", ".txt"];
+
+const IMAGE_MIME_EXTENSIONS = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/gif": ".gif",
+    "image/bmp": ".bmp",
+    "image/x-ms-bmp": ".bmp",
+    "image/tiff": ".tiff",
+    "image/webp": ".webp",
+};
+const IMAGE_ALLOWED_EXTENSIONS = new Set(Object.values(IMAGE_MIME_EXTENSIONS));
+const MAX_EDITOR_IMAGE_BYTES = 8 * 1024 * 1024;
+// Same-node image refs in micron markup look like :/media/name.png or
+// :/file/name.webp. A leading destination hash makes them remote.
+const LOCAL_IMAGE_REF_REGEX = /(?<![0-9a-fA-F]):\/(media|file)\/([A-Za-z0-9._-]+)/g;
 
 function pageNamesFromList(pages) {
     return (pages || []).map((entry) => (typeof entry === "string" ? entry : entry?.name)).filter(Boolean);
@@ -280,6 +326,8 @@ export default {
             wasmReady: false,
             wasmBundled: isMicronWasmBundled(),
             wasmLoading: false,
+            localImages: {},
+            imageDragOver: false,
         };
     },
     watch: {
@@ -290,6 +338,7 @@ export default {
     async mounted() {
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         await this.loadContent();
+        await this.loadLocalImages();
         this.handleResize();
         window.addEventListener("resize", this.handleResize);
         this.renderActiveTab();
@@ -297,6 +346,7 @@ export default {
     beforeUnmount() {
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         window.removeEventListener("resize", this.handleResize);
+        this.revokeLocalImageUrls();
     },
     methods: {
         async onIdentitySwitched() {
@@ -310,6 +360,7 @@ export default {
             } catch {
                 // ignore
             }
+            this.revokeLocalImageUrls();
             this.tabs = [this.createDefaultTab(), this.createGuideTab(Date.now() + 1)];
             this.activeTabIndex = 0;
             try {
@@ -328,6 +379,299 @@ export default {
         handleInput() {
             this.renderActiveTab();
             this.saveContent();
+        },
+        onInsertImageClick() {
+            this.$refs.imageInputRef?.click();
+        },
+        onImageFilePicked(event) {
+            const files = [...(event.target?.files || [])];
+            event.target.value = "";
+            if (files.length > 0) {
+                this.addImageFiles(files);
+            }
+        },
+        onEditorPaste(event) {
+            const items = event.clipboardData?.items || [];
+            const files = [];
+            for (const item of items) {
+                if (item.kind !== "file") {
+                    continue;
+                }
+                const file = item.getAsFile();
+                if (file && this.isSupportedImageFile(file)) {
+                    files.push(file);
+                }
+            }
+            if (files.length > 0) {
+                event.preventDefault();
+                this.addImageFiles(files);
+            }
+        },
+        onEditorDragOver(event) {
+            const types = event.dataTransfer?.types || [];
+            if ([...types].includes("Files")) {
+                this.imageDragOver = true;
+            }
+        },
+        onEditorDragLeave(event) {
+            if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget)) {
+                return;
+            }
+            this.imageDragOver = false;
+        },
+        onEditorDrop(event) {
+            this.imageDragOver = false;
+            const dropped = [...(event.dataTransfer?.files || [])];
+            if (dropped.length === 0) {
+                return;
+            }
+            const images = dropped.filter((file) => this.isSupportedImageFile(file));
+            if (images.length === 0) {
+                ToastUtils.warning(
+                    this.$t("tools.micron_editor.image_not_supported", { name: dropped[0].name || "file" })
+                );
+                return;
+            }
+            this.addImageFiles(images);
+        },
+        sanitizeImageFileName(file) {
+            const mimeExt = IMAGE_MIME_EXTENSIONS[String(file.type || "").toLowerCase()] || ".png";
+            let base = String(file.name || "")
+                .split(/[\\/]/)
+                .pop()
+                .trim()
+                .replace(/[^A-Za-z0-9._-]+/g, "_")
+                .replace(/^[._]+/, "")
+                .slice(0, 80);
+            const dot = base.lastIndexOf(".");
+            const ext = dot >= 0 ? base.slice(dot).toLowerCase() : "";
+            if (!IMAGE_ALLOWED_EXTENSIONS.has(ext)) {
+                const stem = dot >= 0 ? base.slice(0, dot) : base;
+                base = `${stem || "image"}${mimeExt}`;
+            }
+            return base || `image${mimeExt}`;
+        },
+        dedupeImageName(name) {
+            const dot = name.lastIndexOf(".");
+            const stem = dot >= 0 ? name.slice(0, dot) : name;
+            const ext = dot >= 0 ? name.slice(dot) : "";
+            let candidate = name;
+            let counter = 2;
+            while (this.localImages[`media/${candidate}`]) {
+                candidate = `${stem}-${counter}${ext}`;
+                counter++;
+            }
+            return candidate;
+        },
+        isSupportedImageFile(file) {
+            if (!file) {
+                return false;
+            }
+            if (IMAGE_MIME_EXTENSIONS[String(file.type || "").toLowerCase()]) {
+                return true;
+            }
+            const name = String(file.name || "");
+            const dot = name.lastIndexOf(".");
+            if (dot < 0) {
+                return false;
+            }
+            return IMAGE_ALLOWED_EXTENSIONS.has(name.slice(dot).toLowerCase());
+        },
+        async addImageFiles(files) {
+            for (const file of files) {
+                if (!this.isSupportedImageFile(file)) {
+                    ToastUtils.warning(
+                        this.$t("tools.micron_editor.image_not_supported", { name: file.name || "file" })
+                    );
+                    continue;
+                }
+                if (file.size > MAX_EDITOR_IMAGE_BYTES) {
+                    ToastUtils.warning(
+                        this.$t("tools.micron_editor.image_too_large", {
+                            name: file.name || "image",
+                            max: Utils.formatBytes(MAX_EDITOR_IMAGE_BYTES),
+                        })
+                    );
+                    continue;
+                }
+                const name = this.dedupeImageName(this.sanitizeImageFileName(file));
+                const path = `media/${name}`;
+                const record = { path, name, type: file.type, size: file.size, blob: file };
+                try {
+                    await micronStorage.saveImage(record);
+                } catch (error) {
+                    console.warn("Failed to persist editor image:", error);
+                }
+                this.localImages = {
+                    ...this.localImages,
+                    [path]: { ...record, objectUrl: URL.createObjectURL(file) },
+                };
+                this.insertImageMarkup(record);
+                ToastUtils.success(this.$t("tools.micron_editor.image_added", { name }));
+            }
+        },
+        imageAltFromName(name) {
+            const alt = String(name || "")
+                .replace(/\.[^.]+$/, "")
+                .replace(/[`[\]]/g, " ")
+                .replace(/[_-]+/g, " ")
+                .trim();
+            return alt || "image";
+        },
+        insertImageMarkup(asset) {
+            const alt = this.imageAltFromName(asset.name);
+            this.insertTextAtCursor(`\`[${alt}\`:/${asset.path}\`img=1;s=${asset.size}]`, true);
+        },
+        insertTextAtCursor(text, block = false) {
+            const tab = this.tabs[this.activeTabIndex];
+            if (!tab) {
+                return;
+            }
+            const el = this.$refs.editorRef;
+            const content = tab.content || "";
+            let start = content.length;
+            let end = content.length;
+            if (el) {
+                start = el.selectionStart ?? content.length;
+                end = el.selectionEnd ?? start;
+            }
+            let insert = text;
+            if (block) {
+                if (start > 0 && !content.slice(0, start).endsWith("\n")) {
+                    insert = "\n" + insert;
+                }
+                if (end < content.length && !content.slice(end).startsWith("\n")) {
+                    insert = insert + "\n";
+                }
+            }
+            tab.content = content.slice(0, start) + insert + content.slice(end);
+            const caret = start + insert.length;
+            this.$nextTick(() => {
+                const textarea = this.$refs.editorRef;
+                if (textarea) {
+                    textarea.focus();
+                    textarea.setSelectionRange(caret, caret);
+                }
+            });
+            this.handleInput();
+        },
+        normalizeLocalImageKey(rawPath) {
+            let p = String(rawPath || "").trim();
+            if (!p || /^[0-9a-fA-F]{32}:/.test(p)) {
+                return null;
+            }
+            p = p.split("`")[0].split("?")[0].split("#")[0];
+            if (p.startsWith(":")) {
+                p = p.slice(1);
+            }
+            if (p.startsWith("/")) {
+                p = p.slice(1);
+            }
+            if ((!p.startsWith("media/") && !p.startsWith("file/")) || p.includes("..")) {
+                return null;
+            }
+            return p;
+        },
+        applyLocalImagesToPreview() {
+            const container = this.$refs.previewRef;
+            if (!container) {
+                return;
+            }
+            for (const el of container.querySelectorAll(".mu-image")) {
+                const key = this.normalizeLocalImageKey(
+                    el.getAttribute("data-mu-image-path") || el.getAttribute("data-mu-image-url")
+                );
+                const asset = key ? this.localImages[key] : null;
+                if (!asset?.objectUrl) {
+                    continue;
+                }
+                const img = el.querySelector(".mu-image-output");
+                if (img) {
+                    img.src = asset.objectUrl;
+                    img.removeAttribute("hidden");
+                }
+                const load = el.querySelector('.mu-image-action[data-mu-image-action="load"]');
+                if (load) {
+                    load.textContent = this.$t("tools.micron_editor.image_local_loaded");
+                    load.setAttribute("data-mu-image-action", "view");
+                }
+                const size = el.querySelector(".mu-image-size");
+                if (size && !size.textContent) {
+                    size.textContent = Utils.formatBytes(asset.size);
+                }
+            }
+        },
+        async loadLocalImages() {
+            const map = {};
+            try {
+                const records = await micronStorage.loadImages();
+                for (const rec of records || []) {
+                    if (!rec?.path || !rec?.blob) {
+                        continue;
+                    }
+                    map[rec.path] = {
+                        path: rec.path,
+                        name: rec.name || rec.path.split("/").pop(),
+                        type: rec.type || rec.blob.type || "application/octet-stream",
+                        size: rec.size != null ? rec.size : rec.blob.size,
+                        blob: rec.blob,
+                        objectUrl: URL.createObjectURL(rec.blob),
+                    };
+                }
+            } catch (error) {
+                console.warn("Failed to load editor images:", error);
+            }
+            this.localImages = map;
+        },
+        revokeLocalImageUrls() {
+            for (const asset of Object.values(this.localImages || {})) {
+                if (asset?.objectUrl) {
+                    URL.revokeObjectURL(asset.objectUrl);
+                }
+            }
+            this.localImages = {};
+        },
+        collectLocalImageAssets(contents) {
+            const found = new Map();
+            for (const content of contents || []) {
+                if (!content) {
+                    continue;
+                }
+                for (const match of String(content).matchAll(LOCAL_IMAGE_REF_REGEX)) {
+                    const key = `${match[1]}/${match[2]}`;
+                    const asset = this.localImages[key];
+                    if (asset?.blob) {
+                        found.set(key, asset);
+                    }
+                }
+            }
+            return [...found.values()];
+        },
+        async uploadLocalImagesToNode(node, contents) {
+            const assets = this.collectLocalImageAssets(contents);
+            let failed = 0;
+            for (const asset of assets) {
+                try {
+                    const formData = new FormData();
+                    formData.append("file", asset.blob, asset.name);
+                    await window.api.post(`/api/v1/page-nodes/${node.node_id}/files`, formData, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    });
+                } catch (error) {
+                    console.warn(`Failed to upload image ${asset.name}:`, error);
+                    failed++;
+                }
+            }
+            if (failed > 0) {
+                ToastUtils.warning(
+                    this.$t("tools.micron_editor.publish_images_failed", {
+                        failed,
+                        total: assets.length,
+                        server: node.name || "",
+                    })
+                );
+            }
+            return { uploaded: assets.length - failed, failed };
         },
         openExternalHttpUrl(url) {
             if (!url) {
@@ -388,6 +732,7 @@ export default {
                     .replace(/"/g, "&quot;");
                 this.renderedContent = `<p style="color: red;">Error rendering: ${msg}</p>`;
             }
+            this.$nextTick(() => this.applyLocalImagesToPreview());
         },
         toggleView() {
             this.showEditor = !this.showEditor;
@@ -529,6 +874,7 @@ export default {
         async resetAll() {
             if (await DialogUtils.confirm(this.$t("tools.micron_editor.confirm_reset"))) {
                 await micronStorage.clearAll();
+                this.revokeLocalImageUrls();
                 this.tabs = [this.createDefaultTab(), this.createGuideTab(Date.now() + 1)];
                 this.activeTabIndex = 0;
                 this.renderActiveTab();
@@ -623,6 +969,7 @@ With micron you can easily create structured documents and pages with formatting
  ${b}F44f${b}_${b}[Links${b}#links]${b}_${b}f
  ${b}F44f${b}_${b}[Anchors${b}#anchors]${b}_${b}f
  ${b}F44f${b}_${b}[Tables${b}#tables]${b}_${b}f
+ ${b}F44f${b}_${b}[Images${b}#images]${b}_${b}f
  ${b}F44f${b}_${b}[Fields & Requests${b}#fields-requests]${b}_${b}f
  ${b}F44f${b}_${b}[Comments${b}#comments]${b}_${b}f
  ${b}F44f${b}_${b}[Partials${b}#partials]${b}_${b}f
@@ -929,6 +1276,28 @@ ${b}t
 | ${b}F3a3Apple${b}f | Free | ${b}!5${b}! |
 | Orange | Ask, nicely | 3 |
 ${b}t
+
+>Images
+
+Pages can embed images hosted on the node under ${b}*media/*${b}* or ${b}*file/*${b}*. In this editor you can drop an image onto the editor pane, paste it from the clipboard, or use the image button in the toolbar. The editor stores the file locally, inserts the markup for you and shows a live preview.
+
+Here's an example of the markup:
+
+${b}Faaa
+${b}=
+${b}[A photo${b}:/media/photo.png${b}img=1]
+${b}=
+${b}${b}
+
+The ${b}!alt${b}! text before the second backtick is required. Options can be added in a final field, separated by semicolons: ${b}!w=${b}! and ${b}!h=${b}! for a size hint in pixels, ${b}!a=${b}! for alignment (${b}!l${b}!, ${b}!c${b}!, ${b}!r${b}!), ${b}!s=${b}! for the byte size, ${b}!k=${b}! for a cache key and ${b}!profile=${b}! for a serving profile.
+
+${b}Faaa
+${b}=
+${b}[A photo${b}:/media/photo.png${b}img=1;w=400;h=300;a=c;s=18088]
+${b}=
+${b}${b}
+
+Images under ${b}*media/*${b}* are converted to WebP by the node when served. Under ${b}*file/*${b}* they must already be WebP. When you publish a page, the editor also uploads the referenced local images to the mesh server.
 
 >Fields & Requests
 
@@ -1349,6 +1718,7 @@ ${b}=
                 });
                 this.showPublishMenu = false;
                 const savedName = response.data?.name || publishName;
+                await this.uploadLocalImagesToNode(running, [tab.content]);
                 this.rememberPublished(running, savedName);
                 await this.offerOpenInNomadNet(savedName, running.name);
             } catch (e) {
@@ -1427,6 +1797,10 @@ ${b}=
                         console.error(`Failed to publish page: ${page.name}`);
                     }
                 }
+                await this.uploadLocalImagesToNode(
+                    running,
+                    pages.map((page) => page.content)
+                );
                 if (payload.generateIndex && running.destination_hash && published > 0) {
                     try {
                         const indexContent = this.buildSiteIndexPage(running.destination_hash, pages);
@@ -1525,4 +1899,8 @@ ${b}=
     text-decoration: none;
     color: inherit;
 }
+</style>
+
+<style>
+@import "../../css/nomad-page-chrome.css";
 </style>

@@ -3617,7 +3617,14 @@
             "publish_site_index_hint": "Overwrites index.mu on the server with a link list to the selected pages.",
             "publish_site_publish": "Publish {count} pages",
             "publish_site_done": "Published {published}/{total} pages to {server}",
-            "publish_site_no_server": "Select a mesh server or enter a name for a new one."
+            "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
+            "insert_image": "Afbeelding invoegen",
+            "insert_image_hint": "Sleep of plak afbeeldingen om ze in te voegen",
+            "image_added": "Afbeelding \"{name}\" toegevoegd",
+            "image_not_supported": "\"{name}\" is geen ondersteund afbeeldingsbestand",
+            "image_too_large": "\"{name}\" is te groot (max {max})",
+            "image_local_loaded": "Geladen",
+            "publish_images_failed": "Kon {failed} van {total} afbeeldingen niet uploaden naar {server}"
         },
         "reticulum_config_editor": {
             "title": "Reticulum-configuratie-editor",

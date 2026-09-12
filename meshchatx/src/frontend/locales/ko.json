@@ -3617,7 +3617,14 @@
             "publish_site_index_hint": "Overwrites index.mu on the server with a link list to the selected pages.",
             "publish_site_publish": "Publish {count} pages",
             "publish_site_done": "Published {published}/{total} pages to {server}",
-            "publish_site_no_server": "Select a mesh server or enter a name for a new one."
+            "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
+            "insert_image": "이미지 삽입",
+            "insert_image_hint": "이미지를 끌어 놓거나 붙여넣어 삽입",
+            "image_added": "이미지 \"{name}\" 추가됨",
+            "image_not_supported": "\"{name}\"은(는) 지원되지 않는 이미지 파일입니다",
+            "image_too_large": "\"{name}\"이(가) 너무 큽니다 (최대 {max})",
+            "image_local_loaded": "로드됨",
+            "publish_images_failed": "{total}개 중 {failed}개 이미지를 {server}에 업로드하지 못했습니다"
         },
         "reticulum_config_editor": {
             "title": "Reticulum 설정 편집기",
