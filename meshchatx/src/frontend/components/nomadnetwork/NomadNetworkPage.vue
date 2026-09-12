@@ -38,17 +38,17 @@
             >
                 <!-- banished overlay -->
                 <div
-                    v-if="GlobalState.config.banished_effect_enabled && isSelectedNodeBlocked"
+                    v-if="configStore.config.banished_effect_enabled && isSelectedNodeBlocked"
                     class="banished-overlay"
-                    :style="{ background: GlobalState.config.banished_color + '33' }"
+                    :style="{ background: configStore.config.banished_color + '33' }"
                 >
                     <span
                         class="banished-text opacity-100! text-white! shadow-lg! bg-red-600! px-4! py-2! rounded-xl! border-2! tracking-widest!"
                         :style="{
-                            'background-color': GlobalState.config.banished_color,
-                            'border-color': GlobalState.config.banished_color,
+                            'background-color': configStore.config.banished_color,
+                            'border-color': configStore.config.banished_color,
                         }"
-                        >{{ GlobalState.config.banished_text }}</span
+                        >{{ configStore.config.banished_text }}</span
                     >
                 </div>
 
@@ -165,13 +165,13 @@
                                         <button
                                             class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
                                             :class="
-                                                (GlobalState.config.nomad_micron_default_engine || 'js') === 'js'
+                                                (configStore.config.nomad_micron_default_engine || 'js') === 'js'
                                                     ? 'bg-blue-600 text-white dark:bg-blue-500'
                                                     : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
-                                            :disabled="!GlobalState.config.nomad_micron_wasm_enabled"
+                                            :disabled="!configStore.config.nomad_micron_wasm_enabled"
                                             @click.stop="
-                                                (GlobalState.config.nomad_micron_default_engine || 'js') === 'js'
+                                                (configStore.config.nomad_micron_default_engine || 'js') === 'js'
                                                     ? null
                                                     : applyNomadMicronDefaultEngine('js')
                                             "
@@ -181,13 +181,13 @@
                                         <button
                                             class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
                                             :class="
-                                                (GlobalState.config.nomad_micron_default_engine || 'js') === 'wasm'
+                                                (configStore.config.nomad_micron_default_engine || 'js') === 'wasm'
                                                     ? 'bg-blue-600 text-white dark:bg-blue-500'
                                                     : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
-                                            :disabled="!GlobalState.config.nomad_micron_wasm_enabled"
+                                            :disabled="!configStore.config.nomad_micron_wasm_enabled"
                                             @click.stop="
-                                                (GlobalState.config.nomad_micron_default_engine || 'js') === 'wasm'
+                                                (configStore.config.nomad_micron_default_engine || 'js') === 'wasm'
                                                     ? null
                                                     : applyNomadMicronDefaultEngine('wasm')
                                             "
@@ -795,6 +795,10 @@
 </template>
 
 <script>
+import { mapStores } from "pinia";
+import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useIdentityStore } from "../../js/stores/identityStore.js";
 import MicronParser from "../../js/MicronParser";
 import LinkUtils from "../../js/LinkUtils";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
@@ -807,6 +811,9 @@ import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import LiveTransport from "../../js/liveTransport.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import * as announcesApi from "../../js/api/announces.js";
+import * as favouritesApi from "../../js/api/favourites.js";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
 import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
 import NomadCrashTab from "./NomadCrashTab.vue";
@@ -819,7 +826,6 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
-import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { shouldPollKeepAliveEmbedded } from "../../js/keepAlivePoll.js";
 import { patchServerConfig } from "../../js/settings/settingsConfigService";
@@ -881,7 +887,6 @@ export default {
     emits: ["navigate", "open-node", "close-tab"],
     data() {
         return {
-            GlobalState,
             reloadInterval: null,
             nodesRefreshTimeout: null,
             nodesListAbortController: null,
@@ -971,8 +976,9 @@ export default {
         };
     },
     computed: {
+        ...mapStores(useConfigStore),
         defaultNodePagePath() {
-            const p = GlobalState.config?.nomad_default_page_path;
+            const p = useConfigStore().config?.nomad_default_page_path;
             return typeof p === "string" && p.startsWith("/page/") ? p : "/page/index.mu";
         },
         standaloneContextHasActivePage() {
@@ -1096,13 +1102,13 @@ export default {
             return ["auto", "always"].includes(this.getNomadImagePolicy(hash));
         },
         nomadMicronWasmFeatureEffective() {
-            return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
+            return isMicronWasmBundled() && (useConfigStore().config || {}).nomad_micron_wasm_enabled === true;
         },
         micronParserGoRepoUrl() {
             return "https://github.com/Quad4-Software/micron-parser-go";
         },
         nomadMicronWasmActive() {
-            const engineWasm = (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm";
+            const engineWasm = (useConfigStore().config?.nomad_micron_default_engine || "js") === "wasm";
             return (
                 this.nomadMicronWasmFeatureEffective &&
                 this.nomadMicronWasmReady === true &&
@@ -1111,7 +1117,7 @@ export default {
             );
         },
         nomadRenderOptions() {
-            const c = GlobalState.config || {};
+            const c = useConfigStore().config || {};
             const engineWasm = (c.nomad_micron_default_engine || "js") === "wasm";
             return {
                 renderMarkdown: c.nomad_render_markdown_enabled !== false,
@@ -1154,7 +1160,7 @@ export default {
                 }
                 const wasmPreferred =
                     this.nomadMicronWasmFeatureEffective &&
-                    (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm";
+                    (useConfigStore().config?.nomad_micron_default_engine || "js") === "wasm";
                 if (wasmPreferred && !this.nomadMicronWasmReady) {
                     return {
                         label: this.$t("nomadnet.renderer_chip_micron_js"),
@@ -1193,7 +1199,7 @@ export default {
             return this.nodePagePathIsMicronMu;
         },
         blockedDestinations() {
-            return GlobalState.blockedDestinations;
+            return useIdentityStore().blockedDestinations;
         },
         popoutRouteType() {
             if (this.$route?.meta?.popoutType) {
@@ -1455,7 +1461,7 @@ export default {
             this._liveTransportReadyWatch();
             this._liveTransportReadyWatch = null;
         }
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this.nodesListAbortController?.abort();
         this.nodeDetailAbortController?.abort();
         this.clearPartials();
@@ -1465,29 +1471,29 @@ export default {
         }
         this.teardownMultilineExpansion();
 
-        offWsEvent("announce", this.onNomadAnnounceEvent);
-        offWsEvent("nomadnet.page.download", this.onNomadPageDownloadEvent);
-        offWsEvent("nomadnet.file.download", this.onNomadFileDownloadEvent);
-        offWsEvent("nomadnet.download.cancelled", this.onNomadDownloadCancelledEvent);
-        offWsEvent("nomadnet.page.archives", this.onNomadPageArchivesEvent);
-        offWsEvent("nomadnet.page.archive.added", this.onNomadPageArchiveAddedEvent);
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        offWsEvent(WS_EVENTS.ANNOUNCE, this.onNomadAnnounceEvent);
+        offWsEvent(WS_EVENTS.NOMADNET_PAGE_DOWNLOAD, this.onNomadPageDownloadEvent);
+        offWsEvent(WS_EVENTS.NOMADNET_FILE_DOWNLOAD, this.onNomadFileDownloadEvent);
+        offWsEvent(WS_EVENTS.NOMADNET_DOWNLOAD_CANCELLED, this.onNomadDownloadCancelledEvent);
+        offWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVES, this.onNomadPageArchivesEvent);
+        offWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVE_ADDED, this.onNomadPageArchiveAddedEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
     },
     mounted() {
         // listen for websocket messages
-        onWsEvent("announce", this.onNomadAnnounceEvent);
-        onWsEvent("nomadnet.page.download", this.onNomadPageDownloadEvent);
-        onWsEvent("nomadnet.file.download", this.onNomadFileDownloadEvent);
-        onWsEvent("nomadnet.download.cancelled", this.onNomadDownloadCancelledEvent);
-        onWsEvent("nomadnet.page.archives", this.onNomadPageArchivesEvent);
-        onWsEvent("nomadnet.page.archive.added", this.onNomadPageArchiveAddedEvent);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        onWsEvent(WS_EVENTS.ANNOUNCE, this.onNomadAnnounceEvent);
+        onWsEvent(WS_EVENTS.NOMADNET_PAGE_DOWNLOAD, this.onNomadPageDownloadEvent);
+        onWsEvent(WS_EVENTS.NOMADNET_FILE_DOWNLOAD, this.onNomadFileDownloadEvent);
+        onWsEvent(WS_EVENTS.NOMADNET_DOWNLOAD_CANCELLED, this.onNomadDownloadCancelledEvent);
+        onWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVES, this.onNomadPageArchivesEvent);
+        onWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVE_ADDED, this.onNomadPageArchiveAddedEvent);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
         this.refreshMicronWasmReleaseLabel();
 
         this.$watch(
-            () => GlobalState.config?.nomad_micron_wasm_enabled,
+            () => useConfigStore().config?.nomad_micron_wasm_enabled,
             async (enabled) => {
                 if (!isMicronWasmBundled()) {
                     this.nomadMicronWasmReady = false;
@@ -1503,7 +1509,7 @@ export default {
         );
 
         this.$watch(
-            () => GlobalState.config?.nomad_micron_default_engine,
+            () => useConfigStore().config?.nomad_micron_default_engine,
             () => {
                 if (this.nodePageContent && this.nodePagePathIsMicronMu) {
                     const content = this.nodePageContent;
@@ -1516,7 +1522,7 @@ export default {
             }
         );
 
-        if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
+        if (isMicronWasmBundled() && useConfigStore().config?.nomad_micron_wasm_enabled === true) {
             preloadNomadMicronWasm().then((ok) => {
                 this.nomadMicronWasmReady = ok === true;
             });
@@ -1550,13 +1556,13 @@ export default {
         // update info every few seconds (slower when live transport is ready)
         this.startFavouritesPollInterval();
         this._liveTransportReadyWatch = this.$watch(
-            () => GlobalState.liveTransportReady,
+            () => useNetworkStore().liveTransportReady,
             () => {
                 this.startFavouritesPollInterval();
             }
         );
 
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this.$nextTick(() => this.scheduleProcessPartials());
     },
     methods: {
@@ -1569,7 +1575,7 @@ export default {
                 clearInterval(this.reloadInterval);
                 this.reloadInterval = null;
             }
-            const pollMs = GlobalState.liveTransportReady ? 30000 : 5000;
+            const pollMs = useNetworkStore().liveTransportReady ? 30000 : 5000;
             this.reloadInterval = setInterval(() => {
                 if (this.shouldPollFavourites()) {
                     this.getFavourites();
@@ -1700,16 +1706,16 @@ export default {
             if (!isMicronWasmBundled()) {
                 return;
             }
-            if (!GlobalState.config?.nomad_micron_wasm_enabled) {
+            if (!useConfigStore().config?.nomad_micron_wasm_enabled) {
                 return;
             }
             const next = engine === "wasm" ? "wasm" : "js";
-            if ((GlobalState.config?.nomad_micron_default_engine || "js") === next) {
+            if ((useConfigStore().config?.nomad_micron_default_engine || "js") === next) {
                 return;
             }
             try {
                 const cfg = await patchServerConfig({ nomad_micron_default_engine: next }, window.api);
-                mergeGlobalConfig(cfg);
+                useConfigStore().mergeConfig(cfg);
                 if (this.nodePageContent && this.nodePagePathIsMicronMu) {
                     const content = this.nodePageContent;
                     this.nodePageContent = null;
@@ -1806,7 +1812,7 @@ export default {
                 return;
             }
             const identityHash = this.selectedNode.identity_hash || this.selectedNode.destination_hash;
-            this.isSelectedNodeBlocked = GlobalState.blockedDestinations.some(
+            this.isSelectedNodeBlocked = useIdentityStore().blockedDestinations.some(
                 (b) => b.destination_hash === identityHash
             );
         },
@@ -2227,7 +2233,7 @@ export default {
         },
         async getFavourites() {
             try {
-                const response = await window.api.get("/api/v1/favourites", {
+                const response = await favouritesApi.listFavourites({
                     params: {
                         aspect: "nomadnetwork.node",
                     },
@@ -2300,7 +2306,7 @@ export default {
                     (favourite) => favourite.destination_hash === node.destination_hash
                 );
                 const displayName = resolveFavouriteUpsertDisplayName(node, existing, this.$t("nomadnet.unknown_node"));
-                await window.api.post("/api/v1/favourites/add", {
+                await window.api.post(apiPath("/favourites/add"), {
                     destination_hash: node.destination_hash,
                     display_name: displayName,
                     aspect: "nomadnetwork.node",
@@ -2317,7 +2323,7 @@ export default {
                 return false;
             }
             try {
-                await window.api.delete(`/api/v1/favourites/${node.destination_hash}`);
+                await window.api.delete(apiPath(`/favourites/${node.destination_hash}`));
                 await this.getFavourites();
                 return true;
             } catch (e) {
@@ -2332,7 +2338,7 @@ export default {
             let removed = 0;
             for (const h of hashes) {
                 try {
-                    await window.api.delete(`/api/v1/favourites/${h}`);
+                    await window.api.delete(apiPath(`/favourites/${h}`));
                     removed += 1;
                 } catch (e) {
                     console.log(e);
@@ -2354,7 +2360,7 @@ export default {
                 }
                 try {
                     const displayName = resolveFavouriteUpsertDisplayName(node, null, this.$t("nomadnet.unknown_node"));
-                    await window.api.post("/api/v1/favourites/add", {
+                    await window.api.post(apiPath("/favourites/add"), {
                         destination_hash: node.destination_hash,
                         display_name: displayName,
                         aspect: "nomadnetwork.node",
@@ -2387,7 +2393,7 @@ export default {
                     myController = this.nodesListAbortController;
                 }
                 const offset = append ? Object.keys(this.nodes).length : 0;
-                const response = await window.api.get(`/api/v1/announces`, {
+                const response = await announcesApi.listAnnounces({
                     params: {
                         aspect: "nomadnetwork.node",
                         limit: this.pageSize,
@@ -2440,7 +2446,7 @@ export default {
                     this.nodeDetailAbortController.abort();
                 }
                 this.nodeDetailAbortController = new AbortController();
-                const response = await window.api.get(`/api/v1/announces`, {
+                const response = await announcesApi.listAnnounces({
                     params: {
                         destination_hash: destinationHash,
                         limit: 1,
@@ -2833,7 +2839,7 @@ export default {
             if (safePerNode) {
                 return safePerNode;
             }
-            const global = GlobalState.config?.nomad_image_loading_policy;
+            const global = useConfigStore().config?.nomad_image_loading_policy;
             const safeGlobal = this.sanitizeImagePolicy(global);
             return safeGlobal || "manual";
         },
@@ -3715,7 +3721,7 @@ export default {
 
             try {
                 // rename on server
-                await window.api.post(`/api/v1/favourites/${favourite.destination_hash}/rename`, {
+                await window.api.post(apiPath(`/favourites/${favourite.destination_hash}/rename`), {
                     display_name: trimmed,
                 });
 
@@ -3957,7 +3963,7 @@ export default {
                     existing,
                     this.$t("nomadnet.unknown_node")
                 );
-                await window.api.post(`/api/v1/favourites/${destinationHash}/identify-on-connect`, {
+                await window.api.post(apiPath(`/favourites/${destinationHash}/identify-on-connect`), {
                     enabled: enable,
                     display_name: displayName,
                     aspect: "nomadnetwork.node",

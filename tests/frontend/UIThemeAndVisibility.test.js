@@ -2,7 +2,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import App from "../../meshchatx/src/frontend/components/App.vue";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import ConfirmDialog from "../../meshchatx/src/frontend/components/ConfirmDialog.vue";
@@ -29,27 +29,6 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
         error: vi.fn(),
     },
 }));
-
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => {
-    const state = {
-        authSessionResolved: true,
-        authEnabled: false,
-        authenticated: false,
-        unreadConversationsCount: 0,
-        relayChatUnreadCount: 0,
-        missedCallsCount: 0,
-        activeCallTab: null,
-        config: {},
-    };
-    return {
-        mergeGlobalConfig: vi.fn((next) => {
-            if (next && typeof next === "object") {
-                state.config = { ...state.config, ...next };
-            }
-        }),
-        default: state,
-    };
-});
 
 vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
     default: {
@@ -111,6 +90,8 @@ function createDefaultApiMock() {
 beforeEach(() => {
     document.documentElement.classList.remove("dark");
     window.api = createDefaultApiMock();
+    useConfigStore().activeCallTab = null;
+    useConfigStore().config = {};
 });
 
 afterEach(async () => {
@@ -654,7 +635,7 @@ describe("Conditional Rendering", () => {
     });
 
     it("App header omits relay chat when RRC is disabled", async () => {
-        GlobalState.config.rrc_enabled = false;
+        useConfigStore().config.rrc_enabled = false;
         try {
             const wrapper = mountTracked(App, {
                 global: {
@@ -679,7 +660,7 @@ describe("Conditional Rendering", () => {
             expect(wrapper.find('[data-testid="header-relay-chat"]').exists()).toBe(false);
             expect(wrapper.find('[data-testid="header-telephone"]').exists()).toBe(true);
         } finally {
-            delete GlobalState.config.rrc_enabled;
+            delete useConfigStore().config.rrc_enabled;
         }
     });
 });

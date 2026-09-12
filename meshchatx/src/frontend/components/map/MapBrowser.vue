@@ -95,12 +95,14 @@
 </template>
 
 <script>
+import { useConfigStore } from "../../js/stores/configStore.js";
+
 import MapPage from "./MapPage.vue";
 import MapTabContextMenu from "./internal/MapTabContextMenu.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import TileCache from "../../js/TileCache";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import GlobalState from "../../js/GlobalState";
+import { EMITTER_EVENTS } from "../../js/constants.js";
 import { loadMapTabs, saveMapTabs } from "../../js/browserLayoutStore";
 import { LEGACY_MAP_STATE_KEY, legacyMapTabStateKey, mapViewStateKey } from "../../js/mapStateKeys.js";
 
@@ -172,7 +174,7 @@ export default {
     async mounted() {
         this.setupViewportWatcher();
         window.addEventListener("keydown", this.handleKeydown, true);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
 
         if (!(await this.restoreTabs())) {
             const storageId = createStorageId();
@@ -187,7 +189,7 @@ export default {
         this.isRouteActive = false;
     },
     beforeUnmount() {
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         this.teardownViewportWatcher();
         window.removeEventListener("keydown", this.handleKeydown, true);
     },
@@ -377,7 +379,7 @@ export default {
         },
         async migrateLegacyMapState(storageId) {
             try {
-                const identityHash = GlobalState.config?.identity_hash || null;
+                const identityHash = useConfigStore().config?.identity_hash || null;
                 const tabKey = mapViewStateKey(identityHash, storageId);
                 const existing = await TileCache.getMapState(tabKey);
                 if (existing) {

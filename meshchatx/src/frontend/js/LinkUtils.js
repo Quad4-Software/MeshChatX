@@ -1,8 +1,8 @@
-import GlobalState from "./GlobalState.js";
+import { useConfigStore } from "./stores/configStore.js";
 import Utils from "./Utils.js";
 
 function defaultNomadPagePath() {
-    const p = GlobalState.config?.nomad_default_page_path;
+    const p = useConfigStore().config?.nomad_default_page_path;
     return typeof p === "string" && p.startsWith("/page/") ? p : "/page/index.mu";
 }
 

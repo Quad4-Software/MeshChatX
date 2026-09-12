@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD AND MIT
 
 import { watch } from "vue";
-import GlobalState from "./GlobalState";
+import { useNetworkStore } from "./stores/networkStore.js";
 
 /**
  * True when DB-backed HTTP is expected to answer (or startup gave up).
@@ -9,10 +9,11 @@ import GlobalState from "./GlobalState";
  * still return 503 for folder/contact/conversation reads.
  */
 export function isIdentityHttpReady() {
-    if (GlobalState.networkReady || GlobalState.networkDegraded) {
+    const networkStore = useNetworkStore();
+    if (networkStore.networkReady || networkStore.networkDegraded) {
         return true;
     }
-    return !GlobalState.networkStarting;
+    return !networkStore.networkStarting;
 }
 
 /**
@@ -28,8 +29,9 @@ export function runWhenIdentityHttpReady(callback) {
         callback();
         return null;
     }
+    const networkStore = useNetworkStore();
     const stop = watch(
-        () => [GlobalState.networkReady, GlobalState.networkDegraded, GlobalState.networkStarting],
+        () => [networkStore.networkReady, networkStore.networkDegraded, networkStore.networkStarting],
         () => {
             if (!isIdentityHttpReady()) {
                 return;

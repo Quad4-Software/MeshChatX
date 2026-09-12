@@ -1075,6 +1075,8 @@
 </template>
 
 <script>
+import { useConfigStore } from "../../js/stores/configStore.js";
+
 import { markRaw } from "vue";
 import "ol/ol.css";
 import "../../js/mapVectorWebFonts.js";
@@ -1143,7 +1145,6 @@ import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import TileCache from "../../js/TileCache";
 import { mapViewStateKey } from "../../js/mapStateKeys.js";
-import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { publishPatchedConfig } from "../../js/settings/settingsConfigService.js";
 import {
@@ -1172,6 +1173,7 @@ import {
     NOMINATIM_FETCH_RETRY_BASE_DELAY_MS,
 } from "../../js/mapTileNetwork";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
 import MapClusterPanel from "./internal/MapClusterPanel.vue";
 import MapMarkerPanel from "./internal/MapMarkerPanel.vue";
 import MapDrawingToolbar from "./internal/MapDrawingToolbar.vue";
@@ -1199,10 +1201,11 @@ import {
 import { styleFromMcxProperties } from "../../js/mapExchange/styleFromProperties.js";
 import { computeSegmentMetrics, buildBearingOverlayHtml, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
 import { isLocalMapServiceUrl } from "../../js/mapLocalUrl.js";
+import * as lxmfApi from "../../js/api/lxmf.js";
 
 const OPENFREEMAP_DEFAULT_STYLE = "https://tiles.openfreemap.org/styles/bright";
 const DEFAULT_OSM_RASTER = DEFAULT_TILE_SERVER_URL;
-const OFFLINE_MB_TILES_URL = "/api/v1/map/tiles/{z}/{x}/{y}.png";
+const OFFLINE_MB_TILES_URL = apiPath("/map/tiles/{z}/{x}/{y}.png");
 const OFFLINE_TRANSPARENT_TILE_PNG =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
@@ -1431,7 +1434,7 @@ export default {
             return !path.endsWith("starter_world.mbtiles");
         },
         mapStateKey() {
-            const identityHash = this.config?.identity_hash || GlobalState.config?.identity_hash || null;
+            const identityHash = this.config?.identity_hash || useConfigStore().config?.identity_hash || null;
             return mapViewStateKey(identityHash, this.tabStorageId || null);
         },
         popoutRouteType() {
@@ -1652,7 +1655,7 @@ export default {
             console.warn("Failed to load map state from cache", e);
         }
         try {
-            const lo = localStorage.getItem("meshchatx.map.offlineMode");
+            const lo = localStorage.getItem(STORAGE_KEYS.MAP_OFFLINE_MODE);
             if (lo === "1") this.offlineEnabled = true;
             else if (lo === "0") this.offlineEnabled = false;
         } catch {
@@ -1673,7 +1676,7 @@ export default {
         }
 
         // Listen for websocket messages
-        onWsEvent("lxmf.telemetry", this.onLxmfTelemetry);
+        onWsEvent(WS_EVENTS.LXMF_TELEMETRY, this.onLxmfTelemetry);
 
         this.onConfigUpdatedExternally = (cfg) => {
             if (!cfg || typeof cfg !== "object") {
@@ -1696,7 +1699,7 @@ export default {
                 }
             }
         };
-        GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
+        GlobalEmitter.on(EMITTER_EVENTS.CONFIG_UPDATED, this.onConfigUpdatedExternally);
 
         this.applyMapViewFromRoute();
 
@@ -1720,15 +1723,15 @@ export default {
                 this.fetchTelemetryMarkers();
             }
         }, 30000);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
     },
     beforeUnmount() {
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (this.map && this.map.getViewport()) {
             this.map.getViewport().removeEventListener("contextmenu", this.onContextMenu);
         }
         if (this.onConfigUpdatedExternally) {
-            GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
+            GlobalEmitter.off(EMITTER_EVENTS.CONFIG_UPDATED, this.onConfigUpdatedExternally);
         }
         document.removeEventListener("click", this.handleGlobalClick);
         if (this._saveStateTimer) {
@@ -1754,7 +1757,7 @@ export default {
         document.removeEventListener("click", this.handleClickOutside);
         window.removeEventListener("resize", this.checkScreenSize);
         document.removeEventListener("keydown", this.onDeleteKey);
-        offWsEvent("lxmf.telemetry", this.onLxmfTelemetry);
+        offWsEvent(WS_EVENTS.LXMF_TELEMETRY, this.onLxmfTelemetry);
         if (this._pointerMoveRaf != null) {
             cancelAnimationFrame(this._pointerMoveRaf);
             this._pointerMoveRaf = null;
@@ -1848,7 +1851,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get("/api/v1/config");
+                const response = await window.api.get(apiPath("/config"));
                 this.config = response.data.config;
                 this.offlineEnabled = this.config.map_offline_enabled;
                 this.announceListenEnabled = Boolean(this.config.announce_store_map_data);
@@ -1877,7 +1880,7 @@ export default {
                 }
             }
             try {
-                await window.api.patch("/api/v1/config", { map_coordinate_format: fmt });
+                await window.api.patch(apiPath("/config"), { map_coordinate_format: fmt });
                 if (this.config) {
                     this.config.map_coordinate_format = fmt;
                 }
@@ -1894,7 +1897,7 @@ export default {
         },
         async loadMBTilesList() {
             try {
-                const response = await window.api.get("/api/v1/map/mbtiles");
+                const response = await window.api.get(apiPath("/map/mbtiles"));
                 this.mbtilesList = response.data;
             } catch (e) {
                 console.error("Failed to load MBTiles list", e);
@@ -1902,7 +1905,7 @@ export default {
         },
         async setActiveMBTiles(filename) {
             try {
-                await window.api.post("/api/v1/map/mbtiles/active", { filename });
+                await window.api.post(apiPath("/map/mbtiles/active"), { filename });
                 await this.checkOfflineMap();
                 await this.loadMBTilesList();
                 ToastUtils.success(this.$t("map.source_updated"));
@@ -1918,7 +1921,7 @@ export default {
         },
         async restoreStarterTiles() {
             try {
-                await window.api.post("/api/v1/map/mbtiles/restore-starter", {});
+                await window.api.post(apiPath("/map/mbtiles/restore-starter"), {});
                 await this.checkOfflineMap();
                 await this.loadMBTilesList();
                 ToastUtils.success(this.$t("map.starter_restored"));
@@ -1930,7 +1933,7 @@ export default {
         async deleteMBTiles(filename) {
             if (!(await DialogUtils.confirm(this.$t("map.delete_file_confirm", { name: filename })))) return;
             try {
-                await window.api.delete(`/api/v1/map/mbtiles/${filename}`);
+                await window.api.delete(apiPath(`/map/mbtiles/${filename}`));
                 await this.loadMBTilesList();
                 if (this.metadata && this.metadata.path && this.metadata.path.endsWith(filename)) {
                     await this.checkOfflineMap();
@@ -1942,7 +1945,7 @@ export default {
         },
         async saveMBTilesDir() {
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     map_mbtiles_dir: this.mbtilesDir,
                 });
                 ToastUtils.success(this.$t("map.storage_saved"));
@@ -2514,7 +2517,7 @@ export default {
             });
             const content = `${this.$t("map.ping_message_prefix")} ${uri}`;
             try {
-                await window.api.post("/api/v1/lxmf-messages/send", {
+                await window.api.post(apiPath("/lxmf-messages/send"), {
                     lxmf_message: {
                         destination_hash: hash,
                         content,
@@ -3052,7 +3055,7 @@ export default {
         },
         async checkOfflineMap() {
             try {
-                const response = await window.api.get("/api/v1/map/offline");
+                const response = await window.api.get(apiPath("/map/offline"));
                 if (response.data && response.data.loaded !== false && Object.keys(response.data).length > 0) {
                     this.metadata = response.data;
                     this.hasOfflineMap = true;
@@ -3129,7 +3132,7 @@ export default {
 
             this.offlineEnabled = enabled;
             try {
-                localStorage.setItem("meshchatx.map.offlineMode", enabled ? "1" : "0");
+                localStorage.setItem(STORAGE_KEYS.MAP_OFFLINE_MODE, enabled ? "1" : "0");
             } catch {
                 /* ignore */
             }
@@ -3142,7 +3145,7 @@ export default {
 
             // Persist setting
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     map_offline_enabled: enabled,
                 });
             } catch (e) {
@@ -3154,7 +3157,7 @@ export default {
             this.tileErrorCount = 0;
             this.dismissTileConnectivityBanner();
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     map_tile_cache_enabled: enabled,
                 });
                 await this.updateMapSource();
@@ -3181,7 +3184,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/map/export/${this.exportId}`);
+                await window.api.delete(apiPath(`/map/export/${this.exportId}`));
                 this.exportStatus = null;
                 this.exportId = null;
                 ToastUtils.success(this.$t("map.export_cancelled"));
@@ -3193,7 +3196,7 @@ export default {
             if (!this.selectedBbox || this.exportTileLimitExceeded) return;
             this.isExporting = true;
             try {
-                const response = await window.api.post("/api/v1/map/export", {
+                const response = await window.api.post(apiPath("/map/export"), {
                     bbox: this.selectedBbox,
                     min_zoom: this.exportMinZoom,
                     max_zoom: this.exportMaxZoom,
@@ -3213,7 +3216,7 @@ export default {
             if (this.exportInterval) clearInterval(this.exportInterval);
             this.exportInterval = setInterval(async () => {
                 try {
-                    const response = await window.api.get(`/api/v1/map/export/${this.exportId}`);
+                    const response = await window.api.get(apiPath(`/map/export/${this.exportId}`));
                     this.exportStatus = response.data;
                     if (this.exportStatus.status === "completed" || this.exportStatus.status === "failed") {
                         clearInterval(this.exportInterval);
@@ -3284,13 +3287,13 @@ export default {
             formData.append("file", file, file.name);
 
             try {
-                const response = await window.api.post("/api/v1/map/offline", formData);
+                const response = await window.api.post(apiPath("/map/offline"), formData);
 
                 this.metadata = response.data.metadata;
                 this.hasOfflineMap = true;
                 this.offlineEnabled = true;
                 try {
-                    localStorage.setItem("meshchatx.map.offlineMode", "1");
+                    localStorage.setItem(STORAGE_KEYS.MAP_OFFLINE_MODE, "1");
                 } catch {
                     /* ignore */
                 }
@@ -3322,7 +3325,7 @@ export default {
             const zoom = Math.round(view.getZoom());
 
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     map_default_lat: center[1],
                     map_default_lon: center[0],
                     map_default_zoom: zoom,
@@ -3343,7 +3346,7 @@ export default {
         },
         async saveTileServerUrl() {
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     map_tile_server_url: this.tileServerUrl,
                 });
                 this.dismissTileConnectivityBanner();
@@ -3366,7 +3369,7 @@ export default {
         },
         async saveNominatimApiUrl() {
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     map_nominatim_api_url: this.nominatimApiUrl,
                 });
                 ToastUtils.success(this.$t("map.nominatim_api_saved"));
@@ -3375,7 +3378,7 @@ export default {
             }
         },
         checkOnboardingTooltip() {
-            const hasSeenOnboarding = localStorage.getItem("map_onboarding_seen");
+            const hasSeenOnboarding = localStorage.getItem(STORAGE_KEYS.MAP_ONBOARDING_SEEN);
             if (!hasSeenOnboarding && !this.offlineEnabled) {
                 this.$nextTick(() => {
                     this.showOnboardingTooltip = true;
@@ -3462,7 +3465,7 @@ export default {
         },
         dismissOnboardingTooltip() {
             this.showOnboardingTooltip = false;
-            localStorage.setItem("map_onboarding_seen", "true");
+            localStorage.setItem(STORAGE_KEYS.MAP_ONBOARDING_SEEN, "true");
         },
         onSearchInput() {
             this.searchError = null;
@@ -3776,7 +3779,7 @@ export default {
         async fetchPeers() {
             if (!window.api) return;
             try {
-                const response = await window.api.get("/api/v1/lxmf/conversations", {
+                const response = await lxmfApi.listConversations({
                     params: { limit: 2000 },
                 });
                 const conversations = Array.isArray(response?.data?.conversations) ? response.data.conversations : [];
@@ -3925,7 +3928,7 @@ export default {
             this.announceListenBusy = true;
             const next = Boolean(enabled);
             try {
-                const response = await window.api.patch("/api/v1/config", {
+                const response = await window.api.patch(apiPath("/config"), {
                     announce_store_map_data: next,
                 });
                 if (response?.data?.config) {
@@ -4924,7 +4927,7 @@ export default {
             this.showLoadDrawingModal = true;
             this.isLoadingDrawings = true;
             try {
-                const response = await window.api.get("/api/v1/map/drawings");
+                const response = await window.api.get(apiPath("/map/drawings"));
                 this.savedDrawings = response.data.drawings;
             } catch {
                 ToastUtils.error(this.$t("map.failed_load_drawings"));
@@ -4948,7 +4951,7 @@ export default {
             });
 
             try {
-                await window.api.post("/api/v1/map/drawings", {
+                await window.api.post(apiPath("/map/drawings"), {
                     name: this.newDrawingName,
                     data: json,
                 });
@@ -5066,7 +5069,7 @@ export default {
 
         async ensureRemoteOverlayLayer(overlay) {
             const id = String(overlay.id);
-            const contentRes = await fetch(`/api/v1/map/overlays/${overlay.id}/content`, {
+            const contentRes = await fetch(apiPath(`/map/overlays/${overlay.id}/content`), {
                 credentials: "same-origin",
             });
             if (!contentRes.ok) {
@@ -5108,7 +5111,7 @@ export default {
 
         async onRemoteOverlayExport({ id, format }) {
             try {
-                const res = await fetch(`/api/v1/map/overlays/${id}/export?format=${encodeURIComponent(format)}`, {
+                const res = await fetch(apiPath(`/map/overlays/${id}/export?format=${encodeURIComponent(format)}`), {
                     credentials: "same-origin",
                 });
                 if (!res.ok) {
@@ -5131,7 +5134,7 @@ export default {
                 return;
             }
             try {
-                const contentRes = await fetch(`/api/v1/map/overlays/${overlay.id}/content`, {
+                const contentRes = await fetch(apiPath(`/map/overlays/${overlay.id}/content`), {
                     credentials: "same-origin",
                 });
                 if (!contentRes.ok) {
@@ -5346,7 +5349,7 @@ export default {
         async deleteDrawing(drawing) {
             if (!(await DialogUtils.confirm(this.$t("map.delete_drawing_confirm", { name: drawing.name })))) return;
             try {
-                await window.api.delete(`/api/v1/map/drawings/${drawing.id}`);
+                await window.api.delete(apiPath(`/map/drawings/${drawing.id}`));
                 this.savedDrawings = this.savedDrawings.filter((d) => d.id !== drawing.id);
                 ToastUtils.success(this.$t("map.deleted"));
             } catch {
@@ -5416,7 +5419,7 @@ export default {
         async fetchTelemetryMarkers() {
             if (!window.api) return;
             try {
-                const response = await window.api.get("/api/v1/telemetry/peers");
+                const response = await window.api.get(apiPath("/telemetry/peers"));
                 this.telemetryList = response.data.telemetry;
                 this.updateMarkers();
             } catch (e) {
@@ -5721,7 +5724,7 @@ export default {
         async drawTelemetryPath(hash) {
             this.clearTelemetryPath();
             try {
-                const response = await window.api.get(`/api/v1/telemetry/history/${hash}?limit=50`);
+                const response = await window.api.get(apiPath(`/telemetry/history/${hash}?limit=50`));
                 const history = response.data.telemetry;
                 if (!history || history.length < 2) return;
 
@@ -5813,7 +5816,7 @@ export default {
         },
         async toggleTracking(hash) {
             try {
-                const response = await window.api.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
+                const response = await window.api.post(apiPath(`/telemetry/tracking/${hash}/toggle`), {
                     is_tracking: this.selectedMarker.telemetry.is_tracking ? false : true,
                 });
                 if (this.selectedMarker && this.selectedMarker.telemetry.destination_hash === hash) {
@@ -5857,7 +5860,7 @@ export default {
                 this.discoveredLoading = true;
             }
             try {
-                const response = await window.api.get("/api/v1/reticulum/discovered-interfaces");
+                const response = await window.api.get(apiPath("/reticulum/discovered-interfaces"));
                 const discovered = response.data?.interfaces ?? [];
                 const nodesWithLoc = discovered.filter((n) => n.latitude != null && n.longitude != null);
                 const nodesDeduped = this.dedupeDiscoveredMapNodes(nodesWithLoc);

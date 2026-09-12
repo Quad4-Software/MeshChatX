@@ -270,6 +270,8 @@
 </template>
 
 <script>
+import { useConfigStore } from "../../js/stores/configStore.js";
+
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import Skeleton from "../Skeleton.vue";
@@ -277,7 +279,6 @@ import ArchiveCard from "./ArchiveCard.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import MicronParser from "../../js/MicronParser.js";
-import GlobalState from "../../js/GlobalState.js";
 import {
     preloadNomadMicronWasm,
     invalidateNomadMicronWasmPreload,
@@ -287,6 +288,8 @@ import { renderNomadPageByPath, isolateNomadLinksInHtml } from "../../js/NomadPa
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { apiPath } from "../../js/constants.js";
+import * as nomadnetApi from "../../js/api/nomadnet.js";
 
 const SPLIT_MIN_WIDTH = 1024;
 
@@ -335,10 +338,10 @@ export default {
             return Math.min(this.pagination.page * this.pagination.limit, this.pagination.total_count);
         },
         nomadMicronWasmFeatureEffective() {
-            return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
+            return isMicronWasmBundled() && (useConfigStore().config || {}).nomad_micron_wasm_enabled === true;
         },
         nomadMicronWasmActive() {
-            const engineWasm = (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm";
+            const engineWasm = (useConfigStore().config?.nomad_micron_default_engine || "js") === "wasm";
             return (
                 this.nomadMicronWasmFeatureEffective &&
                 this.nomadMicronWasmReady === true &&
@@ -347,7 +350,7 @@ export default {
             );
         },
         nomadRenderOptions() {
-            const c = GlobalState.config || {};
+            const c = useConfigStore().config || {};
             const hash = this.viewingArchive?.destination_hash || null;
             const engineWasm = (c.nomad_micron_default_engine || "js") === "wasm";
             return {
@@ -387,7 +390,7 @@ export default {
         }
         this.getArchives();
         this.$watch(
-            () => GlobalState.config?.nomad_micron_wasm_enabled,
+            () => useConfigStore().config?.nomad_micron_wasm_enabled,
             async (enabled) => {
                 if (!isMicronWasmBundled()) {
                     this.nomadMicronWasmReady = false;
@@ -407,7 +410,7 @@ export default {
             }
         );
         this.$watch(
-            () => GlobalState.config?.nomad_micron_default_engine,
+            () => useConfigStore().config?.nomad_micron_default_engine,
             () => {
                 this.resetCardPreviews();
                 const a = this.viewingArchive;
@@ -416,7 +419,7 @@ export default {
                 }
             }
         );
-        if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
+        if (isMicronWasmBundled() && useConfigStore().config?.nomad_micron_wasm_enabled === true) {
             preloadNomadMicronWasm().then((ok) => {
                 this.nomadMicronWasmReady = ok === true;
                 this.resetCardPreviews();
@@ -533,7 +536,7 @@ export default {
                 if (this.nodeFilter) {
                     params.destination_hash = this.nodeFilter;
                 }
-                const response = await window.api.get("/api/v1/nomadnet/archives", { params });
+                const response = await nomadnetApi.listArchives({ params });
                 this.archives = response.data.archives || [];
                 const pag = response.data.pagination || {};
                 this.pagination = {
@@ -595,7 +598,7 @@ export default {
             this.isLoadingViewer = true;
             this.viewingArchive = { ...archive, content: archive.content || null };
             try {
-                const response = await window.api.get(`/api/v1/nomadnet/archives/${archive.id}`);
+                const response = await window.api.get(apiPath(`/nomadnet/archives/${archive.id}`));
                 const full = response.data.archive;
                 this.viewingArchive = full;
                 this.renderedContent = this.renderFullContent(full);
@@ -619,7 +622,7 @@ export default {
             const toastKey = `archives-recrawl-${archive.id || archive.destination_hash}`;
             ToastUtils.loading(this.$t("archives.recrawl_pending"), 0, toastKey);
             try {
-                const response = await window.api.post("/api/v1/nomadnet/archives/recrawl", {
+                const response = await window.api.post(apiPath("/nomadnet/archives/recrawl"), {
                     destination_hash: archive.destination_hash,
                     page_path: archive.page_path,
                 });
@@ -662,7 +665,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete("/api/v1/nomadnet/archives", {
+                await nomadnetApi.deleteArchives({
                     data: { ids: [archive.id] },
                 });
                 this.archives = this.archives.filter((a) => a.id !== archive.id);
@@ -681,7 +684,7 @@ export default {
                 return;
             }
             try {
-                await window.api.post("/api/v1/nomadnet/crawl/opt-outs", {
+                await window.api.post(apiPath("/nomadnet/crawl/opt-outs"), {
                     destination_hash: archive.destination_hash,
                     reason: "user",
                 });
@@ -767,7 +770,7 @@ export default {
             try {
                 let content = archive.content;
                 if (content == null) {
-                    const response = await window.api.get(`/api/v1/nomadnet/archives/${archive.id}`);
+                    const response = await window.api.get(apiPath(`/nomadnet/archives/${archive.id}`));
                     content = response.data.archive?.content ?? "";
                 }
                 await this.downloadTextAsFile(content, this.muExportFilename(archive));
@@ -791,7 +794,7 @@ export default {
                 if (this.nodeFilter) {
                     params.destination_hash = this.nodeFilter;
                 }
-                const response = await window.api.get("/api/v1/nomadnet/archives/export", {
+                const response = await nomadnetApi.getArchivesExport({
                     params,
                     responseType: "blob",
                 });

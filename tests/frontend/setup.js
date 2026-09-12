@@ -2,10 +2,11 @@ import "fake-indexeddb/auto";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { beforeEach, afterEach, vi } from "vitest";
+import { createPinia, setActivePinia } from "pinia";
 import { config } from "@vue/test-utils";
 import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
 import { clearConversationPrefetchCache } from "../../meshchatx/src/frontend/js/conversationPrefetch.js";
 
 // CI and slower local machines can need more than the default 1000ms for async
@@ -15,12 +16,23 @@ vi.waitFor = (callback, options) => _originalWaitFor(callback, { timeout: 5000, 
 
 injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
 
+// Domain state lives in Pinia stores; activate a fresh one per test.
+// Installing the plugin covers inject(piniaSymbol) and this.$pinia for
+// mapStores, while setActivePinia keeps bare use*Store() calls in sync.
+setActivePinia(createPinia());
+beforeEach(() => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    config.global.plugins = [pinia];
+});
+
 // App shell tests assume auth is settled with auth disabled unless a case overrides.
 beforeEach(() => {
-    GlobalState.authSessionResolved = true;
-    GlobalState.authEnabled = false;
-    GlobalState.authenticated = false;
-    GlobalState.demoMode = false;
+    const authStore = useAuthStore();
+    authStore.authSessionResolved = true;
+    authStore.authEnabled = false;
+    authStore.authenticated = false;
+    authStore.demoMode = false;
     clearConversationPrefetchCache();
 });
 

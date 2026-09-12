@@ -1086,9 +1086,9 @@
                         <AppearanceSettingsSection
                             :visible="showSection('appearance')"
                             :config="config"
-                            :detailed-outbound-send-status="GlobalState.detailedOutboundSendStatus"
-                            :outbound-transfer-progress-enabled="GlobalState.outboundTransferProgressEnabled"
-                            :message-timestamp-grouping-enabled="GlobalState.messageTimestampGroupingEnabled"
+                            :detailed-outbound-send-status="configStore.detailedOutboundSendStatus"
+                            :outbound-transfer-progress-enabled="configStore.outboundTransferProgressEnabled"
+                            :message-timestamp-grouping-enabled="configStore.messageTimestampGroupingEnabled"
                             :message-icon-preview-style="messageIconPreviewStyle"
                             @update-field="
                                 (p) => {
@@ -2984,6 +2984,9 @@
 </template>
 
 <script>
+import { mapStores } from "pinia";
+import { useAuthStore } from "../../js/stores/authStore.js";
+import { useConfigStore } from "../../js/stores/configStore.js";
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
@@ -3017,7 +3020,6 @@ import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
-import GlobalState from "../../js/GlobalState";
 import {
     numOrNull,
     sanitizeColorConfigFields as normalizeConfigColors,
@@ -3065,6 +3067,7 @@ import {
 } from "../../js/settings/settingsTabs.js";
 import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
 import { getMicronWasmRuntimeOverride } from "../../js/MicronWasmRuntimeOverride.js";
 import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT } from "../../js/micronWasmVersion.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
@@ -3106,7 +3109,6 @@ export default {
     },
     data() {
         return {
-            GlobalState,
             ElectronUtils,
             KeyboardShortcuts,
             shortcutsExpanded: typeof window !== "undefined" ? window.innerWidth >= 1024 : true,
@@ -3315,6 +3317,7 @@ export default {
         };
     },
     computed: {
+        ...mapStores(useConfigStore),
         sectionKeywords() {
             return getAllSettingsSectionKeywords();
         },
@@ -3582,10 +3585,10 @@ export default {
     },
     beforeUnmount() {
         // stop listening for websocket events
-        offWsEvent("config", this.onConfigEvent);
-        offWsEvent("keyboard_shortcuts", this.onKeyboardShortcutsEvent);
-        offWsEvent("reticulum_reload_status", this.onReloadStatusEvent);
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        offWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
+        offWsEvent(WS_EVENTS.KEYBOARD_SHORTCUTS, this.onKeyboardShortcutsEvent);
+        offWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReloadStatusEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseInfo);
         window.removeEventListener("keydown", this.onSettingsSearchHotkey);
         // stop any pending debounced saves
@@ -3598,10 +3601,10 @@ export default {
     },
     mounted() {
         // listen for websocket events
-        onWsEvent("config", this.onConfigEvent);
-        onWsEvent("keyboard_shortcuts", this.onKeyboardShortcutsEvent);
-        onWsEvent("reticulum_reload_status", this.onReloadStatusEvent);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        onWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
+        onWsEvent(WS_EVENTS.KEYBOARD_SHORTCUTS, this.onKeyboardShortcutsEvent);
+        onWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReloadStatusEvent);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseInfo);
         window.addEventListener("keydown", this.onSettingsSearchHotkey);
 
@@ -3620,7 +3623,7 @@ export default {
         this.loadReticulumInstanceSettings();
         this.loadAndroidShellPrivacy();
         try {
-            const savedMode = localStorage.getItem("meshchatx_settings_mode");
+            const savedMode = localStorage.getItem(STORAGE_KEYS.SETTINGS_MODE);
             if (savedMode === "simple" || savedMode === "advanced") {
                 this.settingsMode = savedMode;
             }
@@ -3647,7 +3650,7 @@ export default {
         },
         async loadBatteryInterfaceRows() {
             try {
-                const response = await window.api.get("/api/v1/reticulum/interfaces");
+                const response = await window.api.get(apiPath("/reticulum/interfaces"));
                 const interfaces = response?.data?.interfaces || {};
                 this.batteryInterfaceRows = Object.entries(interfaces)
                     .map(([name, iface]) => ({
@@ -3950,7 +3953,7 @@ export default {
             this.selfTestResults = null;
             this.selfTestExpandedReasons = {};
             try {
-                const response = await window.api.get("/api/v1/self-test");
+                const response = await window.api.get(apiPath("/self-test"));
                 this.selfTestResults = response.data;
             } catch (e) {
                 console.error("Failed to run system self-test", e);
@@ -4029,7 +4032,7 @@ export default {
         },
         async getTrustedTelemetryPeers() {
             try {
-                const response = await window.api.get("/api/v1/telemetry/trusted-peers");
+                const response = await window.api.get(apiPath("/telemetry/trusted-peers"));
                 this.trustedTelemetryPeers = response.data.trusted_peers;
             } catch (e) {
                 console.error("Failed to fetch trusted telemetry peers", e);
@@ -4037,7 +4040,7 @@ export default {
         },
         async revokeTelemetryTrust(peer) {
             try {
-                await window.api.patch(`/api/v1/telephone/contacts/${peer.id}`, {
+                await window.api.patch(apiPath(`/telephone/contacts/${peer.id}`), {
                     is_telemetry_trusted: false,
                 });
                 this.getTrustedTelemetryPeers();
@@ -4087,7 +4090,7 @@ export default {
             this.selectSettingsTab(tabId);
         },
         sectionAvailable(sectionKey) {
-            if (sectionKey === "plugins" && GlobalState.pluginsEnabled === false) {
+            if (sectionKey === "plugins" && useAuthStore().pluginsEnabled === false) {
                 return false;
             }
             return true;
@@ -4220,7 +4223,7 @@ export default {
         onSettingsModeChange(mode) {
             this.settingsMode = mode === "simple" ? "simple" : "advanced";
             try {
-                localStorage.setItem("meshchatx_settings_mode", this.settingsMode);
+                localStorage.setItem(STORAGE_KEYS.SETTINGS_MODE, this.settingsMode);
             } catch {
                 /* ignore */
             }
@@ -4300,8 +4303,8 @@ export default {
         },
         loadExposureAcknowledgements() {
             try {
-                this.exposureAckFirewall = localStorage.getItem("meshchatx_exposure_ack_firewall") === "1";
-                this.exposureAckVpn = localStorage.getItem("meshchatx_exposure_ack_vpn") === "1";
+                this.exposureAckFirewall = localStorage.getItem(STORAGE_KEYS.EXPOSURE_ACK_FIREWALL) === "1";
+                this.exposureAckVpn = localStorage.getItem(STORAGE_KEYS.EXPOSURE_ACK_VPN) === "1";
             } catch {
                 this.exposureAckFirewall = false;
                 this.exposureAckVpn = false;
@@ -4309,15 +4312,15 @@ export default {
         },
         persistExposureAcknowledgements() {
             try {
-                localStorage.setItem("meshchatx_exposure_ack_firewall", this.exposureAckFirewall ? "1" : "0");
-                localStorage.setItem("meshchatx_exposure_ack_vpn", this.exposureAckVpn ? "1" : "0");
+                localStorage.setItem(STORAGE_KEYS.EXPOSURE_ACK_FIREWALL, this.exposureAckFirewall ? "1" : "0");
+                localStorage.setItem(STORAGE_KEYS.EXPOSURE_ACK_VPN, this.exposureAckVpn ? "1" : "0");
             } catch {
                 // ignore storage failures
             }
         },
         async getServerSecurity() {
             try {
-                const response = await window.api.get("/api/v1/server/security");
+                const response = await window.api.get(apiPath("/server/security"));
                 this.serverSecurity = { ...this.serverSecurity, ...response.data };
             } catch (e) {
                 console.log(e);
@@ -4333,7 +4336,7 @@ export default {
             if (this.saveTimeouts.webUiAllowlist) clearTimeout(this.saveTimeouts.webUiAllowlist);
             this.saveTimeouts.webUiAllowlist = setTimeout(async () => {
                 try {
-                    const response = await window.api.patch("/api/v1/server/security", {
+                    const response = await window.api.patch(apiPath("/server/security"), {
                         web_ui_ip_allowlist: this.serverSecurity.web_ui_ip_allowlist,
                     });
                     this.serverSecurity = { ...this.serverSecurity, ...response.data };
@@ -4680,27 +4683,27 @@ export default {
         },
         onDetailedOutboundSendStatusChange(event) {
             const checked = event.target.checked;
-            GlobalState.detailedOutboundSendStatus = checked;
+            useConfigStore().detailedOutboundSendStatus = checked;
             try {
-                localStorage.setItem("meshchatx_detailed_outbound_send_status", checked ? "true" : "false");
+                localStorage.setItem(STORAGE_KEYS.DETAILED_OUTBOUND_SEND_STATUS, checked ? "true" : "false");
             } catch {
                 // ignore
             }
         },
         onOutboundTransferProgressEnabledChange(event) {
             const checked = event.target.checked;
-            GlobalState.outboundTransferProgressEnabled = checked;
+            useConfigStore().outboundTransferProgressEnabled = checked;
             try {
-                localStorage.setItem("meshchatx_outbound_transfer_progress_enabled", checked ? "true" : "false");
+                localStorage.setItem(STORAGE_KEYS.OUTBOUND_TRANSFER_PROGRESS_ENABLED, checked ? "true" : "false");
             } catch {
                 // ignore
             }
         },
         onMessageTimestampGroupingChange(event) {
             const checked = event.target.checked;
-            GlobalState.messageTimestampGroupingEnabled = checked;
+            useConfigStore().messageTimestampGroupingEnabled = checked;
             try {
-                localStorage.setItem("meshchatx_message_timestamp_grouping_enabled", checked ? "true" : "false");
+                localStorage.setItem(STORAGE_KEYS.MESSAGE_TIMESTAMP_GROUPING_ENABLED, checked ? "true" : "false");
             } catch {
                 // ignore
             }
@@ -5525,7 +5528,7 @@ export default {
         },
         async exportStickers() {
             try {
-                const response = await window.api.get("/api/v1/stickers/export");
+                const response = await window.api.get(apiPath("/stickers/export"));
                 const dataStr = JSON.stringify(response.data, null, 2);
                 const exportFileDefaultName = `meshchat_stickers_${new Date().toISOString().slice(0, 10)}.json`;
                 await DownloadUtils.downloadFile(
@@ -5544,7 +5547,7 @@ export default {
             reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    const response = await window.api.post("/api/v1/stickers/import", {
+                    const response = await window.api.post(apiPath("/stickers/import"), {
                         ...data,
                         replace_duplicates: this.stickerImportReplaceDuplicates,
                     });
@@ -5579,7 +5582,7 @@ export default {
         },
         async exportGifs() {
             try {
-                const response = await window.api.get("/api/v1/gifs/export");
+                const response = await window.api.get(apiPath("/gifs/export"));
                 const dataStr = JSON.stringify(response.data, null, 2);
                 const exportFileDefaultName = `meshchat_gifs_${new Date().toISOString().slice(0, 10)}.json`;
                 await DownloadUtils.downloadFile(
@@ -5598,7 +5601,7 @@ export default {
             reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    const response = await window.api.post("/api/v1/gifs/import", {
+                    const response = await window.api.post(apiPath("/gifs/import"), {
                         ...data,
                         replace_duplicates: this.gifImportReplaceDuplicates,
                     });
@@ -5674,7 +5677,7 @@ export default {
         },
         async exportFolders() {
             try {
-                const response = await window.api.get("/api/v1/lxmf/folders/export");
+                const response = await window.api.get(apiPath("/lxmf/folders/export"));
                 const dataStr = JSON.stringify(response.data, null, 2);
                 const blob = new Blob([dataStr], { type: "application/json" });
                 const exportFileDefaultName = `meshchat_folders_${new Date().toISOString().slice(0, 10)}.json`;
@@ -5697,7 +5700,7 @@ export default {
                     const data = JSON.parse(e.target.result);
                     if (!data.folders || !data.mappings) throw new Error("Invalid file format");
 
-                    await window.api.post("/api/v1/lxmf/folders/import", data);
+                    await window.api.post(apiPath("/lxmf/folders/import"), data);
                     ToastUtils.success(this.$t("settings.folders_imported"));
                 } catch {
                     ToastUtils.error(this.$t("settings.failed_import_folders"));
@@ -5776,7 +5779,7 @@ export default {
             }
             let favourites = [];
             try {
-                const response = await window.api.get("/api/v1/favourites");
+                const response = await window.api.get(apiPath("/favourites"));
                 favourites = response.data.favourites || [];
             } catch {
                 // continue without favourite records
@@ -5815,7 +5818,7 @@ export default {
                         throw new Error("invalid file");
                     }
                     if (Array.isArray(data.favourites) && data.favourites.length > 0) {
-                        await window.api.post("/api/v1/favourites/import", {
+                        await window.api.post(apiPath("/favourites/import"), {
                             favourites: data.favourites,
                         });
                     }
@@ -5826,7 +5829,7 @@ export default {
                     } else {
                         throw new Error("invalid file");
                     }
-                    GlobalEmitter.emit("nomadnet-favourites-layout-imported");
+                    GlobalEmitter.emit(EMITTER_EVENTS.NOMADNET_FAVOURITES_LAYOUT_IMPORTED);
                     ToastUtils.success(this.$t("maintenance.nomadnet_favourites_imported"));
                 } catch {
                     ToastUtils.error(this.$t("maintenance.nomadnet_favourites_import_failed"));

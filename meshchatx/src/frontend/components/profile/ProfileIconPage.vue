@@ -189,6 +189,8 @@
 </template>
 
 <script>
+import { useConfigStore } from "../../js/stores/configStore.js";
+
 import * as mdi from "@mdi/js";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
@@ -196,7 +198,7 @@ import ColourPickerDropdown from "../ColourPickerDropdown.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { mergeGlobalConfig } from "../../js/GlobalState";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
 
 export default {
     name: "ProfileIconPage",
@@ -299,11 +301,11 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get("/api/v1/config");
+                const response = await window.api.get(apiPath("/config"));
                 const next = response.data?.config;
                 if (next && typeof next === "object") {
                     this.config = next;
-                    mergeGlobalConfig(next);
+                    useConfigStore().mergeConfig(next);
                 }
             } catch (e) {
                 ToastUtils.error(this.$t("messages.failed_load_config"));
@@ -312,14 +314,14 @@ export default {
         },
         async updateConfig(config, silent = false) {
             try {
-                const response = await window.api.patch("/api/v1/config", config);
+                const response = await window.api.patch(apiPath("/config"), config);
                 const next = response.data?.config;
                 if (!next || typeof next !== "object") {
                     return false;
                 }
-                mergeGlobalConfig(next);
+                useConfigStore().mergeConfig(next);
                 this.config = next;
-                GlobalEmitter.emit("config-updated", next);
+                GlobalEmitter.emit(EMITTER_EVENTS.CONFIG_UPDATED, next);
                 this.saveOriginalValues();
 
                 if (!silent) {

@@ -623,11 +623,14 @@
 </template>
 
 <script>
+import { useNetworkStore } from "../../js/stores/networkStore.js";
+
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import GlobalState from "../../js/GlobalState";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import * as botsApi from "../../js/api/bots.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
@@ -692,9 +695,9 @@ export default {
     mounted() {
         this.getStatus();
         this.startStatusPollInterval();
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this._liveTransportReadyWatch = this.$watch(
-            () => GlobalState.liveTransportReady,
+            () => useNetworkStore().liveTransportReady,
             () => {
                 this.startStatusPollInterval();
             }
@@ -710,7 +713,7 @@ export default {
         if (this.relativeTimerInterval) {
             clearInterval(this.relativeTimerInterval);
         }
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (typeof this._liveTransportReadyWatch === "function") {
             this._liveTransportReadyWatch();
             this._liveTransportReadyWatch = null;
@@ -725,12 +728,12 @@ export default {
                 clearInterval(this.refreshInterval);
                 this.refreshInterval = null;
             }
-            const pollMs = GlobalState.liveTransportReady ? 30000 : 5000;
+            const pollMs = useNetworkStore().liveTransportReady ? 30000 : 5000;
             this.refreshInterval = setInterval(this.getStatus, pollMs);
         },
         async getStatus() {
             try {
-                const response = await window.api.get("/api/v1/bots/status");
+                const response = await window.api.get(apiPath("/bots/status"));
                 this.bots = response.data.status.bots || [];
                 this.templates = response.data.templates;
                 this.loading = false;
@@ -746,7 +749,7 @@ export default {
         },
         async stopBot(botId) {
             try {
-                await window.api.post("/api/v1/bots/stop", { bot_id: botId });
+                await window.api.post(apiPath("/bots/stop"), { bot_id: botId });
                 ToastUtils.success(this.$t("bots.bot_stopped"));
                 this.getStatus();
             } catch (e) {
@@ -764,7 +767,7 @@ export default {
                 if (payload.template_id === "rrc" && bot.rrc) {
                     payload.rrc = bot.rrc;
                 }
-                await window.api.post("/api/v1/bots/start", payload);
+                await window.api.post(apiPath("/bots/start"), payload);
                 ToastUtils.success(this.$t("bots.bot_started"));
                 this.getStatus();
             } catch (e) {
@@ -774,7 +777,7 @@ export default {
         },
         async restartExisting(bot) {
             try {
-                await window.api.post("/api/v1/bots/restart", { bot_id: bot.id });
+                await window.api.post(apiPath("/bots/restart"), { bot_id: bot.id });
                 ToastUtils.success(this.$t("bots.bot_started"));
                 this.getStatus();
             } catch (e) {
@@ -785,7 +788,7 @@ export default {
         async deleteBot(botId) {
             if (!(await DialogUtils.confirm(this.$t("common.delete_confirm")))) return;
             try {
-                await window.api.post("/api/v1/bots/delete", { bot_id: botId });
+                await window.api.post(apiPath("/bots/delete"), { bot_id: botId });
                 ToastUtils.success(this.$t("bots.bot_deleted"));
                 if (this.editingBotId === botId) {
                     this.cancelEditName();
@@ -798,11 +801,7 @@ export default {
         },
         async exportIdentity(botId) {
             try {
-                const response = await window.api.post(
-                    "/api/v1/bots/export",
-                    { bot_id: botId },
-                    { responseType: "arraybuffer" }
-                );
+                const response = await botsApi.exportBots({ bot_id: botId }, { responseType: "arraybuffer" });
                 await DownloadUtils.downloadFromApiResponse(response, `bot_${botId}_identity`);
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("bots.export_failed"));
@@ -826,7 +825,7 @@ export default {
                 return;
             }
             try {
-                await window.api.patch("/api/v1/bots/update", {
+                await window.api.patch(apiPath("/bots/update"), {
                     bot_id: bot.id,
                     name,
                 });
@@ -840,7 +839,7 @@ export default {
         },
         async forceAnnounce(bot) {
             try {
-                await window.api.post("/api/v1/bots/announce", { bot_id: bot.id });
+                await window.api.post(apiPath("/bots/announce"), { bot_id: bot.id });
                 ToastUtils.success(this.$t("bots.announce_triggered"));
                 this.getStatus();
             } catch (e) {
@@ -864,7 +863,7 @@ export default {
             this.processLogTruncated = false;
             this.processLogLoading = true;
             try {
-                const response = await window.api.get("/api/v1/bots/subprocess-log", {
+                const response = await botsApi.getSubprocessLog({
                     params: { bot_id: bot.id },
                 });
                 this.processLogText =
@@ -979,7 +978,7 @@ export default {
             this.lxmfConfigSaving = true;
             try {
                 const patch = buildLxmfConfigPatch(this.lxmfConfigDraft, { clearEmpty: true });
-                await window.api.patch("/api/v1/bots/lxmf-config", {
+                await window.api.patch(apiPath("/bots/lxmf-config"), {
                     bot_id: this.lxmfConfigModalBot.id,
                     lxmf_config: patch,
                 });
@@ -1011,7 +1010,7 @@ export default {
             }
             this.iconSaving = true;
             try {
-                await window.api.patch("/api/v1/bots/update", {
+                await window.api.patch(apiPath("/bots/update"), {
                     bot_id: this.iconModalBot.id,
                     icon: this.iconDraft,
                 });
@@ -1048,7 +1047,7 @@ export default {
             }
             this.customSaving = true;
             try {
-                await window.api.patch("/api/v1/bots/update", {
+                await window.api.patch(apiPath("/bots/update"), {
                     bot_id: this.customModalBot.id,
                     custom: payload,
                 });
@@ -1085,7 +1084,7 @@ export default {
             }
             this.rrcSaving = true;
             try {
-                await window.api.patch("/api/v1/bots/update", {
+                await window.api.patch(apiPath("/bots/update"), {
                     bot_id: this.rrcModalBot.id,
                     rrc: payload,
                 });

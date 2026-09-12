@@ -5,14 +5,8 @@ import { createI18n } from "vue-i18n";
 import TutorialModal from "../../meshchatx/src/frontend/components/TutorialModal.vue";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
-
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
-    default: {
-        config: { theme: "light", language: "en" },
-        hasPendingInterfaceChanges: false,
-        modifiedInterfaceNames: new Set(),
-    },
-}));
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useInterfaceChangesStore } from "../../meshchatx/src/frontend/js/stores/interfaceChangesStore.js";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
@@ -91,6 +85,7 @@ describe("TutorialModal getting started migration", () => {
     beforeEach(() => {
         window.api = axiosMock;
         vi.clearAllMocks();
+        useConfigStore().config = { theme: "light", language: "en" };
     });
 
     afterEach(() => {
@@ -733,8 +728,7 @@ describe("TutorialModal getting started migration", () => {
     });
 
     it("finishTutorial blocks when pending interface reload fails", async () => {
-        const GlobalState = (await import("../../meshchatx/src/frontend/js/GlobalState.js")).default;
-        GlobalState.hasPendingInterfaceChanges = true;
+        useInterfaceChangesStore().hasPendingInterfaceChanges = true;
 
         axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
         axiosMock.post.mockImplementation((url) => {
@@ -769,7 +763,7 @@ describe("TutorialModal getting started migration", () => {
         expect(wrapper.vm.visible).toBe(true);
         expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/app/tutorial/seen", expect.anything());
 
-        GlobalState.hasPendingInterfaceChanges = false;
+        useInterfaceChangesStore().hasPendingInterfaceChanges = false;
         wrapper.unmount();
     });
 
