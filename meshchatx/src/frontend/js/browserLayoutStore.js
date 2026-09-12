@@ -96,7 +96,7 @@ export function saveMapTabs(state) {
 /**
  * Load the persisted Messages pane layout.
  *
- * @returns {{panes: Array, focusedIndex: number}|null} saved layout or null
+ * @returns {{panes: Array, focusedIndex: number, sizes?: Array}|null} saved layout or null
  */
 export function loadMessagePanes() {
     const data = readJson(MESSAGE_PANES_KEY);
@@ -109,7 +109,7 @@ export function loadMessagePanes() {
 /**
  * Persist the Messages pane layout.
  *
- * @param {{panes: Array, focusedIndex: number}} state layout to save
+ * @param {{panes: Array, focusedIndex: number, sizes?: Array}} state layout to save
  */
 export function saveMessagePanes(state) {
     writeJson(MESSAGE_PANES_KEY, state);
