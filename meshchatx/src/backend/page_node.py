@@ -700,10 +700,12 @@ class PageNode:
             return generated.stdout
         except subprocess.TimeoutExpired:
             return _page_generation_error_bytes("The page script timed out.")
-        except OSError as e:
-            return _page_generation_error_bytes(str(e))
         except Exception as e:
-            return _page_generation_error_bytes(str(e))
+            # These bytes are served to the remote requester; internal
+            # exception text can carry local paths, so keep it generic
+            # and log the real error server-side.
+            RNS.trace_exception(e)
+            return _page_generation_error_bytes("The page script failed to run.")
 
     def serve_page_content(
         self,

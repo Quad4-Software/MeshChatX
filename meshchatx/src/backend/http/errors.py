@@ -16,10 +16,12 @@ to call these in a mechanical move change.
 from __future__ import annotations
 
 # pyright: strict
+import sqlite3
 from typing import Any
 
 from aiohttp import web
 
+from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.path_utils import PathJailError
 
 _PATH_JAIL_STATUS = {
@@ -136,6 +138,8 @@ def http_error_from_exception(
         return respond(403, "Not allowed")
     if isinstance(exc, ValueError):
         return respond(400, str(exc))
+    if isinstance(exc, sqlite3.Error) and sqlite_error_is_retryable(exc):
+        return respond(503, "Database temporarily unavailable, retry")
     if isinstance(exc, OSError):
         return respond(500, "Internal server error")
     return respond(fallback_status, "Request failed")
