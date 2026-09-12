@@ -494,6 +494,7 @@ import { mapStores } from "pinia";
 import { useAuthStore } from "../js/stores/authStore.js";
 import { useNetworkStore } from "../js/stores/networkStore.js";
 import { useConfigStore } from "../js/stores/configStore.js";
+import { useInterfaceChangesStore } from "../js/stores/interfaceChangesStore.js";
 import { useUnreadStore } from "../js/stores/unreadStore.js";
 import { useIdentityStore } from "../js/stores/identityStore.js";
 import { getCurrentInstance, watch } from "vue";
@@ -1630,6 +1631,10 @@ export default {
                 useUnreadStore().missedCallsCount = 0;
                 useUnreadStore().relayChatUnreadCount = 0;
                 useIdentityStore().blockedDestinations = [];
+                // Config merges keep stale keys from the old identity, and a
+                // pending interface-reload banner belongs to the old one too.
+                useConfigStore().resetConfig();
+                useInterfaceChangesStore().$reset();
 
                 // Drop device-global UI caches that must not follow the new identity.
                 clearMessagePanes();
