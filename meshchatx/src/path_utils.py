@@ -6,8 +6,13 @@ import contextlib
 import os
 import sys
 import tempfile
+from typing import TYPE_CHECKING
 
-from aiohttp import web
+if TYPE_CHECKING:
+    # path_utils must stay importable without the backend venv because
+    # scripts/build/fetch_repository_wheels.py loads it via
+    # repository_server_manager with plain system python.
+    from aiohttp import web
 
 
 def is_path_within_dir(path: str, directory: str) -> bool:
@@ -553,7 +558,7 @@ def resolve_meshchat_data_roots(
 
 
 def request_client_ip(
-    request: web.Request,
+    request: "web.Request",
     trusted_proxy_cidrs: str | None = None,
 ) -> str:
     """Return the client IP, trusting X-Forwarded-For only from configured proxies.

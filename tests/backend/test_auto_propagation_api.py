@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: 0BSD
 
-import asyncio
 import json
 import shutil
 import tempfile
@@ -10,6 +9,7 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import json_request
 
 
 @pytest.fixture
@@ -82,9 +82,7 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     assert patch_handler is not None
 
     # Update to True
-    mock_request = MagicMock()
-    mock_request.json = MagicMock(return_value=asyncio.Future())
-    mock_request.json.return_value.set_result(
+    mock_request = json_request(
         {"lxmf_preferred_propagation_node_auto_select": True},
     )
 
@@ -94,9 +92,7 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     assert app_instance.config.lxmf_preferred_propagation_node_auto_select.get() is True
 
     # Update to False
-    mock_request = MagicMock()
-    mock_request.json = MagicMock(return_value=asyncio.Future())
-    mock_request.json.return_value.set_result(
+    mock_request = json_request(
         {"lxmf_preferred_propagation_node_auto_select": False},
     )
 
@@ -108,9 +104,7 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     )
 
     # Update transfer/sync limits and validate clamping/application
-    mock_request = MagicMock()
-    mock_request.json = MagicMock(return_value=asyncio.Future())
-    mock_request.json.return_value.set_result(
+    mock_request = json_request(
         {
             "lxmf_propagation_transfer_limit_in_bytes": 250_000,
             "lxmf_propagation_sync_limit_in_bytes": 9_000_000,
@@ -124,9 +118,7 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     assert app_instance.config.lxmf_propagation_transfer_limit_in_bytes.get() == 250_000
     assert app_instance.config.lxmf_propagation_sync_limit_in_bytes.get() == 9_000_000
 
-    mock_request = MagicMock()
-    mock_request.json = MagicMock(return_value=asyncio.Future())
-    mock_request.json.return_value.set_result(
+    mock_request = json_request(
         {"lxmf_delivery_transfer_limit_in_bytes": 2_000_000_000},
     )
 

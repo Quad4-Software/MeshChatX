@@ -174,8 +174,8 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             const end = handler.indexOf("async def page_nodes_delete_file", start);
             const block = handler.slice(start, end);
             expect(block).toContain("except ValueError as e:");
-            expect(block).toContain("except OSError as e:");
-            expect(block).toContain("Failed to write file:");
+            expect(block).toContain("except OSError:");
+            expect(block).toContain("Failed to write file");
         });
     });
 

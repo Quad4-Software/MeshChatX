@@ -174,7 +174,9 @@ def reorder_interfaces_i2p_last(interfaces: dict) -> bool:
 
     for name in list(interfaces.keys()):
         del interfaces[name]
-    interfaces.update(non_i2p + i2p)
+    # dict() because configobj Section.update indexes into its argument,
+    # so a list of pairs raises TypeError there.
+    interfaces.update(dict(non_i2p + i2p))
     return True
 
 

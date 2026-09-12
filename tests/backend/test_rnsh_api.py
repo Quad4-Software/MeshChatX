@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from tests.backend.http_request_stubs import JsonContent
+
 
 def _find_handler(app, path, method):
     for route in app.get_routes():
@@ -23,6 +25,7 @@ def _make_request(json_body=None, match_info=None, query=None):
         return json_body if json_body is not None else {}
 
     request.json = _json
+    request.content = JsonContent(json_body if json_body is not None else {})
     request.match_info = match_info or {}
     request.query = query or {}
     return request
