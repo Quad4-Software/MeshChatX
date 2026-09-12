@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_telemetry_routes(routes, app):
@@ -170,7 +175,10 @@ def register_telemetry_routes(routes, app):
     @routes.post("/api/v1/telemetry/tracking/{destination_hash}/toggle")
     async def toggle_telemetry_tracking(request):
         destination_hash = request.match_info["destination_hash"]
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         is_tracking = data.get("is_tracking")
 
         new_status = app.database.telemetry.toggle_tracking(

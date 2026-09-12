@@ -133,6 +133,8 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_field_limited,
+    read_field_text_limited,
+    read_json_limited,
 )
 from meshchatx.src.backend.interface_enabled_flag import apply_interface_enabled_flag
 from meshchatx.src.backend.serial_comports import list_serial_comports
@@ -207,7 +209,9 @@ def register_interfaces_routes(routes, app):
     async def reticulum_interfaces_bitrates(request):
         """Set forced bitrate (bps) on named interfaces and optionally reload RNS."""
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response({"message": "Invalid JSON"}, status=400)
         if not isinstance(data, dict):
@@ -268,10 +272,10 @@ def register_interfaces_routes(routes, app):
             try:
                 await app.reload_reticulum()
                 reloaded = True
-            except Exception as e:
+            except Exception:
                 return web.json_response(
                     {
-                        "message": f"Bitrates saved but RNS reload failed: {e}",
+                        "message": "Bitrates saved but RNS reload failed",
                         "updated": updated,
                         "missing": missing,
                         "reloaded": False,
@@ -294,7 +298,10 @@ def register_interfaces_routes(routes, app):
     @routes.post("/api/v1/reticulum/interfaces/enable")
     async def reticulum_interfaces_enable(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         interface_name = data.get("name")
 
         if interface_name is None or interface_name == "":
@@ -357,7 +364,10 @@ def register_interfaces_routes(routes, app):
     @routes.post("/api/v1/reticulum/interfaces/disable")
     async def reticulum_interfaces_disable(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         interface_name = data.get("name")
 
         if interface_name is None or interface_name == "":
@@ -412,7 +422,10 @@ def register_interfaces_routes(routes, app):
     @routes.post("/api/v1/reticulum/interfaces/delete")
     async def reticulum_interfaces_delete(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         interface_name = data.get("name")
 
         if interface_name is None or interface_name == "":
@@ -464,9 +477,9 @@ def register_interfaces_routes(routes, app):
             payload = list_interface_modules(app.reticulum_config_dir)
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
-        except Exception as e:
+        except Exception:
             return web.json_response(
-                {"message": f"Failed to list interface modules: {e!s}"},
+                {"message": "Failed to list interface modules"},
                 status=500,
             )
         return web.json_response(payload)
@@ -491,17 +504,21 @@ def register_interfaces_routes(routes, app):
                         filename = field.filename or filename
                         data = await read_field_limited(field, _MAX_MODULE_BYTES)
                     elif field.name == "overwrite":
-                        overwrite = (await field.text()).strip().lower() in (
+                        overwrite = (
+                            await read_field_text_limited(field)
+                        ).strip().lower() in (
                             "1",
                             "true",
                             "yes",
                             "on",
                         )
                     elif field.name == "filename":
-                        filename = (await field.text()).strip() or filename
+                        filename = (
+                            await read_field_text_limited(field)
+                        ).strip() or filename
                     field = await reader.next()
             else:
-                body = await request.json()
+                body = await read_json_limited(request, _MAX_MODULE_BYTES * 2)
                 filename = body.get("filename") or body.get("type")
                 raw = body.get("content") or body.get("data") or ""
                 if isinstance(raw, str):
@@ -536,9 +553,9 @@ def register_interfaces_routes(routes, app):
             return http_payload_too_large()
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=422)
-        except Exception as e:
+        except Exception:
             return web.json_response(
-                {"message": f"Failed to install interface module: {e!s}"},
+                {"message": "Failed to install interface module"},
                 status=500,
             )
 
@@ -555,9 +572,9 @@ def register_interfaces_routes(routes, app):
             return web.json_response({"message": str(e)}, status=404)
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=422)
-        except Exception as e:
+        except Exception:
             return web.json_response(
-                {"message": f"Failed to delete interface module: {e!s}"},
+                {"message": "Failed to delete interface module"},
                 status=500,
             )
         return web.json_response(
@@ -573,7 +590,10 @@ def register_interfaces_routes(routes, app):
     @routes.post("/api/v1/reticulum/interfaces/add")
     async def reticulum_interfaces_add(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         interface_name = InterfaceEditor.sanitize_interface_section_name(
             data.get("name"),
         )
@@ -1632,8 +1652,10 @@ def register_interfaces_routes(routes, app):
             # get request data
             selected_interface_names = None
             try:
-                data = await request.json()
+                data = await read_json_limited(request)
                 selected_interface_names = data.get("selected_interface_names")
+            except PayloadTooLargeError:
+                return http_payload_too_large()
             except Exception as e:
                 # request data was not json, but we don't care
                 print(f"Request data was not JSON: {e}")
@@ -1676,10 +1698,10 @@ def register_interfaces_routes(routes, app):
                 },
             )
 
-        except Exception as e:
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to export interfaces: {e!s}",
+                    "message": "Failed to export interfaces",
                 },
                 status=500,
             )
@@ -1688,7 +1710,7 @@ def register_interfaces_routes(routes, app):
     async def import_interfaces_preview(request):
         try:
             # get request data
-            data = await request.json()
+            data = await read_json_limited(request)
             config = data.get("config")
 
             # parse interfaces from config
@@ -1706,6 +1728,8 @@ def register_interfaces_routes(routes, app):
                 },
             )
 
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return web.json_response(
                 {
@@ -1721,7 +1745,7 @@ def register_interfaces_routes(routes, app):
     async def import_interfaces(request):
         try:
             # get request data
-            data = await request.json()
+            data = await read_json_limited(request)
             config = data.get("config")
             selected_interface_names = data.get("selected_interface_names")
 
@@ -1862,10 +1886,12 @@ def register_interfaces_routes(routes, app):
                 },
             )
 
-        except Exception as e:
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to import interfaces: {e!s}",
+                    "message": "Failed to import interfaces",
                 },
                 status=500,
             )

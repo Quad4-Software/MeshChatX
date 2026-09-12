@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_error_from_exception
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -130,6 +133,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_reticulum_instance_routes(routes, app):
@@ -179,7 +186,9 @@ def register_reticulum_instance_routes(routes, app):
     @routes.patch("/api/v1/reticulum/discovery")
     async def reticulum_discovery_patch(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response(
                 {"message": "Invalid request body"},
@@ -326,7 +335,7 @@ def register_reticulum_instance_routes(routes, app):
             logger.debug(f"Failed to reload RNS after discovery config update: {e}")
             return web.json_response(
                 {
-                    "message": f"Discovery settings saved but RNS reload failed: {e}",
+                    "message": "Discovery settings saved but RNS reload failed",
                     "reloaded": False,
                 },
                 status=500,
@@ -497,9 +506,9 @@ def register_reticulum_instance_routes(routes, app):
         try:
             payload = await asyncio.to_thread(_collect_discovered_interfaces)
             return web.json_response(payload)
-        except Exception as e:
+        except Exception:
             return web.json_response(
-                {"message": f"Failed to load discovered interfaces: {e!s}"},
+                {"message": "Failed to load discovered interfaces"},
                 status=500,
             )
 
@@ -578,7 +587,9 @@ def register_reticulum_instance_routes(routes, app):
     async def reticulum_instance_patch(request):
         """Update [reticulum] shared-instance / hop-obfuscation options and reload."""
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response(
                 {"message": "Invalid request body"},
@@ -697,7 +708,9 @@ def register_reticulum_instance_routes(routes, app):
         )
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response(
                 {"message": "Invalid request body"},
@@ -766,7 +779,9 @@ def register_reticulum_instance_routes(routes, app):
         next reload.
         """
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response(
                 {"error": "Invalid JSON body"},

@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_error_from_exception
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -130,6 +133,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_auth_routes(routes, app):
@@ -153,7 +160,9 @@ def register_auth_routes(routes, app):
     @routes.patch("/api/v1/server/security")
     async def server_security_patch(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             return web.json_response({"error": "Invalid JSON body"}, status=400)
         if not isinstance(data, dict):
@@ -231,7 +240,7 @@ def register_auth_routes(routes, app):
                     "auth_page_hint": app.auth_page_hint,
                 },
             )
-        except Exception as e:
+        except Exception:
             # Handle decryption failure gracefully by reporting as unauthenticated
             return web.json_response(
                 {
@@ -247,7 +256,7 @@ def register_auth_routes(routes, app):
                     ),
                     "demo_mode": app.demo_mode,
                     "auth_page_hint": app.auth_page_hint,
-                    "error": str(e),
+                    "error": "Status unavailable",
                 },
             )
 
@@ -282,7 +291,9 @@ def register_auth_routes(routes, app):
             )
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             if dao:
                 dao.insert(
@@ -364,7 +375,9 @@ def register_auth_routes(routes, app):
         dao = app.database.access_attempts if app.database else None
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             if dao:
                 dao.insert(

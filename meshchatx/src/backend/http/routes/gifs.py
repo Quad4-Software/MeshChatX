@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_gifs_routes(routes, app):
@@ -143,7 +148,9 @@ def register_gifs_routes(routes, app):
     async def gifs_create(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request, gif_utils.MAX_GIF_BYTES * 2)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         image_b64 = data.get("image_bytes")
@@ -185,7 +192,9 @@ def register_gifs_routes(routes, app):
         identity_hash = app.identity.hash.hex()
         gif_id = int(request.match_info.get("gif_id", "0"))
         try:
-            data = await request.json()
+            data = await read_json_limited(request, gif_utils.MAX_GIF_BYTES * 2)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         if "name" not in data:
@@ -229,7 +238,9 @@ def register_gifs_routes(routes, app):
     async def gifs_import(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request, gif_utils.MAX_GIF_BYTES * 8)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         replace = bool(data.get("replace_duplicates", False))

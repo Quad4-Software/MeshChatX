@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -130,11 +133,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
     PayloadTooLargeError,
+    read_json_limited,
     write_field_to_path,
 )
-
-_DB_RESTORE_MAX_BYTES = 1 * 1024 * 1024 * 1024
 
 
 def register_database_routes(routes, app):
@@ -143,14 +146,21 @@ def register_database_routes(routes, app):
     @routes.post("/api/v1/database/snapshot")
     async def create_db_snapshot(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             name = data.get("name", f"snapshot-{int(time.time())}")
             result = app.database.create_snapshot(app.storage_path, name)
             return web.json_response({"status": "success", "result": result})
-        except Exception as e:
+        except PayloadTooLargeError:
             return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+                {"status": "error", "message": "Upload exceeds size limit"},
+                status=413,
+            )
+        except Exception as e:
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.get("/api/v1/database/snapshots")
@@ -170,9 +180,11 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.delete("/api/v1/database/snapshots/{filename}")
@@ -188,9 +200,11 @@ def register_database_routes(routes, app):
             )
             return web.json_response({"status": "success"})
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.post("/api/v1/database/restore")
@@ -210,7 +224,11 @@ def register_database_routes(routes, app):
 
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
                     temp_path = tmp.name
-                await write_field_to_path(field, temp_path, _DB_RESTORE_MAX_BYTES)
+                await write_field_to_path(
+                    field,
+                    temp_path,
+                    UPLOAD_LIMITS["database_restore"],
+                )
 
                 try:
                     # Restore tears down identity contexts and blocks for up
@@ -233,7 +251,7 @@ def register_database_routes(routes, app):
                 )
 
             # JSON body: restore from an on-disk snapshot/auto-backup path
-            data = await request.json()
+            data = await read_json_limited(request)
             path = data.get("path")
             if not path:
                 return web.json_response(
@@ -265,9 +283,11 @@ def register_database_routes(routes, app):
                 status=413,
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.get("/api/v1/database/backups")
@@ -297,9 +317,11 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.delete("/api/v1/database/backups/{filename}")
@@ -315,9 +337,11 @@ def register_database_routes(routes, app):
             )
             return web.json_response({"status": "success"})
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.post("/api/v1/database/backups/{filename}/download")
@@ -342,9 +366,11 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.post("/api/v1/database/snapshots/{filename}/download")
@@ -369,9 +395,11 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.get("/api/v1/database/health")
@@ -383,12 +411,7 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to fetch database health: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/database/vacuum")
     async def database_vacuum(request):
@@ -401,12 +424,7 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to vacuum database: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/database/recover")
     async def database_recover(request):
@@ -419,18 +437,21 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to recover database: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/database/auto-recover")
     async def database_auto_recover(request):
         try:
             try:
-                data = await request.json()
+                data = await read_json_limited(request)
+            except PayloadTooLargeError:
+                return web.json_response(
+                    {
+                        "message": "Upload exceeds size limit",
+                        "strategy": "none",
+                    },
+                    status=413,
+                )
             except Exception:
                 data = {}
             if not isinstance(data, dict):
@@ -451,12 +472,11 @@ def register_database_routes(routes, app):
                 status=status,
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Auto recovery failed: {e!s}",
-                    "strategy": "none",
-                },
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"strategy": "none"},
+                fallback_status=500,
             )
 
     @routes.post("/api/v1/database/backup")
@@ -470,12 +490,7 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to create database backup: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/database/backup/download")
     async def database_backup_download(request):
@@ -491,9 +506,4 @@ def register_database_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to create database backup: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)

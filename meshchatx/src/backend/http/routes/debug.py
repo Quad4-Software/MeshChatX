@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -128,6 +129,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     web,
     websocket_type_requires_auth,
     zipfile,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
 )
 
 
@@ -368,7 +373,9 @@ def register_debug_routes(routes, app):
     @routes.post("/api/v1/bug-reports/local")
     async def record_local_bug(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         if not isinstance(data, dict):
@@ -380,7 +387,9 @@ def register_debug_routes(routes, app):
     @routes.post("/api/v1/bug-reports/issues/{fingerprint}/status")
     async def set_bug_issue_status(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         manager = _bug_manager()

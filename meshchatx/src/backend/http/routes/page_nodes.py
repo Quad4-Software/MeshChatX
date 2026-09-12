@@ -131,11 +131,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
     PayloadTooLargeError,
     read_field_limited,
+    read_json_limited,
 )
-
-_PAGE_NODE_FILE_MAX_BYTES = 64 * 1024 * 1024
 
 
 def register_page_nodes_routes(routes, app):
@@ -148,7 +148,10 @@ def register_page_nodes_routes(routes, app):
 
     @routes.post("/api/v1/page-nodes")
     async def page_nodes_create(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name", "").strip()
         if not name:
             return web.json_response({"message": "Name is required"}, status=400)
@@ -220,7 +223,10 @@ def register_page_nodes_routes(routes, app):
     @routes.put("/api/v1/page-nodes/{node_id}/rename")
     async def page_nodes_rename(request):
         node_id = request.match_info["node_id"]
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         new_name = data.get("name", "").strip()
         if not new_name:
             return web.json_response({"message": "Name is required"}, status=400)
@@ -234,7 +240,9 @@ def register_page_nodes_routes(routes, app):
     async def page_nodes_update_announce_settings(request):
         node_id = request.match_info["node_id"]
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return web.json_response(
                 {"message": f"Invalid request body: {e}"},
@@ -286,7 +294,9 @@ def register_page_nodes_routes(routes, app):
         if not node:
             return web.json_response({"message": "Node not found"}, status=404)
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return web.json_response(
                 {"message": f"Invalid request body: {e}"},
@@ -304,14 +314,14 @@ def register_page_nodes_routes(routes, app):
             saved_name = node.add_page(name, content, executable=executable)
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
-        except OSError as e:
+        except OSError:
             return web.json_response(
-                {"message": f"Failed to write page: {e}"},
+                {"message": "Failed to write page"},
                 status=500,
             )
-        except Exception as e:
+        except Exception:
             return web.json_response(
-                {"message": f"Failed to save page: {e}"},
+                {"message": "Failed to save page"},
                 status=500,
             )
         return web.json_response(
@@ -384,11 +394,14 @@ def register_page_nodes_routes(routes, app):
                     filename = field.filename or "upload"
                     file_data = await read_field_limited(
                         field,
-                        _PAGE_NODE_FILE_MAX_BYTES,
+                        UPLOAD_LIMITS["page_node_file"],
                     )
                 else:
                     with contextlib.suppress(Exception):
-                        await read_field_limited(field, _PAGE_NODE_FILE_MAX_BYTES)
+                        await read_field_limited(
+                            field,
+                            UPLOAD_LIMITS["page_node_file"],
+                        )
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception as e:
@@ -402,14 +415,14 @@ def register_page_nodes_routes(routes, app):
             saved_name = node.add_file(filename, file_data)
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
-        except OSError as e:
+        except OSError:
             return web.json_response(
-                {"message": f"Failed to write file: {e}"},
+                {"message": "Failed to write file"},
                 status=500,
             )
-        except Exception as e:
+        except Exception:
             return web.json_response(
-                {"message": f"Failed to save file: {e}"},
+                {"message": "Failed to save file"},
                 status=500,
             )
         return web.json_response({"name": saved_name, "message": "File uploaded"})

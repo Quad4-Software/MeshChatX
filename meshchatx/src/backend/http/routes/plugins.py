@@ -137,6 +137,8 @@ from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_body_limited,
     read_field_limited,
+    read_field_text_limited,
+    read_json_limited,
 )
 from meshchatx.src.backend.plugin_guard import MAX_PLUGIN_ZIP_BYTES
 
@@ -202,7 +204,9 @@ def register_plugins_routes(routes, app):
     @routes.post("/api/v1/plugins/trusted-publishers")
     async def plugins_trusted_publishers_add(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         identity = data.get("identity") or ""
@@ -252,7 +256,7 @@ def register_plugins_routes(routes, app):
                             MAX_PLUGIN_ZIP_BYTES,
                         )
                     elif name == "granted_permissions":
-                        raw = await field.text()
+                        raw = await read_field_text_limited(field, 8 * 1024)
                         try:
                             parsed = json.loads(raw)
                         except Exception:
@@ -264,7 +268,7 @@ def register_plugins_routes(routes, app):
             else:
                 content_type = request.content_type or ""
                 if "application/json" in content_type:
-                    body = await request.json()
+                    body = await read_json_limited(request, MAX_PLUGIN_ZIP_BYTES * 2)
                     archive_b64 = body.get("archive_b64") or body.get("zip_b64")
                     if not archive_b64:
                         return web.json_response(
@@ -337,7 +341,9 @@ def register_plugins_routes(routes, app):
     async def plugins_report_failure(request):
         plugin_id = request.match_info["plugin_id"]
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         reason = data.get("reason") or "Unknown plugin failure"
@@ -367,7 +373,9 @@ def register_plugins_routes(routes, app):
             )
         plugin_id = request.match_info["plugin_id"]
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         method = data.get("method")

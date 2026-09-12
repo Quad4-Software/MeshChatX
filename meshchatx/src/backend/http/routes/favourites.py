@@ -7,6 +7,7 @@ from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -134,6 +135,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     web,
     websocket_type_requires_auth,
     zipfile,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
 )
 
 
@@ -272,7 +277,9 @@ def register_favourites_routes(routes, app):
     @routes.post("/api/v1/announces/query")
     async def announces_query(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         destination_hashes = data.get("destination_hashes")
@@ -337,7 +344,10 @@ def register_favourites_routes(routes, app):
     @routes.post("/api/v1/favourites/add")
     async def favourites_add(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash", None)
         display_name = data.get("display_name", None)
         aspect = data.get("aspect", None)
@@ -390,7 +400,10 @@ def register_favourites_routes(routes, app):
         destination_hash = request.match_info.get("destination_hash", "")
 
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         raw_name = data.get("display_name")
         if raw_name is None:
             display_name = ""
@@ -430,7 +443,9 @@ def register_favourites_routes(routes, app):
     async def favourites_identify_on_connect(request):
         destination_hash = request.match_info.get("destination_hash", "")
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response(
                 {"message": "Invalid request body"},
@@ -537,7 +552,7 @@ def register_favourites_routes(routes, app):
     @routes.post("/api/v1/favourites/import")
     async def favourites_import(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             entries = data.get("favourites", [])
             if not isinstance(entries, list):
                 return web.json_response(
@@ -585,6 +600,8 @@ def register_favourites_routes(routes, app):
                     "skipped": skipped,
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return web.json_response(
                 {"message": f"Failed to import favourites: {e!s}"},

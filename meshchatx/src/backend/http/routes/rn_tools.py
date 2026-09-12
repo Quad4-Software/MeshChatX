@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_error_from_exception
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -130,6 +133,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_rn_tools_routes(routes, app):
@@ -155,7 +162,10 @@ def register_rn_tools_routes(routes, app):
         manager, error = _rnsh_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         try:
             session = manager.create_session(data or {})
         except ValueError as e:
@@ -220,7 +230,10 @@ def register_rn_tools_routes(routes, app):
         if error is not None:
             return error
         session_id = request.match_info.get("session_id", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         text = data.get("text")
         if not isinstance(text, str):
             return web.json_response(
@@ -244,7 +257,10 @@ def register_rn_tools_routes(routes, app):
         if error is not None:
             return error
         session_id = request.match_info.get("session_id", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         rows = (data or {}).get("rows")
         cols = (data or {}).get("cols")
         try:
@@ -305,7 +321,10 @@ def register_rn_tools_routes(routes, app):
         manager, error = _rnx_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         session = manager.create_session(data or {})
         autostart = bool((data or {}).get("autostart", True))
         if autostart:
@@ -367,7 +386,10 @@ def register_rn_tools_routes(routes, app):
         if error is not None:
             return error
         session_id = request.match_info.get("session_id", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         text = data.get("text")
         if not isinstance(text, str):
             return web.json_response(
@@ -391,7 +413,10 @@ def register_rn_tools_routes(routes, app):
         if error is not None:
             return error
         session_id = request.match_info.get("session_id", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         rows = (data or {}).get("rows")
         cols = (data or {}).get("cols")
         try:
@@ -433,7 +458,10 @@ def register_rn_tools_routes(routes, app):
 
     @routes.post("/api/v1/rncp/send")
     async def rncp_send(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash_str = data.get("destination_hash", "")
         file_path = data.get("file_path", "")
         timeout_raw = data.get("timeout")
@@ -494,7 +522,10 @@ def register_rn_tools_routes(routes, app):
 
     @routes.post("/api/v1/rncp/fetch")
     async def rncp_fetch(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash_str = data.get("destination_hash", "")
         file_path = data.get("file_path", "")
         timeout_raw = data.get("timeout")
@@ -567,7 +598,10 @@ def register_rn_tools_routes(routes, app):
 
     @routes.post("/api/v1/rncp/listen")
     async def rncp_listen(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         allowed_hashes = data.get("allowed_hashes", [])
         fetch_allowed = bool(data.get("fetch_allowed", False))
         fetch_jail = data.get("fetch_jail")
@@ -604,8 +638,12 @@ def register_rn_tools_routes(routes, app):
     @routes.post("/api/v1/rncp/cancel")
     async def rncp_cancel(request):
         data = {}
-        with contextlib.suppress(Exception):
-            data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            pass
         transfer_id = None
         if isinstance(data, dict):
             raw = data.get("transfer_id")
@@ -820,7 +858,10 @@ def register_rn_tools_routes(routes, app):
 
     @routes.post("/api/v1/rnpath/drop")
     async def rnpath_drop(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash")
         if not destination_hash:
             return web.json_response(
@@ -838,7 +879,10 @@ def register_rn_tools_routes(routes, app):
 
     @routes.post("/api/v1/rnpath/drop-via")
     async def rnpath_drop_via(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         transport_instance_hash = data.get("transport_instance_hash")
         if not transport_instance_hash:
             return web.json_response(
@@ -867,7 +911,10 @@ def register_rn_tools_routes(routes, app):
 
     @routes.post("/api/v1/rnpath/request")
     async def rnpath_request(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash")
         if not destination_hash:
             return web.json_response(
@@ -907,7 +954,10 @@ def register_rn_tools_routes(routes, app):
 
     @routes.post("/api/v1/rnprobe")
     async def rnprobe(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash_str = data.get("destination_hash", "")
         full_name = data.get("full_name", "")
         try:

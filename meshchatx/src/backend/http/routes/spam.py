@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_error_from_exception
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -130,6 +133,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_spam_routes(routes, app):
@@ -157,7 +164,10 @@ def register_spam_routes(routes, app):
     # add spam keyword
     @routes.post("/api/v1/spam-keywords")
     async def spam_keywords_add(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         keyword = data.get("keyword", "").strip()
         if not keyword:
             return web.json_response({"error": "Keyword is required"}, status=400)
@@ -194,7 +204,10 @@ def register_spam_routes(routes, app):
     @routes.post("/api/v1/lxmf-messages/{hash}/spam")
     async def lxmf_messages_spam(request):
         message_hash = request.match_info.get("hash", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         is_spam = data.get("is_spam", False)
 
         try:

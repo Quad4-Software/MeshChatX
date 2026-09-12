@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.delivery_diagnostics import build_delivery_diagnostics
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -131,6 +132,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_messages_routes(routes, app):
@@ -160,7 +165,10 @@ def register_messages_routes(routes, app):
         destination_hash = request.match_info.get("destination_hash", "")
 
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         raw_name = data.get("display_name")
         if raw_name is None:
             display_name = ""
@@ -250,7 +258,10 @@ def register_messages_routes(routes, app):
     # mark notifications as viewed
     @routes.post("/api/v1/notifications/mark-as-viewed")
     async def notifications_mark_as_viewed(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hashes = data.get("destination_hashes", [])
         notification_ids = data.get("notification_ids", [])
 

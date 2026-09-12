@@ -134,11 +134,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
     PayloadTooLargeError,
     read_field_limited,
+    read_json_limited,
 )
-
-_DOCS_ZIP_MAX_BYTES = 64 * 1024 * 1024
 
 
 def register_docs_routes(routes, app):
@@ -167,7 +167,7 @@ def register_docs_routes(routes, app):
                 # use timestamp if no version provided
                 version = f"upload-{int(time.time())}"
 
-            zip_data = await read_field_limited(field, _DOCS_ZIP_MAX_BYTES)
+            zip_data = await read_field_limited(field, UPLOAD_LIMITS["docs_zip"])
             success = app.docs_manager.upload_zip(zip_data, version)
             return web.json_response({"success": success, "version": version})
         except PayloadTooLargeError:
@@ -181,7 +181,7 @@ def register_docs_routes(routes, app):
     @routes.post("/api/v1/docs/switch")
     async def docs_switch(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             version = data.get("version")
             if not version:
                 return web.json_response(
@@ -191,6 +191,8 @@ def register_docs_routes(routes, app):
 
             success = app.docs_manager.switch_version(version)
             return web.json_response({"success": success})
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return http_error_from_exception(e, fallback_status=500)
 
