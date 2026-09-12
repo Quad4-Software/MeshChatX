@@ -70,6 +70,8 @@ export function useBatterySaver(options = {}) {
     }
 
     function onBatteryBitrateLimitChange(name) {
+        // The v-model can write raw strings ("" when cleared) before this runs.
+        /** @type {Record<string, any>} */
         const limits = { ...(batterySaver.value.interfaceBitrateLimits || {}) };
         const raw = limits[name];
         if (raw === "" || raw == null || Number.isNaN(Number(raw))) {
