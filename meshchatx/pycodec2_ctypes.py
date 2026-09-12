@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import ctypes
 import logging
-import os
 from pathlib import Path
+
+from meshchatx.src.env_utils import env_str
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +55,10 @@ def _candidate_lib_paths() -> list[str]:
             seen.add(value)
             paths.append(value)
 
-    explicit = os.environ.get("MESHCHAT_LIBCODEC2_PATH", "") or ""
+    explicit = env_str("MESHCHAT_LIBCODEC2_PATH") or ""
     if explicit:
         add(explicit)
-    native_dir = os.environ.get("MESHCHAT_NATIVE_LIB_DIR", "") or ""
+    native_dir = env_str("MESHCHAT_NATIVE_LIB_DIR") or ""
     if native_dir:
         add(str(Path(native_dir) / "libcodec2.so"))
     for entry in list(__import__("sys").path):

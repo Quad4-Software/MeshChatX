@@ -6,10 +6,12 @@ import hashlib
 import time
 from typing import Any
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+
 from .provider import DatabaseProvider
 
-LOGIN_PATH = "/api/v1/auth/login"
-SETUP_PATH = "/api/v1/auth/setup"
+LOGIN_PATH = f"{API_V1_PREFIX}/auth/login"
+SETUP_PATH = f"{API_V1_PREFIX}/auth/setup"
 
 WINDOW_RATE_UNTRUSTED_S = 60
 MAX_UNTRUSTED_LOGIN_PER_WINDOW = 20

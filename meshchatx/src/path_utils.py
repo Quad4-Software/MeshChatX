@@ -598,3 +598,12 @@ def get_file_path(filename):
         return repo_path
 
     return package_path
+
+
+def is_loopback_bind_host(host: "str | None") -> bool:
+    """True when the web UI bind host is unset or a loopback address."""
+    h = (host or "").strip().lower()
+    # Unset or empty means the default loopback bind has not been overridden.
+    if not h:
+        return True
+    return h in ("127.0.0.1", "localhost", "::1", "[::1]")
