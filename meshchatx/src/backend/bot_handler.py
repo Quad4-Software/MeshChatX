@@ -27,7 +27,11 @@ from meshchatx.src.backend.bot_options import (
     normalize_bot_icon,
     write_bot_runtime_sidecar,
 )
-from meshchatx.src.path_utils import atomic_write_text
+from meshchatx.src.path_utils import (
+    atomic_write_text,
+    is_path_within_dir,
+    is_under_root,
+)
 
 logger = logging.getLogger("meshchatx.bots")
 
@@ -888,13 +892,9 @@ class BotHandler:
 
     def _jailed_bot_storage_dir(self, storage_dir):
         """Return realpath only when storage_dir is under this identity's bots dir."""
-        if not storage_dir:
+        if not storage_dir or not is_path_within_dir(storage_dir, self.bots_dir):
             return None
-        bots_root = os.path.realpath(self.bots_dir)
-        real = os.path.realpath(storage_dir)
-        if real != bots_root and not real.startswith(bots_root + os.sep):
-            return None
-        return real
+        return os.path.realpath(storage_dir)
 
     def _jailed_bot_dirs(self, entry):
         """Return jailed (storage_dir, bot_config_dir) or None if either path escapes."""
@@ -920,7 +920,7 @@ class BotHandler:
             return None
         real = os.path.realpath(candidate)
         root_real = os.path.realpath(root)
-        if real != root_real and not real.startswith(root_real + os.sep):
+        if not is_under_root(real, root_real):
             return None
         return real
 

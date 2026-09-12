@@ -12,6 +12,8 @@ import site
 import sys
 import tempfile
 
+from meshchatx.src.path_utils import realpath_or_none
+
 logger = logging.getLogger("meshchatx.landlock")
 
 _LANDLOCK_ACCESS_FS_EXECUTE = 1 << 0
@@ -492,21 +494,15 @@ def _normalize_extra_landlock_read_root(path: str) -> str | None:
     """
     if not isinstance(path, str) or not path.strip():
         return None
-    try:
-        resolved = os.path.realpath(os.path.abspath(os.path.expanduser(path.strip())))
-    except OSError:
-        return None
-    if not os.path.isdir(resolved):
+    resolved = realpath_or_none(os.path.abspath(os.path.expanduser(path.strip())))
+    if not resolved or not os.path.isdir(resolved):
         return None
     fs_root = os.path.realpath(os.path.abspath(os.sep))
     if resolved == fs_root:
         return None
     home = os.path.expanduser("~")
     if home and home != "~":
-        try:
-            home_real = os.path.realpath(os.path.abspath(home))
-        except OSError:
-            home_real = ""
+        home_real = realpath_or_none(os.path.abspath(home)) or ""
         if home_real and resolved == home_real:
             return None
     return resolved
