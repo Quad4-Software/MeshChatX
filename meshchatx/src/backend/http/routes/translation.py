@@ -8,7 +8,17 @@ import os
 import RNS
 from aiohttp import web
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    write_field_to_path,
+)
 from meshchatx.src.path_utils import safe_path_under_dir
+
+_TRANSLATION_PACK_MAX_BYTES = 512 * 1024 * 1024
 
 
 def register_translation_routes(routes, app) -> None:
@@ -21,7 +31,7 @@ def register_translation_routes(routes, app) -> None:
             return web.json_response({"packs": packs})
         except Exception as e:
             RNS.log(f"Error listing translation packs: {e}", RNS.LOG_ERROR)
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.post("/api/v1/translation/packs/import")
     async def import_translation_pack(request):
@@ -43,18 +53,19 @@ def register_translation_routes(routes, app) -> None:
             if not safe_path_under_dir(incoming_dir, archive_path):
                 return web.json_response({"error": "Invalid filename"}, status=400)
 
-            with open(archive_path, "wb") as f:
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    f.write(chunk)
+            await write_field_to_path(
+                field,
+                archive_path,
+                _TRANSLATION_PACK_MAX_BYTES,
+            )
 
             pairs = app.translation_pack_manager.import_archive(archive_path)
             return web.json_response({"pairs": pairs})
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             RNS.log(f"Error importing translation pack: {e}", RNS.LOG_ERROR)
-            return web.json_response({"error": str(e)}, status=400)
+            return http_error_from_exception(e)
 
     @routes.delete("/api/v1/translation/packs/{pair}")
     async def remove_translation_pack(request):
@@ -68,7 +79,7 @@ def register_translation_routes(routes, app) -> None:
             return web.json_response({"removed": pair})
         except Exception as e:
             RNS.log(f"Error removing translation pack: {e}", RNS.LOG_ERROR)
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.get("/translation-packs/{path:.*}")
     async def serve_translation_pack_file(request):

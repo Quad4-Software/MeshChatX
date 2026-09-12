@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -153,7 +154,7 @@ def register_sideband_routes(routes, app):
             app._ensure_sideband_telemetry_loop()
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.get("/api/v1/sideband-plugins")
     async def sideband_plugins_list(request):
@@ -171,4 +172,4 @@ def register_sideband_routes(routes, app):
             app._ensure_sideband_telemetry_loop()
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")

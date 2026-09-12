@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -185,7 +186,7 @@ def register_spam_routes(routes, app):
             app.database.misc.delete_spam_keyword(keyword_id)
             return web.json_response({"message": "ok"})
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # mark message as spam or not spam
 
@@ -205,6 +206,6 @@ def register_spam_routes(routes, app):
                 return web.json_response({"message": "ok"})
             return web.json_response({"error": "Message not found"}, status=404)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # get offline map metadata

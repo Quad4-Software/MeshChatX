@@ -129,6 +129,12 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    write_field_to_path,
+)
+
+_DB_RESTORE_MAX_BYTES = 1 * 1024 * 1024 * 1024
 
 
 def register_database_routes(routes, app):
@@ -203,12 +209,8 @@ def register_database_routes(routes, app):
                     )
 
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                    while True:
-                        chunk = await field.read_chunk()
-                        if not chunk:
-                            break
-                        tmp.write(chunk)
                     temp_path = tmp.name
+                await write_field_to_path(field, temp_path, _DB_RESTORE_MAX_BYTES)
 
                 try:
                     # Restore tears down identity contexts and blocks for up
@@ -256,6 +258,11 @@ def register_database_routes(routes, app):
                     "requires_relaunch": True,
                     "message": "Database restored. Application will restart.",
                 },
+            )
+        except PayloadTooLargeError:
+            return web.json_response(
+                {"status": "error", "message": "Upload exceeds size limit"},
+                status=413,
             )
         except Exception as e:
             return web.json_response(

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -188,7 +189,7 @@ def register_auth_routes(routes, app):
         try:
             session = await get_session(request)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
         token = ensure_session_csrf_token(session)
         return web.json_response({"csrf_token": token})
 

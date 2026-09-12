@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +133,12 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_body_limited,
+    read_field_limited,
+)
+from meshchatx.src.backend.plugin_guard import MAX_PLUGIN_ZIP_BYTES
 
 
 def register_plugins_routes(routes, app):
@@ -160,9 +170,9 @@ def register_plugins_routes(routes, app):
                         {"message": "No plugin archive provided"},
                         status=400,
                     )
-                payload = await field.read()
+                payload = await read_field_limited(field, MAX_PLUGIN_ZIP_BYTES)
             else:
-                payload = await request.read()
+                payload = await read_body_limited(request, MAX_PLUGIN_ZIP_BYTES)
             if not payload:
                 return web.json_response(
                     {"message": "No plugin archive provided"},
@@ -173,8 +183,10 @@ def register_plugins_routes(routes, app):
                 payload,
             )
             return web.json_response(preview)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.get("/api/v1/plugins/trusted-publishers")
     async def plugins_trusted_publishers_list(request):
@@ -203,7 +215,7 @@ def register_plugins_routes(routes, app):
             )
             return web.json_response({"publishers": publishers})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.delete("/api/v1/plugins/trusted-publishers/{identity}")
     async def plugins_trusted_publishers_remove(request):
@@ -215,7 +227,7 @@ def register_plugins_routes(routes, app):
             )
             return web.json_response({"publishers": publishers})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.post("/api/v1/plugins/install")
     async def plugins_install(request):
@@ -235,7 +247,10 @@ def register_plugins_routes(routes, app):
                         break
                     name = field.name or ""
                     if name in ("archive", "file", "plugin"):
-                        payload = await field.read()
+                        payload = await read_field_limited(
+                            field,
+                            MAX_PLUGIN_ZIP_BYTES,
+                        )
                     elif name == "granted_permissions":
                         raw = await field.text()
                         try:
@@ -265,7 +280,7 @@ def register_plugins_routes(routes, app):
                             item for item in granted if isinstance(item, str)
                         ]
                 else:
-                    payload = await request.read()
+                    payload = await read_body_limited(request, MAX_PLUGIN_ZIP_BYTES)
             if not payload:
                 return web.json_response(
                     {"message": "No plugin archive provided"},
@@ -277,8 +292,10 @@ def register_plugins_routes(routes, app):
                 granted_permissions,
             )
             return web.json_response(plugin)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.post("/api/v1/plugins/{plugin_id}/enable")
     async def plugins_enable(request):
@@ -294,7 +311,7 @@ def register_plugins_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Plugin not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.post("/api/v1/plugins/{plugin_id}/disable")
     async def plugins_disable(request):
@@ -305,7 +322,7 @@ def register_plugins_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Plugin not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.delete("/api/v1/plugins/{plugin_id}")
     async def plugins_remove(request):
@@ -339,7 +356,7 @@ def register_plugins_routes(routes, app):
                 )
             return web.json_response(plugin)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.post("/api/v1/plugins/{plugin_id}/invoke")
     async def plugins_invoke(request):
@@ -370,7 +387,7 @@ def register_plugins_routes(routes, app):
         except PermissionError as e:
             return web.json_response({"message": str(e)}, status=403)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.get("/api/v1/plugins/{plugin_id}/asset/{asset_path:.*}")
     async def plugins_asset(request):

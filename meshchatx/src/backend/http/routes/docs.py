@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +133,12 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
+)
+
+_DOCS_ZIP_MAX_BYTES = 64 * 1024 * 1024
 
 
 def register_docs_routes(routes, app):
@@ -157,11 +167,13 @@ def register_docs_routes(routes, app):
                 # use timestamp if no version provided
                 version = f"upload-{int(time.time())}"
 
-            zip_data = await field.read()
+            zip_data = await read_field_limited(field, _DOCS_ZIP_MAX_BYTES)
             success = app.docs_manager.upload_zip(zip_data, version)
             return web.json_response({"success": success, "version": version})
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # switch docs version
 
@@ -180,7 +192,7 @@ def register_docs_routes(routes, app):
             success = app.docs_manager.switch_version(version)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # delete docs version
 
@@ -198,7 +210,7 @@ def register_docs_routes(routes, app):
             success = app.docs_manager.delete_version(version)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # clear reticulum docs
 
@@ -209,7 +221,7 @@ def register_docs_routes(routes, app):
             success = app.docs_manager.clear_reticulum_docs()
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # search docs
 
@@ -264,7 +276,7 @@ def register_docs_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # export the active Reticulum manual in a layout the upload route accepts,
     # so users can share their bundled or customised manual with another peer.
@@ -295,4 +307,4 @@ def register_docs_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)

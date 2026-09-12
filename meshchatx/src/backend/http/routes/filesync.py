@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +133,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
+)
+from meshchatx.src.backend.rns_filesync_handler import MANAGER_UPLOAD_MAX_BYTES
 
 
 def register_filesync_routes(routes, app):
@@ -165,7 +174,7 @@ def register_filesync_routes(routes, app):
                 announce_interval=data.get("announce_interval"),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "failed to start")},
@@ -181,7 +190,7 @@ def register_filesync_routes(routes, app):
         try:
             result = await asyncio.to_thread(app.rns_filesync_handler.stop)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response(result)
 
     @routes.get("/api/v1/filesync/peers")
@@ -210,7 +219,7 @@ def register_filesync_routes(routes, app):
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "list tree failed")},
@@ -232,7 +241,7 @@ def register_filesync_routes(routes, app):
                 data.get("path", ""),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "mkdir failed")},
@@ -259,10 +268,15 @@ def register_filesync_routes(routes, app):
                     subdir = (await field.text()).strip() or None
                 elif name == "file":
                     filename = field.filename or "upload"
-                    file_data = await field.read()
+                    file_data = await read_field_limited(
+                        field,
+                        MANAGER_UPLOAD_MAX_BYTES,
+                    )
                 else:
                     with contextlib.suppress(Exception):
-                        await field.read()
+                        await read_field_limited(field, MANAGER_UPLOAD_MAX_BYTES)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return web.json_response(
                 {"message": f"Invalid upload request: {e}"},
@@ -278,7 +292,7 @@ def register_filesync_routes(routes, app):
                 subdir=subdir,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "upload failed")},
@@ -303,7 +317,7 @@ def register_filesync_routes(routes, app):
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "delete failed")},
@@ -323,7 +337,7 @@ def register_filesync_routes(routes, app):
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "content failed")},
@@ -359,7 +373,7 @@ def register_filesync_routes(routes, app):
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "list directories failed")},
@@ -377,7 +391,7 @@ def register_filesync_routes(routes, app):
                 app.rns_filesync_handler.suggest_shared_sync_directory,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "suggestion failed")},
@@ -400,7 +414,7 @@ def register_filesync_routes(routes, app):
                 data.get("name", ""),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "create directory failed")},
@@ -423,7 +437,7 @@ def register_filesync_routes(routes, app):
                 identity_hash,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "connect failed"), **result},
@@ -446,7 +460,7 @@ def register_filesync_routes(routes, app):
                 peer_id,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "disconnect failed")},
@@ -462,7 +476,7 @@ def register_filesync_routes(routes, app):
         try:
             result = await asyncio.to_thread(app.rns_filesync_handler.announce_now)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "announce failed")},
@@ -487,7 +501,7 @@ def register_filesync_routes(routes, app):
                 timeout,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {
@@ -515,7 +529,7 @@ def register_filesync_routes(routes, app):
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "download failed"), **result},
@@ -554,7 +568,7 @@ def register_filesync_routes(routes, app):
                 replace=bool(data.get("replace", False)),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "acl update failed")},
@@ -578,7 +592,7 @@ def register_filesync_routes(routes, app):
                 announce_interval=data.get("announce_interval"),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "settings update failed")},

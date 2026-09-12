@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +133,12 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
+)
+
+_MESSAGE_IMPORT_MAX_BYTES = 64 * 1024 * 1024
 
 
 def register_maintenance_routes(routes, app):
@@ -287,7 +297,7 @@ def register_maintenance_routes(routes, app):
                 {"message": "Path table cleared", "dropped": dropped},
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # maintenance - export messages (optional age filter for archive-before-purge)
 
@@ -395,7 +405,7 @@ def register_maintenance_routes(routes, app):
             )
             return _message_import_response(result)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=400)
+            return http_error_from_exception(e)
 
     @routes.post("/api/v1/maintenance/messages/import-file")
     async def maintenance_import_messages_file(request):
@@ -414,13 +424,11 @@ def register_maintenance_routes(routes, app):
                     status=400,
                 )
 
-            chunks = []
-            while True:
-                chunk = await field.read_chunk(size=1024 * 1024)
-                if not chunk:
-                    break
-                chunks.append(chunk)
-            raw = b"".join(chunks)
+            raw = await read_field_limited(
+                field,
+                _MESSAGE_IMPORT_MAX_BYTES,
+                chunk_size=1024 * 1024,
+            )
 
             try:
                 payload = json.loads(raw)
@@ -436,7 +444,9 @@ def register_maintenance_routes(routes, app):
                 payload,
             )
             return _message_import_response(result)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=400)
+            return http_error_from_exception(e)
 
     # get config

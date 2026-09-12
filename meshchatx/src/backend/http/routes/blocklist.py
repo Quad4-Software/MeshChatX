@@ -7,6 +7,7 @@ from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -268,7 +269,7 @@ def register_blocklist_routes(routes, app):
             app.lift_lxmf_peer_banishment(destination_hash)
             return web.json_response({"message": "ok"})
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.get("/api/v1/reticulum/blackhole")
     async def reticulum_blackhole_get(request):
@@ -294,6 +295,6 @@ def register_blocklist_routes(routes, app):
                 return web.json_response({"blackholed_identities": formatted})
             return web.json_response({"blackholed_identities": {}})
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # get spam keywords

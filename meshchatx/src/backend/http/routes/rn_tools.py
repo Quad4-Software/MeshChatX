@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -166,7 +167,7 @@ def register_rn_tools_routes(routes, app):
             except Exception as e:
                 with contextlib.suppress(Exception):
                     manager.remove_session(session.session_id)
-                return web.json_response({"message": str(e)}, status=400)
+                return http_error_from_exception(e, key="message")
         return web.json_response(
             {"session": session.to_dict(include_output_tail=True)},
         )
@@ -182,7 +183,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response({"message": "Session removed"})
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/start")
@@ -196,7 +197,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/stop")
@@ -210,7 +211,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/input")
@@ -234,7 +235,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/resize")
@@ -251,7 +252,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.get("/api/v1/rnsh/sessions/{session_id}/output")
@@ -266,7 +267,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response(payload)
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/clear")
@@ -280,7 +281,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     def _rnx_require_manager():
@@ -313,7 +314,7 @@ def register_rn_tools_routes(routes, app):
             except Exception as e:
                 with contextlib.suppress(Exception):
                     manager.remove_session(session.session_id)
-                return web.json_response({"message": str(e)}, status=400)
+                return http_error_from_exception(e, key="message")
         return web.json_response(
             {"session": session.to_dict(include_output_tail=True)},
         )
@@ -329,7 +330,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response({"message": "Session removed"})
 
     @routes.post("/api/v1/rnx/sessions/{session_id}/start")
@@ -343,7 +344,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnx/sessions/{session_id}/stop")
@@ -357,7 +358,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnx/sessions/{session_id}/input")
@@ -381,7 +382,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnx/sessions/{session_id}/resize")
@@ -398,7 +399,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.get("/api/v1/rnx/sessions/{session_id}/output")
@@ -413,7 +414,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response(payload)
 
     @routes.post("/api/v1/rnx/sessions/{session_id}/clear")
@@ -427,7 +428,7 @@ def register_rn_tools_routes(routes, app):
         except KeyError:
             return web.json_response({"message": "Session not found"}, status=404)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rncp/send")
@@ -489,10 +490,7 @@ def register_rn_tools_routes(routes, app):
             )
             return web.json_response(result)
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rncp/fetch")
     async def rncp_fetch(request):
@@ -554,10 +552,7 @@ def register_rn_tools_routes(routes, app):
             )
             return web.json_response(result)
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rncp/transfer/{transfer_id}")
     async def rncp_transfer_status(request):
@@ -592,10 +587,7 @@ def register_rn_tools_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rncp/status")
     async def rncp_status(_request):
@@ -607,7 +599,7 @@ def register_rn_tools_routes(routes, app):
             app.rncp_handler.teardown_receive_destination()
             return web.json_response({"message": "RNCP listener stopped"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rncp/cancel")
     async def rncp_cancel(request):
@@ -623,7 +615,7 @@ def register_rn_tools_routes(routes, app):
             result = app.rncp_handler.cancel_transfer(transfer_id)
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # --- RNS FileSync ---
 
@@ -698,10 +690,7 @@ def register_rn_tools_routes(routes, app):
         except TimeoutError as e:
             return web.json_response({"message": str(e)}, status=504)
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rnpath/table")
     async def rnpath_table(request):
@@ -777,7 +766,7 @@ def register_rn_tools_routes(routes, app):
         except TimeoutError as e:
             return web.json_response({"message": str(e)}, status=504)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rnpath/rates")
     async def rnpath_rates(request):
@@ -827,7 +816,7 @@ def register_rn_tools_routes(routes, app):
         except TimeoutError as e:
             return web.json_response({"message": str(e)}, status=504)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rnpath/drop")
     async def rnpath_drop(request):
@@ -845,7 +834,7 @@ def register_rn_tools_routes(routes, app):
             success = app.rnpath_handler.drop_path(destination_hash)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rnpath/drop-via")
     async def rnpath_drop_via(request):
@@ -863,7 +852,7 @@ def register_rn_tools_routes(routes, app):
             success = app.rnpath_handler.drop_all_via(transport_instance_hash)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rnpath/drop-queues")
     async def rnpath_drop_queues(request):
@@ -874,7 +863,7 @@ def register_rn_tools_routes(routes, app):
             app.rnpath_handler.drop_announce_queues()
             return web.json_response({"success": True})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rnpath/request")
     async def rnpath_request(request):
@@ -892,7 +881,7 @@ def register_rn_tools_routes(routes, app):
             success = app.rnpath_handler.request_path(destination_hash)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rnpath/trace/{destination_hash}")
     async def rnpath_trace(request):
@@ -973,7 +962,4 @@ def register_rn_tools_routes(routes, app):
             )
             return web.json_response(result)
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)

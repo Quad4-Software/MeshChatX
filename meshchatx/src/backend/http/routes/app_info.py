@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_error_from_exception
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -571,7 +572,7 @@ def register_app_info_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # third-party dependency licenses (Python + Node)
 
@@ -584,7 +585,7 @@ def register_app_info_routes(routes, app):
             payload = await asyncio.to_thread(build_licenses_payload)
             return web.json_response(payload)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # mark tutorial as seen
 
@@ -622,7 +623,7 @@ def register_app_info_routes(routes, app):
         except ValueError as e:
             return web.json_response({"error": str(e)}, status=409)
         except OSError as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
         return web.json_response({"ok": True, "restart_required": True})
 
     # acknowledge and reset integrity issues
