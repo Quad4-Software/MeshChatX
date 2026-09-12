@@ -20,7 +20,7 @@ def env_bool(env_name: str, default: bool = False) -> bool:
     val = os.environ.get(env_name)
     if val is None:
         return default
-    return val.lower() in _TRUE_VALUES
+    return val.strip().lower() in _TRUE_VALUES
 
 
 def env_str(env_name: str, default: str | None = None) -> str | None:
