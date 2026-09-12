@@ -37,10 +37,10 @@ chore: bump version to 4.8.6 and refresh lockfiles
 
 ## Related commands
 
-| Command              | Purpose                                           |
-| -------------------- | ------------------------------------------------- |
-| `task format`        | Format the full tree (Prettier, ESLint fix, Ruff) |
-| `task lint`          | Full lint gate (same as CI lint job)              |
-| `task check`         | format, lint, and test before push                |
+| Command       | Purpose                                           |
+| ------------- | ------------------------------------------------- |
+| `task format` | Format the full tree (Prettier, ESLint fix, Ruff) |
+| `task lint`   | Full lint gate (same as CI lint job)              |
+| `task check`  | format, lint, and test before push                |
 
 Config: `commitlint.config.cjs`.
