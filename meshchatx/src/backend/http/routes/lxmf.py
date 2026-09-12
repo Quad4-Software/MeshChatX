@@ -144,6 +144,12 @@ from meshchatx.src.backend.http.uploads import (
     read_json_limited,
 )
 
+# Attachment bytes are content-addressed by message hash and never change, so
+# clients may keep them forever. "private" because they sit behind auth.
+LXMF_ATTACHMENT_CACHE_HEADERS = {
+    "Cache-Control": "private, max-age=31536000, immutable",
+}
+
 
 def register_lxmf_routes(routes, app):
     @routes.get("/api/v1/lxmf/propagation-node/status")
@@ -954,7 +960,11 @@ def register_lxmf_routes(routes, app):
                 )
             # Serve Content-Type from magic bytes, not the peer-declared type.
             image_type = "jpeg" if detected == "jpeg" else detected
-            return web.Response(body=image_data, content_type=f"image/{image_type}")
+            return web.Response(
+                body=image_data,
+                content_type=f"image/{image_type}",
+                headers=LXMF_ATTACHMENT_CACHE_HEADERS,
+            )
 
         # handle audio
         if attachment_type == "audio" and "audio" in fields:
@@ -980,6 +990,7 @@ def register_lxmf_routes(routes, app):
             return web.Response(
                 body=audio_data,
                 content_type="application/octet-stream",
+                headers=LXMF_ATTACHMENT_CACHE_HEADERS,
             )
 
         # handle file attachments
@@ -1033,6 +1044,7 @@ def register_lxmf_routes(routes, app):
                         body=file_data,
                         content_type="application/octet-stream",
                         headers={
+                            **LXMF_ATTACHMENT_CACHE_HEADERS,
                             "Content-Disposition": f'attachment; filename="{safe_name}"',
                         },
                     )

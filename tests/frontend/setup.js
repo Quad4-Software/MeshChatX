@@ -6,6 +6,7 @@ import { config } from "@vue/test-utils";
 import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
+import { clearConversationPrefetchCache } from "../../meshchatx/src/frontend/js/conversationPrefetch.js";
 
 // CI and slower local machines can need more than the default 1000ms for async
 // conditions. Extend vitest's waitFor default while still allowing overrides.
@@ -20,6 +21,7 @@ beforeEach(() => {
     GlobalState.authEnabled = false;
     GlobalState.authenticated = false;
     GlobalState.demoMode = false;
+    clearConversationPrefetchCache();
 });
 
 // Some tests enable fake timers and may throw before calling useRealTimers().

@@ -3,6 +3,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
     prefetchConversationFirstPage,
+    stashConversationFirstPage,
     takeConversationPrefetch,
 } from "@/js/conversationPrefetch.js";
 
@@ -47,5 +48,23 @@ describe("conversationPrefetch", () => {
         prefetchConversationFirstPage(api, peerHash, 50);
         const result = await takeConversationPrefetch(peerHash);
         expect(result).toBeNull();
+    });
+
+    it("stashed pages survive past the prefetch TTL for instant re-open", async () => {
+        const peerHash = "aa".repeat(16);
+        const data = { lxmf_messages: [{ hash: "m1" }] };
+        stashConversationFirstPage(peerHash, data);
+
+        vi.advanceTimersByTime(60000);
+        const result = await takeConversationPrefetch(peerHash);
+        expect(result).toEqual({ data });
+        expect(takeConversationPrefetch(peerHash)).toBeNull();
+    });
+
+    it("stash expires after its longer TTL", async () => {
+        const peerHash = "bb".repeat(16);
+        stashConversationFirstPage(peerHash, { lxmf_messages: [] });
+        vi.advanceTimersByTime(6 * 60 * 1000);
+        expect(takeConversationPrefetch(peerHash)).toBeNull();
     });
 });

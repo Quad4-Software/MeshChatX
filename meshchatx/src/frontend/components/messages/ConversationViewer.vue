@@ -1636,7 +1636,11 @@ import ConversationPeerHeader from "./ConversationPeerHeader.vue";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
 import Skeleton from "../Skeleton.vue";
-import { takeConversationPrefetch } from "../../js/conversationPrefetch.js";
+import {
+    clearConversationPrefetchCache,
+    stashConversationFirstPage,
+    takeConversationPrefetch,
+} from "../../js/conversationPrefetch.js";
 import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
 import {
     buildDisplayGroupsNewestFirst,
@@ -2294,9 +2298,9 @@ export default {
         selectedPeer: {
             handler(newPeer, oldPeer) {
                 this.messageBubbleTranslation = {};
+                this.cancelAutoLoadAudioAttachments();
                 if (oldPeer) {
                     this.saveDraft(oldPeer.destination_hash, this.lastDraftIdentityKey || this._draftIdentityKey());
-                    this.clearAudioAttachmentCache();
                 }
                 this.teardownPeerHeaderResizeObserver();
                 this.disconnectOpenConversationScrollObserver();
@@ -2457,6 +2461,7 @@ export default {
             clearInterval(this.propagationStatusInterval);
         }
         this.disconnectOpenConversationScrollObserver();
+        this.cancelAutoLoadAudioAttachments();
         this.clearAudioAttachmentCache();
     },
     methods: {
@@ -3125,6 +3130,7 @@ export default {
             this.displayGroupsNewestFirst = null;
             this.messageBubbleTranslation = {};
             this.clearAudioAttachmentCache();
+            clearConversationPrefetchCache();
             this.lastDraftIdentityKey = nextKey;
             this.pendingPaperIngestMessageHash = null;
             this.reloadIngestedPaperMessageHashes();
@@ -3282,6 +3288,12 @@ export default {
 
                 if (seq !== this.lxmfMessagesRequestSequence) {
                     return;
+                }
+
+                // Keep the newest page warm so re-opening this peer paints
+                // instantly; live resync merges anything newer afterwards.
+                if (this.oldestMessageId == null) {
+                    stashConversationFirstPage(this.selectedPeer.destination_hash, response.data);
                 }
 
                 const chatItems = [];
@@ -4642,7 +4654,9 @@ export default {
             );
             // Fetch and decode in small idle chunks so opening a thread does not
             // burst a full page of audio downloads onto the main thread/network.
+            this.cancelAutoLoadAudioAttachments();
             const runChunk = () => {
+                this._audioLoadTimer = null;
                 const chunk = pending.splice(0, 2);
                 for (const chatItem of chunk) {
                     this.downloadAndDecodeAudio(chatItem);
@@ -4653,14 +4667,24 @@ export default {
             };
             const schedule = () => {
                 if (typeof requestIdleCallback === "function") {
-                    requestIdleCallback(runChunk, { timeout: 1500 });
+                    this._audioLoadIdle = requestIdleCallback(runChunk, { timeout: 1500 });
+                    this._audioLoadTimer = "idle";
                 } else {
-                    setTimeout(runChunk, 60);
+                    this._audioLoadTimer = setTimeout(runChunk, 60);
                 }
             };
             if (pending.length > 0) {
                 schedule();
             }
+        },
+        cancelAutoLoadAudioAttachments() {
+            if (this._audioLoadTimer === "idle" && typeof cancelIdleCallback === "function") {
+                cancelIdleCallback(this._audioLoadIdle);
+            } else if (typeof this._audioLoadTimer === "number") {
+                clearTimeout(this._audioLoadTimer);
+            }
+            this._audioLoadTimer = null;
+            this._audioLoadIdle = null;
         },
         formatAttachmentSize(attachment, type) {
             if (attachment[`${type}_size`] !== undefined && attachment[`${type}_size`] !== null) {
