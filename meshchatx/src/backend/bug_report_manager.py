@@ -21,6 +21,8 @@ from meshchatx.src.backend.path_utils import (
     link_establishment_window,
     path_response_window,
 )
+from meshchatx.src.backend.results import err_result, err_result_from, ok_result
+from meshchatx.src.json_store import load_json, save_json
 
 BUG_ASPECT = "mcx-bugs-v1"
 REPORT_PATH = "/report"
@@ -124,8 +126,7 @@ class BugReportManager:
                     continue
                 path = os.path.join(directory, name)
                 try:
-                    with open(path, encoding="utf-8") as handle:
-                        data = json.load(handle)
+                    data = load_json(path)
                     if isinstance(data, dict):
                         if "id" not in data:
                             data["id"] = name[len("report-") : -len(".json")]
@@ -144,8 +145,7 @@ class BugReportManager:
                     continue
                 path = os.path.join(self._issues_dir(), name)
                 try:
-                    with open(path, encoding="utf-8") as handle:
-                        data = json.load(handle)
+                    data = load_json(path)
                     if isinstance(data, dict) and data.get("fingerprint"):
                         issues[str(data["fingerprint"])] = data
                 except Exception:
@@ -161,8 +161,7 @@ class BugReportManager:
                     continue
                 path = os.path.join(self._pending_dir(), name)
                 try:
-                    with open(path, encoding="utf-8") as handle:
-                        data = json.load(handle)
+                    data = load_json(path)
                     if isinstance(data, dict):
                         pending.append(data)
                 except Exception:
@@ -400,7 +399,7 @@ class BugReportManager:
                     os.remove(path)
                 except Exception:
                     pass
-            return {"ok": True}
+            return ok_result()
 
     def clear_reports(self) -> dict[str, Any]:
         with self._lock:
@@ -412,7 +411,7 @@ class BugReportManager:
                         os.remove(os.path.join(directory, name))
             except Exception:
                 pass
-            return {"ok": True}
+            return ok_result()
 
     def _on_link(self, link) -> None:
         with self._lock:
@@ -443,7 +442,7 @@ class BugReportManager:
         self, payload: dict[str, Any], source: str | None
     ) -> dict[str, Any]:
         if not self._rate_limit_ok(source):
-            return {"ok": False, "error": "rate limited"}
+            return err_result("rate limited")
         title = str(payload.get("title") or "")[:200]
         description = str(payload.get("description") or "")[:4000]
         log_text = redact_diagnostic_text(str(payload.get("log_text") or ""))[
@@ -496,7 +495,7 @@ class BugReportManager:
             self._reports = self._reports[:MAX_STORED_REPORTS]
             self._merge_issue_from_report(report)
         self._persist_report(report)
-        return {"ok": True, "id": report_id, "fingerprint": fingerprint}
+        return ok_result(id=report_id, fingerprint=fingerprint)
 
     def _report_response(
         self,
@@ -516,14 +515,14 @@ class BugReportManager:
                 text = ""
             payload = json.loads(text) if text else {}
             if not isinstance(payload, dict):
-                return {"ok": False, "error": "invalid payload"}
+                return err_result("invalid payload")
             source = None
             if remote_identity is not None and hasattr(remote_identity, "hash"):
                 source = remote_identity.hash.hex()
             return self._ingest_payload(payload, source)
         except Exception as exc:
             print(f"bug report receive failed: {exc}")
-            return {"ok": False, "error": str(exc)}
+            return err_result_from(exc)
 
     def _persist_report(self, report: dict[str, Any]) -> None:
         try:
@@ -531,8 +530,7 @@ class BugReportManager:
             report_id = str(report.get("id") or uuid.uuid4())
             report["id"] = report_id
             path = os.path.join(directory, f"report-{report_id}.json")
-            with open(path, "w", encoding="utf-8") as handle:
-                json.dump(report, handle, indent=2)
+            save_json(path, report, indent=2, newline=False)
         except Exception as exc:
             print(f"bug report persist failed: {exc}")
 
@@ -542,8 +540,7 @@ class BugReportManager:
             if not fingerprint:
                 return
             path = os.path.join(self._issues_dir(), f"{fingerprint}.json")
-            with open(path, "w", encoding="utf-8") as handle:
-                json.dump(issue, handle, indent=2)
+            save_json(path, issue, indent=2, newline=False)
         except Exception as exc:
             print(f"bug issue persist failed: {exc}")
 
@@ -630,7 +627,7 @@ class BugReportManager:
             issue["status"] = status
             self._issues[fingerprint] = issue
             self._persist_issue(issue)
-            return {"ok": True, "issue": issue}
+            return ok_result(issue=issue)
 
     def record_local(self, args: dict[str, Any]) -> dict[str, Any]:
         if not self._capture_enabled() and not args.get("force"):
@@ -955,13 +952,12 @@ class BugReportManager:
             pass
         if response_holder.get("error"):
             raise RuntimeError(response_holder["error"])
-        return {
-            "ok": True,
-            "destination_hash": dest_hex,
-            "bytes": len(body),
-            "line_count": json.loads(body).get("meta", {}).get("line_count"),
-            "response": response_holder.get("value"),
-        }
+        return ok_result(
+            destination_hash=dest_hex,
+            bytes=len(body),
+            line_count=json.loads(body).get("meta", {}).get("line_count"),
+            response=response_holder.get("value"),
+        )
 
     def _send_local_report(self, body: bytes) -> dict[str, Any]:
         response = self._report_response(
@@ -979,13 +975,12 @@ class BugReportManager:
                 else "local delivery failed"
             )
             raise RuntimeError(f"Local collector rejected the report: {error}")
-        return {
-            "ok": True,
-            "destination_hash": "local",
-            "bytes": len(body),
-            "line_count": json.loads(body).get("meta", {}).get("line_count"),
-            "response": response,
-        }
+        return ok_result(
+            destination_hash="local",
+            bytes=len(body),
+            line_count=json.loads(body).get("meta", {}).get("line_count"),
+            response=response,
+        )
 
     def _validate_dest_hex(self, dest_hex: str) -> bytes:
         if not isinstance(dest_hex, str) or not dest_hex.strip():
@@ -1048,18 +1043,16 @@ class BugReportManager:
             self._pending_sends.append(entry)
             self._pending_sends = self._pending_sends[-MAX_PENDING_SENDS:]
         self._persist_pending(entry)
-        return {
-            "ok": True,
-            "queued": True,
-            "id": entry["id"],
-            "pending": len(self._pending_sends),
-        }
+        return ok_result(
+            queued=True,
+            id=entry["id"],
+            pending=len(self._pending_sends),
+        )
 
     def _persist_pending(self, entry: dict[str, Any]) -> None:
         try:
             path = os.path.join(self._pending_dir(), f"{entry['id']}.json")
-            with open(path, "w", encoding="utf-8") as handle:
-                json.dump(entry, handle, indent=2)
+            save_json(path, entry, indent=2, newline=False)
         except Exception as exc:
             print(f"bug pending persist failed: {exc}")
 
@@ -1088,7 +1081,7 @@ class BugReportManager:
             os.remove(os.path.join(self._pending_dir(), f"{pending_id}.json"))
         except Exception:
             pass
-        return {"ok": True, "removed": before - len(self._pending_sends)}
+        return ok_result(removed=before - len(self._pending_sends))
 
     def _retry_pending_for_collector(self, dest_hex: str) -> None:
         with self._lock:

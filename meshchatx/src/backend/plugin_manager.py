@@ -68,6 +68,8 @@ from meshchatx.src.backend.plugin_wasm_bundle import (
     validate_embedded_bundle,
     write_wasm_bundle,
 )
+from meshchatx.src.backend.results import ok_result
+from meshchatx.src.json_store import load_json, load_json_required
 from meshchatx.src.path_utils import is_path_within_dir, is_under_root
 
 SUPPORTED_API_VERSION = 1
@@ -200,9 +202,7 @@ class PluginManager:
             if not os.path.isfile(manifest_path):
                 continue
             try:
-                with open(manifest_path, encoding="utf-8") as handle:
-                    manifest = json.load(handle)
-                manifest = self._validate_manifest(manifest)
+                manifest = self._validate_manifest(load_json(manifest_path))
                 (
                     enabled,
                     auto_disabled_reason,
@@ -419,8 +419,9 @@ class PluginManager:
         manifest_path = os.path.join(source_dir, "plugin.json")
         if not os.path.isfile(manifest_path):
             raise ValueError("plugin.json not found")
-        with open(manifest_path, encoding="utf-8") as handle:
-            manifest = self._validate_manifest(json.load(handle))
+        manifest = self._validate_manifest(
+            load_json_required(manifest_path, expect=dict),
+        )
         declared = declared_permission_ids(manifest)
         endpoints = collect_network_endpoints(manifest, source_dir)
         network_mode = normalize_network_mode(
@@ -515,8 +516,9 @@ class PluginManager:
         manifest_path = os.path.join(source_dir, "plugin.json")
         if not os.path.isfile(manifest_path):
             raise ValueError("plugin.json not found")
-        with open(manifest_path, encoding="utf-8") as handle:
-            manifest = self._validate_manifest(json.load(handle))
+        manifest = self._validate_manifest(
+            load_json_required(manifest_path, expect=dict),
+        )
         signature = signature_override or verify_dir_signature(source_dir)
         signature = enrich_signature_with_trust(signature, self._lookup_trusted)
         require_valid_signature(signature)
@@ -878,8 +880,7 @@ class PluginManager:
         path = self.locale_path(plugin_id, locale)
         if not path:
             return {}
-        with open(path, encoding="utf-8") as handle:
-            data = json.load(handle)
+        data = load_json(path)
         if not isinstance(data, dict):
             raise ValueError("plugin locale file must be an object")
         return data
@@ -1148,12 +1149,11 @@ class PluginManager:
                 "destination_hash": dest_hash.hex(),
                 "aspect": aspect,
             }
-        return {
-            "ok": True,
-            "identified": identified,
-            "destination_hash": dest_hash.hex(),
-            "aspect": aspect,
-        }
+        return ok_result(
+            identified=identified,
+            destination_hash=dest_hash.hex(),
+            aspect=aspect,
+        )
 
     def _rns_link_identify(self, args: dict[str, Any]) -> dict[str, Any]:
         dest_hash, aspect = self._parse_rns_link_args(args)
@@ -1474,7 +1474,7 @@ class PluginManager:
             data[ptr : ptr + len(payload)] = payload
         invoke = exports["invoke"]
         invoke(store, ptr, len(payload), 0)
-        return {"ok": True, "logs": logs}
+        return ok_result(logs=logs)
 
     def _ensure_minimal_wasm(self, record: PluginRecord) -> str:
         wasmtime = self._load_wasmtime()
