@@ -275,11 +275,7 @@
                         <template #button>
                             <IconButton
                                 class="nomad-icon-btn"
-                                :class="
-                                    selectedNodeImageLoadingPolicy === 'inherit'
-                                        ? 'text-sem-fg-muted'
-                                        : 'text-sem-accent'
-                                "
+                                :class="selectedNodeImagesAutoLoad ? 'text-sem-accent' : 'text-sem-fg-muted'"
                                 :title="`${$t('nomadnet.image_loading_policy_title')}: ${selectedNodeImagePolicyLabel}`"
                                 :aria-label="$t('nomadnet.image_loading_policy_title')"
                                 aria-haspopup="menu"
@@ -347,11 +343,7 @@
                             <template #button>
                                 <IconButton
                                     class="nomad-icon-btn"
-                                    :class="
-                                        selectedNodeImageLoadingPolicy === 'inherit'
-                                            ? 'text-sem-fg-muted'
-                                            : 'text-sem-accent'
-                                    "
+                                    :class="selectedNodeImagesAutoLoad ? 'text-sem-accent' : 'text-sem-fg-muted'"
                                     :title="`${$t('nomadnet.image_loading_policy_title')}: ${selectedNodeImagePolicyLabel}`"
                                     :aria-label="$t('nomadnet.image_loading_policy_title')"
                                     aria-haspopup="menu"
@@ -1083,6 +1075,13 @@ export default {
         selectedNodeImagePolicyLabel() {
             const active = this.imagePolicyOptions.find((o) => o.value === this.selectedNodeImageLoadingPolicy);
             return active ? active.label : "";
+        },
+        selectedNodeImagesAutoLoad() {
+            const hash = this.selectedNode?.destination_hash;
+            if (!hash) {
+                return false;
+            }
+            return ["auto", "always"].includes(this.getNomadImagePolicy(hash));
         },
         nomadMicronWasmFeatureEffective() {
             return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
