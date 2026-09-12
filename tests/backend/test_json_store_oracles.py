@@ -62,7 +62,7 @@ class TestLoadJson:
 
     def test_expect_filters_type(self, tmp_path):
         path = _tmpfile(tmp_path)
-        path.write_text('[1, 2]', encoding="utf-8")
+        path.write_text("[1, 2]", encoding="utf-8")
         assert load_json(path, "d", expect=dict) == "d"
         assert load_json(path, expect=list) == [1, 2]
 
@@ -78,11 +78,20 @@ class TestLoadJson:
     def test_nul_path_returns_default(self):
         assert load_json("a\x00b", "d") == "d"
 
-    @given(payload=st.recursive(
-        st.none() | st.booleans() | st.integers() | st.floats(allow_nan=False) | st.text(),
-        lambda children: st.lists(children, max_size=5) | st.dictionaries(st.text(), children, max_size=5),
-        max_leaves=20,
-    ))
+    @given(
+        payload=st.recursive(
+            st.none()
+            | st.booleans()
+            | st.integers()
+            | st.floats(allow_nan=False)
+            | st.text(),
+            lambda children: (
+                st.lists(children, max_size=5)
+                | st.dictionaries(st.text(), children, max_size=5)
+            ),
+            max_leaves=20,
+        )
+    )
     @settings(
         max_examples=100,
         deadline=None,
@@ -127,7 +136,12 @@ class TestSaveJson:
         save_json(path, {"v": 1})
         save_json(path, {"v": 2})
         assert load_json(path) == {"v": 2}
-        assert not os.path.exists(str(path) + ".tmp")
+        leftovers = [
+            p
+            for p in path.parent.iterdir()
+            if p.name != path.name and p.name.endswith(".tmp")
+        ]
+        assert leftovers == []
 
     def test_mode_private(self, tmp_path):
         path = _tmpfile(tmp_path)

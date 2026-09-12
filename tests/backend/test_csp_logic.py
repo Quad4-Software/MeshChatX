@@ -9,6 +9,7 @@ from aiohttp import web
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.http.middleware import is_opaque_frame_cors_resource
+from tests.backend.http_request_stubs import JsonContent
 
 
 @pytest.fixture
@@ -290,6 +291,7 @@ async def test_config_update_csp(mock_rns_minimal, tmp_path):
         request = MagicMock(spec=web.Request)
         # request.json() must be awaited, so it should return an awaitable
         request.json = AsyncMock(return_value=request_data)
+        request.content = JsonContent(request_data)
 
         # To avoid the JSON serialization error of MagicMock in get_config_dict,
         # we mock get_config_dict to return a serializable dict.

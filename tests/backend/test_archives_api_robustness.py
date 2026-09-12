@@ -3,11 +3,13 @@
 """Robustness tests for REST handlers (archives, bundled docs, lxmf send) and related WS paths."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
+
+from tests.backend.http_request_stubs import json_request
 
 
 def _handler(app, method: str, path: str):
@@ -78,8 +80,7 @@ async def test_delete_archives_requires_nonempty_ids(mock_app):
     handler = _handler(mock_app, "DELETE", "/api/v1/nomadnet/archives")
     assert handler is not None
 
-    request = MagicMock()
-    request.json = AsyncMock(return_value={"ids": []})
+    request = json_request({"ids": []})
     response = await handler(request)
     assert response.status == 400
 
@@ -140,8 +141,7 @@ async def test_meshchatx_docs_content_path_fuzz(mock_app, path):
 async def test_lxmf_messages_send_requires_lxmf_message(mock_app):
     handler = _handler(mock_app, "POST", "/api/v1/lxmf-messages/send")
     assert handler is not None
-    request = MagicMock()
-    request.json = AsyncMock(return_value={})
+    request = json_request({})
     response = await handler(request)
     assert response.status == 400
 
@@ -150,10 +150,7 @@ async def test_lxmf_messages_send_requires_lxmf_message(mock_app):
 async def test_lxmf_messages_send_requires_destination_and_content(mock_app):
     handler = _handler(mock_app, "POST", "/api/v1/lxmf-messages/send")
     assert handler is not None
-    request = MagicMock()
-    request.json = AsyncMock(
-        return_value={"lxmf_message": {"fields": {}}},
-    )
+    request = json_request({"lxmf_message": {"fields": {}}})
     response = await handler(request)
     assert response.status == 400
 
@@ -162,9 +159,8 @@ async def test_lxmf_messages_send_requires_destination_and_content(mock_app):
 async def test_lxmf_messages_send_rejects_bad_image_field(mock_app):
     handler = _handler(mock_app, "POST", "/api/v1/lxmf-messages/send")
     assert handler is not None
-    request = MagicMock()
-    request.json = AsyncMock(
-        return_value={
+    request = json_request(
+        {
             "lxmf_message": {
                 "destination_hash": "aa",
                 "content": "x",
