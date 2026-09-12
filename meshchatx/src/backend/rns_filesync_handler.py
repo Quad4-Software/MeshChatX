@@ -5,9 +5,7 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import os
-import tempfile
 import threading
 from collections.abc import Callable
 from typing import Any
@@ -16,8 +14,12 @@ from rns_filesync.constants import ANNOUNCE_INTERVAL_DEFAULT
 from rns_filesync.permissions import PermissionStore
 from rns_filesync.service import FileSyncService
 
+from meshchatx.src.backend.results import err_result, err_result_from, ok_result
+from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
     PathJailError,
+    atomic_write_bytes,
+    atomic_write_text,
     is_under_root,
     normalize_relpath,
     relative_to_root,
@@ -274,11 +276,7 @@ def collect_external_filesync_rw_roots(storage_dir: str | None) -> list[str]:
         settings_path = os.path.join(identity_storage, "filesync", "settings.json")
         if not os.path.isfile(settings_path):
             continue
-        try:
-            with open(settings_path, encoding="utf-8") as handle:
-                data = json.load(handle)
-        except Exception:
-            continue
+        data = load_json(settings_path)
         if not isinstance(data, dict):
             continue
         sync_dir = data.get("sync_directory")
@@ -381,18 +379,16 @@ class RnsFilesyncHandler:
         path = os.path.join(base, identity_id, "sync")
         resolved = self._resolve_sync_directory(path)
         if resolved is None:
-            return {
-                "ok": False,
-                "error": "shared sync directory not allowed",
-                "path": path,
-                "android": android,
-            }
-        return {
-            "ok": True,
-            "path": resolved,
-            "android": android,
-            "requires_all_files_access": android,
-        }
+            return err_result(
+                "shared sync directory not allowed",
+                path=path,
+                android=android,
+            )
+        return ok_result(
+            path=resolved,
+            android=android,
+            requires_all_files_access=android,
+        )
 
     def _sync_root(self) -> str:
         """Real path of the configured sync directory (file manager jail base)."""
@@ -475,16 +471,16 @@ class RnsFilesyncHandler:
         with self._lock:
             target, err = self._resolve_manager_path(path, allow_root=True)
             if err or target is None:
-                return {"ok": False, "error": err or "path not allowed"}
+                return err_result(err or "path not allowed")
             if not os.path.isdir(target):
-                return {"ok": False, "error": "not a directory"}
+                return err_result("not a directory")
 
             root = self._sync_root()
             entries: list[dict[str, Any]] = []
             try:
                 names = sorted(os.listdir(target), key=str.lower)
             except OSError as exc:
-                return {"ok": False, "error": str(exc)}
+                return err_result_from(exc)
 
             for name in names:
                 if _is_forbidden_entry_name(name):
@@ -526,28 +522,27 @@ class RnsFilesyncHandler:
                 else:
                     parent_rel = self._relpath_under_sync(parent_abs)
 
-            return {
-                "ok": True,
-                "root": root,
-                "current": current_rel,
-                "parent": parent_rel,
-                "entries": entries,
-            }
+            return ok_result(
+                root=root,
+                current=current_rel,
+                parent=parent_rel,
+                entries=entries,
+            )
 
     def manager_mkdir(self, path: str) -> dict[str, Any]:
         """Create a directory under the sync root (relative path)."""
         with self._lock:
             cleaned = str(path or "").strip()
             if not cleaned:
-                return {"ok": False, "error": "path is required"}
+                return err_result("path is required")
             # Resolve parent and create leaf so we do not require the leaf to exist.
             try:
                 safe_rel = _normalize_sync_relpath(cleaned)
             except PathJailError:
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             parts = safe_rel.replace("\\", "/").split("/")
             if any(_is_forbidden_entry_name(part) for part in parts):
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             leaf = parts[-1]
             parent_rel = "/".join(parts[:-1]) if len(parts) > 1 else ""
             parent_abs, err = self._resolve_manager_path(
@@ -556,28 +551,28 @@ class RnsFilesyncHandler:
                 must_exist=True,
             )
             if err or parent_abs is None:
-                return {"ok": False, "error": err or "path not allowed"}
+                return err_result(err or "path not allowed")
             if not os.path.isdir(parent_abs):
-                return {"ok": False, "error": "parent is not a directory"}
+                return err_result("parent is not a directory")
             if os.path.islink(parent_abs):
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
 
             new_path = os.path.join(parent_abs, leaf)
             if not self._is_under_sync_root(os.path.dirname(new_path)):
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             if os.path.lexists(new_path):
-                return {"ok": False, "error": "already exists"}
+                return err_result("already exists")
             try:
                 os.mkdir(new_path)
             except OSError as exc:
-                return {"ok": False, "error": str(exc)}
+                return err_result_from(exc)
             real = os.path.realpath(new_path)
             if not self._is_under_sync_root(real):
                 with contextlib.suppress(OSError):
                     os.rmdir(new_path)
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             rel = self._relpath_under_sync(real) or safe_rel
-            return {"ok": True, "path": rel}
+            return ok_result(path=rel)
 
     def manager_upload(
         self,
@@ -589,12 +584,12 @@ class RnsFilesyncHandler:
         """Write an uploaded file under the sync root."""
         with self._lock:
             if not isinstance(data, (bytes, bytearray)):
-                return {"ok": False, "error": "invalid upload data"}
+                return err_result("invalid upload data")
             if len(data) > MANAGER_UPLOAD_MAX_BYTES:
-                return {"ok": False, "error": "upload too large"}
+                return err_result("upload too large")
             base = _sanitize_upload_basename(filename)
             if base is None:
-                return {"ok": False, "error": "invalid filename"}
+                return err_result("invalid filename")
 
             parent_abs, err = self._resolve_manager_path(
                 subdir,
@@ -602,56 +597,35 @@ class RnsFilesyncHandler:
                 must_exist=True,
             )
             if err or parent_abs is None:
-                return {"ok": False, "error": err or "path not allowed"}
+                return err_result(err or "path not allowed")
             if not os.path.isdir(parent_abs) or os.path.islink(parent_abs):
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
 
             dest = os.path.join(parent_abs, base)
             if os.path.islink(dest):
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             if os.path.lexists(dest):
                 real_existing = os.path.realpath(dest)
                 if not self._is_under_sync_root(real_existing):
-                    return {"ok": False, "error": "path not allowed"}
+                    return err_result("path not allowed")
 
-            tmp_path = None
             try:
-                fd, tmp_path = tempfile.mkstemp(
-                    prefix=".upload-",
-                    suffix=".tmp",
-                    dir=parent_abs,
-                )
-                try:
-                    with os.fdopen(fd, "wb") as handle:
-                        handle.write(data)
-                except Exception:
-                    with contextlib.suppress(OSError):
-                        os.close(fd)
-                    raise
-                if not self._is_under_sync_root(tmp_path):
-                    with contextlib.suppress(OSError):
-                        os.unlink(tmp_path)
-                    return {"ok": False, "error": "path not allowed"}
-                os.replace(tmp_path, dest)
-                tmp_path = None
+                atomic_write_bytes(dest, data)
             except OSError as exc:
-                if tmp_path:
-                    with contextlib.suppress(OSError):
-                        os.unlink(tmp_path)
-                return {"ok": False, "error": str(exc)}
+                return err_result_from(exc, "upload failed")
 
             real = os.path.realpath(dest)
             if not self._is_under_sync_root(real) or not os.path.isfile(real):
                 with contextlib.suppress(OSError):
                     os.unlink(dest)
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             rel = self._relpath_under_sync(real)
             if rel is None:
                 with contextlib.suppress(OSError):
                     os.unlink(dest)
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             self._nudge_inventory(rel)
-            return {"ok": True, "path": rel, "size": len(data)}
+            return ok_result(path=rel, size=len(data))
 
     def manager_delete(self, path: str) -> dict[str, Any]:
         """Delete a file or empty directory under the sync root."""
@@ -660,10 +634,10 @@ class RnsFilesyncHandler:
             try:
                 safe_rel = _normalize_sync_relpath(str(path or "").strip())
             except PathJailError:
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             lex_path = os.path.join(root, safe_rel)
             if os.path.islink(lex_path):
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
 
             target, err = self._resolve_manager_path(
                 path,
@@ -671,29 +645,29 @@ class RnsFilesyncHandler:
                 must_exist=True,
             )
             if err or target is None:
-                return {"ok": False, "error": err or "path not allowed"}
+                return err_result(err or "path not allowed")
             if target == root:
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
 
             rel = self._relpath_under_sync(target)
             if rel is None:
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
 
             try:
                 if os.path.isdir(target):
                     try:
                         os.rmdir(target)
                     except OSError:
-                        return {"ok": False, "error": "directory is not empty"}
+                        return err_result("directory is not empty")
                 elif os.path.isfile(target):
                     os.unlink(target)
                 else:
-                    return {"ok": False, "error": "path not found"}
+                    return err_result("path not found")
             except OSError as exc:
-                return {"ok": False, "error": str(exc)}
+                return err_result_from(exc)
 
             self._nudge_inventory(rel)
-            return {"ok": True, "path": rel}
+            return ok_result(path=rel)
 
     def manager_content(self, path: str) -> dict[str, Any]:
         """Resolve a file under the sync root for download streaming."""
@@ -702,10 +676,10 @@ class RnsFilesyncHandler:
             try:
                 safe_rel = _normalize_sync_relpath(str(path or "").strip())
             except PathJailError:
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
             lex_path = os.path.join(root, safe_rel)
             if os.path.islink(lex_path):
-                return {"ok": False, "error": "path not allowed"}
+                return err_result("path not allowed")
 
             target, err = self._resolve_manager_path(
                 path,
@@ -713,29 +687,24 @@ class RnsFilesyncHandler:
                 must_exist=True,
             )
             if err or target is None:
-                return {"ok": False, "error": err or "path not allowed"}
+                return err_result(err or "path not allowed")
             if not os.path.isfile(target):
-                return {"ok": False, "error": "not a file"}
+                return err_result("not a file")
             rel = self._relpath_under_sync(target)
             if rel is None:
-                return {"ok": False, "error": "path not allowed"}
-            return {
-                "ok": True,
-                "abspath": target,
-                "path": rel,
-                "filename": os.path.basename(target),
-                "size": os.path.getsize(target),
-            }
+                return err_result("path not allowed")
+            return ok_result(
+                abspath=target,
+                path=rel,
+                filename=os.path.basename(target),
+                size=os.path.getsize(target),
+            )
 
     def _load_settings(self) -> None:
         os.makedirs(self._root, exist_ok=True)
         if not os.path.isfile(self._settings_path):
             return
-        try:
-            with open(self._settings_path, encoding="utf-8") as handle:
-                data = json.load(handle)
-        except Exception:
-            return
+        data = load_json(self._settings_path)
         if not isinstance(data, dict):
             return
         sync_dir = data.get("sync_directory")
@@ -757,11 +726,7 @@ class RnsFilesyncHandler:
             "monitor": self._monitor,
             "announce_interval": self._announce_interval,
         }
-        tmp = f"{self._settings_path}.tmp"
-        with open(tmp, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2, sort_keys=True)
-            handle.write("\n")
-        os.replace(tmp, self._settings_path)
+        save_json(self._settings_path, payload, sort_keys=True)
 
     def _load_permissions(self) -> PermissionStore:
         permissions = PermissionStore()
@@ -796,10 +761,7 @@ class RnsFilesyncHandler:
             lines.insert(0, "# enforce=true")
         else:
             lines.insert(0, "# enforce=false")
-        tmp = f"{self._acl_path}.tmp"
-        with open(tmp, "w", encoding="utf-8") as handle:
-            handle.write("\n".join(lines) + "\n")
-        os.replace(tmp, self._acl_path)
+        atomic_write_text(self._acl_path, "\n".join(lines) + "\n")
         self._permissions_cache = permissions
 
     def _wire_callbacks(self, service: FileSyncService) -> None:
@@ -876,10 +838,7 @@ class RnsFilesyncHandler:
             if cleaned:
                 target = self._resolve_sync_directory(cleaned)
                 if target is None:
-                    return {
-                        "ok": False,
-                        "error": "path not allowed for sync directory",
-                    }
+                    return err_result("path not allowed for sync directory")
                 under_identity = _is_under_path(target, identity_root)
             else:
                 os.makedirs(self._root, exist_ok=True)
@@ -910,10 +869,7 @@ class RnsFilesyncHandler:
                         os.makedirs(self._root, exist_ok=True)
                         target = self._root
                     else:
-                        return {
-                            "ok": False,
-                            "error": "directory does not exist",
-                        }
+                        return err_result("directory does not exist")
 
             entries: list[dict[str, str]] = []
             try:
@@ -928,7 +884,7 @@ class RnsFilesyncHandler:
                         continue
                     entries.append({"name": name, "path": resolved})
             except OSError as exc:
-                return {"ok": False, "error": str(exc)}
+                return err_result_from(exc)
 
             current = os.path.realpath(target)
             parent = None
@@ -948,13 +904,12 @@ class RnsFilesyncHandler:
                 ):
                     parent = candidate
 
-            return {
-                "ok": True,
-                "root": identity_root if under_identity else current,
-                "current": current,
-                "parent": parent,
-                "directories": entries,
-            }
+            return ok_result(
+                root=identity_root if under_identity else current,
+                current=current,
+                parent=parent,
+                directories=entries,
+            )
 
     def create_directory(self, parent: str | None, name: str) -> dict[str, Any]:
         """Create a subdirectory for use as a sync folder."""
@@ -967,7 +922,7 @@ class RnsFilesyncHandler:
                 or "\\" in cleaned_name
                 or cleaned_name.startswith(".")
             ):
-                return {"ok": False, "error": "invalid directory name"}
+                return err_result("invalid directory name")
 
             parent_cleaned = str(parent or "").strip()
             if parent_cleaned:
@@ -976,25 +931,19 @@ class RnsFilesyncHandler:
                 os.makedirs(self._root, exist_ok=True)
                 parent_resolved = self._root
             if parent_resolved is None:
-                return {
-                    "ok": False,
-                    "error": "parent not allowed for sync directory",
-                }
+                return err_result("parent not allowed for sync directory")
 
             new_path = os.path.join(parent_resolved, cleaned_name)
             resolved = self._resolve_sync_directory(new_path)
             if resolved is None:
-                return {
-                    "ok": False,
-                    "error": "path not allowed for sync directory",
-                }
+                return err_result("path not allowed for sync directory")
             try:
                 os.makedirs(resolved, exist_ok=False)
             except FileExistsError:
-                return {"ok": False, "error": "directory already exists"}
+                return err_result("directory already exists")
             except OSError as exc:
-                return {"ok": False, "error": str(exc)}
-            return {"ok": True, "path": resolved}
+                return err_result_from(exc)
+            return ok_result(path=resolved)
 
     def start(
         self,
@@ -1007,10 +956,7 @@ class RnsFilesyncHandler:
             if sync_directory is not None:
                 resolved = self._resolve_sync_directory(sync_directory)
                 if resolved is None:
-                    return {
-                        "ok": False,
-                        "error": "sync_directory not allowed",
-                    }
+                    return err_result("sync_directory not allowed")
                 self._sync_directory = resolved
             if monitor is not None:
                 self._monitor = bool(monitor)
@@ -1018,27 +964,24 @@ class RnsFilesyncHandler:
                 try:
                     interval = int(announce_interval)
                 except (TypeError, ValueError):
-                    return {"ok": False, "error": "invalid announce_interval"}
+                    return err_result("invalid announce_interval")
                 if interval < 10:
-                    return {"ok": False, "error": "announce_interval must be >= 10"}
+                    return err_result("announce_interval must be >= 10")
                 self._announce_interval = interval
 
             if self.service is not None:
                 status = self.service.get_status()
                 if status.get("running"):
-                    return {"ok": True, "already_running": True, **status}
+                    return ok_result(already_running=True, **status)
 
             try:
                 os.makedirs(self._sync_directory, exist_ok=True)
             except OSError as exc:
-                return {
-                    "ok": False,
-                    "error": (
-                        "cannot create sync directory "
-                        f"({exc}). If Landlock is active, restart MeshChatX "
-                        "after choosing a shared folder outside identity storage."
-                    ),
-                }
+                return err_result(
+                    "cannot create sync directory "
+                    f"({exc}). If Landlock is active, restart MeshChatX "
+                    "after choosing a shared folder outside identity storage."
+                )
             permissions = self._load_permissions()
             self._permissions_cache = permissions
 
@@ -1067,11 +1010,11 @@ class RnsFilesyncHandler:
     def stop(self) -> dict[str, Any]:
         with self._lock:
             if self.service is None:
-                return {"ok": True, "running": False}
+                return ok_result(running=False)
             with contextlib.suppress(Exception):
                 self.service.stop()
             self.service = None
-            return {"ok": True, "running": False}
+            return ok_result(running=False)
 
     def teardown(self) -> None:
         self.stop()
@@ -1092,36 +1035,36 @@ class RnsFilesyncHandler:
     def connect_peer(self, identity_hash: str) -> dict[str, Any]:
         with self._lock:
             if self.service is None:
-                return {"ok": False, "error": "filesync is not running"}
+                return err_result("filesync is not running")
             cleaned = _normalize_peer_hash(identity_hash)
             if cleaned is None or cleaned == "all":
-                return {"ok": False, "error": "invalid identity_hash"}
+                return err_result("invalid identity_hash")
             return self.service.connect_peer(cleaned)
 
     def disconnect_peer(self, peer_id: str) -> dict[str, Any]:
         with self._lock:
             if self.service is None:
-                return {"ok": False, "error": "filesync is not running"}
+                return err_result("filesync is not running")
             cleaned = str(peer_id or "").strip()
             if not cleaned:
-                return {"ok": False, "error": "peer_id is required"}
+                return err_result("peer_id is required")
             self.service.disconnect_peer(cleaned)
-            return {"ok": True, "peer_id": cleaned}
+            return ok_result(peer_id=cleaned)
 
     def announce_now(self) -> dict[str, Any]:
         with self._lock:
             if self.service is None:
-                return {"ok": False, "error": "filesync is not running"}
+                return err_result("filesync is not running")
             self.service.announce_now()
-            return {"ok": True}
+            return ok_result()
 
     def browse_peer(self, peer_id: str, timeout: float = 10.0) -> dict[str, Any]:
         with self._lock:
             if self.service is None:
-                return {"ok": False, "error": "filesync is not running", "files": []}
+                return err_result("filesync is not running", files=[])
             cleaned = str(peer_id or "").strip()
             if not cleaned:
-                return {"ok": False, "error": "peer_id is required", "files": []}
+                return err_result("peer_id is required", files=[])
             try:
                 timeout_f = float(timeout)
             except (TypeError, ValueError):
@@ -1129,22 +1072,22 @@ class RnsFilesyncHandler:
             timeout_f = max(timeout_f, 0.1)
             timeout_f = min(timeout_f, 120.0)
             files = self.service.browse_peer(cleaned, timeout=timeout_f)
-            return {"ok": True, "peer_id": cleaned, "files": files}
+            return ok_result(peer_id=cleaned, files=files)
 
     def download_file(self, peer_id: str, path: str) -> dict[str, Any]:
         with self._lock:
             if self.service is None:
-                return {"ok": False, "error": "filesync is not running"}
+                return err_result("filesync is not running")
             cleaned_peer = str(peer_id or "").strip()
             cleaned_path = str(path or "").strip()
             if not cleaned_peer:
-                return {"ok": False, "error": "peer_id is required"}
+                return err_result("peer_id is required")
             if not cleaned_path:
-                return {"ok": False, "error": "path is required"}
+                return err_result("path is required")
             try:
                 safe_path = _normalize_sync_relpath(cleaned_path)
             except PathJailError as exc:
-                return {"ok": False, "error": str(exc)}
+                return err_result_from(exc)
             return self.service.download_file(cleaned_peer, safe_path)
 
     def get_acl(self) -> dict[str, Any]:
@@ -1175,10 +1118,10 @@ class RnsFilesyncHandler:
             if identity_hash is not None and perms is not None:
                 peer = _normalize_peer_hash(identity_hash)
                 if peer is None:
-                    return {"ok": False, "error": "invalid identity_hash"}
+                    return err_result("invalid identity_hash")
                 granted = permissions.grant(peer, perms)
                 if not granted and perms:
-                    return {"ok": False, "error": "no valid permissions provided"}
+                    return err_result("no valid permissions provided")
 
             if enforce is not None:
                 permissions._enforce = bool(enforce)
@@ -1187,11 +1130,10 @@ class RnsFilesyncHandler:
                 self.service.permissions = permissions
 
             self._save_acl(permissions)
-            return {
-                "ok": True,
-                "enforce": permissions.enabled,
-                "rules": permissions.as_dict(),
-            }
+            return ok_result(
+                enforce=permissions.enabled,
+                rules=permissions.as_dict(),
+            )
 
     def update_settings(
         self,
@@ -1207,16 +1149,10 @@ class RnsFilesyncHandler:
 
             if sync_directory is not None:
                 if running:
-                    return {
-                        "ok": False,
-                        "error": "stop filesync before changing sync directory",
-                    }
+                    return err_result("stop filesync before changing sync directory")
                 resolved = self._resolve_sync_directory(sync_directory)
                 if resolved is None:
-                    return {
-                        "ok": False,
-                        "error": "sync_directory not allowed",
-                    }
+                    return err_result("sync_directory not allowed")
                 self._sync_directory = resolved
 
             if monitor is not None:
@@ -1226,16 +1162,15 @@ class RnsFilesyncHandler:
                 try:
                     interval = int(announce_interval)
                 except (TypeError, ValueError):
-                    return {"ok": False, "error": "invalid announce_interval"}
+                    return err_result("invalid announce_interval")
                 if interval < 10:
-                    return {"ok": False, "error": "announce_interval must be >= 10"}
+                    return err_result("announce_interval must be >= 10")
                 self._announce_interval = interval
 
             self._save_settings()
-            return {
-                "ok": True,
-                "sync_directory": self._sync_directory,
-                "monitor": self._monitor,
-                "announce_interval": self._announce_interval,
-                "running": running,
-            }
+            return ok_result(
+                sync_directory=self._sync_directory,
+                monitor=self._monitor,
+                announce_interval=self._announce_interval,
+                running=running,
+            )
