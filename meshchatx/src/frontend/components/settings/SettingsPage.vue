@@ -3038,6 +3038,7 @@ import {
 import * as maintenanceClient from "../../js/settings/settingsMaintenanceClient";
 import { useMessageAgePurge } from "../../js/settings/useMessageAgePurge.js";
 import { useSelfTest } from "../../js/settings/useSelfTest.js";
+import { useBatterySaver } from "../../js/settings/useBatterySaver.js";
 import {
     loadVisualiserDisplayPrefs,
     persistVisualiserShowDisabled,
@@ -3045,11 +3046,7 @@ import {
     persistVisualiserRenderer,
     persistVisualiserViewMode,
 } from "../../js/settings/settingsVisualiserPrefs";
-import { loadBatterySaverPrefs, saveBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
-import {
-    applyBatterySaverBitrateLimits,
-    restoreBatterySaverBitrateLimits,
-} from "../../js/settings/batterySaverBitrateApply.js";
+
 import {
     incomingDeliveryBytesFromCustom,
     incomingDeliveryBytesFromPresetKey,
@@ -3118,6 +3115,9 @@ export default {
             }),
             ...useSelfTest({
                 t: (key) => inst?.proxy.$t(key),
+            }),
+            ...useBatterySaver({
+                t: (key, params) => inst?.proxy.$t(key, params),
             }),
         };
     },
@@ -3285,9 +3285,6 @@ export default {
             visualiserShowDiscoveredInterfaces: false,
             visualiserRenderer: "auto",
             visualiserViewMode: "flat",
-            batterySaver: loadBatterySaverPrefs(),
-            batteryInterfaceRows: [],
-            batteryBitrateBusy: false,
 
             rpcKeyVisible: false,
             desktopCloseSettings: {
@@ -3587,50 +3584,6 @@ export default {
             this.loadReticulumInstanceSettings();
             this.loadAndroidShellPrivacy();
         },
-        loadBatterySaverPrefsFromStorage() {
-            this.batterySaver = loadBatterySaverPrefs();
-            if (!this.batterySaver.interfaceBitrateLimits) {
-                this.batterySaver.interfaceBitrateLimits = {};
-            }
-        },
-        async loadBatteryInterfaceRows() {
-            try {
-                const response = await window.api.get(apiPath("/reticulum/interfaces"));
-                const interfaces = response?.data?.interfaces || {};
-                this.batteryInterfaceRows = Object.entries(interfaces)
-                    .map(([name, iface]) => ({
-                        name,
-                        type: iface?.type || "",
-                        bitrate: iface?.bitrate ?? null,
-                    }))
-                    .sort((a, b) => a.name.localeCompare(b.name));
-                for (const row of this.batteryInterfaceRows) {
-                    if (this.batterySaver.interfaceBitrateLimits[row.name] == null && row.bitrate != null) {
-                        const n = Number(row.bitrate);
-                        if (Number.isFinite(n) && n >= 0) {
-                            // leave unset so empty means "no forced limit"
-                        }
-                    }
-                }
-            } catch {
-                this.batteryInterfaceRows = [];
-            }
-        },
-        patchBatterySaver(patch) {
-            this.batterySaver = saveBatterySaverPrefs(patch);
-            if (!this.batterySaver.interfaceBitrateLimits) {
-                this.batterySaver.interfaceBitrateLimits = {};
-            }
-        },
-        onBatterySaverEnabledChange(val) {
-            const enabled = val === true;
-            this.patchBatterySaver({ enabled });
-            if (enabled && this.batterySaver.applyInterfaceBitrateLimits) {
-                this.applyBatteryBitrateLimitsNow();
-            } else if (!enabled && Object.keys(this.batterySaver.interfaceBitratePrevious || {}).length > 0) {
-                this.restoreBatteryBitrateLimitsNow();
-            }
-        },
         onLiveTransportModeChange(value) {
             const mode = ["auto", "websocket", "webtransport"].includes(value) ? value : "auto";
             this.config.live_transport_mode = mode;
@@ -3640,58 +3593,6 @@ export default {
             const enabled = value === true;
             this.config.webtransport_sidecar_enabled = enabled;
             this.updateConfig({ webtransport_sidecar_enabled: enabled }, "webtransport_sidecar_enabled");
-        },
-        onBatteryBitrateLimitChange(name) {
-            const limits = { ...(this.batterySaver.interfaceBitrateLimits || {}) };
-            const raw = limits[name];
-            if (raw === "" || raw == null || Number.isNaN(Number(raw))) {
-                delete limits[name];
-            } else {
-                limits[name] = Math.max(0, Math.round(Number(raw)));
-            }
-            this.patchBatterySaver({ interfaceBitrateLimits: limits });
-        },
-        async applyBatteryBitrateLimitsNow() {
-            if (this.batteryBitrateBusy) return;
-            this.batteryBitrateBusy = true;
-            try {
-                this.patchBatterySaver({
-                    applyInterfaceBitrateLimits: true,
-                    interfaceBitrateLimits: { ...(this.batterySaver.interfaceBitrateLimits || {}) },
-                });
-                const result = await applyBatterySaverBitrateLimits({ reload: true });
-                this.loadBatterySaverPrefsFromStorage();
-                if (result.updated.length === 0) {
-                    ToastUtils.error(this.$t("settings.battery.bitrates_none_applied"));
-                } else {
-                    ToastUtils.success(this.$t("settings.battery.bitrates_applied", { count: result.updated.length }));
-                }
-                await this.loadBatteryInterfaceRows();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("settings.battery.bitrates_apply_failed"));
-            } finally {
-                this.batteryBitrateBusy = false;
-            }
-        },
-        async restoreBatteryBitrateLimitsNow() {
-            if (this.batteryBitrateBusy) return;
-            this.batteryBitrateBusy = true;
-            try {
-                const result = await restoreBatterySaverBitrateLimits({ reload: true });
-                this.loadBatterySaverPrefsFromStorage();
-                if (result.updated.length === 0) {
-                    ToastUtils.error(this.$t("settings.battery.bitrates_none_restored"));
-                } else {
-                    ToastUtils.success(this.$t("settings.battery.bitrates_restored", { count: result.updated.length }));
-                }
-                await this.loadBatteryInterfaceRows();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("settings.battery.bitrates_restore_failed"));
-            } finally {
-                this.batteryBitrateBusy = false;
-            }
         },
         async loadReticulumInstanceSettings() {
             try {
