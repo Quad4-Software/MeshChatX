@@ -55,6 +55,7 @@ Do not invent folders outside this table.
 | Page-private panel or UI    | `components/<feature>/internal/*.vue`               | MapSearchBar                        |
 | Settings chunk              | `components/settings/sections/*SettingsSection.vue` | TelephonySettingsSection            |
 | Pure logic                  | colocated `*.js` or `js/<feature>/`                 | clusterUtils, settingsConfigService |
+| Composable (stateful slice) | `js/<feature>/use<Thing>.js`                        | useConversationSearch               |
 | Cross-feature primitive     | root `components/` or `components/forms/`           | ConfirmDialog, Toggle               |
 | Nav, tools, commands wiring | `js/registries/` only                               | never grow App.vue for discovery    |
 

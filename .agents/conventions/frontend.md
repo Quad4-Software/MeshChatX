@@ -2,7 +2,9 @@
 
 Applies when editing `meshchatx/src/frontend/**/*.{vue,js}`.
 
-- Vue 3 Options API is dominant in existing pages. Match the file you edit there. New components may use Composition API (`<script setup>`) and composables; do not convert an existing component inside a mechanical extract.
+- Vue 3 Options API is dominant in existing pages. Match the file you edit there. New components use Composition API (`<script setup>`) and composables; do not convert an existing component inside a mechanical extract.
+- Composable-first modernization: shared or extractable logic lives in `use*` functions under `js/<feature>/` (for example `js/messages/useConversationSearch.js`). Options API hosts consume composables by adding a `setup()` that returns their bindings; the returned values merge onto `this`, so the host keeps `data`/`methods`/`computed` for the rest. Never convert a component to `<script setup>` as part of an extraction.
+- Test-callable surface is a hard constraint: many tests invoke `Component.methods.X()` or `Component.computed.X()` on the bare options object. A symbol only moves into a composable if no test calls it that way, or if a thin delegating method stays behind. Check test call sites before moving any named option.
 - API calls go through `window.api` via the endpoint modules under `js/api/` (not ad-hoc axios imports or raw fetch in pages). Add a domain module function instead of a new inline path string.
 - Shared state lives in Pinia stores under `js/stores/` (authStore, networkStore, configStore, unreadStore, identityStore, interfaceChangesStore). Options API pages expose stores via `mapStores`/`mapState` for templates and call `useXStore()` inline in methods. New cross-page state gets a domain store, not a loose singleton.
 - Wire strings live in `js/constants.js` (API_V1_PREFIX, apiPath, WS_EVENTS, EMITTER_EVENTS, STORAGE_KEYS). Add new ones there, not inline literals.

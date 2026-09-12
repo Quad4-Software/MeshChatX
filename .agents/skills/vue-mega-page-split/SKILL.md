@@ -54,8 +54,40 @@ Inventing symbols not in the inventory is a fail.
 ## Cut order inside a shell
 
 1. Pure JS first (no `this`, no template). Unit-test like `MapInternalHelpers.test.js`.
-2. Presentational panels next (props in, events out). Match `settings/sections/`.
-3. Stateful feature chunks last. Keep Leaflet, WebGL, and WS lifecycle on the shell until the boundary is obvious.
+2. Composables next for stateful feature slices (`js/<feature>/useX.js`). See "Composable extraction" below.
+3. Presentational panels next (props in, events out). Match `settings/sections/`.
+4. Stateful feature chunks last. Keep Leaflet, WebGL, and WS lifecycle on the shell until the boundary is obvious.
+
+## Composable extraction
+
+A composable slice moves a self-contained feature concern (its refs, computed,
+watchers, and plain functions) out of an Options API shell into
+`js/<feature>/useSomething.js`, while the host stays Options API.
+
+Host wiring:
+
+```js
+setup() {
+    return { ...useConversationSearch() };
+},
+```
+
+Refs and functions returned from `setup()` merge onto `this`, so the template
+and untouched options keep working. Only move a coherent cluster: the
+`data` keys, `computed`, `watch` entries, and `methods` that reference each
+other and nothing else.
+
+Hard constraints:
+
+- Never move a symbol that tests call bare on the options object
+  (`Component.methods.X()`, `Component.computed.X()`, `Component.data()`).
+  Either keep a thin delegating method on the host, or leave the symbol.
+- `this.$route`, `this.$router`, `this.$t` are instance-only: pass them in as
+  parameters or keep the calling method on the host.
+- Lifecycle hooks may live inside the composable (`onMounted`, `onUnmounted`)
+  but only when the moved cluster owns that lifecycle fully.
+- Composables get their own unit tests under `tests/frontend/`; the host's
+  tests must stay untouched and green.
 
 ## Vue cut recipe
 
