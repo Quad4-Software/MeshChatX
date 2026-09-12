@@ -3,133 +3,22 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
+import base64
+import json
+import time
+
+from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.constants import WsInboundType
+from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetFileDownloader,
     NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
+    nomad_link_identity_kwargs,
+)
+from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
     convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    nomad_link_identity_kwargs,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
 )
+from meshchatx.src.backend.sticker_utils import detect_image_format_from_magic
 from meshchatx.src.backend.websocket_runtime import (
     WS_NOMAD_CHUNK_SIZE,
     WS_NOMAD_CHUNK_THRESHOLD,
@@ -184,7 +73,7 @@ async def _send_nomad_file_bytes(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.file.download",
+                    "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_file_download": {
@@ -201,7 +90,7 @@ async def _send_nomad_file_bytes(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.file.download",
+                    "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_file_download": {
@@ -225,7 +114,7 @@ async def _send_nomad_file_bytes(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.file.download",
+                    "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_file_download": {
@@ -251,7 +140,7 @@ async def _send_nomad_file_bytes(
     await client.send_str(
         json.dumps(
             {
-                "type": "nomadnet.file.download",
+                "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                 "download_id": download_id,
                 **request_id_fields,
                 "nomadnet_file_download": {
@@ -287,7 +176,7 @@ async def _send_nomad_page_content(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.page.download",
+                    "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_page_download": {
@@ -313,7 +202,7 @@ async def _send_nomad_page_content(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.page.download",
+                    "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_page_download": body,
@@ -330,7 +219,7 @@ async def _send_nomad_page_content(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.page.download",
+                    "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_page_download": {
@@ -365,7 +254,7 @@ async def _send_nomad_page_content(
     await client.send_str(
         json.dumps(
             {
-                "type": "nomadnet.page.download",
+                "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                 "download_id": download_id,
                 **request_id_fields,
                 "nomadnet_page_download": body,
@@ -455,7 +344,7 @@ async def handle_nomadnet_page_archive_load(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         "nomadnet_page_download": {
                             "status": "failure",
@@ -476,7 +365,7 @@ async def handle_nomadnet_page_archive_load(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         "nomadnet_page_download": {
                             "status": "success",
@@ -496,7 +385,7 @@ async def handle_nomadnet_page_archive_load(app, client, data):
         client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.page.download",
+                    "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                     "download_id": download_id,
                     "nomadnet_page_download": {
                         "status": "failure",
@@ -589,7 +478,7 @@ async def handle_nomadnet_file_download(app, client, data):
             await client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.file.download",
+                        "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                         "download_id": 0,
                         **rid,
                         "nomadnet_file_download": {
@@ -671,7 +560,7 @@ async def handle_nomadnet_file_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.file.download",
+                        "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_file_download": {
@@ -696,7 +585,7 @@ async def handle_nomadnet_file_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.file.download",
+                        "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_file_download": {
@@ -720,7 +609,7 @@ async def handle_nomadnet_file_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.file.download",
+                        "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_file_download": {
@@ -765,7 +654,7 @@ async def handle_nomadnet_file_download(app, client, data):
     await client.send_str(
         json.dumps(
             {
-                "type": "nomadnet.file.download",
+                "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                 "download_id": download_id,
                 **rid,
                 "nomadnet_file_download": {
@@ -807,7 +696,7 @@ async def handle_nomadnet_page_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_page_download": {
@@ -921,7 +810,7 @@ async def handle_nomadnet_page_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_page_download": {
@@ -942,7 +831,7 @@ async def handle_nomadnet_page_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_page_download": {
@@ -961,7 +850,7 @@ async def handle_nomadnet_page_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_page_download": {
@@ -994,7 +883,7 @@ async def handle_nomadnet_page_download(app, client, data):
     await client.send_str(
         json.dumps(
             {
-                "type": "nomadnet.page.download",
+                "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                 "download_id": download_id,
                 **rid,
                 "nomadnet_page_download": {
@@ -1012,11 +901,11 @@ async def handle_nomadnet_page_download(app, client, data):
 
 
 HANDLERS = {
-    "nomadnet.download.cancel": handle_nomadnet_download_cancel,
-    "nomadnet.page.archives.get": handle_nomadnet_page_archives_get,
-    "nomadnet.page.archive.load": handle_nomadnet_page_archive_load,
-    "nomadnet.page.archive.flush": handle_nomadnet_page_archive_flush,
-    "nomadnet.page.archive.add": handle_nomadnet_page_archive_add,
-    "nomadnet.file.download": handle_nomadnet_file_download,
-    "nomadnet.page.download": handle_nomadnet_page_download,
+    WsInboundType.NOMADNET_DOWNLOAD_CANCEL: handle_nomadnet_download_cancel,
+    WsInboundType.NOMADNET_PAGE_ARCHIVES_GET: handle_nomadnet_page_archives_get,
+    WsInboundType.NOMADNET_PAGE_ARCHIVE_LOAD: handle_nomadnet_page_archive_load,
+    WsInboundType.NOMADNET_PAGE_ARCHIVE_FLUSH: handle_nomadnet_page_archive_flush,
+    WsInboundType.NOMADNET_PAGE_ARCHIVE_ADD: handle_nomadnet_page_archive_add,
+    WsInboundType.NOMADNET_FILE_DOWNLOAD: handle_nomadnet_file_download,
+    WsInboundType.NOMADNET_PAGE_DOWNLOAD: handle_nomadnet_page_download,
 }

@@ -17,6 +17,7 @@ from meshchatx.src.backend.bot_templates import (
     ReminderBotTemplate,
     RRCBotTemplate,
 )
+from meshchatx.src.env_utils import env_str
 
 TEMPLATE_MAP = {
     "echo": EchoBotTemplate,
@@ -82,7 +83,7 @@ def main():
     parser.add_argument("--config-path", default=None)
     parser.add_argument(
         "--reticulum-config-dir",
-        default=os.environ.get(
+        default=env_str(
             "MESHCHAT_BOT_RETICULUM_CONFIG_DIR",
             os.path.expanduser("~/.reticulum"),
         ),

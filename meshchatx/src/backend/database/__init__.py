@@ -11,6 +11,8 @@ import zipfile
 from contextlib import suppress
 from datetime import UTC, datetime
 
+from meshchatx.src.env_utils import env_int
+
 from .access_attempts import AccessAttemptsDAO
 from .announces import AnnounceDAO
 from .config import ConfigDAO
@@ -137,11 +139,8 @@ def _sanitize_wal_checkpoint_mode(mode: str) -> str:
 
 
 def _pre_migrate_backup_keep() -> int:
-    raw = os.environ.get("MESHCHAT_PRE_MIGRATE_BACKUP_KEEP", "5").strip()
-    try:
-        return max(0, int(raw))
-    except ValueError:
-        return 5
+    keep = env_int("MESHCHAT_PRE_MIGRATE_BACKUP_KEEP", 5)
+    return max(0, keep if keep is not None else 5)
 
 
 class Database:
@@ -376,9 +375,9 @@ class Database:
         except OSError:
             return None
         # SQLite uses TMPDIR for PRAGMA temp_store=FILE spill files.
-        os.environ["TMPDIR"] = temp_dir
-        os.environ["TMP"] = temp_dir
-        os.environ["TEMP"] = temp_dir
+        os.environ.update(
+            {"TMPDIR": temp_dir, "TMP": temp_dir, "TEMP": temp_dir},
+        )
         return temp_dir
 
     def _tune_sqlite_pragmas(self):

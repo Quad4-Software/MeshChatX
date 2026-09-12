@@ -18,13 +18,18 @@ from meshchatx.src.backend.app_security_settings import (
     get_trusted_proxy_cidrs,
     get_web_ui_ip_allowlist,
 )
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.csrf import validate_csrf_header
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.http.db_availability import (
     DB_TEMPORARILY_UNAVAILABLE,
     exception_looks_like_missing_database,
 )
-from meshchatx.src.backend.http.errors import http_unavailable
+from meshchatx.src.backend.http.errors import (
+    http_forbidden,
+    http_unauthorized,
+    http_unavailable,
+)
 from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.privacy_mode import privacy_mode_enabled
 from meshchatx.src.env_utils import env_bool
@@ -32,7 +37,7 @@ from meshchatx.src.path_utils import request_client_ip
 
 
 def csrf_exempt_path(path: str) -> bool:
-    return path == "/api/v1/auth/csrf"
+    return path == API_V1_PREFIX + "/auth/csrf"
 
 
 def is_nomad_crash_tab_resource(path: str) -> bool:
@@ -136,17 +141,14 @@ def create_ip_allowlist_middleware(app):
     @web.middleware
     async def ip_allowlist_middleware(request, handler):
         path = request.path
-        if path == "/api/v1/status":
+        if path == API_V1_PREFIX + "/status":
             return await handler(request)
         allowlist = get_web_ui_ip_allowlist(app.storage_dir)
         if allowlist:
             ip = request_client_ip(request, get_trusted_proxy_cidrs(app.storage_dir))
             if not client_ip_allowed(ip, allowlist):
                 if path.startswith("/api/"):
-                    return web.json_response(
-                        {"error": "Forbidden: client IP not on allowlist"},
-                        status=403,
-                    )
+                    return http_forbidden("Forbidden: client IP not on allowlist")
                 return web.Response(
                     text="Forbidden",
                     status=403,
@@ -172,14 +174,11 @@ def create_csrf_middleware(app):
         try:
             session = await get_session(request)
         except Exception:
-            return web.json_response(
-                {"error": "Session required for CSRF validation"},
-                status=403,
-            )
+            return http_forbidden("Session required for CSRF validation")
         if not validate_csrf_header(request, session):
-            return web.json_response(
-                {"error": "Invalid or missing CSRF token"},
-                status=403,
+            return http_forbidden(
+                "Invalid or missing CSRF token",
+                code="csrf_invalid",
             )
         return await handler(request)
 
@@ -192,14 +191,14 @@ def create_auth_middleware(app):
         path = request.path
 
         # Health check for startup probes (Electron loading page, monitors).
-        if path == "/api/v1/status":
+        if path == API_V1_PREFIX + "/status":
             return await handler(request)
 
         # Allow CSRF bootstrap and auth status while the network stack starts so the
         # Vue shell can load and show an in-app waiting state.
         if path in (
-            "/api/v1/auth/csrf",
-            "/api/v1/auth/status",
+            API_V1_PREFIX + "/auth/csrf",
+            API_V1_PREFIX + "/auth/status",
         ):
             return await handler(request)
 
@@ -234,14 +233,12 @@ def create_auth_middleware(app):
                 return await handler(request)
 
         if not app.current_context or not app.current_context.running:
-            return web.json_response(
-                {
-                    "error": "Application is initializing or switching identity",
-                    "status": "starting",
-                    "stage": app._startup_stage,
-                    "network_ready": False,
-                },
-                status=503,
+            return http_unavailable(
+                "Application is initializing or switching identity",
+                code="starting",
+                status="starting",
+                stage=app._startup_stage,
+                network_ready=False,
             )
 
         if not app.auth_enabled:
@@ -249,12 +246,12 @@ def create_auth_middleware(app):
 
         # allow access to auth endpoints and setup page
         public_paths = [
-            "/api/v1/status",
-            "/api/v1/auth/csrf",
-            "/api/v1/auth/setup",
-            "/api/v1/auth/login",
-            "/api/v1/auth/status",
-            "/api/v1/auth/logout",
+            API_V1_PREFIX + "/status",
+            API_V1_PREFIX + "/auth/csrf",
+            API_V1_PREFIX + "/auth/setup",
+            API_V1_PREFIX + "/auth/login",
+            API_V1_PREFIX + "/auth/status",
+            API_V1_PREFIX + "/auth/logout",
             "/manifest.json",
             "/service-worker.js",
         ]
@@ -301,9 +298,8 @@ def create_auth_middleware(app):
             print(f"Session decryption failed: {e}")
             # If decryption fails, we must treat as unauthenticated
             if path.startswith("/api/"):
-                return web.json_response(
-                    {"error": "Session expired or invalid. Please login again."},
-                    status=401,
+                return http_unauthorized(
+                    "Session expired or invalid. Please login again.",
                 )
             return web.Response(
                 text="Authentication required",
@@ -317,10 +313,7 @@ def create_auth_middleware(app):
         # Check if authenticated AND matches current identity
         if not is_authenticated or session_identity != app.identity.hash.hex():
             if path.startswith("/api/"):
-                return web.json_response(
-                    {"error": "Authentication required"},
-                    status=401,
-                )
+                return http_unauthorized("Authentication required")
             return web.Response(
                 text="Authentication required",
                 status=401,

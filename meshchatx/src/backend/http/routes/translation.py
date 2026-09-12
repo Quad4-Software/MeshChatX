@@ -8,9 +8,13 @@ import os
 import RNS
 from aiohttp import web
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
     http_error_from_exception,
+    http_not_found,
     http_payload_too_large,
+    http_unavailable,
 )
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
@@ -23,7 +27,7 @@ from meshchatx.src.path_utils import safe_path_under_dir
 def register_translation_routes(routes, app) -> None:
     """Register pack import, listing, removal, and file-serving routes."""
 
-    @routes.get("/api/v1/translation/packs")
+    @routes.get(API_V1_PREFIX + "/translation/packs")
     async def list_translation_packs(request):
         try:
             packs = app.translation_pack_manager.list_installed()
@@ -32,25 +36,23 @@ def register_translation_routes(routes, app) -> None:
             RNS.log(f"Error listing translation packs: {e}", RNS.LOG_ERROR)
             return http_error_from_exception(e, fallback_status=500)
 
-    @routes.post("/api/v1/translation/packs/import")
+    @routes.post(API_V1_PREFIX + "/translation/packs/import")
     async def import_translation_pack(request):
         if not app.translation_pack_manager:
-            return web.json_response(
-                {"error": "Translation pack manager not available"}, status=503
-            )
+            return http_unavailable("Translation pack manager not available")
 
         try:
             reader = await request.multipart()
             field = await reader.next()
             if field is None or field.name != "file":
-                return web.json_response({"error": "No file field"}, status=400)
+                return http_bad_request("No file field")
 
             filename = os.path.basename(field.filename or "")
             incoming_dir = app.translation_pack_manager.incoming_dir
             os.makedirs(incoming_dir, exist_ok=True)
             archive_path = os.path.join(incoming_dir, filename)
             if not safe_path_under_dir(incoming_dir, archive_path):
-                return web.json_response({"error": "Invalid filename"}, status=400)
+                return http_bad_request("Invalid filename")
 
             await write_field_to_path(
                 field,
@@ -66,15 +68,15 @@ def register_translation_routes(routes, app) -> None:
             RNS.log(f"Error importing translation pack: {e}", RNS.LOG_ERROR)
             return http_error_from_exception(e)
 
-    @routes.delete("/api/v1/translation/packs/{pair}")
+    @routes.delete(API_V1_PREFIX + "/translation/packs/{pair}")
     async def remove_translation_pack(request):
         pair = request.match_info.get("pair", "").lower()
         if not pair:
-            return web.json_response({"error": "Missing pair"}, status=400)
+            return http_bad_request("Missing pair")
         try:
             ok = app.translation_pack_manager.remove_pack(pair)
             if not ok:
-                return web.json_response({"error": "Pack not found"}, status=404)
+                return http_not_found("Pack not found")
             return web.json_response({"removed": pair})
         except Exception as e:
             RNS.log(f"Error removing translation pack: {e}", RNS.LOG_ERROR)
@@ -85,5 +87,5 @@ def register_translation_routes(routes, app) -> None:
         path = request.match_info.get("path", "")
         file_path = app.translation_pack_manager.safe_file_path(path)
         if not file_path or not os.path.isfile(file_path):
-            return web.json_response({"error": "Not found"}, status=404)
+            return http_not_found("Not found")
         return web.FileResponse(file_path)

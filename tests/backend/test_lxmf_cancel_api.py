@@ -34,7 +34,7 @@ def web_cancel_app(mock_app):
         "state": "cancelled",
     }
     with patch(
-        "meshchatx.meshchat.convert_db_lxmf_message_to_dict",
+        "meshchatx.src.backend.http.routes.lxmf.convert_db_lxmf_message_to_dict",
         side_effect=lambda row: row,
     ):
         yield mock_app

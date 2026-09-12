@@ -117,7 +117,10 @@ async def test_api_v1_app_info_json_contract(mock_rns_minimal, temp_dir):
 async def test_api_v1_auth_status_json_contract(mock_rns_minimal, temp_dir):
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),
-        patch("meshchatx.meshchat.get_session", new_callable=AsyncMock) as mock_session,
+        patch(
+            "meshchatx.src.backend.http.routes.auth.get_session",
+            new_callable=AsyncMock,
+        ) as mock_session,
     ):
         mock_session.return_value = {
             "authenticated": False,

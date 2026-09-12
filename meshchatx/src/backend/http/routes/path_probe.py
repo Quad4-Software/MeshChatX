@@ -3,132 +3,22 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_payload_too_large
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+import asyncio
+import contextlib
+import time
+from datetime import datetime
+
+import RNS
+from aiohttp import web
+
+from meshchatx.src.backend import reticulum_pathfinding
+from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+    http_payload_too_large,
+    http_unavailable,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -304,31 +194,25 @@ def register_path_probe_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/destination/{destination_hash}/path")
+    @routes.get(API_V1_PREFIX + "/destination/{destination_hash}/path")
     async def destination_path(request):
         destination_hash = request.match_info.get("destination_hash", "")
         try:
             destination_hash = lxmf_delivery_hash_bytes_for_path(app, destination_hash)
         except ValueError:
-            return web.json_response(
-                {"message": "invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("invalid destination hash")
         destination_hash_hex = destination_hash.hex()
 
         request_query_param = request.query.get("request", "false")
         if request_query_param in ("true", "1"):
-            return web.json_response(
-                {"message": PATH_WAIT_REQUIRES_POST_MESSAGE},
-                status=400,
-            )
+            return http_bad_request(PATH_WAIT_REQUIRES_POST_MESSAGE)
 
         if destination_hash_hex in local_destination_hashes(app):
             return local_path_response(destination_hash_hex)
 
         return destination_path_snapshot(destination_hash)
 
-    @routes.post("/api/v1/destination/{destination_hash}/path")
+    @routes.post(API_V1_PREFIX + "/destination/{destination_hash}/path")
     async def destination_path_wait(request):
         destination_hash = request.match_info.get("destination_hash", "")
         try:
@@ -337,16 +221,13 @@ def register_path_probe_routes(routes, app):
                 destination_hash,
             )
         except ValueError:
-            return web.json_response(
-                {"message": "invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("invalid destination hash")
         destination_hash_hex = destination_hash_bytes.hex()
 
         timeout_raw = await read_path_probe_timeout_raw(request)
         timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)
         if timeout_error:
-            return web.json_response({"message": timeout_error}, status=400)
+            return http_bad_request(timeout_error)
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
             timeout_seconds = path_response_window(
@@ -378,7 +259,7 @@ def register_path_probe_routes(routes, app):
     # drop path to destination
 
     # drop path to destination
-    @routes.post("/api/v1/destination/{destination_hash}/drop-path")
+    @routes.post(API_V1_PREFIX + "/destination/{destination_hash}/drop-path")
     async def destination_drop_path(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
@@ -389,10 +270,7 @@ def register_path_probe_routes(routes, app):
                 destination_hash,
             )
         except ValueError:
-            return web.json_response(
-                {"message": "invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("invalid destination hash")
 
         # drop path
         if hasattr(app, "reticulum") and app.reticulum:
@@ -407,7 +285,7 @@ def register_path_probe_routes(routes, app):
     # proactively ask Reticulum to resolve or refresh path (non-blocking HTTP, and discovery runs in background)
 
     # proactively ask Reticulum to resolve or refresh path (non-blocking HTTP, and discovery runs in background)
-    @routes.post("/api/v1/destination/{destination_hash}/request-path")
+    @routes.post(API_V1_PREFIX + "/destination/{destination_hash}/request-path")
     async def destination_request_path_fire(request):
         destination_hash = request.match_info.get("destination_hash", "")
         try:
@@ -416,12 +294,7 @@ def register_path_probe_routes(routes, app):
                 destination_hash,
             )
         except ValueError:
-            return web.json_response(
-                {
-                    "message": "invalid destination hash",
-                },
-                status=400,
-            )
+            return http_bad_request("invalid destination hash")
         reticulum = app.reticulum if hasattr(app, "reticulum") else None
         reticulum_pathfinding.prepare_fresh_path_request(
             reticulum,
@@ -440,7 +313,7 @@ def register_path_probe_routes(routes, app):
     # get signal metrics for a destination by checking the latest announce or lxmf message received from them
 
     # get signal metrics for a destination by checking the latest announce or lxmf message received from them
-    @routes.get("/api/v1/destination/{destination_hash}/signal-metrics")
+    @routes.get(API_V1_PREFIX + "/destination/{destination_hash}/signal-metrics")
     async def destination_signal_metrics(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
@@ -527,7 +400,7 @@ def register_path_probe_routes(routes, app):
     # this allows us to ping/probe any active lxmf.delivery destination and get rtt/snr/rssi data on demand
     # https://github.com/markqvist/LXMF/blob/9ff76c0473e9d4107e079f266dd08144bb74c7c8/LXMF/LXMRouter.py#L234
     # https://github.com/markqvist/LXMF/blob/9ff76c0473e9d4107e079f266dd08144bb74c7c8/LXMF/LXMRouter.py#L1374
-    @routes.post("/api/v1/ping/{destination_hash}/lxmf.delivery")
+    @routes.post(API_V1_PREFIX + "/ping/{destination_hash}/lxmf.delivery")
     async def ping_lxmf_delivery(request):
         # get path params
         destination_hash_str = request.match_info.get("destination_hash", "")
@@ -538,19 +411,13 @@ def register_path_probe_routes(routes, app):
                 destination_hash_str,
             )
         except ValueError:
-            return web.json_response(
-                {"message": "Ping failed. Invalid destination hash."},
-                status=400,
-            )
+            return http_bad_request("Ping failed. Invalid destination hash.")
         destination_hash_str = destination_hash.hex()
 
         timeout_raw = await read_path_probe_timeout_raw(request)
         timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)
         if timeout_error:
-            return web.json_response(
-                {"message": f"Ping failed. {timeout_error}"},
-                status=400,
-            )
+            return http_bad_request(f"Ping failed. {timeout_error}")
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
             timeout_seconds = round(path_response_window(destination_hash, reticulum))
@@ -571,21 +438,13 @@ def register_path_probe_routes(routes, app):
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):
-            return web.json_response(
-                {
-                    "message": "Ping failed. Could not find path to destination.",
-                },
-                status=503,
-            )
+            return http_unavailable("Ping failed. Could not find path to destination.")
 
         # find destination identity (pass string hash, not bytes)
         destination_identity = app.recall_identity(destination_hash_str)
         if destination_identity is None:
-            return web.json_response(
-                {
-                    "message": "Ping failed. Could not recall destination identity.",
-                },
-                status=503,
+            return http_unavailable(
+                "Ping failed. Could not recall destination identity."
             )
 
         # create outbound destination
@@ -611,11 +470,8 @@ def register_path_probe_routes(routes, app):
 
         # ping failed if not delivered
         if receipt.status != RNS.PacketReceipt.DELIVERED:
-            return web.json_response(
-                {
-                    "message": f"Ping failed. Timed out after {timeout_seconds} seconds.",
-                },
-                status=503,
+            return http_unavailable(
+                f"Ping failed. Timed out after {timeout_seconds} seconds."
             )
 
         # get number of hops to destination and back from destination
@@ -662,8 +518,8 @@ def register_path_probe_routes(routes, app):
         )
 
     # get path table
-    @routes.get("/api/v1/path-table")
-    @routes.post("/api/v1/path-table")
+    @routes.get(API_V1_PREFIX + "/path-table")
+    @routes.post(API_V1_PREFIX + "/path-table")
     async def path_table(request):
         limit = request.query.get("limit", None)
         offset = request.query.get("offset", None)
@@ -718,27 +574,21 @@ def register_path_probe_routes(routes, app):
 
     # derive lxmf delivery address from an identity hash
 
-    @routes.get("/api/v1/identity/{identity_hash}/lxmf-address")
+    @routes.get(API_V1_PREFIX + "/identity/{identity_hash}/lxmf-address")
     async def identity_lxmf_address(request):
         raw = request.match_info.get("identity_hash", "")
         norm = normalize_hex_identifier(raw)
         # Identity hashes are 16 bytes (32 hex); 32-byte (64 hex) forms are
         # tolerated to match parse_identity_hash.
         if len(norm) not in (32, 64):
-            return web.json_response(
-                {"message": "invalid identity hash"},
-                status=400,
-            )
+            return http_bad_request("invalid identity hash")
 
         lxmf_hex = await asyncio.to_thread(
             app.get_lxmf_destination_hash_for_identity_hash,
             norm,
         )
         if not lxmf_hex:
-            return web.json_response(
-                {"message": "no LXMF address could be derived for this identity"},
-                status=404,
-            )
+            return http_not_found("no LXMF address could be derived for this identity")
 
         has_path = False
         try:

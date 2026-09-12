@@ -3,145 +3,37 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
+import RNS
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.delivery_diagnostics import build_delivery_diagnostics
-from meshchatx.src.backend.http.errors import http_payload_too_large
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_payload_too_large,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
+)
+from meshchatx.src.backend.lxmf_utils import (
+    is_user_facing_lxmf_payload,
+    lxmf_sidebar_preview_for_conversation_latest_row,
+)
+from meshchatx.src.backend.meshchat_utils import (
+    parse_bool_query_param,
+    parse_lxmf_stamp_cost,
 )
 
 
 def register_messages_routes(routes, app):
 
     # get custom destination display name
-    @routes.get("/api/v1/destination/{destination_hash}/custom-display-name")
+    @routes.get(API_V1_PREFIX + "/destination/{destination_hash}/custom-display-name")
     async def destination_custom_display_name_get(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
@@ -158,7 +50,7 @@ def register_messages_routes(routes, app):
 
     # set custom destination display name
     @routes.post(
-        "/api/v1/destination/{destination_hash}/custom-display-name/update",
+        API_V1_PREFIX + "/destination/{destination_hash}/custom-display-name/update",
     )
     async def destination_custom_display_name_update(request):
         # get path params
@@ -200,7 +92,7 @@ def register_messages_routes(routes, app):
     # get lxmf stamp cost for the provided lxmf.delivery destination hash
 
     # get lxmf stamp cost for the provided lxmf.delivery destination hash
-    @routes.get("/api/v1/destination/{destination_hash}/lxmf-stamp-info")
+    @routes.get(API_V1_PREFIX + "/destination/{destination_hash}/lxmf-stamp-info")
     async def destination_lxmf_stamp_info(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
@@ -209,10 +101,7 @@ def register_messages_routes(routes, app):
         try:
             destination_hash_bytes = bytes.fromhex(destination_hash)
         except (TypeError, ValueError):
-            return web.json_response(
-                {"message": "invalid destination_hash"},
-                status=400,
-            )
+            return http_bad_request("invalid destination_hash")
 
         # get lxmf stamp cost from announce in database
         lxmf_stamp_cost = None
@@ -241,14 +130,11 @@ def register_messages_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/destination/{destination_hash}/delivery-diagnostics")
+    @routes.get(API_V1_PREFIX + "/destination/{destination_hash}/delivery-diagnostics")
     async def destination_delivery_diagnostics(request):
         destination_hash = request.match_info.get("destination_hash", "")
         if not destination_hash:
-            return web.json_response(
-                {"message": "destination_hash is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash is required")
         return web.json_response(
             build_delivery_diagnostics(app, destination_hash),
         )
@@ -256,7 +142,7 @@ def register_messages_routes(routes, app):
     # get interface stats
 
     # mark notifications as viewed
-    @routes.post("/api/v1/notifications/mark-as-viewed")
+    @routes.post(API_V1_PREFIX + "/notifications/mark-as-viewed")
     async def notifications_mark_as_viewed(request):
         try:
             data = await read_json_limited(request)
@@ -292,7 +178,7 @@ def register_messages_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/notifications")
+    @routes.get(API_V1_PREFIX + "/notifications")
     async def notifications_get(request):
         not_ready = app._require_identity_context_ready()
         if not_ready is not None:
@@ -605,15 +491,11 @@ def register_messages_routes(routes, app):
         except Exception as e:
             RNS.log(f"Error in notifications_get: {e}", RNS.LOG_ERROR)
             status = 503 if sqlite_error_is_retryable(e) else 500
-            return web.json_response(
-                {
-                    "error": (
-                        "Database temporarily unavailable. Retry shortly."
-                        if status == 503
-                        else "Internal error"
-                    ),
-                },
-                status=status,
+            return http_error(
+                status,
+                "Database temporarily unavailable. Retry shortly."
+                if status == 503
+                else "Internal error",
             )
 
     # get blocked destinations

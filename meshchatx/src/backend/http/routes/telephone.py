@@ -3,135 +3,24 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
+import os
+import tempfile
+import time
+
+import RNS
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
     http_error_from_exception,
+    http_forbidden,
+    http_not_found,
     http_payload_too_large,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+    http_unavailable,
 )
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
@@ -140,6 +29,12 @@ from meshchatx.src.backend.http.uploads import (
     read_json_limited,
     write_field_to_path,
 )
+from meshchatx.src.path_utils import safe_path_under_dir
+
+logger = logging.getLogger(__name__)
+
+# Fire-and-forget call-initiation tasks, kept alive until done.
+_BACKGROUND_TASKS: set[asyncio.Task] = set()
 
 
 async def first_multipart_file_field(reader, field_name="file"):
@@ -158,7 +53,7 @@ async def first_multipart_file_field(reader, field_name="file"):
 def register_telephone_routes(routes, app):
 
     # serve telephone status
-    @routes.get("/api/v1/telephone/status")
+    @routes.get(API_V1_PREFIX + "/telephone/status")
     async def telephone_status(request):
         # make sure telephone is enabled
         if app.telephone_manager.telephone is None:
@@ -404,7 +299,7 @@ def register_telephone_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/telephone/missed-calls/mark-viewed")
+    @routes.post(API_V1_PREFIX + "/telephone/missed-calls/mark-viewed")
     async def telephone_missed_calls_mark_viewed(request):
         not_ready = app._require_identity_context_ready()
         if not_ready is not None:
@@ -418,27 +313,21 @@ def register_telephone_routes(routes, app):
     # answer incoming telephone call
 
     # answer incoming telephone call
-    @routes.post("/api/v1/telephone/answer")
+    @routes.post(API_V1_PREFIX + "/telephone/answer")
     async def telephone_answer(request):
         # get incoming caller identity
         active_call = app.telephone_manager.telephone.active_call
         if not active_call:
-            return web.json_response({"message": "No active call"}, status=404)
+            return http_not_found("No active call")
 
         caller_identity = active_call.get_remote_identity()
         if not caller_identity:
-            return web.json_response(
-                {"message": "Caller identity not found"},
-                status=404,
-            )
+            return http_not_found("Caller identity not found")
 
         caller_hash = caller_identity.hash.hex()
         if app.is_destination_blocked(caller_hash):
             app.telephone_manager.request_hangup()
-            return web.json_response(
-                {"message": "Caller is banished"},
-                status=403,
-            )
+            return http_forbidden("Caller is banished")
 
         # answer call
         await asyncio.to_thread(
@@ -455,7 +344,7 @@ def register_telephone_routes(routes, app):
     # hangup active telephone call
 
     # hangup active telephone call
-    @routes.post("/api/v1/telephone/hangup")
+    @routes.post(API_V1_PREFIX + "/telephone/hangup")
     async def telephone_hangup(request):
         app.telephone_manager.request_hangup()
 
@@ -468,22 +357,19 @@ def register_telephone_routes(routes, app):
     # send active call to voicemail
 
     # send active call to voicemail
-    @routes.post("/api/v1/telephone/send-to-voicemail")
+    @routes.post(API_V1_PREFIX + "/telephone/send-to-voicemail")
     async def telephone_send_to_voicemail(request):
         active_call = app.telephone_manager.telephone.active_call
         if not active_call:
-            return web.json_response({"message": "No active call"}, status=404)
+            return http_not_found("No active call")
 
         caller_identity = active_call.get_remote_identity()
         if not caller_identity:
-            return web.json_response({"message": "No remote identity"}, status=400)
+            return http_bad_request("No remote identity")
 
         if app.is_destination_blocked(caller_identity.hash.hex()):
             app.telephone_manager.request_hangup()
-            return web.json_response(
-                {"message": "Caller is banished"},
-                status=403,
-            )
+            return http_forbidden("Caller is banished")
 
         # trigger voicemail session
         await asyncio.to_thread(
@@ -500,12 +386,12 @@ def register_telephone_routes(routes, app):
     # mute/unmute transmit
 
     # mute/unmute transmit
-    @routes.post("/api/v1/telephone/mute-transmit")
+    @routes.post(API_V1_PREFIX + "/telephone/mute-transmit")
     async def telephone_mute_transmit(request):
         await asyncio.to_thread(app.telephone_manager.mute_transmit)
         return web.json_response({"message": "Microphone muted"})
 
-    @routes.post("/api/v1/telephone/unmute-transmit")
+    @routes.post(API_V1_PREFIX + "/telephone/unmute-transmit")
     async def telephone_unmute_transmit(request):
         await asyncio.to_thread(app.telephone_manager.unmute_transmit)
         return web.json_response({"message": "Microphone unmuted"})
@@ -513,17 +399,17 @@ def register_telephone_routes(routes, app):
     # mute/unmute receive
 
     # mute/unmute receive
-    @routes.post("/api/v1/telephone/mute-receive")
+    @routes.post(API_V1_PREFIX + "/telephone/mute-receive")
     async def telephone_mute_receive(request):
         await asyncio.to_thread(app.telephone_manager.mute_receive)
         return web.json_response({"message": "Speaker muted"})
 
-    @routes.post("/api/v1/telephone/unmute-receive")
+    @routes.post(API_V1_PREFIX + "/telephone/unmute-receive")
     async def telephone_unmute_receive(request):
         await asyncio.to_thread(app.telephone_manager.unmute_receive)
         return web.json_response({"message": "Speaker unmuted"})
 
-    @routes.get("/api/v1/telephone/call-modes")
+    @routes.get(API_V1_PREFIX + "/telephone/call-modes")
     async def telephone_call_modes(request):
         from meshchatx.src.backend import lxst_profiles_compat as lxst_modes
 
@@ -544,15 +430,12 @@ def register_telephone_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/telephone/switch-call-mode/{mode_id}")
+    @routes.post(API_V1_PREFIX + "/telephone/switch-call-mode/{mode_id}")
     async def telephone_switch_call_mode(request):
         mode_id = request.match_info.get("mode_id")
         try:
             if app.telephone_manager.telephone is None:
-                return web.json_response(
-                    {"message": "Telephone not initialized"},
-                    status=400,
-                )
+                return http_bad_request("Telephone not initialized")
             resolved = await asyncio.to_thread(
                 app.telephone_manager.apply_preferred_mode,
                 int(mode_id),
@@ -572,13 +455,10 @@ def register_telephone_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/telephone/ptt")
+    @routes.post(API_V1_PREFIX + "/telephone/ptt")
     async def telephone_ptt(request):
         if app.telephone_manager.telephone is None:
-            return web.json_response(
-                {"message": "Telephone not initialized"},
-                status=400,
-            )
+            return http_bad_request("Telephone not initialized")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
@@ -588,13 +468,10 @@ def register_telephone_routes(routes, app):
         active = bool(data.get("active", False)) if isinstance(data, dict) else False
         ok = await asyncio.to_thread(app.telephone_manager.set_ptt_active, active)
         if not ok and active:
-            return web.json_response(
-                {
-                    "message": "PTT requires an established half-duplex call",
-                    "is_ptt_active": bool(app.telephone_manager.ptt_active),
-                    "is_half_duplex": app.telephone_manager.is_half_duplex(),
-                },
-                status=400,
+            return http_bad_request(
+                "PTT requires an established half-duplex call",
+                is_ptt_active=bool(app.telephone_manager.ptt_active),
+                is_half_duplex=app.telephone_manager.is_half_duplex(),
             )
         return web.json_response(
             {
@@ -608,7 +485,7 @@ def register_telephone_routes(routes, app):
     # get call history
 
     # get call history
-    @routes.get("/api/v1/telephone/history")
+    @routes.get(API_V1_PREFIX + "/telephone/history")
     async def telephone_history(request):
         limit = int(request.query.get("limit", 10))
         offset = int(request.query.get("offset", 0))
@@ -664,7 +541,7 @@ def register_telephone_routes(routes, app):
     # clear call history
 
     # clear call history
-    @routes.delete("/api/v1/telephone/history")
+    @routes.delete(API_V1_PREFIX + "/telephone/history")
     async def telephone_history_clear(request):
         app.database.telephone.clear_call_history()
         return web.json_response({"message": "ok"})
@@ -672,15 +549,12 @@ def register_telephone_routes(routes, app):
     # switch audio profile
 
     # switch audio profile
-    @routes.post("/api/v1/telephone/switch-audio-profile/{profile_id}")
+    @routes.post(API_V1_PREFIX + "/telephone/switch-audio-profile/{profile_id}")
     async def telephone_switch_audio_profile(request):
         profile_id = request.match_info.get("profile_id")
         try:
             if app.telephone_manager.telephone is None:
-                return web.json_response(
-                    {"message": "Telephone not initialized"},
-                    status=400,
-                )
+                return http_bad_request("Telephone not initialized")
 
             resolved = await asyncio.to_thread(
                 app.telephone_manager.apply_preferred_profile,
@@ -702,7 +576,7 @@ def register_telephone_routes(routes, app):
     # Codec2 / audio backend readiness (Android packaging + LXST)
 
     # Codec2 / audio backend readiness (Android packaging + LXST)
-    @routes.get("/api/v1/telephone/codec2/status")
+    @routes.get(API_V1_PREFIX + "/telephone/codec2/status")
     async def telephone_codec2_status(request):
         from meshchatx import android_codec2
 
@@ -729,16 +603,11 @@ def register_telephone_routes(routes, app):
 
     # initiate a telephone call
     # initiate outgoing telephone call
-    @routes.post("/api/v1/telephone/call/{identity_hash}")
+    @routes.post(API_V1_PREFIX + "/telephone/call/{identity_hash}")
     async def telephone_call(request):
         # make sure telephone enabled
         if app.telephone_manager.telephone is None:
-            return web.json_response(
-                {
-                    "message": "Telephone has been disabled.",
-                },
-                status=503,
-            )
+            return http_unavailable("Telephone has been disabled.")
 
         # check if busy, but ignore stale busy when no active call
         is_busy = app.telephone_manager.telephone.busy
@@ -749,12 +618,7 @@ def register_telephone_routes(routes, app):
                 is_busy = False
 
         if is_busy or app.telephone_manager.initiation_status:
-            return web.json_response(
-                {
-                    "message": "Telephone is busy",
-                },
-                status=400,
-            )
+            return http_bad_request("Telephone is busy")
 
         # get path params
         identity_hash_hex = request.match_info.get("identity_hash", "")
@@ -768,20 +632,10 @@ def register_telephone_routes(routes, app):
             # convert hash to bytes
             identity_hash_bytes = bytes.fromhex(identity_hash_hex)
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Invalid identity hash",
-                },
-                status=400,
-            )
+            return http_bad_request("Invalid identity hash")
 
         if app.is_destination_blocked(identity_hash_hex):
-            return web.json_response(
-                {
-                    "message": "Cannot call a banished identity",
-                },
-                status=403,
-            )
+            return http_forbidden("Cannot call a banished identity")
 
         # initiate call in background to be non-blocking for the UI
         async def _initiate():
@@ -793,7 +647,9 @@ def register_telephone_routes(routes, app):
             except Exception as e:
                 print(f"Failed to initiate call to {identity_hash_hex}: {e}")
 
-        asyncio.create_task(_initiate())
+        initiate_task = asyncio.create_task(_initiate())
+        _BACKGROUND_TASKS.add(initiate_task)
+        initiate_task.add_done_callback(_BACKGROUND_TASKS.discard)
 
         return web.json_response(
             {
@@ -804,7 +660,7 @@ def register_telephone_routes(routes, app):
     # serve list of available audio profiles
 
     # serve list of available audio profiles
-    @routes.get("/api/v1/telephone/audio-profiles")
+    @routes.get(API_V1_PREFIX + "/telephone/audio-profiles")
     async def telephone_audio_profiles(request):
         from LXST.Primitives.Telephony import Profiles
 
@@ -843,7 +699,7 @@ def register_telephone_routes(routes, app):
     # voicemail status
 
     # voicemail status
-    @routes.get("/api/v1/telephone/voicemail/status")
+    @routes.get(API_V1_PREFIX + "/telephone/voicemail/status")
     async def telephone_voicemail_status(request):
         greeting_path = os.path.join(
             app.voicemail_manager.greetings_dir,
@@ -861,7 +717,7 @@ def register_telephone_routes(routes, app):
     # start recording greeting from mic
 
     # start recording greeting from mic
-    @routes.post("/api/v1/telephone/voicemail/greeting/record/start")
+    @routes.post(API_V1_PREFIX + "/telephone/voicemail/greeting/record/start")
     async def telephone_voicemail_greeting_record_start(request):
         app.voicemail_manager.start_greeting_recording()
         return web.json_response({"message": "Started recording greeting"})
@@ -869,7 +725,7 @@ def register_telephone_routes(routes, app):
     # stop recording greeting from mic
 
     # stop recording greeting from mic
-    @routes.post("/api/v1/telephone/voicemail/greeting/record/stop")
+    @routes.post(API_V1_PREFIX + "/telephone/voicemail/greeting/record/stop")
     async def telephone_voicemail_greeting_record_stop(request):
         app.voicemail_manager.stop_greeting_recording()
         return web.json_response({"message": "Stopped recording greeting"})
@@ -877,7 +733,7 @@ def register_telephone_routes(routes, app):
     # list voicemails
 
     # list voicemails
-    @routes.get("/api/v1/telephone/voicemails")
+    @routes.get(API_V1_PREFIX + "/telephone/voicemails")
     async def telephone_voicemails(request):
         search = request.query.get("search")
         limit = int(request.query.get("limit", 50))
@@ -918,7 +774,7 @@ def register_telephone_routes(routes, app):
     # mark voicemail as read
 
     # mark voicemail as read
-    @routes.post("/api/v1/telephone/voicemails/{id}/read")
+    @routes.post(API_V1_PREFIX + "/telephone/voicemails/{id}/read")
     async def telephone_voicemail_mark_read(request):
         voicemail_id = request.match_info.get("id")
         app.database.voicemails.mark_as_read(voicemail_id)
@@ -927,7 +783,7 @@ def register_telephone_routes(routes, app):
     # delete voicemail
 
     # delete voicemail
-    @routes.delete("/api/v1/telephone/voicemails/{id}")
+    @routes.delete(API_V1_PREFIX + "/telephone/voicemails/{id}")
     async def telephone_voicemail_delete(request):
         voicemail_id = request.match_info.get("id")
         voicemail = app.database.voicemails.get_voicemail(voicemail_id)
@@ -940,12 +796,12 @@ def register_telephone_routes(routes, app):
                 os.remove(filepath)
             app.database.voicemails.delete_voicemail(voicemail_id)
             return web.json_response({"message": "Voicemail deleted"})
-        return web.json_response({"message": "Voicemail not found"}, status=404)
+        return http_not_found("Voicemail not found")
 
     # serve greeting audio
 
     # serve greeting audio
-    @routes.get("/api/v1/telephone/voicemail/greeting/audio")
+    @routes.get(API_V1_PREFIX + "/telephone/voicemail/greeting/audio")
     async def telephone_voicemail_greeting_audio(request):
         filepath = os.path.join(
             app.voicemail_manager.greetings_dir,
@@ -956,30 +812,21 @@ def register_telephone_routes(routes, app):
                 filepath,
                 headers={"Content-Type": "audio/opus"},
             )
-        return web.json_response(
-            {"message": "Greeting audio not found"},
-            status=404,
-        )
+        return http_not_found("Greeting audio not found")
 
     # serve voicemail audio
 
     # serve voicemail audio
-    @routes.get("/api/v1/telephone/voicemails/{id}/audio")
+    @routes.get(API_V1_PREFIX + "/telephone/voicemails/{id}/audio")
     async def telephone_voicemail_audio(request):
         voicemail_id = request.match_info.get("id")
         try:
             voicemail_id = int(voicemail_id)
         except (ValueError, TypeError):
-            return web.json_response(
-                {"message": "Invalid voicemail ID"},
-                status=400,
-            )
+            return http_bad_request("Invalid voicemail ID")
 
         if not app.voicemail_manager:
-            return web.json_response(
-                {"message": "Voicemail manager not available"},
-                status=503,
-            )
+            return http_unavailable("Voicemail manager not available")
 
         voicemail = app.database.voicemails.get_voicemail(voicemail_id)
         if voicemail:
@@ -997,15 +844,12 @@ def register_telephone_routes(routes, app):
                 f"Voicemail: Recording file missing for ID {voicemail_id}: {filepath}",
                 RNS.LOG_ERROR,
             )
-        return web.json_response(
-            {"message": "Voicemail audio not found"},
-            status=404,
-        )
+        return http_not_found("Voicemail audio not found")
 
     # list call recordings
 
     # list call recordings
-    @routes.get("/api/v1/telephone/recordings")
+    @routes.get(API_V1_PREFIX + "/telephone/recordings")
     async def telephone_recordings(request):
         search = request.query.get("search", None)
         limit = int(request.query.get("limit", 10))
@@ -1034,31 +878,22 @@ def register_telephone_routes(routes, app):
     # serve call recording audio
 
     # serve call recording audio
-    @routes.get("/api/v1/telephone/recordings/{id}/audio/{side}")
+    @routes.get(API_V1_PREFIX + "/telephone/recordings/{id}/audio/{side}")
     async def telephone_recording_audio(request):
         recording_id = request.match_info.get("id")
         try:
             recording_id = int(recording_id)
         except (ValueError, TypeError):
-            return web.json_response(
-                {"message": "Invalid recording ID"},
-                status=400,
-            )
+            return http_bad_request("Invalid recording ID")
 
         side = request.match_info.get("side")
         if side not in ("rx", "tx"):
-            return web.json_response(
-                {"message": "Invalid recording side"},
-                status=400,
-            )
+            return http_bad_request("Invalid recording side")
         recording = app.database.telephone.get_call_recording(recording_id)
         if recording:
             filename = recording[f"filename_{side}"]
             if not filename:
-                return web.json_response(
-                    {"message": f"No {side} recording found"},
-                    status=404,
-                )
+                return http_not_found(f"No {side} recording found")
 
             filepath = safe_path_under_dir(
                 app.telephone_manager.recordings_dir,
@@ -1070,12 +905,12 @@ def register_telephone_routes(routes, app):
                     headers={"Content-Type": "audio/opus"},
                 )
 
-        return web.json_response({"message": "Recording not found"}, status=404)
+        return http_not_found("Recording not found")
 
     # delete call recording
 
     # delete call recording
-    @routes.delete("/api/v1/telephone/recordings/{id}")
+    @routes.delete(API_V1_PREFIX + "/telephone/recordings/{id}")
     async def telephone_recording_delete(request):
         recording_id = request.match_info.get("id")
         recording = app.database.telephone.get_call_recording(recording_id)
@@ -1095,7 +930,7 @@ def register_telephone_routes(routes, app):
     # generate greeting
 
     # generate greeting
-    @routes.post("/api/v1/telephone/voicemail/generate-greeting")
+    @routes.post(API_V1_PREFIX + "/telephone/voicemail/generate-greeting")
     async def telephone_voicemail_generate_greeting(request):
         try:
             text = app.config.voicemail_greeting.get()
@@ -1112,24 +947,18 @@ def register_telephone_routes(routes, app):
     # upload greeting
 
     # upload greeting
-    @routes.post("/api/v1/telephone/voicemail/greeting/upload")
+    @routes.post(API_V1_PREFIX + "/telephone/voicemail/greeting/upload")
     async def telephone_voicemail_greeting_upload(request):
         try:
             reader = await request.multipart()
             field = await first_multipart_file_field(reader)
             if field is None:
-                return web.json_response(
-                    {"message": "File field required"},
-                    status=400,
-                )
+                return http_bad_request("File field required")
 
             filename = field.filename or "upload"
             extension = os.path.splitext(filename)[1].lower()
             if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
-                return web.json_response(
-                    {"message": f"Unsupported file type: {extension}"},
-                    status=400,
-                )
+                return http_bad_request(f"Unsupported file type: {extension}")
 
             # Save temp file
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
@@ -1161,7 +990,7 @@ def register_telephone_routes(routes, app):
     # delete greeting
 
     # delete greeting
-    @routes.delete("/api/v1/telephone/voicemail/greeting")
+    @routes.delete(API_V1_PREFIX + "/telephone/voicemail/greeting")
     async def telephone_voicemail_greeting_delete(request):
         try:
             app.voicemail_manager.remove_greeting()
@@ -1172,7 +1001,7 @@ def register_telephone_routes(routes, app):
     # ringtone routes
 
     # ringtone routes
-    @routes.get("/api/v1/telephone/ringtones")
+    @routes.get(API_V1_PREFIX + "/telephone/ringtones")
     async def telephone_ringtones_get(request):
         ringtones = app.database.ringtones.get_all()
         return web.json_response(
@@ -1188,7 +1017,7 @@ def register_telephone_routes(routes, app):
             ],
         )
 
-    @routes.get("/api/v1/telephone/ringtones/status")
+    @routes.get(API_V1_PREFIX + "/telephone/ringtones/status")
     async def telephone_ringtone_status(request):
         try:
             caller_hash = request.query.get("caller_hash")
@@ -1251,12 +1080,12 @@ def register_telephone_routes(routes, app):
                 },
             )
 
-    @routes.get("/api/v1/telephone/ringtones/{id}/audio")
+    @routes.get(API_V1_PREFIX + "/telephone/ringtones/{id}/audio")
     async def telephone_ringtone_audio(request):
         ringtone_id = int(request.match_info["id"])
         ringtone = app.database.ringtones.get_by_id(ringtone_id)
         if not ringtone:
-            return web.json_response({"message": "Ringtone not found"}, status=404)
+            return http_not_found("Ringtone not found")
 
         download = request.query.get("download") == "1"
 
@@ -1279,29 +1108,20 @@ def register_telephone_routes(routes, app):
                     },
                 )
             return web.FileResponse(filepath)
-        return web.json_response(
-            {"message": "Ringtone audio file not found"},
-            status=404,
-        )
+        return http_not_found("Ringtone audio file not found")
 
-    @routes.post("/api/v1/telephone/ringtones/upload")
+    @routes.post(API_V1_PREFIX + "/telephone/ringtones/upload")
     async def telephone_ringtone_upload(request):
         try:
             reader = await request.multipart()
             field = await first_multipart_file_field(reader)
             if field is None:
-                return web.json_response(
-                    {"message": "File field required"},
-                    status=400,
-                )
+                return http_bad_request("File field required")
 
             filename = field.filename or "upload"
             extension = os.path.splitext(filename)[1].lower()
             if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
-                return web.json_response(
-                    {"message": f"Unsupported file type: {extension}"},
-                    status=400,
-                )
+                return http_bad_request(f"Unsupported file type: {extension}")
 
             # Save temp file
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
@@ -1342,7 +1162,7 @@ def register_telephone_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.patch("/api/v1/telephone/ringtones/{id}")
+    @routes.patch(API_V1_PREFIX + "/telephone/ringtones/{id}")
     async def telephone_ringtone_patch(request):
         try:
             ringtone_id = int(request.match_info["id"])
@@ -1363,7 +1183,7 @@ def register_telephone_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.delete("/api/v1/telephone/ringtones/{id}")
+    @routes.delete(API_V1_PREFIX + "/telephone/ringtones/{id}")
     async def telephone_ringtone_delete(request):
         try:
             ringtone_id = int(request.match_info["id"])
@@ -1378,7 +1198,7 @@ def register_telephone_routes(routes, app):
     # notification sound routes
 
     # notification sound routes
-    @routes.get("/api/v1/notification-sounds")
+    @routes.get(API_V1_PREFIX + "/notification-sounds")
     async def notification_sounds_get(request):
         sounds = app.database.notification_sounds.get_all()
         return web.json_response(
@@ -1394,7 +1214,7 @@ def register_telephone_routes(routes, app):
             ],
         )
 
-    @routes.get("/api/v1/notification-sounds/status")
+    @routes.get(API_V1_PREFIX + "/notification-sounds/status")
     async def notification_sound_status(request):
         try:
             sound_id = None
@@ -1436,7 +1256,7 @@ def register_telephone_routes(routes, app):
                 },
             )
 
-    @routes.get("/api/v1/notification-sounds/{id}/audio")
+    @routes.get(API_V1_PREFIX + "/notification-sounds/{id}/audio")
     async def notification_sound_audio(request):
         sound_id = int(request.match_info["id"])
         sound = app.database.notification_sounds.get_by_id(sound_id)
@@ -1465,29 +1285,20 @@ def register_telephone_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/notification-sounds/upload")
+    @routes.post(API_V1_PREFIX + "/notification-sounds/upload")
     async def notification_sound_upload(request):
         if not app.notification_sound_manager:
-            return web.json_response(
-                {"message": "Notification sound manager unavailable"},
-                status=503,
-            )
+            return http_unavailable("Notification sound manager unavailable")
         try:
             reader = await request.multipart()
             field = await first_multipart_file_field(reader)
             if field is None:
-                return web.json_response(
-                    {"message": "File field required"},
-                    status=400,
-                )
+                return http_bad_request("File field required")
 
             filename = field.filename or "upload"
             extension = os.path.splitext(filename)[1].lower()
             if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
-                return web.json_response(
-                    {"message": f"Unsupported file type: {extension}"},
-                    status=400,
-                )
+                return http_bad_request(f"Unsupported file type: {extension}")
 
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
@@ -1525,7 +1336,7 @@ def register_telephone_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.patch("/api/v1/notification-sounds/{id}")
+    @routes.patch(API_V1_PREFIX + "/notification-sounds/{id}")
     async def notification_sound_patch(request):
         try:
             sound_id = int(request.match_info["id"])
@@ -1546,7 +1357,7 @@ def register_telephone_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.delete("/api/v1/notification-sounds/{id}")
+    @routes.delete(API_V1_PREFIX + "/notification-sounds/{id}")
     async def notification_sound_delete(request):
         try:
             sound_id = int(request.match_info["id"])

@@ -5,8 +5,9 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
+
+from meshchatx.src.env_utils import env_str
 
 
 def main() -> None:
@@ -17,7 +18,7 @@ def main() -> None:
         result = self_check.run_probe(argv[1])
         print("SELF_CHECK_JSON:" + json.dumps(result), flush=True)
         return
-    marker = os.environ.get("MESHCHATX_SELF_CHECK_PROBE_PATH")
+    marker = env_str("MESHCHATX_SELF_CHECK_PROBE_PATH")
     if marker:
         with open(marker, "w", encoding="utf-8") as handle:
             handle.write("ok\n")

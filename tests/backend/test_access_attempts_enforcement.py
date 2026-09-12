@@ -286,9 +286,15 @@ async def test_lockout_login_returns_429_smoke(mock_app):
 
     async with TestClient(TestServer(aio_app)) as client:
         ip = "192.0.2.88"
-        with patch(
-            "meshchatx.meshchat._request_client_ip",
-            return_value=ip,
+        with (
+            patch(
+                "meshchatx.meshchat._request_client_ip",
+                return_value=ip,
+            ),
+            patch(
+                "meshchatx.src.backend.http.routes.auth.request_client_ip",
+                return_value=ip,
+            ),
         ):
             for _ in range(MAX_FAILED_BEFORE_LOCKOUT):
                 r = await client.post(
@@ -343,9 +349,15 @@ async def test_rate_limited_login_returns_429_smoke(mock_app):
     aio_app = _make_aio_app(mock_app, use_https=False)
 
     async with TestClient(TestServer(aio_app)) as client:
-        with patch(
-            "meshchatx.meshchat._request_client_ip",
-            return_value=ip,
+        with (
+            patch(
+                "meshchatx.meshchat._request_client_ip",
+                return_value=ip,
+            ),
+            patch(
+                "meshchatx.src.backend.http.routes.auth.request_client_ip",
+                return_value=ip,
+            ),
         ):
             r429 = await client.post(
                 "/api/v1/auth/login",

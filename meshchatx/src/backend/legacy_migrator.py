@@ -6,6 +6,8 @@ import shutil
 
 import RNS
 
+from meshchatx.src.env_utils import env_bool
+
 LEGACY_DIR = ".reticulum-meshchat"
 CURRENT_DIR = ".reticulum-meshchatx"
 UPSTREAM_DIR = "reticulum-meshchat"
@@ -63,18 +65,11 @@ def storage_has_meshchat_data(storage_dir: str) -> bool:
 def resolve_startup_storage(request_dir: str) -> tuple[str, dict]:
     planned = os.path.abspath(os.path.expanduser(request_dir))
     empty_ctx: dict = {"show_choice": False}
-    skip = os.environ.get("MESHCHAT_SKIP_LEGACY_MIGRATION_UI", "").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-    )
+    skip = env_bool("MESHCHAT_SKIP_LEGACY_MIGRATION_UI")
     if skip:
         return planned, empty_ctx
 
-    skip_upstream_auto = os.environ.get(
-        "MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION",
-        "",
-    ).strip().lower() in ("1", "true", "yes")
+    skip_upstream_auto = env_bool("MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION")
 
     base = _basename_norm(planned)
     if (

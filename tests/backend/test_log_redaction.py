@@ -50,16 +50,19 @@ def test_redact_empty():
     assert redact_diagnostic_text(None) is None  # type: ignore[arg-type]
 
 
-def test_read_debug_logs_redacts_paths_and_hashes():
+def test_read_debug_logs_redacts_paths_and_hashes(monkeypatch):
     from unittest.mock import MagicMock
 
+    from meshchatx.src.backend import persistent_log_handler as plh
     from meshchatx.src.backend.bug_report_manager import BugReportManager
 
     app = MagicMock()
-    app.memory_log_handler = MagicMock()
+    handler = MagicMock()
+    monkeypatch.setattr(plh, "memory_log_handler", handler)
+    app.memory_log_handler = handler
     secret = "/home/alice/.reticulum/storage/identities/deadbeef/identity"
     hash64 = "a" * 64
-    app.memory_log_handler.get_logs.return_value = [
+    handler.get_logs.return_value = [
         {
             "timestamp": 1.0,
             "level": "INFO",
@@ -67,7 +70,7 @@ def test_read_debug_logs_redacts_paths_and_hashes():
             "message": f"loaded {secret} peer {hash64}",
         },
     ]
-    app.memory_log_handler.get_total_count.return_value = 1
+    handler.get_total_count.return_value = 1
 
     result = BugReportManager(app).read_debug_logs(limit=10)
     message = result["logs"][0]["message"]

@@ -3,134 +3,20 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import os
+import tempfile
+import time
+
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
     http_error_from_exception,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+    http_not_found,
+    http_payload_too_large,
 )
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
@@ -138,12 +24,13 @@ from meshchatx.src.backend.http.uploads import (
     read_json_limited,
     write_field_to_path,
 )
+from meshchatx.src.path_utils import safe_path_under_dir
 
 
 def register_database_routes(routes, app):
     # ── Database ─────────────────────────────────────────────────────
 
-    @routes.post("/api/v1/database/snapshot")
+    @routes.post(API_V1_PREFIX + "/database/snapshot")
     async def create_db_snapshot(request):
         try:
             data = await read_json_limited(request)
@@ -151,9 +38,9 @@ def register_database_routes(routes, app):
             result = app.database.create_snapshot(app.storage_path, name)
             return web.json_response({"status": "success", "result": result})
         except PayloadTooLargeError:
-            return web.json_response(
-                {"status": "error", "message": "Upload exceeds size limit"},
-                status=413,
+            return http_payload_too_large(
+                "Upload exceeds size limit",
+                status="error",
             )
         except Exception as e:
             return http_error_from_exception(
@@ -163,7 +50,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.get("/api/v1/database/snapshots")
+    @routes.get(API_V1_PREFIX + "/database/snapshots")
     async def list_db_snapshots(request):
         try:
             limit = int(request.query.get("limit", 100))
@@ -187,7 +74,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.delete("/api/v1/database/snapshots/{filename}")
+    @routes.delete(API_V1_PREFIX + "/database/snapshots/{filename}")
     async def delete_db_snapshot(request):
         try:
             filename = request.match_info.get("filename")
@@ -207,7 +94,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.post("/api/v1/database/restore")
+    @routes.post(API_V1_PREFIX + "/database/restore")
     async def restore_db_snapshot(request):
         try:
             content_type = request.headers.get("Content-Type", "")
@@ -217,9 +104,9 @@ def register_database_routes(routes, app):
                 reader = await request.multipart()
                 field = await reader.next()
                 if field is None or field.name != "file":
-                    return web.json_response(
-                        {"status": "error", "message": "Restore file is required"},
-                        status=400,
+                    return http_bad_request(
+                        "Restore file is required",
+                        status="error",
                     )
 
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
@@ -254,16 +141,16 @@ def register_database_routes(routes, app):
             data = await read_json_limited(request)
             path = data.get("path")
             if not path:
-                return web.json_response(
-                    {"status": "error", "message": "No path provided"},
-                    status=400,
+                return http_bad_request(
+                    "No path provided",
+                    status="error",
                 )
 
             resolved = app._resolve_database_restore_path(path)
             if not resolved:
-                return web.json_response(
-                    {"status": "error", "message": "Snapshot not found"},
-                    status=404,
+                return http_not_found(
+                    "Snapshot not found",
+                    status="error",
                 )
 
             result = await asyncio.to_thread(
@@ -278,9 +165,9 @@ def register_database_routes(routes, app):
                 },
             )
         except PayloadTooLargeError:
-            return web.json_response(
-                {"status": "error", "message": "Upload exceeds size limit"},
-                status=413,
+            return http_payload_too_large(
+                "Upload exceeds size limit",
+                status="error",
             )
         except Exception as e:
             return http_error_from_exception(
@@ -290,7 +177,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.get("/api/v1/database/backups")
+    @routes.get(API_V1_PREFIX + "/database/backups")
     async def list_db_backups(request):
         try:
             limit = int(request.query.get("limit", 100))
@@ -324,7 +211,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.delete("/api/v1/database/backups/{filename}")
+    @routes.delete(API_V1_PREFIX + "/database/backups/{filename}")
     async def delete_db_backup(request):
         try:
             filename = request.match_info.get("filename")
@@ -344,7 +231,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.post("/api/v1/database/backups/{filename}/download")
+    @routes.post(API_V1_PREFIX + "/database/backups/{filename}/download")
     async def download_db_backup(request):
         try:
             filename = request.match_info.get("filename")
@@ -354,9 +241,9 @@ def register_database_routes(routes, app):
             full_path = safe_path_under_dir(backup_dir, filename)
 
             if not full_path or not os.path.isfile(full_path):
-                return web.json_response(
-                    {"status": "error", "message": "Backup not found"},
-                    status=404,
+                return http_not_found(
+                    "Backup not found",
+                    status="error",
                 )
 
             return web.FileResponse(
@@ -373,7 +260,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.post("/api/v1/database/snapshots/{filename}/download")
+    @routes.post(API_V1_PREFIX + "/database/snapshots/{filename}/download")
     async def download_db_snapshot(request):
         try:
             filename = request.match_info.get("filename")
@@ -383,9 +270,9 @@ def register_database_routes(routes, app):
             full_path = safe_path_under_dir(snapshot_dir, filename)
 
             if not full_path or not os.path.isfile(full_path):
-                return web.json_response(
-                    {"status": "error", "message": "Snapshot not found"},
-                    status=404,
+                return http_not_found(
+                    "Snapshot not found",
+                    status="error",
                 )
 
             return web.FileResponse(
@@ -402,7 +289,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.get("/api/v1/database/health")
+    @routes.get(API_V1_PREFIX + "/database/health")
     async def database_health(request):
         try:
             return web.json_response(
@@ -413,7 +300,7 @@ def register_database_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/database/vacuum")
+    @routes.post(API_V1_PREFIX + "/database/vacuum")
     async def database_vacuum(request):
         try:
             result = app.database.run_database_vacuum()
@@ -426,7 +313,7 @@ def register_database_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/database/recover")
+    @routes.post(API_V1_PREFIX + "/database/recover")
     async def database_recover(request):
         try:
             result = app.database.run_database_recovery()
@@ -439,18 +326,15 @@ def register_database_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/database/auto-recover")
+    @routes.post(API_V1_PREFIX + "/database/auto-recover")
     async def database_auto_recover(request):
         try:
             try:
                 data = await read_json_limited(request)
             except PayloadTooLargeError:
-                return web.json_response(
-                    {
-                        "message": "Upload exceeds size limit",
-                        "strategy": "none",
-                    },
-                    status=413,
+                return http_payload_too_large(
+                    "Upload exceeds size limit",
+                    strategy="none",
                 )
             except Exception:
                 data = {}
@@ -479,7 +363,7 @@ def register_database_routes(routes, app):
                 fallback_status=500,
             )
 
-    @routes.post("/api/v1/database/backup")
+    @routes.post(API_V1_PREFIX + "/database/backup")
     async def database_backup(request):
         try:
             result = app.database.backup_database(app.storage_path)
@@ -492,7 +376,7 @@ def register_database_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/database/backup/download")
+    @routes.post(API_V1_PREFIX + "/database/backup/download")
     async def database_backup_download(request):
         # POST so CSRF middleware applies. Creating a zip is state-changing.
         try:
