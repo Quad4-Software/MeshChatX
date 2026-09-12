@@ -10,14 +10,7 @@ import { createI18n } from "vue-i18n";
 import TutorialModal from "../../meshchatx/src/frontend/components/TutorialModal.vue";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
-
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
-    default: {
-        config: { theme: "light", language: "en" },
-        hasPendingInterfaceChanges: false,
-        modifiedInterfaceNames: new Set(),
-    },
-}));
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
@@ -115,6 +108,7 @@ describe("TutorialModal connect/bootstrap adversarial oracles", () => {
     beforeEach(() => {
         window.api = axiosMock;
         vi.clearAllMocks();
+        useConfigStore().config = { theme: "light", language: "en" };
     });
 
     afterEach(() => {

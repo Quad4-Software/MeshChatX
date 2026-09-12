@@ -310,15 +310,17 @@
 </template>
 
 <script>
+import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useUnreadStore } from "../../js/stores/unreadStore.js";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import Utils from "../../js/Utils";
 import MessagesSidebar from "./MessagesSidebar.vue";
 import ConversationViewer from "./ConversationViewer.vue";
-import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 function snapshotGlobalConfig() {
-    return GlobalState.config && typeof GlobalState.config === "object" ? { ...GlobalState.config } : {};
+    return useConfigStore().config && typeof useConfigStore().config === "object" ? { ...useConfigStore().config } : {};
 }
 import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
@@ -349,6 +351,9 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import { isRetryableHttpError } from "../../js/httpRetry.js";
 import { runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
 import { prefetchConversationFirstPage } from "../../js/conversationPrefetch.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import * as announcesApi from "../../js/api/announces.js";
+import * as lxmfApi from "../../js/api/lxmf.js";
 import { CONVERSATION_MESSAGES_PAGE_SIZE } from "./conversationDisplayGroups.js";
 
 export default {
@@ -565,33 +570,33 @@ export default {
         setOpenDestinationHashes([]);
 
         // stop listening for websocket events
-        offWsEvent("config", this.onConfigEvent);
-        offWsEvent("announce", this.onAnnounceEvent);
-        offWsEvent("lxmf.delivery", this.onLxmfDeliveryEvent);
-        offWsEvent("lxmf_message_created", this.onLxmfMessageCreatedEvent);
-        offWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
-        offWsEvent("lxmf.telemetry", this.onLxmfTelemetryEvent);
-        offWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResultEvent);
-        GlobalEmitter.off("compose-new-message", this.onComposeNewMessage);
-        GlobalEmitter.off("refresh-conversations", this.requestConversationsRefresh);
-        GlobalEmitter.off("websocket-reconnected", this.requestConversationsRefresh);
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        offWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
+        offWsEvent(WS_EVENTS.ANNOUNCE, this.onAnnounceEvent);
+        offWsEvent(WS_EVENTS.LXMF_DELIVERY, this.onLxmfDeliveryEvent);
+        offWsEvent(WS_EVENTS.LXMF_MESSAGE_CREATED, this.onLxmfMessageCreatedEvent);
+        offWsEvent(WS_EVENTS.LXMF_MESSAGE_STATE_UPDATED, this.onLxmfMessageStateUpdatedEvent);
+        offWsEvent(WS_EVENTS.LXMF_TELEMETRY, this.onLxmfTelemetryEvent);
+        offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResultEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE, this.onComposeNewMessage);
+        GlobalEmitter.off(EMITTER_EVENTS.REFRESH_CONVERSATIONS, this.requestConversationsRefresh);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.requestConversationsRefresh);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
     },
     mounted() {
         this.setupPaneViewportWatchers();
 
         // listen for websocket events
-        onWsEvent("config", this.onConfigEvent);
-        onWsEvent("announce", this.onAnnounceEvent);
-        onWsEvent("lxmf.delivery", this.onLxmfDeliveryEvent);
-        onWsEvent("lxmf_message_created", this.onLxmfMessageCreatedEvent);
-        onWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
-        onWsEvent("lxmf.telemetry", this.onLxmfTelemetryEvent);
-        onWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResultEvent);
-        GlobalEmitter.on("compose-new-message", this.onComposeNewMessage);
-        GlobalEmitter.on("refresh-conversations", this.requestConversationsRefresh);
-        GlobalEmitter.on("websocket-reconnected", this.requestConversationsRefresh);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        onWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
+        onWsEvent(WS_EVENTS.ANNOUNCE, this.onAnnounceEvent);
+        onWsEvent(WS_EVENTS.LXMF_DELIVERY, this.onLxmfDeliveryEvent);
+        onWsEvent(WS_EVENTS.LXMF_MESSAGE_CREATED, this.onLxmfMessageCreatedEvent);
+        onWsEvent(WS_EVENTS.LXMF_MESSAGE_STATE_UPDATED, this.onLxmfMessageStateUpdatedEvent);
+        onWsEvent(WS_EVENTS.LXMF_TELEMETRY, this.onLxmfTelemetryEvent);
+        onWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResultEvent);
+        GlobalEmitter.on(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE, this.onComposeNewMessage);
+        GlobalEmitter.on(EMITTER_EVENTS.REFRESH_CONVERSATIONS, this.requestConversationsRefresh);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.requestConversationsRefresh);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
 
         this._stopIdentityReadyLoads = runWhenIdentityHttpReady(() => {
             this.getConfig();
@@ -603,7 +608,7 @@ export default {
         // Poll while visible. WS refresh-conversations covers most live updates.
         this.startConversationsPollInterval();
         this._liveTransportReadyWatch = this.$watch(
-            () => GlobalState.liveTransportReady,
+            () => useNetworkStore().liveTransportReady,
             () => {
                 this.startConversationsPollInterval();
             }
@@ -634,12 +639,16 @@ export default {
                 clearInterval(this.reloadInterval);
                 this.reloadInterval = null;
             }
-            const pollMs = GlobalState.liveTransportReady ? 60000 : 15000;
+            const pollMs = useNetworkStore().liveTransportReady ? 60000 : 15000;
             this.reloadInterval = setInterval(() => {
                 if (typeof document !== "undefined" && document.visibilityState === "hidden") {
                     return;
                 }
-                if (GlobalState.networkStarting && !GlobalState.networkReady && !GlobalState.networkDegraded) {
+                if (
+                    useNetworkStore().networkStarting &&
+                    !useNetworkStore().networkReady &&
+                    !useNetworkStore().networkDegraded
+                ) {
                     return;
                 }
                 this.getConversations();
@@ -656,10 +665,10 @@ export default {
                 this.selectedFolderId != null ||
                 Boolean(this.conversationSearchTerm && this.conversationSearchTerm.trim());
             if (listIsPartial) {
-                GlobalEmitter.emit("notifications-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.NOTIFICATIONS_CHANGED);
                 return;
             }
-            GlobalState.unreadConversationsCount = countUnreadConversations(this.conversations);
+            useUnreadStore().unreadConversationsCount = countUnreadConversations(this.conversations);
         },
         onIdentitySwitched() {
             this.conversationsAbortController?.abort();
@@ -733,10 +742,10 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get(`/api/v1/config`);
+                const response = await window.api.get(apiPath("/config"));
                 const next = response.data?.config;
                 if (next && typeof next === "object") {
-                    mergeGlobalConfig(next);
+                    useConfigStore().mergeConfig(next);
                     this.config = next;
                 }
             } catch (e) {
@@ -747,7 +756,7 @@ export default {
         onConfigEvent(json) {
             const next = json?.config;
             if (next && typeof next === "object") {
-                mergeGlobalConfig(next);
+                useConfigStore().mergeConfig(next);
                 this.config = next;
             }
         },
@@ -860,7 +869,7 @@ export default {
                     myController = this.announcesAbortController;
                 }
                 const offset = append ? Object.keys(this.peers).length : 0;
-                const response = await window.api.get(`/api/v1/announces`, {
+                const response = await announcesApi.listAnnounces({
                     params: {
                         aspect: "lxmf.delivery",
                         limit: this.pageSize,
@@ -902,7 +911,7 @@ export default {
         async getLxmfDeliveryAnnounce(destinationHash) {
             try {
                 // fetch announce for destination hash
-                const response = await window.api.get(`/api/v1/announces`, {
+                const response = await announcesApi.listAnnounces({
                     params: {
                         destination_hash: destinationHash,
                         limit: 1,
@@ -939,7 +948,7 @@ export default {
                 }
 
                 const offset = append ? this.conversations.length : 0;
-                const response = await window.api.get(`/api/v1/lxmf/conversations`, {
+                const response = await lxmfApi.listConversations({
                     params: {
                         ...this.buildConversationQueryParams(),
                         limit: this.pageSize,
@@ -1021,7 +1030,7 @@ export default {
         },
         async loadConversationPins() {
             try {
-                const response = await window.api.get("/api/v1/lxmf/conversation-pins");
+                const response = await window.api.get(apiPath("/lxmf/conversation-pins"));
                 this.pinnedPeerHashes = response.data.peer_hashes || [];
             } catch (e) {
                 console.log(e);
@@ -1029,7 +1038,7 @@ export default {
         },
         async onToggleConversationPin(destinationHash) {
             try {
-                const response = await window.api.post("/api/v1/lxmf/conversation-pins/toggle", {
+                const response = await window.api.post(apiPath("/lxmf/conversation-pins/toggle"), {
                     destination_hash: destinationHash,
                 });
                 this.pinnedPeerHashes = response.data.peer_hashes || [];
@@ -1158,7 +1167,7 @@ export default {
         },
         async resolvePeerDisplayName(peerHash) {
             try {
-                const response = await window.api.get(`/api/v1/lxmf/conversations`, {
+                const response = await lxmfApi.listConversations({
                     params: { search: peerHash, limit: 1 },
                 });
                 const results = response.data.conversations;
@@ -1240,7 +1249,7 @@ export default {
         },
         async getFolders() {
             try {
-                const response = await window.api.get("/api/v1/lxmf/folders");
+                const response = await window.api.get(apiPath("/lxmf/folders"));
                 this.folders = response.data;
                 if (this._skipSelectedFolderRestore) {
                     this._skipSelectedFolderRestore = false;
@@ -1255,7 +1264,7 @@ export default {
         },
         async onCreateFolder(name) {
             try {
-                await window.api.post("/api/v1/lxmf/folders", { name });
+                await window.api.post(apiPath("/lxmf/folders"), { name });
                 await this.getFolders();
                 ToastUtils.success(this.$t("messages.folder_created"));
             } catch {
@@ -1264,7 +1273,7 @@ export default {
         },
         async onRenameFolder({ id, name }) {
             try {
-                await window.api.patch(`/api/v1/lxmf/folders/${id}`, { name });
+                await window.api.patch(apiPath(`/lxmf/folders/${id}`), { name });
                 await this.getFolders();
                 ToastUtils.success(this.$t("messages.folder_renamed"));
             } catch {
@@ -1273,7 +1282,7 @@ export default {
         },
         async onDeleteFolder(id) {
             try {
-                await window.api.delete(`/api/v1/lxmf/folders/${id}`);
+                await window.api.delete(apiPath(`/lxmf/folders/${id}`));
                 if (this.selectedFolderId === id) {
                     this.selectedFolderId = null;
                     this.persistSelectedFolder();
@@ -1289,7 +1298,7 @@ export default {
             try {
                 // Treat 0 as null (Uncategorized) for the backend
                 const targetFolderId = folder_id === 0 ? null : folder_id;
-                await window.api.post("/api/v1/lxmf/conversations/move-to-folder", {
+                await window.api.post(apiPath("/lxmf/conversations/move-to-folder"), {
                     peer_hashes,
                     folder_id: targetFolderId,
                 });
@@ -1301,10 +1310,10 @@ export default {
         },
         async onBulkMarkAsRead(destination_hashes) {
             try {
-                await window.api.post("/api/v1/lxmf/conversations/bulk-mark-as-read", {
+                await window.api.post(apiPath("/lxmf/conversations/bulk-mark-as-read"), {
                     destination_hashes,
                 });
-                GlobalEmitter.emit("notifications-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.NOTIFICATIONS_CHANGED);
                 for (const h of destination_hashes || []) {
                     NotificationUtils.clearMessageNotifications(h);
                 }
@@ -1316,10 +1325,10 @@ export default {
         },
         async onMarkAllAsRead() {
             try {
-                await window.api.post("/api/v1/lxmf/conversations/bulk-mark-as-read", {
+                await window.api.post(apiPath("/lxmf/conversations/bulk-mark-as-read"), {
                     mark_all: true,
                 });
-                GlobalEmitter.emit("notifications-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.NOTIFICATIONS_CHANGED);
                 NotificationUtils.clearAllMessageNotifications();
                 await this.getConversations();
                 ToastUtils.success(this.$t("messages.marked_all_read"));
@@ -1335,7 +1344,7 @@ export default {
                 );
                 if (!confirmed) return;
 
-                await window.api.post("/api/v1/lxmf/conversations/bulk-delete", {
+                await window.api.post(apiPath("/lxmf/conversations/bulk-delete"), {
                     destination_hashes,
                 });
                 await this.getConversations();
@@ -1346,7 +1355,7 @@ export default {
         },
         async onExportFolders() {
             try {
-                const response = await window.api.get("/api/v1/lxmf/folders/export");
+                const response = await window.api.get(apiPath("/lxmf/folders/export"));
                 const data = JSON.stringify(response.data, null, 2);
                 const blob = new Blob([data], { type: "application/json" });
                 await DownloadUtils.downloadFile(
@@ -1376,7 +1385,7 @@ export default {
             reader.onload = async (re) => {
                 try {
                     const data = JSON.parse(re.target.result);
-                    await window.api.post("/api/v1/lxmf/folders/import", data);
+                    await window.api.post(apiPath("/lxmf/folders/import"), data);
                     await this.getFolders();
                     await this.getConversations();
                     ToastUtils.success(this.$t("messages.folders_imported"));
@@ -1507,12 +1516,12 @@ export default {
             if (wasUnread) {
                 conversation.is_unread = false;
             }
-            Promise.resolve(window.api.post(`/api/v1/lxmf/conversations/${normalized}/mark-as-read`))
+            Promise.resolve(window.api.post(apiPath(`/lxmf/conversations/${normalized}/mark-as-read`)))
                 .then(() => {
-                    GlobalEmitter.emit("notifications-changed");
+                    GlobalEmitter.emit(EMITTER_EVENTS.NOTIFICATIONS_CHANGED);
                     NotificationUtils.clearMessageNotifications(normalized);
-                    if (wasUnread && GlobalState.unreadConversationsCount > 0) {
-                        GlobalState.unreadConversationsCount -= 1;
+                    if (wasUnread && useUnreadStore().unreadConversationsCount > 0) {
+                        useUnreadStore().unreadConversationsCount -= 1;
                     }
                 })
                 .catch(() => {

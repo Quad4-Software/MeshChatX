@@ -1522,16 +1522,16 @@ describe("NomadNetworkPage.vue", () => {
             const hash = "a".repeat(32);
             const wrapper = mountNomadNetworkPage({ destinationHash: hash });
             wrapper.vm.selectedNode = { destination_hash: hash };
-            const GlobalState = wrapper.vm.GlobalState;
-            const previous = GlobalState.config.nomad_image_loading_policy;
+            const configStore = wrapper.vm.configStore;
+            const previous = configStore.config.nomad_image_loading_policy;
             try {
-                GlobalState.config.nomad_image_loading_policy = "manual";
+                configStore.config.nomad_image_loading_policy = "manual";
                 expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(false);
 
-                GlobalState.config.nomad_image_loading_policy = "auto";
+                configStore.config.nomad_image_loading_policy = "auto";
                 expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
 
-                GlobalState.config.nomad_image_loading_policy = "always";
+                configStore.config.nomad_image_loading_policy = "always";
                 expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
 
                 // a per-node never override wins over a permissive global
@@ -1542,9 +1542,9 @@ describe("NomadNetworkPage.vue", () => {
                 expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
             } finally {
                 if (previous === undefined) {
-                    delete GlobalState.config.nomad_image_loading_policy;
+                    delete configStore.config.nomad_image_loading_policy;
                 } else {
-                    GlobalState.config.nomad_image_loading_policy = previous;
+                    configStore.config.nomad_image_loading_policy = previous;
                 }
             }
         });

@@ -2,7 +2,8 @@
  * Pure helpers and HTTP-backed config load/patch for settings UI.
  */
 
-import { mergeGlobalConfig } from "../GlobalState.js";
+import { apiPath, EMITTER_EVENTS } from "../constants.js";
+import { useConfigStore } from "../stores/configStore.js";
 import GlobalEmitter from "../GlobalEmitter.js";
 import { sanitizeThemeConfigFields } from "../../theme/themeEngine.js";
 
@@ -54,7 +55,7 @@ export function sanitizeColorConfigFields(config) {
  * @returns {Promise<object|null>}
  */
 export async function fetchMergedConfig(api, baseConfig) {
-    const response = await api.get("/api/v1/config");
+    const response = await api.get(apiPath("/config"));
     if (response?.data?.config) {
         return { ...baseConfig, ...response.data.config };
     }
@@ -67,7 +68,7 @@ export async function fetchMergedConfig(api, baseConfig) {
  * @returns {Promise<object>}
  */
 export async function patchServerConfig(partial, api) {
-    const response = await api.patch("/api/v1/config", partial);
+    const response = await api.patch(apiPath("/config"), partial);
     return response.data.config;
 }
 
@@ -80,6 +81,6 @@ export function publishPatchedConfig(newConfig) {
     if (!newConfig || typeof newConfig !== "object") {
         return;
     }
-    mergeGlobalConfig(newConfig);
-    GlobalEmitter.emit("config-updated", newConfig);
+    useConfigStore().mergeConfig(newConfig);
+    GlobalEmitter.emit(EMITTER_EVENTS.CONFIG_UPDATED, newConfig);
 }

@@ -1,7 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import "../../meshchatx/src/frontend/js/KeyboardShortcuts";
 
 // Mock Vuetify components that might be used

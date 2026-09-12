@@ -288,7 +288,7 @@ describe("behavior contracts: Reticulum instance settings", () => {
         expect(page).toContain("fetchReticulumInstanceSettings");
         expect(page).toContain("applyReticulumInstanceSettings");
         const service = readSource("meshchatx/src/frontend/js/settings/settingsReticulumInstanceService.js");
-        expect(service).toContain("/api/v1/reticulum/instance");
+        expect(service).toContain('apiPath("/reticulum/instance")');
         const selfCheck = readSource("meshchatx/src/backend/self_check.py");
         expect(selfCheck).toContain("http_reticulum_instance_good");
         expect(selfCheck).toContain("/api/v1/reticulum/instance");
@@ -317,8 +317,11 @@ describe("behavior contracts: RNS Link API", () => {
         expect(selfCheck).toContain("plugins_runtime_good");
         expect(selfCheck).toContain("check_plugins_runtime");
         const guard = readSource("meshchatx/src/backend/websocket_config_guard.py");
-        expect(guard).toContain("rns.link.open");
-        expect(guard).toContain("rns.link.close");
+        expect(guard).toContain("WsInboundType.RNS_LINK_OPEN");
+        expect(guard).toContain("WsInboundType.RNS_LINK_CLOSE");
+        const constants = readSource("meshchatx/src/backend/constants.py");
+        expect(constants).toContain('RNS_LINK_OPEN = "rns.link.open"');
+        expect(constants).toContain('RNS_LINK_CLOSE = "rns.link.close"');
     });
 });
 
@@ -329,13 +332,13 @@ describe("behavior contracts: plugin install permissions", () => {
             "meshchatx/src/backend/http/routes/plugins.py",
             "meshchatx/src/backend/http/routes/sideband.py",
         ]);
-        expect(handler).toContain("/api/v1/plugins/preview");
+        expect(handler).toContain('API_V1_PREFIX + "/plugins/preview"');
         expect(handler).toContain("granted_permissions");
-        expect(handler).toContain("/api/v1/plugins/trusted-publishers");
-        expect(handler).toContain("/api/v1/sideband-plugins");
+        expect(handler).toContain('API_V1_PREFIX + "/plugins/trusted-publishers"');
+        expect(handler).toContain('API_V1_PREFIX + "/sideband-plugins"');
         const section = readSource("meshchatx/src/frontend/components/settings/PluginsSettingsSection.vue");
         expect(section).toContain("PluginInstallDialog");
-        expect(section).toContain("/api/v1/plugins/preview");
+        expect(section).toContain('apiPath("/plugins/preview")');
         expect(section).toContain("granted_permissions");
         expect(section).toContain(".wasm");
         expect(section).toContain("trustPublisher");
@@ -497,11 +500,11 @@ describe("behavior contracts: locale, theme, and call audio", () => {
         expect(boot).toContain('classList.remove("dark")');
     });
 
-    it("network visualiser theme follows GlobalState before html.dark fallback", () => {
+    it("network visualiser theme follows config store before html.dark fallback", () => {
         const vis = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");
         expect(vis).toContain("resolveVisualiserIsDark");
         expect(vis).toContain('theme === "light"');
-        expect(vis).toContain("GlobalState.config");
+        expect(vis).toContain("useConfigStore().config");
     });
 
     it("CallPage refresh devices uses getUserMedia before device enumeration", () => {
@@ -547,17 +550,26 @@ describe("behavior contracts: security gates", () => {
         const src = readSource("meshchatx/src/backend/http/routes/websocket_upgrade.py");
         expect(src).toContain("websocket_origin_allowed");
         expect(src).toContain("_reject_forbidden_ws_origin");
-        expect(src).toContain('{"error": "Forbidden origin"}');
+        expect(src).toContain('http_forbidden("Forbidden origin")');
     });
 
     it("WebSocket auth fails closed except explicit public control types", () => {
         const src = readSource("meshchatx/src/backend/websocket_config_guard.py");
-        const publicMatch = src.match(/WEBSOCKET_PUBLIC_TYPES = frozenset\(\s*\{([^}]+)\}/s);
-        const runtimeMatch = src.match(/WEBSOCKET_RUNTIME_CONTROL_TYPES = frozenset\(\s*\{([^}]+)\}/s);
+        const constants = readSource("meshchatx/src/backend/constants.py");
+        const enumValues = Object.fromEntries(
+            [...constants.matchAll(/^\s*(\w+)\s*=\s*"([^"]+)"\s*$/gm)].map((m) => [m[1], m[2]])
+        );
+        const resolveMembers = (block) =>
+            [...block.matchAll(/WsInboundType\.(\w+)/g)].map((m) => enumValues[m[1]]);
+        const runtimeMatch = constants.match(/WS_RUNTIME_CONTROL_TYPES = frozenset\(\s*\{([^}]+)\}/s);
+        const publicMatch = constants.match(/WS_PUBLIC_TYPES = frozenset\(\s*\{([^}]+)\}/s);
         expect(publicMatch).toBeTruthy();
         expect(runtimeMatch).toBeTruthy();
-        const publicMembers = [...publicMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-        const runtimeMembers = [...runtimeMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        const runtimeMembers = resolveMembers(runtimeMatch[1]);
+        const publicMembers = [
+            ...resolveMembers(publicMatch[1]),
+            ...(publicMatch[1].includes("*WS_RUNTIME_CONTROL_TYPES") ? runtimeMembers : []),
+        ];
         expect(publicMembers).toEqual(
             expect.arrayContaining(["ping", "ws.subscribe", "ws.unsubscribe", "sync.subscribe", "ws.caps"])
         );

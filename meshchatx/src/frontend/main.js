@@ -1,4 +1,5 @@
 import { createApp } from "vue";
+import { createPinia, setActivePinia } from "pinia";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
 import vClickOutside from "./libs/clickOutside.js";
@@ -14,10 +15,12 @@ import "./fonts/RobotoMonoNerdFont/font.css";
 import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
 import { fetchCsrfToken } from "./js/csrfToken.js";
+import { apiPath, STORAGE_KEYS } from "./js/constants.js";
 import { registerCoreContributions } from "./js/registries/registerCoreContributions.js";
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
-import GlobalState from "./js/GlobalState.js";
+import { useAuthStore } from "./js/stores/authStore.js";
+import { useNetworkStore } from "./js/stores/networkStore.js";
 import { recoveryLocationForNetworkError } from "./js/networkRecovery.js";
 import ElectronUtils from "./js/ElectronUtils.js";
 import {
@@ -31,6 +34,11 @@ import "./js/HeapMonitor.js";
 
 registerCoreContributions();
 installWsEventBridge();
+
+// Active before bootstrap so early store access resolves
+// the same instance the app later installs.
+const pinia = createPinia();
+setActivePinia(pinia);
 
 import App from "./components/App.vue";
 import ChangelogModal from "./components/ChangelogModal.vue";
@@ -339,9 +347,10 @@ pluginHost.attachRouter(router);
 
 window.api = createApiClient({
     onAuthError() {
-        GlobalState.authenticated = false;
-        GlobalState.authEnabled = true;
-        GlobalState.authSessionResolved = true;
+        const authStore = useAuthStore();
+        authStore.authenticated = false;
+        authStore.authEnabled = true;
+        authStore.authSessionResolved = true;
         if (router.currentRoute.value.name !== "auth") {
             router.push("/auth");
         }
@@ -368,38 +377,41 @@ function markBootSplashError() {
     }
 }
 
+const networkStore = useNetworkStore();
+const authStore = useAuthStore();
+
 const networkReady = await waitForNetworkReady({
     onLine: setBootSplashLine,
     onErrorState: markBootSplashError,
     onDegraded: (error) => {
-        GlobalState.networkDegraded = true;
-        GlobalState.networkDegradedError = error || "RNS unavailable";
-        GlobalState.networkStarting = false;
-        GlobalState.networkReady = false;
+        networkStore.networkDegraded = true;
+        networkStore.networkDegradedError = error || "RNS unavailable";
+        networkStore.networkStarting = false;
+        networkStore.networkReady = false;
     },
 });
 if (networkReady) {
     if (networkReady === "degraded") {
-        GlobalState.networkDegraded = true;
-        GlobalState.networkStarting = false;
-        GlobalState.networkReady = false;
+        networkStore.networkDegraded = true;
+        networkStore.networkStarting = false;
+        networkStore.networkReady = false;
     } else if (networkReady === "ui") {
-        GlobalState.networkStarting = true;
-        GlobalState.networkReady = false;
+        networkStore.networkStarting = true;
+        networkStore.networkReady = false;
     } else {
-        GlobalState.networkStarting = false;
-        GlobalState.networkReady = true;
+        networkStore.networkStarting = false;
+        networkStore.networkReady = true;
     }
     try {
-        const statusResponse = await window.api.get("/api/v1/status");
-        GlobalState.demoMode = !!statusResponse.data?.demo_mode;
+        const statusResponse = await window.api.get(apiPath("/status"));
+        authStore.demoMode = !!statusResponse.data?.demo_mode;
         if (typeof statusResponse.data?.is_loopback_bind === "boolean") {
-            GlobalState.isLoopbackBind = statusResponse.data.is_loopback_bind;
+            authStore.isLoopbackBind = statusResponse.data.is_loopback_bind;
         }
     } catch {
         // status optional during early boot
     }
-    if (GlobalState.demoMode) {
+    if (authStore.demoMode) {
         try {
             const { DEMO_UI_LANGUAGE_STORAGE_KEY } = await import("./js/demoUiPrefs.js");
             const { setLocale } = await import("./js/localeLoader.js");
@@ -517,7 +529,7 @@ if (networkReady) {
             });
         });
         try {
-            app.use(router).use(i18n).use(vClickOutside).mount("#app");
+            app.use(pinia).use(router).use(i18n).use(vClickOutside).mount("#app");
         } catch (e) {
             console.error("MeshChatX bootstrap failed:", e);
             showBootSplashFatalError({
@@ -530,9 +542,9 @@ if (networkReady) {
             return;
         }
         try {
-            const pendingRoute = localStorage.getItem("meshchatx_open_after_relaunch");
+            const pendingRoute = localStorage.getItem(STORAGE_KEYS.OPEN_AFTER_RELAUNCH);
             if (pendingRoute) {
-                localStorage.removeItem("meshchatx_open_after_relaunch");
+                localStorage.removeItem(STORAGE_KEYS.OPEN_AFTER_RELAUNCH);
                 if (pendingRoute.startsWith("#/")) {
                     void router.replace(pendingRoute.slice(1));
                 }
@@ -547,39 +559,39 @@ if (networkReady) {
             });
         });
         preloadCriticalRouteChunks();
-        if (GlobalState.networkReady) {
+        if (networkStore.networkReady) {
             void startCodec2ScriptsBackgroundLoad();
             void loadPluginsIfEnabled();
-        } else if (GlobalState.networkStarting) {
+        } else if (networkStore.networkStarting) {
             void waitForMeshReady({
                 onLine: () => {},
                 onDegraded: (error) => {
-                    GlobalState.networkDegraded = true;
-                    GlobalState.networkDegradedError = error || "RNS unavailable";
-                    GlobalState.networkStarting = false;
-                    GlobalState.networkReady = false;
+                    networkStore.networkDegraded = true;
+                    networkStore.networkDegradedError = error || "RNS unavailable";
+                    networkStore.networkStarting = false;
+                    networkStore.networkReady = false;
                 },
             }).then((meshState) => {
                 if (meshState === "ready") {
-                    GlobalState.networkStarting = false;
-                    GlobalState.networkReady = true;
-                    GlobalState.networkDegraded = false;
-                    GlobalState.networkDegradedError = null;
+                    networkStore.networkStarting = false;
+                    networkStore.networkReady = true;
+                    networkStore.networkDegraded = false;
+                    networkStore.networkDegradedError = null;
                     void startCodec2ScriptsBackgroundLoad();
                     void loadPluginsIfEnabled();
                 } else if (meshState === "degraded") {
-                    GlobalState.networkStarting = false;
-                    GlobalState.networkReady = false;
+                    networkStore.networkStarting = false;
+                    networkStore.networkReady = false;
                 } else {
-                    GlobalState.networkStarting = false;
-                    GlobalState.networkReady = false;
-                    GlobalState.networkDegraded = true;
-                    GlobalState.networkDegradedError = GlobalState.networkDegradedError || "RNS startup timed out";
+                    networkStore.networkStarting = false;
+                    networkStore.networkReady = false;
+                    networkStore.networkDegraded = true;
+                    networkStore.networkDegradedError = networkStore.networkDegradedError || "RNS startup timed out";
                 }
             });
         }
-        if (GlobalState.networkDegraded) {
-            const recoveryLocation = recoveryLocationForNetworkError(GlobalState.networkDegradedError);
+        if (networkStore.networkDegraded) {
+            const recoveryLocation = recoveryLocationForNetworkError(networkStore.networkDegradedError);
             if (recoveryLocation) {
                 try {
                     router.replace(recoveryLocation);
@@ -591,13 +603,13 @@ if (networkReady) {
     }
 
     async function loadPluginsIfEnabled() {
-        if (!(GlobalState.authenticated || !GlobalState.authEnabled)) {
+        if (!(authStore.authenticated || !authStore.authEnabled)) {
             return;
         }
         try {
-            const response = await window.api.get("/api/v1/plugins");
-            GlobalState.pluginsEnabled = response.data?.plugins_enabled !== false;
-            if (!GlobalState.pluginsEnabled) {
+            const response = await window.api.get(apiPath("/plugins"));
+            authStore.pluginsEnabled = response.data?.plugins_enabled !== false;
+            if (!authStore.pluginsEnabled) {
                 return;
             }
             await pluginHost.loadEnabledPlugins(window.api, i18n.global.locale.value);

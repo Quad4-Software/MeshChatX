@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
-import globalState from "@/js/GlobalState";
+import { useUnreadStore } from "@/js/stores/unreadStore.js";
 
-describe("GlobalState.js", () => {
+describe("unreadStore", () => {
     it("has initial values", () => {
-        expect(globalState.unreadConversationsCount).toBe(0);
+        expect(useUnreadStore().unreadConversationsCount).toBe(0);
     });
 
     it("can be updated", () => {
-        globalState.unreadConversationsCount = 5;
-        expect(globalState.unreadConversationsCount).toBe(5);
+        useUnreadStore().unreadConversationsCount = 5;
+        expect(useUnreadStore().unreadConversationsCount).toBe(5);
     });
 });

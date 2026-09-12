@@ -396,7 +396,7 @@
                                         conversation.is_unread,
                                         conversation.failed_messages_count,
                                         selectedDestinationHash === conversation.destination_hash,
-                                        GlobalState.config.banished_effect_enabled &&
+                                        configStore.config.banished_effect_enabled &&
                                             isBlocked(conversation.destination_hash),
                                         selectionMode,
                                         selectedHashes.has(conversation.destination_hash),
@@ -440,16 +440,16 @@
                                     <!-- banished overlay -->
                                     <div
                                         v-if="
-                                            GlobalState.config.banished_effect_enabled &&
+                                            configStore.config.banished_effect_enabled &&
                                             isBlocked(conversation.destination_hash)
                                         "
                                         class="banished-overlay"
-                                        :style="{ background: GlobalState.config.banished_color + '33' }"
+                                        :style="{ background: configStore.config.banished_color + '33' }"
                                     >
                                         <span
                                             class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                            :style="{ 'background-color': GlobalState.config.banished_color }"
-                                            >{{ GlobalState.config.banished_text }}</span
+                                            :style="{ 'background-color': configStore.config.banished_color }"
+                                            >{{ configStore.config.banished_text }}</span
                                         >
                                     </div>
 
@@ -550,7 +550,7 @@
                                     conversation.is_unread,
                                     conversation.failed_messages_count,
                                     selectedDestinationHash === conversation.destination_hash,
-                                    GlobalState.config.banished_effect_enabled &&
+                                    configStore.config.banished_effect_enabled &&
                                         isBlocked(conversation.destination_hash),
                                     selectionMode,
                                     selectedHashes.has(conversation.destination_hash),
@@ -591,16 +591,16 @@
                                 </div>
                                 <div
                                     v-if="
-                                        GlobalState.config.banished_effect_enabled &&
+                                        configStore.config.banished_effect_enabled &&
                                         isBlocked(conversation.destination_hash)
                                     "
                                     class="banished-overlay"
-                                    :style="{ background: GlobalState.config.banished_color + '33' }"
+                                    :style="{ background: configStore.config.banished_color + '33' }"
                                 >
                                     <span
                                         class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                        :style="{ 'background-color': GlobalState.config.banished_color }"
-                                        >{{ GlobalState.config.banished_text }}</span
+                                        :style="{ 'background-color': configStore.config.banished_color }"
+                                        >{{ configStore.config.banished_text }}</span
                                     >
                                 </div>
                                 <div class="my-auto mr-2">
@@ -737,7 +737,7 @@
                             </ContextMenuItem>
                             <ContextMenuDivider />
                             <ContextMenuItem
-                                v-if="GlobalState.config.telemetry_enabled"
+                                v-if="configStore.config.telemetry_enabled"
                                 @click="toggleTelemetryTrust(contextMenu.targetHash)"
                             >
                                 <MaterialDesignIcon
@@ -758,7 +758,7 @@
                                         : $t("app.telemetry_trust_grant")
                                 }}
                             </ContextMenuItem>
-                            <ContextMenuDivider v-if="GlobalState.config.telemetry_enabled" />
+                            <ContextMenuDivider v-if="configStore.config.telemetry_enabled" />
                             <ContextMenuSectionLabel>{{ $t("messages.move_to_folder") }}</ContextMenuSectionLabel>
                             <ContextMenuItem @click="moveSelectedToFolder(null)">
                                 <MaterialDesignIcon icon-name="inbox-arrow-down" class="size-4 opacity-70" />
@@ -872,7 +872,7 @@
                                 peer.hops,
                                 peer.snr,
                                 selectedDestinationHash === peer.destination_hash,
-                                GlobalState.config.banished_effect_enabled && isBlocked(peer.destination_hash),
+                                configStore.config.banished_effect_enabled && isBlocked(peer.destination_hash),
                                 timeAgoTick,
                                 isRightSidebar,
                             ]"
@@ -887,14 +887,14 @@
                         >
                             <!-- banished overlay -->
                             <div
-                                v-if="GlobalState.config.banished_effect_enabled && isBlocked(peer.destination_hash)"
+                                v-if="configStore.config.banished_effect_enabled && isBlocked(peer.destination_hash)"
                                 class="banished-overlay"
-                                :style="{ background: GlobalState.config.banished_color + '33' }"
+                                :style="{ background: configStore.config.banished_color + '33' }"
                             >
                                 <span
                                     class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                    :style="{ 'background-color': GlobalState.config.banished_color }"
-                                    >{{ GlobalState.config.banished_text }}</span
+                                    :style="{ 'background-color': configStore.config.banished_color }"
+                                    >{{ configStore.config.banished_text }}</span
                                 >
                             </div>
 
@@ -983,6 +983,9 @@
 </template>
 
 <script>
+import { mapStores } from "pinia";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useIdentityStore } from "../../js/stores/identityStore.js";
 import Utils from "../../js/Utils";
 import DialogUtils from "../../js/DialogUtils";
 import EmptyState from "../EmptyState.vue";
@@ -995,8 +998,8 @@ import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ContextMenuSectionLabel from "../contextmenu/ContextMenuSectionLabel.vue";
-import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants.js";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import ToastUtils from "../../js/ToastUtils";
 import { importMessagesFromFile } from "../../js/messageImport";
@@ -1137,13 +1140,12 @@ export default {
         let foldersExpanded = true;
         try {
             if (typeof localStorage !== "undefined") {
-                foldersExpanded = localStorage.getItem("meshchatx_folders_expanded") !== "false";
+                foldersExpanded = localStorage.getItem(STORAGE_KEYS.FOLDERS_EXPANDED) !== "false";
             }
         } catch {
             // ignore
         }
         return {
-            GlobalState,
             tab: "conversations",
             timeAgoTick: 0,
             foldersExpanded,
@@ -1172,6 +1174,7 @@ export default {
         };
     },
     computed: {
+        ...mapStores(useConfigStore),
         effectiveCollapsed() {
             return this.collapsed && this.smUp;
         },
@@ -1211,7 +1214,7 @@ export default {
             );
         },
         blockedDestinations() {
-            return GlobalState.blockedDestinations;
+            return useIdentityStore().blockedDestinations;
         },
         pinnedSet() {
             return new Set(this.pinnedPeerHashes || []);
@@ -1258,7 +1261,7 @@ export default {
             );
         },
         messageIconStyle() {
-            const size = GlobalState.config?.message_icon_size || 28;
+            const size = useConfigStore().config?.message_icon_size || 28;
             return { width: `${size}px`, height: `${size}px` };
         },
     },
@@ -1271,7 +1274,7 @@ export default {
         foldersExpanded(newVal) {
             try {
                 if (typeof localStorage !== "undefined") {
-                    localStorage.setItem("meshchatx_folders_expanded", newVal);
+                    localStorage.setItem(STORAGE_KEYS.FOLDERS_EXPANDED, newVal);
                 }
             } catch {
                 // ignore
@@ -1279,7 +1282,7 @@ export default {
         },
     },
     mounted() {
-        GlobalEmitter.on("contact-updated", this.onContactUpdated);
+        GlobalEmitter.on(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdated);
         const tickMs = 60 * 1000;
         this._timeAgoInterval = setInterval(() => {
             this.timeAgoTick = Date.now();
@@ -1292,7 +1295,7 @@ export default {
         this._smUpMql.addEventListener("change", this._smUpResize);
     },
     unmounted() {
-        GlobalEmitter.off("contact-updated", this.onContactUpdated);
+        GlobalEmitter.off(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdated);
         if (this._smUpMql && this._smUpResize) {
             this._smUpMql.removeEventListener("change", this._smUpResize);
         }
@@ -1314,7 +1317,7 @@ export default {
         },
         async fetchContactForContextMenu(hash) {
             try {
-                const response = await window.api.get(`/api/v1/telephone/contacts/check/${hash}`);
+                const response = await window.api.get(apiPath(`/telephone/contacts/check/${hash}`));
                 if (response.data.is_contact) {
                     this.contextMenu.targetContact = response.data.contact;
                 } else {
@@ -1499,18 +1502,18 @@ export default {
             const conv = this.conversations.find((c) => c.destination_hash === hash);
             try {
                 if (!contact) {
-                    await window.api.post("/api/v1/telephone/contacts", {
+                    await window.api.post(apiPath("/telephone/contacts"), {
                         name: conv?.display_name || hash.substring(0, 8),
                         remote_identity_hash: conv?.identity_hash || undefined,
                         lxmf_address: hash,
                         is_telemetry_trusted: true,
                     });
                 } else {
-                    await window.api.patch(`/api/v1/telephone/contacts/${contact.id}`, {
+                    await window.api.patch(apiPath(`/telephone/contacts/${contact.id}`), {
                         is_telemetry_trusted: newStatus,
                     });
                 }
-                GlobalEmitter.emit("contact-updated", {
+                GlobalEmitter.emit(EMITTER_EVENTS.CONTACT_UPDATED, {
                     remote_identity_hash: conv?.identity_hash || hash,
                     is_telemetry_trusted: newStatus,
                 });
@@ -1572,8 +1575,8 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/blocked-destinations/${hash}`);
-                GlobalEmitter.emit("block-status-changed");
+                await window.api.delete(apiPath(`/blocked-destinations/${hash}`));
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("banishment.banishment_lifted"));
             } catch (e) {
                 DialogUtils.alert(this.$t("banishment.failed_lift_banishment"));

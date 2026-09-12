@@ -2,6 +2,8 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import PropagationNodesPage from "../../meshchatx/src/frontend/components/propagation-nodes/PropagationNodesPage.vue";
 import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/MessagesSidebar.vue";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
 import NomadNetworkSidebar from "../../meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue";
 
 const MAX_PROP_NODES_MS = 3000;
@@ -14,13 +16,6 @@ vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: { success: vi.fn(), error: vi.fn() },
-}));
-
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
-    default: {
-        config: { theme: "light", banished_effect_enabled: false },
-        blockedDestinations: [],
-    },
 }));
 
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
@@ -77,6 +72,8 @@ function makeNomadNode(i) {
 describe("Load time with prefilled data", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().config = { theme: "light", banished_effect_enabled: false };
     });
 
     describe("Propagation nodes section", () => {

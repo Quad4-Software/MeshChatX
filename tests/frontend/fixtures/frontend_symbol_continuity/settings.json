@@ -1,6 +1,9 @@
 {
     "id": "settings",
-    "scan_dirs": ["meshchatx/src/frontend/components/settings", "meshchatx/src/frontend/js/settings"],
+    "scan_dirs": [
+        "meshchatx/src/frontend/components/settings",
+        "meshchatx/src/frontend/js/settings"
+    ],
     "required_strings": [
         "LanguageSettingsSection",
         "DesktopSettingsSection",
@@ -19,7 +22,7 @@
         "SettingsSectionBlock",
         "SettingToggleRow",
         "settingsConfigService",
-        "/api/v1/config",
+        "apiPath(\"/config\")",
         "app.appearance",
         "settings.battery.enabled",
         "visualiser.title",

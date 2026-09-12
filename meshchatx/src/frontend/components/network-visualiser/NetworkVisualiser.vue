@@ -61,13 +61,15 @@
 </template>
 
 <script>
+import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useConfigStore } from "../../js/stores/configStore.js";
+
 import "vis-network/styles/vis-network.css";
 import { Network } from "vis-network";
 import { DataSet } from "vis-data";
 import { getMdiIconPath } from "../../js/mdiIconNames.js";
 import Utils from "../../js/Utils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import GlobalState from "../../js/GlobalState";
 import NetworkVisualiserLoadingOverlay from "./internal/NetworkVisualiserLoadingOverlay.vue";
 import NetworkVisualiserToolbar from "./internal/NetworkVisualiserToolbar.vue";
 import NetworkVisualiserLegend from "./internal/NetworkVisualiserLegend.vue";
@@ -104,6 +106,13 @@ import {
     VISUALISER_DISPLAY_PREFS_CHANGED,
 } from "../../js/settings/settingsVisualiserPrefs.js";
 import ToastUtils from "../../js/ToastUtils";
+import { EMITTER_EVENTS } from "../../js/constants.js";
+import * as announcesApi from "../../js/api/announces.js";
+import * as configApi from "../../js/api/config.js";
+import * as interfaceStatsApi from "../../js/api/interfaceStats.js";
+import * as lxmfApi from "../../js/api/lxmf.js";
+import * as pathTableApi from "../../js/api/pathTable.js";
+import * as reticulumApi from "../../js/api/reticulum.js";
 
 const HOP_MAX_FILTER_STORAGE_KEY = "meshchatx.visualiser.maxHops";
 
@@ -336,13 +345,13 @@ export default {
             GlobalEmitter.off(VISUALISER_DISPLAY_PREFS_CHANGED, this._visualiserPrefsHandler);
         }
         if (this._identitySwitchedHandler) {
-            GlobalEmitter.off("identity-switched", this._identitySwitchedHandler);
+            GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this._identitySwitchedHandler);
         }
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
         if (this._websocketReconnectedHandler) {
-            GlobalEmitter.off("websocket-reconnected", this._websocketReconnectedHandler);
+            GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this._websocketReconnectedHandler);
             this._websocketReconnectedHandler = null;
         }
         if (typeof this._liveTransportReadyWatch === "function") {
@@ -424,7 +433,7 @@ export default {
         this._identitySwitchedHandler = () => {
             this.onIdentitySwitched();
         };
-        GlobalEmitter.on("identity-switched", this._identitySwitchedHandler);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this._identitySwitchedHandler);
 
         this._batterySaverPrefsHandler = (prefs) => {
             this.batterySaverPrefs = prefs || loadBatterySaverPrefs();
@@ -439,10 +448,10 @@ export default {
         this._websocketReconnectedHandler = () => {
             void this.onAutoReload();
         };
-        GlobalEmitter.on("websocket-reconnected", this._websocketReconnectedHandler);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this._websocketReconnectedHandler);
 
         this._liveTransportReadyWatch = this.$watch(
-            () => GlobalState.liveTransportReady,
+            () => useNetworkStore().liveTransportReady,
             () => {
                 this.restartAutoReloadInterval();
             }
@@ -466,7 +475,7 @@ export default {
     },
     methods: {
         resolveVisualiserIsDark() {
-            const theme = GlobalState.config?.theme;
+            const theme = useConfigStore().config?.theme;
             if (theme === "light") {
                 return false;
             }
@@ -508,7 +517,7 @@ export default {
             if (ms == null) {
                 return;
             }
-            if (GlobalState.liveTransportReady === true) {
+            if (useNetworkStore().liveTransportReady === true) {
                 ms = Math.max(ms, 30000);
             }
             this.reloadInterval = setInterval(this.onAutoReload, ms);
@@ -640,7 +649,7 @@ export default {
         },
         async getInterfaceStats() {
             try {
-                const response = await window.api.get(`/api/v1/interface-stats`, {
+                const response = await interfaceStatsApi.listInterfaceStats({
                     signal: this.abortController.signal,
                 });
                 this.interfaces = response.data.interface_stats?.interfaces ?? [];
@@ -651,7 +660,7 @@ export default {
         },
         async getDiscoveredInterfaces() {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/discovered-interfaces`, {
+                const response = await reticulumApi.listDiscoveredInterfaces({
                     signal: this.abortController.signal,
                 });
                 this.discoveredInterfaces = response.data?.interfaces ?? [];
@@ -665,8 +674,7 @@ export default {
             try {
                 this.loadingStatus = "Loading paths...";
                 if (destinationHashes && destinationHashes.length > 0) {
-                    const resp = await window.api.post(
-                        `/api/v1/path-table`,
+                    const resp = await pathTableApi.postPathTable(
                         { destination_hashes: destinationHashes },
                         {
                             signal: this.abortController.signal,
@@ -674,7 +682,7 @@ export default {
                     );
                     this.pathTable.push(...resp.data.path_table);
                 } else {
-                    const firstResp = await window.api.get(`/api/v1/path-table`, {
+                    const firstResp = await pathTableApi.getPathTable({
                         params: { limit: this.pageSize, offset: 0 },
                         signal: this.abortController.signal,
                     });
@@ -694,7 +702,7 @@ export default {
                                 chunk.push(offset + i * this.pageSize);
                             }
                             const promises = chunk.map((o) =>
-                                window.api.get(`/api/v1/path-table`, {
+                                pathTableApi.getPathTable({
                                     params: { limit: this.pageSize, offset: o },
                                     signal: this.abortController.signal,
                                 })
@@ -728,8 +736,7 @@ export default {
                 }
                 const promises = offsets.map((start) => {
                     const chunk = hashes.slice(start, start + ANNOUNCE_HASH_CHUNK_SIZE);
-                    return window.api.post(
-                        "/api/v1/announces/query",
+                    return announcesApi.postQuery(
                         {
                             destination_hashes: chunk,
                             aspects: VIZ_ANNOUNCE_ASPECTS,
@@ -785,7 +792,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get("/api/v1/config", {
+                const response = await configApi.getConfig({
                     signal: this.abortController.signal,
                 });
                 this.config = response.data.config;
@@ -796,7 +803,7 @@ export default {
         },
         async getConversations() {
             try {
-                const response = await window.api.get(`/api/v1/lxmf/conversations`, {
+                const response = await lxmfApi.listConversations({
                     signal: this.abortController.signal,
                     params: { limit: 2000 },
                 });

@@ -1,16 +1,11 @@
 import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/MessagesSidebar.vue";
 import ConversationViewer from "../../meshchatx/src/frontend/components/messages/ConversationViewer.vue";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
 
 // Mock dependencies
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
-    default: {
-        config: { theme: "light", banished_effect_enabled: false },
-        blockedDestinations: [],
-    },
-}));
-
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: {
         formatTimeAgo: () => "1 hour ago",
@@ -73,6 +68,11 @@ const MaterialDesignIcon = {
 };
 
 describe("UI Performance and Memory Tests", () => {
+    beforeEach(() => {
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().config = { theme: "light", banished_effect_enabled: false };
+    });
+
     const getMemoryUsage = () => {
         if (global.process && process.memoryUsage) {
             return process.memoryUsage().heapUsed / (1024 * 1024);

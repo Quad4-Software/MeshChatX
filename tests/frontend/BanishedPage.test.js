@@ -1,7 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import BlockedPage from "@/components/blocked/BlockedPage.vue";
-import GlobalState from "@/js/GlobalState";
 
 describe("BlockedPage.vue (Banished UI)", () => {
     let axiosMock;

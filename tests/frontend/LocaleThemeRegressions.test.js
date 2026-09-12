@@ -7,10 +7,10 @@ import { resolve } from "node:path";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import DocsPage from "../../meshchatx/src/frontend/components/docs/DocsPage.vue";
 import NetworkVisualiser from "../../meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import { normalizeUiLocaleCode } from "../../meshchatx/src/frontend/js/localeLoader.js";
 import { createNetworkVisualiserWebGL } from "../../meshchatx/src/frontend/js/networkVisualiserWebGL.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const BOOT_THEME_JS = resolve(ROOT, "meshchatx/src/frontend/public/boot-theme.js");
@@ -244,19 +244,19 @@ describe("locale and theme regressions", () => {
 
     describe("network visualiser theme", () => {
         afterEach(() => {
-            GlobalState.config = {};
+            useConfigStore().config = {};
             document.documentElement.classList.remove("dark");
         });
 
-        it("resolveVisualiserIsDark follows GlobalState light theme over html.dark", () => {
+        it("resolveVisualiserIsDark follows config store light theme over html.dark", () => {
             document.documentElement.classList.add("dark");
-            GlobalState.config = { theme: "light" };
+            useConfigStore().config = { theme: "light" };
             expect(NetworkVisualiser.methods.resolveVisualiserIsDark()).toBe(false);
         });
 
-        it("resolveVisualiserIsDark follows GlobalState dark theme", () => {
+        it("resolveVisualiserIsDark follows config store dark theme", () => {
             document.documentElement.classList.remove("dark");
-            GlobalState.config = { theme: "dark" };
+            useConfigStore().config = { theme: "dark" };
             expect(NetworkVisualiser.methods.resolveVisualiserIsDark()).toBe(true);
         });
 

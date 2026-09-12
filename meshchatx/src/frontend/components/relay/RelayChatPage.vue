@@ -1434,9 +1434,13 @@
 </template>
 
 <script>
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useUnreadStore } from "../../js/stores/unreadStore.js";
 import { nextTick } from "vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import GlobalState from "../../js/GlobalState";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import * as announcesApi from "../../js/api/announces.js";
+import * as rrcApi from "../../js/api/rrc.js";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
@@ -1698,10 +1702,10 @@ export default {
             return this.overflowViewTab?.icon || "dots-horizontal";
         },
         rrcEnabled() {
-            return GlobalState.config?.rrc_enabled !== false;
+            return useConfigStore().config?.rrc_enabled !== false;
         },
         showUnreadBadges() {
-            return GlobalState.config?.rrc_unread_badges_enabled !== false;
+            return useConfigStore().config?.rrc_unread_badges_enabled !== false;
         },
         isPopoutMode() {
             return Boolean(this.$route?.meta?.isPopout);
@@ -1785,7 +1789,7 @@ export default {
             if (this.messageTimeline.length < MIN_VIRTUAL_RELAY_ENTRIES) {
                 return false;
             }
-            return GlobalState?.config?.message_list_virtualization !== false;
+            return useConfigStore().config?.message_list_virtualization !== false;
         },
         oldestLoadedSeq() {
             let minSeq = null;
@@ -1852,12 +1856,12 @@ export default {
         },
     },
     mounted() {
-        onWsEvent("rrc.change", this.onRrcChange);
-        onWsEvent("rrc.message", this.onRrcMessage);
-        onWsEvent("rrc.server.change", this.onRrcServerChange);
-        onWsEvent("announce", this.onAnnounceEvent);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        onWsEvent(WS_EVENTS.RRC_CHANGE, this.onRrcChange);
+        onWsEvent(WS_EVENTS.RRC_MESSAGE, this.onRrcMessage);
+        onWsEvent(WS_EVENTS.RRC_SERVER_CHANGE, this.onRrcServerChange);
+        onWsEvent(WS_EVENTS.ANNOUNCE, this.onAnnounceEvent);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this.smMq = window.matchMedia("(min-width: 640px)");
         this.smUp = this.smMq.matches;
         this.smMq.addEventListener("change", this.onSmMqChange);
@@ -1879,12 +1883,12 @@ export default {
         this.loadTranslationPacks();
     },
     beforeUnmount() {
-        offWsEvent("rrc.change", this.onRrcChange);
-        offWsEvent("rrc.message", this.onRrcMessage);
-        offWsEvent("rrc.server.change", this.onRrcServerChange);
-        offWsEvent("announce", this.onAnnounceEvent);
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        offWsEvent(WS_EVENTS.RRC_CHANGE, this.onRrcChange);
+        offWsEvent(WS_EVENTS.RRC_MESSAGE, this.onRrcMessage);
+        offWsEvent(WS_EVENTS.RRC_SERVER_CHANGE, this.onRrcServerChange);
+        offWsEvent(WS_EVENTS.ANNOUNCE, this.onAnnounceEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (this.discoverySearchTimer) {
             clearTimeout(this.discoverySearchTimer);
         }
@@ -1897,7 +1901,7 @@ export default {
         }
         // Leaving the page must stop treating the last room as "viewed" so new
         // mentions while away can bump unread again.
-        window.api.post("/api/v1/rrc/active/clear").catch(() => {});
+        window.api.post(apiPath("/rrc/active/clear")).catch(() => {});
     },
     methods: {
         _invalidateMessageTimelineCache() {
@@ -1932,7 +1936,7 @@ export default {
             this.expandedHubs = {};
             this.availableRoomsExpanded = {};
             this.availableRoomsRefreshing = {};
-            GlobalState.relayChatUnreadCount = 0;
+            useUnreadStore().relayChatUnreadCount = 0;
             this.fetchHubs();
             this.fetchServers();
             if (!this.isPopoutMode) {
@@ -1957,10 +1961,9 @@ export default {
             }
             const seq = this.roomSelectSequence;
             try {
-                const response = await window.api.get(
-                    `/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`,
-                    { params: { limit: RELAY_MESSAGES_INITIAL_PAGE_SIZE } }
-                );
+                const response = await rrcApi.getHubsRoomsMessages(hubHash, this.encodeRoom(room), {
+                    params: { limit: RELAY_MESSAGES_INITIAL_PAGE_SIZE },
+                });
                 if (seq !== this.roomSelectSequence || hubHash !== this.selectedHubHash || room !== this.selectedRoom) {
                     return;
                 }
@@ -2081,7 +2084,7 @@ export default {
                 [hub.hub_hash]: true,
             };
             try {
-                await window.api.post(`/api/v1/rrc/hubs/${hub.hub_hash}/rooms/list`);
+                await window.api.post(apiPath(`/rrc/hubs/${hub.hub_hash}/rooms/list`));
                 ToastUtils.info(this.$t("relay_chat.rooms_list_requested"));
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
@@ -2208,7 +2211,7 @@ export default {
                 return;
             }
             try {
-                await window.api.patch(`/api/v1/rrc/servers/${this.hostHubSettingsId}`, {
+                await window.api.patch(apiPath(`/rrc/servers/${this.hostHubSettingsId}`), {
                     name: this.hostHubSettingsForm.name.trim() || undefined,
                     announce: this.hostHubSettingsForm.announce,
                     announce_interval_seconds: this.hostHubSettingsForm.announce_interval_seconds,
@@ -2296,7 +2299,7 @@ export default {
             return 0;
         },
         updateUnreadBadge() {
-            GlobalState.relayChatUnreadCount = countRelayMentions(this.hubs);
+            useUnreadStore().relayChatUnreadCount = countRelayMentions(this.hubs);
         },
         onSmMqChange() {
             this.smUp = this.smMq.matches;
@@ -2321,7 +2324,7 @@ export default {
         async onHubDrop() {
             this.dragHubIndex = null;
             try {
-                await window.api.put("/api/v1/rrc/hubs/order", {
+                await window.api.put(apiPath("/rrc/hubs/order"), {
                     hub_hashes: this.hubs.map((h) => h.hub_hash),
                 });
             } catch (e) {
@@ -2359,7 +2362,7 @@ export default {
             }
             this.onRoomDragEnd();
             try {
-                await window.api.put(`/api/v1/rrc/hubs/${hub.hub_hash}/rooms/order`, {
+                await window.api.put(apiPath(`/rrc/hubs/${hub.hub_hash}/rooms/order`), {
                     room_names: this.orderedRoomsFor(hub),
                 });
                 await this.fetchHubs();
@@ -2483,7 +2486,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/rrc/hubs/${hub.hub_hash}/rooms/${this.encodeRoom(room)}`);
+                await window.api.delete(apiPath(`/rrc/hubs/${hub.hub_hash}/rooms/${this.encodeRoom(room)}`));
                 ToastUtils.success(this.$t("relay_chat.left_room"));
                 await this.fetchHubs();
             } catch (e) {
@@ -2552,7 +2555,7 @@ export default {
         },
         defaultRelayTranslatePair() {
             try {
-                const saved = localStorage.getItem("meshchatx.translateTargetLang");
+                const saved = localStorage.getItem(STORAGE_KEYS.TRANSLATE_TARGET_LANG);
                 if (saved && this.translationPacks.some((p) => p.pair === saved)) {
                     return saved;
                 }
@@ -2627,7 +2630,7 @@ export default {
             const room = this.selectedRoom;
             const text = template.replace("{room}", room).replace("{target}", target);
             try {
-                await window.api.post(`/api/v1/rrc/hubs/${this.selectedHubHash}/command`, {
+                await window.api.post(apiPath(`/rrc/hubs/${this.selectedHubHash}/command`), {
                     text,
                     room,
                 });
@@ -2841,14 +2844,14 @@ export default {
             }
             this.memberDmLoadingHash = hash;
             try {
-                const res = await window.api.get(`/api/v1/identity/${hash}/lxmf-address`);
+                const res = await window.api.get(apiPath(`/identity/${hash}/lxmf-address`));
                 const lxmf = res?.data?.lxmf_destination_hash;
                 if (!lxmf) {
                     throw new Error(this.$t("relay_chat.dm_no_lxmf"));
                 }
                 if (!res.data.has_path) {
                     try {
-                        await window.api.post(`/api/v1/destination/${lxmf}/path`);
+                        await window.api.post(apiPath(`/destination/${lxmf}/path`));
                     } catch {
                         // path request best-effort; the messages page retries on send
                     }
@@ -2938,7 +2941,7 @@ export default {
         },
         async fetchHubs() {
             try {
-                const response = await window.api.get("/api/v1/rrc/hubs");
+                const response = await window.api.get(apiPath("/rrc/hubs"));
                 this.hubs = response.data?.hubs || [];
                 if (!this.selectedHubHash && this.hubs.length > 0) {
                     this.selectedHubHash = this.hubs[0].hub_hash;
@@ -2972,10 +2975,9 @@ export default {
             this.members = [];
             const seq = ++this.roomSelectSequence;
             try {
-                const response = await window.api.get(
-                    `/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`,
-                    { params: { limit: RELAY_MESSAGES_INITIAL_PAGE_SIZE } }
-                );
+                const response = await rrcApi.getHubsRoomsMessages(hubHash, this.encodeRoom(room), {
+                    params: { limit: RELAY_MESSAGES_INITIAL_PAGE_SIZE },
+                });
                 if (seq !== this.roomSelectSequence) {
                     return;
                 }
@@ -3023,7 +3025,7 @@ export default {
             }
             this.clearLocalRoomUnread(hubHash, room);
             try {
-                await window.api.post(`/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/read`);
+                await window.api.post(apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/read`));
             } catch {
                 // GET messages already marks active/read on the server. Ignore duplicate failures.
             }
@@ -3050,10 +3052,9 @@ export default {
             this.loadPreviousInFlight += 1;
             this.isLoadingPrevious = true;
             try {
-                const response = await window.api.get(
-                    `/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`,
-                    { params: { limit: RELAY_MESSAGES_PREVIOUS_PAGE_SIZE, before_seq: beforeSeq } }
-                );
+                const response = await rrcApi.getHubsRoomsMessages(hubHash, this.encodeRoom(room), {
+                    params: { limit: RELAY_MESSAGES_PREVIOUS_PAGE_SIZE, before_seq: beforeSeq },
+                });
                 if (seq !== this.roomSelectSequence || hubHash !== this.selectedHubHash || room !== this.selectedRoom) {
                     return;
                 }
@@ -3105,7 +3106,7 @@ export default {
             }
             try {
                 const response = await window.api.get(
-                    `/api/v1/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`
+                    apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`)
                 );
                 this.members = response.data?.members || [];
             } catch {
@@ -3134,7 +3135,7 @@ export default {
             this.sending = true;
             try {
                 await window.api.post(
-                    `/api/v1/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`,
+                    apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`),
                     payload
                 );
                 this.composer = "";
@@ -3217,7 +3218,7 @@ export default {
                     return;
                 }
                 try {
-                    await window.api.delete(`/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(roomName)}/key`);
+                    await window.api.delete(apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(roomName)}/key`));
                 } catch {
                     // Stored key may already be gone after the hub ERROR path.
                 }
@@ -3238,7 +3239,7 @@ export default {
                 if (key) {
                     payload.key = key;
                 }
-                await window.api.post(`/api/v1/rrc/hubs/${hub.hub_hash}/rooms`, payload);
+                await window.api.post(apiPath(`/rrc/hubs/${hub.hub_hash}/rooms`), payload);
                 if (hub.connected || hub.status === 2) {
                     ToastUtils.info(this.$t("relay_chat.join_requested"));
                 } else {
@@ -3266,7 +3267,7 @@ export default {
             }
             const room = this.selectedRoom;
             try {
-                await window.api.delete(`/api/v1/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(room)}`);
+                await window.api.delete(apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(room)}`));
                 this.selectedRoom = null;
                 this.messages = [];
                 this._invalidateMessageTimelineCache();
@@ -3287,7 +3288,7 @@ export default {
             }
             try {
                 await window.api.delete(
-                    `/api/v1/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`
+                    apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`)
                 );
                 this.messages = [];
                 this._invalidateMessageTimelineCache();
@@ -3298,7 +3299,7 @@ export default {
         },
         async connectHub(hub) {
             try {
-                await window.api.post(`/api/v1/rrc/hubs/${hub.hub_hash}/connect`);
+                await window.api.post(apiPath(`/rrc/hubs/${hub.hub_hash}/connect`));
                 await this.fetchHubs();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
@@ -3306,7 +3307,7 @@ export default {
         },
         async disconnectHub(hub) {
             try {
-                await window.api.post(`/api/v1/rrc/hubs/${hub.hub_hash}/disconnect`);
+                await window.api.post(apiPath(`/rrc/hubs/${hub.hub_hash}/disconnect`));
                 await this.fetchHubs();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
@@ -3324,7 +3325,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.post("/api/v1/rrc/hubs", {
+                const response = await window.api.post(apiPath("/rrc/hubs"), {
                     hub_hash: hubHash,
                     name: this.addHubForm.name.trim() || undefined,
                     dest_name: this.addHubForm.dest_name.trim() || undefined,
@@ -3348,7 +3349,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/rrc/hubs/${hub.hub_hash}`);
+                await window.api.delete(apiPath(`/rrc/hubs/${hub.hub_hash}`));
                 if (this.selectedHubHash === hub.hub_hash) {
                     this.selectedHubHash = null;
                     this.selectedRoom = null;
@@ -3404,7 +3405,7 @@ export default {
                 } else if (icon) {
                     payload.hub_icon = icon;
                 }
-                await window.api.patch(`/api/v1/rrc/hubs/${this.settingsHubHash}`, payload);
+                await window.api.patch(apiPath(`/rrc/hubs/${this.settingsHubHash}`), payload);
                 this.showSettings = false;
                 ToastUtils.success(this.$t("relay_chat.settings_saved"));
                 await this.fetchHubs();
@@ -3426,7 +3427,7 @@ export default {
         },
         async fetchDiscovered() {
             try {
-                const response = await window.api.get("/api/v1/announces", {
+                const response = await announcesApi.listAnnounces({
                     params: {
                         aspect: "rrc.hub",
                         limit: 200,
@@ -3465,7 +3466,7 @@ export default {
         },
         async addFromDiscovery(node) {
             try {
-                const response = await window.api.post("/api/v1/rrc/hubs", {
+                const response = await window.api.post(apiPath("/rrc/hubs"), {
                     hub_hash: node.destination_hash,
                     name: this.nodeName(node),
                     dest_name: "rrc.hub",
@@ -3494,7 +3495,7 @@ export default {
         },
         async fetchServers() {
             try {
-                const response = await window.api.get("/api/v1/rrc/servers");
+                const response = await window.api.get(apiPath("/rrc/servers"));
                 const hubs = response.data?.hubs || [];
                 for (const hub of hubs) {
                     if (!this.roomForms[hub.id]) {
@@ -3520,7 +3521,7 @@ export default {
         },
         async createServerHub() {
             try {
-                await window.api.post("/api/v1/rrc/servers", {
+                await window.api.post(apiPath("/rrc/servers"), {
                     name: this.createHubForm.name.trim() || undefined,
                     greeting: this.createHubForm.greeting.trim() || undefined,
                     announce: this.createHubForm.announce,
@@ -3539,7 +3540,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/rrc/servers/${hub.id}`);
+                await window.api.delete(apiPath(`/rrc/servers/${hub.id}`));
                 ToastUtils.success(this.$t("relay_chat.host_hub_deleted"));
                 await this.fetchServers();
             } catch (e) {
@@ -3548,7 +3549,7 @@ export default {
         },
         async startServerHub(hub) {
             try {
-                await window.api.post(`/api/v1/rrc/servers/${hub.id}/start`);
+                await window.api.post(apiPath(`/rrc/servers/${hub.id}/start`));
                 await this.fetchServers();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
@@ -3556,7 +3557,7 @@ export default {
         },
         async stopServerHub(hub) {
             try {
-                await window.api.post(`/api/v1/rrc/servers/${hub.id}/stop`);
+                await window.api.post(apiPath(`/rrc/servers/${hub.id}/stop`));
                 await this.fetchServers();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
@@ -3564,7 +3565,7 @@ export default {
         },
         async announceServerHub(hub) {
             try {
-                await window.api.post(`/api/v1/rrc/servers/${hub.id}/announce`);
+                await window.api.post(apiPath(`/rrc/servers/${hub.id}/announce`));
                 ToastUtils.success(this.$t("relay_chat.host_announced"));
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
@@ -3578,7 +3579,7 @@ export default {
                 return;
             }
             try {
-                await window.api.post(`/api/v1/rrc/servers/${hub.id}/rooms`, {
+                await window.api.post(apiPath(`/rrc/servers/${hub.id}/rooms`), {
                     name,
                     topic: (form.topic || "").trim() || undefined,
                     private: !!form.private,
@@ -3596,7 +3597,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/rrc/servers/${hub.id}/rooms/${this.encodeRoom(room)}`);
+                await window.api.delete(apiPath(`/rrc/servers/${hub.id}/rooms/${this.encodeRoom(room)}`));
                 ToastUtils.success(this.$t("relay_chat.host_room_deleted"));
                 await this.fetchServers();
             } catch (e) {
@@ -3658,7 +3659,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.post("/api/v1/rrc/hubs", {
+                const response = await window.api.post(apiPath("/rrc/hubs"), {
                     hub_hash: hub.dest_hash,
                     name: hub.name || undefined,
                     dest_name: "rrc.hub",

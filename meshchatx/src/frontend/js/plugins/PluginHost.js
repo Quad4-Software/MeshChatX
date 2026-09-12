@@ -8,9 +8,10 @@ import { isKnownHostWidget } from "./pluginHostWidgets.js";
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry.js";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
+import { apiPath, WS_EVENTS } from "../constants.js";
 import ToastUtils from "../ToastUtils.js";
 import { getThemeSnapshot } from "../../theme/themeEngine.js";
-import GlobalState from "../GlobalState.js";
+import { useConfigStore } from "../stores/configStore.js";
 
 /** @typedef {import('./pluginManifest.js').PluginManifest} PluginManifest */
 
@@ -55,7 +56,7 @@ export class PluginHost {
             return;
         }
         this._themeListener = (event) => {
-            const snapshot = event.detail || getThemeSnapshot(GlobalState.config);
+            const snapshot = event.detail || getThemeSnapshot(useConfigStore().config);
             for (const instance of this.instances.values()) {
                 instance.worker.postMessage({ type: "theme", theme: snapshot });
             }
@@ -69,7 +70,7 @@ export class PluginHost {
      */
     async loadEnabledPlugins(apiClient, locale = "en") {
         this.ensureThemeBridge();
-        const response = await apiClient.get("/api/v1/plugins");
+        const response = await apiClient.get(apiPath("/plugins"));
         const plugins = response.data?.plugins || [];
         for (const plugin of plugins) {
             if (!plugin.enabled) {
@@ -98,7 +99,9 @@ export class PluginHost {
         }
         const labels = await loadPluginLabelMap(apiClient, pluginId, locale, manifest);
         setPluginUiLabels(pluginId, labels);
-        const assetUrl = `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}?v=${encodeURIComponent(manifest.version || "1")}`;
+        const assetUrl = apiPath(
+            `/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}?v=${encodeURIComponent(manifest.version || "1")}`
+        );
         const sourceResponse = await apiClient.get(assetUrl, { responseType: "text" });
         const source =
             typeof sourceResponse.data === "string" ? sourceResponse.data : String(sourceResponse.data ?? "");
@@ -126,7 +129,7 @@ export class PluginHost {
             this.unloadPlugin(pluginId);
         };
 
-        const theme = getThemeSnapshot(GlobalState.config);
+        const theme = getThemeSnapshot(useConfigStore().config);
         worker.postMessage({
             type: "init",
             pluginId,
@@ -156,8 +159,8 @@ export class PluginHost {
                     payload: payload?.payload,
                 });
             };
-            onWsEvent("plugin.event", eventHandler);
-            cleanup.push(() => offWsEvent("plugin.event", eventHandler));
+            onWsEvent(WS_EVENTS.PLUGIN_EVENT, eventHandler);
+            cleanup.push(() => offWsEvent(WS_EVENTS.PLUGIN_EVENT, eventHandler));
         }
 
         const requestHandler = async (message) => {
@@ -167,13 +170,13 @@ export class PluginHost {
             try {
                 let result;
                 if (message.kind === "invoke") {
-                    const response = await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/invoke`, {
+                    const response = await apiClient.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/invoke`), {
                         method: message.payload.method,
                         args: message.payload.args,
                     });
                     result = response.data?.result;
                 } else if (message.kind === "manager") {
-                    const response = await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/invoke`, {
+                    const response = await apiClient.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/invoke`), {
                         method: "callManager",
                         args: message.payload,
                     });
@@ -187,7 +190,7 @@ export class PluginHost {
                         throw new Error("Clipboard unavailable");
                     }
                 } else if (message.kind === "theme") {
-                    result = getThemeSnapshot(GlobalState.config);
+                    result = getThemeSnapshot(useConfigStore().config);
                 }
                 worker.postMessage({ requestId: message.requestId, result });
             } catch (error) {
@@ -269,7 +272,7 @@ export class PluginHost {
         }
         lastFailureReportAt.set(pluginId, now);
         try {
-            await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/report-failure`, {
+            await apiClient.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/report-failure`), {
                 reason,
                 source,
             });

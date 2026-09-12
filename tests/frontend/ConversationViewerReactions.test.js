@@ -2,16 +2,16 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
-import GlobalState from "@/js/GlobalState";
 import ToastUtils from "@/js/ToastUtils";
+import { useConfigStore } from "@/js/stores/configStore.js";
 
 describe("ConversationViewer reactions", () => {
     let axiosMock;
 
     beforeEach(() => {
-        GlobalState.config.theme = "light";
-        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
-        GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
+        useConfigStore().config.theme = "light";
+        useConfigStore().config.message_outbound_bubble_color = "#4f46e5";
+        useConfigStore().config.message_waiting_bubble_color = "#e5e7eb";
         WebSocketConnection.connect();
         axiosMock = {
             get: vi.fn().mockResolvedValue({ data: {} }),

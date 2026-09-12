@@ -320,16 +320,16 @@
                                     </div>
                                     <div
                                         v-if="
-                                            GlobalState.config.banished_effect_enabled &&
+                                            configStore.config.banished_effect_enabled &&
                                             isBlocked(favourite.destination_hash)
                                         "
                                         class="banished-overlay"
-                                        :style="{ background: GlobalState.config.banished_color + '33' }"
+                                        :style="{ background: configStore.config.banished_color + '33' }"
                                     >
                                         <span
                                             class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                            :style="{ 'background-color': GlobalState.config.banished_color }"
-                                            >{{ GlobalState.config.banished_text }}</span
+                                            :style="{ 'background-color': configStore.config.banished_color }"
+                                            >{{ configStore.config.banished_text }}</span
                                         >
                                     </div>
 
@@ -563,14 +563,14 @@
                             >
                                 <!-- banished overlay -->
                                 <div
-                                    v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
+                                    v-if="configStore.config.banished_effect_enabled && isBlocked(node.identity_hash)"
                                     class="banished-overlay"
-                                    :style="{ background: GlobalState.config.banished_color + '33' }"
+                                    :style="{ background: configStore.config.banished_color + '33' }"
                                 >
                                     <span
                                         class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                        :style="{ 'background-color': GlobalState.config.banished_color }"
-                                        >{{ GlobalState.config.banished_text }}</span
+                                        :style="{ 'background-color': configStore.config.banished_color }"
+                                        >{{ configStore.config.banished_text }}</span
                                     >
                                 </div>
 
@@ -664,14 +664,14 @@
                             @contextmenu.prevent="openAnnounceContextMenu($event, node)"
                         >
                             <div
-                                v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
+                                v-if="configStore.config.banished_effect_enabled && isBlocked(node.identity_hash)"
                                 class="banished-overlay"
-                                :style="{ background: GlobalState.config.banished_color + '33' }"
+                                :style="{ background: configStore.config.banished_color + '33' }"
                             >
                                 <span
                                     class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                    :style="{ 'background-color': GlobalState.config.banished_color }"
-                                    >{{ GlobalState.config.banished_text }}</span
+                                    :style="{ 'background-color': configStore.config.banished_color }"
+                                    >{{ configStore.config.banished_text }}</span
                                 >
                             </div>
                             <div
@@ -809,6 +809,9 @@
 </template>
 
 <script>
+import { mapStores } from "pinia";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useIdentityStore } from "../../js/stores/identityStore.js";
 import Utils from "../../js/Utils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -819,7 +822,6 @@ import DropDownMenu from "../DropDownMenu.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import DialogUtils from "../../js/DialogUtils";
-import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
@@ -832,6 +834,7 @@ import {
 } from "../../js/nomadFavouritesLayoutStore.js";
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
 
 export default {
     name: "NomadNetworkSidebar",
@@ -901,7 +904,6 @@ export default {
     },
     data() {
         return {
-            GlobalState,
             tab: "favourites",
             favouritesSearchTerm: "",
             favouritesSelectionMode: false,
@@ -947,6 +949,7 @@ export default {
         };
     },
     computed: {
+        ...mapStores(useConfigStore),
         effectiveCollapsed() {
             return this.collapsed && this.smUp;
         },
@@ -961,7 +964,7 @@ export default {
             return "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0 bg-sem-surface border-r border-sem-border";
         },
         blockedDestinations() {
-            return GlobalState.blockedDestinations;
+            return useIdentityStore().blockedDestinations;
         },
         nodesCount() {
             return Object.keys(this.nodes).length;
@@ -1086,13 +1089,13 @@ export default {
         this._onNomadnetFavouritesLayoutImported = () => {
             this.reloadFavouriteLayoutFromStore();
         };
-        GlobalEmitter.on("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
+        GlobalEmitter.on(EMITTER_EVENTS.NOMADNET_FAVOURITES_LAYOUT_IMPORTED, this._onNomadnetFavouritesLayoutImported);
         this._onIdentitySwitched = () => {
             clearLocalNomadFavouritesLayout();
             this.resetDefaultSections();
             this.reloadFavouriteLayoutFromStore();
         };
-        GlobalEmitter.on("identity-switched", this._onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this._onIdentitySwitched);
     },
     unmounted() {
         if (this._layoutPersistTimer) {
@@ -1104,10 +1107,13 @@ export default {
             this._smUpMql.removeEventListener("change", this._smUpResize);
         }
         if (this._onNomadnetFavouritesLayoutImported) {
-            GlobalEmitter.off("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
+            GlobalEmitter.off(
+                EMITTER_EVENTS.NOMADNET_FAVOURITES_LAYOUT_IMPORTED,
+                this._onNomadnetFavouritesLayoutImported
+            );
         }
         if (this._onIdentitySwitched) {
-            GlobalEmitter.off("identity-switched", this._onIdentitySwitched);
+            GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this._onIdentitySwitched);
         }
     },
     methods: {
@@ -1258,11 +1264,11 @@ export default {
             }
             try {
                 for (const node of nodes) {
-                    await window.api.post("/api/v1/blocked-destinations", {
+                    await window.api.post(apiPath("/blocked-destinations"), {
                         destination_hash: node.identity_hash,
                     });
                 }
-                GlobalEmitter.emit("block-status-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 ToastUtils.success(this.$t("nomadnet.bulk_block_done", { count: nodes.length }));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
@@ -1471,10 +1477,10 @@ export default {
             }
 
             try {
-                await window.api.post("/api/v1/blocked-destinations", {
+                await window.api.post(apiPath("/blocked-destinations"), {
                     destination_hash: node.identity_hash,
                 });
-                GlobalEmitter.emit("block-status-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("nomadnet.node_blocked_successfully"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
@@ -1483,8 +1489,8 @@ export default {
         },
         async onUnblockNode(identityHash) {
             try {
-                await window.api.delete(`/api/v1/blocked-destinations/${identityHash}`);
-                GlobalEmitter.emit("block-status-changed");
+                await window.api.delete(apiPath(`/blocked-destinations/${identityHash}`));
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("nomadnet.banishment_lifted"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_lift_banishment"));
@@ -1774,10 +1780,10 @@ export default {
                 return;
             }
             try {
-                await window.api.post("/api/v1/blocked-destinations", {
+                await window.api.post(apiPath("/blocked-destinations"), {
                     destination_hash: favourite.destination_hash,
                 });
-                GlobalEmitter.emit("block-status-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("nomadnet.node_blocked_successfully"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
@@ -1792,8 +1798,8 @@ export default {
             }
             this.closeContextMenus();
             try {
-                await window.api.delete(`/api/v1/blocked-destinations/${hash}`);
-                GlobalEmitter.emit("block-status-changed");
+                await window.api.delete(apiPath(`/blocked-destinations/${hash}`));
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("nomadnet.banishment_lifted"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_lift_banishment"));

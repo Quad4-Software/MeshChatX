@@ -328,6 +328,7 @@
         "marked": "^18.0.11",
         "ol": "^10.10.0",
         "ol-mapbox-style": "^13.4.3",
+        "pinia": "^4.0.3",
         "qrcode": "^1.5.4",
         "vis-data": "^8.0.5",
         "vis-network": "^10.1.2",

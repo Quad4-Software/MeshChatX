@@ -2,9 +2,10 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import NomadNetworkSidebar from "@/components/nomadnetwork/NomadNetworkSidebar.vue";
 import DialogUtils from "@/js/DialogUtils";
-import GlobalState from "@/js/GlobalState";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import { _resetNomadFavouritesLayoutSaveStateForTests } from "@/js/nomadFavouritesLayoutStore.js";
+import { useConfigStore } from "@/js/stores/configStore.js";
+import { useIdentityStore } from "@/js/stores/identityStore.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -38,8 +39,8 @@ describe("NomadNetworkSidebar.vue", () => {
         };
         window.api = axiosMock;
 
-        GlobalState.blockedDestinations = [];
-        GlobalState.config = { banished_effect_enabled: false };
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().config = { banished_effect_enabled: false };
 
         vi.stubGlobal("localStorage", {
             getItem: vi.fn(),

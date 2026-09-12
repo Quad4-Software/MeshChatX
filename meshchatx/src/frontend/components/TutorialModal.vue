@@ -2284,13 +2284,16 @@
 </template>
 
 <script>
+import { useConfigStore } from "../js/stores/configStore.js";
+import { useInterfaceChangesStore } from "../js/stores/interfaceChangesStore.js";
 import logoUrl from "../assets/images/logo.png";
 import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
 import Utils from "../js/Utils";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
-import GlobalState from "../js/GlobalState";
 import GlobalEmitter from "../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
+import * as identityApi from "../js/api/identity.js";
 import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import AppModal from "./AppModal.vue";
 import LanguageSelector from "./LanguageSelector.vue";
@@ -2363,7 +2366,7 @@ export default {
             return this.windowWidth < 768;
         },
         config() {
-            return GlobalState.config;
+            return useConfigStore().config;
         },
         sortedDiscoveredInterfaces() {
             return [...this.discoveredInterfaces].sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
@@ -2528,8 +2531,8 @@ export default {
         async loadIdentitySetupDefaults() {
             try {
                 const [identitiesRes, configRes] = await Promise.all([
-                    window.api.get("/api/v1/identities"),
-                    window.api.get("/api/v1/config"),
+                    window.api.get(apiPath("/identities")),
+                    window.api.get(apiPath("/config")),
                 ]);
                 const identities = identitiesRes.data?.identities ?? [];
                 const currentIdentity = identities.find((item) => item.is_current);
@@ -2564,7 +2567,7 @@ export default {
             if (displayName) {
                 formData.append("display_name", displayName);
             }
-            const response = await window.api.post("/api/v1/identity/restore", formData, {
+            const response = await identityApi.restoreIdentity(formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             return response.data?.identity?.hash || null;
@@ -2574,7 +2577,7 @@ export default {
             if (displayName) {
                 payload.display_name = displayName;
             }
-            const response = await window.api.post("/api/v1/identity/restore", payload);
+            const response = await window.api.post(apiPath("/identity/restore"), payload);
             return response.data?.identity?.hash || null;
         },
         async handleIdentityContinue() {
@@ -2585,10 +2588,10 @@ export default {
             this.identityImportError = "";
             if (this.identityMode === "new") {
                 try {
-                    await window.api.patch("/api/v1/config", {
+                    await window.api.patch(apiPath("/config"), {
                         display_name: trimmedName,
                     });
-                    GlobalState.config.display_name = trimmedName;
+                    useConfigStore().config.display_name = trimmedName;
                     this.identityImportedHash = null;
                     this.currentStep = 3;
                 } catch (e) {
@@ -2625,10 +2628,10 @@ export default {
         async toggleTheme() {
             const newTheme = this.config.theme === "dark" ? "light" : "dark";
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     theme: newTheme,
                 });
-                GlobalState.config.theme = newTheme;
+                useConfigStore().config.theme = newTheme;
             } catch (e) {
                 console.error("Failed to update theme:", e);
             }
@@ -2637,10 +2640,10 @@ export default {
             const code = normalizeUiLocaleCode(langCode);
             try {
                 await setLocale(this.$i18n, code);
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     language: code,
                 });
-                GlobalState.config.language = code;
+                useConfigStore().config.language = code;
             } catch (e) {
                 console.error("Failed to update language:", e);
             }
@@ -2674,7 +2677,7 @@ export default {
         async loadCommunityInterfaces() {
             this.loadingInterfaces = true;
             try {
-                const response = await window.api.get("/api/v1/community-interfaces");
+                const response = await window.api.get(apiPath("/community-interfaces"));
                 this.communityInterfaces = response.data.interfaces;
             } catch (e) {
                 console.error("Failed to load community interfaces:", e);
@@ -2685,7 +2688,7 @@ export default {
         async loadDiscoveredInterfaces() {
             this.loadingDiscovered = true;
             try {
-                const response = await window.api.get(`/api/v1/reticulum/discovered-interfaces`);
+                const response = await window.api.get(apiPath("/reticulum/discovered-interfaces"));
                 this.discoveredInterfaces = response.data?.interfaces ?? [];
                 this.discoveredActive = response.data?.active ?? [];
             } catch (e) {
@@ -2697,7 +2700,7 @@ export default {
         async refreshMigrationOffer() {
             this.migrationOffer = null;
             try {
-                const response = await window.api.get("/api/v1/app/info");
+                const response = await window.api.get(apiPath("/app/info"));
                 const m = response.data?.app_info?.migration;
                 if (m && m.show_choice) {
                     this.migrationOffer = m;
@@ -2749,7 +2752,7 @@ export default {
             if (this.migrationBusy || !this.migrationOffer) return;
             this.migrationBusy = true;
             try {
-                await window.api.post("/api/v1/setup/storage-migration", { action: "migrate" });
+                await window.api.post(apiPath("/setup/storage-migration"), { action: "migrate" });
                 ToastUtils.success(this.$t("tutorial.migration_done_restart"));
                 if (window.electron && typeof window.electron.relaunch === "function") {
                     await window.electron.relaunch();
@@ -2765,7 +2768,7 @@ export default {
             if (this.migrationBusy || !this.migrationOffer) return;
             this.migrationBusy = true;
             try {
-                await window.api.post("/api/v1/setup/storage-migration", { action: "fresh" });
+                await window.api.post(apiPath("/setup/storage-migration"), { action: "fresh" });
                 ToastUtils.success(this.$t("tutorial.migration_done_restart"));
                 if (window.electron && typeof window.electron.relaunch === "function") {
                     await window.electron.relaunch();
@@ -2780,10 +2783,13 @@ export default {
         async reloadReticulum() {
             this.reloadingReticulum = true;
             try {
-                await window.api.post("/api/v1/reticulum/reload");
-                GlobalState.hasPendingInterfaceChanges = false;
-                if (GlobalState.modifiedInterfaceNames && GlobalState.modifiedInterfaceNames.clear) {
-                    GlobalState.modifiedInterfaceNames.clear();
+                await window.api.post(apiPath("/reticulum/reload"));
+                useInterfaceChangesStore().hasPendingInterfaceChanges = false;
+                if (
+                    useInterfaceChangesStore().modifiedInterfaceNames &&
+                    useInterfaceChangesStore().modifiedInterfaceNames.clear
+                ) {
+                    useInterfaceChangesStore().modifiedInterfaceNames.clear();
                 }
                 return true;
             } catch (e) {
@@ -2800,20 +2806,20 @@ export default {
             }
             this.addingRecommended = true;
             try {
-                await window.api.post("/api/v1/reticulum/interfaces/add", {
+                await window.api.post(apiPath("/reticulum/interfaces/add"), {
                     name: "Local Network",
                     type: "AutoInterface",
                     enabled: true,
                 });
-                GlobalState.hasPendingInterfaceChanges = true;
-                GlobalState.modifiedInterfaceNames.add("Local Network");
+                useInterfaceChangesStore().hasPendingInterfaceChanges = true;
+                useInterfaceChangesStore().modifiedInterfaceNames.add("Local Network");
 
                 const payload = {
                     discover_interfaces: true,
                     autoconnect_discovered_interfaces: 3,
                     default_bootstrap_only: true,
                 };
-                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(apiPath("/reticulum/discovery"), payload);
                 this.defaultBootstrapOnly = true;
 
                 ToastUtils.success(this.$t("tutorial.mode_recommended_added"));
@@ -2850,7 +2856,7 @@ export default {
                     autoconnect_discovered_interfaces: 3,
                     default_bootstrap_only: true,
                 };
-                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(apiPath("/reticulum/discovery"), payload);
                 this.defaultBootstrapOnly = true;
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.connectionMode = "discovery";
@@ -2875,14 +2881,14 @@ export default {
             }
             this.addingLocal = true;
             try {
-                await window.api.post("/api/v1/reticulum/interfaces/add", {
+                await window.api.post(apiPath("/reticulum/interfaces/add"), {
                     name: "Local Network",
                     type: "AutoInterface",
                     enabled: true,
                 });
                 this.interfaceAddedViaTutorial = true;
-                GlobalState.hasPendingInterfaceChanges = true;
-                GlobalState.modifiedInterfaceNames.add("Local Network");
+                useInterfaceChangesStore().hasPendingInterfaceChanges = true;
+                useInterfaceChangesStore().modifiedInterfaceNames.add("Local Network");
                 ToastUtils.success(this.$t("tutorial.local_added"));
                 const reloaded = await this.reloadReticulum();
                 if (!reloaded) {
@@ -3125,7 +3131,7 @@ export default {
         },
         async loadDiscoveryBootstrapDefaults() {
             try {
-                const response = await window.api.get("/api/v1/reticulum/discovery");
+                const response = await window.api.get(apiPath("/reticulum/discovery"));
                 const d = response.data?.discovery ?? {};
                 this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only, true);
             } catch (e) {
@@ -3135,7 +3141,7 @@ export default {
         },
         async persistDefaultBootstrapOnly(value) {
             try {
-                await window.api.patch("/api/v1/reticulum/discovery", {
+                await window.api.patch(apiPath("/reticulum/discovery"), {
                     default_bootstrap_only: value === true,
                 });
                 this.defaultBootstrapOnly = value === true;
@@ -3170,10 +3176,10 @@ export default {
                 try {
                     const payload = this.buildBootstrapPayload(item);
                     if (!payload.target_host) continue;
-                    await window.api.post("/api/v1/reticulum/interfaces/add", payload);
+                    await window.api.post(apiPath("/reticulum/interfaces/add"), payload);
                     this.addedBootstrapKeys.push(item.key);
-                    GlobalState.hasPendingInterfaceChanges = true;
-                    GlobalState.modifiedInterfaceNames.add(payload.name);
+                    useInterfaceChangesStore().hasPendingInterfaceChanges = true;
+                    useInterfaceChangesStore().modifiedInterfaceNames.add(payload.name);
                     added += 1;
                 } catch (e) {
                     console.error("Failed to add bootstrap interface:", e);
@@ -3202,11 +3208,11 @@ export default {
         async enableAutoPropagation() {
             this.savingPropagation = true;
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     lxmf_preferred_propagation_node_auto_select: true,
                 });
-                if (GlobalState.config) {
-                    GlobalState.config.lxmf_preferred_propagation_node_auto_select = true;
+                if (useConfigStore().config) {
+                    useConfigStore().config.lxmf_preferred_propagation_node_auto_select = true;
                 }
                 ToastUtils.success(this.$t("tutorial.auto_propagation_enabled"));
                 this.nextStep();
@@ -3380,7 +3386,7 @@ export default {
             if (this.markingSeen) return;
             this.markingSeen = true;
             try {
-                await window.api.post("/api/v1/app/tutorial/seen");
+                await window.api.post(apiPath("/app/tutorial/seen"));
             } catch (e) {
                 console.error("Failed to mark tutorial as seen:", e);
             } finally {
@@ -3395,27 +3401,27 @@ export default {
                 return true;
             }
             try {
-                GlobalEmitter.emit("identity-switching-start");
-                const response = await window.api.post("/api/v1/identities/switch", {
+                GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_START);
+                const response = await window.api.post(apiPath("/identities/switch"), {
                     identity_hash: this.identityImportedHash,
                 });
                 if (this.originalIdentityHash) {
                     try {
-                        await window.api.delete(`/api/v1/identities/${this.originalIdentityHash}`);
+                        await window.api.delete(apiPath(`/identities/${this.originalIdentityHash}`));
                     } catch (deleteError) {
                         console.error("Failed to delete default identity after import:", deleteError);
                         ToastUtils.warning(this.$t("tutorial.identity_default_delete_failed"));
                     }
                 }
                 if (response?.data?.hotswapped) {
-                    GlobalEmitter.emit("identity-switched-apply", {
+                    GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHED_APPLY, {
                         identity_hash: response.data.identity_hash ?? this.identityImportedHash,
                         display_name: response.data.display_name ?? "",
                         requires_reauth: Boolean(response.data.requires_reauth),
                     });
                 } else if (response?.data?.hotswapped === false) {
                     ToastUtils.info(this.$t("identities.switch_scheduled"));
-                    GlobalEmitter.emit("identity-switching-abort");
+                    GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT);
                     setTimeout(() => {
                         window.location.reload();
                     }, 1500);
@@ -3424,7 +3430,7 @@ export default {
                 return true;
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("tutorial.identity_switch_failed"));
-                GlobalEmitter.emit("identity-switching-abort");
+                GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT);
                 return false;
             }
         },
@@ -3434,7 +3440,7 @@ export default {
             }
             this.finishingTutorial = true;
             try {
-                if (GlobalState.hasPendingInterfaceChanges) {
+                if (useInterfaceChangesStore().hasPendingInterfaceChanges) {
                     const reloaded = await this.reloadReticulum();
                     if (!reloaded) {
                         return;
@@ -3448,7 +3454,7 @@ export default {
                 }
                 await this.markSeen();
                 this.visible = false;
-                GlobalEmitter.emit("tutorial-finished");
+                GlobalEmitter.emit(EMITTER_EVENTS.TUTORIAL_FINISHED);
                 if (this.interfaceAddedViaTutorial) {
                     ToastUtils.success(this.$t("tutorial.ready_finished"));
                 }

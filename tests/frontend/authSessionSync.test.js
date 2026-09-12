@@ -2,22 +2,22 @@
 
 import { readFileSync } from "fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
 import {
     AUTH_STATUS_TIMEOUT_MS,
-    applyAuthStatusToGlobalState,
+    applyAuthStatusToStores,
     authNavigationTargetForStatus,
     fetchAuthStatus,
     resolveAuthNavigation,
 } from "../../meshchatx/src/frontend/js/authSessionSync.js";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
 
 describe("authSessionSync", () => {
     beforeEach(() => {
-        GlobalState.authSessionResolved = false;
-        GlobalState.authEnabled = false;
-        GlobalState.authenticated = false;
-        GlobalState.demoMode = false;
-        GlobalState.isLoopbackBind = true;
+        useAuthStore().authSessionResolved = false;
+        useAuthStore().authEnabled = false;
+        useAuthStore().authenticated = false;
+        useAuthStore().demoMode = false;
+        useAuthStore().isLoopbackBind = true;
     });
 
     afterEach(() => {
@@ -25,18 +25,18 @@ describe("authSessionSync", () => {
         vi.restoreAllMocks();
     });
 
-    it("applies auth status into GlobalState", () => {
-        applyAuthStatusToGlobalState({
+    it("applies auth status into the auth store", () => {
+        applyAuthStatusToStores({
             auth_enabled: true,
             authenticated: true,
             demo_mode: true,
             is_loopback_bind: false,
         });
-        expect(GlobalState.authEnabled).toBe(true);
-        expect(GlobalState.authenticated).toBe(true);
-        expect(GlobalState.demoMode).toBe(true);
-        expect(GlobalState.isLoopbackBind).toBe(false);
-        expect(GlobalState.authSessionResolved).toBe(true);
+        expect(useAuthStore().authEnabled).toBe(true);
+        expect(useAuthStore().authenticated).toBe(true);
+        expect(useAuthStore().demoMode).toBe(true);
+        expect(useAuthStore().isLoopbackBind).toBe(false);
+        expect(useAuthStore().authSessionResolved).toBe(true);
     });
 
     it("routes authenticated users away from auth", () => {
@@ -95,13 +95,13 @@ describe("authSessionSync", () => {
         await vi.advanceTimersByTimeAsync(AUTH_STATUS_TIMEOUT_MS + 1);
         const decision = await pending;
         expect(decision).toEqual({ allow: true });
-        expect(GlobalState.authSessionResolved).toBe(true);
+        expect(useAuthStore().authSessionResolved).toBe(true);
     });
 });
 
 describe("auth boot defaults", () => {
     it("keeps authSessionResolved false until status is applied", () => {
-        const src = readFileSync("meshchatx/src/frontend/js/GlobalState.js", "utf8");
+        const src = readFileSync("meshchatx/src/frontend/js/stores/authStore.js", "utf8");
         expect(src).toMatch(/authSessionResolved:\s*false/);
     });
 });
