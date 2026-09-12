@@ -24,16 +24,45 @@
                     role="tab"
                     :aria-selected="view === tab.id"
                     class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-sm transition-colors shrink-0"
-                    :class="
+                    :class="[
                         view === tab.id
                             ? 'bg-sem-canvas text-sem-fg font-medium'
-                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30'
-                    "
+                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30',
+                        OVERFLOW_TAB_IDS.has(tab.id) ? 'hidden md:inline-flex' : '',
+                    ]"
                     @click="selectView(tab.id)"
                 >
                     <MaterialDesignIcon :icon-name="tab.icon" class="size-4 shrink-0 opacity-70" />
                     <span>{{ $t(tab.label) }}</span>
                 </button>
+
+                <!-- mobile overflow: host and bots move here so the bar never scrolls -->
+                <DropDownMenu v-if="overflowTabs.length > 0" class="md:hidden shrink-0">
+                    <template #button>
+                        <button
+                            type="button"
+                            role="tab"
+                            :aria-selected="isOverflowView"
+                            :aria-label="$t('messages.more_actions')"
+                            :title="$t('messages.more_actions')"
+                            class="inline-flex h-9 items-center gap-1.5 px-3 border-r border-sem-border text-sm transition-colors"
+                            :class="
+                                isOverflowView
+                                    ? 'bg-sem-canvas text-sem-fg font-medium'
+                                    : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30'
+                            "
+                        >
+                            <MaterialDesignIcon :icon-name="overflowViewIcon" class="size-4 shrink-0 opacity-70" />
+                            <span v-if="overflowViewTab">{{ $t(overflowViewTab.label) }}</span>
+                        </button>
+                    </template>
+                    <template #items>
+                        <DropDownMenuItem v-for="tab in overflowTabs" :key="tab.id" @click="selectView(tab.id)">
+                            <MaterialDesignIcon :icon-name="tab.icon" class="size-5" />
+                            <span>{{ $t(tab.label) }}</span>
+                        </DropDownMenuItem>
+                    </template>
+                </DropDownMenu>
             </div>
 
             <!-- connect view -->
@@ -1452,6 +1481,8 @@ import RelayMessageListVirtual from "./RelayMessageListVirtual.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
+import DropDownMenu from "../DropDownMenu.vue";
+import DropDownMenuItem from "../DropDownMenuItem.vue";
 import Toggle from "../forms/Toggle.vue";
 import * as TranslationService from "../../js/TranslationService.js";
 
@@ -1470,6 +1501,8 @@ const BTN_DANGER_SM =
 
 const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
 const LOAD_PREVIOUS_SCROLL_EDGE_PX = 200;
+// Tabs that collapse into a mobile overflow menu so the tab bar fits narrow screens.
+const OVERFLOW_TAB_IDS = new Set(["host", "bots"]);
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
@@ -1521,6 +1554,8 @@ export default {
         ContextMenuPanel,
         ContextMenuItem,
         ContextMenuDivider,
+        DropDownMenu,
+        DropDownMenuItem,
         Toggle,
     },
     beforeRouteLeave(to, from, next) {
@@ -1537,6 +1572,7 @@ export default {
             RELAY_HOST_MODAL_PANEL_COMPACT,
             btnPrimary: BTN_PRIMARY,
             btnSecondary: BTN_SECONDARY,
+            OVERFLOW_TAB_IDS,
             btnIcon: BTN_ICON,
             btnIconSm: BTN_ICON_SM,
             btnDanger: BTN_DANGER,
@@ -1649,6 +1685,18 @@ export default {
         };
     },
     computed: {
+        overflowTabs() {
+            return this.tabs.filter((tab) => OVERFLOW_TAB_IDS.has(tab.id));
+        },
+        overflowViewTab() {
+            return this.overflowTabs.find((tab) => tab.id === this.view) || null;
+        },
+        isOverflowView() {
+            return this.overflowViewTab !== null;
+        },
+        overflowViewIcon() {
+            return this.overflowViewTab?.icon || "dots-horizontal";
+        },
         rrcEnabled() {
             return GlobalState.config?.rrc_enabled !== false;
         },

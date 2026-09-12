@@ -396,6 +396,18 @@
                                     isShowingNodePageSource ? $t("nomadnet.hide_source") : $t("app.toggle_source")
                                 }}</span>
                             </DropDownMenuItem>
+                            <DropDownMenuItem v-if="selectedNode" @click="runPathFinderQuickRequest">
+                                <MaterialDesignIcon icon-name="map-marker-path" class="size-5" />
+                                <span>{{ $t("nomadnet.path_finder_quick_request") }}</span>
+                            </DropDownMenuItem>
+                            <DropDownMenuItem v-if="selectedNode" @click="runPathFinderForceFind">
+                                <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                                <span>{{ $t("nomadnet.path_finder_force_find") }}</span>
+                            </DropDownMenuItem>
+                            <DropDownMenuItem v-if="selectedNode" @click="runPathFinderDropAndRequest">
+                                <MaterialDesignIcon icon-name="reload-alert" class="size-5" />
+                                <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
+                            </DropDownMenuItem>
                             <DropDownMenuItem
                                 v-if="showMicronRendererInMobileMenu"
                                 @click="applyNomadMicronDefaultEngine('js')"
@@ -469,7 +481,7 @@
                         <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
                     </IconButton>
 
-                    <DropDownMenu v-if="selectedNode" class="shrink-0">
+                    <DropDownMenu v-if="selectedNode" class="shrink-0 hidden lg:inline-block">
                         <template #button>
                             <IconButton
                                 :title="$t('nomadnet.path_finder')"
