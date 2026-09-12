@@ -2128,17 +2128,19 @@
 </template>
 
 <script>
+import { useInterfaceChangesStore } from "../../js/stores/interfaceChangesStore.js";
 import DialogUtils from "../../js/DialogUtils";
+import { apiPath } from "../../js/constants.js";
 import ToastUtils from "../../js/ToastUtils";
 import { numOrNull, parseRNodeFrequencyHz } from "../../js/interfaceDiscoveryUtils";
 import ExpandingSection from "./ExpandingSection.vue";
 import AddInterfaceDiscoveryPanel from "./internal/AddInterfaceDiscoveryPanel.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import Toggle from "../forms/Toggle.vue";
-import GlobalState from "../../js/GlobalState";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import { RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL } from "../../js/reticulumDocsEntryUrl.js";
+import { useRNodeInterfaceForm } from "../../js/interfaces/useRNodeInterfaceForm.js";
 
 export default {
     name: "AddInterfacePage",
@@ -2149,6 +2151,9 @@ export default {
         AddInterfaceDiscoveryPanel,
         Toggle,
         BundledDocsHint,
+    },
+    setup() {
+        return { ...useRNodeInterfaceForm() };
     },
     data() {
         return {
@@ -2285,24 +2290,7 @@ export default {
                 newInterfacePeers: [],
             },
 
-            RNodeMultiInterface: {
-                port: null,
-                subInterfaces: [],
-            },
-
             newInterfacePort: null,
-            newInterfaceRNodeUseIP: false,
-            newInterfaceRNodeUseBle: false,
-            newInterfaceRNodeBlePeer: "",
-            newInterfaceRNodeIPHost: "",
-            RNodeGHzValue: 0,
-            RNodeMHzValue: 0,
-            RNodekHzValue: 0,
-            newInterfaceFrequency: null,
-            newInterfaceBandwidth: 125000,
-            newInterfaceTxpower: 7,
-            newInterfaceSpreadingFactor: 12,
-            newInterfaceCodingRate: 5,
 
             // Serial, KISS, and AX25KISS options
             newInterfaceSpeed: null,
@@ -2330,40 +2318,6 @@ export default {
             // Pipe interface
             newInterfaceCommand: null,
             newInterfaceRespawnDelay: null,
-
-            RNodeInterfaceDefaults: {
-                // bandwidth in hz
-                bandwidths: [
-                    7800, // 7.8 kHz
-                    10400, // 10.4 kHz
-                    15600, // 15.6 kHz
-                    20800, // 20.8 kHz
-                    31250, // 31.25 kHz
-                    41700, // 41.7 kHz
-                    62500, // 62.5 kHz
-                    125000, // 125 kHz
-                    250000, // 250 kHz
-                    500000, // 500 kHz
-                    1625000, // 1625 kHz (for 2.4 GHz SX1280)
-                ],
-                codingrates: [
-                    5, // 4:5
-                    6, // 4:6
-                    7, // 4:7
-                    8, // 4:8
-                ],
-                spreadingfactors: [5, 6, 7, 8, 9, 10, 11, 12],
-                txpowerMin: 0,
-                txpowerMax: 37,
-            },
-
-            RNodeInterfaceLoRaParameters: {
-                antennaGain: 0,
-                noiseFloor: 5,
-                sensitivity: null,
-                dataRate: null,
-                linkBudget: null,
-            },
         };
     },
     computed: {
@@ -2394,17 +2348,6 @@ export default {
         reticulumMinFixedMtu() {
             return 500;
         },
-        formattedFrequency() {
-            const totalHz = Math.round(this.calculateFrequencyInHz());
-            if (totalHz >= 1e9) {
-                return `${(totalHz / 1e9).toFixed(3)} GHz`;
-            } else if (totalHz >= 1e6) {
-                return `${(totalHz / 1e6).toFixed(3)} MHz`;
-            } else if (totalHz >= 1e3) {
-                return `${(totalHz / 1e3).toFixed(3)} kHz`;
-            }
-            return `${totalHz} Hz`;
-        },
         transportEnabled() {
             if (this.config && this.config.is_transport_enabled === true) {
                 return true;
@@ -2422,11 +2365,6 @@ export default {
         },
     },
     watch: {
-        newInterfaceBandwidth: "updateRNodeCalculations",
-        newInterfaceSpreadingFactor: "updateRNodeCalculations",
-        newInterfaceCodingRate: "updateRNodeCalculations",
-        newInterfaceTxpower: "updateRNodeCalculations",
-        "RNodeInterfaceLoRaParameters.antennaGain": "updateRNodeCalculations",
         newInterfaceType(value) {
             if (value === "__external__") {
                 this.loadInstalledInterfaceModules();
@@ -2466,7 +2404,7 @@ export default {
         },
         async loadInstalledInterfaceModules() {
             try {
-                const response = await window.api.get("/api/v1/reticulum/interface-modules");
+                const response = await window.api.get(apiPath("/reticulum/interface-modules"));
                 this.interfaceModulesPath = response.data?.interfacepath || "";
                 this.installedInterfaceModules = Array.isArray(response.data?.modules) ? response.data.modules : [];
             } catch (e) {
@@ -2494,7 +2432,7 @@ export default {
                 if (this.interfaceModuleOverwrite) {
                     formData.append("overwrite", "1");
                 }
-                const response = await window.api.post("/api/v1/reticulum/interface-modules", formData);
+                const response = await window.api.post(apiPath("/reticulum/interface-modules"), formData);
                 const typeName = response.data?.type;
                 if (typeName) {
                     this.customExternalTypeName = typeName;
@@ -2518,7 +2456,7 @@ export default {
             this.interfaceModuleBusy = true;
             try {
                 const response = await window.api.delete(
-                    `/api/v1/reticulum/interface-modules/${encodeURIComponent(typeName)}`
+                    apiPath(`/reticulum/interface-modules/${encodeURIComponent(typeName)}`)
                 );
                 ToastUtils.success(response.data?.message || this.$t("interfaces.custom_external_module_deleted"));
                 if (this.customExternalTypeName === typeName) {
@@ -2535,7 +2473,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get(`/api/v1/config`);
+                const response = await window.api.get(apiPath("/config"));
                 this.config = response.data.config;
             } catch (e) {
                 console.log(e);
@@ -2543,7 +2481,7 @@ export default {
         },
         async loadReticulumInstance() {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/instance`);
+                const response = await window.api.get(apiPath("/reticulum/instance"));
                 if (response.data?.instance) {
                     this.reticulumInstance = {
                         ...this.reticulumInstance,
@@ -2556,7 +2494,7 @@ export default {
         },
         async loadExistingInterfaces() {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/interfaces`);
+                const response = await window.api.get(apiPath("/reticulum/interfaces"));
                 this.existingInterfaces = response.data?.interfaces || {};
             } catch (e) {
                 console.log(e);
@@ -2565,7 +2503,7 @@ export default {
         },
         async updateConfig(config) {
             try {
-                const response = await window.api.patch("/api/v1/config", config);
+                const response = await window.api.patch(apiPath("/config"), config);
                 this.config = response.data.config;
             } catch (e) {
                 ToastUtils.error(this.$t("common.save_failed"));
@@ -2582,7 +2520,7 @@ export default {
         parseRNodeFrequencyHz,
         async loadReticulumDiscoveryConfig() {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/discovery`);
+                const response = await window.api.get(apiPath("/reticulum/discovery"));
                 const discovery = response.data?.discovery ?? {};
                 this.reticulumDiscovery.discover_interfaces = this.parseBool(discovery.discover_interfaces);
                 this.reticulumDiscovery.interface_discovery_whitelist = discovery.interface_discovery_whitelist ?? "";
@@ -2607,7 +2545,7 @@ export default {
                     interface_discovery_blacklist: this.reticulumDiscovery.interface_discovery_blacklist || null,
                     default_bootstrap_only: this.reticulumDiscovery.default_bootstrap_only,
                 };
-                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(apiPath("/reticulum/discovery"), payload);
                 ToastUtils.success("Discovery listener preferences saved.");
             } catch (e) {
                 ToastUtils.error("Failed to save discovery preferences.");
@@ -2618,49 +2556,11 @@ export default {
         },
         async loadComports() {
             try {
-                const response = await window.api.get(`/api/v1/comports`);
+                const response = await window.api.get(apiPath("/comports"));
                 this.comports = response.data.comports;
             } catch (e) {
                 console.log(e);
             }
-        },
-        buildRNodeTcpPort() {
-            let h = String(this.newInterfaceRNodeIPHost ?? "").trim();
-            while (h.endsWith(":")) {
-                h = h.slice(0, -1);
-            }
-            if (!h) {
-                return "";
-            }
-            return `tcp://${h}`;
-        },
-        parseRnodeTcpHostFromPort(portStr) {
-            const s = String(portStr || "");
-            if (!s.startsWith("tcp://")) {
-                return "localhost";
-            }
-            let rest = s.slice(6);
-            while (rest.endsWith(":")) {
-                rest = rest.slice(0, -1);
-            }
-            if (!rest) {
-                return "";
-            }
-            if (rest.startsWith("[")) {
-                const close = rest.indexOf("]");
-                if (close !== -1 && rest[close + 1] === ":") {
-                    return rest.slice(0, close + 1);
-                }
-                return rest;
-            }
-            if (rest.includes(":") && rest.indexOf(":") === rest.lastIndexOf(":")) {
-                const idx = rest.indexOf(":");
-                const tail = rest.slice(idx + 1);
-                if (/^\d{1,5}$/.test(tail) && Number(tail) <= 65535) {
-                    return rest.slice(0, idx);
-                }
-            }
-            return rest;
         },
         autoInterfaceChipActive(fieldKey, token) {
             const raw = this[fieldKey];
@@ -2692,7 +2592,7 @@ export default {
             this.hostKernelInterfacesLoading = true;
             this.hostKernelInterfacesUnavailable = null;
             try {
-                const response = await window.api.get(`/api/v1/system/network-interfaces`);
+                const response = await window.api.get(apiPath("/system/network-interfaces"));
                 this.hostKernelInterfaces = response.data.interfaces || [];
                 this.hostKernelInterfacesUnavailable = response.data.unavailable_reason || null;
             } catch (e) {
@@ -2703,31 +2603,9 @@ export default {
                 this.hostKernelInterfacesLoading = false;
             }
         },
-        effectiveRNodeBlePort() {
-            let p = (this.newInterfaceRNodeBlePeer || "").trim();
-            if (!p) {
-                return "ble://";
-            }
-            if (p.toLowerCase().startsWith("ble://")) {
-                return p;
-            }
-            return `ble://${p}`;
-        },
-        setRNodeTransportIp(v) {
-            this.newInterfaceRNodeUseIP = Boolean(v);
-            if (this.newInterfaceRNodeUseIP) {
-                this.newInterfaceRNodeUseBle = false;
-            }
-        },
-        setRNodeTransportBle(v) {
-            this.newInterfaceRNodeUseBle = Boolean(v);
-            if (this.newInterfaceRNodeUseBle) {
-                this.newInterfaceRNodeUseIP = false;
-            }
-        },
         async loadCommunityInterfaces() {
             try {
-                const response = await window.api.get(`/api/v1/community-interfaces`);
+                const response = await window.api.get(apiPath("/community-interfaces"));
                 this.communityInterfaces = response.data.interfaces ?? [];
             } catch (e) {
                 console.log(e);
@@ -2738,7 +2616,7 @@ export default {
         },
         async loadInterfaceToEdit(interfaceName) {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/interfaces`);
+                const response = await window.api.get(apiPath("/reticulum/interfaces"));
                 const interfaces = response.data.interfaces;
                 const iface = interfaces[interfaceName];
                 if (!iface) {
@@ -3370,12 +3248,12 @@ export default {
             this.isSaving = true;
             try {
                 const response = await window.api.post(
-                    `/api/v1/reticulum/interfaces/add`,
+                    apiPath("/reticulum/interfaces/add"),
                     this.buildPayloadFromImportedConfig(config)
                 );
                 ToastUtils.success(response.data?.message || `Imported interface "${config.name}"`);
-                GlobalState.hasPendingInterfaceChanges = true;
-                GlobalState.modifiedInterfaceNames.add(config.name);
+                useInterfaceChangesStore().hasPendingInterfaceChanges = true;
+                useInterfaceChangesStore().modifiedInterfaceNames.add(config.name);
                 this.rawConfigInput = "";
                 this.detectedConfigs = [];
                 this.$router.push({ name: "interfaces" });
@@ -3529,10 +3407,10 @@ export default {
                         network_name: this.sharedInterfaceSettings.network_name,
                         passphrase: this.sharedInterfaceSettings.passphrase,
                     };
-                    const response = await window.api.post(`/api/v1/reticulum/interfaces/add`, payload);
+                    const response = await window.api.post(apiPath("/reticulum/interfaces/add"), payload);
                     if (response.data.message) ToastUtils.success(response.data.message);
-                    GlobalState.hasPendingInterfaceChanges = true;
-                    GlobalState.modifiedInterfaceNames.add(this.newInterfaceName);
+                    useInterfaceChangesStore().hasPendingInterfaceChanges = true;
+                    useInterfaceChangesStore().modifiedInterfaceNames.add(this.newInterfaceName);
                     this.$router.push({ name: "interfaces" });
                     return;
                 }
@@ -3689,11 +3567,11 @@ export default {
                     passphrase: this.sharedInterfaceSettings.passphrase,
                 };
 
-                const response = await window.api.post(`/api/v1/reticulum/interfaces/add`, payload);
+                const response = await window.api.post(apiPath("/reticulum/interfaces/add"), payload);
 
                 if (response.data.message) ToastUtils.success(response.data.message);
-                GlobalState.hasPendingInterfaceChanges = true;
-                GlobalState.modifiedInterfaceNames.add(this.newInterfaceName);
+                useInterfaceChangesStore().hasPendingInterfaceChanges = true;
+                useInterfaceChangesStore().modifiedInterfaceNames.add(this.newInterfaceName);
                 this.$router.push({ name: "interfaces" });
             } catch (e) {
                 const message = e.response?.data?.message ?? "Failed to save interface connection.";
@@ -3703,59 +3581,15 @@ export default {
                 this.isSaving = false;
             }
         },
-        calculateFrequencyInHz() {
-            return Math.round(this.RNodeGHzValue * 1e9 + this.RNodeMHzValue * 1e6 + this.RNodekHzValue * 1e3);
-        },
-        updateRNodeCalculations() {
-            this.calculateRNodeParameters(
-                this.newInterfaceBandwidth,
-                this.newInterfaceSpreadingFactor,
-                this.newInterfaceCodingRate,
-                this.RNodeInterfaceLoRaParameters.noiseFloor,
-                this.RNodeInterfaceLoRaParameters.antennaGain,
-                this.newInterfaceTxpower
-            );
-        },
-        calculateRNodeParameters(bandwidth, spreadingFactor, codingRate, noiseFloor, antennaGain, transmitPower) {
-            if (!bandwidth || !spreadingFactor || !codingRate) return;
-            const crn = { 5: 1, 6: 2, 7: 3, 8: 4 };
-            const cr = crn[codingRate];
-            const sfn = { 5: -2.5, 6: -5, 7: -7.5, 8: -10, 9: -12.5, 10: -15, 11: -17.5, 12: -20 };
-            let dataRate =
-                spreadingFactor * (4 / (4 + cr) / (Math.pow(2, spreadingFactor) / (bandwidth / 1000))) * 1000;
-            let sensitivity = -174 + 10 * Math.log10(bandwidth) + noiseFloor + (sfn[spreadingFactor] || 0);
-            if (bandwidth === 203125 || bandwidth === 406250 || bandwidth > 500000) {
-                sensitivity = -165.6 + 10 * Math.log10(bandwidth) + noiseFloor + (sfn[spreadingFactor] || 0);
-            }
-            let linkBudget = transmitPower - sensitivity + antennaGain;
-            this.RNodeInterfaceLoRaParameters.dataRate =
-                dataRate < 1000 ? `${dataRate.toFixed(0)} bps` : `${(dataRate / 1000).toFixed(2)} kbps`;
-            this.RNodeInterfaceLoRaParameters.linkBudget = `${linkBudget.toFixed(1)} dB`;
-            this.RNodeInterfaceLoRaParameters.sensitivity = `${sensitivity.toFixed(1)} dBm`;
-        },
         addI2PPeer(address = "") {
             this.I2PSettings.newInterfacePeers.push(address);
         },
         removeI2PPeer(index) {
             this.I2PSettings.newInterfacePeers.splice(index, 1);
         },
-        addSubInterface() {
-            this.RNodeMultiInterface.subInterfaces.push({
-                name: "",
-                frequency: null,
-                bandwidth: null,
-                txpower: null,
-                spreadingfactor: null,
-                codingrate: null,
-                vport: null,
-            });
-        },
         useKISSAX25() {
             this.newInterfaceType =
                 this.newInterfaceType === "AX25KISSInterface" ? "KISSInterface" : "AX25KISSInterface";
-        },
-        removeSubInterface(idx) {
-            this.RNodeMultiInterface.subInterfaces.splice(idx, 1);
         },
         isDedicatedFormInterfaceType(t) {
             const builtin = new Set([

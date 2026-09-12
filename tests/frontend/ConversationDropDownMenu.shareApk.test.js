@@ -3,6 +3,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import ConversationDropDownMenu from "../../meshchatx/src/frontend/components/messages/ConversationDropDownMenu.vue";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
 
 vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
     default: {
@@ -16,13 +18,6 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
         on: vi.fn(),
         off: vi.fn(),
         emit: vi.fn(),
-    },
-}));
-
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
-    default: {
-        blockedDestinations: [],
-        config: { telemetry_enabled: false },
     },
 }));
 
@@ -72,6 +67,8 @@ describe("ConversationDropDownMenu share APK", () => {
     beforeEach(() => {
         shareApkMock.mockReset().mockReturnValue(true);
         delete window.MeshChatXAndroid;
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().config = { telemetry_enabled: false };
     });
 
     afterEach(() => {

@@ -6,8 +6,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from typing import Any
+
+from meshchatx.src.env_utils import env_bool
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +35,7 @@ CLOSED_REASONS = frozenset(
 
 
 def env_webtransport_enabled() -> bool:
-    return os.environ.get("MESHCHAT_EXPERIMENTAL_WEBTRANSPORT", "").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return env_bool("MESHCHAT_EXPERIMENTAL_WEBTRANSPORT")
 
 
 def aioquic_available() -> bool:

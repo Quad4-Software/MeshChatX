@@ -8,6 +8,7 @@ import asyncio
 import base64
 import itertools
 import json
+import os
 import uuid
 
 import pytest
@@ -131,22 +132,27 @@ class TestWriteFieldToPath:
         dest = tmp_path / str(uuid.uuid4())
         field = _FakeField([b"ab", b"cd"])
 
-        real_open = open
+        real_fdopen = os.fdopen
 
-        def flaky_open(path, *a, **kw):
-            handle = real_open(path, *a, **kw)
-            if str(path) == str(dest):
-                orig_write = handle.write
+        class _FlakyWriter:
+            def __init__(self, handle):
+                self._handle = handle
 
-                def boom(data):
-                    if data == b"cd":
-                        raise OSError("disk full")
-                    return orig_write(data)
+            def write(self, data):
+                if data == b"cd":
+                    raise OSError("disk full")
+                return self._handle.write(data)
 
-                handle.write = boom
-            return handle
+            def __enter__(self):
+                return self
 
-        monkeypatch.setattr("builtins.open", flaky_open)
+            def __exit__(self, *exc):
+                return self._handle.__exit__(*exc)
+
+        def flaky_fdopen(fd, *a, **kw):
+            return _FlakyWriter(real_fdopen(fd, *a, **kw))
+
+        monkeypatch.setattr("os.fdopen", flaky_fdopen)
         with pytest.raises(OSError):
             await write_field_to_path(field, dest, 64)
         assert not dest.exists()
@@ -609,8 +615,16 @@ class TestErrorResponseShape:
             extra={"status": "error", "code": 7},
         )
         body = json.loads(resp.text)
-        assert body == {"status": "error", "code": 7, "detail": "nope"}
-        assert "error" not in body
+        # Centralized shape carries error+code+message plus the custom key;
+        # the caller's extra still merges fixed keys (code wins over the
+        # http_NNN default).
+        assert body == {
+            "status": "error",
+            "code": 7,
+            "error": "nope",
+            "message": "nope",
+            "detail": "nope",
+        }
 
     def test_extra_merges_on_generic_errors(self):
         resp = http_error_from_exception(
@@ -618,8 +632,19 @@ class TestErrorResponseShape:
             extra={"status": "error"},
         )
         body = json.loads(resp.text)
-        assert body == {"status": "error", "error": "Internal server error"}
+        assert body == {
+            "status": "error",
+            "error": "Internal server error",
+            "code": "http_500",
+            "message": "Internal server error",
+        }
+        # The internal detail must not leak anywhere in the payload.
+        assert "internal path" not in json.dumps(body)
 
     def test_extra_none_and_default_key(self):
         resp = http_error_from_exception(ValueError("x"))
-        assert json.loads(resp.text) == {"error": "x"}
+        assert json.loads(resp.text) == {
+            "error": "x",
+            "code": "http_400",
+            "message": "x",
+        }

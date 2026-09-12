@@ -2,6 +2,7 @@
  * Axios-shaped HTTP helpers backed by fetch (same-origin API calls).
  */
 
+import { apiPath } from "./constants.js";
 import { fetchCsrfToken, getCsrfToken } from "./csrfToken.js";
 import {
     isDemoReadonlyRejection,
@@ -9,8 +10,9 @@ import {
     mergeConfigWithDemoUiPrefs,
     partialHasDemoUiPrefs,
 } from "./demoUiPrefs.js";
-import GlobalState from "./GlobalState.js";
 import { withRetryableHttp } from "./httpRetry.js";
+import { useAuthStore } from "./stores/authStore.js";
+import { useConfigStore } from "./stores/configStore.js";
 
 export function isCancel(error) {
     if (!error) return false;
@@ -101,7 +103,7 @@ export function isCsrfRejection(status, errData) {
  * @returns {unknown}
  */
 function applyDemoConfigGetOverlay(dataOut) {
-    if (!GlobalState.demoMode || !dataOut || typeof dataOut !== "object") {
+    if (!useAuthStore().demoMode || !dataOut || typeof dataOut !== "object") {
         return dataOut;
     }
     const config = dataOut.config;
@@ -120,14 +122,15 @@ function applyDemoConfigGetOverlay(dataOut) {
  * @returns {{ data: { config: Record<string, unknown> }, status: number, headers: Headers } | null}
  */
 function tryDemoConfigPatch(data) {
-    if (!GlobalState.demoMode) {
+    if (!useAuthStore().demoMode) {
         return null;
     }
     if (!partialHasDemoUiPrefs(data)) {
         return null;
     }
     const saved = mergeAndSaveDemoUiPrefs(data);
-    const base = GlobalState.config && typeof GlobalState.config === "object" ? { ...GlobalState.config } : {};
+    const configState = useConfigStore().config;
+    const base = configState && typeof configState === "object" ? { ...configState } : {};
     return {
         data: { config: { ...base, ...saved } },
         status: 200,
@@ -145,7 +148,7 @@ export function createApiClient(options = {}) {
         const { params, data, signal, headers = {}, responseType } = config;
         const pathname = apiPathname(path);
 
-        if (method === "PATCH" && pathname === "/api/v1/config") {
+        if (method === "PATCH" && pathname === apiPath("/config")) {
             const demoResponse = tryDemoConfigPatch(data);
             if (demoResponse) {
                 return demoResponse;
@@ -221,7 +224,7 @@ export function createApiClient(options = {}) {
         }
 
         let dataOut = await readSuccessBody(response, responseType);
-        if (method === "GET" && pathname === "/api/v1/config") {
+        if (method === "GET" && pathname === apiPath("/config")) {
             dataOut = applyDemoConfigGetOverlay(dataOut);
         }
         return { data: dataOut, status: response.status, headers: response.headers };

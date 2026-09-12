@@ -2,6 +2,8 @@
  * Parse and import LXMF message export JSON (v1 messages-only or v2 bundle).
  */
 
+import { apiPath } from "./constants.js";
+
 export function parseMessagesImportJson(text) {
     const data = JSON.parse(text);
     if (Array.isArray(data)) {
@@ -15,7 +17,7 @@ export function parseMessagesImportJson(text) {
 
 export async function importMessagesFromText(text) {
     const payload = parseMessagesImportJson(text);
-    const response = await window.api.post("/api/v1/maintenance/messages/import", payload);
+    const response = await window.api.post(apiPath("/maintenance/messages/import"), payload);
     return {
         payload,
         imported: response.data?.imported ?? payload.messages?.length ?? 0,
@@ -29,7 +31,7 @@ export async function importMessagesFromText(text) {
 export async function importMessagesFromFile(file) {
     const form = new FormData();
     form.append("file", file);
-    const response = await window.api.post("/api/v1/maintenance/messages/import-file", form);
+    const response = await window.api.post(apiPath("/maintenance/messages/import-file"), form);
     return {
         imported: response.data?.imported ?? 0,
         skipped: response.data?.skipped ?? 0,

@@ -20,6 +20,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from meshchatx.src.env_utils import env_str
 from meshchatx.src.path_utils import safe_basename
 
 _PYPI_USER_AGENT = "MeshChatXRepositoryBundler/1 (+https://github.com/)"
@@ -37,7 +38,7 @@ _DEFAULT_PACKAGES = (
 
 
 def _parse_extra_packages() -> tuple[str, ...]:
-    raw = (os.environ.get("MESHCHAT_REPOSITORY_EXTRA_PIP") or "").strip()
+    raw = (env_str("MESHCHAT_REPOSITORY_EXTRA_PIP") or "").strip()
     if not raw:
         return ()
     parts = [p.strip() for p in raw.replace(";", ",").split(",") if p.strip()]

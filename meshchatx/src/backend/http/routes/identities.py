@@ -3,143 +3,37 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_payload_too_large
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+import io
+import os
+import shutil
+import sys
+import threading
+import time
+import zipfile
+
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_field_text_limited,
     read_json_limited,
 )
+from meshchatx.src.backend.meshchat_utils import (
+    normalize_identity_storage_hash,
+)
+from meshchatx.src.path_utils import is_path_within_dir
 
 
 def register_identities_routes(routes, app):
 
-    @routes.post("/api/v1/identity/backup/download")
+    @routes.post(API_V1_PREFIX + "/identity/backup/download")
     async def identity_backup_download(request):
         try:
             info = app.backup_identity()
@@ -153,14 +47,9 @@ def register_identities_routes(routes, app):
                 },
             )
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Failed to create identity backup",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to create identity backup")
 
-    @routes.post("/api/v1/identity/backup/base32")
+    @routes.post(API_V1_PREFIX + "/identity/backup/base32")
     async def identity_backup_base32(request):
         try:
             return web.json_response(
@@ -169,14 +58,9 @@ def register_identities_routes(routes, app):
                 },
             )
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Failed to export identity",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to export identity")
 
-    @routes.post("/api/v1/identity/restore")
+    @routes.post(API_V1_PREFIX + "/identity/restore")
     async def identity_restore(request):
         try:
             content_type = request.headers.get("Content-Type", "")
@@ -201,10 +85,7 @@ def register_identities_routes(routes, app):
                         ).strip() or None
                     field = await reader.next()
                 if identity_bytes is None:
-                    return web.json_response(
-                        {"message": "Identity file is required"},
-                        status=400,
-                    )
+                    return http_bad_request("Identity file is required")
                 result = app.restore_identity_from_bytes(
                     identity_bytes,
                     display_name=display_name,
@@ -213,10 +94,7 @@ def register_identities_routes(routes, app):
                 data = await read_json_limited(request)
                 base32_value = data.get("base32")
                 if not base32_value:
-                    return web.json_response(
-                        {"message": "base32 value is required"},
-                        status=400,
-                    )
+                    return http_bad_request("base32 value is required")
                 result = app.restore_identity_from_base32(
                     base32_value,
                     display_name=data.get("display_name"),
@@ -231,21 +109,11 @@ def register_identities_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except ValueError as e:
-            return web.json_response(
-                {
-                    "message": str(e),
-                },
-                status=400,
-            )
+            return http_bad_request(str(e))
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Failed to restore identity",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to restore identity")
 
-    @routes.get("/api/v1/identities")
+    @routes.get(API_V1_PREFIX + "/identities")
     async def identities_list(request):
         try:
             identities = app.list_identities()
@@ -262,22 +130,14 @@ def register_identities_routes(routes, app):
                 },
             )
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Failed to list identities",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to list identities")
 
-    @routes.post("/api/v1/identities/export-all")
+    @routes.post(API_V1_PREFIX + "/identities/export-all")
     async def identities_export_all(request):
         try:
             all_bytes = app.identity_manager.get_all_identity_backup_bytes()
             if not all_bytes:
-                return web.json_response(
-                    {"message": "No identities to export"},
-                    status=400,
-                )
+                return http_bad_request("No identities to export")
             buf = io.BytesIO()
             with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
                 for identity_hash, data in all_bytes.items():
@@ -291,14 +151,9 @@ def register_identities_routes(routes, app):
                 },
             )
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Failed to export identities",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to export identities")
 
-    @routes.post("/api/v1/identities/create")
+    @routes.post(API_V1_PREFIX + "/identities/create")
     async def identities_create(request):
         try:
             data = await read_json_limited(request)
@@ -313,52 +168,29 @@ def register_identities_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Failed to create identity",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to create identity")
 
-    @routes.delete("/api/v1/identities/{identity_hash}")
+    @routes.delete(API_V1_PREFIX + "/identities/{identity_hash}")
     async def identities_delete(request):
         try:
             identity_hash = normalize_identity_storage_hash(
                 request.match_info.get("identity_hash"),
             )
             if not identity_hash:
-                return web.json_response(
-                    {"message": "Invalid identity hash"},
-                    status=400,
-                )
+                return http_bad_request("Invalid identity hash")
             if app.delete_identity(identity_hash):
                 return web.json_response(
                     {
                         "message": "Identity deleted successfully",
                     },
                 )
-            return web.json_response(
-                {
-                    "message": "Identity not found",
-                },
-                status=404,
-            )
+            return http_not_found("Identity not found")
         except ValueError as e:
-            return web.json_response(
-                {
-                    "message": str(e),
-                },
-                status=400,
-            )
+            return http_bad_request(str(e))
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Failed to delete identity",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to delete identity")
 
-    @routes.post("/api/v1/identities/switch")
+    @routes.post(API_V1_PREFIX + "/identities/switch")
     async def identities_switch(request):
         try:
             data = await read_json_limited(request)
@@ -366,10 +198,7 @@ def register_identities_routes(routes, app):
                 data.get("identity_hash"),
             )
             if not identity_hash:
-                return web.json_response(
-                    {"message": "Invalid identity hash"},
-                    status=400,
-                )
+                return http_bad_request("Invalid identity hash")
             keep_alive = data.get("keep_alive", False)
 
             # attempt hotswap first
@@ -403,24 +232,18 @@ def register_identities_routes(routes, app):
             identity_dir = os.path.join(identities_root, identity_hash)
             identity_file = os.path.join(identity_dir, "identity")
             if not is_path_within_dir(identity_dir, identities_root):
-                return web.json_response(
-                    {"message": "Invalid identity hash"},
-                    status=400,
-                )
+                return http_bad_request("Invalid identity hash")
 
             # A symlinked identity file would copy the link target into the
             # active identity slot, reading an arbitrary local file.
             if os.path.islink(identity_file):
-                return web.json_response(
-                    {"message": "Invalid identity file"},
-                    status=400,
-                )
+                return http_bad_request("Invalid identity file")
             shutil.copy2(identity_file, main_identity_file, follow_symlinks=False)
 
             def restart():
                 time.sleep(1)
                 try:
-                    os.execv(sys.executable, [sys.executable, *sys.argv])
+                    os.execv(sys.executable, [sys.executable, *sys.argv])  # noqa: S606
                 except Exception as e:
                     print(f"Failed to restart: {e}")
                     os._exit(0)
@@ -437,11 +260,6 @@ def register_identities_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Failed to switch identity",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to switch identity")
 
     # maintenance - clear messages (all, or older than days / before date)

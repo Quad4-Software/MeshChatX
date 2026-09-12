@@ -155,6 +155,7 @@
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import * as rnprobeApi from "../../js/api/rnprobe.js";
 
 export default {
     name: "RNProbePage",
@@ -200,8 +201,7 @@ export default {
             this.summary = null;
 
             try {
-                const response = await window.api.post(
-                    "/api/v1/rnprobe",
+                const response = await rnprobeApi.postRnprobe(
                     {
                         destination_hash: this.destinationHash,
                         full_name: this.fullName,

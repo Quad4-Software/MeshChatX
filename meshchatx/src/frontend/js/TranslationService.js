@@ -1,4 +1,6 @@
 import { LatencyOptimisedTranslator } from "@browsermt/bergamot-translator";
+
+import { apiPath } from "./constants.js";
 import { BergamotBacking } from "./translation/BergamotBacking.js";
 
 let translator = null;
@@ -88,20 +90,20 @@ export async function refreshPacks() {
 }
 
 export async function listPacks() {
-    const data = await apiGet("/api/v1/translation/packs");
+    const data = await apiGet(apiPath("/translation/packs"));
     return data.packs || [];
 }
 
 export async function importPack(file) {
     const form = new FormData();
     form.append("file", file);
-    const data = await apiPost("/api/v1/translation/packs/import", form);
+    const data = await apiPost(apiPath("/translation/packs/import"), form);
     await refreshPacks();
     return data;
 }
 
 export async function removePack(pair) {
-    const data = await apiDelete(`/api/v1/translation/packs/${encodeURIComponent(pair)}`);
+    const data = await apiDelete(apiPath(`/translation/packs/${encodeURIComponent(pair)}`));
     await refreshPacks();
     return data;
 }

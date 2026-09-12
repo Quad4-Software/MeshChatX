@@ -2,7 +2,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
-import GlobalState from "@/js/GlobalState";
+import { useConfigStore } from "@/js/stores/configStore.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -27,7 +27,7 @@ function makeMessagesScrollTarget({ reverse, scrollTop, scrollHeight, clientHeig
 
 describe("ConversationViewer.vue scroll behavior", () => {
     beforeEach(() => {
-        GlobalState.config.theme = "light";
+        useConfigStore().config.theme = "light";
         WebSocketConnection.connect();
         window.api = {
             get: vi.fn().mockImplementation((url) => {

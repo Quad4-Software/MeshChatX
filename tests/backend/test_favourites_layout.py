@@ -282,9 +282,7 @@ async def test_favourites_layout_get_put(mock_rns_minimal, temp_dir):
             },
         }
         body = json.dumps({"layout": layout}).encode("utf-8")
-        request = MagicMock()
-        request.content_length = len(body)
-        request.read = AsyncMock(return_value=body)
+        request = _layout_put_request(body)
         put_response = await put_handler(request)
         put_data = json.loads(put_response.body)
         assert put_data["layout"]["favouritesBySection"]["custom"] == ["a" * 32]
@@ -294,9 +292,7 @@ async def test_favourites_layout_get_put(mock_rns_minimal, temp_dir):
         assert get_data["layout"]["sectionOrder"] == ["default", "custom"]
 
         bad_body = json.dumps({"layout": {"sections": []}}).encode("utf-8")
-        bad = MagicMock()
-        bad.content_length = len(bad_body)
-        bad.read = AsyncMock(return_value=bad_body)
+        bad = _layout_put_request(bad_body)
         bad_response = await put_handler(bad)
         assert bad_response.status == 400
 
@@ -319,5 +315,44 @@ async def test_favourites_layout_put_rejects_oversized_body(mock_rns_minimal, te
         request = MagicMock()
         request.content_length = MAX_LAYOUT_JSON_BYTES + 1
         request.read = AsyncMock(return_value=b"{}")
+        response = await put_handler(request)
+        assert response.status == 413
+
+
+def _layout_put_request(body: bytes):
+    """Fake request whose content streams like a real aiohttp body."""
+
+    class _Content:
+        async def iter_chunked(self, _size):
+            yield body
+
+    request = MagicMock()
+    request.content_length = len(body)
+    request.content = _Content()
+    request.read = AsyncMock(return_value=body)
+    return request
+
+
+@pytest.mark.asyncio
+async def test_favourites_layout_put_rejects_chunked_body_over_cap(
+    mock_rns_minimal,
+    temp_dir,
+):
+    """No Content-Length header: the read itself must be bounded."""
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        put_handler = None
+        for route in app.get_routes():
+            if route.path == "/api/v1/favourites/layout" and route.method == "PUT":
+                put_handler = route.handler
+                break
+        assert put_handler is not None
+
+        request = _layout_put_request(b"x" * (MAX_LAYOUT_JSON_BYTES + 1))
+        request.content_length = None
         response = await put_handler(request)
         assert response.status == 413

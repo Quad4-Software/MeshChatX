@@ -405,6 +405,7 @@ import ElectronUtils from "../../js/ElectronUtils";
 import Utils from "../../js/Utils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
 
 export default {
     name: "RnsFilesyncPage",
@@ -515,11 +516,11 @@ export default {
     },
     async mounted() {
         this.bindWs();
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         await this.refreshAll();
     },
     beforeUnmount() {
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         for (const [type, handler] of this.wsHandlers) {
             offWsEvent(type, handler);
         }
@@ -599,7 +600,7 @@ export default {
             }
             this.busy = true;
             try {
-                const response = await window.api.get("/api/v1/filesync/shared-directory-suggestion");
+                const response = await window.api.get(apiPath("/filesync/shared-directory-suggestion"));
                 const path = String(response?.data?.path || "").trim();
                 if (!path) {
                     ToastUtils.error(this.$t("rns_filesync.error"));
@@ -645,7 +646,7 @@ export default {
         },
         async refreshStatus() {
             try {
-                const response = await window.api.get("/api/v1/filesync/status");
+                const response = await window.api.get(apiPath("/filesync/status"));
                 const status = response?.data || {};
                 this.status = status;
                 if (status.sync_directory) {
@@ -663,7 +664,7 @@ export default {
         },
         async refreshPeers() {
             try {
-                const response = await window.api.get("/api/v1/filesync/peers");
+                const response = await window.api.get(apiPath("/filesync/peers"));
                 const data = response?.data || {};
                 this.peers = Array.isArray(data.peers) ? data.peers : [];
             } catch (err) {
@@ -672,7 +673,7 @@ export default {
         },
         async refreshAcl() {
             try {
-                const response = await window.api.get("/api/v1/filesync/acl");
+                const response = await window.api.get(apiPath("/filesync/acl"));
                 const data = response?.data || {};
                 this.aclEnforce = Boolean(data.enforce);
                 this.aclRules = data.rules || {};
@@ -684,13 +685,13 @@ export default {
             this.busy = true;
             try {
                 if (!this.status.running && this.syncDirectory) {
-                    await window.api.patch("/api/v1/filesync/settings", {
+                    await window.api.patch(apiPath("/filesync/settings"), {
                         sync_directory: this.syncDirectory,
                         monitor: this.monitor,
                         announce_interval: this.announceInterval,
                     });
                 }
-                await window.api.post("/api/v1/filesync/start", {
+                await window.api.post(apiPath("/filesync/start"), {
                     sync_directory: this.syncDirectory || undefined,
                     monitor: this.monitor,
                     announce_interval: this.announceInterval,
@@ -706,7 +707,7 @@ export default {
         async stopService() {
             this.busy = true;
             try {
-                await window.api.post("/api/v1/filesync/stop", {});
+                await window.api.post(apiPath("/filesync/stop"), {});
                 ToastUtils.success(this.$t("rns_filesync.stopped"));
                 await this.refreshAll();
             } catch (err) {
@@ -718,7 +719,7 @@ export default {
         async announceNow() {
             this.busy = true;
             try {
-                await window.api.post("/api/v1/filesync/announce", {});
+                await window.api.post(apiPath("/filesync/announce"), {});
                 ToastUtils.success(this.$t("rns_filesync.announced"));
             } catch (err) {
                 ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
@@ -729,7 +730,7 @@ export default {
         async connectPeer() {
             this.busy = true;
             try {
-                await window.api.post("/api/v1/filesync/connect", {
+                await window.api.post(apiPath("/filesync/connect"), {
                     identity_hash: this.connectHash,
                 });
                 ToastUtils.success(this.$t("rns_filesync.connected"));
@@ -745,7 +746,7 @@ export default {
         async disconnectPeer(peerId) {
             this.busy = true;
             try {
-                await window.api.post("/api/v1/filesync/disconnect", {
+                await window.api.post(apiPath("/filesync/disconnect"), {
                     peer_id: peerId,
                 });
                 ToastUtils.success(this.$t("rns_filesync.disconnected"));
@@ -760,7 +761,7 @@ export default {
         async browsePeer() {
             this.busy = true;
             try {
-                const response = await window.api.post("/api/v1/filesync/browse", {
+                const response = await window.api.post(apiPath("/filesync/browse"), {
                     peer_id: this.browsePeerId,
                 });
                 const data = response?.data || {};
@@ -776,7 +777,7 @@ export default {
         async downloadFile(path) {
             this.busy = true;
             try {
-                await window.api.post("/api/v1/filesync/download", {
+                await window.api.post(apiPath("/filesync/download"), {
                     peer_id: this.browsePeerId,
                     path,
                 });
@@ -794,7 +795,7 @@ export default {
             if (this.aclDelete) perms.push("delete");
             this.busy = true;
             try {
-                await window.api.post("/api/v1/filesync/acl", {
+                await window.api.post(apiPath("/filesync/acl"), {
                     identity_hash: this.aclHash,
                     perms,
                     enforce: this.aclEnforce,
@@ -811,7 +812,7 @@ export default {
         async saveEnforce() {
             this.busy = true;
             try {
-                await window.api.post("/api/v1/filesync/acl", {
+                await window.api.post(apiPath("/filesync/acl"), {
                     enforce: this.aclEnforce,
                 });
                 ToastUtils.success(this.$t("rns_filesync.acl_updated"));

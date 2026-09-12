@@ -2,18 +2,18 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
-import GlobalState from "@/js/GlobalState";
+import { useConfigStore } from "@/js/stores/configStore.js";
 
 describe("ConversationViewer outbound propagation status", () => {
     let axiosMock;
 
     beforeEach(() => {
-        GlobalState.config.theme = "light";
-        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
-        GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
-        GlobalState.config.warn_on_stranger_links = true;
-        GlobalState.detailedOutboundSendStatus = true;
-        GlobalState.outboundTransferProgressEnabled = true;
+        useConfigStore().config.theme = "light";
+        useConfigStore().config.message_outbound_bubble_color = "#4f46e5";
+        useConfigStore().config.message_waiting_bubble_color = "#e5e7eb";
+        useConfigStore().config.warn_on_stranger_links = true;
+        useConfigStore().detailedOutboundSendStatus = true;
+        useConfigStore().outboundTransferProgressEnabled = true;
 
         WebSocketConnection.connect();
         axiosMock = {
@@ -29,8 +29,8 @@ describe("ConversationViewer outbound propagation status", () => {
     });
 
     afterEach(() => {
-        GlobalState.detailedOutboundSendStatus = false;
-        GlobalState.outboundTransferProgressEnabled = true;
+        useConfigStore().detailedOutboundSendStatus = false;
+        useConfigStore().outboundTransferProgressEnabled = true;
         delete window.api;
         WebSocketConnection.destroy();
     });
@@ -131,7 +131,7 @@ describe("ConversationViewer outbound propagation status", () => {
         const wrapper = mountViewer();
         const message = { state: "sending", progress: 25 };
         expect(wrapper.vm.showOutboundTransferProgress(message)).toBe(true);
-        GlobalState.outboundTransferProgressEnabled = false;
+        useConfigStore().outboundTransferProgressEnabled = false;
         expect(wrapper.vm.showOutboundTransferProgress(message)).toBe(false);
     });
 

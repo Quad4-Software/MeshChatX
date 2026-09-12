@@ -8,8 +8,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MessagesPage from "../../meshchatx/src/frontend/components/messages/MessagesPage.vue";
 import App from "../../meshchatx/src/frontend/components/App.vue";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import { isLocalMapServiceUrl, isPrivateOrLocalHostname } from "../../meshchatx/src/frontend/js/mapLocalUrl.js";
+import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore.js";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
@@ -36,7 +36,7 @@ vi.mock("../../meshchatx/src/frontend/js/NotificationSoundUtils", () => ({
 
 describe("conversations unread oracle", () => {
     beforeEach(() => {
-        GlobalState.unreadConversationsCount = 3;
+        useUnreadStore().unreadConversationsCount = 3;
         window.api = {
             post: vi.fn(async () => ({ data: {} })),
         };
@@ -57,7 +57,7 @@ describe("conversations unread oracle", () => {
         MessagesPage.methods.dismissUnreadForOpenDestination.call(ctx, peer);
         await vi.waitFor(() => expect(window.api.post).toHaveBeenCalled());
 
-        expect(GlobalState.unreadConversationsCount).toBe(3);
+        expect(useUnreadStore().unreadConversationsCount).toBe(3);
     });
 
     it("decrements nav unread once when dismissing an unread conversation without a viewer", async () => {
@@ -75,7 +75,7 @@ describe("conversations unread oracle", () => {
         await vi.waitFor(() => expect(window.api.post).toHaveBeenCalled());
 
         expect(conversation.is_unread).toBe(false);
-        expect(GlobalState.unreadConversationsCount).toBe(2);
+        expect(useUnreadStore().unreadConversationsCount).toBe(2);
     });
 
     it("marks a restored open pane read after leaving Messages and returning", async () => {
@@ -96,7 +96,7 @@ describe("conversations unread oracle", () => {
         await vi.waitFor(() => expect(window.api.post).toHaveBeenCalled());
 
         expect(conversation.is_unread).toBe(false);
-        expect(GlobalState.unreadConversationsCount).toBe(2);
+        expect(useUnreadStore().unreadConversationsCount).toBe(2);
         expect(window.api.post).toHaveBeenCalledWith(`/api/v1/lxmf/conversations/${peer}/mark-as-read`);
     });
 });
@@ -180,32 +180,32 @@ describe("identity-switch surface contracts", () => {
 
     it("RelayChatPage listens for identity-switched and clears hub UI state", () => {
         const src = readFrontend("components/relay/RelayChatPage.vue");
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/GlobalEmitter\.on\(\s*(EMITTER_EVENTS\.IDENTITY_SWITCHED|"identity-switched")/);
         expect(src).toMatch(/onIdentitySwitched/);
         expect(src).toMatch(/this\.hubs\s*=\s*\[\]/);
     });
 
     it("RNSHManagerPage listens for identity-switched and clears session output cache", () => {
         const src = readFrontend("components/tools/RNSHManagerPage.vue");
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/GlobalEmitter\.on\(\s*(EMITTER_EVENTS\.IDENTITY_SWITCHED|"identity-switched")/);
         expect(src).toMatch(/outputsBySession\s*=\s*\{\}/);
     });
 
     it("NomadNetworkBrowser listens for identity-switched and resets tabs", () => {
         const src = readFrontend("components/nomadnetwork/NomadNetworkBrowser.vue");
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/GlobalEmitter\.on\(\s*(EMITTER_EVENTS\.IDENTITY_SWITCHED|"identity-switched")/);
         expect(src).toMatch(/this\.tabs\s*=\s*\[\]/);
     });
 
     it("MapBrowser listens for identity-switched and resets tabs", () => {
         const src = readFrontend("components/map/MapBrowser.vue");
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/GlobalEmitter\.on\(\s*(EMITTER_EVENTS\.IDENTITY_SWITCHED|"identity-switched")/);
         expect(src).toMatch(/this\.tabs\s*=\s*\[\]/);
     });
 
     it("NetworkVisualiser listens for identity-switched and clears cached graph state", () => {
         const src = readFrontend("components/network-visualiser/NetworkVisualiser.vue");
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/GlobalEmitter\.on\(\s*(EMITTER_EVENTS\.IDENTITY_SWITCHED|"identity-switched")/);
         expect(src).toMatch(/onIdentitySwitched/);
         expect(src).toMatch(/this\.cachedPositions\s*=\s*\{\}/);
         expect(src).toMatch(/this\.pathTable\s*=\s*\[\]/);

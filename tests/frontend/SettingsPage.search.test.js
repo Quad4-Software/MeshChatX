@@ -4,9 +4,9 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import { createWindowApi, buildFullServerConfig } from "./fixtures/settingsPageTestApi.js";
 import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
 
 registerCoreContributions();
 
@@ -87,14 +87,14 @@ describe("SettingsPage search", () => {
 
     beforeEach(() => {
         registerCoreContributions();
-        GlobalState.pluginsEnabled = true;
+        useAuthStore().pluginsEnabled = true;
         wrapper = null;
     });
 
     afterEach(() => {
         wrapper?.unmount();
         wrapper = null;
-        GlobalState.pluginsEnabled = true;
+        useAuthStore().pluginsEnabled = true;
         delete window.api;
         vi.clearAllMocks();
         document.body.innerHTML = "";
@@ -162,7 +162,7 @@ describe("SettingsPage search", () => {
     });
 
     it("hides plugins matches when plugins are disabled", async () => {
-        GlobalState.pluginsEnabled = false;
+        useAuthStore().pluginsEnabled = false;
         wrapper = await mountSettingsPage();
         wrapper.vm.searchQuery = "plugins";
         await wrapper.vm.$nextTick();

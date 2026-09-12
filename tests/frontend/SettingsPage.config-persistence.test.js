@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import * as localeLoader from "../../meshchatx/src/frontend/js/localeLoader.js";
 import { buildFullServerConfig, createWindowApi } from "./fixtures/settingsPageTestApi.js";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
@@ -104,7 +104,7 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         w.vm.config.theme = "dark";
         await w.vm.onThemeChange();
         expect(emitSpy).toHaveBeenCalledWith("config-updated", expect.objectContaining({ theme: "dark" }));
-        expect(GlobalState.config.theme).toBe("dark");
+        expect(useConfigStore().config.theme).toBe("dark");
         emitSpy.mockRestore();
     });
 
@@ -631,25 +631,25 @@ describe("SettingsPage: visualiser display prefs (localStorage + emitter)", () =
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("visualiser-display-prefs-changed");
     });
 
-    it("onDetailedOutboundSendStatusChange updates GlobalState and localStorage", async () => {
+    it("onDetailedOutboundSendStatusChange updates config store and localStorage", async () => {
         localStorage.removeItem("meshchatx_detailed_outbound_send_status");
         const w = await mountSettingsPage(api);
         await w.vm.onDetailedOutboundSendStatusChange({ target: { checked: true } });
-        expect(GlobalState.detailedOutboundSendStatus).toBe(true);
+        expect(useConfigStore().detailedOutboundSendStatus).toBe(true);
         expect(localStorage.getItem("meshchatx_detailed_outbound_send_status")).toBe("true");
         await w.vm.onDetailedOutboundSendStatusChange({ target: { checked: false } });
-        expect(GlobalState.detailedOutboundSendStatus).toBe(false);
+        expect(useConfigStore().detailedOutboundSendStatus).toBe(false);
         expect(localStorage.getItem("meshchatx_detailed_outbound_send_status")).toBe("false");
     });
 
-    it("onOutboundTransferProgressEnabledChange updates GlobalState and localStorage", async () => {
+    it("onOutboundTransferProgressEnabledChange updates config store and localStorage", async () => {
         localStorage.removeItem("meshchatx_outbound_transfer_progress_enabled");
         const w = await mountSettingsPage(api);
         await w.vm.onOutboundTransferProgressEnabledChange({ target: { checked: false } });
-        expect(GlobalState.outboundTransferProgressEnabled).toBe(false);
+        expect(useConfigStore().outboundTransferProgressEnabled).toBe(false);
         expect(localStorage.getItem("meshchatx_outbound_transfer_progress_enabled")).toBe("false");
         await w.vm.onOutboundTransferProgressEnabledChange({ target: { checked: true } });
-        expect(GlobalState.outboundTransferProgressEnabled).toBe(true);
+        expect(useConfigStore().outboundTransferProgressEnabled).toBe(true);
         expect(localStorage.getItem("meshchatx_outbound_transfer_progress_enabled")).toBe("true");
     });
 });

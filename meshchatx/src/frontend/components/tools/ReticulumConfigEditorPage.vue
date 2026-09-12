@@ -113,11 +113,13 @@
 </template>
 
 <script>
+import { useInterfaceChangesStore } from "../../js/stores/interfaceChangesStore.js";
+
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
-import GlobalState from "../../js/GlobalState";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "ReticulumConfigEditorPage",
@@ -151,7 +153,7 @@ export default {
             return this.content !== this.originalContent;
         },
         showRestartReminder() {
-            return this.hasSavedChanges || GlobalState.hasPendingInterfaceChanges;
+            return this.hasSavedChanges || useInterfaceChangesStore().hasPendingInterfaceChanges;
         },
     },
     async mounted() {
@@ -162,7 +164,7 @@ export default {
             if (this.loading) return;
             try {
                 this.loading = true;
-                const response = await window.api.get("/api/v1/reticulum/config/raw");
+                const response = await window.api.get(apiPath("/reticulum/config/raw"));
                 this.content = response.data.content || "";
                 this.originalContent = this.content;
                 this.configPath = response.data.path || "";
@@ -177,13 +179,13 @@ export default {
             try {
                 this.saving = true;
                 ToastUtils.loading(this.$t("tools.reticulum_config_editor.saving"), 0, "rns-config-save");
-                const response = await window.api.put("/api/v1/reticulum/config/raw", {
+                const response = await window.api.put(apiPath("/reticulum/config/raw"), {
                     content: this.content,
                 });
                 this.originalContent = this.content;
                 this.configPath = response.data.path || this.configPath;
                 this.hasSavedChanges = true;
-                GlobalState.hasPendingInterfaceChanges = true;
+                useInterfaceChangesStore().hasPendingInterfaceChanges = true;
                 ToastUtils.success(response.data.message || this.$t("tools.reticulum_config_editor.saved"));
             } catch (e) {
                 ToastUtils.error(e.response?.data?.error || this.$t("tools.reticulum_config_editor.failed_save"));
@@ -199,12 +201,12 @@ export default {
             try {
                 this.resetting = true;
                 ToastUtils.loading(this.$t("tools.reticulum_config_editor.restoring"), 0, "rns-config-restore");
-                const response = await window.api.post("/api/v1/reticulum/config/reset");
+                const response = await window.api.post(apiPath("/reticulum/config/reset"));
                 this.content = response.data.content || "";
                 this.originalContent = this.content;
                 this.configPath = response.data.path || this.configPath;
                 this.hasSavedChanges = true;
-                GlobalState.hasPendingInterfaceChanges = true;
+                useInterfaceChangesStore().hasPendingInterfaceChanges = true;
                 ToastUtils.success(response.data.message || this.$t("tools.reticulum_config_editor.restored"));
             } catch (e) {
                 ToastUtils.error(e.response?.data?.error || this.$t("tools.reticulum_config_editor.failed_restore"));
@@ -222,12 +224,12 @@ export default {
             try {
                 this.reloadingRns = true;
                 ToastUtils.loading(this.$t("app.reloading_rns"), 0, "rns-config-reload");
-                const response = await window.api.post("/api/v1/reticulum/reload");
+                const response = await window.api.post(apiPath("/reticulum/reload"));
                 ToastUtils.success(response.data.message || this.$t("tools.reticulum_config_editor.restart_done"));
                 this.hasSavedChanges = false;
-                GlobalState.hasPendingInterfaceChanges = false;
-                if (GlobalState.modifiedInterfaceNames?.clear) {
-                    GlobalState.modifiedInterfaceNames.clear();
+                useInterfaceChangesStore().hasPendingInterfaceChanges = false;
+                if (useInterfaceChangesStore().modifiedInterfaceNames?.clear) {
+                    useInterfaceChangesStore().modifiedInterfaceNames.clear();
                 }
                 await this.loadConfig();
             } catch (e) {

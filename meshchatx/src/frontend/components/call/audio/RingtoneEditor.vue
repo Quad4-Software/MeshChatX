@@ -139,6 +139,8 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import { apiPath } from "../../../js/constants.js";
+import * as telephoneApi from "../../../js/api/telephone.js";
 import ToastUtils from "../../../js/ToastUtils";
 
 export default {
@@ -199,8 +201,10 @@ export default {
         async loadAudio() {
             try {
                 this.loading = true;
-                const response = await fetch(`/api/v1/telephone/ringtones/${this.ringtone.id}/audio`);
-                const arrayBuffer = await response.arrayBuffer();
+                const response = await window.api.get(apiPath(`/telephone/ringtones/${this.ringtone.id}/audio`), {
+                    responseType: "arraybuffer",
+                });
+                const arrayBuffer = response.data;
 
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
@@ -411,7 +415,7 @@ export default {
 
                 formData.append("file", blob, filename);
 
-                await window.api.post("/api/v1/telephone/ringtones/upload", formData, {
+                await telephoneApi.uploadRingtones(formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
 

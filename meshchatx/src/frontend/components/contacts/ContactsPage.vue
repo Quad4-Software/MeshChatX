@@ -506,6 +506,9 @@ import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, WS_EVENTS } from "../../js/constants.js";
+import * as announcesApi from "../../js/api/announces.js";
+import * as telephoneApi from "../../js/api/telephone.js";
 import {
     attachStreamToVideo,
     decodeQrFromVideo,
@@ -602,7 +605,7 @@ export default {
         },
     },
     beforeUnmount() {
-        offWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResult);
+        offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResult);
         document.removeEventListener("click", this.closeContextMenu);
         this.stopScanner();
         if (this.searchDebounceTimeout) {
@@ -611,14 +614,14 @@ export default {
     },
     async mounted() {
         document.addEventListener("click", this.closeContextMenu);
-        onWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResult);
+        onWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResult);
         await this.getConfig();
         await this.getContacts();
     },
     methods: {
         async getConfig() {
             try {
-                const response = await window.api.get("/api/v1/config");
+                const response = await window.api.get(apiPath("/config"));
                 this.config = response.data.config;
                 this.myIdentityUri = this.buildMyIdentityUri();
                 if (this.myIdentityUri) {
@@ -643,7 +646,7 @@ export default {
                 this.contactsOffset = 0;
             }
             try {
-                const response = await window.api.get("/api/v1/telephone/contacts", {
+                const response = await telephoneApi.listContacts({
                     params: {
                         search: this.contactsSearch || undefined,
                         limit: this.contactsPageSize,
@@ -713,7 +716,7 @@ export default {
         },
         async importContacts(contacts) {
             try {
-                const response = await window.api.post("/api/v1/telephone/contacts/import", {
+                const response = await window.api.post(apiPath("/telephone/contacts/import"), {
                     contacts,
                 });
                 const added = response.data?.added ?? 0;
@@ -726,7 +729,7 @@ export default {
         },
         async exportContacts() {
             try {
-                const response = await window.api.get("/api/v1/telephone/contacts/export");
+                const response = await window.api.get(apiPath("/telephone/contacts/export"));
                 const contacts = response.data?.contacts ?? [];
                 const blob = new Blob([JSON.stringify({ contacts }, null, 2)], {
                     type: "application/json",
@@ -786,13 +789,13 @@ export default {
                     return;
                 }
 
-                const existing = await window.api.get(`/api/v1/telephone/contacts/check/${destinationHash}`);
+                const existing = await window.api.get(apiPath(`/telephone/contacts/check/${destinationHash}`));
                 if (existing.data?.id) {
                     ToastUtils.info(this.$t("contacts.contact_already_exists"));
                     return;
                 }
 
-                await window.api.post("/api/v1/telephone/contacts", {
+                await window.api.post(apiPath("/telephone/contacts"), {
                     name: this.newContactName?.trim() || `Contact ${destinationHash.slice(0, 8)}`,
                     lxmf_address: destinationHash,
                 });
@@ -834,7 +837,7 @@ export default {
             try {
                 const ids = [contact.id, ...duplicates.map((c) => c.id)];
                 for (const id of ids) {
-                    await window.api.delete(`/api/v1/telephone/contacts/${id}`);
+                    await window.api.delete(apiPath(`/telephone/contacts/${id}`));
                 }
                 ToastUtils.success(this.$t("contacts.contact_removed"));
                 await this.getContacts();
@@ -851,13 +854,13 @@ export default {
                 const duplicates = this.contacts.filter((c) => c.name === contact.name && c.id !== contact.id);
                 const ids = [contact.id, ...duplicates.map((c) => c.id)];
                 for (const id of ids) {
-                    await window.api.patch(`/api/v1/telephone/contacts/${id}`, { name });
+                    await window.api.patch(apiPath(`/telephone/contacts/${id}`), { name });
                 }
                 const allContacts = [contact, ...duplicates];
                 for (const c of allContacts) {
                     const destHash = c.remote_destination_hash || c.lxmf_address || c.remote_identity_hash;
                     if (destHash && name.length > 0) {
-                        await window.api.post(`/api/v1/destination/${destHash}/custom-display-name/update`, {
+                        await window.api.post(apiPath(`/destination/${destHash}/custom-display-name/update`), {
                             display_name: name,
                         });
                     }
@@ -895,7 +898,7 @@ export default {
             const destinationHash = (contact?.lxmf_address || contact?.remote_identity_hash || "").toLowerCase();
             if (!/^[0-9a-f]{32}$/.test(destinationHash)) return null;
             try {
-                const response = await window.api.get("/api/v1/announces", {
+                const response = await announcesApi.listAnnounces({
                     params: {
                         destination_hash: destinationHash,
                         limit: 1,

@@ -9,6 +9,7 @@ import threading
 from typing import Any
 
 from meshchatx.src.backend.ip_allowlist import normalize_allowlist_text
+from meshchatx.src.env_utils import env_str
 from meshchatx.src.json_store import load_json, save_json
 
 _SETTINGS_FILENAME = "app_security.json"
@@ -68,7 +69,7 @@ def get_web_ui_ip_allowlist(storage_dir: str) -> str:
 
 def get_trusted_proxy_cidrs(storage_dir: str) -> str:
     """CIDRs allowed to supply X-Forwarded-For (env overrides file settings)."""
-    env = normalize_allowlist_text(os.environ.get("MESHCHAT_TRUSTED_PROXIES"))
+    env = normalize_allowlist_text(env_str("MESHCHAT_TRUSTED_PROXIES"))
     if env:
         return env
     return normalize_allowlist_text(

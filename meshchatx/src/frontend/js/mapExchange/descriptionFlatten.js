@@ -14,6 +14,8 @@ const MASHED_NULL_KEY_RE = /((?:&lt;Null&gt;|<Null>|null|&lt;null&gt;))\s*(?=[A-
 const MASHED_VALUE_KEY_RE = /([^\s:])([A-Z][A-Za-z0-9_]{1,40}:)/g;
 const FONT_FIELD_RE =
     /<(?:font|b|strong|span)\b[^>]*>\s*([^<:]{1,64}?)\s*:?\s*<\/(?:font|b|strong|span)>\s*:?\s*([^<]{0,200}?)(?=<|$)/gi;
+const SCRIPT_BLOCK_RE = /<script\b[^>]*>[\s\S]*?(?:<\/script[^>]*>|$)/gi;
+const STYLE_BLOCK_RE = /<style\b[^>]*>[\s\S]*?(?:<\/style[^>]*>|$)/gi;
 
 /**
  * @param {string} value
@@ -85,7 +87,13 @@ function dropScriptAndStyle(html) {
         }
         return doc.body ? doc.body.innerHTML : s;
     }
-    return s.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "").replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "");
+    let out = s;
+    let prev;
+    do {
+        prev = out;
+        out = out.replace(SCRIPT_BLOCK_RE, "").replace(STYLE_BLOCK_RE, "");
+    } while (out !== prev);
+    return out;
 }
 
 /**

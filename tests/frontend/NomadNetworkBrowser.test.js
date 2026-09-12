@@ -27,6 +27,7 @@ vi.mock("@/components/nomadnetwork/NomadNetworkPage.vue", () => ({
 
 import NomadNetworkBrowser from "@/components/nomadnetwork/NomadNetworkBrowser.vue";
 import ToastUtils from "@/js/ToastUtils";
+import { useConfigStore } from "@/js/stores/configStore.js";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
@@ -174,12 +175,12 @@ describe("NomadNetworkBrowser.vue", () => {
         await wrapper.vm.$nextTick();
         expect(wrapper.find('[role="tablist"]').exists()).toBe(true);
 
-        wrapper.vm.GlobalState.config.nomad_tabs_enabled = false;
+        useConfigStore().config.nomad_tabs_enabled = false;
         await wrapper.vm.$nextTick();
         expect(wrapper.vm.tabsEnabled).toBe(false);
         expect(wrapper.find('[role="tablist"]').exists()).toBe(false);
 
-        wrapper.vm.GlobalState.config.nomad_tabs_enabled = true;
+        useConfigStore().config.nomad_tabs_enabled = true;
     });
 
     it("persists tab layout to localStorage when tabs change", async () => {

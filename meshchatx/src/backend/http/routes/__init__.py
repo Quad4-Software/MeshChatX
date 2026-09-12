@@ -4,9 +4,6 @@
 
 from __future__ import annotations
 
-import importlib
-
-from meshchatx.src.backend.http.live_names import inject_meshchat_names
 from meshchatx.src.backend.http.routes.app_info import register_app_info_routes
 from meshchatx.src.backend.http.routes.archives import register_archives_routes
 from meshchatx.src.backend.http.routes.auth import register_auth_routes
@@ -51,46 +48,6 @@ from meshchatx.src.backend.http.routes.websocket_upgrade import (
     register_websocket_upgrade_routes,
 )
 
-_ROUTE_MODULES = (
-    "meshchatx.src.backend.http.routes.shell",
-    "meshchatx.src.backend.http.routes.debug",
-    "meshchatx.src.backend.http.routes.database",
-    "meshchatx.src.backend.http.routes.status",
-    "meshchatx.src.backend.http.routes.auth",
-    "meshchatx.src.backend.http.routes.interfaces",
-    "meshchatx.src.backend.http.routes.community",
-    "meshchatx.src.backend.http.routes.websocket_upgrade",
-    "meshchatx.src.backend.http.routes.app_info",
-    "meshchatx.src.backend.http.routes.docs",
-    "meshchatx.src.backend.http.routes.repository_server",
-    "meshchatx.src.backend.http.routes.identities",
-    "meshchatx.src.backend.http.routes.maintenance",
-    "meshchatx.src.backend.http.routes.config",
-    "meshchatx.src.backend.http.routes.reticulum_instance",
-    "meshchatx.src.backend.http.routes.rrc",
-    "meshchatx.src.backend.http.routes.telephone",
-    "meshchatx.src.backend.http.routes.contacts",
-    "meshchatx.src.backend.http.routes.favourites",
-    "meshchatx.src.backend.http.routes.archives",
-    "meshchatx.src.backend.http.routes.lxmf",
-    "meshchatx.src.backend.http.routes.path_probe",
-    "meshchatx.src.backend.http.routes.rn_tools",
-    "meshchatx.src.backend.http.routes.filesync",
-    "meshchatx.src.backend.http.routes.plugins",
-    "meshchatx.src.backend.http.routes.sideband",
-    "meshchatx.src.backend.http.routes.page_nodes",
-    "meshchatx.src.backend.http.routes.bots",
-    "meshchatx.src.backend.http.routes.messages",
-    "meshchatx.src.backend.http.routes.nomad",
-    "meshchatx.src.backend.http.routes.blocklist",
-    "meshchatx.src.backend.http.routes.spam",
-    "meshchatx.src.backend.http.routes.map",
-    "meshchatx.src.backend.http.routes.stickers",
-    "meshchatx.src.backend.http.routes.gifs",
-    "meshchatx.src.backend.http.routes.translation",
-    "meshchatx.src.backend.http.routes.telemetry",
-)
-
 _REGISTER_ORDER = (
     register_shell_routes,
     register_debug_routes,
@@ -132,15 +89,7 @@ _REGISTER_ORDER = (
 )
 
 
-def _inject_meshchat_namespace() -> None:
-    """Bind meshchat names into route modules for free-variable lookups."""
-    for mod_name in _ROUTE_MODULES:
-        mod = importlib.import_module(mod_name)
-        inject_meshchat_names(mod.__dict__)
-
-
 def register_extracted_routes(routes, app) -> None:
     """Call each extracted register_*_routes in fixed order."""
-    _inject_meshchat_namespace()
     for register in _REGISTER_ORDER:
         register(routes, app)

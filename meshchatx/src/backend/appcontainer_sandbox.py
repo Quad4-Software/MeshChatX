@@ -17,6 +17,8 @@ import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from meshchatx.src.env_utils import env_bool, env_str
+
 logger = logging.getLogger("meshchatx.appcontainer")
 
 APPCONTAINER_PROFILE_NAME = "MeshChatX.Backend"
@@ -174,7 +176,7 @@ _appcontainer_support_cached: bool | None = None
 
 
 def _env_override() -> bool | None:
-    raw = os.environ.get(ENV_VAR)
+    raw = env_str(ENV_VAR)
     if raw is None:
         return None
     val = raw.strip().lower()
@@ -187,8 +189,7 @@ def _env_override() -> bool | None:
 
 def is_appcontainer_child() -> bool:
     """Return True when this process was launched inside the AppContainer."""
-    raw = os.environ.get(CHILD_ENV_FLAG, "")
-    return raw.strip().lower() in ("1", "true", "yes", "on")
+    return env_bool(CHILD_ENV_FLAG)
 
 
 def _windows_version_supported() -> bool:
@@ -341,7 +342,7 @@ def _windows_known_folder(folder_id: str) -> str | None:
 def _user_profile_dir() -> str | None:
     if sys.platform == "win32":
         for key in ("USERPROFILE", "HOME"):
-            raw = os.environ.get(key)
+            raw = env_str(key)
             if raw:
                 return os.path.abspath(raw)
     home = os.path.expanduser("~")
@@ -402,9 +403,9 @@ def collect_rw_roots(
         reticulum_config_dir,
         log_dir,
         tempfile.gettempdir(),
-        os.environ.get("TMP"),
-        os.environ.get("TEMP"),
-        os.environ.get("TMPDIR"),
+        env_str("TMP"),
+        env_str("TEMP"),
+        env_str("TMPDIR"),
     ):
         existing = _existing_dir(candidate)
         if existing and existing not in paths:

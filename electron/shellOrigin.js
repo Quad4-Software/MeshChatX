@@ -109,7 +109,9 @@ function isTrustedShellFileUrl(url) {
         const candidate = normalized.startsWith("/") && !base.startsWith("/") ? normalized.slice(1) : normalized;
         return candidate === `${base}/loading.html` || candidate === `${base}/crash.html`;
     }
-    return true;
+    // No module dir to pin the page to: refuse rather than trusting any
+    // file: URL that happens to end in loading.html or crash.html.
+    return false;
 }
 
 /**

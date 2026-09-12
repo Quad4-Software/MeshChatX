@@ -1,3 +1,5 @@
+import { apiPath } from "./constants.js";
+
 let csrfToken = null;
 
 export function getCsrfToken() {
@@ -13,7 +15,7 @@ export function clearCsrfToken() {
 }
 
 export async function fetchCsrfToken(api) {
-    const response = await api.get("/api/v1/auth/csrf");
+    const response = await api.get(apiPath("/auth/csrf"));
     setCsrfToken(response.data?.csrf_token);
     return csrfToken;
 }

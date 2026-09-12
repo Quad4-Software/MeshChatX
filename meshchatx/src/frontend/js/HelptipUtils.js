@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
+import { apiPath } from "./constants.js";
 import ToastUtils from "./ToastUtils.js";
 import { buildDeliveryHelptips, mapSendFailureKind } from "./deliveryHelptips.js";
 import {
@@ -20,7 +21,7 @@ const SEVERITY_ORDER = {
 };
 
 async function fetchDeliveryDiagnostics(api, peerHash) {
-    const response = await api.get(`/api/v1/destination/${peerHash}/delivery-diagnostics`);
+    const response = await api.get(apiPath(`/destination/${peerHash}/delivery-diagnostics`));
     return response?.data ?? null;
 }
 

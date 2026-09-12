@@ -2,7 +2,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ReticulumConfigEditorPage from "@/components/tools/ReticulumConfigEditorPage.vue";
 import DialogUtils from "@/js/DialogUtils";
-import GlobalState from "@/js/GlobalState";
+import { useInterfaceChangesStore } from "@/js/stores/interfaceChangesStore.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -53,11 +53,11 @@ describe("ReticulumConfigEditorPage.vue", () => {
             return Promise.resolve({ data: {} });
         });
 
-        GlobalState.hasPendingInterfaceChanges = false;
-        if (!GlobalState.modifiedInterfaceNames) {
-            GlobalState.modifiedInterfaceNames = new Set();
+        useInterfaceChangesStore().hasPendingInterfaceChanges = false;
+        if (!useInterfaceChangesStore().modifiedInterfaceNames) {
+            useInterfaceChangesStore().modifiedInterfaceNames = new Set();
         }
-        GlobalState.modifiedInterfaceNames.clear();
+        useInterfaceChangesStore().modifiedInterfaceNames.clear();
     });
 
     afterEach(() => {
@@ -119,7 +119,7 @@ describe("ReticulumConfigEditorPage.vue", () => {
         expect(axiosMock.put).toHaveBeenCalledWith("/api/v1/reticulum/config/raw", { content: newContent });
         expect(wrapper.vm.hasSavedChanges).toBe(true);
         expect(wrapper.vm.showRestartReminder).toBe(true);
-        expect(GlobalState.hasPendingInterfaceChanges).toBe(true);
+        expect(useInterfaceChangesStore().hasPendingInterfaceChanges).toBe(true);
         expect(wrapper.text()).toContain("tools.reticulum_config_editor.restart_required");
     });
 
@@ -143,7 +143,7 @@ describe("ReticulumConfigEditorPage.vue", () => {
         expect(wrapper.vm.content).toBe(DEFAULT_CONFIG);
         expect(wrapper.vm.originalContent).toBe(DEFAULT_CONFIG);
         expect(wrapper.vm.hasSavedChanges).toBe(true);
-        expect(GlobalState.hasPendingInterfaceChanges).toBe(true);
+        expect(useInterfaceChangesStore().hasPendingInterfaceChanges).toBe(true);
     });
 
     it("does not restore defaults if the user cancels", async () => {
@@ -169,7 +169,7 @@ describe("ReticulumConfigEditorPage.vue", () => {
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/reload");
         expect(wrapper.vm.hasSavedChanges).toBe(false);
-        expect(GlobalState.hasPendingInterfaceChanges).toBe(false);
+        expect(useInterfaceChangesStore().hasPendingInterfaceChanges).toBe(false);
     });
 
     it("discards unsaved changes back to the original content", async () => {

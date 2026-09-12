@@ -281,6 +281,7 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import { loadRnshLayout, saveRnshLayout } from "../../js/browserLayoutStore";
 import { renderTerminalOutput } from "../../js/terminalRender";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
 
 const EMPTY_LAYOUT = {
     selectedSessionId: null,
@@ -402,10 +403,10 @@ export default {
         window.addEventListener("keydown", this.onFullscreenKeydown);
         this.restoreLayout();
         await this.loadSessions();
-        onWsEvent("rnsh.session.change", this.onSessionChange);
-        onWsEvent("rnsh.output", this.onOutputEvent);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        onWsEvent(WS_EVENTS.RNSH_SESSION_CHANGE, this.onSessionChange);
+        onWsEvent(WS_EVENTS.RNSH_OUTPUT, this.onOutputEvent);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
     },
     beforeUnmount() {
         if (this.onWindowResize) {
@@ -415,10 +416,10 @@ export default {
             window.removeEventListener("keydown", this.onFullscreenKeydown);
         }
         document.body.style.overflow = "";
-        offWsEvent("rnsh.session.change", this.onSessionChange);
-        offWsEvent("rnsh.output", this.onOutputEvent);
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        offWsEvent(WS_EVENTS.RNSH_SESSION_CHANGE, this.onSessionChange);
+        offWsEvent(WS_EVENTS.RNSH_OUTPUT, this.onOutputEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
     },
     methods: {
         onIdentitySwitched() {
@@ -514,7 +515,7 @@ export default {
         },
         async loadSessions() {
             try {
-                const response = await window.api.get("/api/v1/rnsh/sessions");
+                const response = await window.api.get(apiPath("/rnsh/sessions"));
                 this.sessions = Array.isArray(response.data?.sessions) ? response.data.sessions : [];
                 this.sessions.forEach((session) => this.ingestSession(session));
                 if (!this.selectedSessionId && this.sessions.length > 0) {
@@ -559,7 +560,7 @@ export default {
         },
         async createSessionFromPayload(payload) {
             try {
-                const response = await window.api.post("/api/v1/rnsh/sessions", payload);
+                const response = await window.api.post(apiPath("/rnsh/sessions"), payload);
                 const session = response.data?.session;
                 if (session?.id) {
                     this.outputsBySession[session.id] = "";
@@ -587,7 +588,7 @@ export default {
         async startSelected() {
             if (!this.selectedSession) return;
             try {
-                await window.api.post(`/api/v1/rnsh/sessions/${this.selectedSession.id}/start`, {});
+                await window.api.post(apiPath(`/rnsh/sessions/${this.selectedSession.id}/start`), {});
                 ToastUtils.success(this.$t("rnsh.session_started"));
                 await this.loadSessions();
             } catch (error) {
@@ -597,7 +598,7 @@ export default {
         async stopSelected() {
             if (!this.selectedSession) return;
             try {
-                await window.api.post(`/api/v1/rnsh/sessions/${this.selectedSession.id}/stop`, {});
+                await window.api.post(apiPath(`/rnsh/sessions/${this.selectedSession.id}/stop`), {});
                 ToastUtils.success(this.$t("rnsh.session_stopped"));
                 await this.loadSessions();
             } catch (error) {
@@ -608,7 +609,7 @@ export default {
             if (!this.selectedSession) return;
             const sessionId = this.selectedSession.id;
             try {
-                await window.api.delete(`/api/v1/rnsh/sessions/${sessionId}`);
+                await window.api.delete(apiPath(`/rnsh/sessions/${sessionId}`));
                 delete this.outputsBySession[sessionId];
                 ToastUtils.success(this.$t("rnsh.session_removed"));
                 await this.loadSessions();
@@ -619,7 +620,7 @@ export default {
         async clearSelectedOutput() {
             if (!this.selectedSession) return;
             try {
-                const response = await window.api.post(`/api/v1/rnsh/sessions/${this.selectedSession.id}/clear`, {});
+                const response = await window.api.post(apiPath(`/rnsh/sessions/${this.selectedSession.id}/clear`), {});
                 const session = response.data?.session;
                 if (session?.id) {
                     this.outputsBySession[session.id] = "";
@@ -650,7 +651,7 @@ export default {
             const text = this.commandInput;
             this.commandInput = "";
             try {
-                await window.api.post(`/api/v1/rnsh/sessions/${this.selectedSession.id}/input`, {
+                await window.api.post(apiPath(`/rnsh/sessions/${this.selectedSession.id}/input`), {
                     text,
                     newline: true,
                 });

@@ -58,6 +58,7 @@
 
 <script>
 import GlobalEmitter from "../js/GlobalEmitter";
+import { EMITTER_EVENTS } from "../js/constants.js";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
 function isComposingKey(event) {
@@ -91,15 +92,15 @@ export default {
         };
     },
     mounted() {
-        GlobalEmitter.on("confirm", this.show);
-        GlobalEmitter.on("prompt", this.dismissForOtherDialog);
+        GlobalEmitter.on(EMITTER_EVENTS.CONFIRM, this.show);
+        GlobalEmitter.on(EMITTER_EVENTS.PROMPT, this.dismissForOtherDialog);
         window.addEventListener("keydown", this.onWindowKeydown, true);
         window.addEventListener("keyup", this.onWindowKeyup, true);
     },
     beforeUnmount() {
         this.cancel();
-        GlobalEmitter.off("confirm", this.show);
-        GlobalEmitter.off("prompt", this.dismissForOtherDialog);
+        GlobalEmitter.off(EMITTER_EVENTS.CONFIRM, this.show);
+        GlobalEmitter.off(EMITTER_EVENTS.PROMPT, this.dismissForOtherDialog);
         window.removeEventListener("keydown", this.onWindowKeydown, true);
         window.removeEventListener("keyup", this.onWindowKeyup, true);
     },

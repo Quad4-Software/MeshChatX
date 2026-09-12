@@ -84,6 +84,19 @@ def require_loopback_tcp(loopback_available):
         )
 
 
+# Modules that bind AsyncUtils by direct import. Patching the same mock into
+# their namespaces preserves the old live-name behaviour, where
+# patch("meshchatx.meshchat.AsyncUtils...") reached every consumer.
+_ASYNC_UTILS_CONSUMERS = (
+    "meshchatx.src.backend.http.routes.lxmf",
+    "meshchatx.src.backend.http.routes.path_probe",
+    "meshchatx.src.backend.http.routes.rn_tools",
+    "meshchatx.src.backend.http.ws.handlers_core",
+    "meshchatx.src.backend.http.ws.handlers_lxmf",
+    "meshchatx.src.backend.http.ws.handlers_nomad",
+)
+
+
 @pytest.fixture(autouse=True)
 def global_mocks():
     with (
@@ -93,7 +106,11 @@ def global_mocks():
             return_value=None,
         ),
         patch("meshchatx.meshchat.generate_ssl_certificate", return_value=None),
+        ExitStack() as stack,
     ):
+        for consumer in _ASYNC_UTILS_CONSUMERS:
+            stack.enter_context(patch(f"{consumer}.AsyncUtils", mock_async_utils))
+
         # Mock run_async to properly close coroutines
         def mock_run_async(coro):
             if asyncio.iscoroutine(coro):

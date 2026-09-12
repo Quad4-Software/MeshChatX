@@ -5,17 +5,17 @@
     <div v-if="selectedPeer" class="flex flex-col h-full bg-sem-canvas overflow-hidden relative">
         <!-- banished overlay -->
         <div
-            v-if="GlobalState?.config?.banished_effect_enabled && isSelectedPeerBlocked"
+            v-if="configStore.config?.banished_effect_enabled && isSelectedPeerBlocked"
             class="banished-overlay"
-            :style="{ background: (GlobalState?.config?.banished_color || '#dc2626') + '33' }"
+            :style="{ background: (configStore.config?.banished_color || '#dc2626') + '33' }"
         >
             <span
                 class="banished-text opacity-100! text-sem-canvas! shadow-lg! bg-sem-danger! px-4! py-2! rounded-xl! border-2! tracking-widest!"
                 :style="{
-                    'background-color': GlobalState?.config?.banished_color || '#dc2626',
-                    'border-color': GlobalState?.config?.banished_color || '#dc2626',
+                    'background-color': configStore.config?.banished_color || '#dc2626',
+                    'border-color': configStore.config?.banished_color || '#dc2626',
                 }"
-                >{{ GlobalState?.config?.banished_text || "BANISHED" }}</span
+                >{{ configStore.config?.banished_text || "BANISHED" }}</span
             >
         </div>
 
@@ -196,9 +196,27 @@
                 </div>
                 <div
                     v-if="!messagesViewportReady"
-                    class="absolute inset-0 z-20 bg-sem-surface pointer-events-none select-none"
+                    class="absolute inset-0 z-20 bg-sem-surface pointer-events-none select-none overflow-hidden px-4 py-6 space-y-5"
                     aria-hidden="true"
-                />
+                >
+                    <div
+                        v-for="n in 8"
+                        :key="'msg-skel-' + n"
+                        class="flex"
+                        :class="n % 2 === 0 ? 'justify-end' : 'justify-start'"
+                    >
+                        <div
+                            class="flex flex-col gap-1.5"
+                            :class="[n % 2 === 0 ? 'items-end' : 'items-start', n % 3 === 0 ? 'w-2/5' : 'w-3/5']"
+                        >
+                            <Skeleton
+                                variant="line"
+                                :root-class="n % 3 === 1 ? 'h-8 rounded-2xl' : 'h-6 rounded-2xl'"
+                            />
+                            <Skeleton variant="line" root-class="w-1/3 h-2" />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <Transition name="scroll-fab">
@@ -1576,6 +1594,11 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
+import { mapStores } from "pinia";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useUnreadStore } from "../../js/stores/unreadStore.js";
+import { useIdentityStore } from "../../js/stores/identityStore.js";
 import Utils from "../../js/Utils";
 import { copyTextToClipboard, copyImageBlobToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { preferNativeTextSelectionMenu } from "../../js/contextMenuUtils.js";
@@ -1607,16 +1630,15 @@ import {
     collectImageFilesFromDataTransfer as collectImagesFromDataTransfer,
     extractClipboardImageFiles,
 } from "./conversationMessageHelpers.js";
-import {
-    isPaperMessageIngested as isPaperMessageIngestedStored,
-    listIngestedPaperMessageHashes,
-    markPaperMessageIngested,
-    normalizePaperIngestMessageHash,
-    shouldMarkPaperIngestFromResultStatus,
-} from "./conversationPaperIngest.js";
 import ConversationPeerHeader from "./ConversationPeerHeader.vue";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
+import Skeleton from "../Skeleton.vue";
+import {
+    clearConversationPrefetchCache,
+    stashConversationFirstPage,
+    takeConversationPrefetch,
+} from "../../js/conversationPrefetch.js";
 import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
 import {
     buildDisplayGroupsNewestFirst,
@@ -1631,7 +1653,6 @@ import {
     runDestinationPathFinder,
     warmPathIfNeeded,
 } from "../../js/reticulumPathfinding.js";
-import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import AddAudioButton from "./composer/AddAudioButton.vue";
@@ -1664,13 +1685,16 @@ import {
     normalizeLxmfMessage as normalizeLxmfMessageHelper,
     normalizeSidebandCommandKey as normalizeSidebandCommandKeyHelper,
 } from "./lxmf/normalize.js";
-import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
 import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } from "../../js/relayLinkUtils.js";
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
+import { useImageModal } from "../../js/messages/useImageModal.js";
+import { useAudioAttachment } from "../../js/messages/useAudioAttachment.js";
+import { useMessageDrafts } from "../../js/messages/useMessageDrafts.js";
+import { usePaperIngest } from "../../js/messages/usePaperIngest.js";
 import {
     isOpportunisticDeferredDelivery as isOpportunisticDeferredDeliveryStatus,
     lxmfStateWouldRegress,
@@ -1684,6 +1708,10 @@ import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import TelemetryHistoryModal from "./telemetry/TelemetryHistoryModal.vue";
 import { uuidv4 } from "../../libs/uuid.js";
 import * as TranslationService from "../../js/TranslationService.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import * as gifsApi from "../../js/api/gifs.js";
+import * as lxmfMessagesApi from "../../js/api/lxmfMessages.js";
+import * as stickersApi from "../../js/api/stickers.js";
 
 export default {
     name: "ConversationViewer",
@@ -1703,6 +1731,7 @@ export default {
         LxmfUserIcon,
         ConversationMessageEntry,
         ConversationMessageListVirtual,
+        Skeleton,
         StickerView,
         InViewAnimatedImg,
         TelemetryHistoryModal,
@@ -1736,10 +1765,37 @@ export default {
         "update-peer-tracking",
         "outbound-compose-enqueued",
     ],
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useImageModal({
+                onOpened: () => inst?.proxy.$refs.imageModal?.focusOverlay?.(),
+                onDownload: (chatItem) => inst?.proxy.downloadMessageImage(chatItem),
+                onCopyToClipboard: (chatItem) => inst?.proxy.copyMessageImageToClipboard(chatItem),
+            }),
+            ...useAudioAttachment({
+                t: (key) => inst?.proxy.$t(key),
+                isMeshChatXAndroid: () => inst?.proxy.isMeshChatXAndroid(),
+                androidNativeWavAttachmentAllowed: () => inst?.proxy.androidNativeWavAttachmentAllowed(),
+            }),
+            ...useMessageDrafts({
+                getIdentityKey: () => inst?.proxy._draftIdentityKey(),
+                getNewMessageText: () => inst?.proxy.newMessageText ?? "",
+                setDraftText: (text) => {
+                    if (inst) {
+                        inst.proxy.newMessageText = text;
+                        inst.proxy.$nextTick(() => inst.proxy.adjustTextareaHeight());
+                    }
+                },
+            }),
+            ...usePaperIngest({
+                getIdentityKey: () => inst?.proxy._draftIdentityKey(),
+                t: (key) => inst?.proxy.$t(key),
+            }),
+        };
+    },
     data() {
         return {
-            GlobalState,
-            lastDraftIdentityKey: "",
             peerPathSnapshot: null,
             deliveryHelptipCache: {},
             peerPathLoading: false,
@@ -1763,7 +1819,6 @@ export default {
             newMessageText: "",
             newMessageImages: [],
             newMessageImageUrls: [],
-            newMessageAudio: null,
             newMessageTelemetry: null,
             newMessageFiles: [],
             pendingSendAsCommandOrRequest: false,
@@ -1778,27 +1833,10 @@ export default {
             contacts: [],
             contactsSearch: "",
 
-            isRecordingAudioAttachment: false,
-            audioAttachmentMicrophoneRecorder: null,
-            audioAttachmentMicrophoneRecorderCodec: null,
-            audioAttachmentRecordingStartedAt: null,
-            audioAttachmentRecordingDuration: null,
-            audioAttachmentRecordingTimer: null,
-            androidNativeOpusAttachment: false,
             lxmfMessageAudioAttachmentCache: {},
             lxmfMessageAudioAttachmentOrder: [],
             isDownloadingAudio: {},
             expandedMessageInfo: null,
-            imageModalUrl: null,
-            imageModalGallery: null,
-            imageModalGalleryChatItems: null,
-            imageModalChatItem: null,
-            imageModalIndex: 0,
-            imageModalContextMenu: {
-                show: false,
-                x: 0,
-                y: 0,
-            },
             isSelectedPeerBlocked: false,
             isStrangerPeer: false,
             strangerBannerDismissed: false,
@@ -1819,8 +1857,6 @@ export default {
             },
             isPaperMessageModalOpen: false,
             paperMessageHash: null,
-            pendingPaperIngestMessageHash: null,
-            ingestedPaperMessageHashes: {},
             isRawMessageModalOpen: false,
             rawMessageData: null,
             hasTranslator: false,
@@ -1880,6 +1916,7 @@ export default {
         };
     },
     computed: {
+        ...mapStores(useConfigStore),
         visibleStickers() {
             if (this.activeStickerPackId === null) {
                 return this.userStickers;
@@ -1896,8 +1933,8 @@ export default {
             return this.windowWidth < 640 || this.peerHeaderCompact;
         },
         emojiPickerThemeClass() {
-            void GlobalState.config?.theme;
-            return GlobalState.config?.theme === "dark" ? "dark" : "light";
+            void useConfigStore().config?.theme;
+            return useConfigStore().config?.theme === "dark" ? "dark" : "light";
         },
         reactionPickerStyle() {
             if (this.reactionPickerPos) {
@@ -1945,22 +1982,22 @@ export default {
             return hops != null || (iface != null && iface !== "");
         },
         usesThemeOutboundBubbleColor() {
-            const c = GlobalState?.config?.message_outbound_bubble_color;
+            const c = useConfigStore().config?.message_outbound_bubble_color;
             if (c == null || String(c).trim() === "") {
                 return true;
             }
             return String(c).trim().toLowerCase() === "#4f46e5";
         },
         bubbleStyles() {
-            void GlobalState.detailedOutboundSendStatus;
-            void GlobalState.messageTimestampGroupingEnabled;
+            void useConfigStore().detailedOutboundSendStatus;
+            void useConfigStore().messageTimestampGroupingEnabled;
             void this.sendStatusUiMs;
             void this.usesThemeOutboundBubbleColor;
-            void GlobalState.config?.theme;
+            void useConfigStore().config?.theme;
             const useThemeOutbound = this.usesThemeOutboundBubbleColor;
             return (chatItem) => {
                 const styles = {};
-                const cfg = GlobalState?.config;
+                const cfg = useConfigStore().config;
                 const m = chatItem.lxmf_message;
                 const isFailed = ["cancelled", "failed"].includes(m.state);
 
@@ -2003,7 +2040,7 @@ export default {
             };
         },
         sendMessagePathfindingTooltip() {
-            if (GlobalState.detailedOutboundSendStatus) {
+            if (useConfigStore().detailedOutboundSendStatus) {
                 return this.$t("messages.send_pathfinding_tooltip");
             }
             return this.$t("messages.sending_ellipsis");
@@ -2036,13 +2073,13 @@ export default {
             return false;
         },
         blockedDestinations() {
-            return GlobalState.blockedDestinations;
+            return useIdentityStore().blockedDestinations;
         },
         showUnknownContactBanner() {
-            return GlobalState.config?.show_unknown_contact_banner !== false;
+            return useConfigStore().config?.show_unknown_contact_banner !== false;
         },
         warnOnStrangerLinksEnabled() {
-            return GlobalState.config?.warn_on_stranger_links !== false;
+            return useConfigStore().config?.warn_on_stranger_links !== false;
         },
         filteredContacts() {
             if (!this.contactsSearch) return this.contacts;
@@ -2186,9 +2223,9 @@ export default {
             return displayGroupsOldestFirst(this.selectedPeerChatDisplayGroups);
         },
         selectedPeerChatDisplayGroupsOldestFirstAugmented() {
-            void GlobalState.messageTimestampGroupingEnabled;
+            void useConfigStore().messageTimestampGroupingEnabled;
             const base = this.selectedPeerChatDisplayGroupsOldestFirst;
-            if (!GlobalState.messageTimestampGroupingEnabled) {
+            if (!useConfigStore().messageTimestampGroupingEnabled) {
                 return buildTimestampGroupedOldestFirst(base, { groupingEnabled: false });
             }
             return buildTimestampGroupedOldestFirst(base);
@@ -2208,7 +2245,7 @@ export default {
             if (n < MIN_VIRTUAL_DISPLAY_GROUPS) {
                 return false;
             }
-            return GlobalState?.config?.message_list_virtualization !== false;
+            return useConfigStore().config?.message_list_virtualization !== false;
         },
         oldestMessageId() {
             if (!this.selectedPeer) {
@@ -2273,9 +2310,9 @@ export default {
         selectedPeer: {
             handler(newPeer, oldPeer) {
                 this.messageBubbleTranslation = {};
+                this.cancelAutoLoadAudioAttachments();
                 if (oldPeer) {
                     this.saveDraft(oldPeer.destination_hash, this.lastDraftIdentityKey || this._draftIdentityKey());
-                    this.clearAudioAttachmentCache();
                 }
                 this.teardownPeerHeaderResizeObserver();
                 this.disconnectOpenConversationScrollObserver();
@@ -2352,23 +2389,23 @@ export default {
         }, 30000); // Update every 30 seconds
 
         // listen for websocket events
-        onWsEvent("announce", this.onAnnounceEvent);
-        onWsEvent("lxmf.delivery", this.onLxmfDeliveryEvent);
-        onWsEvent("lxmf_message_created", this.onLxmfMessageCreatedEvent);
-        onWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
-        onWsEvent("lxmf_message_deleted", this.onLxmfMessageDeletedEvent);
-        onWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResultEvent);
-        onWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResultEvent);
+        onWsEvent(WS_EVENTS.ANNOUNCE, this.onAnnounceEvent);
+        onWsEvent(WS_EVENTS.LXMF_DELIVERY, this.onLxmfDeliveryEvent);
+        onWsEvent(WS_EVENTS.LXMF_MESSAGE_CREATED, this.onLxmfMessageCreatedEvent);
+        onWsEvent(WS_EVENTS.LXMF_MESSAGE_STATE_UPDATED, this.onLxmfMessageStateUpdatedEvent);
+        onWsEvent(WS_EVENTS.LXMF_MESSAGE_DELETED, this.onLxmfMessageDeletedEvent);
+        onWsEvent(WS_EVENTS.LXM_GENERATE_PAPER_URI_RESULT, this.onGeneratePaperUriResultEvent);
+        onWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResultEvent);
 
         // listen for compose new message event
-        GlobalEmitter.on("compose-new-message", this.onComposeNewMessageEvent);
+        GlobalEmitter.on(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE, this.onComposeNewMessageEvent);
 
         // listen for contact updates to refresh stranger banner
-        GlobalEmitter.on("contact-updated", this.onContactUpdatedForBanner);
+        GlobalEmitter.on(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdatedForBanner);
 
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
 
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
 
         this.reloadIngestedPaperMessageHashes();
 
@@ -2421,22 +2458,24 @@ export default {
             this.sendStatusTickInterval = null;
         }
         // stop listening for websocket events
-        offWsEvent("announce", this.onAnnounceEvent);
-        offWsEvent("lxmf.delivery", this.onLxmfDeliveryEvent);
-        offWsEvent("lxmf_message_created", this.onLxmfMessageCreatedEvent);
-        offWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
-        offWsEvent("lxmf_message_deleted", this.onLxmfMessageDeletedEvent);
-        offWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResultEvent);
-        offWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResultEvent);
-        GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
-        GlobalEmitter.off("contact-updated", this.onContactUpdatedForBanner);
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        offWsEvent(WS_EVENTS.ANNOUNCE, this.onAnnounceEvent);
+        offWsEvent(WS_EVENTS.LXMF_DELIVERY, this.onLxmfDeliveryEvent);
+        offWsEvent(WS_EVENTS.LXMF_MESSAGE_CREATED, this.onLxmfMessageCreatedEvent);
+        offWsEvent(WS_EVENTS.LXMF_MESSAGE_STATE_UPDATED, this.onLxmfMessageStateUpdatedEvent);
+        offWsEvent(WS_EVENTS.LXMF_MESSAGE_DELETED, this.onLxmfMessageDeletedEvent);
+        offWsEvent(WS_EVENTS.LXM_GENERATE_PAPER_URI_RESULT, this.onGeneratePaperUriResultEvent);
+        offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResultEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE, this.onComposeNewMessageEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdatedForBanner);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (this.propagationStatusInterval) {
             clearInterval(this.propagationStatusInterval);
         }
         this.disconnectOpenConversationScrollObserver();
+        this.cancelAutoLoadAudioAttachments();
         this.clearAudioAttachmentCache();
+        this.revokeNewMessageAudioPreview();
     },
     methods: {
         updateKeyboardInset() {
@@ -2632,14 +2671,14 @@ export default {
         },
         async updatePropagationNodeStatus() {
             try {
-                const response = await window.api.get("/api/v1/lxmf/propagation-node/status");
+                const response = await window.api.get(apiPath("/lxmf/propagation-node/status"));
                 this.propagationNodeStatus = response.data.propagation_node_status;
             } catch {
                 // do nothing on error
             }
         },
         async syncPropagationNode() {
-            GlobalEmitter.emit("sync-propagation-node");
+            GlobalEmitter.emit(EMITTER_EVENTS.SYNC_PROPAGATION_NODE);
         },
         async copyMyAddress() {
             const ok = await copyTextToClipboard(this.myLxmfAddressHash);
@@ -2659,7 +2698,7 @@ export default {
         },
         async fetchContacts() {
             try {
-                const response = await window.api.get("/api/v1/telephone/contacts");
+                const response = await window.api.get(apiPath("/telephone/contacts"));
                 this.contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
             } catch (e) {
                 console.log("Failed to fetch contacts:", e);
@@ -2699,8 +2738,8 @@ export default {
             let v = null;
             try {
                 v =
-                    localStorage.getItem("meshchatx.translateTargetLang") ||
-                    localStorage.getItem("meshchatx.composeTranslateTargetLang");
+                    localStorage.getItem(STORAGE_KEYS.TRANSLATE_TARGET_LANG) ||
+                    localStorage.getItem(STORAGE_KEYS.COMPOSE_TRANSLATE_TARGET_LANG);
             } catch {
                 v = null;
             }
@@ -2717,8 +2756,8 @@ export default {
                 return;
             }
             try {
-                localStorage.setItem("meshchatx.translateTargetLang", t);
-                localStorage.setItem("meshchatx.composeTranslateTargetLang", t);
+                localStorage.setItem(STORAGE_KEYS.TRANSLATE_TARGET_LANG, t);
+                localStorage.setItem(STORAGE_KEYS.COMPOSE_TRANSLATE_TARGET_LANG, t);
             } catch {
                 /* empty */
             }
@@ -2971,7 +3010,7 @@ export default {
                 this.isSelectedPeerBlocked = false;
                 return;
             }
-            this.isSelectedPeerBlocked = GlobalState.blockedDestinations.some(
+            this.isSelectedPeerBlocked = useIdentityStore().blockedDestinations.some(
                 (b) => b.destination_hash === this.selectedPeer.destination_hash
             );
         },
@@ -2992,7 +3031,7 @@ export default {
             }
             try {
                 const response = await window.api.get(
-                    `/api/v1/telephone/contacts/check/${this.selectedPeer.destination_hash}`
+                    apiPath(`/telephone/contacts/check/${this.selectedPeer.destination_hash}`)
                 );
                 this.isStrangerPeer = !response.data.is_contact;
             } catch {
@@ -3004,21 +3043,21 @@ export default {
             const displayName = this.selectedPeer.custom_display_name ?? this.selectedPeer.display_name ?? "Unknown";
             const hash = this.selectedPeer.destination_hash;
             try {
-                const checkResponse = await window.api.get(`/api/v1/telephone/contacts/check/${hash}`);
+                const checkResponse = await window.api.get(apiPath(`/telephone/contacts/check/${hash}`));
                 if (checkResponse.data?.id) {
                     this.isStrangerPeer = false;
                     this.strangerBannerDismissed = true;
                     return;
                 }
 
-                await window.api.post("/api/v1/telephone/contacts", {
+                await window.api.post(apiPath("/telephone/contacts"), {
                     name: displayName,
                     lxmf_address: hash,
                     remote_identity_hash: this.selectedPeer.identity_hash || undefined,
                 });
                 this.isStrangerPeer = false;
                 this.strangerBannerDismissed = true;
-                GlobalEmitter.emit("contact-updated", {
+                GlobalEmitter.emit(EMITTER_EVENTS.CONTACT_UPDATED, {
                     remote_identity_hash: this.selectedPeer.identity_hash || hash,
                 });
                 this.$emit("reload-conversations");
@@ -3028,66 +3067,9 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("messages.failed_add_contact"));
             }
         },
-        loadDraft(destinationHash, identityKey) {
-            try {
-                const drafts = this._readDraftRoot();
-                const key = identityKey || this._draftIdentityKey();
-                const bucket = this._draftBucketFor(drafts, key);
-                let text = "";
-                if (bucket && typeof bucket[destinationHash] === "string") {
-                    text = bucket[destinationHash];
-                } else if (!this._hasNestedDraftBuckets(drafts) && typeof drafts[destinationHash] === "string") {
-                    // Legacy flat keys (pre identity-scoped drafts).
-                    text = drafts[destinationHash];
-                }
-                this.newMessageText = text;
-                this.$nextTick(() => {
-                    this.adjustTextareaHeight();
-                });
-            } catch (e) {
-                console.error("Failed to load draft:", e);
-            }
-        },
-        saveDraft(destinationHash, identityKey) {
-            try {
-                const drafts = this._readDraftRoot();
-                const key = identityKey || this._draftIdentityKey();
-                let bucket = this._draftBucketFor(drafts, key);
-                if (!bucket) {
-                    bucket = {};
-                    drafts[key] = bucket;
-                    if (typeof drafts[destinationHash] === "string") {
-                        delete drafts[destinationHash];
-                    }
-                }
-                if (this.newMessageText) {
-                    bucket[destinationHash] = this.newMessageText;
-                } else {
-                    delete bucket[destinationHash];
-                }
-                localStorage.setItem("meshchat.drafts", JSON.stringify(drafts));
-                this.lastDraftIdentityKey = key;
-            } catch (e) {
-                console.error("Failed to save draft:", e);
-            }
-        },
         _draftIdentityKey() {
             const hash = this.config?.identity_hash || this.myLxmfAddressHash || "";
             return typeof hash === "string" && hash ? hash : "_";
-        },
-        _readDraftRoot() {
-            const raw = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
-            return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
-        },
-        _draftBucketFor(drafts, identityKey) {
-            const nested = drafts[identityKey];
-            if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-                return nested;
-            }
-            return null;
-        },
-        _hasNestedDraftBuckets(drafts) {
-            return Object.values(drafts).some((value) => value && typeof value === "object" && !Array.isArray(value));
         },
         onIdentitySwitched(json) {
             const dest = this.selectedPeer?.destination_hash;
@@ -3104,6 +3086,7 @@ export default {
             this.displayGroupsNewestFirst = null;
             this.messageBubbleTranslation = {};
             this.clearAudioAttachmentCache();
+            clearConversationPrefetchCache();
             this.lastDraftIdentityKey = nextKey;
             this.pendingPaperIngestMessageHash = null;
             this.reloadIngestedPaperMessageHashes();
@@ -3111,24 +3094,6 @@ export default {
                 this.loadDraft(dest, nextKey);
                 this.initialLoad();
             }
-        },
-        reloadIngestedPaperMessageHashes() {
-            const hashes = listIngestedPaperMessageHashes(this._draftIdentityKey());
-            const next = {};
-            for (const hash of hashes) {
-                next[hash] = true;
-            }
-            this.ingestedPaperMessageHashes = next;
-        },
-        isPaperMessageIngested(chatItem) {
-            const hash = normalizePaperIngestMessageHash(chatItem?.lxmf_message?.hash);
-            if (!hash) {
-                return false;
-            }
-            if (this.ingestedPaperMessageHashes[hash]) {
-                return true;
-            }
-            return isPaperMessageIngestedStored(this._draftIdentityKey(), hash);
         },
         close() {
             this.$emit("close");
@@ -3242,19 +3207,28 @@ export default {
                 const seq = ++this.lxmfMessagesRequestSequence;
 
                 const pageSize = CONVERSATION_MESSAGES_PAGE_SIZE;
-                const response = await window.api.get(
-                    `/api/v1/lxmf-messages/conversation/${this.selectedPeer.destination_hash}`,
-                    {
+                // First page may have been warmed by a sidebar hover/focus prefetch.
+                const prefetched =
+                    this.oldestMessageId == null ? takeConversationPrefetch(this.selectedPeer.destination_hash) : null;
+                let response = prefetched ? await prefetched : null;
+                if (!response) {
+                    response = await lxmfMessagesApi.getConversation(this.selectedPeer.destination_hash, {
                         params: {
                             count: pageSize,
                             order: "desc",
                             after_id: this.oldestMessageId,
                         },
-                    }
-                );
+                    });
+                }
 
                 if (seq !== this.lxmfMessagesRequestSequence) {
                     return;
+                }
+
+                // Keep the newest page warm so re-opening this peer paints
+                // instantly; live resync merges anything newer afterwards.
+                if (this.oldestMessageId == null) {
+                    stashConversationFirstPage(this.selectedPeer.destination_hash, response.data);
                 }
 
                 const chatItems = [];
@@ -3427,13 +3401,13 @@ export default {
         async addContact(name, hash, lxmf_address = null, lxst_address = null) {
             try {
                 // Check if contact already exists
-                const checkResponse = await window.api.get(`/api/v1/telephone/contacts/check/${hash}`);
+                const checkResponse = await window.api.get(apiPath(`/telephone/contacts/check/${hash}`));
                 if (checkResponse.data?.id) {
                     ToastUtils.info(`${name} is already in your contacts`);
                     return;
                 }
 
-                await window.api.post("/api/v1/telephone/contacts", {
+                await window.api.post(apiPath("/telephone/contacts"), {
                     name: name,
                     remote_identity_hash: hash,
                     lxmf_address: lxmf_address,
@@ -3444,37 +3418,6 @@ export default {
                 console.error(e);
                 ToastUtils.error(this.$t("messages.failed_add_contact"));
             }
-        },
-        async ingestPaperMessage(uri, messageHash = null) {
-            try {
-                const hash = normalizePaperIngestMessageHash(messageHash);
-                this.pendingPaperIngestMessageHash = hash || null;
-                WebSocketConnection.send(
-                    JSON.stringify({
-                        type: "lxm.ingest_uri",
-                        uri: uri,
-                    })
-                );
-                ToastUtils.info(this.$t("messages.ingesting_paper_message"));
-            } catch (e) {
-                console.error(e);
-                this.pendingPaperIngestMessageHash = null;
-                ToastUtils.error(this.$t("messages.failed_ingest_paper"));
-            }
-        },
-        onLxmIngestUriResultEvent(json) {
-            const pendingHash = this.pendingPaperIngestMessageHash;
-            this.pendingPaperIngestMessageHash = null;
-            if (!pendingHash || !shouldMarkPaperIngestFromResultStatus(json?.status)) {
-                return;
-            }
-            const list = markPaperMessageIngested(this._draftIdentityKey(), pendingHash);
-            const next = { ...this.ingestedPaperMessageHashes };
-            for (const hash of list) {
-                next[hash] = true;
-            }
-            next[pendingHash] = true;
-            this.ingestedPaperMessageHashes = next;
         },
         async generatePaperMessageFromComposition() {
             if (!this.canSendMessage) return;
@@ -3513,7 +3456,7 @@ export default {
             try {
                 const seq = ++this.lxmfMessagesRequestSequence;
                 const pageSize = CONVERSATION_MESSAGES_PAGE_SIZE;
-                const response = await window.api.get(`/api/v1/lxmf-messages/conversation/${peerHash}`, {
+                const response = await lxmfMessagesApi.getConversation(peerHash, {
                     params: {
                         count: pageSize,
                         order: "desc",
@@ -3585,7 +3528,7 @@ export default {
             }
         },
         openLXMFAddress() {
-            GlobalEmitter.emit("compose-new-message");
+            GlobalEmitter.emit(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE);
         },
         onComposeNewMessageEvent(destinationHash) {
             if (!this.selectedPeer && !destinationHash) {
@@ -3653,7 +3596,7 @@ export default {
                 DialogUtils.alert(this.$t("common.invalid_address"));
                 return;
             }
-            GlobalEmitter.emit("compose-new-message", destinationHash);
+            GlobalEmitter.emit(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE, destinationHash);
         },
         normalizeLxmfMessage(msg, isOutbound) {
             return normalizeLxmfMessageHelper(msg, isOutbound);
@@ -3815,7 +3758,7 @@ export default {
                 try {
                     // get lxmf stamp info
                     const response = await window.api.get(
-                        `/api/v1/destination/${this.selectedPeer.destination_hash}/lxmf-stamp-info`
+                        apiPath(`/destination/${this.selectedPeer.destination_hash}/lxmf-stamp-info`)
                     );
 
                     // update ui
@@ -3833,7 +3776,7 @@ export default {
                 try {
                     // get signal metrics
                     const response = await window.api.get(
-                        `/api/v1/destination/${this.selectedPeer.destination_hash}/signal-metrics`
+                        apiPath(`/destination/${this.selectedPeer.destination_hash}/signal-metrics`)
                     );
 
                     // update ui
@@ -4057,7 +4000,7 @@ export default {
                 try {
                     // get custom display name
                     const response = await window.api.get(
-                        `/api/v1/destination/${this.selectedPeer.destination_hash}/custom-display-name`
+                        apiPath(`/destination/${this.selectedPeer.destination_hash}/custom-display-name`)
                     );
 
                     // update ui
@@ -4082,7 +4025,7 @@ export default {
 
             try {
                 await window.api.post(
-                    `/api/v1/destination/${this.selectedPeer.destination_hash}/custom-display-name/update`,
+                    apiPath(`/destination/${this.selectedPeer.destination_hash}/custom-display-name/update`),
                     {
                         display_name: displayName,
                     }
@@ -4091,11 +4034,11 @@ export default {
                 if (displayName.length > 0) {
                     try {
                         const checkResp = await window.api.get(
-                            `/api/v1/telephone/contacts/check/${this.selectedPeer.destination_hash}`
+                            apiPath(`/telephone/contacts/check/${this.selectedPeer.destination_hash}`)
                         );
                         const contactId = checkResp.data?.contact?.id;
                         if (contactId) {
-                            await window.api.patch(`/api/v1/telephone/contacts/${contactId}`, { name: displayName });
+                            await window.api.patch(apiPath(`/telephone/contacts/${contactId}`), { name: displayName });
                         }
                     } catch {
                         // non-critical
@@ -4119,10 +4062,10 @@ export default {
                 return;
             }
             try {
-                await window.api.post("/api/v1/blocked-destinations", {
+                await window.api.post(apiPath("/blocked-destinations"), {
                     destination_hash: this.selectedPeer.destination_hash,
                 });
-                GlobalEmitter.emit("block-status-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("messages.user_banished"));
             } catch (e) {
                 DialogUtils.alert(this.$t("messages.failed_banish_user"));
@@ -4135,8 +4078,8 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/blocked-destinations/${this.selectedPeer.destination_hash}`);
-                GlobalEmitter.emit("block-status-changed");
+                await window.api.delete(apiPath(`/blocked-destinations/${this.selectedPeer.destination_hash}`));
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("banishment.banishment_lifted"));
             } catch (e) {
                 DialogUtils.alert(this.$t("banishment.failed_lift_banishment"));
@@ -4463,7 +4406,7 @@ export default {
                 }
                 this.reactionSendInFlight = flightKey;
                 try {
-                    const response = await window.api.post("/api/v1/lxmf-messages/reactions", {
+                    const response = await window.api.post(apiPath("/lxmf-messages/reactions"), {
                         destination_hash: destinationHash,
                         target_message_hash: hash,
                         emoji,
@@ -4559,7 +4502,7 @@ export default {
                 return;
             }
             try {
-                const r = await window.api.get(`/api/v1/lxmf-messages/${hash}/uri`);
+                const r = await window.api.get(apiPath(`/lxmf-messages/${hash}/uri`));
                 const rawUri = r.data?.uri ?? null;
                 if (rawUri && this.isRawMessageModalOpen && this.rawMessageData?.hash === hash) {
                     this.rawMessageData = { ...this.rawMessageData, raw_uri: rawUri };
@@ -4574,12 +4517,9 @@ export default {
             this.isDownloadingAudio[chatItem.lxmf_message.hash] = true;
             try {
                 // fetch audio bytes from api
-                const response = await window.api.get(
-                    `/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/audio`,
-                    {
-                        responseType: "arraybuffer",
-                    }
-                );
+                const response = await lxmfMessagesApi.getAttachmentAudio(chatItem.lxmf_message.hash, {
+                    responseType: "arraybuffer",
+                });
                 const audioBytes = response.data; // this will be an ArrayBuffer
 
                 // ensure we have the bytes
@@ -4607,15 +4547,45 @@ export default {
         },
         autoLoadAudioAttachments(items = null) {
             const scanItems = Array.isArray(items) ? items : this.chatItems;
-            for (const chatItem of scanItems) {
-                if (
+            const pending = scanItems.filter(
+                (chatItem) =>
                     chatItem.lxmf_message.fields?.audio &&
                     !this.lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash] &&
                     !this.isDownloadingAudio[chatItem.lxmf_message.hash]
-                ) {
+            );
+            // Fetch and decode in small idle chunks so opening a thread does not
+            // burst a full page of audio downloads onto the main thread/network.
+            this.cancelAutoLoadAudioAttachments();
+            const runChunk = () => {
+                this._audioLoadTimer = null;
+                const chunk = pending.splice(0, 2);
+                for (const chatItem of chunk) {
                     this.downloadAndDecodeAudio(chatItem);
                 }
+                if (pending.length > 0) {
+                    schedule();
+                }
+            };
+            const schedule = () => {
+                if (typeof requestIdleCallback === "function") {
+                    this._audioLoadIdle = requestIdleCallback(runChunk, { timeout: 1500 });
+                    this._audioLoadTimer = "idle";
+                } else {
+                    this._audioLoadTimer = setTimeout(runChunk, 60);
+                }
+            };
+            if (pending.length > 0) {
+                schedule();
             }
+        },
+        cancelAutoLoadAudioAttachments() {
+            if (this._audioLoadTimer === "idle" && typeof cancelIdleCallback === "function") {
+                cancelIdleCallback(this._audioLoadIdle);
+            } else if (typeof this._audioLoadTimer === "number") {
+                clearTimeout(this._audioLoadTimer);
+            }
+            this._audioLoadTimer = null;
+            this._audioLoadIdle = null;
         },
         formatAttachmentSize(attachment, type) {
             if (attachment[`${type}_size`] !== undefined && attachment[`${type}_size`] !== null) {
@@ -4625,81 +4595,6 @@ export default {
                 return this.formatBase64Bytes(attachment[`${type}_bytes`]);
             }
             return "0 B";
-        },
-        openImage: async function (url, galleryUrls, galleryChatItems = null) {
-            this.imageModalContextMenu.show = false;
-            if (galleryUrls && galleryUrls.length > 1) {
-                this.imageModalGallery = galleryUrls.slice();
-                this.imageModalGalleryChatItems = Array.isArray(galleryChatItems) ? galleryChatItems.slice() : null;
-                this.imageModalChatItem = null;
-                let idx = galleryUrls.indexOf(url);
-                if (idx < 0) idx = 0;
-                this.imageModalIndex = idx;
-                this.imageModalUrl = galleryUrls[idx];
-            } else {
-                this.imageModalGallery = null;
-                this.imageModalGalleryChatItems = null;
-                this.imageModalIndex = 0;
-                this.imageModalUrl = url;
-                this.imageModalChatItem =
-                    Array.isArray(galleryChatItems) && galleryChatItems.length > 0 ? galleryChatItems[0] : null;
-            }
-            this.$nextTick(() => {
-                this.$refs.imageModal?.focusOverlay?.();
-            });
-        },
-        closeImageModal() {
-            this.imageModalUrl = null;
-            this.imageModalGallery = null;
-            this.imageModalGalleryChatItems = null;
-            this.imageModalChatItem = null;
-            this.imageModalIndex = 0;
-            this.imageModalContextMenu.show = false;
-        },
-        imageModalActiveChatItem() {
-            if (this.imageModalGalleryChatItems && this.imageModalGalleryChatItems.length > 0) {
-                return this.imageModalGalleryChatItems[this.imageModalIndex] || null;
-            }
-            return this.imageModalChatItem;
-        },
-        onImageModalContextMenu(event) {
-            if (!this.imageModalActiveChatItem()) {
-                return;
-            }
-            this.imageModalContextMenu.show = true;
-            const menuWidth = 240;
-            const menuHeight = 88;
-            let x = event.clientX;
-            let y = event.clientY;
-            if (x + menuWidth > window.innerWidth) {
-                x = window.innerWidth - menuWidth - 10;
-            }
-            if (y + menuHeight > window.innerHeight) {
-                y = window.innerHeight - menuHeight - 10;
-            }
-            this.imageModalContextMenu.x = x;
-            this.imageModalContextMenu.y = y;
-        },
-        downloadImageModalCurrent() {
-            const chatItem = this.imageModalActiveChatItem();
-            this.imageModalContextMenu.show = false;
-            if (chatItem) {
-                this.downloadMessageImage(chatItem);
-            }
-        },
-        copyImageModalCurrentToClipboard() {
-            const chatItem = this.imageModalActiveChatItem();
-            this.imageModalContextMenu.show = false;
-            if (chatItem) {
-                void this.copyMessageImageToClipboard(chatItem);
-            }
-        },
-        imageModalNavigate(delta) {
-            if (!this.imageModalGallery || this.imageModalGallery.length < 2) return;
-            const n = this.imageModalGallery.length;
-            this.imageModalIndex = (this.imageModalIndex + delta + n) % n;
-            this.imageModalUrl = this.imageModalGallery[this.imageModalIndex];
-            this.imageModalContextMenu.show = false;
         },
         canMergeImageIntoImageStrip(chatItem) {
             const m = chatItem.lxmf_message;
@@ -4736,7 +4631,7 @@ export default {
             });
         },
         lxmfImageUrl(hash) {
-            return `/api/v1/lxmf-messages/attachment/${hash}/image`;
+            return apiPath(`/lxmf-messages/attachment/${hash}/image`);
         },
         lxmfDataUrlFromOutboundJobImage(img) {
             if (!img?.image_bytes || typeof img.image_bytes !== "string") {
@@ -4929,7 +4824,7 @@ export default {
             }
         },
         showOutboundTransferProgress(lxmfMessage) {
-            if (!GlobalState.outboundTransferProgressEnabled) {
+            if (!useConfigStore().outboundTransferProgressEnabled) {
                 return false;
             }
             return this.outboundTransferProgressPercent(lxmfMessage) !== null;
@@ -4991,7 +4886,7 @@ export default {
             return this.$t("messages.transfer_progress_hops", { count });
         },
         outboundTransferStatsLabel(lxmfMessage, chatItem) {
-            void GlobalState.outboundTransferProgressEnabled;
+            void useConfigStore().outboundTransferProgressEnabled;
             if (!this.showOutboundTransferProgress(lxmfMessage)) {
                 return null;
             }
@@ -5136,7 +5031,7 @@ export default {
             return this.sendStatusUiMs - created >= 3000;
         },
         showRichOutboundPendingUi(chatItem) {
-            if (GlobalState.detailedOutboundSendStatus) {
+            if (useConfigStore().detailedOutboundSendStatus) {
                 return true;
             }
             return this.isOutboundSendEscalated(chatItem);
@@ -5347,7 +5242,7 @@ export default {
             return this.$t("messages.failed_waiting_announce_tooltip");
         },
         async _maybeShowDeliveryHelptips(peerHash, failureKind, options = {}) {
-            const cfg = this.config ?? GlobalState.config;
+            const cfg = this.config ?? useConfigStore().config;
             if (!shouldShowDeliveryHelptips(cfg)) {
                 return;
             }
@@ -5465,7 +5360,7 @@ export default {
             const attachment = attachments[fileIndex];
             const fileName = attachment.file_name || "download";
             try {
-                const response = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/file`, {
+                const response = await lxmfMessagesApi.getAttachmentFile(msg.hash, {
                     params: { file_index: fileIndex },
                     responseType: "arraybuffer",
                 });
@@ -5492,7 +5387,7 @@ export default {
                     DownloadUtils.downloadFromBase64(fileName, img.image_bytes);
                     return;
                 }
-                const response = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+                const response = await lxmfMessagesApi.getAttachmentImage(msg.hash, {
                     responseType: "arraybuffer",
                 });
                 await DownloadUtils.downloadFromApiResponse(response, fileName);
@@ -5516,7 +5411,7 @@ export default {
                 const bytes = this.base64ToArrayBuffer(img.image_bytes);
                 return new Blob([bytes], { type: mime });
             }
-            const response = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+            const response = await lxmfMessagesApi.getAttachmentImage(msg.hash, {
                 responseType: "arraybuffer",
             });
             const headerType = response?.headers?.["content-type"] || response?.headers?.["Content-Type"];
@@ -5654,7 +5549,7 @@ export default {
                 // delete lxmf message from server
                 const hash = chatItem.lxmf_message.hash;
                 if (!this._isPendingOutboundHash(hash)) {
-                    await window.api.delete(`/api/v1/lxmf-messages/${hash}`);
+                    await window.api.delete(apiPath(`/lxmf-messages/${hash}`));
                 }
 
                 // remove lxmf message from chat items using hash, as other pending items might not have an id yet
@@ -5668,7 +5563,7 @@ export default {
         },
         async openShareContactModal() {
             try {
-                const response = await window.api.get("/api/v1/telephone/contacts");
+                const response = await window.api.get(apiPath("/telephone/contacts"));
                 this.contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
 
                 if (this.contacts.length === 0) {
@@ -5710,6 +5605,7 @@ export default {
             }
             this.newMessageImages = [];
             this.newMessageImageUrls = [];
+            this.revokeNewMessageAudioPreview();
             this.newMessageAudio = null;
             this.newMessageTelemetry = null;
             this.newMessageFiles = [];
@@ -5908,7 +5804,7 @@ export default {
                 // Warm a stale/missing path before the blocking backend path wait.
                 // Propagated delivery needs the preferred propagation node path.
                 if (job.deliveryMethod === "propagated") {
-                    const propHash = GlobalState?.config?.lxmf_preferred_propagation_node_destination_hash;
+                    const propHash = useConfigStore().config?.lxmf_preferred_propagation_node_destination_hash;
                     if (propHash && typeof propHash === "string" && propHash.length === 32) {
                         try {
                             await warmPathIfNeeded(window.api, propHash, null);
@@ -5926,7 +5822,7 @@ export default {
                 }
 
                 if (job.images.length === 0) {
-                    const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
+                    const response = await window.api.post(apiPath("/lxmf-messages/send"), {
                         delivery_method: job.deliveryMethod,
                         lxmf_message: {
                             destination_hash: job.destinationHash,
@@ -5951,7 +5847,7 @@ export default {
                         image: { image_type: firstImage.image_type, image_bytes: firstImage.image_bytes },
                     };
 
-                    const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
+                    const response = await window.api.post(apiPath("/lxmf-messages/send"), {
                         delivery_method: job.deliveryMethod,
                         lxmf_message: {
                             destination_hash: job.destinationHash,
@@ -5977,7 +5873,7 @@ export default {
                         };
 
                         try {
-                            const subResponse = await window.api.post(`/api/v1/lxmf-messages/send`, {
+                            const subResponse = await window.api.post(apiPath("/lxmf-messages/send"), {
                                 delivery_method: job.deliveryMethod,
                                 lxmf_message: {
                                     destination_hash: job.destinationHash,
@@ -6029,7 +5925,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.post(`/api/v1/lxmf-messages/${messageHash}/cancel`);
+                const response = await window.api.post(apiPath(`/lxmf-messages/${messageHash}/cancel`));
                 const lxmfMessage = response.data.lxmf_message;
                 if (lxmfMessage) {
                     this.onLxmfMessageUpdated(lxmfMessage);
@@ -6065,7 +5961,7 @@ export default {
             }
 
             try {
-                const response = await window.api.post(`/api/v1/lxmf-messages/${lxmfMessageHash}/cancel`);
+                const response = await window.api.post(apiPath(`/lxmf-messages/${lxmfMessageHash}/cancel`));
                 const updated = response.data.lxmf_message;
                 if (updated) {
                     this.onLxmfMessageUpdated(updated);
@@ -6084,7 +5980,7 @@ export default {
                     chatItem.lxmf_message.fields?.reply_quoted_content ||
                     (chatItem.lxmf_message.reply_to_hash &&
                         this.getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content);
-                const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
+                const response = await window.api.post(apiPath("/lxmf-messages/send"), {
                     lxmf_message: {
                         destination_hash: chatItem.lxmf_message.destination_hash,
                         content: chatItem.lxmf_message.content,
@@ -6200,7 +6096,7 @@ export default {
                 if (!this.selectedPeer) return;
 
                 // Send a telemetry request command
-                await window.api.post(`/api/v1/lxmf-messages/send`, {
+                await window.api.post(apiPath("/lxmf-messages/send"), {
                     lxmf_message: {
                         destination_hash: this.selectedPeer.destination_hash,
                         content: "",
@@ -6305,7 +6201,7 @@ export default {
             try {
                 if (!this.selectedPeer) return;
                 const commands = this.parseCommandOrRequestText(this.newMessageText);
-                await window.api.post(`/api/v1/lxmf-messages/send`, {
+                await window.api.post(apiPath("/lxmf-messages/send"), {
                     lxmf_message: {
                         destination_hash: this.selectedPeer.destination_hash,
                         content: "",
@@ -6366,7 +6262,7 @@ export default {
             if (!parsed) {
                 return;
             }
-            if (GlobalState.config?.rrc_enabled === false) {
+            if (useConfigStore().config?.rrc_enabled === false) {
                 ToastUtils.warning(this.$t("messages.relay_link_disabled"));
                 return;
             }
@@ -6417,7 +6313,7 @@ export default {
             if (!this.selectedPeer) return;
             const hash = this.selectedPeer.destination_hash;
             try {
-                const response = await window.api.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
+                const response = await window.api.post(apiPath(`/telemetry/tracking/${hash}/toggle`), {
                     is_tracking: !this.selectedPeer.is_tracking,
                 });
                 // Emit event to parent to update peer status
@@ -6508,7 +6404,7 @@ export default {
         },
         async onStartCall() {
             try {
-                await window.api.post(`/api/v1/telephone/call/${this.selectedPeer.destination_hash}`);
+                await window.api.post(apiPath(`/telephone/call/${this.selectedPeer.destination_hash}`));
             } catch (e) {
                 const message = e.response?.data?.message ?? this.$t("call.failed_to_initiate_call");
                 DialogUtils.alert(message);
@@ -6672,20 +6568,20 @@ export default {
         },
         async loadUserStickers() {
             try {
-                const r = await window.api.get("/api/v1/stickers");
+                const r = await window.api.get(apiPath("/stickers"));
                 this.userStickers = r.data?.stickers ?? [];
             } catch {
                 this.userStickers = [];
             }
             try {
-                const r = await window.api.get("/api/v1/sticker-packs");
+                const r = await window.api.get(apiPath("/sticker-packs"));
                 this.userStickerPacks = r.data?.packs ?? [];
             } catch {
                 this.userStickerPacks = [];
             }
         },
         stickerImageUrl(stickerId) {
-            return `/api/v1/stickers/${stickerId}/image`;
+            return apiPath(`/stickers/${stickerId}/image`);
         },
         onStickerPanelDragOver(event) {
             event.preventDefault();
@@ -6790,7 +6686,7 @@ export default {
                         if (this.activeStickerPackId !== null) {
                             payload.pack_id = this.activeStickerPackId;
                         }
-                        await window.api.post("/api/v1/stickers", payload);
+                        await window.api.post(apiPath("/stickers"), payload);
                         added++;
                     } catch (e) {
                         const err = e?.response?.data?.error;
@@ -6820,7 +6716,7 @@ export default {
         },
         async addStickerFromLibrary(sticker) {
             try {
-                const res = await window.api.get(`/api/v1/stickers/${sticker.id}/image`, {
+                const res = await stickersApi.getImage(sticker.id, {
                     responseType: "blob",
                 });
                 const blob = res.data;
@@ -6844,7 +6740,7 @@ export default {
             let b64 = img.image_bytes;
             if (!b64) {
                 try {
-                    const res = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+                    const res = await lxmfMessagesApi.getAttachmentImage(msg.hash, {
                         responseType: "arraybuffer",
                     });
                     b64 = Utils.arrayBufferToBase64(res.data);
@@ -6856,7 +6752,7 @@ export default {
             }
             const imageType = String(img.image_type || "png").replace(/^image\//, "");
             try {
-                await window.api.post("/api/v1/stickers", {
+                await window.api.post(apiPath("/stickers"), {
                     image_bytes: b64,
                     image_type: imageType,
                     source_message_hash: msg.hash,
@@ -6879,14 +6775,14 @@ export default {
         },
         async loadUserGifs() {
             try {
-                const r = await window.api.get("/api/v1/gifs");
+                const r = await window.api.get(apiPath("/gifs"));
                 this.userGifs = r.data?.gifs ?? [];
             } catch {
                 this.userGifs = [];
             }
         },
         gifImageUrl(gifId) {
-            return `/api/v1/gifs/${gifId}/image`;
+            return apiPath(`/gifs/${gifId}/image`);
         },
         onGifPanelDragOver(event) {
             event.preventDefault();
@@ -6960,7 +6856,7 @@ export default {
                     try {
                         const buf = await file.arrayBuffer();
                         const imageBytes = Utils.arrayBufferToBase64(buf);
-                        await window.api.post("/api/v1/gifs", {
+                        await window.api.post(apiPath("/gifs"), {
                             image_bytes: imageBytes,
                             image_type: imageType,
                             name: null,
@@ -6994,7 +6890,7 @@ export default {
         },
         async addGifFromLibrary(gif) {
             try {
-                const res = await window.api.get(`/api/v1/gifs/${gif.id}/image`, {
+                const res = await gifsApi.getImage(gif.id, {
                     responseType: "blob",
                 });
                 const blob = res.data;
@@ -7003,7 +6899,7 @@ export default {
                 const file = new File([blob], `gif-${gif.id}.${ext}`, { type: mime });
                 this.onImageSelected(file);
                 this.isStickerPickerOpen = false;
-                window.api.post(`/api/v1/gifs/${gif.id}/use`).catch(() => {});
+                window.api.post(apiPath(`/gifs/${gif.id}/use`)).catch(() => {});
                 const idx = this.userGifs.findIndex((g) => g.id === gif.id);
                 if (idx >= 0) {
                     const updated = { ...this.userGifs[idx], usage_count: (this.userGifs[idx].usage_count || 0) + 1 };
@@ -7041,7 +6937,7 @@ export default {
             let b64 = img.image_bytes;
             if (!b64) {
                 try {
-                    const res = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+                    const res = await lxmfMessagesApi.getAttachmentImage(msg.hash, {
                         responseType: "arraybuffer",
                     });
                     b64 = Utils.arrayBufferToBase64(res.data);
@@ -7053,7 +6949,7 @@ export default {
             }
             const imageType = String(img.image_type || "gif").replace(/^image\//, "");
             try {
-                await window.api.post("/api/v1/gifs", {
+                await window.api.post(apiPath("/gifs"), {
                     image_bytes: b64,
                     image_type: imageType,
                     source_message_hash: msg.hash,
@@ -7069,259 +6965,6 @@ export default {
                     ToastUtils.error(this.$t("gifs.save_failed"));
                 }
             }
-        },
-        async startRecordingAudioAttachment(args) {
-            // do nothing if already recording
-            if (this.isRecordingAudioAttachment) {
-                return;
-            }
-
-            // ask user to confirm recording new audio attachment, if an existing audio attachment exists
-            if (
-                this.newMessageAudio &&
-                !(await DialogUtils.confirm(
-                    "An audio recording is already attached. A new recording will replace it. Do you want to continue?"
-                ))
-            ) {
-                return;
-            }
-
-            // handle selected codec
-            switch (args.codec) {
-                case "codec2": {
-                    // start recording microphone
-                    this.audioAttachmentMicrophoneRecorderCodec = "codec2";
-                    this.audioAttachmentMicrophoneRecorder = new Codec2MicrophoneRecorder();
-                    this.audioAttachmentMicrophoneRecorder.codec2Mode = args.mode;
-                    this.audioAttachmentRecordingStartedAt = Date.now();
-                    this.isRecordingAudioAttachment = await this.audioAttachmentMicrophoneRecorder.start();
-
-                    // update recording time in ui every second
-                    this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
-                    this.audioAttachmentRecordingTimer = setInterval(() => {
-                        const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
-                        const recordingDurationSeconds = recordingDurationMillis / 1000;
-                        this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(recordingDurationSeconds);
-                    }, 1000);
-
-                    // alert if failed to start recording
-                    if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                    }
-
-                    break;
-                }
-                case "opus": {
-                    if (this.isMeshChatXAndroid() && this.androidNativeWavAttachmentAllowed()) {
-                        const res = window.MeshChatXAndroid.startNativeWavAttachment();
-                        if (res === "ok") {
-                            this.androidNativeOpusAttachment = true;
-                            this.audioAttachmentMicrophoneRecorderCodec = "opus";
-                            this.audioAttachmentMicrophoneRecorder = { _androidNative: true };
-                            this.audioAttachmentRecordingStartedAt = Date.now();
-                            this.isRecordingAudioAttachment = true;
-                            this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
-                            this.audioAttachmentRecordingTimer = setInterval(() => {
-                                const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
-                                const recordingDurationSeconds = recordingDurationMillis / 1000;
-                                this.audioAttachmentRecordingDuration =
-                                    Utils.formatMinutesSeconds(recordingDurationSeconds);
-                            }, 1000);
-                            break;
-                        }
-                    }
-                    this.audioAttachmentMicrophoneRecorderCodec = "opus";
-                    this.audioAttachmentMicrophoneRecorder = new MicrophoneRecorder();
-                    this.audioAttachmentRecordingStartedAt = Date.now();
-                    this.isRecordingAudioAttachment = await this.audioAttachmentMicrophoneRecorder.start();
-
-                    this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
-                    this.audioAttachmentRecordingTimer = setInterval(() => {
-                        const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
-                        const recordingDurationSeconds = recordingDurationMillis / 1000;
-                        this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(recordingDurationSeconds);
-                    }, 1000);
-
-                    if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                    }
-
-                    break;
-                }
-                default: {
-                    DialogUtils.alert(`Unhandled microphone recorder codec: ${args.codec}`);
-                    break;
-                }
-            }
-        },
-        async stopRecordingAudioAttachment() {
-            // clear audio recording timer
-            clearInterval(this.audioAttachmentRecordingTimer);
-
-            if (!this.isRecordingAudioAttachment) {
-                return;
-            }
-
-            this.isRecordingAudioAttachment = false;
-            if (this.androidNativeOpusAttachment) {
-                this.androidNativeOpusAttachment = false;
-                const p = new Promise((resolve) => {
-                    const done = () => {
-                        try {
-                            if (window.__meshchatXNative) {
-                                window.__meshchatXNative = undefined;
-                            }
-                        } catch {
-                            // ignore
-                        }
-                        resolve();
-                    };
-                    window.__meshchatXNative = {
-                        onWav: (payload) => {
-                            if (!payload || !payload.ok) {
-                                const err = payload && payload.error ? String(payload.error) : "unknown";
-                                if (err !== "empty") {
-                                    DialogUtils.alert(`${this.$t("messages.failed")}${err ? ` (${err})` : ""}`);
-                                }
-                                done();
-                                return;
-                            }
-                            try {
-                                const binary = atob(payload.data);
-                                const bytes = new Uint8Array(binary.length);
-                                for (let i = 0; i < binary.length; i += 1) {
-                                    bytes[i] = binary.charCodeAt(i);
-                                }
-                                const audio = new Blob([bytes], { type: "audio/wav" });
-                                this.newMessageAudio = {
-                                    audio_mode: 0x10,
-                                    audio_blob: audio,
-                                    audio_preview_url: URL.createObjectURL(audio),
-                                };
-                            } catch {
-                                DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                            }
-                            done();
-                        },
-                    };
-                    try {
-                        window.MeshChatXAndroid.stopNativeWavAttachment();
-                    } catch {
-                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                        done();
-                    }
-                });
-                await p;
-                this.audioAttachmentMicrophoneRecorder = null;
-                this.audioAttachmentMicrophoneRecorderCodec = null;
-                return;
-            }
-
-            const audio = await this.audioAttachmentMicrophoneRecorder.stop();
-
-            // handle audio based on codec
-            switch (this.audioAttachmentMicrophoneRecorderCodec) {
-                case "codec2": {
-                    // do nothing if no audio was provided
-                    if (audio.length === 0) {
-                        return;
-                    }
-
-                    // decode codec2 audio back to wav so we can show a preview audio player before user sends it
-                    const codec2Mode = this.audioAttachmentMicrophoneRecorder.codec2Mode;
-                    const encoded = assertByteLengthAtMost(new Uint8Array(audio), MAX_CODEC2_ENCODED_BYTES);
-                    const decoded = assertByteLengthAtMost(
-                        await Codec2Lib.runDecode(codec2Mode, encoded),
-                        MAX_CODEC2_DECODED_RAW_BYTES
-                    );
-
-                    // convert decoded codec2 to wav audio and create a blob
-                    const wavAudio = assertByteLengthAtMost(await Codec2Lib.rawToWav(decoded), MAX_CODEC2_WAV_BYTES);
-                    const wavBlob = new Blob([wavAudio], {
-                        type: "audio/wav",
-                    });
-
-                    // determine audio mode
-                    var audioMode = null;
-                    switch (codec2Mode) {
-                        case "1200": {
-                            audioMode = 0x04; // LXMF.AM_CODEC2_1200
-                            break;
-                        }
-                        case "3200": {
-                            audioMode = 0x09; // LXMF.AM_CODEC2_3200
-                            break;
-                        }
-                        default: {
-                            DialogUtils.alert(`Unhandled microphone recorder codec2Mode: ${codec2Mode}`);
-                            return;
-                        }
-                    }
-
-                    // update message audio attachment
-                    this.newMessageAudio = {
-                        audio_mode: audioMode,
-                        audio_blob: new Blob([audio]),
-                        audio_preview_url: URL.createObjectURL(wavBlob),
-                    };
-
-                    break;
-                }
-                case "opus": {
-                    // do nothing if no audio was provided
-                    if (audio.size === 0) {
-                        return;
-                    }
-
-                    // update message audio attachment
-                    this.newMessageAudio = {
-                        audio_mode: 0x10, // LXMF.AM_OPUS_OGG
-                        audio_blob: audio, // opus microphone recorder returns a blob
-                        audio_preview_url: URL.createObjectURL(audio),
-                    };
-
-                    break;
-                }
-            }
-        },
-        async removeAudioAttachment() {
-            // remove audio
-            this.newMessageAudio = null;
-        },
-        buildAudioRecordingFailureMessage() {
-            if (!navigator?.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
-                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_mediadevices")}`;
-            }
-            const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
-            if (typeof AudioContextCtor !== "function") {
-                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_web_audio")}`;
-            }
-            let probe = null;
-            try {
-                probe = new AudioContextCtor();
-                const canWorklet =
-                    globalThis.isSecureContext !== false &&
-                    probe.audioWorklet &&
-                    typeof probe.audioWorklet.addModule === "function";
-                const canScriptProcessor = typeof probe.createScriptProcessor === "function";
-                if (!canWorklet && !canScriptProcessor) {
-                    return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_audio_worklet")}`;
-                }
-            } catch {
-                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_web_audio")}`;
-            } finally {
-                try {
-                    if (probe && typeof probe.close === "function") {
-                        const closed = probe.close();
-                        if (closed && typeof closed.catch === "function") {
-                            void closed.catch(() => {});
-                        }
-                    }
-                } catch {
-                    // ignore
-                }
-            }
-            return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_permission")}`;
         },
         removeFileAttachment: function (file) {
             this.newMessageFiles = this.newMessageFiles.filter((newMessageFile) => {
@@ -7379,11 +7022,11 @@ export default {
             conversation.is_unread = false;
 
             try {
-                await window.api.post(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
-                GlobalEmitter.emit("notifications-changed");
+                await window.api.post(apiPath(`/lxmf/conversations/${conversation.destination_hash}/mark-as-read`));
+                GlobalEmitter.emit(EMITTER_EVENTS.NOTIFICATIONS_CHANGED);
                 NotificationUtils.clearMessageNotifications(conversation.destination_hash);
-                if (wasUnread && GlobalState.unreadConversationsCount > 0) {
-                    GlobalState.unreadConversationsCount -= 1;
+                if (wasUnread && useUnreadStore().unreadConversationsCount > 0) {
+                    useUnreadStore().unreadConversationsCount -= 1;
                 }
             } catch (e) {
                 conversation.is_unread = wasUnread;

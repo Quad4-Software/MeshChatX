@@ -26,6 +26,7 @@ from meshchatx.src.backend.bot_options import (
     normalize_bot_icon,
     write_bot_runtime_sidecar,
 )
+from meshchatx.src.env_utils import env_str
 from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
     is_path_within_dir,
@@ -144,10 +145,11 @@ class BotHandler:
         fallback_reticulum_dir = default_reticulum_config_dir or "~/.reticulum"
         self.bot_reticulum_config_dir = os.path.abspath(
             os.path.expanduser(
-                os.environ.get(
+                env_str(
                     "MESHCHAT_BOT_RETICULUM_CONFIG_DIR",
                     fallback_reticulum_dir,
-                ),
+                )
+                or fallback_reticulum_dir,
             ),
         )
         self.bots_dir = os.path.join(self.identity_path, "bots")

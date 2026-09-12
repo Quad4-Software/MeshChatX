@@ -5,6 +5,8 @@ import errno
 import os
 import sys
 
+from meshchatx.src.env_utils import env_str
+
 
 class StorageLockError(OSError):
     pass
@@ -37,7 +39,7 @@ def _soft_lock_contested(other_pid: int | None) -> bool:
         return False
     if other_pid == os.getpid():
         return True
-    if sys.platform == "android" or "ANDROID_ROOT" in os.environ:
+    if sys.platform == "android" or env_str("ANDROID_ROOT") is not None:
         return False
     return _pid_alive(other_pid)
 

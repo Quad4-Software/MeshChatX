@@ -1,3 +1,5 @@
+import { apiPath } from "../constants.js";
+
 /**
  * Reticulum transport mode enable/disable (separate from config PATCH).
  *
@@ -6,9 +8,9 @@
  */
 export async function applyTransportMode(enabled, api) {
     if (enabled) {
-        return api.post("/api/v1/reticulum/enable-transport");
+        return api.post(apiPath("/reticulum/enable-transport"));
     }
-    return api.post("/api/v1/reticulum/disable-transport");
+    return api.post(apiPath("/reticulum/disable-transport"));
 }
 
 export { applyReticulumInstanceSettings, fetchReticulumInstanceSettings } from "./settingsReticulumInstanceService.js";

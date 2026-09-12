@@ -143,6 +143,8 @@ import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import NotificationSoundUtils from "../../js/NotificationSoundUtils";
+import { apiPath } from "../../js/constants.js";
+import * as notificationSoundsApi from "../../js/api/notificationSounds.js";
 
 export default {
     name: "NotificationSoundSettings",
@@ -178,7 +180,7 @@ export default {
     methods: {
         async loadSounds() {
             try {
-                const response = await window.api.get("/api/v1/notification-sounds");
+                const response = await window.api.get(apiPath("/notification-sounds"));
                 this.sounds = response.data ?? [];
             } catch (error) {
                 console.error("Failed to load notification sounds:", error);
@@ -207,7 +209,7 @@ export default {
             formData.append("file", file);
 
             try {
-                await window.api.post("/api/v1/notification-sounds/upload", formData, {
+                await notificationSoundsApi.uploadNotificationSounds(formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
@@ -228,7 +230,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete(`/api/v1/notification-sounds/${sound.id}`);
+                await window.api.delete(apiPath(`/notification-sounds/${sound.id}`));
                 ToastUtils.success(this.$t("app.notification_sound_deleted"));
                 if (this.playingSoundId === sound.id) {
                     NotificationSoundUtils.stop();
@@ -243,7 +245,7 @@ export default {
         },
         async setPrimarySound(sound) {
             try {
-                await window.api.patch(`/api/v1/notification-sounds/${sound.id}`, {
+                await window.api.patch(apiPath(`/notification-sounds/${sound.id}`), {
                     is_primary: true,
                 });
                 ToastUtils.success(this.$t("app.notification_sound_primary_set"));

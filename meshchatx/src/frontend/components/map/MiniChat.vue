@@ -106,6 +106,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "MiniChat",
@@ -144,7 +145,7 @@ export default {
             this.loading = true;
             try {
                 const response = await window.api.get(
-                    `/api/v1/lxmf-messages/conversation/${this.destinationHash}?count=20&order=desc`
+                    apiPath(`/lxmf-messages/conversation/${this.destinationHash}?count=20&order=desc`)
                 );
                 this.messages = (response.data.lxmf_messages || []).reverse();
                 this.scrollToBottom();
@@ -158,7 +159,7 @@ export default {
             if (!this.newMessage.trim() || this.sending) return;
             this.sending = true;
             try {
-                const response = await window.api.post("/api/v1/lxmf-messages/send", {
+                const response = await window.api.post(apiPath("/lxmf-messages/send"), {
                     lxmf_message: {
                         destination_hash: this.destinationHash,
                         content: this.newMessage,

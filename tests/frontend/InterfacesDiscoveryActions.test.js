@@ -3,14 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import InterfacesPage from "../../meshchatx/src/frontend/components/interfaces/InterfacesPage.vue";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
-    default: {
-        config: { theme: "light" },
-        hasPendingInterfaceChanges: false,
-        modifiedInterfaceNames: new Set(),
-    },
-}));
-
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: {
         formatBytes: (b) => `${b} B`,

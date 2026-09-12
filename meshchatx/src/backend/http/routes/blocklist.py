@@ -3,148 +3,40 @@
 
 from __future__ import annotations
 
+import json
+import logging
+
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
     http_error_from_exception,
     http_payload_too_large,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+    http_unavailable,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.message_blocklist import (
+    build_export_document as build_blocklist_export_document,
+)
+from meshchatx.src.backend.message_blocklist import (
+    normalize_message_blocklist,
+    parse_import_document,
+    parse_message_blocklist_json,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def register_blocklist_routes(routes, app):
-    @routes.get("/api/v1/lxmf/message-blocklist")
+    @routes.get(API_V1_PREFIX + "/lxmf/message-blocklist")
     async def lxmf_message_blocklist_get(request):
         raw = app.config.message_blocklist_json.get()
         return web.json_response(
@@ -154,7 +46,7 @@ def register_blocklist_routes(routes, app):
             },
         )
 
-    @routes.put("/api/v1/lxmf/message-blocklist")
+    @routes.put(API_V1_PREFIX + "/lxmf/message-blocklist")
     async def lxmf_message_blocklist_put(request):
         try:
             data = await read_json_limited(request)
@@ -162,10 +54,7 @@ def register_blocklist_routes(routes, app):
             return http_payload_too_large()
         blocklist_in = data.get("blocklist")
         if not isinstance(blocklist_in, dict):
-            return web.json_response(
-                {"message": "blocklist must be an object"},
-                status=400,
-            )
+            return http_bad_request("blocklist must be an object")
         normalized = normalize_message_blocklist(blocklist_in)
         if "enabled" in data:
             app.config.message_blocklist_enabled.set(
@@ -179,13 +68,13 @@ def register_blocklist_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/lxmf/message-blocklist/export")
+    @routes.get(API_V1_PREFIX + "/lxmf/message-blocklist/export")
     async def lxmf_message_blocklist_export(request):
         raw = app.config.message_blocklist_json.get()
         blocklist = parse_message_blocklist_json(raw)
         return web.json_response(build_blocklist_export_document(blocklist))
 
-    @routes.post("/api/v1/lxmf/message-blocklist/import")
+    @routes.post(API_V1_PREFIX + "/lxmf/message-blocklist/import")
     async def lxmf_message_blocklist_import(request):
         try:
             data = await read_json_limited(request)
@@ -193,10 +82,7 @@ def register_blocklist_routes(routes, app):
             return http_payload_too_large()
         document = data.get("document")
         if not isinstance(document, dict):
-            return web.json_response(
-                {"message": "document must be an object"},
-                status=400,
-            )
+            return http_bad_request("document must be an object")
         merge = app._parse_bool(data.get("merge", False))
         existing = parse_message_blocklist_json(
             app.config.message_blocklist_json.get(),
@@ -207,10 +93,7 @@ def register_blocklist_routes(routes, app):
             existing=existing,
         )
         if imported is None:
-            return web.json_response(
-                {"message": "Invalid blocklist document"},
-                status=400,
-            )
+            return http_bad_request("Invalid blocklist document")
         app.config.message_blocklist_json.set(json.dumps(imported))
         return web.json_response(
             {
@@ -220,7 +103,7 @@ def register_blocklist_routes(routes, app):
         )
 
     # get blocked destinations
-    @routes.get("/api/v1/blocked-destinations")
+    @routes.get(API_V1_PREFIX + "/blocked-destinations")
     async def blocked_destinations_get(request):
         unavailable = require_database(app)
         if unavailable is not None:
@@ -246,7 +129,7 @@ def register_blocklist_routes(routes, app):
     # add blocked destination
 
     # add blocked destination
-    @routes.post("/api/v1/blocked-destinations")
+    @routes.post(API_V1_PREFIX + "/blocked-destinations")
     async def blocked_destinations_add(request):
         try:
             data = await read_json_limited(request)
@@ -254,32 +137,23 @@ def register_blocklist_routes(routes, app):
             return http_payload_too_large()
         destination_hash = data.get("destination_hash", "")
         if not destination_hash or len(destination_hash) != 32:
-            return web.json_response(
-                {"error": "Invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("Invalid destination hash")
 
         try:
             app.banish_lxmf_peer(destination_hash)
         except Exception:
-            return web.json_response(
-                {"error": "Failed to banish destination"},
-                status=400,
-            )
+            return http_bad_request("Failed to banish destination")
 
         return web.json_response({"message": "ok"})
 
     # remove blocked destination
 
     # remove blocked destination
-    @routes.delete("/api/v1/blocked-destinations/{destination_hash}")
+    @routes.delete(API_V1_PREFIX + "/blocked-destinations/{destination_hash}")
     async def blocked_destinations_delete(request):
         destination_hash = request.match_info.get("destination_hash", "")
         if not destination_hash or len(destination_hash) != 32:
-            return web.json_response(
-                {"error": "Invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("Invalid destination hash")
 
         try:
             app.lift_lxmf_peer_banishment(destination_hash)
@@ -287,13 +161,10 @@ def register_blocklist_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, fallback_status=500)
 
-    @routes.get("/api/v1/reticulum/blackhole")
+    @routes.get(API_V1_PREFIX + "/reticulum/blackhole")
     async def reticulum_blackhole_get(request):
         if not hasattr(app, "reticulum") or not app.reticulum:
-            return web.json_response(
-                {"error": "Reticulum not initialized"},
-                status=503,
-            )
+            return http_unavailable("Reticulum not initialized")
 
         try:
             if hasattr(app.reticulum, "get_blackholed_identities"):

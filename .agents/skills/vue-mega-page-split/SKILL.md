@@ -27,7 +27,7 @@ Also read:
 
 1. Mechanical extract only. No renames, no toast or i18n churn, no API path changes in the same change as a move.
 2. One concern per change: move or behaviour, never both.
-3. Match the Options API style of the parent file. Do not introduce Composition API, provide or inject, Pinia, or a composables tree in an extract.
+3. Mechanical extracts keep the parent's Options API style so the diff stays a pure move. Outside a mechanical move — new components, new stores, behaviour changes — Composition API (`<script setup>`), composables, provide/inject, and Pinia (`js/stores/`) are allowed and preferred for new code.
 4. Follow inventory names in `.agents/module-ownership.md`. Do not invent alternate folders.
 5. Shell stays orchestration. Data ownership, `window.api`, map or canvas lifecycle init and teardown, and multi-child toast firing stay on the page shell unless a later behaviour change explicitly moves them.
 6. One slice per PR or commit series. Prefer one panel, one settings section, or one pure helper module.
@@ -54,8 +54,43 @@ Inventing symbols not in the inventory is a fail.
 ## Cut order inside a shell
 
 1. Pure JS first (no `this`, no template). Unit-test like `MapInternalHelpers.test.js`.
-2. Presentational panels next (props in, events out). Match `settings/sections/`.
-3. Stateful feature chunks last. Keep Leaflet, WebGL, and WS lifecycle on the shell until the boundary is obvious.
+2. Composables next for stateful feature slices (`js/<feature>/useX.js`). See "Composable extraction" below.
+3. Presentational panels next (props in, events out). Match `settings/sections/`.
+4. Stateful feature chunks last. Keep Leaflet, WebGL, and WS lifecycle on the shell until the boundary is obvious.
+
+## Composable extraction
+
+A composable slice moves a self-contained feature concern (its refs, computed,
+watchers, and plain functions) out of an Options API shell into
+`js/<feature>/useSomething.js`, while the host stays Options API.
+
+Host wiring:
+
+```js
+setup() {
+    return { ...useConversationSearch() };
+},
+```
+
+Refs and functions returned from `setup()` merge onto `this`, so the template
+and untouched options keep working. Only move a coherent cluster: the
+`data` keys, `computed`, `watch` entries, and `methods` that reference each
+other and nothing else.
+
+Hard constraints:
+
+- Never move a symbol that tests call bare on the options object
+  (`Component.methods.X()`, `Component.computed.X()`, `Component.data()`).
+  Either keep a thin delegating method on the host, or leave the symbol.
+- `this.$route`, `this.$router`, `this.$t` are instance-only: pass them in as
+  parameters or keep the calling method on the host.
+- Lifecycle hooks may live inside the composable (`onMounted`, `onUnmounted`)
+  but only when the moved cluster owns that lifecycle fully.
+- Names starting with `_` must not be returned from `setup()` — Vue treats them
+  as reserved and warns. Either keep those methods on the host, or expose them
+  through an options callback the host delegates to.
+- Composables get their own unit tests under `tests/frontend/`; the host's
+  tests must stay untouched and green.
 
 ## Vue cut recipe
 
@@ -86,7 +121,7 @@ After the move:
 ## Hallucination tripwires (stop-ship)
 
 - New public methods or renamed handlers for cleanliness
-- New provide or inject, Pinia, or composables without an explicit behaviour ticket
+- Switching an existing component from Options API to Composition API inside a mechanical extract
 - Child calling `window.api` when the parent previously owned that call, unless the inventory moved the whole call site and tests cover it
 - Deleted emits, props, or refs that tests or the parent still need
 - Folders not listed in ownership

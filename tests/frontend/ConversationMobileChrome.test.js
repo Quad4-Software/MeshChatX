@@ -2,7 +2,8 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationPeerHeader from "../../meshchatx/src/frontend/components/messages/ConversationPeerHeader.vue";
 import ConversationDropDownMenu from "../../meshchatx/src/frontend/components/messages/ConversationDropDownMenu.vue";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
 
 const peer = {
     destination_hash: "a".repeat(32),
@@ -84,8 +85,8 @@ function mountMenu(props = {}) {
 
 describe("conversation mobile chrome", () => {
     beforeEach(() => {
-        GlobalState.blockedDestinations = [];
-        GlobalState.config = { telemetry_enabled: false };
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().config = { telemetry_enabled: false };
         window.api = {
             get: vi.fn().mockResolvedValue({ data: { is_contact: false } }),
         };

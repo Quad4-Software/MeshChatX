@@ -3,6 +3,11 @@
 
 from __future__ import annotations
 
+import logging
+
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
@@ -10,137 +15,14 @@ from meshchatx.src.backend.http.db_availability import (
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_payload_too_large,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+    http_unexpected,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+
+logger = logging.getLogger(__name__)
 
 CONTACTS_DEFAULT_LIMIT = 100
 CONTACTS_MAX_LIMIT = 500
@@ -203,7 +85,7 @@ def enrich_contact_row(app, row):
 
 def register_contacts_routes(routes, app):
     # contacts routes
-    @routes.get("/api/v1/telephone/contacts")
+    @routes.get(API_V1_PREFIX + "/telephone/contacts")
     async def telephone_contacts_get(request):
         pagination = parse_contacts_pagination(request.query)
         if pagination is None:
@@ -230,7 +112,7 @@ def register_contacts_routes(routes, app):
             logger.exception("telephone_contacts_get failed")
             return http_for_database_exception(e)
 
-    @routes.post("/api/v1/telephone/contacts")
+    @routes.post(API_V1_PREFIX + "/telephone/contacts")
     async def telephone_contacts_post(request):
         try:
             data = await read_json_limited(request)
@@ -245,10 +127,7 @@ def register_contacts_routes(routes, app):
         is_telemetry_trusted = data.get("is_telemetry_trusted", 0)
 
         if not name:
-            return web.json_response(
-                {"message": "Name is required"},
-                status=400,
-            )
+            return http_bad_request("Name is required")
 
         # Normalize: chat UI often posts an LXMF destination hash as
         # remote_identity_hash. Prefer the real identity hash when known so
@@ -271,9 +150,8 @@ def register_contacts_routes(routes, app):
         if not remote_identity_hash:
             remote_identity_hash = lxmf_address or lxst_address or provided_hash
         if not remote_identity_hash:
-            return web.json_response(
-                {"message": "Identity hash is required or could not be derived"},
-                status=400,
+            return http_bad_request(
+                "Identity hash is required or could not be derived",
             )
 
         # If the client only supplied a destination hash, keep it on the
@@ -325,7 +203,7 @@ def register_contacts_routes(routes, app):
         app.sync_telephone_call_policy()
         return web.json_response({"message": "Contact added"})
 
-    @routes.patch("/api/v1/telephone/contacts/{id}")
+    @routes.patch(API_V1_PREFIX + "/telephone/contacts/{id}")
     async def telephone_contacts_patch(request):
         contact_id = int(request.match_info["id"])
         try:
@@ -355,14 +233,14 @@ def register_contacts_routes(routes, app):
         app.sync_telephone_call_policy()
         return web.json_response({"message": "Contact updated"})
 
-    @routes.delete("/api/v1/telephone/contacts/{id}")
+    @routes.delete(API_V1_PREFIX + "/telephone/contacts/{id}")
     async def telephone_contacts_delete(request):
         contact_id = int(request.match_info["id"])
         app.database.contacts.delete_contact(contact_id)
         app.sync_telephone_call_policy()
         return web.json_response({"message": "Contact deleted"})
 
-    @routes.get("/api/v1/telephone/contacts/check/{identity_hash}")
+    @routes.get(API_V1_PREFIX + "/telephone/contacts/check/{identity_hash}")
     async def telephone_contacts_check(request):
         unavailable = require_database(app)
         if unavailable is not None:
@@ -380,7 +258,7 @@ def register_contacts_routes(routes, app):
             logger.exception("telephone_contacts_check failed")
             return http_for_database_exception(e)
 
-    @routes.get("/api/v1/telephone/contacts/export")
+    @routes.get(API_V1_PREFIX + "/telephone/contacts/export")
     async def telephone_contacts_export(request):
         unavailable = require_database(app)
         if unavailable is not None:
@@ -408,20 +286,16 @@ def register_contacts_routes(routes, app):
             retryable = http_for_database_exception(e)
             if retryable.status == 503:
                 return retryable
-            return web.json_response(
-                {"message": f"Failed to export contacts: {e!s}"},
-                status=500,
-            )
+            return http_unexpected(f"Failed to export contacts: {e!s}")
 
-    @routes.post("/api/v1/telephone/contacts/import")
+    @routes.post(API_V1_PREFIX + "/telephone/contacts/import")
     async def telephone_contacts_import(request):
         try:
             data = await read_json_limited(request)
             contacts = data.get("contacts", [])
             if not isinstance(contacts, list):
-                return web.json_response(
-                    {"message": "Invalid import format: contacts must be an array"},
-                    status=400,
+                return http_bad_request(
+                    "Invalid import format: contacts must be an array",
                 )
             from meshchatx.src.backend.message_export_bundle import import_contacts_list
 
@@ -433,9 +307,6 @@ def register_contacts_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to import contacts: {e!s}"},
-                status=500,
-            )
+            return http_unexpected(f"Failed to import contacts: {e!s}")
 
     # announce

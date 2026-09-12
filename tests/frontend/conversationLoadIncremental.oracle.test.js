@@ -3,9 +3,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
-import GlobalState from "@/js/GlobalState";
 import { CONVERSATION_MESSAGES_PAGE_SIZE } from "@/components/messages/conversationDisplayGroups.js";
 import { mount, flushPromises } from "@vue/test-utils";
+import { useConfigStore } from "@/js/stores/configStore.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -50,8 +50,8 @@ describe("conversation incremental load smoke", () => {
 
     beforeEach(() => {
         wrappers = [];
-        GlobalState.config.theme = "light";
-        GlobalState.config.message_list_virtualization = false;
+        useConfigStore().config.theme = "light";
+        useConfigStore().config.message_list_virtualization = false;
         WebSocketConnection.connect();
         axiosMock = {
             get: vi.fn(),

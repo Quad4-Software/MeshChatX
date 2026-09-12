@@ -113,6 +113,7 @@ import AppModal from "./AppModal.vue";
 import LoadingState from "./LoadingState.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import GlobalEmitter from "../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
 import logoUrl from "../assets/images/logo.png";
 
 export default {
@@ -182,7 +183,7 @@ export default {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.api.get("/api/v1/app/changelog");
+                const response = await window.api.get(apiPath("/app/changelog"));
                 this.version = response.data.version;
 
                 let html = response.data.html;
@@ -199,7 +200,7 @@ export default {
         async close() {
             if (!this.dontShowEver && !this.dontShowAgain) {
                 try {
-                    await window.api.post("/api/v1/app/changelog/seen", {
+                    await window.api.post(apiPath("/app/changelog/seen"), {
                         version: this.currentVersion || "0.0.0",
                     });
                 } catch (e) {
@@ -209,12 +210,12 @@ export default {
                 await this.markAsSeen();
             }
             this.visible = false;
-            GlobalEmitter.emit("changelog-closed");
+            GlobalEmitter.emit(EMITTER_EVENTS.CHANGELOG_CLOSED);
         },
         async markAsSeen() {
             if (this.dontShowEver) {
                 try {
-                    await window.api.post("/api/v1/app/changelog/seen", {
+                    await window.api.post(apiPath("/app/changelog/seen"), {
                         version: "999.999.999",
                     });
                 } catch (e) {
@@ -222,7 +223,7 @@ export default {
                 }
             } else if (this.dontShowAgain) {
                 try {
-                    await window.api.post("/api/v1/app/changelog/seen", {
+                    await window.api.post(apiPath("/app/changelog/seen"), {
                         version: this.currentVersion,
                     });
                 } catch (e) {

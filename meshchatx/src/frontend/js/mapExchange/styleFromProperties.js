@@ -20,16 +20,6 @@ const SIMPLE_MARKER_SIZE_KEY = "marker-size";
 const ICON_BASE_CSS_PX = 32;
 const ICON_WIDTH_MIN_PX = 8;
 const ICON_WIDTH_MAX_PX = 40;
-/** Above this resolution (zoomed out), draw points as cheap circles instead of Icon bitmaps. */
-const CHEAP_POINT_MAX_RESOLUTION = 120;
-
-const CHEAP_POINT_STYLE = new Style({
-    image: new CircleStyle({
-        radius: 3,
-        fill: new Fill({ color: "rgba(185, 28, 28, 0.9)" }),
-        stroke: new Stroke({ color: "#7f1d1d", width: 1 }),
-    }),
-});
 
 function num(v, fallback) {
     const n = typeof v === "number" ? v : parseFloat(v);
@@ -100,7 +90,7 @@ export function applyCappedMcxIconStyleIfNeeded(feature) {
     }
 }
 
-export function styleFromMcxProperties(feature, resolution) {
+export function styleFromMcxProperties(feature) {
     const geom = feature.getGeometry();
     if (!geom) {
         return null;
@@ -110,19 +100,19 @@ export function styleFromMcxProperties(feature, resolution) {
 
     const iconSrc = p[MCX_ICON_DATA_URL] || p[MCX_ICON_HREF];
     if (iconSrc && (type === "Point" || type === "MultiPoint")) {
-        if (resolution != null && Number.isFinite(resolution) && resolution > CHEAP_POINT_MAX_RESOLUTION) {
-            return CHEAP_POINT_STYLE;
-        }
         const factor = num(p[MCX_ICON_SCALE], 1);
         const widthPx = Math.round(Math.min(ICON_WIDTH_MAX_PX, Math.max(ICON_WIDTH_MIN_PX, ICON_BASE_CSS_PX * factor)));
-        const ax = num(p[MCX_ICON_ANCHOR_X], 0.5);
-        const ay = num(p[MCX_ICON_ANCHOR_Y], 1);
+        const hasAnchorPx = p[MCX_ICON_ANCHOR_X] != null && p[MCX_ICON_ANCHOR_Y] != null;
+        const ax = num(p[MCX_ICON_ANCHOR_X], 0);
+        const ay = num(p[MCX_ICON_ANCHOR_Y], 0);
         const isData = String(iconSrc).startsWith("data:");
         return new Style({
             image: new Icon({
                 src: iconSrc,
                 width: widthPx,
-                anchor: [ax, ay],
+                anchor: hasAnchorPx ? [ax, ay] : [0.5, 1],
+                anchorXUnits: hasAnchorPx ? "pixels" : "fraction",
+                anchorYUnits: hasAnchorPx ? "pixels" : "fraction",
                 crossOrigin: isData ? undefined : "anonymous",
             }),
         });

@@ -85,7 +85,9 @@ async def test_ws_ping_emits_pong_contract():
 
     client.send_str = AsyncMock(side_effect=capture_send)
 
-    with patch("meshchatx.meshchat.AsyncUtils") as mock_async_utils:
+    with patch(
+        "meshchatx.src.backend.http.ws.handlers_core.AsyncUtils",
+    ) as mock_async_utils:
 
         def run_async(coro):
             import asyncio

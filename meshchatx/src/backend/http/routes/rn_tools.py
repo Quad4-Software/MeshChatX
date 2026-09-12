@@ -3,140 +3,30 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
+
+from aiohttp import web
+
+from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
     http_error_from_exception,
+    http_not_found,
     http_payload_too_large,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+    http_unavailable,
+    http_unexpected,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
+
+logger = logging.getLogger(__name__)
 
 
 def register_rn_tools_routes(routes, app):
@@ -144,20 +34,17 @@ def register_rn_tools_routes(routes, app):
     def _rnsh_require_manager():
         manager = app.rnsh_manager
         if manager is None:
-            return None, web.json_response(
-                {"message": "RNSH manager is not available"},
-                status=503,
-            )
+            return None, http_unavailable("RNSH manager is not available")
         return manager, None
 
-    @routes.get("/api/v1/rnsh/sessions")
+    @routes.get(API_V1_PREFIX + "/rnsh/sessions")
     async def rnsh_sessions_get(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
             return error
         return web.json_response(manager.list_sessions())
 
-    @routes.post("/api/v1/rnsh/sessions")
+    @routes.post(API_V1_PREFIX + "/rnsh/sessions")
     async def rnsh_sessions_post(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
@@ -169,7 +56,7 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.create_session(data or {})
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         autostart = bool((data or {}).get("autostart", True))
         if autostart:
             try:
@@ -182,7 +69,7 @@ def register_rn_tools_routes(routes, app):
             {"session": session.to_dict(include_output_tail=True)},
         )
 
-    @routes.delete("/api/v1/rnsh/sessions/{session_id}")
+    @routes.delete(API_V1_PREFIX + "/rnsh/sessions/{session_id}")
     async def rnsh_sessions_delete(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
@@ -191,12 +78,12 @@ def register_rn_tools_routes(routes, app):
         try:
             manager.remove_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response({"message": "Session removed"})
 
-    @routes.post("/api/v1/rnsh/sessions/{session_id}/start")
+    @routes.post(API_V1_PREFIX + "/rnsh/sessions/{session_id}/start")
     async def rnsh_session_start(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
@@ -205,12 +92,12 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.start_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.post("/api/v1/rnsh/sessions/{session_id}/stop")
+    @routes.post(API_V1_PREFIX + "/rnsh/sessions/{session_id}/stop")
     async def rnsh_session_stop(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
@@ -219,12 +106,12 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.stop_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.post("/api/v1/rnsh/sessions/{session_id}/input")
+    @routes.post(API_V1_PREFIX + "/rnsh/sessions/{session_id}/input")
     async def rnsh_session_input(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
@@ -236,22 +123,19 @@ def register_rn_tools_routes(routes, app):
             return http_payload_too_large()
         text = data.get("text")
         if not isinstance(text, str):
-            return web.json_response(
-                {"message": "Input text is required"},
-                status=400,
-            )
+            return http_bad_request("Input text is required")
         add_newline = bool(data.get("newline", False))
         if add_newline and not text.endswith("\n"):
             text += "\n"
         try:
             session = manager.send_input(session_id, text)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.post("/api/v1/rnsh/sessions/{session_id}/resize")
+    @routes.post(API_V1_PREFIX + "/rnsh/sessions/{session_id}/resize")
     async def rnsh_session_resize(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
@@ -266,12 +150,12 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.resize_session(session_id, rows, cols)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.get("/api/v1/rnsh/sessions/{session_id}/output")
+    @routes.get(API_V1_PREFIX + "/rnsh/sessions/{session_id}/output")
     async def rnsh_session_output(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
@@ -281,12 +165,12 @@ def register_rn_tools_routes(routes, app):
         try:
             payload = manager.output_since(session_id, cursor)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response(payload)
 
-    @routes.post("/api/v1/rnsh/sessions/{session_id}/clear")
+    @routes.post(API_V1_PREFIX + "/rnsh/sessions/{session_id}/clear")
     async def rnsh_session_clear(request):
         manager, error = _rnsh_require_manager()
         if error is not None:
@@ -295,7 +179,7 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.clear_output(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
@@ -303,20 +187,17 @@ def register_rn_tools_routes(routes, app):
     def _rnx_require_manager():
         manager = app.rnx_manager
         if manager is None:
-            return None, web.json_response(
-                {"message": "RNX manager is not available"},
-                status=503,
-            )
+            return None, http_unavailable("RNX manager is not available")
         return manager, None
 
-    @routes.get("/api/v1/rnx/sessions")
+    @routes.get(API_V1_PREFIX + "/rnx/sessions")
     async def rnx_sessions_get(request):
         manager, error = _rnx_require_manager()
         if error is not None:
             return error
         return web.json_response(manager.list_sessions())
 
-    @routes.post("/api/v1/rnx/sessions")
+    @routes.post(API_V1_PREFIX + "/rnx/sessions")
     async def rnx_sessions_post(request):
         manager, error = _rnx_require_manager()
         if error is not None:
@@ -338,7 +219,7 @@ def register_rn_tools_routes(routes, app):
             {"session": session.to_dict(include_output_tail=True)},
         )
 
-    @routes.delete("/api/v1/rnx/sessions/{session_id}")
+    @routes.delete(API_V1_PREFIX + "/rnx/sessions/{session_id}")
     async def rnx_sessions_delete(request):
         manager, error = _rnx_require_manager()
         if error is not None:
@@ -347,12 +228,12 @@ def register_rn_tools_routes(routes, app):
         try:
             manager.remove_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response({"message": "Session removed"})
 
-    @routes.post("/api/v1/rnx/sessions/{session_id}/start")
+    @routes.post(API_V1_PREFIX + "/rnx/sessions/{session_id}/start")
     async def rnx_session_start(request):
         manager, error = _rnx_require_manager()
         if error is not None:
@@ -361,12 +242,12 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.start_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.post("/api/v1/rnx/sessions/{session_id}/stop")
+    @routes.post(API_V1_PREFIX + "/rnx/sessions/{session_id}/stop")
     async def rnx_session_stop(request):
         manager, error = _rnx_require_manager()
         if error is not None:
@@ -375,12 +256,12 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.stop_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.post("/api/v1/rnx/sessions/{session_id}/input")
+    @routes.post(API_V1_PREFIX + "/rnx/sessions/{session_id}/input")
     async def rnx_session_input(request):
         manager, error = _rnx_require_manager()
         if error is not None:
@@ -392,22 +273,19 @@ def register_rn_tools_routes(routes, app):
             return http_payload_too_large()
         text = data.get("text")
         if not isinstance(text, str):
-            return web.json_response(
-                {"message": "Input text is required"},
-                status=400,
-            )
+            return http_bad_request("Input text is required")
         add_newline = bool(data.get("newline", False))
         if add_newline and not text.endswith("\n"):
             text += "\n"
         try:
             session = manager.send_input(session_id, text)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.post("/api/v1/rnx/sessions/{session_id}/resize")
+    @routes.post(API_V1_PREFIX + "/rnx/sessions/{session_id}/resize")
     async def rnx_session_resize(request):
         manager, error = _rnx_require_manager()
         if error is not None:
@@ -422,12 +300,12 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.resize_session(session_id, rows, cols)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.get("/api/v1/rnx/sessions/{session_id}/output")
+    @routes.get(API_V1_PREFIX + "/rnx/sessions/{session_id}/output")
     async def rnx_session_output(request):
         manager, error = _rnx_require_manager()
         if error is not None:
@@ -437,12 +315,12 @@ def register_rn_tools_routes(routes, app):
         try:
             payload = manager.output_since(session_id, cursor)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response(payload)
 
-    @routes.post("/api/v1/rnx/sessions/{session_id}/clear")
+    @routes.post(API_V1_PREFIX + "/rnx/sessions/{session_id}/clear")
     async def rnx_session_clear(request):
         manager, error = _rnx_require_manager()
         if error is not None:
@@ -451,12 +329,12 @@ def register_rn_tools_routes(routes, app):
         try:
             session = manager.clear_output(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
-    @routes.post("/api/v1/rncp/send")
+    @routes.post(API_V1_PREFIX + "/rncp/send")
     async def rncp_send(request):
         try:
             data = await read_json_limited(request)
@@ -474,10 +352,7 @@ def register_rn_tools_routes(routes, app):
         try:
             destination_hash = bytes.fromhex(destination_hash_str)
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid destination hash: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Invalid destination hash: {e}")
 
         transfer_id = None
 
@@ -520,7 +395,7 @@ def register_rn_tools_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/rncp/fetch")
+    @routes.post(API_V1_PREFIX + "/rncp/fetch")
     async def rncp_fetch(request):
         try:
             data = await read_json_limited(request)
@@ -539,10 +414,7 @@ def register_rn_tools_routes(routes, app):
         try:
             destination_hash = bytes.fromhex(destination_hash_str)
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid destination hash: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Invalid destination hash: {e}")
 
         transfer_id = None
 
@@ -585,18 +457,15 @@ def register_rn_tools_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.get("/api/v1/rncp/transfer/{transfer_id}")
+    @routes.get(API_V1_PREFIX + "/rncp/transfer/{transfer_id}")
     async def rncp_transfer_status(request):
         transfer_id = request.match_info.get("transfer_id", "")
         status = app.rncp_handler.get_transfer_status(transfer_id)
         if status:
             return web.json_response(status)
-        return web.json_response(
-            {"message": "Transfer not found"},
-            status=404,
-        )
+        return http_not_found("Transfer not found")
 
-    @routes.post("/api/v1/rncp/listen")
+    @routes.post(API_V1_PREFIX + "/rncp/listen")
     async def rncp_listen(request):
         try:
             data = await read_json_limited(request)
@@ -623,11 +492,11 @@ def register_rn_tools_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.get("/api/v1/rncp/status")
+    @routes.get(API_V1_PREFIX + "/rncp/status")
     async def rncp_status(_request):
         return web.json_response(app.rncp_handler.get_listener_status())
 
-    @routes.post("/api/v1/rncp/stop")
+    @routes.post(API_V1_PREFIX + "/rncp/stop")
     async def rncp_stop(_request):
         try:
             app.rncp_handler.teardown_receive_destination()
@@ -635,7 +504,7 @@ def register_rn_tools_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/rncp/cancel")
+    @routes.post(API_V1_PREFIX + "/rncp/cancel")
     async def rncp_cancel(request):
         data = {}
         try:
@@ -657,7 +526,7 @@ def register_rn_tools_routes(routes, app):
 
     # --- RNS FileSync ---
 
-    @routes.get("/api/v1/rnstatus")
+    @routes.get(API_V1_PREFIX + "/rnstatus")
     async def rnstatus(request):
         include_link_stats = request.query.get("include_link_stats", "false") in (
             "true",
@@ -681,7 +550,7 @@ def register_rn_tools_routes(routes, app):
         try:
             timeout = float(timeout_raw) if timeout_raw not in (None, "") else None
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid timeout"}, status=400)
+            return http_bad_request("Invalid timeout")
 
         try:
             if remote:
@@ -690,11 +559,8 @@ def register_rn_tools_routes(routes, app):
                 )
 
                 if not identity_path and not identity_name:
-                    return web.json_response(
-                        {
-                            "message": "identity_path or identity_name is required for remote queries",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "identity_path or identity_name is required for remote queries"
                     )
                 stats, link_count = await asyncio.to_thread(
                     fetch_remote_status,
@@ -724,13 +590,13 @@ def register_rn_tools_routes(routes, app):
                 )
             return web.json_response(status)
         except (ValueError, FileNotFoundError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except TimeoutError as e:
-            return web.json_response({"message": str(e)}, status=504)
+            return http_error(504, str(e))
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.get("/api/v1/rnpath/table")
+    @routes.get(API_V1_PREFIX + "/rnpath/table")
     async def rnpath_table(request):
         def _optional_int(raw, field_name):
             if raw in (None, ""):
@@ -746,7 +612,7 @@ def register_rn_tools_routes(routes, app):
             page = int(request.query.get("page", 1))
             limit = int(request.query.get("limit", 50))
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
 
         search = request.query.get("search")
         interface = request.query.get("interface")
@@ -762,7 +628,7 @@ def register_rn_tools_routes(routes, app):
         try:
             timeout = float(timeout_raw) if timeout_raw not in (None, "") else None
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid timeout"}, status=400)
+            return http_bad_request("Invalid timeout")
 
         try:
             raw_table = None
@@ -772,11 +638,8 @@ def register_rn_tools_routes(routes, app):
                 )
 
                 if not identity_path and not identity_name:
-                    return web.json_response(
-                        {
-                            "message": "identity_path or identity_name is required for remote queries",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "identity_path or identity_name is required for remote queries"
                     )
                 raw_table = await asyncio.to_thread(
                     fetch_remote_path_table,
@@ -800,13 +663,13 @@ def register_rn_tools_routes(routes, app):
                 result["remote"] = remote
             return web.json_response(result)
         except (ValueError, FileNotFoundError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except TimeoutError as e:
-            return web.json_response({"message": str(e)}, status=504)
+            return http_error(504, str(e))
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.get("/api/v1/rnpath/rates")
+    @routes.get(API_V1_PREFIX + "/rnpath/rates")
     async def rnpath_rates(request):
         remote = (request.query.get("remote") or "").strip()
         identity_path = (request.query.get("identity_path") or "").strip() or None
@@ -820,7 +683,7 @@ def register_rn_tools_routes(routes, app):
         try:
             timeout = float(timeout_raw) if timeout_raw not in (None, "") else None
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid timeout"}, status=400)
+            return http_bad_request("Invalid timeout")
 
         try:
             raw_table = None
@@ -830,11 +693,8 @@ def register_rn_tools_routes(routes, app):
                 )
 
                 if not identity_path and not identity_name:
-                    return web.json_response(
-                        {
-                            "message": "identity_path or identity_name is required for remote queries",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "identity_path or identity_name is required for remote queries"
                     )
                 raw_table = await asyncio.to_thread(
                     fetch_remote_rate_table,
@@ -850,13 +710,13 @@ def register_rn_tools_routes(routes, app):
                 payload["remote"] = remote
             return web.json_response(payload)
         except (ValueError, FileNotFoundError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except TimeoutError as e:
-            return web.json_response({"message": str(e)}, status=504)
+            return http_error(504, str(e))
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/rnpath/drop")
+    @routes.post(API_V1_PREFIX + "/rnpath/drop")
     async def rnpath_drop(request):
         try:
             data = await read_json_limited(request)
@@ -864,10 +724,7 @@ def register_rn_tools_routes(routes, app):
             return http_payload_too_large()
         destination_hash = data.get("destination_hash")
         if not destination_hash:
-            return web.json_response(
-                {"message": "destination_hash is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash is required")
         not_ready = app._require_rns_tool_handler(app.rnpath_handler, "RNPath")
         if not_ready is not None:
             return not_ready
@@ -877,7 +734,7 @@ def register_rn_tools_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/rnpath/drop-via")
+    @routes.post(API_V1_PREFIX + "/rnpath/drop-via")
     async def rnpath_drop_via(request):
         try:
             data = await read_json_limited(request)
@@ -885,10 +742,7 @@ def register_rn_tools_routes(routes, app):
             return http_payload_too_large()
         transport_instance_hash = data.get("transport_instance_hash")
         if not transport_instance_hash:
-            return web.json_response(
-                {"message": "transport_instance_hash is required"},
-                status=400,
-            )
+            return http_bad_request("transport_instance_hash is required")
         not_ready = app._require_rns_tool_handler(app.rnpath_handler, "RNPath")
         if not_ready is not None:
             return not_ready
@@ -898,7 +752,7 @@ def register_rn_tools_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/rnpath/drop-queues")
+    @routes.post(API_V1_PREFIX + "/rnpath/drop-queues")
     async def rnpath_drop_queues(request):
         not_ready = app._require_rns_tool_handler(app.rnpath_handler, "RNPath")
         if not_ready is not None:
@@ -909,7 +763,7 @@ def register_rn_tools_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/rnpath/request")
+    @routes.post(API_V1_PREFIX + "/rnpath/request")
     async def rnpath_request(request):
         try:
             data = await read_json_limited(request)
@@ -917,10 +771,7 @@ def register_rn_tools_routes(routes, app):
             return http_payload_too_large()
         destination_hash = data.get("destination_hash")
         if not destination_hash:
-            return web.json_response(
-                {"message": "destination_hash is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash is required")
         not_ready = app._require_rns_tool_handler(app.rnpath_handler, "RNPath")
         if not_ready is not None:
             return not_ready
@@ -930,29 +781,23 @@ def register_rn_tools_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.get("/api/v1/rnpath/trace/{destination_hash}")
+    @routes.get(API_V1_PREFIX + "/rnpath/trace/{destination_hash}")
     async def rnpath_trace(request):
         destination_hash = request.match_info.get("destination_hash")
         if not destination_hash:
-            return web.json_response(
-                {"error": "destination_hash is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash is required")
         try:
             if not app.rnpath_trace_handler:
-                return web.json_response(
-                    {
-                        "error": "RNPathTraceHandler not initialized for current context",
-                    },
-                    status=503,
+                return http_unavailable(
+                    "RNPathTraceHandler not initialized for current context"
                 )
             result = await app.rnpath_trace_handler.trace_path(destination_hash)
             return web.json_response(result)
         except Exception:
             logger.exception("RN path trace route failed")
-            return web.json_response({"error": "Trace failed"}, status=500)
+            return http_unexpected("Trace failed")
 
-    @routes.post("/api/v1/rnprobe")
+    @routes.post(API_V1_PREFIX + "/rnprobe")
     async def rnprobe(request):
         try:
             data = await read_json_limited(request)
@@ -963,15 +808,15 @@ def register_rn_tools_routes(routes, app):
         try:
             size = int(data.get("size", RNProbeHandler.DEFAULT_PROBE_SIZE))
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid size"}, status=400)
+            return http_bad_request("Invalid size")
         try:
             wait = float(data.get("wait", 0))
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid wait"}, status=400)
+            return http_bad_request("Invalid wait")
         try:
             probes = int(data.get("probes", 1))
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid probes"}, status=400)
+            return http_bad_request("Invalid probes")
 
         timeout = None
         raw_timeout = data.get("timeout", 0)
@@ -979,23 +824,17 @@ def register_rn_tools_routes(routes, app):
             try:
                 t = float(raw_timeout)
             except (TypeError, ValueError):
-                return web.json_response({"message": "Invalid timeout"}, status=400)
+                return http_bad_request("Invalid timeout")
             if t != 0:
                 timeout = t
 
         try:
             destination_hash = bytes.fromhex(destination_hash_str)
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid destination hash: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Invalid destination hash: {e}")
 
         if not full_name:
-            return web.json_response(
-                {"message": "full_name is required"},
-                status=400,
-            )
+            return http_bad_request("full_name is required")
 
         not_ready = app._require_rns_tool_handler(app.rnprobe_handler, "RNProbe")
         if not_ready is not None:

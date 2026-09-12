@@ -139,6 +139,7 @@
 
 <script>
 import ToastUtils from "../../js/ToastUtils";
+import { apiPath } from "../../js/constants.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import LxmfIconEditor, { defaultBotIconDraft } from "../LxmfIconEditor.vue";
@@ -198,7 +199,7 @@ export default {
     methods: {
         async loadTemplates() {
             try {
-                const response = await window.api.get("/api/v1/bots/status");
+                const response = await window.api.get(apiPath("/bots/status"));
                 this.templates = response.data.templates || [];
                 const wanted = this.$route.query.template;
                 const found = this.templates.find((t) => t.id === wanted);
@@ -258,7 +259,7 @@ export default {
                 if (templateId === "rrc") {
                     payload.rrc = buildRrcPayload(this.rrcDraft);
                 }
-                await window.api.post("/api/v1/bots/start", payload);
+                await window.api.post(apiPath("/bots/start"), payload);
                 ToastUtils.success(this.$t("bots.bot_started"));
                 this.$router.push("/bots");
             } catch (e) {

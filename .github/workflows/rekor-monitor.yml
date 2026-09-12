@@ -1,7 +1,6 @@
 # Verify Rekor transparency log consistency across runs.
 # This workflow is self-contained because the upstream sigstore reusable
-# workflow does not declare the actions: permission required by the artifact
-# download/upload steps used for checkpoint persistence.
+# workflow does not declare the permissions used for checkpoint persistence.
 name: Rekor log monitor
 
 on:
@@ -14,7 +13,6 @@ concurrency:
     cancel-in-progress: false
 
 permissions:
-    actions: write
     contents: read
     issues: write
 

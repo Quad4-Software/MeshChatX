@@ -149,6 +149,7 @@ import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
 
 export default {
     name: "ForwarderPage",
@@ -168,13 +169,13 @@ export default {
         };
     },
     mounted() {
-        onWsEvent("lxmf.forwarding.rules", this.onForwardingRules);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        onWsEvent(WS_EVENTS.LXMF_FORWARDING_RULES, this.onForwardingRules);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this.fetchRules();
     },
     beforeUnmount() {
-        offWsEvent("lxmf.forwarding.rules", this.onForwardingRules);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        offWsEvent(WS_EVENTS.LXMF_FORWARDING_RULES, this.onForwardingRules);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
     },
     methods: {
         onWebsocketReconnected() {

@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import { clearMessagePanes } from "../../meshchatx/src/frontend/js/browserLayoutStore";
 import { micronStorage } from "../../meshchatx/src/frontend/js/MicronStorage";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
+import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore.js";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
 
 vi.mock("../../meshchatx/src/frontend/js/csrfToken.js", () => ({
     fetchCsrfToken: vi.fn().mockResolvedValue(undefined),
@@ -65,17 +67,17 @@ function makeCtx() {
 describe("App.vue applyIdentitySwitched", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        GlobalState.unreadConversationsCount = 3;
-        GlobalState.missedCallsCount = 2;
-        GlobalState.relayChatUnreadCount = 7;
-        GlobalState.blockedDestinations = [{ destination_hash: "old" }];
+        useUnreadStore().unreadConversationsCount = 3;
+        useUnreadStore().missedCallsCount = 2;
+        useUnreadStore().relayChatUnreadCount = 7;
+        useIdentityStore().blockedDestinations = [{ destination_hash: "old" }];
     });
 
     afterEach(() => {
-        GlobalState.unreadConversationsCount = 0;
-        GlobalState.missedCallsCount = 0;
-        GlobalState.relayChatUnreadCount = 0;
-        GlobalState.blockedDestinations = [];
+        useUnreadStore().unreadConversationsCount = 0;
+        useUnreadStore().missedCallsCount = 0;
+        useUnreadStore().relayChatUnreadCount = 0;
+        useIdentityStore().blockedDestinations = [];
         vi.useRealTimers();
     });
 
@@ -86,9 +88,9 @@ describe("App.vue applyIdentitySwitched", () => {
             display_name: "User One",
         });
         expect(ToastUtils.success).toHaveBeenCalledWith("identities.switched");
-        expect(GlobalState.unreadConversationsCount).toBe(0);
-        expect(GlobalState.missedCallsCount).toBe(0);
-        expect(GlobalState.relayChatUnreadCount).toBe(0);
+        expect(useUnreadStore().unreadConversationsCount).toBe(0);
+        expect(useUnreadStore().missedCallsCount).toBe(0);
+        expect(useUnreadStore().relayChatUnreadCount).toBe(0);
         expect(ctx.getConfig).toHaveBeenCalledTimes(1);
         expect(ctx.updateRingtonePlayer).toHaveBeenCalledTimes(1);
         expect(ctx.getAppInfo).toHaveBeenCalledTimes(1);
@@ -96,7 +98,7 @@ describe("App.vue applyIdentitySwitched", () => {
         expect(ctx.updateTelephoneStatus).toHaveBeenCalledTimes(1);
         expect(ctx.updateUnreadConversationsCount).toHaveBeenCalledTimes(1);
         expect(ctx.updateRelayChatUnreadCount).toHaveBeenCalledTimes(1);
-        expect(GlobalState.blockedDestinations).toEqual([]);
+        expect(useIdentityStore().blockedDestinations).toEqual([]);
         expect(ctx.isSwitchingIdentity).toBe(false);
         expect(clearMessagePanes).toHaveBeenCalled();
         expect(micronStorage.clearAll).toHaveBeenCalled();
@@ -181,7 +183,7 @@ describe("App.vue applyIdentitySwitched", () => {
     });
 
     it("requires reauth without wiping UI via identity-switched", async () => {
-        GlobalState.authEnabled = true;
+        useAuthStore().authEnabled = true;
         const ctx = {
             ...makeCtx(),
             $route: { name: "settings" },

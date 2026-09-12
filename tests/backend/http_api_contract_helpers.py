@@ -9,7 +9,12 @@ import re
 from pathlib import Path
 
 _ROUTE_DECORATOR = re.compile(
-    r'@routes\.(get|post|patch|delete|put)\(\s*(?:\n\s*)?["\']([^"\']+)["\']',
+    r"@routes\.(get|post|patch|delete|put)\(\s*(?:\n\s*)?"
+    r"(?:"
+    r"['\"]([^'\"]+)['\"]"
+    r"|API_V1_PREFIX\s*\+\s*f?['\"]([^'\"]+)['\"]"
+    r"|f['\"]\{API_V1_PREFIX\}([^'\"]*)['\"]"
+    r")",
     re.MULTILINE,
 )
 
@@ -44,7 +49,14 @@ def extract_meshchat_http_routes(meshchat_py: Path) -> list[dict[str, str]]:
     for path in http_route_source_paths(repo_root):
         text = path.read_text(encoding="utf-8")
         for m in _ROUTE_DECORATOR.finditer(text):
-            key = (m.group(1).upper(), m.group(2))
+            literal, prefixed, fstring = m.group(2), m.group(3), m.group(4)
+            if literal is not None:
+                path = literal
+            elif prefixed is not None:
+                path = "/api/v1" + prefixed
+            else:
+                path = "/api/v1" + fstring
+            key = (m.group(1).upper(), path)
             if key in seen:
                 continue
             seen.add(key)
@@ -88,6 +100,28 @@ def extract_frontend_api_paths(frontend_root: Path) -> set[str]:
             s = m.group(1).split("?")[0]
             if "${" in s:
                 continue
+            out.add(s)
+        # apiPath("...") / apiPath(`...`) from js/constants.js
+        for m in re.finditer(r"apiPath\(\s*[`\"']([^`\"']+)[`\"']", text):
+            s = m.group(1)
+            s = "/api/v1" + s
+            s = s.split("?")[0]
+            if "${" in s:
+                s = re.sub(r"\$\{[^}]+\}", "a", s)
+            out.add(s)
+        # API_V1_PREFIX + "..." string concatenation
+        for m in re.finditer(r"API_V1_PREFIX\s*\+\s*[\"']([^\"']+)[\"']", text):
+            s = "/api/v1" + m.group(1)
+            out.add(s.split("?")[0])
+        # `${API_V1_PREFIX}...` template literals. Skip pure passthroughs
+        # like `${API_V1_PREFIX}${path}` inside the apiPath helper itself.
+        for m in re.finditer(r"`\$\{API_V1_PREFIX\}([^`]+)`", text):
+            tail = m.group(1)
+            if re.fullmatch(r"\$\{[^}]+\}", tail):
+                continue
+            s = "/api/v1" + tail
+            s = s.split("?")[0]
+            s = re.sub(r"\$\{[^}]+\}", "a", s)
             out.add(s)
     return out
 

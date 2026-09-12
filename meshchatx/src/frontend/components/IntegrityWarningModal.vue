@@ -65,6 +65,7 @@
 import AppModal from "./AppModal.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import ToastUtils from "../js/ToastUtils";
+import { apiPath, STORAGE_KEYS } from "../js/constants.js";
 
 export default {
     name: "IntegrityWarningModal",
@@ -93,7 +94,7 @@ export default {
 
             const isOk = this.integrity.backend.ok && this.integrity.data.ok;
             if (!isOk) {
-                const dismissed = localStorage.getItem("integrity_warning_dismissed");
+                const dismissed = localStorage.getItem(STORAGE_KEYS.INTEGRITY_WARNING_DISMISSED);
                 const appVersion = await window.electron.appVersion();
 
                 if (dismissed !== appVersion) {
@@ -106,13 +107,13 @@ export default {
         async close() {
             if (this.dontShowAgain && window.electron) {
                 const appVersion = await window.electron.appVersion();
-                localStorage.setItem("integrity_warning_dismissed", appVersion);
+                localStorage.setItem(STORAGE_KEYS.INTEGRITY_WARNING_DISMISSED, appVersion);
             }
             this.visible = false;
         },
         async acknowledgeAndReset() {
             try {
-                await window.api.post("/api/v1/app/integrity/acknowledge");
+                await window.api.post(apiPath("/app/integrity/acknowledge"));
                 ToastUtils.success(this.$t("about.integrity_acknowledged_reset"));
                 this.visible = false;
             } catch (e) {

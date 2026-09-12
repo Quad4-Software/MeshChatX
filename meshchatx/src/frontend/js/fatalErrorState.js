@@ -2,6 +2,8 @@
 
 import { reactive } from "vue";
 
+import { apiPath } from "./constants.js";
+
 /** @typedef {"frontend" | "backend"} FatalErrorKind */
 
 /**
@@ -53,7 +55,7 @@ export async function recordFatalErrorLocally(record) {
         return null;
     }
     try {
-        const response = await window.api.post("/api/v1/bug-reports/local", {
+        const response = await window.api.post(apiPath("/bug-reports/local"), {
             title: record.title || record.message,
             description: record.details || record.context || "",
             exception: {

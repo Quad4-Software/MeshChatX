@@ -136,6 +136,8 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 
 import GlobalEmitter from "../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
+import * as announcesApi from "../js/api/announces.js";
 import ToastUtils from "../js/ToastUtils";
 import { listCommands } from "../js/registries/commandRegistry.js";
 
@@ -233,10 +235,10 @@ export default {
         },
     },
     mounted() {
-        GlobalEmitter.on("open-command-palette", this.open);
+        GlobalEmitter.on(EMITTER_EVENTS.OPEN_COMMAND_PALETTE, this.open);
     },
     beforeUnmount() {
-        GlobalEmitter.off("open-command-palette", this.open);
+        GlobalEmitter.off(EMITTER_EVENTS.OPEN_COMMAND_PALETTE, this.open);
     },
     methods: {
         async toggle() {
@@ -259,12 +261,12 @@ export default {
         },
         async loadPeersAndContacts() {
             try {
-                const peerResponse = await window.api.get(`/api/v1/announces`, {
+                const peerResponse = await announcesApi.listAnnounces({
                     params: { aspect: "lxmf.delivery", limit: 20 },
                 });
                 this.peers = peerResponse.data.announces;
 
-                const contactResponse = await window.api.get("/api/v1/telephone/contacts");
+                const contactResponse = await window.api.get(apiPath("/telephone/contacts"));
                 this.contacts =
                     contactResponse.data?.contacts ?? (Array.isArray(contactResponse.data) ? contactResponse.data : []);
             } catch (e) {
@@ -294,26 +296,26 @@ export default {
                 this.dialContact(result.contact.remote_identity_hash);
             } else if (result.type === "action") {
                 if (result.action === "sync") {
-                    GlobalEmitter.emit("sync-propagation-node");
+                    GlobalEmitter.emit(EMITTER_EVENTS.SYNC_PROPAGATION_NODE);
                 } else if (result.action === "compose") {
                     try {
                         await this.$router.push({ name: "messages" });
                     } catch {
                         // already on messages, or navigation aborted
                     }
-                    GlobalEmitter.emit("compose-new-message");
+                    GlobalEmitter.emit(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE);
                 } else if (result.action === "show-tutorial") {
-                    GlobalEmitter.emit("show-tutorial");
+                    GlobalEmitter.emit(EMITTER_EVENTS.SHOW_TUTORIAL);
                 } else if (result.action === "show-changelog") {
-                    GlobalEmitter.emit("show-changelog");
+                    GlobalEmitter.emit(EMITTER_EVENTS.SHOW_CHANGELOG);
                 } else if (result.action === "toggle-sidebar") {
-                    GlobalEmitter.emit("keyboard-shortcut", "toggle_sidebar");
+                    GlobalEmitter.emit(EMITTER_EVENTS.KEYBOARD_SHORTCUT, "toggle_sidebar");
                 }
             }
         },
         async dialContact(hash) {
             try {
-                await window.api.post(`/api/v1/telephone/call/${hash}`);
+                await window.api.post(apiPath(`/telephone/call/${hash}`));
                 if (this.$route.name !== "call") {
                     this.$router.push({ name: "call" });
                 }

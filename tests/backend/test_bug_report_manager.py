@@ -7,6 +7,15 @@ import pytest
 from meshchatx.src.backend.bug_report_manager import BugReportManager
 
 
+@pytest.fixture(autouse=True)
+def _clear_memory_log_handler(monkeypatch):
+    # The manager prefers the process-global memory handler; clear it so
+    # the fake app/database path is what previews actually read.
+    from meshchatx.src.backend import persistent_log_handler as plh
+
+    monkeypatch.setattr(plh, "memory_log_handler", None)
+
+
 def _fake_app(tmp_path):
     class FakeApp:
         storage_dir = str(tmp_path)

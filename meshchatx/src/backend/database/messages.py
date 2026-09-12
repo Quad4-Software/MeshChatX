@@ -540,11 +540,14 @@ class MessageDAO:
             )
 
     def toggle_peer_pin(self, peer_hash):
-        if self.is_peer_pinned(peer_hash):
-            self.set_peer_pinned(peer_hash, False)
-            return False
-        self.set_peer_pinned(peer_hash, True)
-        return True
+        # Wrap read+write in one IMMEDIATE transaction so concurrent toggles
+        # serialize on the SQLite write lock instead of racing the check.
+        with self.provider:
+            if self.is_peer_pinned(peer_hash):
+                self.set_peer_pinned(peer_hash, False)
+                return False
+            self.set_peer_pinned(peer_hash, True)
+            return True
 
     def list_message_hashes_with_timestamp_before(self, cutoff_ts: float) -> list[str]:
         rows = self.provider.fetchall(
@@ -1236,7 +1239,18 @@ class MessageDAO:
         )
 
     def delete_folder(self, folder_id):
-        self.provider.execute("DELETE FROM lxmf_folders WHERE id = ?", (folder_id,))
+        # PRAGMA foreign_keys is off on these connections, so the declared
+        # ON DELETE CASCADE never runs. Delete the child rows explicitly in
+        # the same transaction instead of leaving orphan assignments.
+        with self.provider:
+            self.provider.execute(
+                "DELETE FROM lxmf_conversation_folders WHERE folder_id = ?",
+                (folder_id,),
+            )
+            self.provider.execute(
+                "DELETE FROM lxmf_folders WHERE id = ?",
+                (folder_id,),
+            )
 
     def get_conversation_folder(self, peer_hash):
         return self.provider.fetchone(

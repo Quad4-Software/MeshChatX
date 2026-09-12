@@ -3,151 +3,49 @@
 
 from __future__ import annotations
 
+import asyncio
+import configparser
+import os
+import platform
+import sys
+import time
+
+import LXMF
+import psutil
+import RNS
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_conflict,
     http_error_from_exception,
     http_payload_too_large,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.legacy_migrator import (
+    assert_migration_context_paths,
+    fresh_storage_at_target,
+    migrate_legacy_to_target,
+)
+from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
+from meshchatx.src.backend.memory_pressure import cache_stats
+from meshchatx.src.path_utils import get_file_path
+from meshchatx.src.version import __version__ as app_version
 
 
 def register_app_info_routes(routes, app):
-    @routes.get("/api/v1/app/sessions")
+    @routes.get(API_V1_PREFIX + "/app/sessions")
     async def app_sessions(_request):
         return web.json_response(app.get_active_sessions_payload())
 
     # get app info
 
     # get app info
-    @routes.get("/api/v1/app/info")
+    @routes.get(API_V1_PREFIX + "/app/info")
     async def app_info(request):
         process = getattr(app, "_host_process", None)
         if process is None:
@@ -535,7 +433,7 @@ def register_app_info_routes(routes, app):
     # get changelog
 
     # get changelog
-    @routes.get("/api/v1/app/changelog")
+    @routes.get(API_V1_PREFIX + "/app/changelog")
     async def app_changelog(request):
         changelog_path = get_file_path("CHANGELOG.md")
         if not os.path.exists(changelog_path):
@@ -584,7 +482,7 @@ def register_app_info_routes(routes, app):
     # third-party dependency licenses (Python + Node)
 
     # third-party dependency licenses (Python + Node)
-    @routes.get("/api/v1/licenses")
+    @routes.get(API_V1_PREFIX + "/licenses")
     async def licenses_list(_request):
         from meshchatx.src.backend.licenses_collector import build_licenses_payload
 
@@ -597,40 +495,37 @@ def register_app_info_routes(routes, app):
     # mark tutorial as seen
 
     # mark tutorial as seen
-    @routes.post("/api/v1/app/tutorial/seen")
+    @routes.post(API_V1_PREFIX + "/app/tutorial/seen")
     async def app_tutorial_seen(request):
         app.config.set("tutorial_seen", True)
         return web.json_response({"message": "Tutorial marked as seen"})
 
-    @routes.post("/api/v1/setup/storage-migration")
+    @routes.post(API_V1_PREFIX + "/setup/storage-migration")
     async def setup_storage_migration(request):
         if not app.migration_context.get("show_choice"):
-            return web.json_response(
-                {"error": "No storage migration is pending"},
-                status=400,
-            )
+            return http_bad_request("No storage migration is pending")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response({"error": "Invalid JSON"}, status=400)
+            return http_bad_request("Invalid JSON")
         action = data.get("action")
         leg = app.migration_context["legacy_path"]
         tgt = app.migration_context["target_path"]
         try:
             assert_migration_context_paths(app.migration_context, leg, tgt)
         except ValueError as e:
-            return web.json_response({"error": str(e)}, status=400)
+            return http_bad_request(str(e))
         try:
             if action == "migrate":
                 migrate_legacy_to_target(leg, tgt)
             elif action == "fresh":
                 fresh_storage_at_target(tgt)
             else:
-                return web.json_response({"error": "Unknown action"}, status=400)
+                return http_bad_request("Unknown action")
         except ValueError as e:
-            return web.json_response({"error": str(e)}, status=409)
+            return http_conflict(str(e))
         except OSError as e:
             return http_error_from_exception(e, fallback_status=500)
         return web.json_response({"ok": True, "restart_required": True})
@@ -638,7 +533,7 @@ def register_app_info_routes(routes, app):
     # acknowledge and reset integrity issues
 
     # acknowledge and reset integrity issues
-    @routes.post("/api/v1/app/integrity/acknowledge")
+    @routes.post(API_V1_PREFIX + "/app/integrity/acknowledge")
     async def app_integrity_acknowledge(request):
         manager = getattr(app.current_context, "integrity_manager", None)
         if manager:
@@ -651,7 +546,7 @@ def register_app_info_routes(routes, app):
     # mark changelog as seen
 
     # mark changelog as seen
-    @routes.post("/api/v1/app/changelog/seen")
+    @routes.post(API_V1_PREFIX + "/app/changelog/seen")
     async def app_changelog_seen(request):
         try:
             data = await read_json_limited(request)
@@ -659,34 +554,34 @@ def register_app_info_routes(routes, app):
             return http_payload_too_large()
         version = data.get("version")
         if not version:
-            return web.json_response({"error": "Version required"}, status=400)
+            return http_bad_request("Version required")
 
         app.config.set("changelog_seen_version", version)
         return web.json_response(
             {"message": f"Changelog version {version} marked as seen"},
         )
 
-    @routes.post("/api/v1/app/channel-prompt/seen")
+    @routes.post(API_V1_PREFIX + "/app/channel-prompt/seen")
     async def app_channel_prompt_seen(request):
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response({"error": "Invalid JSON"}, status=400)
+            return http_bad_request("Invalid JSON")
         key = data.get("key") if isinstance(data, dict) else None
         if not key or not isinstance(key, str) or not key.strip():
-            return web.json_response({"error": "key required"}, status=400)
+            return http_bad_request("key required")
         seen_key = key.strip()
         if len(seen_key) > 200:
-            return web.json_response({"error": "key too long"}, status=400)
+            return http_bad_request("key too long")
         app.config.set("channel_prompt_seen", seen_key)
         return web.json_response({"message": "Channel prompt marked as seen"})
 
     # shutdown app
 
     # shutdown app
-    @routes.post("/api/v1/app/shutdown")
+    @routes.post(API_V1_PREFIX + "/app/shutdown")
     async def app_shutdown(request):
         # perform shutdown in a separate task so we can respond to the request
         async def do_shutdown():
@@ -694,7 +589,7 @@ def register_app_info_routes(routes, app):
             await app.shutdown(None)
             app.exit_app(0)
 
-        asyncio.create_task(do_shutdown())
+        app._shutdown_task = asyncio.create_task(do_shutdown())
         return web.json_response({"message": "Shutting down..."})
 
     # get docs status

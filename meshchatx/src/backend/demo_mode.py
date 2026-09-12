@@ -4,12 +4,12 @@
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING
 
 from aiohttp import web
 
-from meshchatx.src.env_utils import env_bool
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.env_utils import env_bool, env_str
 
 if TYPE_CHECKING:
     from meshchatx.meshchat import ReticulumMeshChat
@@ -18,11 +18,11 @@ DEMO_READONLY_CODE = "demo_readonly"
 
 DEMO_HTTP_MUTATION_ALLOWLIST: frozenset[str] = frozenset(
     {
-        "/api/v1/auth/login",
-        "/api/v1/auth/logout",
-        "/api/v1/auth/setup",
-        "/api/v1/app/tutorial/seen",
-        "/api/v1/app/changelog/seen",
+        f"{API_V1_PREFIX}/auth/login",
+        f"{API_V1_PREFIX}/auth/logout",
+        f"{API_V1_PREFIX}/auth/setup",
+        f"{API_V1_PREFIX}/app/tutorial/seen",
+        f"{API_V1_PREFIX}/app/changelog/seen",
     },
 )
 
@@ -36,7 +36,7 @@ def auth_bypass_from_env() -> bool:
 
 
 def demo_auth_password_from_env() -> str:
-    return os.environ.get("MESHCHAT_DEMO_AUTH_PASSWORD", "demo")
+    return env_str("MESHCHAT_DEMO_AUTH_PASSWORD", "demo") or "demo"
 
 
 def normalize_api_path(path: str) -> str:
@@ -76,7 +76,7 @@ def demo_http_mutation_allowed(method: str, path: str) -> bool:
     if method.upper() not in ("POST", "PUT", "PATCH", "DELETE"):
         return True
     normalized = normalize_api_path(path)
-    if not normalized.startswith("/api/v1/"):
+    if not normalized.startswith(f"{API_V1_PREFIX}/"):
         return True
     return normalized in DEMO_HTTP_MUTATION_ALLOWLIST
 

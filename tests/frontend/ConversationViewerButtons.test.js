@@ -4,8 +4,9 @@ import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import DialogUtils from "@/js/DialogUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
-import GlobalState from "@/js/GlobalState";
 import * as TranslationService from "@/js/TranslationService.js";
+import { useConfigStore } from "@/js/stores/configStore.js";
+import { useIdentityStore } from "@/js/stores/identityStore.js";
 
 vi.mock("@/js/TranslationService.js", () => ({
     listPacks: vi.fn().mockResolvedValue([]),
@@ -49,8 +50,8 @@ describe("ConversationViewer.vue button interactions", () => {
         };
         window.api = axiosMock;
 
-        GlobalState.blockedDestinations = [];
-        GlobalState.config = { banished_effect_enabled: false };
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().config = { banished_effect_enabled: false };
 
         vi.stubGlobal("localStorage", {
             getItem: vi.fn(),
@@ -124,7 +125,7 @@ describe("ConversationViewer.vue button interactions", () => {
     });
 
     it("banish button hidden when peer is blocked", async () => {
-        GlobalState.blockedDestinations = [{ destination_hash: "a".repeat(32) }];
+        useIdentityStore().blockedDestinations = [{ destination_hash: "a".repeat(32) }];
         const wrapper = mountViewer();
         await wrapper.vm.$nextTick();
         wrapper.vm.checkIfSelectedPeerBlocked();

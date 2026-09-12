@@ -70,7 +70,11 @@ from meshchatx.src.backend.plugin_wasm_bundle import (
 )
 from meshchatx.src.backend.results import ok_result
 from meshchatx.src.json_store import load_json, load_json_required
-from meshchatx.src.path_utils import is_path_within_dir, is_under_root
+from meshchatx.src.path_utils import (
+    is_direct_child,
+    is_path_within_dir,
+    is_under_root,
+)
 
 SUPPORTED_API_VERSION = 1
 PLUGIN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
@@ -79,6 +83,9 @@ MINIMAL_PLUGIN_WAT = """
 (module
   (import "host" "log" (func (param i32 i32)))
   (memory (export "memory") 1)
+  (func (export "alloc") (param i32) (result i32)
+    i32.const 1024
+  )
   (func (export "on_hook") (param i32 i32) (result i32)
     i32.const 0
   )
@@ -724,8 +731,13 @@ class PluginManager:
             if record:
                 self._unregister_plugin_hooks(record)
             self._python_runtime.unload(plugin_id)
-            target_dir = os.path.join(self.installed_dir, plugin_id)
-            if os.path.isdir(target_dir):
+            # plugin_id arrives from the URL; never rmtree an unjailed join.
+            root = os.path.realpath(self.installed_dir)
+            target_dir = os.path.realpath(os.path.join(root, plugin_id))
+            target_ok = is_direct_child(target_dir, root) and os.path.isdir(target_dir)
+            if record is None and not target_ok:
+                raise KeyError(plugin_id)
+            if target_ok:
                 shutil.rmtree(target_dir)
             with sqlite3.connect(self.state_db_path) as conn:
                 conn.execute(
@@ -837,9 +849,17 @@ class PluginManager:
             network_fetch_allowed=lambda: self.network_fetch_allowed(record.id),
         )
 
-    def asset_path(self, plugin_id: str, asset_name: str) -> str:
+    def asset_path(
+        self,
+        plugin_id: str,
+        asset_name: str,
+        *,
+        allow_disabled: bool = False,
+    ) -> str:
         self._require_runtime_enabled()
         record = self._require_plugin(plugin_id)
+        if not record.enabled and not allow_disabled:
+            raise PluginSecurityError("plugin is disabled")
         normalized = normalize_asset_path(asset_name)
         root = os.path.realpath(record.install_path)
         path = os.path.realpath(os.path.join(root, normalized))
@@ -1461,17 +1481,18 @@ class PluginManager:
         exports = cast("Any", instance.exports(store))
         memory = exports["memory"]
         alloc = exports.get("alloc")
-        if alloc:
-            ptr = alloc(store, len(payload))
-        else:
-            ptr = 0
-            if memory.data_len(store) < len(payload):
-                memory.grow(
-                    store,
-                    max(1, (len(payload) - memory.data_len(store) + 65535) // 65536),
-                )
-            data = memory.data_ptr(store)
-            data[ptr : ptr + len(payload)] = payload
+        if not alloc:
+            # Writing the payload at address 0 would clobber the module's
+            # globals/stack. Without an alloc export there is no safe
+            # buffer, so refuse instead of corrupting guest memory.
+            raise PluginSecurityError("wasm module does not export alloc")
+        ptr = alloc(store, len(payload))
+        if not isinstance(ptr, int) or ptr < 0:
+            raise PluginSecurityError("wasm alloc returned an invalid pointer")
+        needed = ptr + len(payload)
+        if memory.data_len(store) < needed:
+            memory.grow(store, (needed - memory.data_len(store) + 65535) // 65536)
+        memory.write(store, payload, ptr)
         invoke = exports["invoke"]
         invoke(store, ptr, len(payload), 0)
         return ok_result(logs=logs)
@@ -1535,7 +1556,9 @@ class PluginManager:
             entry = frontend.get("entry")
             if not isinstance(entry, str) or not entry.strip():
                 raise ValueError("plugin frontend entry is missing")
-            frontend_path = self.asset_path(record.id, entry)
+            # enable() validates before the record is enabled, so internal
+            # checks bypass the request-facing disabled gate.
+            frontend_path = self.asset_path(record.id, entry, allow_disabled=True)
             if os.path.getsize(frontend_path) <= 0:
                 raise ValueError("plugin frontend entry is empty")
         backend = manifest.get("backend")

@@ -8,7 +8,6 @@ Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches
 
     ```bash
     task install
-    task hooks:install
     ```
 
 2. Create a branch and make focused changes. Match nearby style and keep SPDX headers on new files.
@@ -23,36 +22,9 @@ Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches
     task test:quick
     ```
 
-4. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (feat:, fix:, chore:, etc.). Details: .agents/conventions/commits.md. With hooks installed, commitlint runs on every commit.
+4. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (feat:, fix:, chore:, etc.). Details: .agents/conventions/commits.md.
 
 5. Open a pull request against master or dev. CI runs task lint, frontend tests, and localization checks.
-
-### Git hooks
-
-task hooks:install enables tracked hooks under .githooks/:
-
-| Hook       | What it does                                                                                             |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
-| pre-commit | Ruff format/lint, Prettier, ESLint fix on staged files, whitespace checks, optional meshchatx.rsm resign |
-| commit-msg | commitlint (conventional commit header)                                                                  |
-
-Skip one hook:
-
-```bash
-SKIP=ruff-format git commit ...
-```
-
-Skip all hooks:
-
-```bash
-git commit --no-verify
-```
-
-Skip RSM resign only:
-
-```bash
-SKIP=meshchatx-rsm git commit ...
-```
 
 ### Code style
 

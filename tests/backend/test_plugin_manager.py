@@ -46,7 +46,13 @@ class TestPluginManagerInstall:
         with pytest.raises(PermissionError):
             manager.call_manager(plugin_id, "unknown.capability", {})
 
-    def test_bug_report_preview_reads_debug_logs(self, tmp_path):
+    def test_bug_report_preview_reads_debug_logs(self, tmp_path, monkeypatch):
+        # The manager prefers the process-global memory handler; clear it so
+        # the fake database path is what the preview actually reads.
+        from meshchatx.src.backend import persistent_log_handler as plh
+
+        monkeypatch.setattr(plh, "memory_log_handler", None)
+
         class FakeLogs:
             def get_logs(self, **_kwargs):
                 return [

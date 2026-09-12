@@ -39,11 +39,11 @@ Current sources:
 | `relayChatUnreadCount`     | RRC mention count (when relay chat enabled) | Mentions consumed on Relay chat page |
 | `missedCallsCount`         | Unviewed `telephone_missed_call` rows       | Call page opened or history cleared  |
 
-`App.vue` maps each source through `GlobalState` and `getNavBadgeCount`. Collapsed sidebar still shows pill badges on the icon. There is no header notification bell anymore. Message sounds stay under Settings.
+`App.vue` maps each source through the unread store (`useUnreadStore`) and `getNavBadgeCount`. Collapsed sidebar still shows pill badges on the icon. There is no header notification bell anymore. Message sounds stay under Settings.
 
 For a new badge:
 
-1. Add a `GlobalState` counter
+1. Add a counter to `js/stores/unreadStore.js`
 2. Add a `NavBadgeSource` value and `badge` on the nav entry
 3. Wire `getNavBadgeCount` in `App.vue`
 4. Refresh the count from the right API or WebSocket event
@@ -73,7 +73,7 @@ Seen revisions live in `localStorage` under `meshchatx.post_install_prompts_seen
 - `meshchatx/src/frontend/js/registries/`
 - `meshchatx/src/frontend/js/registries/registerCoreContributions.js`
 - `meshchatx/src/frontend/js/registries/coreNavEntries.js`
-- `meshchatx/src/frontend/js/GlobalState.js`
+- `meshchatx/src/frontend/js/stores/` (Pinia domain stores)
 - `meshchatx/src/frontend/components/plugins/PluginSlotNode.vue`
 - `meshchatx/src/frontend/main.js` (routes)
 

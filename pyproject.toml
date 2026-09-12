@@ -91,7 +91,6 @@ dev = [
     "debugpy>=1.8.16",
     "mutmut>=3.7.0; python_version < '4.0'",
     "basedpyright>=1.39.10",
-    "pre-commit>=4.2.0",
 ]
 
 [tool.ruff]
@@ -162,6 +161,7 @@ also_copy = [
     "meshchatx/repository_http_standalone.py",
     "meshchatx/src/__init__.py",
     "meshchatx/src/build_meta.py",
+    "meshchatx/src/env_config.py",
     "meshchatx/src/env_utils.py",
     "meshchatx/src/json_store.py",
     "meshchatx/src/path_utils.py",

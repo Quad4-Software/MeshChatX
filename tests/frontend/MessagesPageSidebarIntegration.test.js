@@ -1,22 +1,8 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MessagesPage from "@/components/messages/MessagesPage.vue";
-
-vi.mock("@/js/GlobalState", async (importOriginal) => {
-    const mod = await importOriginal();
-    return {
-        ...mod,
-        default: {
-            ...mod.default,
-            blockedDestinations: [],
-            config: {
-                ...mod.default.config,
-                banished_effect_enabled: false,
-                telemetry_enabled: false,
-            },
-        },
-    };
-});
+import { useConfigStore } from "@/js/stores/configStore.js";
+import { useIdentityStore } from "@/js/stores/identityStore.js";
 
 vi.mock("@/js/Utils", () => ({
     default: {
@@ -38,6 +24,8 @@ describe("MessagesPage with MessagesSidebar integration", () => {
 
     beforeEach(() => {
         localStorage.clear();
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().mergeConfig({ banished_effect_enabled: false, telemetry_enabled: false });
         axiosMock = {
             get: vi.fn(),
             post: vi.fn(),

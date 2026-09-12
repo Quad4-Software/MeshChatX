@@ -57,7 +57,7 @@
                 <span>{{ $t("messages.telemetry_history") }}</span>
             </DropDownMenuItem>
 
-            <div v-if="GlobalState?.config?.telemetry_enabled" class="border-t">
+            <div v-if="configStore.config?.telemetry_enabled" class="border-t">
                 <DropDownMenuItem @click="onToggleTelemetryTrust">
                     <MaterialDesignIcon
                         :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
@@ -133,7 +133,7 @@
                     <MaterialDesignIcon icon-name="satellite-variant" class="size-5" />
                     <span>{{ $t("messages.telemetry_history") }}</span>
                 </DropDownMenuItem>
-                <DropDownMenuItem v-if="GlobalState?.config?.telemetry_enabled" @click="onToggleTelemetryTrust">
+                <DropDownMenuItem v-if="configStore.config?.telemetry_enabled" @click="onToggleTelemetryTrust">
                     <MaterialDesignIcon
                         :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
                         :class="contact?.is_telemetry_trusted ? 'text-sem-accent' : 'text-sem-fg-muted'"
@@ -175,13 +175,18 @@
 </template>
 
 <script>
+import { mapStores } from "pinia";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useIdentityStore } from "../../js/stores/identityStore.js";
+
 import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import IconButton from "../IconButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
-import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import * as pingApi from "../../js/api/ping.js";
 import ToastUtils from "../../js/ToastUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge.js";
 import { isRetryableHttpError } from "../../js/httpRetry.js";
@@ -230,16 +235,18 @@ export default {
     data() {
         return {
             contact: null,
-            GlobalState,
             pingInFlight: false,
         };
     },
     computed: {
+        ...mapStores(useConfigStore),
         isBlocked() {
             if (!this.peer) {
                 return false;
             }
-            return GlobalState.blockedDestinations.some((b) => b.destination_hash === this.peer.destination_hash);
+            return useIdentityStore().blockedDestinations.some(
+                (b) => b.destination_hash === this.peer.destination_hash
+            );
         },
         isMeshChatXAndroid() {
             return (
@@ -260,10 +267,10 @@ export default {
         },
     },
     mounted() {
-        GlobalEmitter.on("contact-updated", this.onContactUpdated);
+        GlobalEmitter.on(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdated);
     },
     unmounted() {
-        GlobalEmitter.off("contact-updated", this.onContactUpdated);
+        GlobalEmitter.off(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdated);
         if (typeof this._stopContactReadyWatch === "function") {
             this._stopContactReadyWatch();
             this._stopContactReadyWatch = null;
@@ -293,7 +300,9 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.get(`/api/v1/telephone/contacts/check/${this.peer.destination_hash}`);
+                const response = await window.api.get(
+                    apiPath(`/telephone/contacts/check/${this.peer.destination_hash}`)
+                );
                 if (response.data.is_contact) {
                     this.contact = response.data.contact;
                 } else {
@@ -310,7 +319,7 @@ export default {
             try {
                 if (!this.contact) {
                     // create contact first
-                    await window.api.post("/api/v1/telephone/contacts", {
+                    await window.api.post(apiPath("/telephone/contacts"), {
                         name: this.peer.display_name,
                         remote_identity_hash: this.peer.identity_hash || undefined,
                         lxmf_address: this.peer.destination_hash,
@@ -318,12 +327,12 @@ export default {
                     });
                     await this.fetchContact();
                 } else {
-                    await window.api.patch(`/api/v1/telephone/contacts/${this.contact.id}`, {
+                    await window.api.patch(apiPath(`/telephone/contacts/${this.contact.id}`), {
                         is_telemetry_trusted: newStatus,
                     });
                     this.contact.is_telemetry_trusted = newStatus;
                 }
-                GlobalEmitter.emit("contact-updated", {
+                GlobalEmitter.emit(EMITTER_EVENTS.CONTACT_UPDATED, {
                     remote_identity_hash: this.peer.identity_hash || this.peer.destination_hash,
                     is_telemetry_trusted: newStatus,
                 });
@@ -343,10 +352,10 @@ export default {
             }
 
             try {
-                await window.api.post("/api/v1/blocked-destinations", {
+                await window.api.post(apiPath("/blocked-destinations"), {
                     destination_hash: this.peer.destination_hash,
                 });
-                GlobalEmitter.emit("block-status-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("messages.user_banished"));
                 this.$emit("block-status-changed");
             } catch (e) {
@@ -356,8 +365,8 @@ export default {
         },
         async onUnblockDestination() {
             try {
-                await window.api.delete(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
-                GlobalEmitter.emit("block-status-changed");
+                await window.api.delete(apiPath(`/blocked-destinations/${this.peer.destination_hash}`));
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("banishment.banishment_lifted"));
                 this.$emit("block-status-changed");
             } catch (e) {
@@ -372,7 +381,7 @@ export default {
             }
 
             try {
-                await window.api.delete(`/api/v1/lxmf-messages/conversation/${this.peer.destination_hash}`);
+                await window.api.delete(apiPath(`/lxmf-messages/conversation/${this.peer.destination_hash}`));
                 this.$emit("conversation-deleted");
             } catch (e) {
                 DialogUtils.alert(this.$t("messages.failed_delete_history"));
@@ -401,8 +410,8 @@ export default {
             const pingToastKey = "conversation-ping";
             ToastUtils.loading(this.$t("messages.ping_in_progress"), 0, pingToastKey);
             try {
-                const response = await window.api.post(
-                    `/api/v1/ping/${destinationHash}/lxmf.delivery`,
+                const response = await pingApi.postLxmfDelivery(
+                    destinationHash,
                     {},
                     {
                         params: {

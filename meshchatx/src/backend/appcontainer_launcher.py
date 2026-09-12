@@ -23,6 +23,7 @@ from meshchatx.src.backend.appcontainer_sandbox import (
     is_appcontainer_child,
     launch_backend_sandboxed,
 )
+from meshchatx.src.env_utils import env_str
 
 logger = logging.getLogger("meshchatx.appcontainer.launcher")
 
@@ -37,13 +38,13 @@ def _parse_dir_flag(argv: list[str], flag: str) -> str | None:
 
 
 def _resolve_paths(argv: list[str]) -> tuple[str | None, str | None, str | None]:
-    storage = _parse_dir_flag(argv, "--storage-dir") or os.environ.get(
+    storage = _parse_dir_flag(argv, "--storage-dir") or env_str(
         "MESHCHAT_STORAGE_DIR",
     )
-    reticulum = _parse_dir_flag(argv, "--reticulum-config-dir") or os.environ.get(
+    reticulum = _parse_dir_flag(argv, "--reticulum-config-dir") or env_str(
         "MESHCHAT_RETICULUM_CONFIG_DIR",
     )
-    log_dir = os.environ.get("MESHCHAT_LOG_DIR")
+    log_dir = env_str("MESHCHAT_LOG_DIR")
     if not log_dir and storage:
         log_dir = os.path.join(storage, "logs")
     return storage, reticulum, log_dir
