@@ -1337,6 +1337,7 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
 import Utils from "../../js/Utils";
 import ElectronUtils from "../../js/ElectronUtils";
 import DialogUtils from "../../js/DialogUtils";
@@ -1368,6 +1369,7 @@ import {
     sandboxSummaryType,
 } from "../../js/sandboxStatus.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import { useDatabaseBackups } from "../../js/about/useDatabaseBackups.js";
 import logoUrl from "../../assets/images/logo.png";
 import {
     channelBadgeClass,
@@ -1380,6 +1382,14 @@ export default {
     name: "AboutPage",
     components: {
         MaterialDesignIcon,
+    },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useDatabaseBackups({
+                t: (key, params) => inst?.proxy.$t(key, params),
+            }),
+        };
     },
     data() {
         return {
@@ -1408,18 +1418,6 @@ export default {
             restoreFileName: "",
             restoreFile: null,
             reloadingRns: false,
-            snapshotName: "",
-            snapshots: [],
-            snapshotsTotal: 0,
-            snapshotsOffset: 0,
-            snapshotsLimit: 3,
-            snapshotInProgress: false,
-            snapshotMessage: "",
-            snapshotError: "",
-            autoBackups: [],
-            autoBackupsTotal: 0,
-            autoBackupsOffset: 0,
-            autoBackupsLimit: 4,
             electronVersion: null,
             chromeVersion: null,
             nodeVersion: null,
@@ -1696,119 +1694,6 @@ export default {
                 },
                 applyBackgroundPollInterval(30000, prefs)
             );
-        },
-        async listSnapshots() {
-            try {
-                const response = await databaseApi.listSnapshots({
-                    params: {
-                        limit: this.snapshotsLimit,
-                        offset: this.snapshotsOffset,
-                    },
-                });
-                this.snapshots = response.data.snapshots;
-                this.snapshotsTotal = response.data.total;
-            } catch (e) {
-                console.log("Failed to list snapshots", e);
-            }
-        },
-        async listAutoBackups() {
-            try {
-                const response = await databaseApi.listBackups({
-                    params: {
-                        limit: this.autoBackupsLimit,
-                        offset: this.autoBackupsOffset,
-                    },
-                });
-                this.autoBackups = response.data.backups;
-                this.autoBackupsTotal = response.data.total;
-            } catch {
-                console.log("Failed to list auto-backups");
-            }
-        },
-        async downloadSnapshot(filename) {
-            try {
-                const downloadName = filename.endsWith(".zip") ? filename : `${filename}.zip`;
-                const response = await databaseApi.downloadSnapshots(filename, null, {
-                    responseType: "arraybuffer",
-                });
-                await DownloadUtils.downloadFromApiResponse(response, downloadName);
-                ToastUtils.success(this.$t("about.snapshot_downloaded"));
-            } catch {
-                ToastUtils.error(this.$t("about.snapshot_download_failed"));
-            }
-        },
-        async downloadBackupFile(filename) {
-            try {
-                const response = await databaseApi.downloadBackups(filename, null, {
-                    responseType: "arraybuffer",
-                });
-                await DownloadUtils.downloadFromApiResponse(response, filename);
-                ToastUtils.success(this.$t("about.backup_downloaded"));
-            } catch {
-                ToastUtils.error(this.$t("about.backup_download_failed"));
-            }
-        },
-        async deleteSnapshot(filename) {
-            if (!(await DialogUtils.confirm(this.$t("about.delete_snapshot_confirm")))) return;
-            try {
-                await window.api.delete(apiPath(`/database/snapshots/${filename}`));
-                ToastUtils.success(this.$t("about.snapshot_deleted"));
-                await this.listSnapshots();
-            } catch {
-                ToastUtils.error(this.$t("about.failed_delete_snapshot"));
-            }
-        },
-        async deleteBackup(filename) {
-            if (!(await DialogUtils.confirm(this.$t("about.delete_backup_confirm")))) return;
-            try {
-                await window.api.delete(apiPath(`/database/backups/${filename}`));
-                ToastUtils.success(this.$t("about.backup_deleted"));
-                await this.listAutoBackups();
-            } catch {
-                ToastUtils.error(this.$t("about.failed_delete_backup"));
-            }
-        },
-        async nextSnapshots() {
-            if (this.snapshotsOffset + this.snapshotsLimit < this.snapshotsTotal) {
-                this.snapshotsOffset += this.snapshotsLimit;
-                await this.listSnapshots();
-            }
-        },
-        async prevSnapshots() {
-            if (this.snapshotsOffset > 0) {
-                this.snapshotsOffset = Math.max(0, this.snapshotsOffset - this.snapshotsLimit);
-                await this.listSnapshots();
-            }
-        },
-        async nextBackups() {
-            if (this.autoBackupsOffset + this.autoBackupsLimit < this.autoBackupsTotal) {
-                this.autoBackupsOffset += this.autoBackupsLimit;
-                await this.listAutoBackups();
-            }
-        },
-        async prevBackups() {
-            if (this.autoBackupsOffset > 0) {
-                this.autoBackupsOffset = Math.max(0, this.autoBackupsOffset - this.autoBackupsLimit);
-                await this.listAutoBackups();
-            }
-        },
-        async createSnapshot() {
-            if (this.snapshotInProgress) return;
-            this.snapshotInProgress = true;
-            this.snapshotMessage = "";
-            this.snapshotError = "";
-            try {
-                await window.api.post(apiPath("/database/snapshot"), {
-                    name: this.snapshotName || `snapshot-${Math.floor(Date.now() / 1000)}`,
-                });
-                this.snapshotMessage = "Snapshot created successfully";
-                this.snapshotName = "";
-                await this.listSnapshots();
-            } catch {
-                this.snapshotError = "Failed to create snapshot";
-            } finally {
-                this.snapshotInProgress = false;
-            }
         },
         async restoreFromSnapshot(path) {
             if (this.restoreInProgress) {
