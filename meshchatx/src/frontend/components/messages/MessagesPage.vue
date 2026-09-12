@@ -310,6 +310,7 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
 import { useNetworkStore } from "../../js/stores/networkStore.js";
 import { useConfigStore } from "../../js/stores/configStore.js";
 import { useUnreadStore } from "../../js/stores/unreadStore.js";
@@ -341,12 +342,7 @@ import {
     countUnreadConversations,
     syncConversationListInPlace,
 } from "../../js/lxmfConversationListSync";
-import {
-    loadMessagePanes,
-    saveMessagePanes,
-    loadFeatureSidebarCollapsed,
-    saveFeatureSidebarCollapsed,
-} from "../../js/browserLayoutStore";
+import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import { isRetryableHttpError } from "../../js/httpRetry.js";
 import { runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
@@ -355,6 +351,7 @@ import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
 import * as announcesApi from "../../js/api/announces.js";
 import * as lxmfApi from "../../js/api/lxmf.js";
 import { CONVERSATION_MESSAGES_PAGE_SIZE } from "./conversationDisplayGroups.js";
+import { useMessagePanes } from "../../js/messages/useMessagePanes.js";
 
 export default {
     name: "MessagesPage",
@@ -370,6 +367,20 @@ export default {
             default: null,
         },
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useMessagePanes({
+                isPopoutMode: () => Boolean(inst?.proxy.isPopoutMode),
+                getConfig: () => inst?.proxy.config,
+                peerFromDestinationHash: (destinationHash) => inst?.proxy.peerFromDestinationHash(destinationHash),
+                onPeerClick: (peer) => inst?.proxy.onPeerClick(peer),
+                getPaneViewers: () => inst?.proxy.paneViewers,
+                onCloseConversationViewer: () => inst?.proxy.onCloseConversationViewer(),
+                syncRouteToFocusedPane: () => inst?.proxy.syncRouteToFocusedPane(),
+            }),
+        };
+    },
     data() {
         return {
             reloadInterval: null,
@@ -382,21 +393,6 @@ export default {
             hasLoadedConversations: false,
             messagesListSidebarCollapsed: loadFeatureSidebarCollapsed("messages") ?? false,
             peers: {},
-
-            panes: [{ id: 1, peer: null }],
-            focusedPaneId: 1,
-            nextPaneId: 2,
-            paneFlex: {},
-            resizingPaneIds: null,
-            dragOverPaneId: null,
-            isDragOverAddZone: false,
-            isConversationDragging: false,
-            isWideViewport: false,
-            isWideEnoughForThreePanes: false,
-            paneViewportQuery: null,
-            paneViewportListener: null,
-            threePaneViewportQuery: null,
-            threePaneViewportListener: null,
 
             conversations: [],
             conversationListSignature: "",
@@ -433,61 +429,6 @@ export default {
         };
     },
     computed: {
-        focusedPane() {
-            return this.panes.find((pane) => pane.id === this.focusedPaneId) || this.panes[0] || null;
-        },
-        selectedPeer: {
-            get() {
-                return this.focusedPane?.peer ?? null;
-            },
-            set(peer) {
-                const pane = this.focusedPane;
-                if (pane) {
-                    pane.peer = peer;
-                }
-            },
-        },
-        multiPaneEnabled() {
-            return this.config?.messages_multi_pane_enabled !== false;
-        },
-        maxPanes() {
-            if (this.isPopoutMode || !this.isWideViewport || !this.multiPaneEnabled) {
-                return 1;
-            }
-            return this.isWideEnoughForThreePanes ? 3 : 2;
-        },
-        visiblePanes() {
-            let panes;
-            if (this.maxPanes <= 1) {
-                panes = this.focusedPane ? [this.focusedPane] : this.panes.slice(0, 1);
-            } else {
-                panes = this.panes.slice(0, this.maxPanes);
-            }
-            if (panes.length <= 1) {
-                return panes;
-            }
-            const hasEmptyPane = panes.some((pane) => !pane.peer);
-            if (!hasEmptyPane) {
-                return panes;
-            }
-            return panes.filter((pane) => pane.peer || pane.id === this.focusedPaneId);
-        },
-        multiPaneActive() {
-            return this.visiblePanes.length > 1;
-        },
-        canAddPane() {
-            return (
-                !this.isPopoutMode &&
-                this.isWideViewport &&
-                this.panes.length < this.maxPanes &&
-                this.selectedPeer != null
-            );
-        },
-        paneLayoutSignature() {
-            const panes = this.panes.map((pane) => pane.peer?.destination_hash || "").join("\u241f");
-            const focusedIndex = this.panes.findIndex((pane) => pane.id === this.focusedPaneId);
-            return `${focusedIndex}\u241e${panes}`;
-        },
         popoutRouteType() {
             if (this.$route?.meta?.popoutType) {
                 return this.$route.meta.popoutType;
@@ -515,10 +456,6 @@ export default {
         conversations() {
             this.syncUnreadCount();
         },
-        paneLayoutSignature() {
-            this.persistPanes();
-            this.syncOpenDestinationHashes();
-        },
         destinationHash(newHash) {
             if (!newHash) {
                 return;
@@ -540,9 +477,6 @@ export default {
     },
     created() {
         this.paneViewers = {};
-        this.resizeContext = null;
-        this.boundPaneResizeMove = null;
-        this.boundPaneResizeEnd = null;
         this.restorePanes(this.destinationHash);
         this.syncOpenDestinationHashes();
     },
@@ -1547,69 +1481,6 @@ export default {
             }
             this.$router.replace(routeOptions);
         },
-        slimPeer(peer) {
-            if (!peer || !peer.destination_hash) {
-                return null;
-            }
-            return {
-                destination_hash: peer.destination_hash,
-                display_name: peer.display_name ?? null,
-                custom_display_name: peer.custom_display_name ?? null,
-            };
-        },
-        restorePanes(routeHash) {
-            const saved = loadMessagePanes();
-            if (!saved || saved.panes.length === 0) {
-                return;
-            }
-
-            this.panes = saved.panes.map((peer) => ({
-                id: this.nextPaneId++,
-                peer: peer && peer.destination_hash ? { ...peer } : null,
-            }));
-
-            this.panes.forEach((pane, index) => {
-                const size = Array.isArray(saved.sizes) ? saved.sizes[index] : null;
-                this.paneFlex[pane.id] = typeof size === "number" && size > 0 ? size : 1;
-            });
-
-            const focusedIndex =
-                Number.isInteger(saved.focusedIndex) &&
-                saved.focusedIndex >= 0 &&
-                saved.focusedIndex < this.panes.length
-                    ? saved.focusedIndex
-                    : 0;
-            this.focusedPaneId = this.panes[focusedIndex].id;
-
-            if (routeHash) {
-                const match = this.panes.find((pane) => pane.peer?.destination_hash === routeHash);
-                if (match) {
-                    this.focusedPaneId = match.id;
-                }
-            }
-        },
-        persistPanes() {
-            const focusedIndex = this.panes.findIndex((pane) => pane.id === this.focusedPaneId);
-            saveMessagePanes({
-                panes: this.panes.map((pane) => this.slimPeer(pane.peer)),
-                sizes: this.panes.map((pane) => this.paneFlexValue(pane.id)),
-                focusedIndex: focusedIndex < 0 ? 0 : focusedIndex,
-            });
-        },
-        syncOpenDestinationHashes() {
-            const hashes = this.panes
-                .map((pane) => pane.peer?.destination_hash)
-                .filter((h) => typeof h === "string" && h.length > 0);
-            setOpenDestinationHashes(hashes);
-            NotificationUtils.syncAndroidNotificationContext(hashes, Boolean(this.config?.do_not_disturb_enabled));
-        },
-        applyToPanePeers(destinationHash, patch) {
-            for (const pane of this.panes) {
-                if (pane.peer && pane.peer.destination_hash === destinationHash) {
-                    pane.peer = { ...pane.peer, ...patch };
-                }
-            }
-        },
         registerPaneViewer(paneId, instance) {
             if (!this.paneViewers) {
                 this.paneViewers = {};
@@ -1619,120 +1490,6 @@ export default {
             } else {
                 delete this.paneViewers[paneId];
             }
-        },
-        focusPane(paneId) {
-            if (this.panes.some((pane) => pane.id === paneId)) {
-                this.focusedPaneId = paneId;
-            }
-        },
-        addPane() {
-            const existingEmpty = this.panes.find((pane) => !pane.peer);
-            if (existingEmpty) {
-                this.focusedPaneId = existingEmpty.id;
-                return;
-            }
-            if (!this.canAddPane) {
-                return;
-            }
-            const id = this.nextPaneId++;
-            this.panes.push({ id, peer: null });
-            this.focusedPaneId = id;
-        },
-        paneFlexValue(paneId) {
-            if (this.visiblePanes.length <= 1) {
-                return 1;
-            }
-            const pane = this.visiblePanes.find((entry) => entry.id === paneId);
-            if (!pane?.peer) {
-                return 1;
-            }
-            const value = this.paneFlex[paneId];
-            return typeof value === "number" && value > 0 ? value : 1;
-        },
-        startPaneResize(event, leftPaneId, rightPaneId) {
-            if (!this.isWideViewport || (event.button != null && event.button !== 0)) {
-                return;
-            }
-            const resizer = event.currentTarget;
-            const leftEl = resizer?.previousElementSibling;
-            const rightEl = resizer?.nextElementSibling;
-            if (!leftEl || !rightEl) {
-                return;
-            }
-            event.preventDefault();
-
-            const leftWidth = leftEl.getBoundingClientRect().width;
-            const rightWidth = rightEl.getBoundingClientRect().width;
-            const combinedWidth = leftWidth + rightWidth;
-            if (combinedWidth <= 0) {
-                return;
-            }
-
-            const combinedFlex = this.paneFlexValue(leftPaneId) + this.paneFlexValue(rightPaneId);
-
-            this.resizeContext = {
-                leftPaneId,
-                rightPaneId,
-                startX: event.clientX,
-                leftWidth,
-                combinedWidth,
-                combinedFlex,
-                minWidth: Math.min(220, combinedWidth / 2),
-            };
-            this.resizingPaneIds = `${leftPaneId}:${rightPaneId}`;
-
-            this.boundPaneResizeMove = this.onPaneResizeMove.bind(this);
-            this.boundPaneResizeEnd = this.endPaneResize.bind(this);
-            window.addEventListener("pointermove", this.boundPaneResizeMove);
-            window.addEventListener("pointerup", this.boundPaneResizeEnd);
-            document.body.style.userSelect = "none";
-            document.body.style.cursor = "col-resize";
-        },
-        onPaneResizeMove(event) {
-            const ctx = this.resizeContext;
-            if (!ctx) {
-                return;
-            }
-            const delta = event.clientX - ctx.startX;
-            let newLeftWidth = ctx.leftWidth + delta;
-            const maxLeftWidth = ctx.combinedWidth - ctx.minWidth;
-            if (newLeftWidth < ctx.minWidth) {
-                newLeftWidth = ctx.minWidth;
-            } else if (newLeftWidth > maxLeftWidth) {
-                newLeftWidth = maxLeftWidth;
-            }
-
-            const leftFlex = ctx.combinedFlex * (newLeftWidth / ctx.combinedWidth);
-            this.paneFlex[ctx.leftPaneId] = leftFlex;
-            this.paneFlex[ctx.rightPaneId] = ctx.combinedFlex - leftFlex;
-        },
-        endPaneResize() {
-            window.removeEventListener("pointermove", this.boundPaneResizeMove);
-            window.removeEventListener("pointerup", this.boundPaneResizeEnd);
-            this.boundPaneResizeMove = null;
-            this.boundPaneResizeEnd = null;
-            this.resizeContext = null;
-            this.resizingPaneIds = null;
-            document.body.style.userSelect = "";
-            document.body.style.cursor = "";
-            this.persistPanes();
-        },
-        resetPaneSizes() {
-            for (const pane of this.panes) {
-                this.paneFlex[pane.id] = 1;
-            }
-            this.persistPanes();
-        },
-        teardownPaneResize() {
-            if (this.boundPaneResizeMove) {
-                window.removeEventListener("pointermove", this.boundPaneResizeMove);
-            }
-            if (this.boundPaneResizeEnd) {
-                window.removeEventListener("pointerup", this.boundPaneResizeEnd);
-            }
-            this.boundPaneResizeMove = null;
-            this.boundPaneResizeEnd = null;
-            this.resizeContext = null;
         },
         peerFromDestinationHash(destinationHash) {
             const conversation = this.conversations.find((c) => c.destination_hash === destinationHash);
@@ -1749,112 +1506,6 @@ export default {
                 custom_display_name: null,
             };
         },
-        openConversationInPane(paneId, destinationHash) {
-            const normalized = Utils.normalizeMeshchatHashHex(destinationHash || "");
-            if (normalized.length !== 32) {
-                return;
-            }
-            const pane = this.panes.find((entry) => entry.id === paneId);
-            if (!pane) {
-                return;
-            }
-            this.focusedPaneId = paneId;
-            const peer = this.peerFromDestinationHash(normalized);
-            this.onPeerClick(peer);
-            const viewer = this.paneViewers?.[paneId];
-            viewer?.markConversationAsRead?.(peer);
-        },
-        onPaneDragOver(paneId) {
-            if (!this.isWideViewport) {
-                return;
-            }
-            this.dragOverPaneId = paneId;
-        },
-        onPaneDragLeave(paneId) {
-            if (this.dragOverPaneId === paneId) {
-                this.dragOverPaneId = null;
-            }
-        },
-        onPaneDrop(paneId, event) {
-            this.dragOverPaneId = null;
-            const hash = event?.dataTransfer?.getData("text/plain");
-            if (hash) {
-                this.openConversationInPane(paneId, hash);
-            }
-        },
-        onAddZoneDragOver() {
-            if (this.canAddPane) {
-                this.isDragOverAddZone = true;
-            }
-        },
-        onAddZoneDragLeave() {
-            this.isDragOverAddZone = false;
-        },
-        onAddZoneDrop(event) {
-            this.isDragOverAddZone = false;
-            const hash = event?.dataTransfer?.getData("text/plain");
-            if (!hash || this.panes.length >= this.maxPanes) {
-                return;
-            }
-            const id = this.nextPaneId++;
-            this.panes.push({ id, peer: null });
-            this.openConversationInPane(id, hash);
-        },
-        openPeerInSplit(hash) {
-            if (!hash || this.panes.length >= this.maxPanes || !this.isWideViewport) {
-                return;
-            }
-            const id = this.nextPaneId++;
-            this.panes.push({ id, peer: null });
-            this.openConversationInPane(id, hash);
-        },
-        onConversationDragStart() {
-            this.isConversationDragging = true;
-            // dragend normally ends the drag on the source row, but if that row
-            // unmounts mid-drag (list re-sort, sidebar teardown) the event can
-            // be lost; window-level drop/dragend settle the state regardless.
-            window.addEventListener("dragend", this.onWindowDragSettled);
-            window.addEventListener("drop", this.onWindowDragSettled);
-        },
-        onConversationDragEnd() {
-            this.isConversationDragging = false;
-            this.teardownConversationDragWatch();
-        },
-        onWindowDragSettled() {
-            this.isConversationDragging = false;
-            this.teardownConversationDragWatch();
-        },
-        teardownConversationDragWatch() {
-            window.removeEventListener("dragend", this.onWindowDragSettled);
-            window.removeEventListener("drop", this.onWindowDragSettled);
-        },
-        onPanePeerUpdate(paneId, peer) {
-            this.focusPane(paneId);
-            this.onPeerClick(peer);
-        },
-        onPaneClose(paneId) {
-            const index = this.panes.findIndex((pane) => pane.id === paneId);
-            if (index === -1) {
-                return;
-            }
-
-            if (this.panes.length > 1) {
-                this.panes.splice(index, 1);
-                delete this.paneFlex[paneId];
-                delete this.paneViewers?.[paneId];
-                if (this.panes.length === 1) {
-                    this.paneFlex[this.panes[0].id] = 1;
-                }
-                if (this.focusedPaneId === paneId) {
-                    const neighbour = this.panes[index] || this.panes[index - 1] || this.panes[0];
-                    this.focusedPaneId = neighbour.id;
-                }
-                this.syncRouteToFocusedPane();
-                return;
-            }
-
-            this.onCloseConversationViewer();
-        },
         syncRouteToFocusedPane() {
             const peer = this.selectedPeer;
             const routeName = this.isPopoutMode ? "messages-popout" : "messages";
@@ -1866,55 +1517,6 @@ export default {
                 routeOptions.query = { ...this.$route.query };
             }
             this.$router.replace(routeOptions);
-        },
-        setupPaneViewportWatchers() {
-            if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-                this.isWideViewport = false;
-                this.isWideEnoughForThreePanes = false;
-                return;
-            }
-
-            this.paneViewportQuery = window.matchMedia("(min-width: 768px)");
-            this.isWideViewport = this.paneViewportQuery.matches;
-            this.paneViewportListener = (event) => {
-                this.isWideViewport = event.matches;
-            };
-            this.addMediaListener(this.paneViewportQuery, this.paneViewportListener);
-
-            this.threePaneViewportQuery = window.matchMedia("(min-width: 1280px)");
-            this.isWideEnoughForThreePanes = this.threePaneViewportQuery.matches;
-            this.threePaneViewportListener = (event) => {
-                this.isWideEnoughForThreePanes = event.matches;
-            };
-            this.addMediaListener(this.threePaneViewportQuery, this.threePaneViewportListener);
-        },
-        teardownPaneViewportWatchers() {
-            this.removeMediaListener(this.paneViewportQuery, this.paneViewportListener);
-            this.removeMediaListener(this.threePaneViewportQuery, this.threePaneViewportListener);
-            this.paneViewportQuery = null;
-            this.paneViewportListener = null;
-            this.threePaneViewportQuery = null;
-            this.threePaneViewportListener = null;
-        },
-        addMediaListener(query, listener) {
-            if (!query || !listener) {
-                return;
-            }
-            if (typeof query.addEventListener === "function") {
-                query.addEventListener("change", listener);
-            } else if (typeof query.addListener === "function") {
-                query.addListener(listener);
-            }
-        },
-        removeMediaListener(query, listener) {
-            if (!query || !listener) {
-                return;
-            }
-            if (typeof query.removeEventListener === "function") {
-                query.removeEventListener("change", listener);
-            } else if (typeof query.removeListener === "function") {
-                query.removeListener(listener);
-            }
         },
         requestConversationsRefresh() {
             if (this.conversationRefreshTimeout) {
