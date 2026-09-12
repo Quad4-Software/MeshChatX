@@ -4,8 +4,9 @@
 
 read_json_limited reads request.content.iter_chunked, so a bare MagicMock
 with only .json stubbed no longer exercises the handler body path. Use
-json_request(payload) for MagicMock-style requests or JsonContent to add a
-content attribute to custom request classes.
+json_request(payload) for MagicMock-style requests, JsonContent to add a
+content attribute to custom request classes, or RawContent to feed raw
+bytes such as an empty or malformed body.
 """
 
 from __future__ import annotations
@@ -14,17 +15,25 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 
-class JsonContent:
-    """request.content stub that yields the payload via iter_chunked."""
+class RawContent:
+    """request.content stub that yields the given chunks via iter_chunked."""
 
-    def __init__(self, payload):
-        self._body = json.dumps(payload).encode()
+    def __init__(self, chunks):
+        self._chunks = list(chunks)
 
     def iter_chunked(self, _size):
         async def _aiter():
-            yield self._body
+            for chunk in self._chunks:
+                yield chunk
 
         return _aiter()
+
+
+class JsonContent(RawContent):
+    """request.content stub that yields the payload via iter_chunked."""
+
+    def __init__(self, payload):
+        super().__init__([json.dumps(payload).encode()])
 
 
 def json_request(payload):

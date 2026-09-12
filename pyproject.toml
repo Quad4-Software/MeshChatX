@@ -163,6 +163,7 @@ also_copy = [
     "meshchatx/src/__init__.py",
     "meshchatx/src/build_meta.py",
     "meshchatx/src/env_utils.py",
+    "meshchatx/src/json_store.py",
     "meshchatx/src/path_utils.py",
     "meshchatx/src/ssl_self_signed.py",
     "meshchatx/src/version.py",

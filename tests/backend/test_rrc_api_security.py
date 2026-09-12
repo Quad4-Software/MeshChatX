@@ -10,6 +10,8 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
+from tests.backend.http_request_stubs import JsonContent
+
 HUB_HASH_HEX = "00112233445566778899aabbccddeeff"
 
 
@@ -27,6 +29,7 @@ def _make_request(json_body=None, match_info=None, query=None):
         return json_body if json_body is not None else {}
 
     request.json = _json
+    request.content = JsonContent(json_body if json_body is not None else {})
     request.match_info = match_info or {}
     request.query = query or {}
     return request

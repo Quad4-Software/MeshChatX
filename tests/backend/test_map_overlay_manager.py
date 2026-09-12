@@ -74,7 +74,9 @@ def test_atomic_write_bytes(tmp_path):
 
 
 @pytest.mark.skipif(os.name == "nt", reason="symlink follow-on-open is a POSIX case")
-def test_atomic_write_bytes_refuses_symlink_tmp(tmp_path):
+def test_atomic_write_bytes_ignores_planted_tmp_symlink(tmp_path):
+    # mkstemp picks a unique sibling name, so a symlink planted at the old
+    # deterministic dest.tmp name is never opened or replaced.
     outside = tmp_path / "OUTSIDE"
     outside.mkdir()
     bait = outside / "secret.bin"
@@ -83,9 +85,10 @@ def test_atomic_write_bytes_refuses_symlink_tmp(tmp_path):
     dest.parent.mkdir()
     tmp = dest.with_name(dest.name + ".tmp")
     tmp.symlink_to(bait)
-    with pytest.raises(OSError):
-        atomic_write_bytes(str(dest), b"pwned")
+    atomic_write_bytes(str(dest), b"pwned")
+    assert dest.read_bytes() == b"pwned"
     assert bait.read_bytes() == b"keep"
+    assert tmp.is_symlink()
 
 
 @pytest.mark.asyncio

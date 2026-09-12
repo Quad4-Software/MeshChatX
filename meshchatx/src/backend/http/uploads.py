@@ -158,7 +158,11 @@ async def read_json_limited(
     """Read a JSON request body, capped at max_bytes.
 
     Raises PayloadTooLargeError over the cap and json.JSONDecodeError on
-    malformed JSON so existing except clauses keep working.
+    malformed JSON so existing except clauses keep working. aiohttp
+    requests always carry .content; the request.json fallback exists so
+    legacy test fakes that only stub json() still exercise handlers.
     """
+    if getattr(request, "content", None) is None:
+        return await request.json()
     raw = await read_body_limited(request, max_bytes, chunk_size=chunk_size)
     return json.loads(raw.decode("utf-8"))
