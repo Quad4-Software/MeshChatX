@@ -2984,6 +2984,7 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
 import { mapStores } from "pinia";
 import { useAuthStore } from "../../js/stores/authStore.js";
 import { useConfigStore } from "../../js/stores/configStore.js";
@@ -3035,6 +3036,7 @@ import {
     fetchReticulumInstanceSettings,
 } from "../../js/settings/settingsTransportService";
 import * as maintenanceClient from "../../js/settings/settingsMaintenanceClient";
+import { useMessageAgePurge } from "../../js/settings/useMessageAgePurge.js";
 import {
     loadVisualiserDisplayPrefs,
     persistVisualiserShowDisabled,
@@ -3106,6 +3108,14 @@ export default {
         ArchiverSettingsSection,
         MicronWasmUpdateModal,
         NotificationSoundSettings,
+    },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useMessageAgePurge({
+                t: (key, params) => inst?.proxy.$t(key, params),
+            }),
+        };
     },
     data() {
         return {
@@ -3254,12 +3264,7 @@ export default {
             shortcuts: [],
             reloadingRns: false,
             reloadRnsStatusMessage: "",
-            messageAgePurgeMode: "days",
-            messageAgePurgeDays: 90,
-            messageAgePurgeBeforeDate: "",
-            messageAgePurgePreviewCount: null,
-            messageAgePurgePreviewLoading: false,
-            messageAgePurgeBusy: false,
+
             searchQuery: "",
             searchTabFilter: null,
             settingsMode: "simple",
@@ -5419,71 +5424,6 @@ export default {
                 ToastUtils.success(this.$t("maintenance.clear_duplicates_done", { count: deleted }));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
-            }
-        },
-        messageAgeFilterParams() {
-            return maintenanceClient.buildMessageAgeFilterParams({
-                mode: this.messageAgePurgeMode,
-                days: this.messageAgePurgeDays,
-                beforeDate: this.messageAgePurgeBeforeDate,
-            });
-        },
-        async refreshMessageAgePurgePreview() {
-            const params = this.messageAgeFilterParams();
-            if (!params) {
-                this.messageAgePurgePreviewCount = null;
-                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
-                return;
-            }
-            this.messageAgePurgePreviewLoading = true;
-            try {
-                const { count } = await maintenanceClient.previewMessageAgePurge(window.api, params);
-                this.messageAgePurgePreviewCount = count;
-            } catch {
-                this.messageAgePurgePreviewCount = null;
-                ToastUtils.error(this.$t("common.error"));
-            } finally {
-                this.messageAgePurgePreviewLoading = false;
-            }
-        },
-        async exportOldMessagesArchive() {
-            const params = this.messageAgeFilterParams();
-            if (!params) {
-                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
-                return;
-            }
-            this.messageAgePurgeBusy = true;
-            try {
-                const bundle = await maintenanceClient.exportMessagesBundle(window.api, params);
-                const dataStr = JSON.stringify(bundle, null, 2);
-                const blob = new Blob([dataStr], { type: "application/json" });
-                const stamp =
-                    params.before || (params.older_than_days != null ? `${params.older_than_days}d` : "filtered");
-                const exportFileDefaultName = `meshchat_messages_archive_${stamp}_${new Date().toISOString().slice(0, 10)}.json`;
-                await DownloadUtils.downloadFile(exportFileDefaultName, blob);
-                ToastUtils.success(this.$t("maintenance.export_old_archive_done"));
-            } catch {
-                ToastUtils.error(this.$t("common.error"));
-            } finally {
-                this.messageAgePurgeBusy = false;
-            }
-        },
-        async purgeOldMessages() {
-            const params = this.messageAgeFilterParams();
-            if (!params) {
-                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
-                return;
-            }
-            if (!(await DialogUtils.confirm(this.$t("maintenance.purge_old_confirm")))) return;
-            this.messageAgePurgeBusy = true;
-            try {
-                const { deleted } = await maintenanceClient.purgeMessagesByAge(window.api, params);
-                this.messageAgePurgePreviewCount = 0;
-                ToastUtils.success(this.$t("maintenance.purge_old_done", { count: deleted }));
-            } catch {
-                ToastUtils.error(this.$t("common.error"));
-            } finally {
-                this.messageAgePurgeBusy = false;
             }
         },
         async clearAnnounces() {
