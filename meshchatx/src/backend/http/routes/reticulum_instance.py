@@ -3,147 +3,44 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+import os
+import time
+
+from aiohttp import web
+from RNS.Discovery import InterfaceDiscovery
+
+from meshchatx.src.backend import i2p_support
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_conflict,
+    http_error,
     http_error_from_exception,
+    http_not_found,
     http_payload_too_large,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+    http_unexpected,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.interface_editor import InterfaceEditor
+
+logger = logging.getLogger(__name__)
 
 
 def register_reticulum_instance_routes(routes, app):
 
     # get or update reticulum discovery configuration
-    @routes.get("/api/v1/reticulum/discovery")
+    @routes.get(API_V1_PREFIX + "/reticulum/discovery")
     async def reticulum_discovery_get(request):
+        # Lazy: ReticulumMeshChat lives in meshchatx.meshchat, which imports
+        # the route table. Resolving at call time keeps
+        # patch("meshchatx.meshchat.ReticulumMeshChat") effective.
+        from meshchatx.meshchat import ReticulumMeshChat
+
         reticulum_config = app._get_reticulum_section()
         discovery_config = {
             "discover_interfaces": reticulum_config.get("discover_interfaces"),
@@ -183,19 +80,19 @@ def register_reticulum_instance_routes(routes, app):
 
         return web.json_response({"discovery": discovery_config})
 
-    @routes.patch("/api/v1/reticulum/discovery")
+    @routes.patch(API_V1_PREFIX + "/reticulum/discovery")
     async def reticulum_discovery_patch(request):
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
 
         reticulum_config = app._get_reticulum_section()
+
+        # Lazy import: see reticulum_discovery_get.
+        from meshchatx.meshchat import ReticulumMeshChat
 
         def update_config_value(key):
             if key not in data:
@@ -241,15 +138,11 @@ def register_reticulum_instance_routes(routes, app):
             else:
                 mode = InterfaceEditor.normalize_interface_mode(mode_raw)
                 if mode is None:
-                    return web.json_response(
-                        {
-                            "message": (
-                                "autoconnect_interface_mode must be one of: "
-                                "full, gateway, access_point, pointtopoint, "
-                                "roaming, boundary, internal"
-                            ),
-                        },
-                        status=422,
+                    return http_error(
+                        422,
+                        "autoconnect_interface_mode must be one of: "
+                        "full, gateway, access_point, pointtopoint, "
+                        "roaming, boundary, internal",
                     )
                 reticulum_config["autoconnect_interface_mode"] = mode
 
@@ -262,14 +155,10 @@ def register_reticulum_instance_routes(routes, app):
                 if raw is None or raw == "":
                     reticulum_config.pop("autoconnect_announces_to_internal", None)
                 else:
-                    return web.json_response(
-                        {
-                            "message": (
-                                "autoconnect_announces_to_internal must be "
-                                "a boolean or yes/no value"
-                            ),
-                        },
-                        status=422,
+                    return http_error(
+                        422,
+                        "autoconnect_announces_to_internal must be "
+                        "a boolean or yes/no value",
                     )
             else:
                 reticulum_config["autoconnect_announces_to_internal"] = yn
@@ -284,14 +173,10 @@ def register_reticulum_instance_routes(routes, app):
             try:
                 gravity = int(value)
             except (TypeError, ValueError):
-                return web.json_response(
-                    {"message": f"{gravity_key} must be an integer"},
-                    status=422,
-                )
+                return http_error(422, f"{gravity_key} must be an integer")
             if gravity < -10_000 or gravity > 10_000:
-                return web.json_response(
-                    {"message": f"{gravity_key} must be between -10000 and 10000"},
-                    status=422,
+                return http_error(
+                    422, f"{gravity_key} must be between -10000 and 10000"
                 )
             reticulum_config[gravity_key] = gravity
 
@@ -316,29 +201,18 @@ def register_reticulum_instance_routes(routes, app):
             )
 
         if not app._write_reticulum_config():
-            return web.json_response(
-                {"message": "Failed to write Reticulum config"},
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         try:
             reloaded = await app.reload_reticulum()
             if reloaded is False:
-                return web.json_response(
-                    {
-                        "message": "Discovery settings saved but RNS reload failed",
-                        "reloaded": False,
-                    },
-                    status=500,
+                return http_unexpected(
+                    "Discovery settings saved but RNS reload failed", reloaded=False
                 )
         except Exception as e:
             logger.debug(f"Failed to reload RNS after discovery config update: {e}")
-            return web.json_response(
-                {
-                    "message": "Discovery settings saved but RNS reload failed",
-                    "reloaded": False,
-                },
-                status=500,
+            return http_unexpected(
+                "Discovery settings saved but RNS reload failed", reloaded=False
             )
 
         discovery_config = {
@@ -381,6 +255,9 @@ def register_reticulum_instance_routes(routes, app):
         return web.json_response({"discovery": discovery_config})
 
     def _collect_discovered_interfaces():
+        # Lazy import: see reticulum_discovery_get.
+        from meshchatx.meshchat import ReticulumMeshChat
+
         now = time.time()
         cache = getattr(app, "_discovered_interfaces_cache", None)
         if cache and now - cache["ts"] < 3.0:
@@ -501,39 +378,28 @@ def register_reticulum_instance_routes(routes, app):
         except Exception as e:
             raise RuntimeError(f"Failed to load discovered interfaces: {e!s}") from e
 
-    @routes.get("/api/v1/reticulum/discovered-interfaces")
+    @routes.get(API_V1_PREFIX + "/reticulum/discovered-interfaces")
     async def reticulum_discovered_interfaces(request):
         try:
             payload = await asyncio.to_thread(_collect_discovered_interfaces)
             return web.json_response(payload)
         except Exception:
-            return web.json_response(
-                {"message": "Failed to load discovered interfaces"},
-                status=500,
-            )
+            return http_unexpected("Failed to load discovered interfaces")
 
     # enable transport mode
 
     # enable transport mode
-    @routes.post("/api/v1/reticulum/enable-transport")
+    @routes.post(API_V1_PREFIX + "/reticulum/enable-transport")
     async def reticulum_enable_transport(request):
         # enable transport mode
         reticulum_config = app._get_reticulum_section()
         reticulum_config["enable_transport"] = True
         if not app._write_reticulum_config():
-            return web.json_response(
-                {
-                    "message": "Failed to write Reticulum config",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         if not await app.reload_reticulum():
-            return web.json_response(
-                {
-                    "message": "Transport mode was enabled in config, but RNS reload failed.",
-                },
-                status=500,
+            return http_unexpected(
+                "Transport mode was enabled in config, but RNS reload failed."
             )
 
         return web.json_response(
@@ -545,7 +411,7 @@ def register_reticulum_instance_routes(routes, app):
     # disable transport mode
 
     # disable transport mode
-    @routes.post("/api/v1/reticulum/disable-transport")
+    @routes.post(API_V1_PREFIX + "/reticulum/disable-transport")
     async def reticulum_disable_transport(request):
         # disable transport mode
         reticulum_config = app._get_reticulum_section()
@@ -555,19 +421,11 @@ def register_reticulum_instance_routes(routes, app):
             reticulum_config,
         )
         if not app._write_reticulum_config():
-            return web.json_response(
-                {
-                    "message": "Failed to write Reticulum config",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         if not await app.reload_reticulum():
-            return web.json_response(
-                {
-                    "message": "Transport mode was disabled in config, but RNS reload failed.",
-                },
-                status=500,
+            return http_unexpected(
+                "Transport mode was disabled in config, but RNS reload failed."
             )
 
         return web.json_response(
@@ -576,14 +434,14 @@ def register_reticulum_instance_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/reticulum/instance")
+    @routes.get(API_V1_PREFIX + "/reticulum/instance")
     async def reticulum_instance_get(request):
         """Shared-instance, RPC, and hop-obfuscation settings (Sideband parity)."""
         return web.json_response(
             {"instance": app._build_reticulum_instance_settings()},
         )
 
-    @routes.patch("/api/v1/reticulum/instance")
+    @routes.patch(API_V1_PREFIX + "/reticulum/instance")
     async def reticulum_instance_patch(request):
         """Update [reticulum] shared-instance / hop-obfuscation options and reload."""
         try:
@@ -591,15 +449,9 @@ def register_reticulum_instance_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         if not isinstance(data, dict):
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
 
         reticulum_config = app._get_reticulum_section()
         changed = False
@@ -625,11 +477,8 @@ def register_reticulum_instance_routes(routes, app):
             else:
                 cleaned = str(name).strip()
                 if len(cleaned) > 64 or any(c.isspace() for c in cleaned):
-                    return web.json_response(
-                        {
-                            "message": "instance_name must be 1-64 characters without whitespace",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "instance_name must be 1-64 characters without whitespace"
                     )
                 reticulum_config["instance_name"] = cleaned
             changed = True
@@ -641,11 +490,8 @@ def register_reticulum_instance_routes(routes, app):
             else:
                 cleaned_type = str(raw_type).strip().lower()
                 if cleaned_type not in ("tcp", "unix"):
-                    return web.json_response(
-                        {
-                            "message": "shared_instance_type must be 'tcp' or 'unix'",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "shared_instance_type must be 'tcp' or 'unix'"
                     )
                 reticulum_config["shared_instance_type"] = cleaned_type
             changed = True
@@ -656,7 +502,7 @@ def register_reticulum_instance_routes(routes, app):
                     data.get("remote_management_allowed"),
                 )
             except ValueError as e:
-                return web.json_response({"message": str(e)}, status=400)
+                return http_bad_request(str(e))
             if allowed:
                 reticulum_config["remote_management_allowed"] = allowed
             else:
@@ -669,18 +515,12 @@ def register_reticulum_instance_routes(routes, app):
             )
 
         if not app._write_reticulum_config():
-            return web.json_response(
-                {"message": "Failed to write Reticulum config"},
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         if not await app.reload_reticulum():
-            return web.json_response(
-                {
-                    "message": "Instance settings were saved, but RNS reload failed.",
-                    "instance": app._build_reticulum_instance_settings(),
-                },
-                status=500,
+            return http_unexpected(
+                "Instance settings were saved, but RNS reload failed.",
+                instance=app._build_reticulum_instance_settings(),
             )
 
         return web.json_response(
@@ -690,7 +530,7 @@ def register_reticulum_instance_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/reticulum/management-identities")
+    @routes.get(API_V1_PREFIX + "/reticulum/management-identities")
     async def reticulum_management_identities_get(request):
         from meshchatx.src.backend.management_identities import (
             list_management_identities,
@@ -701,7 +541,7 @@ def register_reticulum_instance_routes(routes, app):
         )
         return web.json_response({"identities": identities})
 
-    @routes.post("/api/v1/reticulum/management-identities")
+    @routes.post(API_V1_PREFIX + "/reticulum/management-identities")
     async def reticulum_management_identities_post(request):
         from meshchatx.src.backend.management_identities import (
             create_management_identity,
@@ -712,10 +552,7 @@ def register_reticulum_instance_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         name = (data or {}).get("name")
         force = bool((data or {}).get("force", False))
         try:
@@ -725,24 +562,21 @@ def register_reticulum_instance_routes(routes, app):
                 force=force,
             )
         except FileExistsError as e:
-            return web.json_response({"message": str(e)}, status=409)
+            return http_conflict(str(e))
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response({"identity": identity})
 
-    @routes.post("/api/v1/reticulum/reload")
+    @routes.post(API_V1_PREFIX + "/reticulum/reload")
     async def reticulum_reload(request):
         success = await app.reload_reticulum()
         if success:
             return web.json_response({"message": "Reticulum reloaded successfully"})
-        return web.json_response(
-            {"error": "Failed to reload Reticulum"},
-            status=500,
-        )
+        return http_unexpected("Failed to reload Reticulum")
 
-    @routes.get("/api/v1/reticulum/config/raw")
+    @routes.get(API_V1_PREFIX + "/reticulum/config/raw")
     async def reticulum_config_raw_get(request):
         """Return the raw text of the Reticulum config file.
 
@@ -754,10 +588,7 @@ def register_reticulum_instance_routes(routes, app):
             app._ensure_reticulum_config(materialize=False)
             config_path = app._reticulum_config_file_path()
             if not os.path.exists(config_path):
-                return web.json_response(
-                    {"error": f"Reticulum config not found at {config_path}"},
-                    status=404,
-                )
+                return http_not_found(f"Reticulum config not found at {config_path}")
             with open(config_path) as f:
                 content = f.read()
             return web.json_response(
@@ -769,7 +600,7 @@ def register_reticulum_instance_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, fallback_status=500)
 
-    @routes.put("/api/v1/reticulum/config/raw")
+    @routes.put(API_V1_PREFIX + "/reticulum/config/raw")
     async def reticulum_config_raw_put(request):
         """Persist new raw text to the Reticulum config file.
 
@@ -783,24 +614,15 @@ def register_reticulum_instance_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"error": "Invalid JSON body"},
-                status=400,
-            )
+            return http_bad_request("Invalid JSON body")
 
         content = data.get("content")
         if not isinstance(content, str):
-            return web.json_response(
-                {"error": "Missing or invalid 'content' field"},
-                status=400,
-            )
+            return http_bad_request("Missing or invalid 'content' field")
 
         if "[reticulum]" not in content or "[interfaces]" not in content:
-            return web.json_response(
-                {
-                    "error": "Config must include [reticulum] and [interfaces] sections",
-                },
-                status=400,
+            return http_bad_request(
+                "Config must include [reticulum] and [interfaces] sections"
             )
 
         try:
@@ -815,7 +637,9 @@ def register_reticulum_instance_routes(routes, app):
                 try:
                     from RNS.vendor.configobj import ConfigObj
 
-                    previous_interfaces = ConfigObj(config_path).get("interfaces") or {}
+                    raw_interfaces = ConfigObj(config_path).get("interfaces")
+                    if isinstance(raw_interfaces, dict):
+                        previous_interfaces = raw_interfaces
                 except Exception:
                     previous_interfaces = {}
             i2p_raw_error = i2p_support.validate_raw_config_i2p_policy(
@@ -823,10 +647,7 @@ def register_reticulum_instance_routes(routes, app):
                 previous_interfaces=previous_interfaces,
             )
             if i2p_raw_error is not None:
-                return web.json_response(
-                    {"error": i2p_raw_error},
-                    status=422,
-                )
+                return http_error(422, i2p_raw_error)
             with open(config_path, "w") as f:
                 f.write(content)
             i2p_support.guard_i2p_interfaces_in_config(config_path)
@@ -840,7 +661,7 @@ def register_reticulum_instance_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, fallback_status=500)
 
-    @routes.post("/api/v1/reticulum/config/reset")
+    @routes.post(API_V1_PREFIX + "/reticulum/config/reset")
     async def reticulum_config_reset(request):
         """Restore the Reticulum config file to RNS stock defaults."""
         try:

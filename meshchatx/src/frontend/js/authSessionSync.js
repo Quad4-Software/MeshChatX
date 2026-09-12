@@ -1,23 +1,25 @@
-import GlobalState from "./GlobalState.js";
+import { apiPath } from "./constants.js";
+import { useAuthStore } from "./stores/authStore.js";
 
 /** Max wait for auth status during navigation guards and reconnect resync. */
 export const AUTH_STATUS_TIMEOUT_MS = 10000;
 
 /**
- * Copy auth status fields from the API into GlobalState.
+ * Copy auth status fields from the API into the auth store.
  * @param {Record<string, unknown> | null | undefined} status
  */
-export function applyAuthStatusToGlobalState(status) {
+export function applyAuthStatusToStores(status) {
     if (!status || typeof status !== "object") {
         return;
     }
-    GlobalState.authEnabled = !!status.auth_enabled;
-    GlobalState.authenticated = !!status.authenticated;
-    GlobalState.demoMode = !!status.demo_mode;
+    const authStore = useAuthStore();
+    authStore.authEnabled = !!status.auth_enabled;
+    authStore.authenticated = !!status.authenticated;
+    authStore.demoMode = !!status.demo_mode;
     if (typeof status.is_loopback_bind === "boolean") {
-        GlobalState.isLoopbackBind = status.is_loopback_bind;
+        authStore.isLoopbackBind = status.is_loopback_bind;
     }
-    GlobalState.authSessionResolved = true;
+    authStore.authSessionResolved = true;
 }
 
 /**
@@ -30,7 +32,7 @@ export async function fetchAuthStatus(api, options = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-        const response = await api.get("/api/v1/auth/status", { signal: controller.signal });
+        const response = await api.get(apiPath("/auth/status"), { signal: controller.signal });
         return response.data ?? {};
     } finally {
         clearTimeout(timer);
@@ -68,12 +70,13 @@ export function authNavigationTargetForStatus(to, status) {
 export async function resolveAuthNavigation(to, api) {
     try {
         const status = await fetchAuthStatus(api);
-        applyAuthStatusToGlobalState(status);
+        applyAuthStatusToStores(status);
         return authNavigationTargetForStatus(to, status);
     } catch (e) {
-        GlobalState.authSessionResolved = true;
+        const authStore = useAuthStore();
+        authStore.authSessionResolved = true;
         if (e.response?.status === 401 || e.response?.status === 403) {
-            GlobalState.authenticated = false;
+            authStore.authenticated = false;
             return { redirect: "/auth" };
         }
         return { allow: true };

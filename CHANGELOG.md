@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.9.0] - [unreleased]
+## [4.9.0] - 2026-09-12 [released]
 
 ### Added
 
@@ -80,6 +80,7 @@ All notable changes to this project will be documented in this file.
 - RRC per-peer session caps no longer evict the host's own loopback client, can no longer be bypassed by links whose identify callback never fired, and cannot evict live sessions through a stale identify on an already-dropped link.
 - The split-view drop strip no longer stays visible if a conversation row unmounts mid-drag; window-level drop and dragend handlers settle the state.
 - RRC room lists delivered over link resources (oversized /list and /who responses from hubs that negotiate resource envelopes) now populate the available-room list and member lists instead of being recorded as plain text.
+- Markers imported from KML or KMZ files, such as GhostMaps exports, can be selected, moved and edited again. Icon anchors were stored in image pixels but rebuilt as fractions, which pushed icons more than a thousand pixels off their coordinates once the icon image was cached or the drawing was reloaded; the restore and saved-drawing paths also skipped icon styles entirely, so reloaded markers collapsed to plain red dots at wide zooms. Both paths now use the same GeoJSON reader as imports.
 
 ### Changed
 

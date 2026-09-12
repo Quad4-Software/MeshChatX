@@ -3,138 +3,26 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 import math
+import os
+import secrets
 
+import RNS
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
     http_error_from_exception,
+    http_forbidden,
+    http_not_found,
     http_payload_too_large,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    MAX_EXPORT_ZOOM,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+    http_unavailable,
+    http_unexpected,
 )
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
@@ -142,11 +30,22 @@ from meshchatx.src.backend.http.uploads import (
     read_json_limited,
     write_field_to_path,
 )
+from meshchatx.src.backend.map_geo_validator import GeoValidationError
+from meshchatx.src.backend.map_manager import (
+    MAX_EXPORT_TILES,
+    MAX_EXPORT_ZOOM,
+    TRANSPARENT_TILE,
+    is_mbtiles_filename,
+)
+from meshchatx.src.backend.map_overlay_export import OverlayExportError
+from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
+from meshchatx.src.backend.privacy_mode import OutboundHttpBlockedError
+from meshchatx.src.path_utils import is_path_within_dir
 
 
 def register_map_routes(routes, app):
     # get offline map metadata
-    @routes.get("/api/v1/map/offline")
+    @routes.get(API_V1_PREFIX + "/map/offline")
     async def get_map_offline_metadata(request):
         metadata = app.map_manager.get_metadata()
         if not metadata:
@@ -156,13 +55,11 @@ def register_map_routes(routes, app):
             return web.json_response(metadata)
         return web.json_response({"loaded": False})
 
-    @routes.post("/api/v1/map/mbtiles/restore-starter")
+    @routes.post(API_V1_PREFIX + "/map/mbtiles/restore-starter")
     async def restore_starter_mbtiles(request):
         path = app.map_manager.ensure_starter_mbtiles(force_restore=True)
         if not path:
-            return web.json_response(
-                {"error": "Could not restore starter tiles"}, status=500
-            )
+            return http_unexpected("Could not restore starter tiles")
         return web.json_response(
             {
                 "message": "Starter tiles restored",
@@ -174,7 +71,7 @@ def register_map_routes(routes, app):
     # get map tile
 
     # get map tile
-    @routes.get("/api/v1/map/tiles/{z}/{x}/{y}")
+    @routes.get(API_V1_PREFIX + "/map/tiles/{z}/{x}/{y}")
     async def get_map_tile(request):
         try:
             z = int(request.match_info.get("z"))
@@ -197,24 +94,24 @@ def register_map_routes(routes, app):
     # list available MBTiles files
 
     # list available MBTiles files
-    @routes.get("/api/v1/map/mbtiles")
+    @routes.get(API_V1_PREFIX + "/map/mbtiles")
     async def list_mbtiles(request):
         return web.json_response(app.map_manager.list_mbtiles())
 
     # delete an MBTiles file
 
     # delete an MBTiles file
-    @routes.delete("/api/v1/map/mbtiles/{filename}")
+    @routes.delete(API_V1_PREFIX + "/map/mbtiles/{filename}")
     async def delete_mbtiles(request):
         filename = request.match_info.get("filename")
         if app.map_manager.delete_mbtiles(filename):
             return web.json_response({"message": "File deleted"})
-        return web.json_response({"error": "File not found"}, status=404)
+        return http_not_found("File not found")
 
     # set active MBTiles file
 
     # set active MBTiles file
-    @routes.post("/api/v1/map/mbtiles/active")
+    @routes.post(API_V1_PREFIX + "/map/mbtiles/active")
     async def set_active_mbtiles(request):
         try:
             data = await read_json_limited(request)
@@ -224,7 +121,7 @@ def register_map_routes(routes, app):
         if filename is not None and (
             not isinstance(filename, str) or "\x00" in filename
         ):
-            return web.json_response({"error": "Invalid filename"}, status=400)
+            return http_bad_request("Invalid filename")
         if not filename:
             app.config.map_offline_path.set(None)
             app.config.map_offline_enabled.set(False)
@@ -234,7 +131,7 @@ def register_map_routes(routes, app):
         safe_name = os.path.basename(filename)
         file_path = os.path.join(mbtiles_dir, safe_name)
         if not is_path_within_dir(file_path, mbtiles_dir):
-            return web.json_response({"error": "Invalid filename"}, status=400)
+            return http_bad_request("Invalid filename")
         if os.path.exists(file_path):
             app.map_manager.close()
             app.config.map_offline_path.set(file_path)
@@ -245,19 +142,19 @@ def register_map_routes(routes, app):
                     "metadata": app.map_manager.get_metadata(),
                 },
             )
-        return web.json_response({"error": "File not found"}, status=404)
+        return http_not_found("File not found")
 
     # map drawings
 
     # map drawings
-    @routes.get("/api/v1/map/drawings")
+    @routes.get(API_V1_PREFIX + "/map/drawings")
     async def get_map_drawings(request):
         identity_hash = app.identity.hash.hex()
         rows = app.database.map_drawings.get_drawings(identity_hash)
         drawings = [dict(row) for row in rows]
         return web.json_response({"drawings": drawings})
 
-    @routes.post("/api/v1/map/drawings")
+    @routes.post(API_V1_PREFIX + "/map/drawings")
     async def save_map_drawing(request):
         identity_hash = app.identity.hash.hex()
         try:
@@ -269,7 +166,7 @@ def register_map_routes(routes, app):
         app.database.map_drawings.upsert_drawing(identity_hash, name, drawing_data)
         return web.json_response({"message": "Drawing saved successfully"})
 
-    @routes.delete("/api/v1/map/drawings/{drawing_id}")
+    @routes.delete(API_V1_PREFIX + "/map/drawings/{drawing_id}")
     async def delete_map_drawing(request):
         identity_hash = app.identity.hash.hex()
         drawing_id = request.match_info.get("drawing_id")
@@ -278,10 +175,10 @@ def register_map_routes(routes, app):
             identity_hash,
         )
         if not deleted:
-            return web.json_response({"error": "Drawing not found"}, status=404)
+            return http_not_found("Drawing not found")
         return web.json_response({"message": "Drawing deleted successfully"})
 
-    @routes.patch("/api/v1/map/drawings/{drawing_id}")
+    @routes.patch(API_V1_PREFIX + "/map/drawings/{drawing_id}")
     async def update_map_drawing(request):
         identity_hash = app.identity.hash.hex()
         drawing_id = request.match_info.get("drawing_id")
@@ -298,27 +195,27 @@ def register_map_routes(routes, app):
             drawing_data,
         )
         if not updated:
-            return web.json_response({"error": "Drawing not found"}, status=404)
+            return http_not_found("Drawing not found")
         return web.json_response({"message": "Drawing updated successfully"})
 
-    @routes.get("/api/v1/map/overlays")
+    @routes.get(API_V1_PREFIX + "/map/overlays")
     async def list_map_overlays(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         identity_hash = app.identity.hash.hex()
         overlays = app.map_overlay_manager.list_overlays(identity_hash)
         return web.json_response({"overlays": overlays})
 
-    @routes.post("/api/v1/map/overlays")
+    @routes.post(API_V1_PREFIX + "/map/overlays")
     async def create_map_overlays(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         identity_hash = app.identity.hash.hex()
         try:
             result = await app.map_overlay_manager.create_overlays(
@@ -326,29 +223,29 @@ def register_map_routes(routes, app):
                 data,
             )
         except OverlaySourceParseError as exc:
-            return web.json_response({"error": exc.code}, status=400)
+            return http_bad_request(exc.code)
         except GeoValidationError as exc:
-            return web.json_response({"error": exc.code}, status=400)
+            return http_bad_request(exc.code)
         return web.json_response(result)
 
-    @routes.post("/api/v1/map/overlays/export")
+    @routes.post(API_V1_PREFIX + "/map/overlays/export")
     async def export_map_overlays_many(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         fmt = str(data.get("format") or "geojson").lower()
         ids = data.get("ids") or []
         if not isinstance(ids, list):
-            return web.json_response({"error": "missing_ids"}, status=400)
+            return http_bad_request("missing_ids")
         try:
             overlay_ids = [int(i) for i in ids]
         except (TypeError, ValueError):
-            return web.json_response({"error": "missing_ids"}, status=400)
+            return http_bad_request("missing_ids")
         identity_hash = app.identity.hash.hex()
         try:
             body, content_type, filename = app.map_overlay_manager.export_many(
@@ -358,7 +255,7 @@ def register_map_routes(routes, app):
             )
         except OverlayExportError as exc:
             status = 404 if exc.code == "cache_missing" else 400
-            return web.json_response({"error": exc.code}, status=status)
+            return http_error(status, exc.code)
         return web.Response(
             body=body,
             headers={
@@ -367,36 +264,36 @@ def register_map_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/map/overlays/jobs/{job_id}")
+    @routes.get(API_V1_PREFIX + "/map/overlays/jobs/{job_id}")
     async def get_map_overlay_job(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         job_id = request.match_info.get("job_id")
         identity_hash = app.identity.hash.hex()
         job = app.map_overlay_manager.get_job(job_id, identity_hash=identity_hash)
         if not job:
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         return web.json_response(job)
 
-    @routes.post("/api/v1/map/overlays/jobs/{job_id}/cancel")
+    @routes.post(API_V1_PREFIX + "/map/overlays/jobs/{job_id}/cancel")
     async def cancel_map_overlay_job(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         job_id = request.match_info.get("job_id")
         identity_hash = app.identity.hash.hex()
         ok = app.map_overlay_manager.cancel_job(job_id, identity_hash=identity_hash)
         if not ok:
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         return web.json_response({"cancelled": True})
 
-    @routes.post("/api/v1/map/overlays/{overlay_id}/refresh")
+    @routes.post(API_V1_PREFIX + "/map/overlays/{overlay_id}/refresh")
     async def refresh_map_overlay(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         try:
             overlay_id = int(request.match_info.get("overlay_id"))
         except (TypeError, ValueError):
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         identity_hash = app.identity.hash.hex()
         try:
             result = await app.map_overlay_manager.refresh_overlay(
@@ -405,23 +302,23 @@ def register_map_routes(routes, app):
             )
         except OverlaySourceParseError as exc:
             status = 404 if exc.code == "not_found" else 400
-            return web.json_response({"error": exc.code}, status=status)
+            return http_error(status, exc.code)
         return web.json_response(result)
 
-    @routes.patch("/api/v1/map/overlays/{overlay_id}")
+    @routes.patch(API_V1_PREFIX + "/map/overlays/{overlay_id}")
     async def patch_map_overlay(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         try:
             overlay_id = int(request.match_info.get("overlay_id"))
         except (TypeError, ValueError):
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         identity_hash = app.identity.hash.hex()
         try:
             overlay = app.map_overlay_manager.patch_overlay(
@@ -431,38 +328,38 @@ def register_map_routes(routes, app):
             )
         except OverlaySourceParseError as exc:
             status = 404 if exc.code == "not_found" else 400
-            return web.json_response({"error": exc.code}, status=status)
+            return http_error(status, exc.code)
         return web.json_response({"overlay": overlay})
 
-    @routes.delete("/api/v1/map/overlays/{overlay_id}")
+    @routes.delete(API_V1_PREFIX + "/map/overlays/{overlay_id}")
     async def delete_map_overlay(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         try:
             overlay_id = int(request.match_info.get("overlay_id"))
         except (TypeError, ValueError):
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         identity_hash = app.identity.hash.hex()
         ok = app.map_overlay_manager.delete_overlay(identity_hash, overlay_id)
         if not ok:
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         return web.json_response({"deleted": True})
 
-    @routes.get("/api/v1/map/overlays/{overlay_id}/content")
+    @routes.get(API_V1_PREFIX + "/map/overlays/{overlay_id}/content")
     async def get_map_overlay_content(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         try:
             overlay_id = int(request.match_info.get("overlay_id"))
         except (TypeError, ValueError):
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         identity_hash = app.identity.hash.hex()
         cached = app.map_overlay_manager.read_cache_bytes(
             identity_hash,
             overlay_id,
         )
         if not cached:
-            return web.json_response({"error": "cache_missing"}, status=404)
+            return http_not_found("cache_missing")
         data, fmt = cached
         from meshchatx.src.backend.map_overlay_export import CONTENT_TYPES
 
@@ -473,14 +370,14 @@ def register_map_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/map/overlays/{overlay_id}/export")
+    @routes.get(API_V1_PREFIX + "/map/overlays/{overlay_id}/export")
     async def export_map_overlay(request):
         if not app.map_overlay_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         try:
             overlay_id = int(request.match_info.get("overlay_id"))
         except (TypeError, ValueError):
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         fmt = str(request.rel_url.query.get("format") or "geojson").lower()
         identity_hash = app.identity.hash.hex()
         try:
@@ -491,7 +388,7 @@ def register_map_routes(routes, app):
             )
         except OverlayExportError as exc:
             status = 404 if exc.code == "cache_missing" else 400
-            return web.json_response({"error": exc.code}, status=status)
+            return http_error(status, exc.code)
         return web.Response(
             body=body,
             headers={
@@ -501,20 +398,17 @@ def register_map_routes(routes, app):
         )
 
     # upload offline map
-    @routes.post("/api/v1/map/offline")
+    @routes.post(API_V1_PREFIX + "/map/offline")
     async def upload_map_offline(request):
         try:
             reader = await request.multipart()
             field = await reader.next()
             if field.name != "file":
-                return web.json_response({"error": "No file field"}, status=400)
+                return http_bad_request("No file field")
 
             filename = os.path.basename(field.filename or "")
             if not is_mbtiles_filename(filename):
-                return web.json_response(
-                    {"error": "Invalid file format, must be .mbtiles"},
-                    status=400,
-                )
+                return http_bad_request("Invalid file format, must be .mbtiles")
 
             mbtiles_dir = app.map_manager.get_mbtiles_dir()
             if not os.path.exists(mbtiles_dir):
@@ -522,10 +416,7 @@ def register_map_routes(routes, app):
 
             dest_path = os.path.join(mbtiles_dir, filename)
             if not is_path_within_dir(dest_path, mbtiles_dir):
-                return web.json_response(
-                    {"error": "Invalid filename"},
-                    status=400,
-                )
+                return http_bad_request("Invalid filename")
 
             await write_field_to_path(
                 field,
@@ -548,11 +439,8 @@ def register_map_routes(routes, app):
                     os.remove(dest_path)
                 app.config.map_offline_path.set(None)
                 app.config.map_offline_enabled.set(False)
-                return web.json_response(
-                    {
-                        "error": "Invalid MBTiles file or unsupported format (vector maps not supported)",
-                    },
-                    status=400,
+                return http_bad_request(
+                    "Invalid MBTiles file or unsupported format (vector maps not supported)"
                 )
 
             return web.json_response(
@@ -570,41 +458,33 @@ def register_map_routes(routes, app):
     # start map export
 
     # start map export
-    @routes.post("/api/v1/map/export")
+    @routes.post(API_V1_PREFIX + "/map/export")
     async def start_map_export(request):
         try:
             data = await read_json_limited(request)
             if not isinstance(data, dict):
-                return web.json_response({"error": "Invalid body"}, status=400)
+                return http_bad_request("Invalid body")
             bbox = data.get("bbox")  # [min_lon, min_lat, max_lon, max_lat]
             try:
                 min_zoom = int(data.get("min_zoom", 0))
                 max_zoom = int(data.get("max_zoom", 10))
             except (TypeError, ValueError):
-                return web.json_response(
-                    {"error": "Invalid zoom levels"},
-                    status=400,
-                )
+                return http_bad_request("Invalid zoom levels")
             name = data.get("name", "Exported Map")
 
             if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
-                return web.json_response({"error": "Invalid bbox"}, status=400)
+                return http_bad_request("Invalid bbox")
             try:
                 bbox = [float(v) for v in bbox]
             except (TypeError, ValueError):
-                return web.json_response({"error": "Invalid bbox"}, status=400)
+                return http_bad_request("Invalid bbox")
             if not all(math.isfinite(v) for v in bbox):
-                return web.json_response({"error": "Invalid bbox"}, status=400)
+                return http_bad_request("Invalid bbox")
             if not (0 <= min_zoom <= max_zoom <= MAX_EXPORT_ZOOM):
-                return web.json_response(
-                    {
-                        "error": (
-                            f"Invalid zoom range; "
-                            f"allowed is 0 <= min_zoom <= max_zoom <= "
-                            f"{MAX_EXPORT_ZOOM}."
-                        ),
-                    },
-                    status=400,
+                return http_bad_request(
+                    f"Invalid zoom range; "
+                    f"allowed is 0 <= min_zoom <= max_zoom <= "
+                    f"{MAX_EXPORT_ZOOM}."
                 )
 
             app._require_outbound_http("map tile export")
@@ -616,16 +496,11 @@ def register_map_routes(routes, app):
                 limit=MAX_EXPORT_TILES,
             )
             if tile_count > MAX_EXPORT_TILES:
-                return web.json_response(
-                    {
-                        "error": (
-                            f"Export would download more than "
-                            f"{MAX_EXPORT_TILES} tiles; "
-                            f"maximum allowed is {MAX_EXPORT_TILES}. "
-                            "Shrink the area or lower max zoom."
-                        ),
-                    },
-                    status=400,
+                return http_bad_request(
+                    f"Export would download more than "
+                    f"{MAX_EXPORT_TILES} tiles; "
+                    f"maximum allowed is {MAX_EXPORT_TILES}. "
+                    "Shrink the area or lower max zoom."
                 )
 
             export_id = secrets.token_hex(8)
@@ -635,25 +510,25 @@ def register_map_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except OutboundHttpBlockedError as e:
-            return web.json_response({"error": str(e)}, status=403)
+            return http_forbidden(str(e))
         except Exception as e:
             return http_error_from_exception(e, fallback_status=500)
 
     # get map export status
 
     # get map export status
-    @routes.get("/api/v1/map/export/{export_id}")
+    @routes.get(API_V1_PREFIX + "/map/export/{export_id}")
     async def get_map_export_status(request):
         export_id = request.match_info.get("export_id")
         status = app.map_manager.get_export_status(export_id)
         if status:
             return web.json_response(status)
-        return web.json_response({"error": "Export not found"}, status=404)
+        return http_not_found("Export not found")
 
     # download exported map
 
     # download exported map
-    @routes.get("/api/v1/map/export/{export_id}/download")
+    @routes.get(API_V1_PREFIX + "/map/export/{export_id}/download")
     async def download_map_export(request):
         export_id = request.match_info.get("export_id")
         status = app.map_manager.get_export_status(export_id)
@@ -666,37 +541,34 @@ def register_map_routes(routes, app):
                         "Content-Disposition": f'attachment; filename="map_export_{export_id}.mbtiles"',
                     },
                 )
-        return web.json_response(
-            {"error": "File not ready or not found"},
-            status=404,
-        )
+        return http_not_found("File not ready or not found")
 
     # cancel/delete map export
 
     # cancel/delete map export
-    @routes.delete("/api/v1/map/export/{export_id}")
+    @routes.delete(API_V1_PREFIX + "/map/export/{export_id}")
     async def delete_map_export(request):
         export_id = request.match_info.get("export_id")
         if app.map_manager.cancel_export(export_id):
             return web.json_response({"message": "Export cancelled/deleted"})
-        return web.json_response({"error": "Export not found"}, status=404)
+        return http_not_found("Export not found")
 
-    @routes.get("/api/v1/map/data/status")
+    @routes.get(API_V1_PREFIX + "/map/data/status")
     async def map_data_status(_request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         return web.json_response(app.map_data_manager.status())
 
-    @routes.get("/api/v1/map/data/published")
+    @routes.get(API_V1_PREFIX + "/map/data/published")
     async def map_data_published(_request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         return web.json_response({"maps": app.map_data_manager.list_published()})
 
-    @routes.get("/api/v1/map/data/heard")
+    @routes.get(API_V1_PREFIX + "/map/data/heard")
     async def map_data_heard(request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         query = request.query.get("search") or request.query.get("q")
         try:
             limit = int(request.query.get("limit") or 250)
@@ -707,10 +579,10 @@ def register_map_routes(routes, app):
             {"announces": app.map_data_manager.list_heard(query=query, limit=limit)},
         )
 
-    @routes.post("/api/v1/map/data/publish")
+    @routes.post(API_V1_PREFIX + "/map/data/publish")
     async def map_data_publish(request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
@@ -718,12 +590,12 @@ def register_map_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         name = str(data.get("name") or "map")
         hinted = data.get("format")
         raw_b64 = data.get("data_b64") or data.get("content_b64")
         if not isinstance(raw_b64, str) or not raw_b64.strip():
-            return web.json_response({"error": "missing_data"}, status=400)
+            return http_bad_request("missing_data")
         max_bytes = 512 * 1024
         try:
             configured = app.map_data_manager._cfg_max_bytes()
@@ -732,11 +604,11 @@ def register_map_routes(routes, app):
         if isinstance(configured, int) and configured >= 1:
             max_bytes = configured
         if len(raw_b64) > (max_bytes * 4 // 3) + 8:
-            return web.json_response({"error": "file_too_large"}, status=400)
+            return http_bad_request("file_too_large")
         try:
             payload = base64.b64decode(raw_b64, validate=True)
         except (binascii.Error, ValueError):
-            return web.json_response({"error": "invalid_data"}, status=400)
+            return http_bad_request("invalid_data")
         try:
             result = app.map_data_manager.publish_bytes(
                 payload,
@@ -744,47 +616,47 @@ def register_map_routes(routes, app):
                 hinted_format=hinted,
             )
         except MapDataError as exc:
-            return web.json_response({"error": exc.code}, status=400)
+            return http_bad_request(exc.code)
         except GeoValidationError as exc:
-            return web.json_response({"error": exc.code}, status=400)
+            return http_bad_request(exc.code)
         return web.json_response(result)
 
-    @routes.delete("/api/v1/map/data/published/{map_id}")
+    @routes.delete(API_V1_PREFIX + "/map/data/published/{map_id}")
     async def map_data_unpublish(request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         map_id = request.match_info.get("map_id")
         try:
             ok = app.map_data_manager.unpublish(map_id)
         except MapDataError as exc:
-            return web.json_response({"error": exc.code}, status=400)
+            return http_bad_request(exc.code)
         if not ok:
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         return web.json_response({"deleted": True})
 
-    @routes.post("/api/v1/map/data/announce")
+    @routes.post(API_V1_PREFIX + "/map/data/announce")
     async def map_data_announce(_request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
             return web.json_response(app.map_data_manager.announce())
         except MapDataError as exc:
-            return web.json_response({"error": exc.code}, status=400)
+            return http_bad_request(exc.code)
 
-    @routes.patch("/api/v1/map/data/config")
+    @routes.patch(API_V1_PREFIX + "/map/data/config")
     async def map_data_config(request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         return web.json_response(
             app.map_data_manager.update_settings(
                 display_name=data.get("display_name"),
@@ -793,10 +665,10 @@ def register_map_routes(routes, app):
             ),
         )
 
-    @routes.post("/api/v1/map/data/catalog")
+    @routes.post(API_V1_PREFIX + "/map/data/catalog")
     async def map_data_catalog(request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
@@ -804,7 +676,7 @@ def register_map_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         dest = data.get("destination_hash")
         try:
             result = await app.map_data_manager.fetch_catalog(dest)
@@ -819,13 +691,13 @@ def register_map_routes(routes, app):
                 "invalid_response",
             ):
                 status = 503
-            return web.json_response({"error": exc.code}, status=status)
+            return http_error(status, exc.code)
         return web.json_response(result)
 
-    @routes.post("/api/v1/map/data/fetch")
+    @routes.post(API_V1_PREFIX + "/map/data/fetch")
     async def map_data_fetch(request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
@@ -833,7 +705,7 @@ def register_map_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         dest = data.get("destination_hash")
         map_id = data.get("map_id")
         try:
@@ -849,7 +721,7 @@ def register_map_routes(routes, app):
                 "invalid_response",
             ):
                 status = 503
-            return web.json_response({"error": exc.code}, status=status)
+            return http_error(status, exc.code)
         return web.json_response(
             {
                 "data_b64": base64.b64encode(body).decode("ascii"),
@@ -857,10 +729,10 @@ def register_map_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/map/data/add-overlay")
+    @routes.post(API_V1_PREFIX + "/map/data/add-overlay")
     async def map_data_add_overlay(request):
         if not app.map_data_manager:
-            return web.json_response({"error": "unavailable"}, status=503)
+            return http_unavailable("unavailable")
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
@@ -868,7 +740,7 @@ def register_map_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         dest = data.get("destination_hash")
         map_id = data.get("map_id")
         try:
@@ -884,11 +756,11 @@ def register_map_routes(routes, app):
                 "invalid_response",
             ):
                 status = 503
-            return web.json_response({"error": exc.code}, status=status)
+            return http_error(status, exc.code)
         except OverlaySourceParseError as exc:
-            return web.json_response({"error": exc.code}, status=400)
+            return http_bad_request(exc.code)
         except GeoValidationError as exc:
-            return web.json_response({"error": exc.code}, status=400)
+            return http_bad_request(exc.code)
         return web.json_response(result)
 
     # MIME type fix middleware - ensures JavaScript files have correct Content-Type

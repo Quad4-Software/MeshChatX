@@ -175,6 +175,7 @@ import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import LinkUtils from "../../js/LinkUtils.js";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "RepositoryServerPage",
@@ -258,8 +259,8 @@ export default {
             this.lastUploadError = null;
             try {
                 const [s, list] = await Promise.all([
-                    window.api.get("/api/v1/repository-server/status"),
-                    window.api.get("/api/v1/repository-server/list"),
+                    window.api.get(apiPath("/repository-server/status")),
+                    window.api.get(apiPath("/repository-server/list")),
                 ]);
                 this.status = s.data;
                 this.entries = Array.isArray(list.data) ? list.data : [];
@@ -295,7 +296,7 @@ export default {
             }
             this.httpBusy = true;
             try {
-                const { data } = await window.api.post("/api/v1/repository-server/http/start", built.body || {});
+                const { data } = await window.api.post(apiPath("/repository-server/http/start"), built.body || {});
                 if (!data.ok) {
                     this.httpErrorToast(data.error, data.message);
                 } else {
@@ -312,7 +313,7 @@ export default {
         async stopHttp() {
             this.httpBusy = true;
             try {
-                await window.api.post("/api/v1/repository-server/http/stop");
+                await window.api.post(apiPath("/repository-server/http/stop"));
                 ToastUtils.success(this.$t("tools.repository_server.http_stopped"));
                 await this.loadAll();
             } catch (e) {
@@ -330,7 +331,7 @@ export default {
             }
             this.httpBusy = true;
             try {
-                const { data } = await window.api.post("/api/v1/repository-server/http/restart", built.body || {});
+                const { data } = await window.api.post(apiPath("/repository-server/http/restart"), built.body || {});
                 if (!data.ok) {
                     this.httpErrorToast(data.error, data.message);
                 } else {
@@ -353,7 +354,7 @@ export default {
             const form = new FormData();
             form.append("file", file, file.name);
             try {
-                await window.api.post("/api/v1/repository-server/upload", form);
+                await window.api.post(apiPath("/repository-server/upload"), form);
                 ToastUtils.success(this.$t("tools.repository_server.upload_ok"));
                 await this.loadAll();
             } catch (e) {
@@ -368,7 +369,7 @@ export default {
             }
             try {
                 const enc = encodeURIComponent(name);
-                await window.api.delete(`/api/v1/repository-server/upload/${enc}`);
+                await window.api.delete(apiPath(`/repository-server/upload/${enc}`));
                 ToastUtils.success(this.$t("tools.repository_server.delete_ok"));
                 await this.loadAll();
             } catch (e) {

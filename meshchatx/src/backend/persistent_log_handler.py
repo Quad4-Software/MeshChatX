@@ -314,3 +314,8 @@ class PersistentLogHandler(logging.Handler):
         if total == 0:
             return 0.0
         return errors / total
+
+
+# Process-wide in-memory log sink. meshchatx.meshchat wires this into
+# logging.basicConfig at startup; the debug routes read from it.
+memory_log_handler = PersistentLogHandler()

@@ -1,17 +1,8 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/MessagesSidebar.vue";
-
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
-    default: {
-        config: {
-            theme: "light",
-            banished_effect_enabled: false,
-            telemetry_enabled: false,
-        },
-        blockedDestinations: [],
-    },
-}));
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
 
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: {
@@ -74,6 +65,8 @@ function mountSidebar(props = {}, options = {}) {
 describe("MessagesSidebar UI", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().config = { theme: "light", banished_effect_enabled: false, telemetry_enabled: false };
     });
 
     it("renders with conversations tab active by default", () => {

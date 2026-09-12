@@ -6,8 +6,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { rnodeIntegrityKeyForSrc } from "../../meshchatx/src/frontend/js/rnode/rnodeIntegrityKey.js";
 import MessagesPage from "../../meshchatx/src/frontend/components/messages/MessagesPage.vue";
 import MapPage from "../../meshchatx/src/frontend/components/map/MapPage.vue";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
+import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore.js";
 
 describe("map, messages, and rnode integrity contracts", () => {
     it("RNode SRI key for zip.min.js matches integrity.json (not js/zip.min.js)", () => {
@@ -26,7 +26,7 @@ describe("map, messages, and rnode integrity contracts", () => {
     });
 
     it("MessagesPage syncUnreadCount does not overwrite badge with a partial page count", () => {
-        GlobalState.unreadConversationsCount = 12;
+        useUnreadStore().unreadConversationsCount = 12;
         const emitSpy = vi.spyOn(GlobalEmitter, "emit");
         const ctx = {
             conversations: [{ is_unread: true }, { is_unread: true }, { is_unread: false }],
@@ -37,7 +37,7 @@ describe("map, messages, and rnode integrity contracts", () => {
         };
 
         MessagesPage.methods.syncUnreadCount.call(ctx);
-        expect(GlobalState.unreadConversationsCount).toBe(12);
+        expect(useUnreadStore().unreadConversationsCount).toBe(12);
         expect(emitSpy).toHaveBeenCalledWith("notifications-changed");
         emitSpy.mockRestore();
     });

@@ -2,13 +2,13 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
-import GlobalState from "@/js/GlobalState";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
 import { MESSAGE_BODY_MAX_DISPLAY_CHARS } from "../../meshchatx/src/frontend/js/messageDisplayLimits.js";
 import DownloadUtils from "@/js/DownloadUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import NotificationUtils from "@/js/NotificationUtils";
+import { useConfigStore } from "@/js/stores/configStore.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -39,10 +39,10 @@ describe("ConversationViewer.vue", () => {
     let axiosMock;
 
     beforeEach(() => {
-        GlobalState.config.theme = "light";
-        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
-        GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
-        GlobalState.config.warn_on_stranger_links = true;
+        useConfigStore().config.theme = "light";
+        useConfigStore().config.message_outbound_bubble_color = "#4f46e5";
+        useConfigStore().config.message_waiting_bubble_color = "#e5e7eb";
+        useConfigStore().config.warn_on_stranger_links = true;
         WebSocketConnection.connect();
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
@@ -413,7 +413,7 @@ describe("ConversationViewer.vue", () => {
     it("warns before opening http links from strangers when enabled", async () => {
         const wrapper = mountConversationViewer();
         wrapper.vm.isStrangerPeer = true;
-        GlobalState.config.warn_on_stranger_links = true;
+        useConfigStore().config.warn_on_stranger_links = true;
         DialogUtils.confirm.mockClear();
         window.open.mockClear();
         DialogUtils.confirm.mockResolvedValueOnce(true);
@@ -432,7 +432,7 @@ describe("ConversationViewer.vue", () => {
     it("does not open stranger http link when warning confirm is rejected", async () => {
         const wrapper = mountConversationViewer();
         wrapper.vm.isStrangerPeer = true;
-        GlobalState.config.warn_on_stranger_links = true;
+        useConfigStore().config.warn_on_stranger_links = true;
         DialogUtils.confirm.mockClear();
         window.open.mockClear();
         DialogUtils.confirm.mockResolvedValueOnce(false);
@@ -451,7 +451,7 @@ describe("ConversationViewer.vue", () => {
     it("opens stranger http link without prompt when warning is disabled", async () => {
         const wrapper = mountConversationViewer();
         wrapper.vm.isStrangerPeer = true;
-        GlobalState.config.warn_on_stranger_links = false;
+        useConfigStore().config.warn_on_stranger_links = false;
         DialogUtils.confirm.mockClear();
         window.open.mockClear();
 
@@ -501,7 +501,7 @@ describe("ConversationViewer.vue", () => {
     it("blocks non-http href payloads like data urls in message anchors", async () => {
         const wrapper = mountConversationViewer();
         wrapper.vm.isStrangerPeer = true;
-        GlobalState.config.warn_on_stranger_links = true;
+        useConfigStore().config.warn_on_stranger_links = true;
         DialogUtils.confirm.mockClear();
         window.open.mockClear();
 
@@ -1318,7 +1318,7 @@ describe("ConversationViewer.vue", () => {
     });
 
     it("uses theme outbound bubble: no inline background for default indigo config", () => {
-        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
+        useConfigStore().config.message_outbound_bubble_color = "#4f46e5";
         const wrapper = mountConversationViewer();
         const chatItem = {
             type: "lxmf_message",
@@ -1339,7 +1339,7 @@ describe("ConversationViewer.vue", () => {
     });
 
     it("uses solid outbound bubble when custom color is set", () => {
-        GlobalState.config.message_outbound_bubble_color = "#ff0000";
+        useConfigStore().config.message_outbound_bubble_color = "#ff0000";
         const wrapper = mountConversationViewer();
         const chatItem = {
             type: "lxmf_message",
@@ -1362,7 +1362,7 @@ describe("ConversationViewer.vue", () => {
     });
 
     it("applies waiting bubble color when pathfinding", () => {
-        GlobalState.config.message_waiting_bubble_color = "#ccddff";
+        useConfigStore().config.message_waiting_bubble_color = "#ccddff";
         const wrapper = mountConversationViewer();
         const chatItem = {
             type: "lxmf_message",
@@ -1385,8 +1385,8 @@ describe("ConversationViewer.vue", () => {
     });
 
     it("uses dark neutral waiting bubble when pathfinding in dark theme with default gray", () => {
-        GlobalState.config.theme = "dark";
-        GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
+        useConfigStore().config.theme = "dark";
+        useConfigStore().config.message_waiting_bubble_color = "#e5e7eb";
         const wrapper = mountConversationViewer();
         const chatItem = {
             type: "lxmf_message",
@@ -1408,7 +1408,7 @@ describe("ConversationViewer.vue", () => {
     });
 
     it("marks inbound messages with markdown-content--inbound for link styling", async () => {
-        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
+        useConfigStore().config.message_outbound_bubble_color = "#4f46e5";
         const wrapper = mountConversationViewer();
         const chatItem = {
             type: "lxmf_message",

@@ -118,75 +118,31 @@
                 </div>
 
                 <div v-else class="flex-1 overflow-y-auto">
-                    <div class="grid grid-cols-1 gap-3 p-3 sm:p-4" :class="{ 'sm:grid-cols-2': !viewingArchive }">
-                        <article
+                    <div
+                        v-if="isLoading && archives.length === 0"
+                        class="grid grid-cols-1 gap-3 p-3 sm:p-4"
+                        :class="{ 'sm:grid-cols-2': !viewingArchive }"
+                        aria-hidden="true"
+                    >
+                        <Skeleton v-for="n in 6" :key="'archive-skel-' + n" variant="card" root-class="h-44" />
+                    </div>
+                    <div
+                        v-else
+                        class="grid grid-cols-1 gap-3 p-3 sm:p-4"
+                        :class="{ 'sm:grid-cols-2': !viewingArchive }"
+                    >
+                        <ArchiveCard
                             v-for="archive in archives"
                             :key="archive.id"
-                            class="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-sem-border/70 bg-sem-surface/40 shadow-sm transition-colors hover:border-sem-accent/40 hover:bg-sem-surface/70"
-                            :class="{
-                                'ring-2 ring-sem-accent/40 border-sem-accent/40': viewingArchive?.id === archive.id,
-                            }"
-                            @click="openArchive(archive)"
-                        >
-                            <div
-                                class="flex items-start justify-between gap-2 border-b border-sem-border/50 px-3 py-2.5"
-                            >
-                                <div class="min-w-0">
-                                    <h2 class="truncate text-sm font-semibold group-hover:text-sem-accent">
-                                        {{ archive.node_name }}
-                                    </h2>
-                                    <p class="mt-0.5 truncate font-mono text-[11px] text-sem-fg-muted">
-                                        {{ archive.page_path || "/" }}
-                                    </p>
-                                </div>
-                                <div class="shrink-0 text-right text-[10px] text-sem-fg-muted">
-                                    <div>{{ formatDate(archive.created_at) }}</div>
-                                    <div class="mt-0.5 font-mono opacity-70">
-                                        {{ (archive.hash || "").substring(0, 8) }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="archive-card-preview min-h-[5.5rem] flex-1 overflow-hidden px-3 py-2">
-                                <!-- eslint-disable vue/no-v-html -- sanitized via renderPreviewHtml -->
-                                <div
-                                    class="pointer-events-none max-h-36 overflow-hidden text-xs leading-relaxed text-sem-fg-muted"
-                                    :class="previewClasses(archive)"
-                                    v-html="cardPreviewHtml(archive)"
-                                ></div>
-                                <!-- eslint-enable vue/no-v-html -->
-                            </div>
-
-                            <div
-                                class="flex items-center justify-between gap-2 border-t border-sem-border/50 px-3 py-2"
-                            >
-                                <span
-                                    class="rounded bg-sem-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-sem-fg-muted"
-                                >
-                                    {{ shortHash(archive.destination_hash) }}
-                                </span>
-                                <span class="flex items-center gap-2.5">
-                                    <button
-                                        type="button"
-                                        class="text-[10px] font-medium text-sem-fg-muted transition-colors hover:text-sem-accent disabled:opacity-60"
-                                        :disabled="exportingArchiveId === archive.id"
-                                        :title="$t('archives.export_mu')"
-                                        @click.stop="exportArchiveCard(archive)"
-                                    >
-                                        {{
-                                            exportingArchiveId === archive.id
-                                                ? $t("archives.exporting")
-                                                : $t("archives.export")
-                                        }}
-                                    </button>
-                                    <span
-                                        class="text-[10px] font-medium text-sem-accent opacity-0 transition-opacity group-hover:opacity-100"
-                                    >
-                                        {{ $t("archives.view") }}
-                                    </span>
-                                </span>
-                            </div>
-                        </article>
+                            :archive="archive"
+                            :active="viewingArchive?.id === archive.id"
+                            :exporting="exportingArchiveId === archive.id"
+                            :render-preview="cardPreviewHtml"
+                            :preview-classes="previewClasses(archive)"
+                            :preview-epoch="previewEpoch"
+                            @open="openArchive"
+                            @export="exportArchiveCard"
+                        />
                     </div>
 
                     <div
@@ -314,12 +270,15 @@
 </template>
 
 <script>
+import { useConfigStore } from "../../js/stores/configStore.js";
+
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
+import Skeleton from "../Skeleton.vue";
+import ArchiveCard from "./ArchiveCard.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import MicronParser from "../../js/MicronParser.js";
-import GlobalState from "../../js/GlobalState.js";
 import {
     preloadNomadMicronWasm,
     invalidateNomadMicronWasmPreload,
@@ -329,6 +288,8 @@ import { renderNomadPageByPath, isolateNomadLinksInHtml } from "../../js/NomadPa
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { apiPath } from "../../js/constants.js";
+import * as nomadnetApi from "../../js/api/nomadnet.js";
 
 const SPLIT_MIN_WIDTH = 1024;
 
@@ -337,6 +298,8 @@ export default {
     components: {
         MaterialDesignIcon,
         SearchInput,
+        Skeleton,
+        ArchiveCard,
     },
     data() {
         return {
@@ -356,6 +319,7 @@ export default {
             searchTimeout: null,
             isWideSplit: false,
             cardPreviewCache: {},
+            previewEpoch: 0,
             pagination: {
                 page: 1,
                 limit: 25,
@@ -374,10 +338,10 @@ export default {
             return Math.min(this.pagination.page * this.pagination.limit, this.pagination.total_count);
         },
         nomadMicronWasmFeatureEffective() {
-            return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
+            return isMicronWasmBundled() && (useConfigStore().config || {}).nomad_micron_wasm_enabled === true;
         },
         nomadMicronWasmActive() {
-            const engineWasm = (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm";
+            const engineWasm = (useConfigStore().config?.nomad_micron_default_engine || "js") === "wasm";
             return (
                 this.nomadMicronWasmFeatureEffective &&
                 this.nomadMicronWasmReady === true &&
@@ -386,7 +350,7 @@ export default {
             );
         },
         nomadRenderOptions() {
-            const c = GlobalState.config || {};
+            const c = useConfigStore().config || {};
             const hash = this.viewingArchive?.destination_hash || null;
             const engineWasm = (c.nomad_micron_default_engine || "js") === "wasm";
             return {
@@ -414,7 +378,7 @@ export default {
             }
         },
         archives() {
-            this.cardPreviewCache = {};
+            this.resetCardPreviews();
         },
     },
     mounted() {
@@ -426,7 +390,7 @@ export default {
         }
         this.getArchives();
         this.$watch(
-            () => GlobalState.config?.nomad_micron_wasm_enabled,
+            () => useConfigStore().config?.nomad_micron_wasm_enabled,
             async (enabled) => {
                 if (!isMicronWasmBundled()) {
                     this.nomadMicronWasmReady = false;
@@ -438,7 +402,7 @@ export default {
                 }
                 invalidateNomadMicronWasmPreload();
                 this.nomadMicronWasmReady = await preloadNomadMicronWasm();
-                this.cardPreviewCache = {};
+                this.resetCardPreviews();
                 const a = this.viewingArchive;
                 if (a) {
                     this.renderedContent = this.renderFullContent(a);
@@ -446,19 +410,19 @@ export default {
             }
         );
         this.$watch(
-            () => GlobalState.config?.nomad_micron_default_engine,
+            () => useConfigStore().config?.nomad_micron_default_engine,
             () => {
-                this.cardPreviewCache = {};
+                this.resetCardPreviews();
                 const a = this.viewingArchive;
                 if (a) {
                     this.renderedContent = this.renderFullContent(a);
                 }
             }
         );
-        if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
+        if (isMicronWasmBundled() && useConfigStore().config?.nomad_micron_wasm_enabled === true) {
             preloadNomadMicronWasm().then((ok) => {
                 this.nomadMicronWasmReady = ok === true;
-                this.cardPreviewCache = {};
+                this.resetCardPreviews();
                 const a = this.viewingArchive;
                 if (a && ok) {
                     this.renderedContent = this.renderFullContent(a);
@@ -472,6 +436,10 @@ export default {
     methods: {
         updateWideSplit() {
             this.isWideSplit = typeof window !== "undefined" && window.innerWidth >= SPLIT_MIN_WIDTH;
+        },
+        resetCardPreviews() {
+            this.cardPreviewCache = {};
+            this.previewEpoch += 1;
         },
         shortHash(hash) {
             return (hash || "").substring(0, 12);
@@ -568,7 +536,7 @@ export default {
                 if (this.nodeFilter) {
                     params.destination_hash = this.nodeFilter;
                 }
-                const response = await window.api.get("/api/v1/nomadnet/archives", { params });
+                const response = await nomadnetApi.listArchives({ params });
                 this.archives = response.data.archives || [];
                 const pag = response.data.pagination || {};
                 this.pagination = {
@@ -630,7 +598,7 @@ export default {
             this.isLoadingViewer = true;
             this.viewingArchive = { ...archive, content: archive.content || null };
             try {
-                const response = await window.api.get(`/api/v1/nomadnet/archives/${archive.id}`);
+                const response = await window.api.get(apiPath(`/nomadnet/archives/${archive.id}`));
                 const full = response.data.archive;
                 this.viewingArchive = full;
                 this.renderedContent = this.renderFullContent(full);
@@ -654,7 +622,7 @@ export default {
             const toastKey = `archives-recrawl-${archive.id || archive.destination_hash}`;
             ToastUtils.loading(this.$t("archives.recrawl_pending"), 0, toastKey);
             try {
-                const response = await window.api.post("/api/v1/nomadnet/archives/recrawl", {
+                const response = await window.api.post(apiPath("/nomadnet/archives/recrawl"), {
                     destination_hash: archive.destination_hash,
                     page_path: archive.page_path,
                 });
@@ -679,7 +647,7 @@ export default {
                             content: undefined,
                         });
                     }
-                    this.cardPreviewCache = {};
+                    this.resetCardPreviews();
                 } else {
                     await this.getArchives();
                 }
@@ -697,7 +665,7 @@ export default {
                 return;
             }
             try {
-                await window.api.delete("/api/v1/nomadnet/archives", {
+                await nomadnetApi.deleteArchives({
                     data: { ids: [archive.id] },
                 });
                 this.archives = this.archives.filter((a) => a.id !== archive.id);
@@ -716,7 +684,7 @@ export default {
                 return;
             }
             try {
-                await window.api.post("/api/v1/nomadnet/crawl/opt-outs", {
+                await window.api.post(apiPath("/nomadnet/crawl/opt-outs"), {
                     destination_hash: archive.destination_hash,
                     reason: "user",
                 });
@@ -802,7 +770,7 @@ export default {
             try {
                 let content = archive.content;
                 if (content == null) {
-                    const response = await window.api.get(`/api/v1/nomadnet/archives/${archive.id}`);
+                    const response = await window.api.get(apiPath(`/nomadnet/archives/${archive.id}`));
                     content = response.data.archive?.content ?? "";
                 }
                 await this.downloadTextAsFile(content, this.muExportFilename(archive));
@@ -826,7 +794,7 @@ export default {
                 if (this.nodeFilter) {
                     params.destination_hash = this.nodeFilter;
                 }
-                const response = await window.api.get("/api/v1/nomadnet/archives/export", {
+                const response = await nomadnetApi.getArchivesExport({
                     params,
                     responseType: "blob",
                 });

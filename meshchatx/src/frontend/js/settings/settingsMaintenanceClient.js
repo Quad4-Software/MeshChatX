@@ -2,18 +2,20 @@
  * Maintenance, stickers, folders, and RNS reload API calls used from settings.
  */
 
+import { apiPath } from "../constants.js";
+
 /**
  * @param {{ delete: (path: string, config?: object) => Promise<unknown> }} api
  */
 export async function clearMessages(api) {
-    await api.delete("/api/v1/maintenance/messages");
+    await api.delete(apiPath("/maintenance/messages"));
 }
 
 /**
  * @param {{ get: (path: string) => Promise<{ data?: { count?: number } }> }} api
  */
 export async function previewDuplicateMessages(api) {
-    const response = await api.get("/api/v1/maintenance/messages/duplicates");
+    const response = await api.get(apiPath("/maintenance/messages/duplicates"));
     return { count: Number(response?.data?.count) || 0 };
 }
 
@@ -21,7 +23,7 @@ export async function previewDuplicateMessages(api) {
  * @param {{ delete: (path: string) => Promise<{ data?: { deleted?: number } }> }} api
  */
 export async function clearDuplicateMessages(api) {
-    const response = await api.delete("/api/v1/maintenance/messages/duplicates");
+    const response = await api.delete(apiPath("/maintenance/messages/duplicates"));
     return { deleted: Number(response?.data?.deleted) || 0 };
 }
 
@@ -47,7 +49,7 @@ export function buildMessageAgeFilterParams(opts) {
  * @param {{ older_than_days?: number, before?: string }} params
  */
 export async function previewMessageAgePurge(api, params) {
-    const response = await api.get("/api/v1/maintenance/messages/purge-preview", { params });
+    const response = await api.get(apiPath("/maintenance/messages/purge-preview"), { params });
     return {
         count: Number(response?.data?.count) || 0,
         cutoff: response?.data?.cutoff,
@@ -59,7 +61,7 @@ export async function previewMessageAgePurge(api, params) {
  * @param {{ older_than_days?: number, before?: string }} params
  */
 export async function purgeMessagesByAge(api, params) {
-    const response = await api.delete("/api/v1/maintenance/messages", { params });
+    const response = await api.delete(apiPath("/maintenance/messages"), { params });
     return {
         deleted: Number(response?.data?.deleted) || 0,
         cutoff: response?.data?.cutoff,
@@ -72,7 +74,7 @@ export async function purgeMessagesByAge(api, params) {
  */
 export async function exportMessagesBundle(api, params) {
     const body = params && typeof params === "object" ? { ...params } : {};
-    const response = await api.post("/api/v1/maintenance/messages/export", body);
+    const response = await api.post(apiPath("/maintenance/messages/export"), body);
     return response?.data;
 }
 
@@ -80,14 +82,14 @@ export async function exportMessagesBundle(api, params) {
  * @param {{ delete: (path: string) => Promise<unknown> }} api
  */
 export async function clearAnnounces(api) {
-    await api.delete("/api/v1/maintenance/announces");
+    await api.delete(apiPath("/maintenance/announces"));
 }
 
 /**
  * @param {{ delete: (path: string, config?: object) => Promise<unknown> }} api
  */
 export async function clearNomadnetFavorites(api) {
-    await api.delete("/api/v1/maintenance/favourites", {
+    await api.delete(apiPath("/maintenance/favourites"), {
         params: { aspect: "nomadnetwork.node" },
     });
 }
@@ -96,49 +98,49 @@ export async function clearNomadnetFavorites(api) {
  * @param {{ delete: (path: string) => Promise<unknown> }} api
  */
 export async function clearLxmfIcons(api) {
-    await api.delete("/api/v1/maintenance/lxmf-icons");
+    await api.delete(apiPath("/maintenance/lxmf-icons"));
 }
 
 /**
  * @param {{ delete: (path: string) => Promise<unknown> }} api
  */
 export async function clearStickers(api) {
-    await api.delete("/api/v1/maintenance/stickers");
+    await api.delete(apiPath("/maintenance/stickers"));
 }
 
 /**
  * @param {{ delete: (path: string) => Promise<unknown> }} api
  */
 export async function clearGifs(api) {
-    await api.delete("/api/v1/maintenance/gifs");
+    await api.delete(apiPath("/maintenance/gifs"));
 }
 
 /**
  * @param {{ delete: (path: string) => Promise<unknown> }} api
  */
 export async function clearArchives(api) {
-    await api.delete("/api/v1/maintenance/archives");
+    await api.delete(apiPath("/maintenance/archives"));
 }
 
 /**
  * @param {{ delete: (path: string) => Promise<unknown> }} api
  */
 export async function clearReticulumDocs(api) {
-    await api.delete("/api/v1/maintenance/docs/reticulum");
+    await api.delete(apiPath("/maintenance/docs/reticulum"));
 }
 
 /**
  * @param {{ delete: (path: string) => Promise<{ data?: { dropped?: number } }> }} api
  */
 export async function clearPathTable(api) {
-    return api.delete("/api/v1/maintenance/path-table");
+    return api.delete(apiPath("/maintenance/path-table"));
 }
 
 /**
  * @param {{ post: (path: string) => Promise<unknown> }} api
  */
 export async function reloadReticulum(api) {
-    return api.post("/api/v1/reticulum/reload");
+    return api.post(apiPath("/reticulum/reload"));
 }
 
 /**
@@ -147,7 +149,7 @@ export async function reloadReticulum(api) {
  */
 export async function fetchStickerCount(api) {
     try {
-        const response = await api.get("/api/v1/stickers");
+        const response = await api.get(apiPath("/stickers"));
         const list = response.data?.stickers;
         return Array.isArray(list) ? list.length : 0;
     } catch {
@@ -161,7 +163,7 @@ export async function fetchStickerCount(api) {
  */
 export async function fetchGifCount(api) {
     try {
-        const response = await api.get("/api/v1/gifs");
+        const response = await api.get(apiPath("/gifs"));
         const list = response.data?.gifs;
         return Array.isArray(list) ? list.length : 0;
     } catch {

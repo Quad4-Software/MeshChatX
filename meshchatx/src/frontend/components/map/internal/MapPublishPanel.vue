@@ -72,6 +72,7 @@
 
 <script>
 import ToastUtils from "../../../js/ToastUtils";
+import { apiPath } from "../../../js/constants.js";
 
 function fileToB64(file) {
     return new Promise((resolve, reject) => {
@@ -130,12 +131,12 @@ export default {
         },
         async load() {
             try {
-                const status = await window.api.get("/api/v1/map/data/status");
+                const status = await window.api.get(apiPath("/map/data/status"));
                 const s = status.data || {};
                 this.displayName = s.display_name || "Maps";
                 this.announceEnabled = Boolean(s.announce_enabled);
                 this.announceInterval = s.announce_interval || 900;
-                const listed = await window.api.get("/api/v1/map/data/published");
+                const listed = await window.api.get(apiPath("/map/data/published"));
                 this.published = listed.data.maps || [];
             } catch {
                 ToastUtils.error(this.$t("map.data_unavailable"));
@@ -143,7 +144,7 @@ export default {
         },
         async saveConfig() {
             try {
-                await window.api.patch("/api/v1/map/data/config", {
+                await window.api.patch(apiPath("/map/data/config"), {
                     display_name: this.displayName,
                     announce_enabled: this.announceEnabled,
                     announce_interval: this.announceInterval,
@@ -165,7 +166,7 @@ export default {
             this.strippedPreview = [];
             try {
                 const dataB64 = await fileToB64(file);
-                const response = await window.api.post("/api/v1/map/data/publish", {
+                const response = await window.api.post(apiPath("/map/data/publish"), {
                     name: file.name.replace(/\.[^.]+$/, "") || "map",
                     format: hintedFormat(file.name),
                     data_b64: dataB64,
@@ -193,7 +194,7 @@ export default {
             }
             this.announcing = true;
             try {
-                await window.api.post("/api/v1/map/data/announce");
+                await window.api.post(apiPath("/map/data/announce"));
                 ToastUtils.success(this.$t("map.data_announce_ok"));
             } catch (e) {
                 const code = e.response?.data?.error;
@@ -208,7 +209,7 @@ export default {
         },
         async unpublish(mapId) {
             try {
-                await window.api.delete(`/api/v1/map/data/published/${mapId}`);
+                await window.api.delete(apiPath(`/map/data/published/${mapId}`));
                 ToastUtils.success(this.$t("map.data_unpublish_ok"));
                 await this.load();
             } catch {

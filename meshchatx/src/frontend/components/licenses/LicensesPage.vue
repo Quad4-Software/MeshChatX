@@ -211,6 +211,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
+import { apiPath } from "../../js/constants.js";
 
 export default {
     name: "LicensesPage",
@@ -253,7 +254,7 @@ export default {
             this.loading = true;
             this.loadError = null;
             try {
-                const res = await window.api.get("/api/v1/licenses");
+                const res = await window.api.get(apiPath("/licenses"));
                 this.backend = res.data.backend || [];
                 this.frontend = res.data.frontend || [];
                 this.meta = res.data.meta || null;

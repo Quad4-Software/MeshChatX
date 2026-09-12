@@ -125,10 +125,14 @@ class DocsManager:
     def get_available_versions(self):
         if not os.path.exists(self.versions_dir):
             return []
+        # os.path.isdir follows links: a symlinked entry would let
+        # switch_version point 'current' outside the docs root, and
+        # delete_version could tree-remove a target elsewhere.
         versions = [
             d
             for d in os.listdir(self.versions_dir)
             if os.path.isdir(os.path.join(self.versions_dir, d))
+            and not os.path.islink(os.path.join(self.versions_dir, d))
         ]
         return sorted(versions)
 

@@ -259,6 +259,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import ToastUtils from "../../js/ToastUtils";
+import * as debugApi from "../../js/api/debug.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
@@ -339,7 +340,7 @@ export default {
                     level: this.level || undefined,
                     is_anomaly: this.is_anomaly ? true : undefined,
                 };
-                const response = await window.api.get("/api/v1/debug/logs", { params });
+                const response = await debugApi.listLogs({ params });
                 this.logs = response.data.logs;
                 this.total = response.data.total;
             } catch (e) {
@@ -358,7 +359,7 @@ export default {
                     search: this.accessSearch || undefined,
                     outcome: this.accessOutcome || undefined,
                 };
-                const response = await window.api.get("/api/v1/debug/access-attempts", { params });
+                const response = await debugApi.listAccessAttempts({ params });
                 this.accessAttempts = response.data.attempts;
                 this.accessTotal = response.data.total;
             } catch (e) {

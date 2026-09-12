@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { apiPath } from "./constants.js";
+
 export const NOMAD_FAVOURITES_LAYOUT_KEY = "meshchat.nomadnet.favourites.layout";
 export const NOMAD_FAVOURITES_LEGACY_ORDER_KEY = "meshchat.nomadnet.favourites";
 
@@ -209,7 +211,7 @@ export async function loadNomadFavouritesLayout(api) {
         return readLocalNomadFavouritesLayout();
     }
     try {
-        const response = await api.get("/api/v1/favourites/layout");
+        const response = await api.get(apiPath("/favourites/layout"));
         const remote = normalizeNomadFavouritesLayout(response?.data?.layout);
         if (remote) {
             writeLocalLayout(remote);
@@ -222,7 +224,7 @@ export async function loadNomadFavouritesLayout(api) {
     const local = readLocalNomadFavouritesLayout();
     if (local && api?.put) {
         try {
-            const response = await api.put("/api/v1/favourites/layout", { layout: local });
+            const response = await api.put(apiPath("/favourites/layout"), { layout: local });
             const saved = normalizeNomadFavouritesLayout(response?.data?.layout) || local;
             writeLocalLayout(saved);
             lastSavedSerialized = serializeNomadFavouritesLayout(saved);
@@ -251,7 +253,7 @@ async function flushPendingSave(api) {
             continue;
         }
         try {
-            const response = await api.put("/api/v1/favourites/layout", { layout });
+            const response = await api.put(apiPath("/favourites/layout"), { layout });
             // A newer save may have arrived while this PUT was in flight, so prefer that.
             if (pendingSaveLayout) {
                 continue;

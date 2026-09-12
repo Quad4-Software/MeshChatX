@@ -271,6 +271,7 @@ import {
 } from "../../js/qrScannerUtils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, WS_EVENTS } from "../../js/constants.js";
 
 export default {
     name: "PaperMessagePage",
@@ -299,12 +300,12 @@ export default {
         },
     },
     mounted() {
-        onWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResult);
-        onWsEvent("lxm.ingest_uri.result", this.onIngestUriResult);
+        onWsEvent(WS_EVENTS.LXM_GENERATE_PAPER_URI_RESULT, this.onGeneratePaperUriResult);
+        onWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onIngestUriResult);
     },
     beforeUnmount() {
-        offWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResult);
-        offWsEvent("lxm.ingest_uri.result", this.onIngestUriResult);
+        offWsEvent(WS_EVENTS.LXM_GENERATE_PAPER_URI_RESULT, this.onGeneratePaperUriResult);
+        offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onIngestUriResult);
         this.stopIngestScanner();
     },
     methods: {
@@ -500,7 +501,7 @@ export default {
                 }
 
                 // send message
-                const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
+                const response = await window.api.post(apiPath("/lxmf-messages/send"), {
                     delivery_method: "opportunistic",
                     lxmf_message: lxmf_message,
                 });

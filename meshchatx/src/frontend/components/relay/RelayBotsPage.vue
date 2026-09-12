@@ -177,6 +177,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { apiPath } from "../../js/constants.js";
 
 const BTN_PRIMARY =
     "inline-flex items-center justify-center gap-1.5 rounded-lg bg-sem-action-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-sem-action-primary-hover disabled:opacity-50";
@@ -244,7 +245,7 @@ export default {
         async fetchBots({ quiet = false } = {}) {
             if (!quiet) this.botsLoading = true;
             try {
-                const res = await window.api.get("/api/v1/bots/status");
+                const res = await window.api.get(apiPath("/bots/status"));
                 this.bots = res?.data?.status?.bots || [];
             } catch {
                 if (!quiet) this.bots = [];
@@ -259,7 +260,7 @@ export default {
         async createBot() {
             this.creating = true;
             try {
-                await window.api.post("/api/v1/bots/start", {
+                await window.api.post(apiPath("/bots/start"), {
                     template_id: "rrc",
                     name: this.form.name,
                     rrc: {
@@ -282,7 +283,7 @@ export default {
         },
         async startBot(bot) {
             try {
-                await window.api.post("/api/v1/bots/start", {
+                await window.api.post(apiPath("/bots/start"), {
                     template_id: "rrc",
                     bot_id: bot.id,
                     name: bot.name,
@@ -295,7 +296,7 @@ export default {
         },
         async stopBot(bot) {
             try {
-                await window.api.post("/api/v1/bots/stop", { bot_id: bot.id });
+                await window.api.post(apiPath("/bots/stop"), { bot_id: bot.id });
                 ToastUtils.success(this.$t("bots.bot_stopped"));
             } catch (e) {
                 ToastUtils.error(e?.response?.data?.message || this.$t("bots.failed_to_stop"));
@@ -306,7 +307,7 @@ export default {
             const ok = await DialogUtils.confirm(this.$t("relay_chat.bots_delete_confirm", { name: bot.name }));
             if (!ok) return;
             try {
-                await window.api.post("/api/v1/bots/delete", { bot_id: bot.id });
+                await window.api.post(apiPath("/bots/delete"), { bot_id: bot.id });
                 ToastUtils.success(this.$t("bots.bot_deleted"));
             } catch (e) {
                 ToastUtils.error(e?.response?.data?.message || this.$t("bots.failed_to_delete"));

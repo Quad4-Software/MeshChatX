@@ -11,7 +11,7 @@
         <AppShellBanners
             :show-emergency="Boolean(appInfo?.emergency)"
             :emergency-label="$t('app.emergency_mode_active')"
-            :show-demo="GlobalState.demoMode"
+            :show-demo="authStore.demoMode"
             :demo-label="$t('app.demo_mode_active')"
             :show-ws-disconnected="showWsDisconnectedBanner"
             :ws-disconnected-label="backendOfflineBannerLabel"
@@ -490,18 +490,26 @@
 </template>
 
 <script>
-import { watch } from "vue";
+import { mapStores } from "pinia";
+import { useAuthStore } from "../js/stores/authStore.js";
+import { useNetworkStore } from "../js/stores/networkStore.js";
+import { useConfigStore } from "../js/stores/configStore.js";
+import { useInterfaceChangesStore } from "../js/stores/interfaceChangesStore.js";
+import { useUnreadStore } from "../js/stores/unreadStore.js";
+import { useIdentityStore } from "../js/stores/identityStore.js";
+import { getCurrentInstance, watch } from "vue";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import LiveTransport from "../js/liveTransport.js";
 import { installWsLiveSync } from "../js/wsLiveSync.js";
-import { formatDisconnectedDuration, WS_DISCONNECT_BANNER_GRACE_MS } from "../js/wsConnectionSupport";
-import { applyAuthStatusToGlobalState, fetchAuthStatus } from "../js/authSessionSync.js";
-import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
+import { useWsDisconnectBanner } from "../js/app/useWsDisconnectBanner.js";
+import { applyAuthStatusToStores, fetchAuthStatus } from "../js/authSessionSync.js";
 import { countRelayMentions } from "../js/relayMentionCount.js";
 import { isRetryableHttpError } from "../js/httpRetry.js";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../js/constants.js";
+import * as notificationsApi from "../js/api/notifications.js";
 import NotificationUtils from "../js/NotificationUtils";
 import NotificationSoundUtils from "../js/NotificationSoundUtils";
 import {
@@ -626,8 +634,19 @@ export default {
         FatalErrorPage,
     },
     setup() {
+        const inst = getCurrentInstance();
         return {
-            GlobalState,
+            ...useWsDisconnectBanner({
+                isShellRunning: () => Boolean(inst?.proxy.shellRunning),
+                onTransportDown: () => {
+                    if (inst?.proxy) {
+                        inst.proxy.liveTransportReady = false;
+                        useNetworkStore().liveTransportReady = false;
+                        inst.proxy.startShellPollIntervals();
+                    }
+                },
+                onReconnect: () => inst?.proxy.resyncShellAfterWebsocketReconnect(),
+            }),
         };
     },
     data() {
@@ -680,16 +699,6 @@ export default {
             initiationTargetName: null,
             isCallWindowOpen: false,
 
-            wsDisconnected: false,
-            wsDisconnectedAt: null,
-            wsDisconnectedDurationText: "",
-            wsReconnectedBanner: false,
-            wsDisconnectTickTimer: null,
-            wsDisconnectGraceTimer: null,
-            wsDisconnectBannerShown: false,
-            wsReconnectedHideTimer: null,
-            backendProcessExited: false,
-            backendExitCode: null,
             backendRestarting: false,
             networkRecovering: false,
             databaseAutoRecovering: false,
@@ -704,17 +713,18 @@ export default {
         };
     },
     computed: {
+        ...mapStores(useAuthStore),
         showMainShell() {
-            if (!GlobalState.authSessionResolved) {
+            if (!useAuthStore().authSessionResolved) {
                 return false;
             }
             if (this.$route?.name === "auth") {
                 return false;
             }
-            if (!GlobalState.authEnabled) {
+            if (!useAuthStore().authEnabled) {
                 return true;
             }
-            return GlobalState.authenticated;
+            return useAuthStore().authenticated;
         },
         fatalError() {
             return fatalErrorState.active;
@@ -774,16 +784,16 @@ export default {
             return base;
         },
         unreadConversationsCount() {
-            return GlobalState.unreadConversationsCount;
+            return useUnreadStore().unreadConversationsCount;
         },
         relayChatUnreadCount() {
-            return GlobalState.relayChatUnreadCount;
+            return useUnreadStore().relayChatUnreadCount;
         },
         missedCallsCount() {
-            return GlobalState.missedCallsCount;
+            return useUnreadStore().missedCallsCount;
         },
         rrcEnabled() {
-            return GlobalState.config?.rrc_enabled !== false;
+            return useConfigStore().config?.rrc_enabled !== false;
         },
         rawVisibleNavItems() {
             return listNavItems().filter((item) => this.isNavItemVisible(item));
@@ -846,7 +856,7 @@ export default {
             return Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
         },
         activeCallTab() {
-            return GlobalState.activeCallTab;
+            return useConfigStore().activeCallTab;
         },
         showWsDisconnectedBanner() {
             return this.shellRunning && this.wsDisconnected && this.$route?.name !== "auth";
@@ -870,13 +880,13 @@ export default {
             );
         },
         showNetworkDegradedBanner() {
-            return Boolean(GlobalState.networkDegraded) && this.$route?.name !== "auth";
+            return Boolean(useNetworkStore().networkDegraded) && this.$route?.name !== "auth";
         },
         showNetworkStartingBanner() {
             return (
-                Boolean(GlobalState.networkStarting) &&
-                !GlobalState.networkDegraded &&
-                !GlobalState.networkReady &&
+                Boolean(useNetworkStore().networkStarting) &&
+                !useNetworkStore().networkDegraded &&
+                !useNetworkStore().networkReady &&
                 this.$route?.name !== "auth"
             );
         },
@@ -885,20 +895,20 @@ export default {
                 dismissed: this.lanBindNoAuthBannerDismissed,
                 isElectron: ElectronUtils.isElectron(),
                 isAndroid: isMeshChatXAndroid(),
-                authEnabled: GlobalState.authEnabled,
-                isLoopbackBind: GlobalState.isLoopbackBind,
+                authEnabled: useAuthStore().authEnabled,
+                isLoopbackBind: useAuthStore().isLoopbackBind,
                 routeName: this.$route?.name,
             });
         },
         networkDegradedBannerLabel() {
-            const detail = GlobalState.networkDegradedError;
+            const detail = useNetworkStore().networkDegradedError;
             if (detail && String(detail).trim()) {
                 return String(detail).trim();
             }
             return this.$t("app.network_degraded");
         },
         showDatabaseRecoveryActions() {
-            return isDatabaseRecoveryError(GlobalState.networkDegradedError);
+            return isDatabaseRecoveryError(useNetworkStore().networkDegradedError);
         },
         identitySidebarLabel() {
             const raw = this.displayName;
@@ -1009,24 +1019,24 @@ export default {
                 this.isSidebarCollapsed = savedSidebarCollapsed;
             }
             this.sidebarNavLayoutSaved = loadAppSidebarNavLayout();
-            const v = localStorage.getItem("meshchatx_detailed_outbound_send_status");
+            const v = localStorage.getItem(STORAGE_KEYS.DETAILED_OUTBOUND_SEND_STATUS);
             if (v === "true" || v === "false") {
-                GlobalState.detailedOutboundSendStatus = v === "true";
+                useConfigStore().detailedOutboundSendStatus = v === "true";
             }
-            const tg = localStorage.getItem("meshchatx_message_timestamp_grouping_enabled");
+            const tg = localStorage.getItem(STORAGE_KEYS.MESSAGE_TIMESTAMP_GROUPING_ENABLED);
             if (tg === "true" || tg === "false") {
-                GlobalState.messageTimestampGroupingEnabled = tg === "true";
+                useConfigStore().messageTimestampGroupingEnabled = tg === "true";
             }
-            const tp = localStorage.getItem("meshchatx_outbound_transfer_progress_enabled");
+            const tp = localStorage.getItem(STORAGE_KEYS.OUTBOUND_TRANSFER_PROGRESS_ENABLED);
             if (tp === "true" || tp === "false") {
-                GlobalState.outboundTransferProgressEnabled = tp === "true";
+                useConfigStore().outboundTransferProgressEnabled = tp === "true";
             }
         } catch {
             // ignore
         }
         this.startShellAuthWatch();
         this._networkDegradedRecoveryWatchStop = watch(
-            () => [GlobalState.networkDegraded, GlobalState.networkDegradedError],
+            () => [useNetworkStore().networkDegraded, useNetworkStore().networkDegradedError],
             () => {
                 this.maybeNavigateNetworkRecovery();
             }
@@ -1151,9 +1161,9 @@ export default {
             }
             this._shellAuthWatchStop = watch(
                 () => [
-                    GlobalState.authSessionResolved,
-                    GlobalState.authEnabled,
-                    GlobalState.authenticated,
+                    useAuthStore().authSessionResolved,
+                    useAuthStore().authEnabled,
+                    useAuthStore().authenticated,
                     this.$route?.name,
                 ],
                 () => this.applyShellAuthState(),
@@ -1161,12 +1171,17 @@ export default {
             );
         },
         applyShellAuthState() {
-            if (!GlobalState.authSessionResolved) {
+            if (!useAuthStore().authSessionResolved) {
                 return;
             }
-            const needShell = !GlobalState.authEnabled || (GlobalState.authenticated && this.$route.name !== "auth");
+            const needShell =
+                !useAuthStore().authEnabled || (useAuthStore().authenticated && this.$route.name !== "auth");
             if (needShell && !this.shellRunning) {
-                if (GlobalState.networkStarting && !GlobalState.networkReady && !GlobalState.networkDegraded) {
+                if (
+                    useNetworkStore().networkStarting &&
+                    !useNetworkStore().networkReady &&
+                    !useNetworkStore().networkDegraded
+                ) {
                     this.waitForMeshThenStartShell();
                     return;
                 }
@@ -1181,9 +1196,17 @@ export default {
             }
             this._meshWaitStarted = true;
             const stopWatch = watch(
-                () => [GlobalState.networkReady, GlobalState.networkDegraded, GlobalState.networkStarting],
+                () => [
+                    useNetworkStore().networkReady,
+                    useNetworkStore().networkDegraded,
+                    useNetworkStore().networkStarting,
+                ],
                 () => {
-                    if (GlobalState.networkReady || GlobalState.networkDegraded || !GlobalState.networkStarting) {
+                    if (
+                        useNetworkStore().networkReady ||
+                        useNetworkStore().networkDegraded ||
+                        !useNetworkStore().networkStarting
+                    ) {
                         stopWatch();
                         this._meshWaitStarted = false;
                         if (!this.shellRunning) {
@@ -1213,19 +1236,19 @@ export default {
             void this.bootstrapLiveTransport();
             this.registerShellWsHandlers();
             this.startClientHeapMemoryWatch();
-            GlobalEmitter.on("toast-dismissed", this.onToastDismissedShell);
-            GlobalEmitter.on("identity-switching-start", this.onIdentitySwitchingStartShell);
-            GlobalEmitter.on("identity-switching-abort", this.onIdentitySwitchingAbortShell);
-            GlobalEmitter.on("identity-switched-apply", this.onIdentitySwitchedApplyShell);
-            GlobalEmitter.on("sync-propagation-node", this.onSyncPropagationNodeShell);
-            GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
-            GlobalEmitter.on("keyboard-shortcut", this.onKeyboardShortcutShell);
-            GlobalEmitter.on("block-status-changed", this.onBlockStatusChangedShell);
-            GlobalEmitter.on("show-changelog", this.onShowChangelogShell);
-            GlobalEmitter.on("show-tutorial", this.onShowTutorialShell);
-            GlobalEmitter.on("tutorial-finished", this.onTutorialFinishedShell);
-            GlobalEmitter.on("changelog-closed", this.onChangelogClosedShell);
-            GlobalEmitter.on("notifications-changed", this.updateUnreadConversationsCount);
+            GlobalEmitter.on(EMITTER_EVENTS.TOAST_DISMISSED, this.onToastDismissedShell);
+            GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHING_START, this.onIdentitySwitchingStartShell);
+            GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT, this.onIdentitySwitchingAbortShell);
+            GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED_APPLY, this.onIdentitySwitchedApplyShell);
+            GlobalEmitter.on(EMITTER_EVENTS.SYNC_PROPAGATION_NODE, this.onSyncPropagationNodeShell);
+            GlobalEmitter.on(EMITTER_EVENTS.CONFIG_UPDATED, this.onConfigUpdatedExternally);
+            GlobalEmitter.on(EMITTER_EVENTS.KEYBOARD_SHORTCUT, this.onKeyboardShortcutShell);
+            GlobalEmitter.on(EMITTER_EVENTS.BLOCK_STATUS_CHANGED, this.onBlockStatusChangedShell);
+            GlobalEmitter.on(EMITTER_EVENTS.SHOW_CHANGELOG, this.onShowChangelogShell);
+            GlobalEmitter.on(EMITTER_EVENTS.SHOW_TUTORIAL, this.onShowTutorialShell);
+            GlobalEmitter.on(EMITTER_EVENTS.TUTORIAL_FINISHED, this.onTutorialFinishedShell);
+            GlobalEmitter.on(EMITTER_EVENTS.CHANGELOG_CLOSED, this.onChangelogClosedShell);
+            GlobalEmitter.on(EMITTER_EVENTS.NOTIFICATIONS_CHANGED, this.updateUnreadConversationsCount);
 
             this.getAppInfo();
             this.getConfig();
@@ -1242,7 +1265,7 @@ export default {
         },
         async bootstrapLiveTransport() {
             try {
-                const status = await window.api.get("/api/v1/status");
+                const status = await window.api.get(apiPath("/status"));
                 const wt = status?.data?.webtransport || {};
                 const mode = this.config?.live_transport_mode || "auto";
                 LiveTransport.configure({ mode, webtransport: wt });
@@ -1256,7 +1279,7 @@ export default {
         },
         onLiveTransportReady() {
             this.liveTransportReady = true;
-            GlobalState.liveTransportReady = true;
+            useNetworkStore().liveTransportReady = true;
             this.startShellPollIntervals();
             this.onWsShellReady();
         },
@@ -1344,7 +1367,7 @@ export default {
             }
             this.shellRunning = false;
             this.stopClientHeapMemoryWatch();
-            GlobalEmitter.off("toast-dismissed", this.onToastDismissedShell);
+            GlobalEmitter.off(EMITTER_EVENTS.TOAST_DISMISSED, this.onToastDismissedShell);
             clearInterval(this.reloadInterval);
             this.reloadInterval = null;
             clearInterval(this.appInfoInterval);
@@ -1362,52 +1385,22 @@ export default {
                 this.wsLiveSyncHandle = null;
             }
             this.unregisterShellWsHandlers();
-            GlobalEmitter.off("identity-switching-start", this.onIdentitySwitchingStartShell);
-            GlobalEmitter.off("identity-switching-abort", this.onIdentitySwitchingAbortShell);
-            GlobalEmitter.off("identity-switched-apply", this.onIdentitySwitchedApplyShell);
-            GlobalEmitter.off("sync-propagation-node", this.onSyncPropagationNodeShell);
-            GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
-            GlobalEmitter.off("keyboard-shortcut", this.onKeyboardShortcutShell);
-            GlobalEmitter.off("block-status-changed", this.onBlockStatusChangedShell);
-            GlobalEmitter.off("show-changelog", this.onShowChangelogShell);
-            GlobalEmitter.off("show-tutorial", this.onShowTutorialShell);
-            GlobalEmitter.off("tutorial-finished", this.onTutorialFinishedShell);
-            GlobalEmitter.off("changelog-closed", this.onChangelogClosedShell);
-            GlobalEmitter.off("notifications-changed", this.updateUnreadConversationsCount);
-            this.clearWsShellUiTimers();
-            this.wsDisconnected = false;
-            this.wsDisconnectedAt = null;
-            this.wsDisconnectedDurationText = "";
-            this.wsDisconnectBannerShown = false;
-            this.wsReconnectedBanner = false;
-            this.backendProcessExited = false;
-            this.backendExitCode = null;
+            GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHING_START, this.onIdentitySwitchingStartShell);
+            GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT, this.onIdentitySwitchingAbortShell);
+            GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED_APPLY, this.onIdentitySwitchedApplyShell);
+            GlobalEmitter.off(EMITTER_EVENTS.SYNC_PROPAGATION_NODE, this.onSyncPropagationNodeShell);
+            GlobalEmitter.off(EMITTER_EVENTS.CONFIG_UPDATED, this.onConfigUpdatedExternally);
+            GlobalEmitter.off(EMITTER_EVENTS.KEYBOARD_SHORTCUT, this.onKeyboardShortcutShell);
+            GlobalEmitter.off(EMITTER_EVENTS.BLOCK_STATUS_CHANGED, this.onBlockStatusChangedShell);
+            GlobalEmitter.off(EMITTER_EVENTS.SHOW_CHANGELOG, this.onShowChangelogShell);
+            GlobalEmitter.off(EMITTER_EVENTS.SHOW_TUTORIAL, this.onShowTutorialShell);
+            GlobalEmitter.off(EMITTER_EVENTS.TUTORIAL_FINISHED, this.onTutorialFinishedShell);
+            GlobalEmitter.off(EMITTER_EVENTS.CHANGELOG_CLOSED, this.onChangelogClosedShell);
+            GlobalEmitter.off(EMITTER_EVENTS.NOTIFICATIONS_CHANGED, this.updateUnreadConversationsCount);
+            this.resetWsDisconnectBanner();
             this.backendRestarting = false;
             this.liveTransportReady = false;
             LiveTransport.destroy();
-        },
-        clearWsShellUiTimers() {
-            if (this.wsDisconnectTickTimer != null) {
-                clearInterval(this.wsDisconnectTickTimer);
-                this.wsDisconnectTickTimer = null;
-            }
-            if (this.wsDisconnectGraceTimer != null) {
-                clearTimeout(this.wsDisconnectGraceTimer);
-                this.wsDisconnectGraceTimer = null;
-            }
-            if (this.wsReconnectedHideTimer != null) {
-                clearTimeout(this.wsReconnectedHideTimer);
-                this.wsReconnectedHideTimer = null;
-            }
-        },
-        onBackendProcessExited(payload = {}) {
-            if (!this.shellRunning) {
-                return;
-            }
-            this.backendProcessExited = true;
-            this.backendExitCode = payload?.code ?? null;
-            // Process exit is serious: show disconnect immediately.
-            this._showWsDisconnectedBannerNow();
         },
         async onRestartBackend() {
             if (!window.electron?.restartBackend) {
@@ -1449,7 +1442,7 @@ export default {
             }
             this.databaseAutoRecovering = true;
             try {
-                const response = await window.api.post("/api/v1/database/auto-recover", {
+                const response = await window.api.post(apiPath("/database/auto-recover"), {
                     relaunch: true,
                 });
                 const strategy = response.data?.strategy;
@@ -1474,10 +1467,10 @@ export default {
             }
         },
         maybeNavigateNetworkRecovery() {
-            if (!GlobalState.networkDegraded || this.$route?.name === "auth") {
+            if (!useNetworkStore().networkDegraded || this.$route?.name === "auth") {
                 return;
             }
-            const loc = recoveryLocationForNetworkError(GlobalState.networkDegradedError);
+            const loc = recoveryLocationForNetworkError(useNetworkStore().networkDegradedError);
             if (!loc) {
                 return;
             }
@@ -1496,20 +1489,20 @@ export default {
             }
             this.networkRecovering = true;
             try {
-                const response = await window.api.post("/api/v1/reticulum/recover", {});
+                const response = await window.api.post(apiPath("/reticulum/recover"), {});
                 if (response.data?.status?.network_ready) {
-                    GlobalState.networkDegraded = false;
-                    GlobalState.networkDegradedError = null;
+                    useNetworkStore().networkDegraded = false;
+                    useNetworkStore().networkDegradedError = null;
                     ToastUtils.success(response.data.message || this.$t("app.network_recovered"));
                     return;
                 }
                 const err = response.data?.error || response.data?.message || this.$t("app.network_recover_failed");
-                GlobalState.networkDegradedError = err;
+                useNetworkStore().networkDegradedError = err;
                 ToastUtils.error(err);
             } catch (e) {
                 const err =
                     e.response?.data?.error || e.response?.data?.message || this.$t("app.network_recover_failed");
-                GlobalState.networkDegradedError = err;
+                useNetworkStore().networkDegradedError = err;
                 ToastUtils.error(err);
             } finally {
                 this.networkRecovering = false;
@@ -1528,102 +1521,11 @@ export default {
                 ToastUtils.error(this.$t("app.view_backend_logs_failed"));
             }
         },
-        _showWsDisconnectedBannerNow() {
-            if (!this.shellRunning) {
-                return;
-            }
-            if (this.wsDisconnectGraceTimer != null) {
-                clearTimeout(this.wsDisconnectGraceTimer);
-                this.wsDisconnectGraceTimer = null;
-            }
-            this.wsDisconnected = true;
-            this.wsDisconnectBannerShown = true;
-            this.wsDisconnectedAt = this.wsDisconnectedAt || Date.now();
-            this._tickWsDisconnectedLabel();
-            if (this.wsDisconnectTickTimer != null) {
-                clearInterval(this.wsDisconnectTickTimer);
-            }
-            this.wsDisconnectTickTimer = setInterval(() => this._tickWsDisconnectedLabel(), 1000);
-        },
-        onWsShellDisconnected() {
-            if (!this.shellRunning) {
-                return;
-            }
-            this.liveTransportReady = false;
-            GlobalState.liveTransportReady = false;
-            this.startShellPollIntervals();
-            // Ignore brief reconnect blips (startup, Android resume). Only scare
-            // the user if the socket stays down past the grace window.
-            if (this.wsDisconnected) {
-                return;
-            }
-            if (this.wsDisconnectGraceTimer != null) {
-                return;
-            }
-            this.wsDisconnectedAt = Date.now();
-            this.wsDisconnectGraceTimer = setTimeout(() => {
-                this.wsDisconnectGraceTimer = null;
-                this._showWsDisconnectedBannerNow();
-            }, WS_DISCONNECT_BANNER_GRACE_MS);
-        },
-        _tickWsDisconnectedLabel() {
-            if (!this.wsDisconnectedAt) {
-                this.wsDisconnectedDurationText = "";
-                return;
-            }
-            this.wsDisconnectedDurationText = formatDisconnectedDuration(Date.now() - this.wsDisconnectedAt);
-        },
-        _clearWsDisconnectedUi() {
-            if (this.wsDisconnectGraceTimer != null) {
-                clearTimeout(this.wsDisconnectGraceTimer);
-                this.wsDisconnectGraceTimer = null;
-            }
-            this.wsDisconnected = false;
-            this.wsDisconnectedAt = null;
-            this.wsDisconnectedDurationText = "";
-            this.wsDisconnectBannerShown = false;
-            this.backendProcessExited = false;
-            this.backendExitCode = null;
-            if (this.wsDisconnectTickTimer != null) {
-                clearInterval(this.wsDisconnectTickTimer);
-                this.wsDisconnectTickTimer = null;
-            }
-        },
-        _celebrateWsReconnected() {
-            this.wsReconnectedBanner = true;
-            if (this.wsReconnectedHideTimer != null) {
-                clearTimeout(this.wsReconnectedHideTimer);
-            }
-            this.wsReconnectedHideTimer = setTimeout(() => {
-                this.wsReconnectedBanner = false;
-                this.wsReconnectedHideTimer = null;
-            }, 4500);
-        },
-        async onWsShellConnected(payload = {}) {
-            if (!this.shellRunning) {
-                return;
-            }
-            // TCP open is not recovery. Vite proxies and restart flaps can OPEN then
-            // CLOSE without a backend frame. Keep the grace timer running until ready.
-            const isReconnect = payload.isReconnect === true;
-            if (isReconnect) {
-                await this.resyncShellAfterWebsocketReconnect();
-            }
-        },
-        onWsShellReady() {
-            if (!this.shellRunning) {
-                return;
-            }
-            const sawDisconnectBanner = this.wsDisconnectBannerShown;
-            this._clearWsDisconnectedUi();
-            if (sawDisconnectBanner) {
-                this._celebrateWsReconnected();
-            }
-        },
+
         async resyncShellAfterWebsocketReconnect() {
             try {
                 const status = await fetchAuthStatus(window.api);
-                applyAuthStatusToGlobalState(status);
+                applyAuthStatusToStores(status);
             } catch {
                 // ignore
             }
@@ -1667,7 +1569,7 @@ export default {
             } catch {
                 // ignore
             }
-            GlobalEmitter.emit("websocket-reconnected");
+            GlobalEmitter.emit(EMITTER_EVENTS.WEBSOCKET_RECONNECTED);
         },
         onIdentitySwitchingStartShell() {
             this.isSwitchingIdentity = true;
@@ -1688,7 +1590,7 @@ export default {
             const endSwitchUi = (aborted = false) => {
                 this.isSwitchingIdentity = false;
                 if (aborted) {
-                    GlobalEmitter.emit("identity-switching-abort");
+                    GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT);
                 }
             };
             if (hash == null || hash === "") {
@@ -1704,9 +1606,9 @@ export default {
             this.identitySwitchDedupeAt = now;
 
             try {
-                if (json?.requires_reauth && GlobalState.authEnabled) {
+                if (json?.requires_reauth && useAuthStore().authEnabled) {
                     ToastUtils.info(this.$t("identities.sign_in_after_switch"));
-                    GlobalState.authenticated = false;
+                    useAuthStore().authenticated = false;
                     try {
                         await fetchCsrfToken(window.api);
                     } catch {
@@ -1725,16 +1627,20 @@ export default {
                     this.wsLiveSyncHandle.clearCursor();
                 }
 
-                GlobalState.unreadConversationsCount = 0;
-                GlobalState.missedCallsCount = 0;
-                GlobalState.relayChatUnreadCount = 0;
-                GlobalState.blockedDestinations = [];
+                useUnreadStore().unreadConversationsCount = 0;
+                useUnreadStore().missedCallsCount = 0;
+                useUnreadStore().relayChatUnreadCount = 0;
+                useIdentityStore().blockedDestinations = [];
+                // Config merges keep stale keys from the old identity, and a
+                // pending interface-reload banner belongs to the old one too.
+                useConfigStore().resetConfig();
+                useInterfaceChangesStore().$reset();
 
                 // Drop device-global UI caches that must not follow the new identity.
                 clearMessagePanes();
                 try {
                     if (typeof window !== "undefined" && window.localStorage) {
-                        window.localStorage.removeItem("micron_editor_content");
+                        window.localStorage.removeItem(STORAGE_KEYS.MICRON_EDITOR_CONTENT);
                     }
                 } catch {
                     // ignore
@@ -1753,7 +1659,7 @@ export default {
                 this.updateUnreadConversationsCount();
                 this.updateRelayChatUnreadCount();
 
-                GlobalEmitter.emit("identity-switched", json);
+                GlobalEmitter.emit(EMITTER_EVENTS.IDENTITY_SWITCHED, json);
             } catch (e) {
                 console.error("applyIdentitySwitched failed", e);
                 ToastUtils.error(this.$t("identities.failed_switch"));
@@ -1807,10 +1713,10 @@ export default {
             }
             this._unreadCountTimeout = setTimeout(async () => {
                 try {
-                    const response = await window.api.get("/api/v1/notifications", {
+                    const response = await notificationsApi.listNotifications({
                         params: { unread: true, limit: 1 },
                     });
-                    GlobalState.unreadConversationsCount = response.data?.lxmf_total_unread_count ?? 0;
+                    useUnreadStore().unreadConversationsCount = response.data?.lxmf_total_unread_count ?? 0;
                 } catch (e) {
                     if (!isRetryableHttpError(e)) {
                         console.error("Failed to update unread conversations count", e);
@@ -1820,7 +1726,7 @@ export default {
         },
         updateRelayChatUnreadCount() {
             if (!this.rrcEnabled) {
-                GlobalState.relayChatUnreadCount = 0;
+                useUnreadStore().relayChatUnreadCount = 0;
                 return;
             }
             if (this._relayUnreadCountTimeout) {
@@ -1828,9 +1734,9 @@ export default {
             }
             this._relayUnreadCountTimeout = setTimeout(async () => {
                 try {
-                    const response = await window.api.get("/api/v1/rrc/hubs");
+                    const response = await window.api.get(apiPath("/rrc/hubs"));
                     const hubs = response.data?.hubs || [];
-                    GlobalState.relayChatUnreadCount = countRelayMentions(hubs);
+                    useUnreadStore().relayChatUnreadCount = countRelayMentions(hubs);
                 } catch (e) {
                     if (!isRetryableHttpError(e)) {
                         console.error("Failed to update relay chat mention count", e);
@@ -1842,7 +1748,7 @@ export default {
             if (!newConfig || typeof newConfig !== "object") {
                 return;
             }
-            mergeGlobalConfig(newConfig);
+            useConfigStore().mergeConfig(newConfig);
             this.config = newConfig;
             this.displayName = newConfig.display_name;
         },
@@ -1900,7 +1806,7 @@ export default {
                 error: (json) => {
                     const code = json?.code;
                     if (code === "auth_required") {
-                        GlobalState.authenticated = false;
+                        useAuthStore().authenticated = false;
                         if (this.$route?.name !== "auth") {
                             this.$router.push("/auth");
                         }
@@ -1928,10 +1834,10 @@ export default {
                         }
                     }
                 },
-                config: (json) => {
+                [WS_EVENTS.CONFIG]: (json) => {
                     const next = json?.config;
                     if (next && typeof next === "object") {
-                        mergeGlobalConfig(next);
+                        useConfigStore().mergeConfig(next);
                         this.config = next;
                         this.displayName = next.display_name;
                         LiveTransport.configure({
@@ -1939,10 +1845,10 @@ export default {
                         });
                     }
                 },
-                "app.sessions.updated": (json) => {
+                [WS_EVENTS.APP_SESSIONS_UPDATED]: (json) => {
                     this.handleActiveSessionsUpdated(json);
                 },
-                keyboard_shortcuts: (json) => {
+                [WS_EVENTS.KEYBOARD_SHORTCUTS]: (json) => {
                     KeyboardShortcuts.setShortcuts(json.shortcuts);
                 },
                 announced: (json) => {
@@ -2017,17 +1923,17 @@ export default {
                     await this.updateTelephoneStatus({ forceHistoryRefresh: true });
                 },
                 blocked_destinations: (json) => {
-                    GlobalState.blockedDestinations = json.blocked_destinations || [];
+                    useIdentityStore().blockedDestinations = json.blocked_destinations || [];
                 },
-                "rrc.message": (json) => {
+                [WS_EVENTS.RRC_MESSAGE]: (json) => {
                     if (json.mention || json.message?.mention) {
                         this.updateRelayChatUnreadCount();
                     }
                 },
-                "rrc.change": () => {
+                [WS_EVENTS.RRC_CHANGE]: () => {
                     this.updateRelayChatUnreadCount();
                 },
-                "lxmf.delivery": async (json) => {
+                [WS_EVENTS.LXMF_DELIVERY]: async (json) => {
                     if (json.sieve_suppress_notifications) {
                         return;
                     }
@@ -2072,7 +1978,7 @@ export default {
                         );
                     }
                 },
-                "lxm.ingest_uri.result": async (json) => {
+                [WS_EVENTS.LXM_INGEST_URI_RESULT]: async (json) => {
                     const handled = await handleLxmIngestUriResult(json, {
                         router: this.$router,
                         toast: ToastUtils,
@@ -2099,7 +2005,7 @@ export default {
                 identity_switched: async (json) => {
                     await this.applyIdentitySwitched(json);
                 },
-                "rncp.receive.completed": (json) => {
+                [WS_EVENTS.RNCP_RECEIVE_COMPLETED]: (json) => {
                     if (this.$route?.name !== "rncp") {
                         const detail =
                             json.status === "completed" && json.saved_path
@@ -2119,7 +2025,7 @@ export default {
         },
         async getAppInfo() {
             try {
-                const response = await window.api.get(`/api/v1/app/info`);
+                const response = await window.api.get(apiPath("/app/info"));
                 this.appInfo = response.data.app_info;
 
                 showDatabaseHealthIssuesToastIfNeeded(this.appInfo.database_health_issues, ToastUtils);
@@ -2176,10 +2082,10 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get(`/api/v1/config`);
+                const response = await window.api.get(apiPath("/config"));
                 const next = response.data?.config;
                 if (next && typeof next === "object") {
-                    mergeGlobalConfig(next);
+                    useConfigStore().mergeConfig(next);
                     this.config = next;
                     this.displayName = next.display_name;
                 }
@@ -2197,7 +2103,7 @@ export default {
             if (raw != null && raw !== "") {
                 const ts = Number(raw);
                 if (this.config && Number.isFinite(ts)) {
-                    mergeGlobalConfig({ last_announced_at: ts });
+                    useConfigStore().mergeConfig({ last_announced_at: ts });
                     this.config = { ...this.config, last_announced_at: ts };
                     return;
                 }
@@ -2206,8 +2112,8 @@ export default {
         },
         async getBlockedDestinations() {
             try {
-                const response = await window.api.get("/api/v1/blocked-destinations");
-                GlobalState.blockedDestinations = response.data.blocked_destinations || [];
+                const response = await window.api.get(apiPath("/blocked-destinations"));
+                useIdentityStore().blockedDestinations = response.data.blocked_destinations || [];
             } catch (e) {
                 console.log("Failed to load blocked destinations:", e);
             }
@@ -2221,7 +2127,7 @@ export default {
         },
         async sendAnnounce() {
             try {
-                await window.api.get(`/api/v1/announce`);
+                await window.api.get(apiPath("/announce"));
                 ToastUtils.success(this.$t("app.announce_sent"));
             } catch (e) {
                 ToastUtils.error(this.$t("app.failed_announce"));
@@ -2265,7 +2171,7 @@ export default {
             try {
                 if (window.api?.patch) {
                     const next = await patchServerConfig(config, window.api);
-                    mergeGlobalConfig(next);
+                    useConfigStore().mergeConfig(next);
                     this.config = { ...this.config, ...next };
                 } else {
                     const requestId = `cfg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -2294,7 +2200,7 @@ export default {
                     if (!ok) {
                         throw new Error("config.set failed or timed out");
                     }
-                    mergeGlobalConfig(config);
+                    useConfigStore().mergeConfig(config);
                     this.config = { ...this.config, ...config };
                 }
                 if (label) {
@@ -2397,7 +2303,7 @@ export default {
             await this.$router.push({ name: "messages" });
 
             // emit global event handled by MessagesPage
-            GlobalEmitter.emit("compose-new-message");
+            GlobalEmitter.emit(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE);
         },
         async syncPropagationNode() {
             const propagationSyncToastKey = "propagation-sync-status";
@@ -2424,7 +2330,7 @@ export default {
                         // continue to sync
                     }
                 }
-                await window.api.post("/api/v1/lxmf/propagation-node/sync");
+                await window.api.post(apiPath("/lxmf/propagation-node/sync"));
             } catch (e) {
                 this.userInitiatedPropagationSync = false;
                 const errorMessage =
@@ -2517,7 +2423,7 @@ export default {
         async stopSyncingPropagationNode() {
             const propagationSyncToastKey = "propagation-sync-status";
             try {
-                await window.api.post("/api/v1/lxmf/propagation-node/stop-sync");
+                await window.api.post(apiPath("/lxmf/propagation-node/stop-sync"));
             } catch {
                 // do nothing on error
             }
@@ -2540,7 +2446,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.post("/api/v1/lxmf/propagation-node/cancel-inbound", {});
+                const response = await window.api.post(apiPath("/lxmf/propagation-node/cancel-inbound"), {});
                 const cancelled = response?.data?.cancelled ?? 0;
                 ToastUtils.success(this.$t("app.cancel_inbound_done", { count: cancelled }));
                 if (response?.data?.inbound_deliveries) {
@@ -2558,7 +2464,7 @@ export default {
         },
         async updatePropagationNodeStatus() {
             try {
-                const response = await window.api.get("/api/v1/lxmf/propagation-node/status");
+                const response = await window.api.get(apiPath("/lxmf/propagation-node/status"));
                 this.propagationNodeStatus = response.data.propagation_node_status;
                 const state = this.propagationNodeStatus?.state;
                 if (
@@ -2591,10 +2497,10 @@ export default {
 
             if (this.config?.custom_ringtone_enabled) {
                 try {
-                    const response = await window.api.get("/api/v1/telephone/ringtones/status");
+                    const response = await window.api.get(apiPath("/telephone/ringtones/status"));
                     const status = response.data;
                     if (status.has_custom_ringtone && status.id) {
-                        this.ringtonePlayer = new Audio(`/api/v1/telephone/ringtones/${status.id}/audio`);
+                        this.ringtonePlayer = new Audio(apiPath(`/telephone/ringtones/${status.id}/audio`));
                         this.ringtonePlayer.loop = true;
                         if (status.volume !== undefined) {
                             this.ringtonePlayer.volume = status.volume;
@@ -2634,7 +2540,7 @@ export default {
         async updateTelephoneStatus(options = {}) {
             try {
                 // fetch status
-                const response = await window.api.get("/api/v1/telephone/status");
+                const response = await window.api.get(apiPath("/telephone/status"));
                 const oldCall = this.activeCall;
                 const newCall = response.data.active_call;
 
@@ -2647,7 +2553,7 @@ export default {
                 this.initiationStatus = response.data.initiation_status;
                 this.initiationTargetHash = response.data.initiation_target_hash;
                 this.initiationTargetName = response.data.initiation_target_name;
-                GlobalState.missedCallsCount = response.data?.missed_calls_unread_count ?? 0;
+                useUnreadStore().missedCallsCount = response.data?.missed_calls_unread_count ?? 0;
 
                 // Update call ended state if needed
                 const justEnded = oldCall != null && this.activeCall == null;
@@ -2662,7 +2568,7 @@ export default {
                     }
 
                     // Trigger history refresh
-                    GlobalEmitter.emit("telephone-history-updated");
+                    GlobalEmitter.emit(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED);
 
                     if (justEnded && !this.wasDeclined) {
                         this.isCallEnded = true;
@@ -2720,7 +2626,7 @@ export default {
                         try {
                             const caller_hash = this.activeCall.remote_identity_hash;
                             const ringResponse = await window.api.get(
-                                `/api/v1/telephone/ringtones/status?caller_hash=${caller_hash}`
+                                apiPath(`/telephone/ringtones/status?caller_hash=${caller_hash}`)
                             );
                             const status = ringResponse.data;
                             if (status.has_custom_ringtone && status.id) {
@@ -2729,7 +2635,7 @@ export default {
                                     // Stop any existing player just in case
                                     this.stopRingtone();
 
-                                    this.ringtonePlayer = new Audio(`/api/v1/telephone/ringtones/${status.id}/audio`);
+                                    this.ringtonePlayer = new Audio(apiPath(`/telephone/ringtones/${status.id}/audio`));
                                     this.ringtonePlayer.loop = true;
                                     if (status.volume !== undefined) {
                                         this.ringtonePlayer.volume = status.volume;
@@ -2913,7 +2819,7 @@ export default {
                 ToastUtils.error(this.$t("messages.relay_link_invalid"));
                 return;
             }
-            if (GlobalState.config?.rrc_enabled === false) {
+            if (useConfigStore().config?.rrc_enabled === false) {
                 ToastUtils.warning(this.$t("messages.relay_link_disabled"));
                 return;
             }

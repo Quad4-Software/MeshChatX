@@ -320,16 +320,16 @@
                                     </div>
                                     <div
                                         v-if="
-                                            GlobalState.config.banished_effect_enabled &&
+                                            configStore.config.banished_effect_enabled &&
                                             isBlocked(favourite.destination_hash)
                                         "
                                         class="banished-overlay"
-                                        :style="{ background: GlobalState.config.banished_color + '33' }"
+                                        :style="{ background: configStore.config.banished_color + '33' }"
                                     >
                                         <span
                                             class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                            :style="{ 'background-color': GlobalState.config.banished_color }"
-                                            >{{ GlobalState.config.banished_text }}</span
+                                            :style="{ 'background-color': configStore.config.banished_color }"
+                                            >{{ configStore.config.banished_text }}</span
                                         >
                                     </div>
 
@@ -563,14 +563,14 @@
                             >
                                 <!-- banished overlay -->
                                 <div
-                                    v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
+                                    v-if="configStore.config.banished_effect_enabled && isBlocked(node.identity_hash)"
                                     class="banished-overlay"
-                                    :style="{ background: GlobalState.config.banished_color + '33' }"
+                                    :style="{ background: configStore.config.banished_color + '33' }"
                                 >
                                     <span
                                         class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                        :style="{ 'background-color': GlobalState.config.banished_color }"
-                                        >{{ GlobalState.config.banished_text }}</span
+                                        :style="{ 'background-color': configStore.config.banished_color }"
+                                        >{{ configStore.config.banished_text }}</span
                                     >
                                 </div>
 
@@ -664,14 +664,14 @@
                             @contextmenu.prevent="openAnnounceContextMenu($event, node)"
                         >
                             <div
-                                v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
+                                v-if="configStore.config.banished_effect_enabled && isBlocked(node.identity_hash)"
                                 class="banished-overlay"
-                                :style="{ background: GlobalState.config.banished_color + '33' }"
+                                :style="{ background: configStore.config.banished_color + '33' }"
                             >
                                 <span
                                     class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                    :style="{ 'background-color': GlobalState.config.banished_color }"
-                                    >{{ GlobalState.config.banished_text }}</span
+                                    :style="{ 'background-color': configStore.config.banished_color }"
+                                    >{{ configStore.config.banished_text }}</span
                                 >
                             </div>
                             <div
@@ -809,6 +809,10 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
+import { mapStores } from "pinia";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useIdentityStore } from "../../js/stores/identityStore.js";
 import Utils from "../../js/Utils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -819,19 +823,14 @@ import DropDownMenu from "../DropDownMenu.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import DialogUtils from "../../js/DialogUtils";
-import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import { isUnknownNodeDisplayName } from "../../js/nomadUnknownNodeName.js";
-import {
-    clearLocalNomadFavouritesLayout,
-    loadNomadFavouritesLayout,
-    readLocalNomadFavouritesLayout,
-    saveNomadFavouritesLayout,
-} from "../../js/nomadFavouritesLayoutStore.js";
+import { useNomadFavouritesLayout } from "../../js/nomadnet/useNomadFavouritesLayout.js";
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
 
 export default {
     name: "NomadNetworkSidebar",
@@ -896,30 +895,24 @@ export default {
         "bulk-remove-favourites",
         "bulk-add-favourites",
     ],
-    setup() {
-        return { MIN_VIRTUAL_SIDEBAR_ITEMS };
+    setup(props) {
+        const inst = getCurrentInstance();
+        return {
+            MIN_VIRTUAL_SIDEBAR_ITEMS,
+            ...useNomadFavouritesLayout({
+                t: (key) => inst?.proxy.$t(key),
+                getFavourites: () => props.favourites,
+            }),
+        };
     },
     data() {
         return {
-            GlobalState,
             tab: "favourites",
-            favouritesSearchTerm: "",
             favouritesSelectionMode: false,
             announcesSelectionMode: false,
             selectedFavouriteHashes: [],
             selectedAnnounceHashes: [],
             favouriteBulkMoveMenuOpen: false,
-            defaultSectionId: "default",
-            sections: [],
-            sectionOrder: [],
-            favouritesBySection: {},
-            favouriteLayoutLoadGen: 0,
-            draggingFavouriteHash: null,
-            draggingFavouriteHashes: [],
-            draggingFavouriteSectionId: null,
-            dragOverSectionId: null,
-            draggingSectionId: null,
-            draggingSectionOverId: null,
             favouriteContextMenu: {
                 show: false,
                 x: 0,
@@ -942,11 +935,10 @@ export default {
                 justOpened: false,
             },
             smUp: typeof window !== "undefined" ? window.innerWidth >= 640 : true,
-            editingSectionId: null,
-            editingSectionName: "",
         };
     },
     computed: {
+        ...mapStores(useConfigStore),
         effectiveCollapsed() {
             return this.collapsed && this.smUp;
         },
@@ -961,7 +953,7 @@ export default {
             return "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0 bg-sem-surface border-r border-sem-border";
         },
         blockedDestinations() {
-            return GlobalState.blockedDestinations;
+            return useIdentityStore().blockedDestinations;
         },
         nodesCount() {
             return Object.keys(this.nodes).length;
@@ -988,63 +980,8 @@ export default {
                 return matchesDisplayName || matchesDestinationHash;
             });
         },
-        orderedSections() {
-            const map = {};
-            this.sections.forEach((section) => {
-                map[section.id] = section;
-            });
-            const ids = this.sectionOrder.length > 0 ? this.sectionOrder : this.sections.map((section) => section.id);
-            return ids.map((id) => map[id]).filter((section) => section);
-        },
-        sectionsWithFavourites() {
-            const search = this.favouritesSearchTerm.toLowerCase();
-            return this.orderedSections.map((section) => {
-                const hashes = this.favouritesBySection[section.id] || [];
-                const favourites = hashes
-                    .map((hash) => this.favourites.find((fav) => fav.destination_hash === hash))
-                    .filter((fav) => fav)
-                    .filter((fav) => this.matchesFavouriteSearch(fav, search));
-                return { ...section, favourites };
-            });
-        },
-        favouritesSearchNoResults() {
-            if (this.favourites.length === 0) {
-                return false;
-            }
-            if (this.favouritesSearchTerm.trim() === "") {
-                return false;
-            }
-            return !this.sectionsWithFavourites.some((section) => section.favourites.length > 0);
-        },
-        collapsedFavouritePreview() {
-            const out = [];
-            const max = 5;
-            for (const section of this.orderedSections) {
-                const hashes = this.favouritesBySection[section.id] || [];
-                for (const hash of hashes) {
-                    const fav = this.favourites.find((f) => f.destination_hash === hash);
-                    if (!fav) {
-                        continue;
-                    }
-                    if (out.length >= max) {
-                        return out;
-                    }
-                    out.push(fav);
-                }
-            }
-            return out;
-        },
         collapsedAnnounceNodesPreview() {
             return this.nodesOrderedByLatestAnnounce.slice(0, 5);
-        },
-        flatVisibleFavouriteDestinationHashes() {
-            const out = [];
-            for (const section of this.sectionsWithFavourites) {
-                for (const fav of section.favourites) {
-                    out.push(fav.destination_hash);
-                }
-            }
-            return out;
         },
         flatVisibleAnnounceDestinationHashes() {
             return this.searchedNodes.map((n) => n.destination_hash);
@@ -1072,70 +1009,19 @@ export default {
         },
     },
     mounted() {
-        this._layoutPersistTimer = null;
-        // Paint immediately from local cache/defaults, then hydrate from the identity DB.
-        this.applyFavouriteLayout(readLocalNomadFavouritesLayout());
-        this.ensureFavouriteLayout();
-        this.reloadFavouriteLayoutFromStore();
         this._smUpMql = window.matchMedia("(min-width: 640px)");
         this._smUpResize = () => {
             this.smUp = this._smUpMql.matches;
         };
         this._smUpResize();
         this._smUpMql.addEventListener("change", this._smUpResize);
-        this._onNomadnetFavouritesLayoutImported = () => {
-            this.reloadFavouriteLayoutFromStore();
-        };
-        GlobalEmitter.on("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
-        this._onIdentitySwitched = () => {
-            clearLocalNomadFavouritesLayout();
-            this.resetDefaultSections();
-            this.reloadFavouriteLayoutFromStore();
-        };
-        GlobalEmitter.on("identity-switched", this._onIdentitySwitched);
     },
     unmounted() {
-        if (this._layoutPersistTimer) {
-            clearTimeout(this._layoutPersistTimer);
-            this._layoutPersistTimer = null;
-            this.persistFavouriteLayout({ immediate: true });
-        }
         if (this._smUpMql && this._smUpResize) {
             this._smUpMql.removeEventListener("change", this._smUpResize);
         }
-        if (this._onNomadnetFavouritesLayoutImported) {
-            GlobalEmitter.off("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
-        }
-        if (this._onIdentitySwitched) {
-            GlobalEmitter.off("identity-switched", this._onIdentitySwitched);
-        }
     },
     methods: {
-        applyFavouriteLayout(layout) {
-            if (!layout) {
-                if (this.sections.length === 0) {
-                    this.resetDefaultSections();
-                }
-                return;
-            }
-            this.sections = layout.sections || [];
-            this.sectionOrder =
-                layout.sectionOrder ||
-                (layout.sections ? layout.sections.map((section) => section.id) : this.sectionOrder);
-            this.favouritesBySection = layout.favouritesBySection || {};
-            if (this.sections.length === 0) {
-                this.resetDefaultSections();
-            }
-        },
-        async reloadFavouriteLayoutFromStore() {
-            const gen = ++this.favouriteLayoutLoadGen;
-            const layout = await loadNomadFavouritesLayout(window.api);
-            if (gen !== this.favouriteLayoutLoadGen) {
-                return;
-            }
-            this.applyFavouriteLayout(layout);
-            this.ensureFavouriteLayout();
-        },
         toggleFavouritesSelectionMode() {
             this.favouritesSelectionMode = !this.favouritesSelectionMode;
             if (!this.favouritesSelectionMode) {
@@ -1216,9 +1102,6 @@ export default {
             }
             this.onNodeClick(node);
         },
-        isFavouriteRowDragging(destinationHash) {
-            return this.draggingFavouriteHashes.includes(destinationHash);
-        },
         closeFavouriteBulkMoveMenu() {
             this.favouriteBulkMoveMenuOpen = false;
         },
@@ -1258,11 +1141,11 @@ export default {
             }
             try {
                 for (const node of nodes) {
-                    await window.api.post("/api/v1/blocked-destinations", {
+                    await window.api.post(apiPath("/blocked-destinations"), {
                         destination_hash: node.identity_hash,
                     });
                 }
-                GlobalEmitter.emit("block-status-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 ToastUtils.success(this.$t("nomadnet.bulk_block_done", { count: nodes.length }));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
@@ -1288,133 +1171,6 @@ export default {
                 const el = this.$refs[`sectionInput-${section.id}`];
                 if (el && el[0]) el[0].focus();
             });
-        },
-        saveSectionName() {
-            if (!this.editingSectionId) return;
-            const sectionId = this.editingSectionId;
-            const name = this.editingSectionName.trim();
-            if (name) {
-                this.sections = this.sections.map((sec) => (sec.id === sectionId ? { ...sec, name } : sec));
-                this.persistFavouriteLayout();
-            }
-            this.cancelEditingSection();
-        },
-        cancelEditingSection() {
-            this.editingSectionId = null;
-            this.editingSectionName = "";
-        },
-        matchesFavouriteSearch(favourite, searchTerm = this.favouritesSearchTerm.toLowerCase()) {
-            const matchesDisplayName = favourite.display_name.toLowerCase().includes(searchTerm);
-            const matchesCustomDisplayName =
-                favourite.custom_display_name?.toLowerCase()?.includes(searchTerm) === true;
-            const matchesDestinationHash = favourite.destination_hash.toLowerCase().includes(searchTerm);
-            return matchesDisplayName || matchesCustomDisplayName || matchesDestinationHash;
-        },
-        buildDefaultSection() {
-            return {
-                id: this.defaultSectionId,
-                name: this.$t("nomadnet.favourites"),
-                collapsed: false,
-            };
-        },
-        resetDefaultSections() {
-            const defaultSection = this.buildDefaultSection();
-            this.sections = [defaultSection];
-            this.sectionOrder = [defaultSection.id];
-            this.favouritesBySection = { [defaultSection.id]: [] };
-        },
-        loadFavouriteLayout() {
-            void this.reloadFavouriteLayoutFromStore();
-        },
-        persistFavouriteLayout(options = {}) {
-            // User-driven saves invalidate in-flight remote loads so they cannot clobber edits.
-            // Reconciliation persists (fromEnsure) must not, or the first hydrate is discarded.
-            if (!options.fromEnsure) {
-                this.favouriteLayoutLoadGen += 1;
-            }
-            const layout = {
-                sections: this.sections,
-                sectionOrder: this.sectionOrder,
-                favouritesBySection: this.favouritesBySection,
-            };
-            const flush = () => {
-                this._layoutPersistTimer = null;
-                if (typeof window === "undefined" || !window.api) {
-                    return undefined;
-                }
-                return saveNomadFavouritesLayout(window.api, layout);
-            };
-            if (options.immediate) {
-                if (this._layoutPersistTimer) {
-                    clearTimeout(this._layoutPersistTimer);
-                    this._layoutPersistTimer = null;
-                }
-                return flush();
-            }
-            if (this._layoutPersistTimer) {
-                clearTimeout(this._layoutPersistTimer);
-            }
-            this._layoutPersistTimer = setTimeout(() => {
-                void flush();
-            }, 250);
-            return undefined;
-        },
-        ensureFavouriteLayout() {
-            if (!Array.isArray(this.favourites) || this.favourites.length === 0) {
-                return;
-            }
-            if (this.sections.length === 0) {
-                this.resetDefaultSections();
-            }
-            const hashes = this.favourites.map((fav) => fav.destination_hash);
-            const sectionIds = new Set();
-            const sanitizedSections = [];
-            this.sections.forEach((section) => {
-                if (!section || !section.id || sectionIds.has(section.id)) {
-                    return;
-                }
-                sectionIds.add(section.id);
-                sanitizedSections.push({
-                    id: section.id,
-                    name: section.name || this.$t("nomadnet.favourites"),
-                    collapsed: section.collapsed === true ? true : false,
-                });
-            });
-            if (!sectionIds.has(this.defaultSectionId)) {
-                const defaultSection = this.buildDefaultSection();
-                sanitizedSections.unshift(defaultSection);
-                sectionIds.add(defaultSection.id);
-            }
-            const existingOrder = Array.isArray(this.sectionOrder) ? this.sectionOrder : [];
-            const filteredOrder = existingOrder.filter((id) => sectionIds.has(id));
-            const remaining = sanitizedSections
-                .map((section) => section.id)
-                .filter((id) => !filteredOrder.includes(id));
-            const nextSectionOrder = [...filteredOrder, ...remaining];
-
-            const nextFavouritesBySection = {};
-            sanitizedSections.forEach((section) => {
-                const existing = this.favouritesBySection[section.id] || [];
-                nextFavouritesBySection[section.id] = existing.filter((hash) => hashes.includes(hash));
-            });
-            const assigned = new Set(Object.values(nextFavouritesBySection).flat());
-            hashes.forEach((hash) => {
-                if (!assigned.has(hash)) {
-                    nextFavouritesBySection[this.defaultSectionId].push(hash);
-                    assigned.add(hash);
-                }
-            });
-
-            const sectionsChanged = JSON.stringify(this.sections) !== JSON.stringify(sanitizedSections);
-            const orderChanged = JSON.stringify(this.sectionOrder) !== JSON.stringify(nextSectionOrder);
-            const favouritesChanged =
-                JSON.stringify(this.favouritesBySection) !== JSON.stringify(nextFavouritesBySection);
-            this.sections = sanitizedSections;
-            this.sectionOrder = nextSectionOrder;
-            this.favouritesBySection = nextFavouritesBySection;
-            if (sectionsChanged || orderChanged || favouritesChanged) {
-                this.persistFavouriteLayout({ fromEnsure: true });
-            }
         },
         isBlocked(identityHash) {
             return this.blockedDestinations.some((b) => b.destination_hash === identityHash);
@@ -1471,10 +1227,10 @@ export default {
             }
 
             try {
-                await window.api.post("/api/v1/blocked-destinations", {
+                await window.api.post(apiPath("/blocked-destinations"), {
                     destination_hash: node.identity_hash,
                 });
-                GlobalEmitter.emit("block-status-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("nomadnet.node_blocked_successfully"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
@@ -1483,8 +1239,8 @@ export default {
         },
         async onUnblockNode(identityHash) {
             try {
-                await window.api.delete(`/api/v1/blocked-destinations/${identityHash}`);
-                GlobalEmitter.emit("block-status-changed");
+                await window.api.delete(apiPath(`/blocked-destinations/${identityHash}`));
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("nomadnet.banishment_lifted"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_lift_banishment"));
@@ -1610,46 +1366,6 @@ export default {
             this.draggingSectionId = null;
             this.draggingSectionOverId = null;
         },
-        moveFavouriteToSection(hash, targetSectionId, beforeHash = null) {
-            this.moveFavouritesToSection([hash], targetSectionId, beforeHash);
-        },
-        moveFavouritesToSection(hashes, targetSectionId, beforeHash = null) {
-            const unique = [...new Set((hashes || []).filter(Boolean))];
-            if (!unique.length || !targetSectionId) {
-                return;
-            }
-            const updated = {};
-            Object.keys(this.favouritesBySection).forEach((sectionKey) => {
-                updated[sectionKey] = [...(this.favouritesBySection[sectionKey] || [])].filter(
-                    (value) => !unique.includes(value)
-                );
-            });
-
-            if (!updated[targetSectionId]) {
-                updated[targetSectionId] = [];
-            }
-
-            let targetList = [...updated[targetSectionId]];
-
-            if (beforeHash && !unique.includes(beforeHash)) {
-                const insertIndex = targetList.indexOf(beforeHash);
-                if (insertIndex === -1) {
-                    targetList.push(...unique);
-                } else {
-                    targetList.splice(insertIndex, 0, ...unique);
-                }
-            } else {
-                targetList.push(...unique);
-            }
-
-            updated[targetSectionId] = targetList;
-            this.favouritesBySection = updated;
-            this.persistFavouriteLayout();
-            this.draggingFavouriteHash = null;
-            this.draggingFavouriteHashes = [];
-            this.draggingFavouriteSectionId = null;
-            this.dragOverSectionId = null;
-        },
         openFavouriteContextMenu(event, favourite, sectionId) {
             this.favouriteContextMenu = {
                 show: true,
@@ -1774,10 +1490,10 @@ export default {
                 return;
             }
             try {
-                await window.api.post("/api/v1/blocked-destinations", {
+                await window.api.post(apiPath("/blocked-destinations"), {
                     destination_hash: favourite.destination_hash,
                 });
-                GlobalEmitter.emit("block-status-changed");
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("nomadnet.node_blocked_successfully"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
@@ -1792,8 +1508,8 @@ export default {
             }
             this.closeContextMenus();
             try {
-                await window.api.delete(`/api/v1/blocked-destinations/${hash}`);
-                GlobalEmitter.emit("block-status-changed");
+                await window.api.delete(apiPath(`/blocked-destinations/${hash}`));
+                GlobalEmitter.emit(EMITTER_EVENTS.BLOCK_STATUS_CHANGED);
                 DialogUtils.alert(this.$t("nomadnet.banishment_lifted"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_lift_banishment"));
@@ -1806,36 +1522,6 @@ export default {
             }
             this.moveFavouriteToSection(this.favouriteContextMenu.targetHash, sectionId);
             this.closeContextMenus();
-        },
-        toggleSectionCollapse(sectionId) {
-            const idx = this.sections.findIndex((section) => section.id === sectionId);
-            if (idx === -1) {
-                return;
-            }
-            const updated = [...this.sections];
-            const section = { ...updated[idx] };
-            section.collapsed = !section.collapsed;
-            updated[idx] = section;
-            this.sections = updated;
-            this.persistFavouriteLayout();
-        },
-        async createSection() {
-            const name = await DialogUtils.prompt(
-                this.$t("nomadnet.enter_section_name"),
-                this.$t("nomadnet.new_section")
-            );
-            if (!name) {
-                return;
-            }
-            const section = {
-                id: `section-${Date.now()}`,
-                name,
-                collapsed: false,
-            };
-            this.sections = [...this.sections, section];
-            this.sectionOrder = [...this.sectionOrder, section.id];
-            this.favouritesBySection = { ...this.favouritesBySection, [section.id]: [] };
-            this.persistFavouriteLayout();
         },
         async renameSectionFromContext() {
             const section = this.sections.find((sec) => sec.id === this.sectionContextMenu.sectionId);

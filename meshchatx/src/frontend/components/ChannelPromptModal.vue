@@ -45,6 +45,7 @@
 <script>
 import AppUpdatePrompt from "./AppUpdatePrompt.vue";
 import ToastUtils from "../js/ToastUtils";
+import { apiPath } from "../js/constants.js";
 import {
     channelBugReportTarget,
     channelLabelKey,
@@ -144,7 +145,7 @@ export default {
             }
             const key = channelPromptSeenKey(this.appInfo);
             try {
-                await window.api.post("/api/v1/app/channel-prompt/seen", { key });
+                await window.api.post(apiPath("/app/channel-prompt/seen"), { key });
                 if (this.appInfo) {
                     this.appInfo.channel_prompt_seen = key;
                 }

@@ -1,3 +1,4 @@
+import { EMITTER_EVENTS } from "./constants.js";
 import GlobalEmitter from "./GlobalEmitter";
 import WebSocketConnection from "./WebSocketConnection";
 
@@ -156,7 +157,7 @@ class KeyboardShortcuts {
     }
 
     executeAction(action) {
-        GlobalEmitter.emit("keyboard-shortcut", action);
+        GlobalEmitter.emit(EMITTER_EVENTS.KEYBOARD_SHORTCUT, action);
     }
 
     setShortcuts(shortcuts) {

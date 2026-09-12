@@ -115,11 +115,13 @@
 </template>
 
 <script>
+import { useConfigStore } from "../../js/stores/configStore.js";
+
 import NomadNetworkPage from "./NomadNetworkPage.vue";
 import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
-import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { EMITTER_EVENTS } from "../../js/constants.js";
 import { loadNomadTabs, saveNomadTabs } from "../../js/browserLayoutStore";
 import LinkUtils from "../../js/LinkUtils";
 import ToastUtils from "../../js/ToastUtils";
@@ -149,7 +151,6 @@ export default {
     },
     data() {
         return {
-            GlobalState,
             tabs: [],
             activeTabId: null,
             nextTabId: 1,
@@ -171,7 +172,7 @@ export default {
     },
     computed: {
         tabsEnabled() {
-            return GlobalState.config?.nomad_tabs_enabled !== false;
+            return useConfigStore().config?.nomad_tabs_enabled !== false;
         },
         showTabStrip() {
             return this.isWideViewport && this.tabsEnabled && this.tabs.length > 0;
@@ -251,8 +252,8 @@ export default {
             this.clearNewTabQuery();
         }
 
-        GlobalEmitter.on("nomad-open-node", this.handleNomadOpenNode);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.NOMAD_OPEN_NODE, this.handleNomadOpenNode);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         this.mountTab(this.activeTabId);
     },
     activated() {
@@ -263,8 +264,8 @@ export default {
         this.isRouteActive = false;
     },
     beforeUnmount() {
-        GlobalEmitter.off("nomad-open-node", this.handleNomadOpenNode);
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.NOMAD_OPEN_NODE, this.handleNomadOpenNode);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         this.teardownViewportWatcher();
         window.removeEventListener("keydown", this.handleKeydown, true);
     },

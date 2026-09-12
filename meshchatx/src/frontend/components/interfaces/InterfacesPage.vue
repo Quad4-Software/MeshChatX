@@ -753,19 +753,23 @@
 </template>
 
 <script>
+import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useInterfaceChangesStore } from "../../js/stores/interfaceChangesStore.js";
 import DialogUtils from "../../js/DialogUtils";
 import ElectronUtils from "../../js/ElectronUtils";
 import Interface from "./Interface.vue";
+import { getCurrentInstance } from "vue";
 import Utils from "../../js/Utils";
 import ImportInterfacesModal from "./ImportInterfacesModal.vue";
 import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import ToastUtils from "../../js/ToastUtils";
-import GlobalState from "../../js/GlobalState";
 import Toggle from "../forms/Toggle.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants.js";
+import { useInterfaceListFilters } from "../../js/interfaces/useInterfaceListFilters.js";
 import { BATTERY_SAVER_CHANGED_EVENT, loadBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
 
 export default {
@@ -778,14 +782,19 @@ export default {
         SearchInput,
         BundledDocsHint,
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useInterfaceListFilters({
+                getInterfaces: () => inst?.proxy.interfacesWithStats ?? [],
+            }),
+        };
+    },
     data() {
         return {
             interfaces: {},
             interfaceStats: {},
             reloadInterval: null,
-            searchTerm: "",
-            statusFilter: "all",
-            typeFilter: "all",
             reloadingRns: false,
             isReticulumRunning: true,
             discoveryConfig: {
@@ -814,10 +823,10 @@ export default {
     },
     computed: {
         hasPendingInterfaceChanges() {
-            return GlobalState.hasPendingInterfaceChanges;
+            return useInterfaceChangesStore().hasPendingInterfaceChanges;
         },
         modifiedInterfaceNames() {
-            return GlobalState.modifiedInterfaceNames;
+            return useInterfaceChangesStore().modifiedInterfaceNames;
         },
         isElectron() {
             return ElectronUtils.isElectron();
@@ -840,41 +849,6 @@ export default {
         },
         disabledInterfaces() {
             return this.interfacesWithStats.filter((iface) => !this.isInterfaceEnabled(iface));
-        },
-        filteredInterfaces() {
-            const search = this.searchTerm.toLowerCase().trim();
-            return this.interfacesWithStats
-                .filter((iface) => {
-                    if (this.statusFilter === "enabled" && !this.isInterfaceEnabled(iface)) {
-                        return false;
-                    }
-                    if (this.statusFilter === "disabled" && this.isInterfaceEnabled(iface)) {
-                        return false;
-                    }
-                    if (this.typeFilter !== "all" && iface.type !== this.typeFilter) {
-                        return false;
-                    }
-                    if (!search) {
-                        return true;
-                    }
-                    const haystack = [
-                        iface._name,
-                        iface.type,
-                        iface.target_host,
-                        iface.target_port,
-                        iface.listen_ip,
-                        iface.listen_port,
-                    ]
-                        .filter(Boolean)
-                        .join(" ")
-                        .toLowerCase();
-                    return haystack.includes(search);
-                })
-                .sort((a, b) => {
-                    const enabledDiff = Number(this.isInterfaceEnabled(b)) - Number(this.isInterfaceEnabled(a));
-                    if (enabledDiff !== 0) return enabledDiff;
-                    return a._name.localeCompare(b._name);
-                });
         },
         sortedInterfaceTypes() {
             const types = new Set();
@@ -957,16 +931,9 @@ export default {
         },
     },
     watch: {
-        statusFilter(value) {
-            try {
-                localStorage.setItem("meshchatx.interfaces.statusFilter", value);
-            } catch {
-                /* ignore */
-            }
-        },
         discoveredStatusFilter(value) {
             try {
-                localStorage.setItem("meshchatx.interfaces.discoveredStatusFilter", value);
+                localStorage.setItem(STORAGE_KEYS.INTERFACES_DISCOVERED_STATUS_FILTER, value);
             } catch {
                 /* ignore */
             }
@@ -978,8 +945,8 @@ export default {
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (typeof this._liveTransportReadyWatch === "function") {
             this._liveTransportReadyWatch();
             this._liveTransportReadyWatch = null;
@@ -987,11 +954,7 @@ export default {
     },
     mounted() {
         try {
-            const sf = localStorage.getItem("meshchatx.interfaces.statusFilter");
-            if (sf === "all" || sf === "enabled" || sf === "disabled") {
-                this.statusFilter = sf;
-            }
-            const df = localStorage.getItem("meshchatx.interfaces.discoveredStatusFilter");
+            const df = localStorage.getItem(STORAGE_KEYS.INTERFACES_DISCOVERED_STATUS_FILTER);
             if (df === "all" || df === "connected") {
                 this.discoveredStatusFilter = df;
             }
@@ -1007,10 +970,10 @@ export default {
             this.startInterfacePollIntervals();
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this._liveTransportReadyWatch = this.$watch(
-            () => GlobalState.liveTransportReady,
+            () => useNetworkStore().liveTransportReady,
             () => {
                 this.startInterfacePollIntervals();
             }
@@ -1036,7 +999,7 @@ export default {
             this.reloadInterval = null;
             this.discoveryInterval = null;
             const prefs = loadBatterySaverPrefs();
-            const liveReady = GlobalState.liveTransportReady === true;
+            const liveReady = useNetworkStore().liveTransportReady === true;
             let statsMs =
                 prefs.enabled && prefs.reduceInterfacesDiscovery ? prefs.interfacesStatsPollSeconds * 1000 : 1000;
             let discoveryMs =
@@ -1056,9 +1019,9 @@ export default {
             ElectronUtils.relaunch();
         },
         trackInterfaceChange(interfaceName = null) {
-            GlobalState.hasPendingInterfaceChanges = true;
+            useInterfaceChangesStore().hasPendingInterfaceChanges = true;
             if (interfaceName) {
-                GlobalState.modifiedInterfaceNames.add(interfaceName);
+                useInterfaceChangesStore().modifiedInterfaceNames.add(interfaceName);
             }
         },
         isInterfaceEnabled: function (iface) {
@@ -1066,11 +1029,11 @@ export default {
         },
         async loadInterfaces() {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/interfaces`);
+                const response = await window.api.get(apiPath("/reticulum/interfaces"));
                 this.interfaces = response.data.interfaces;
 
                 // also check app info for running state
-                const appInfoResponse = await window.api.get(`/api/v1/app/info`);
+                const appInfoResponse = await window.api.get(apiPath("/app/info"));
                 this.isReticulumRunning = appInfoResponse.data.app_info.is_reticulum_running;
             } catch {
                 // do nothing if failed to load interfaces
@@ -1079,7 +1042,7 @@ export default {
         async updateInterfaceStats() {
             try {
                 // fetch interface stats
-                const response = await window.api.get(`/api/v1/interface-stats`);
+                const response = await window.api.get(apiPath("/interface-stats"));
 
                 // Replace the map so deleted/renamed interfaces do not keep
                 // stale Connected indicators for discovery peers.
@@ -1099,7 +1062,7 @@ export default {
         async enableInterface(interfaceName) {
             // enable interface
             try {
-                await window.api.post(`/api/v1/reticulum/interfaces/enable`, {
+                await window.api.post(apiPath("/reticulum/interfaces/enable"), {
                     name: interfaceName,
                 });
                 this.trackInterfaceChange(interfaceName);
@@ -1114,7 +1077,7 @@ export default {
         async disableInterface(interfaceName) {
             // disable interface
             try {
-                await window.api.post(`/api/v1/reticulum/interfaces/disable`, {
+                await window.api.post(apiPath("/reticulum/interfaces/disable"), {
                     name: interfaceName,
                 });
                 this.trackInterfaceChange(interfaceName);
@@ -1142,7 +1105,7 @@ export default {
 
             // delete interface
             try {
-                await window.api.post(`/api/v1/reticulum/interfaces/delete`, {
+                await window.api.post(apiPath("/reticulum/interfaces/delete"), {
                     name: interfaceName,
                 });
                 this.trackInterfaceChange(interfaceName);
@@ -1157,7 +1120,7 @@ export default {
         async exportInterfaces() {
             try {
                 // fetch exported interfaces
-                const response = await window.api.post("/api/v1/reticulum/interfaces/export");
+                const response = await window.api.post(apiPath("/reticulum/interfaces/export"));
 
                 // download file to browser
                 await DownloadUtils.downloadFile("meshchat_interfaces.txt", new Blob([response.data]));
@@ -1169,7 +1132,7 @@ export default {
         async exportInterface(interfaceName) {
             try {
                 // fetch exported interfaces
-                const response = await window.api.post("/api/v1/reticulum/interfaces/export", {
+                const response = await window.api.post(apiPath("/reticulum/interfaces/export"), {
                     selected_interface_names: [interfaceName],
                 });
 
@@ -1192,7 +1155,7 @@ export default {
         },
         async loadDiscoveredInterfaces() {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/discovered-interfaces`);
+                const response = await window.api.get(apiPath("/reticulum/discovered-interfaces"));
                 const incoming = response.data?.interfaces ?? [];
                 const active = response.data?.active ?? [];
 
@@ -1368,7 +1331,7 @@ export default {
         },
         async loadDiscoveryConfig() {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/discovery`);
+                const response = await window.api.get(apiPath("/reticulum/discovery"));
                 const discovery = response.data?.discovery ?? {};
                 this.discoveryConfig.discover_interfaces = this.parseBool(discovery.discover_interfaces);
                 this.discoveryConfig.interface_discovery_sources = discovery.interface_discovery_sources ?? "";
@@ -1443,7 +1406,7 @@ export default {
                     network_identity: this.discoveryConfig.network_identity || null,
                 };
 
-                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(apiPath("/reticulum/discovery"), payload);
                 ToastUtils.dismiss("interfaces-discovery-save");
                 ToastUtils.success(this.$t("interfaces.discovery_settings_saved"));
                 await this.loadDiscoveryConfig();
@@ -1571,7 +1534,7 @@ export default {
                     interface_discovery_whitelist: nextWhitelist.length ? nextWhitelist.join(",") : null,
                     interface_discovery_blacklist: nextBlacklist.length ? nextBlacklist.join(",") : null,
                 };
-                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(apiPath("/reticulum/discovery"), payload);
                 this.discoveryConfig.interface_discovery_whitelist = payload.interface_discovery_whitelist || "";
                 this.discoveryConfig.interface_discovery_blacklist = payload.interface_discovery_blacklist || "";
                 ToastUtils.success(
@@ -1675,9 +1638,7 @@ export default {
                 query: { from_discovered: "1" },
             });
         },
-        setStatusFilter(value) {
-            this.statusFilter = value;
-        },
+
         async refreshDiscoveredInterfacesList() {
             const ok = await this.loadDiscoveredInterfaces();
             if (ok) {
@@ -1695,10 +1656,10 @@ export default {
             try {
                 this.reloadingRns = true;
                 ToastUtils.loading(this.$t("app.reloading_rns"), 0, "interfaces-rns-reload");
-                const response = await window.api.post("/api/v1/reticulum/reload");
+                const response = await window.api.post(apiPath("/reticulum/reload"));
                 ToastUtils.success(response.data.message);
-                GlobalState.hasPendingInterfaceChanges = false;
-                GlobalState.modifiedInterfaceNames.clear();
+                useInterfaceChangesStore().hasPendingInterfaceChanges = false;
+                useInterfaceChangesStore().modifiedInterfaceNames.clear();
                 await this.loadInterfaces();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.error || this.$t("interfaces.failed_reload"));

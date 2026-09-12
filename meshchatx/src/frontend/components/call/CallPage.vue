@@ -1715,8 +1715,13 @@
 </template>
 
 <script>
-import GlobalState from "../../js/GlobalState";
+import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useUnreadStore } from "../../js/stores/unreadStore.js";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import * as announcesApi from "../../js/api/announces.js";
+import * as telephoneApi from "../../js/api/telephone.js";
 import Utils from "../../js/Utils";
 import Compressor from "compressorjs";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
@@ -1733,6 +1738,7 @@ import {
     promptMicrophoneAccess,
     queryMicrophonePermissionState,
 } from "../../js/webAudioMicPermission";
+import { useCallAudioDevices } from "../../js/call/useCallAudioDevices.js";
 import RingtoneEditor from "./audio/RingtoneEditor.vue";
 import CallPhonebookTab from "./tabs/CallPhonebookTab.vue";
 import CallContactsTab from "./tabs/CallContactsTab.vue";
@@ -1754,6 +1760,9 @@ export default {
         CallContactsTab,
         CallVoicemailTab,
         CallTabBar,
+    },
+    setup() {
+        return { ...useCallAudioDevices() };
     },
     data() {
         return {
@@ -1844,10 +1853,6 @@ export default {
             audioWorkletNode: null,
             audioSilentGain: null,
             audioFrameMs: 60,
-            audioInputDevices: [],
-            audioOutputDevices: [],
-            selectedAudioInputId: null,
-            selectedAudioOutputId: null,
             webAudioStartBlocked: false,
             webAudioMicReady: false,
             webAudioStartInFlight: false,
@@ -1952,7 +1957,7 @@ export default {
             this.selectedSuggestionIndex = -1;
         },
         activeTab(newTab) {
-            GlobalState.activeCallTab = newTab;
+            useConfigStore().activeCallTab = newTab;
             if (newTab === "recordings") {
                 this.getRecordings();
             }
@@ -1976,14 +1981,14 @@ export default {
         this.getRingtoneStatus();
         this.markMissedCallsViewed();
 
-        GlobalEmitter.on("telephone-history-updated", this.getHistory);
-        GlobalEmitter.on("telephone-history-updated", this.getVoicemails);
-        GlobalEmitter.on("telephone-history-updated", this.markMissedCallsViewed);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.getHistory);
+        GlobalEmitter.on(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.getVoicemails);
+        GlobalEmitter.on(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.markMissedCallsViewed);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
 
         this.startStatusPollInterval();
         this._liveTransportReadyWatch = this.$watch(
-            () => GlobalState.liveTransportReady,
+            () => useNetworkStore().liveTransportReady,
             () => {
                 this.startStatusPollInterval();
             }
@@ -2018,10 +2023,10 @@ export default {
         }
     },
     beforeUnmount() {
-        GlobalEmitter.off("telephone-history-updated", this.getHistory);
-        GlobalEmitter.off("telephone-history-updated", this.getVoicemails);
-        GlobalEmitter.off("telephone-history-updated", this.markMissedCallsViewed);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.getHistory);
+        GlobalEmitter.off(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.getVoicemails);
+        GlobalEmitter.off(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.markMissedCallsViewed);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (typeof this._liveTransportReadyWatch === "function") {
             this._liveTransportReadyWatch();
             this._liveTransportReadyWatch = null;
@@ -2050,7 +2055,7 @@ export default {
                 clearInterval(this.statusInterval);
                 this.statusInterval = null;
             }
-            const statusMs = GlobalState.liveTransportReady ? 15000 : 1000;
+            const statusMs = useNetworkStore().liveTransportReady ? 15000 : 1000;
             this.statusInterval = setInterval(() => {
                 this.getStatus();
                 this.getVoicemailStatus();
@@ -2282,73 +2287,8 @@ export default {
         isMeshChatXAndroid() {
             return detectMeshChatXAndroid();
         },
-        getMediaDevicesApi() {
-            const mediaDevices = navigator?.mediaDevices;
-            if (!mediaDevices || typeof mediaDevices.getUserMedia !== "function") {
-                return null;
-            }
-            return mediaDevices;
-        },
-        hasEnumerateDevicesApi(mediaDevices) {
-            return Boolean(mediaDevices && typeof mediaDevices.enumerateDevices === "function");
-        },
         getAudioContextConstructor() {
             return window.AudioContext || window.webkitAudioContext || null;
-        },
-        pickWebAudioMicConstraints(mediaDevices) {
-            const processingHints = {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-            };
-            const canEnumerate = this.hasEnumerateDevicesApi(mediaDevices);
-            const validIds = canEnumerate
-                ? new Set(
-                      (this.audioInputDevices || [])
-                          .filter((d) => d.kind === "audioinput" && d.deviceId)
-                          .map((d) => d.deviceId)
-                  )
-                : new Set();
-            const sid = this.selectedAudioInputId;
-            // Bare audio unless a post-permission device id is selected.
-            // Processing flags or deviceId.exact before the prompt yield
-            // NotFoundError on Brave and Chromium with no permission dialog.
-            if (!sid || sid === "__meshchat_default_in__") {
-                return { audio: true };
-            }
-            const id = validIds.has(sid) ? sid : null;
-            return id ? { audio: { ...processingHints, deviceId: { exact: id } } } : { audio: true };
-        },
-        async getUserMediaWithMicFallback(mediaDevices) {
-            const constraints = this.pickWebAudioMicConstraints(mediaDevices);
-            try {
-                return await mediaDevices.getUserMedia(constraints);
-            } catch (e) {
-                const retryable =
-                    e?.name === "NotFoundError" || e?.name === "OverconstrainedError" || e?.name === "NotReadableError";
-                if (!retryable) {
-                    throw e;
-                }
-                // Stale exact deviceId, Brave pre-permission device lists, or busy device.
-                // Wide-open audio is what actually triggers the browser permission prompt.
-                this.selectedAudioInputId = "__meshchat_default_in__";
-                this.logWebAudioFailure("getUserMedia-fallback-wide", e);
-                return await mediaDevices.getUserMedia({ audio: true });
-            }
-        },
-        logWebAudioFailure(stage, error) {
-            const appImage = Boolean(
-                window.electron && typeof navigator?.userAgent === "string" && navigator.userAgent.includes("AppImage")
-            );
-            console.error(
-                `[CallPage:web-audio] ${stage}`,
-                {
-                    isElectron: Boolean(window.electron),
-                    isAppImage: appImage,
-                    userAgent: navigator?.userAgent || "unknown",
-                },
-                error
-            );
         },
         async disableWebAudioBridgeWithError(errorKey, error, stage = "unknown") {
             this.logWebAudioFailure(stage, error);
@@ -2789,64 +2729,6 @@ export default {
             }
             return isBraveBrowser() ? "call.microphone_prompt_blocked" : "call.no_audio_input_found";
         },
-        async refreshAudioDevices() {
-            const defaultIn = {
-                deviceId: "__meshchat_default_in__",
-                kind: "audioinput",
-                label: "Default",
-                groupId: "",
-            };
-            const defaultOut = {
-                deviceId: "__meshchat_default_out__",
-                kind: "audiooutput",
-                label: "Default",
-                groupId: "",
-            };
-            try {
-                const mediaDevices = this.getMediaDevicesApi();
-                if (!mediaDevices) {
-                    this.audioInputDevices = [defaultIn];
-                    this.audioOutputDevices = [defaultOut];
-                    return;
-                }
-                if (!this.hasEnumerateDevicesApi(mediaDevices)) {
-                    this.audioInputDevices = [defaultIn];
-                    this.audioOutputDevices = [defaultOut];
-                    return;
-                }
-                const devices = await mediaDevices.enumerateDevices();
-                let inputs = devices.filter((d) => d.kind === "audioinput");
-                let outputs = devices.filter((d) => d.kind === "audiooutput");
-                // Pre-permission lists often have blank deviceId and blank labels.
-                // Keep the Default placeholder so we do not lock onto phantom IDs.
-                const inputsUsable = inputs.some((d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label);
-                if (!inputsUsable) {
-                    inputs = [defaultIn];
-                }
-                const outputsUsable = outputs.some((d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label);
-                if (!outputsUsable) {
-                    outputs = [defaultOut];
-                }
-                this.audioInputDevices = inputs;
-                this.audioOutputDevices = outputs;
-                const selectedInStillValid = this.audioInputDevices.some(
-                    (d) => d.deviceId === this.selectedAudioInputId
-                );
-                if (!selectedInStillValid) {
-                    this.selectedAudioInputId = this.audioInputDevices[0]?.deviceId || defaultIn.deviceId;
-                }
-                const selectedOutStillValid = this.audioOutputDevices.some(
-                    (d) => d.deviceId === this.selectedAudioOutputId
-                );
-                if (!selectedOutStillValid) {
-                    this.selectedAudioOutputId = this.audioOutputDevices[0]?.deviceId || defaultOut.deviceId;
-                }
-            } catch (e) {
-                this.logWebAudioFailure("refresh-devices", e);
-                this.audioInputDevices = [defaultIn];
-                this.audioOutputDevices = [defaultOut];
-            }
-        },
         playRemotePcm(arrayBuffer) {
             if (!this.audioCtx || !arrayBuffer) {
                 return;
@@ -3001,7 +2883,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get("/api/v1/config");
+                const response = await window.api.get(apiPath("/config"));
                 this.config = response.data.config;
             } catch (e) {
                 console.log(e);
@@ -3009,7 +2891,7 @@ export default {
         },
         async updateConfig(config) {
             try {
-                const response = await window.api.patch("/api/v1/config", config);
+                const response = await window.api.patch(apiPath("/config"), config);
                 if (response.data?.config) {
                     this.config = response.data.config;
                 }
@@ -3020,7 +2902,7 @@ export default {
         },
         async getAudioProfiles() {
             try {
-                const response = await window.api.get("/api/v1/telephone/audio-profiles");
+                const response = await window.api.get(apiPath("/telephone/audio-profiles"));
                 const profiles = Array.isArray(response.data.audio_profiles) ? response.data.audio_profiles : [];
                 this.audioProfiles = profiles.filter((p) => p && p.available !== false);
                 this.selectedAudioProfileId = response.data.default_audio_profile_id;
@@ -3036,7 +2918,7 @@ export default {
         },
         async getCallModes() {
             try {
-                const response = await window.api.get("/api/v1/telephone/call-modes");
+                const response = await window.api.get(apiPath("/telephone/call-modes"));
                 const modes = Array.isArray(response.data.call_modes) ? response.data.call_modes : [];
                 this.callModes = modes;
                 if (response.data.default_call_mode_id != null) {
@@ -3048,7 +2930,7 @@ export default {
         },
         async getStatus() {
             try {
-                const response = await window.api.get("/api/v1/telephone/status");
+                const response = await window.api.get(apiPath("/telephone/status"));
                 const oldCall = this.activeCall;
                 const newCall = response.data.active_call;
 
@@ -3154,9 +3036,11 @@ export default {
                 }
 
                 const response = await window.api.get(
-                    `/api/v1/telephone/history?limit=${this.callHistoryLimit}&offset=${this.callHistoryOffset}${
-                        this.callHistorySearch ? `&search=${encodeURIComponent(this.callHistorySearch)}` : ""
-                    }`
+                    apiPath(
+                        `/telephone/history?limit=${this.callHistoryLimit}&offset=${this.callHistoryOffset}${
+                            this.callHistorySearch ? `&search=${encodeURIComponent(this.callHistorySearch)}` : ""
+                        }`
+                    )
                 );
 
                 const newItems = response.data.call_history || [];
@@ -3189,7 +3073,7 @@ export default {
                     this.hasMoreDiscovery = true;
                 }
 
-                const response = await window.api.get("/api/v1/announces", {
+                const response = await announcesApi.listAnnounces({
                     params: {
                         aspect: "lxst.telephony",
                         limit: this.discoveryLimit,
@@ -3223,7 +3107,7 @@ export default {
         },
         async toggleDoNotDisturb(value) {
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     do_not_disturb_enabled: value,
                 });
                 if (this.config) {
@@ -3236,7 +3120,7 @@ export default {
         },
         async toggleAllowCallsFromContactsOnly(value) {
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     telephone_allow_calls_from_contacts_only: value,
                 });
                 if (this.config) {
@@ -3249,7 +3133,7 @@ export default {
         },
         async toggleTelephoneAnnounceEnabled(value) {
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     telephone_announce_enabled: value,
                 });
                 if (this.config) {
@@ -3262,7 +3146,7 @@ export default {
         },
         async toggleCallRecording(value) {
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     call_recording_enabled: value,
                 });
                 if (this.config) {
@@ -3276,7 +3160,7 @@ export default {
         async clearHistory() {
             if (!(await DialogUtils.confirm(this.$t("common.delete_confirm")))) return;
             try {
-                await window.api.delete("/api/v1/telephone/history");
+                await window.api.delete(apiPath("/telephone/history"));
                 this.callHistory = [];
                 await this.markMissedCallsViewed();
                 ToastUtils.success(this.$t("call.call_history_cleared"));
@@ -3287,8 +3171,8 @@ export default {
         },
         async markMissedCallsViewed() {
             try {
-                await window.api.post("/api/v1/telephone/missed-calls/mark-viewed");
-                GlobalState.missedCallsCount = 0;
+                await window.api.post(apiPath("/telephone/missed-calls/mark-viewed"));
+                useUnreadStore().missedCallsCount = 0;
             } catch (e) {
                 console.error(e);
             }
@@ -3296,7 +3180,7 @@ export default {
         async blockIdentity(hash) {
             if (!(await DialogUtils.confirm(this.$t("call.banish_identity_confirm")))) return;
             try {
-                await window.api.post("/api/v1/blocked-destinations", {
+                await window.api.post(apiPath("/blocked-destinations"), {
                     destination_hash: hash,
                 });
                 ToastUtils.success(this.$t("call.identity_banished"));
@@ -3307,7 +3191,7 @@ export default {
         },
         async getVoicemailStatus() {
             try {
-                const response = await window.api.get("/api/v1/telephone/voicemail/status");
+                const response = await window.api.get(apiPath("/telephone/voicemail/status"));
                 this.voicemailStatus = response.data;
             } catch (e) {
                 console.log(e);
@@ -3315,7 +3199,7 @@ export default {
         },
         async getRingtoneStatus() {
             try {
-                const response = await window.api.get("/api/v1/telephone/ringtones/status");
+                const response = await window.api.get(apiPath("/telephone/ringtones/status"));
                 this.ringtoneStatus = response.data;
             } catch (e) {
                 console.log(e);
@@ -3323,7 +3207,7 @@ export default {
         },
         async getRingtones() {
             try {
-                const response = await window.api.get("/api/v1/telephone/ringtones");
+                const response = await window.api.get(apiPath("/telephone/ringtones"));
                 this.ringtones = response.data;
             } catch (e) {
                 console.error("Failed to get ringtones:", e);
@@ -3332,7 +3216,7 @@ export default {
         async deleteRingtone(ringtone) {
             if (!(await DialogUtils.confirm(this.$t("common.delete_confirm")))) return;
             try {
-                await window.api.delete(`/api/v1/telephone/ringtones/${ringtone.id}`);
+                await window.api.delete(apiPath(`/telephone/ringtones/${ringtone.id}`));
                 ToastUtils.success(this.$t("call.ringtone_deleted"));
                 await this.getRingtones();
                 await this.getRingtoneStatus();
@@ -3343,7 +3227,7 @@ export default {
         },
         async setPrimaryRingtone(ringtone) {
             try {
-                await window.api.patch(`/api/v1/telephone/ringtones/${ringtone.id}`, {
+                await window.api.patch(apiPath(`/telephone/ringtones/${ringtone.id}`), {
                     is_primary: true,
                 });
                 ToastUtils.success(this.$t("call.primary_ringtone_set"));
@@ -3360,7 +3244,7 @@ export default {
         },
         async saveRingtoneName() {
             try {
-                await window.api.patch(`/api/v1/telephone/ringtones/${this.editingRingtoneId}`, {
+                await window.api.patch(apiPath(`/telephone/ringtones/${this.editingRingtoneId}`), {
                     display_name: this.editingRingtoneName,
                 });
                 this.editingRingtoneId = null;
@@ -3379,7 +3263,7 @@ export default {
             formData.append("file", file);
 
             try {
-                await window.api.post("/api/v1/telephone/ringtones/upload", formData, {
+                await telephoneApi.uploadRingtones(formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
@@ -3408,7 +3292,7 @@ export default {
             }
 
             this.playingRingtoneId = ringtone.id;
-            this.audioPlayer = new Audio(`/api/v1/telephone/ringtones/${ringtone.id}/audio`);
+            this.audioPlayer = new Audio(apiPath(`/telephone/ringtones/${ringtone.id}/audio`));
             if (this.config?.ringtone_volume !== undefined) {
                 this.audioPlayer.volume = this.config.ringtone_volume / 100.0;
             }
@@ -3440,7 +3324,7 @@ export default {
         },
         async getVoicemails() {
             try {
-                const response = await window.api.get("/api/v1/telephone/voicemails", {
+                const response = await telephoneApi.listVoicemails({
                     params: { search: this.voicemailSearch },
                 });
                 this.voicemails = response.data.voicemails || [];
@@ -3475,7 +3359,7 @@ export default {
         },
         async getContacts() {
             try {
-                const response = await window.api.get("/api/v1/telephone/contacts", {
+                const response = await telephoneApi.listContacts({
                     params: { search: this.contactsSearch },
                 });
                 this.contacts = response.data.contacts || (Array.isArray(response.data) ? response.data : []);
@@ -3560,10 +3444,10 @@ export default {
                     if (this.editingContact && this.editingContact.custom_image && !contact.custom_image) {
                         contact.clear_image = true;
                     }
-                    await window.api.patch(`/api/v1/telephone/contacts/${contact.id}`, contact);
+                    await window.api.patch(apiPath(`/telephone/contacts/${contact.id}`), contact);
                     ToastUtils.success(this.$t("call.contact_updated"));
                 } else {
-                    await window.api.post("/api/v1/telephone/contacts", contact);
+                    await window.api.post(apiPath("/telephone/contacts"), contact);
                     ToastUtils.success(this.$t("call.contact_added"));
                 }
                 this.isContactModalOpen = false;
@@ -3575,7 +3459,7 @@ export default {
         async deleteContact(contactId) {
             if (!(await DialogUtils.confirm(this.$t("call.delete_contact_confirm")))) return;
             try {
-                await window.api.delete(`/api/v1/telephone/contacts/${contactId}`);
+                await window.api.delete(apiPath(`/telephone/contacts/${contactId}`));
                 ToastUtils.success(this.$t("call.contact_deleted"));
                 this.getContacts();
             } catch {
@@ -3616,7 +3500,7 @@ export default {
         async generateGreeting() {
             this.isGeneratingGreeting = true;
             try {
-                await window.api.post("/api/v1/telephone/voicemail/generate-greeting");
+                await window.api.post(apiPath("/telephone/voicemail/generate-greeting"));
                 ToastUtils.success(this.$t("call.greeting_generated_successfully"));
                 await this.getVoicemailStatus();
             } catch (e) {
@@ -3634,7 +3518,7 @@ export default {
             formData.append("file", file);
 
             try {
-                await window.api.post("/api/v1/telephone/voicemail/greeting/upload", formData, {
+                await telephoneApi.uploadVoicemailGreeting(formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
@@ -3652,7 +3536,7 @@ export default {
             if (!(await DialogUtils.confirm(this.$t("call.delete_greeting_confirm")))) return;
 
             try {
-                await window.api.delete("/api/v1/telephone/voicemail/greeting");
+                await window.api.delete(apiPath("/telephone/voicemail/greeting"));
                 ToastUtils.success(this.$t("call.greeting_deleted"));
                 await this.getVoicemailStatus();
             } catch {
@@ -3661,7 +3545,7 @@ export default {
         },
         async startRecordingGreetingMic() {
             try {
-                await window.api.post("/api/v1/telephone/voicemail/greeting/record/start");
+                await window.api.post(apiPath("/telephone/voicemail/greeting/record/start"));
                 await this.getVoicemailStatus();
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_start_recording_greeting"));
@@ -3669,7 +3553,7 @@ export default {
         },
         async stopRecordingGreetingMic() {
             try {
-                await window.api.post("/api/v1/telephone/voicemail/greeting/record/stop");
+                await window.api.post(apiPath("/telephone/voicemail/greeting/record/stop"));
                 await this.getVoicemailStatus();
                 ToastUtils.success(this.$t("call.greeting_recorded_from_mic"));
             } catch {
@@ -3690,7 +3574,7 @@ export default {
             }
 
             this.playingVoicemailId = voicemail.id;
-            this.audioPlayer = new Audio(`/api/v1/telephone/voicemails/${voicemail.id}/audio`);
+            this.audioPlayer = new Audio(apiPath(`/telephone/voicemails/${voicemail.id}/audio`));
 
             this.audioPlayer.addEventListener("error", (e) => {
                 console.error("Audio player error:", e);
@@ -3715,7 +3599,7 @@ export default {
         async markVoicemailAsRead(voicemail) {
             if (!voicemail.is_read) {
                 try {
-                    await window.api.post(`/api/v1/telephone/voicemails/${voicemail.id}/read`);
+                    await window.api.post(apiPath(`/telephone/voicemails/${voicemail.id}/read`));
                     voicemail.is_read = 1;
                     this.unreadVoicemailsCount = Math.max(0, this.unreadVoicemailsCount - 1);
                 } catch (e) {
@@ -3730,7 +3614,7 @@ export default {
         },
         async deleteVoicemail(voicemailId) {
             try {
-                await window.api.delete(`/api/v1/telephone/voicemails/${voicemailId}`);
+                await window.api.delete(apiPath(`/telephone/voicemails/${voicemailId}`));
                 this.getVoicemails();
                 ToastUtils.success(this.$t("call.voicemail_deleted"));
             } catch {
@@ -3739,7 +3623,7 @@ export default {
         },
         async getRecordings() {
             try {
-                const response = await window.api.get("/api/v1/telephone/recordings", {
+                const response = await telephoneApi.listRecordings({
                     params: { search: this.recordingSearch },
                 });
                 this.recordings = response.data.recordings || [];
@@ -3769,7 +3653,7 @@ export default {
 
             this.playingRecordingId = recording.id;
             this.playingSide = side;
-            this.audioPlayer = new Audio(`/api/v1/telephone/recordings/${recording.id}/audio/${side}`);
+            this.audioPlayer = new Audio(apiPath(`/telephone/recordings/${recording.id}/audio/${side}`));
 
             this.audioPlayer.onended = () => {
                 this.playingRecordingId = null;
@@ -3789,7 +3673,7 @@ export default {
         async deleteRecording(recordingId) {
             if (!(await DialogUtils.confirm(this.$t("call.delete_recording_confirm")))) return;
             try {
-                await window.api.delete(`/api/v1/telephone/recordings/${recordingId}`);
+                await window.api.delete(apiPath(`/telephone/recordings/${recordingId}`));
                 this.getRecordings();
                 ToastUtils.success(this.$t("call.recording_deleted"));
             } catch {
@@ -3808,7 +3692,7 @@ export default {
             }
 
             this.isPlayingGreeting = true;
-            this.audioPlayer = new Audio("/api/v1/telephone/voicemail/greeting/audio");
+            this.audioPlayer = new Audio(apiPath("/telephone/voicemail/greeting/audio"));
             this.audioPlayer.play().catch(() => {
                 ToastUtils.error(this.$t("call.no_greeting_audio_found"));
                 this.isPlayingGreeting = false;
@@ -3861,7 +3745,7 @@ export default {
                 if (this.webAudioBridgeEnabled) {
                     await this.requestAudioPermission();
                 }
-                await window.api.post(`/api/v1/telephone/call/${hashToCall}`);
+                await window.api.post(apiPath(`/telephone/call/${hashToCall}`));
             } catch (e) {
                 this.initiationStatus = null;
                 ToastUtils.error(e.response?.data?.message || this.$t("call.failed_to_initiate_call"));
@@ -3911,7 +3795,7 @@ export default {
                 if (this.webAudioBridgeEnabled) {
                     await this.requestAudioPermission();
                 }
-                await window.api.post("/api/v1/telephone/answer");
+                await window.api.post(apiPath("/telephone/answer"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_answer_call"));
             }
@@ -3921,14 +3805,14 @@ export default {
                 if (this.activeCall && this.activeCall.is_incoming && this.activeCall.status === 4) {
                     this.wasDeclined = true;
                 }
-                await window.api.post("/api/v1/telephone/hangup");
+                await window.api.post(apiPath("/telephone/hangup"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_hangup_call"));
             }
         },
         async sendToVoicemail() {
             try {
-                await window.api.post("/api/v1/telephone/send-to-voicemail");
+                await window.api.post(apiPath("/telephone/send-to-voicemail"));
                 ToastUtils.success(this.$t("call.call_sent_to_voicemail"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_send_to_voicemail"));
@@ -3936,7 +3820,7 @@ export default {
         },
         async switchAudioProfile(audioProfileId) {
             try {
-                const response = await window.api.post(`/api/v1/telephone/switch-audio-profile/${audioProfileId}`);
+                const response = await window.api.post(apiPath(`/telephone/switch-audio-profile/${audioProfileId}`));
                 const resolved = response.data?.profile_id;
                 if (resolved != null) {
                     this.selectedAudioProfileId = resolved;
@@ -3950,7 +3834,7 @@ export default {
         },
         async switchCallMode(modeId) {
             try {
-                const response = await window.api.post(`/api/v1/telephone/switch-call-mode/${modeId}`);
+                const response = await window.api.post(apiPath(`/telephone/switch-call-mode/${modeId}`));
                 const resolved = response.data?.mode_id;
                 if (resolved != null) {
                     this.selectedCallModeId = resolved;
@@ -4009,7 +3893,7 @@ export default {
                 this.activeCall.is_ptt_active = wantActive;
             }
             try {
-                await window.api.post("/api/v1/telephone/ptt", { active: wantActive });
+                await window.api.post(apiPath("/telephone/ptt"), { active: wantActive });
             } catch {
                 this.localPttActive = !wantActive;
                 if (this.activeCall) {
@@ -4032,8 +3916,8 @@ export default {
                 }
 
                 const endpoint = isCurrentlyMuted
-                    ? "/api/v1/telephone/unmute-transmit"
-                    : "/api/v1/telephone/mute-transmit";
+                    ? apiPath("/telephone/unmute-transmit")
+                    : apiPath("/telephone/mute-transmit");
                 await window.api.post(endpoint);
                 setTimeout(() => {
                     this.isMicMuting = false;
@@ -4057,8 +3941,8 @@ export default {
                 }
 
                 const endpoint = isCurrentlyMuted
-                    ? "/api/v1/telephone/unmute-receive"
-                    : "/api/v1/telephone/mute-receive";
+                    ? apiPath("/telephone/unmute-receive")
+                    : apiPath("/telephone/mute-receive");
                 await window.api.post(endpoint);
                 setTimeout(() => {
                     this.isSpeakerMuting = false;

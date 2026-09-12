@@ -4,9 +4,9 @@
 
 from __future__ import annotations
 
-import os
+from meshchatx.src.env_utils import env_str
 
 
 def auth_page_hint_from_env() -> str | None:
-    raw = os.environ.get("MESHCHAT_AUTH_PAGE_HINT", "").strip()
+    raw = (env_str("MESHCHAT_AUTH_PAGE_HINT") or "").strip()
     return raw or None

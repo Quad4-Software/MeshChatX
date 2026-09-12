@@ -5,7 +5,8 @@ import SettingsPage from "@/components/settings/SettingsPage.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import ToastUtils from "@/js/ToastUtils";
 import Utils from "@/js/Utils";
-import GlobalState from "@/js/GlobalState";
+import { useConfigStore } from "@/js/stores/configStore.js";
+import { useIdentityStore } from "@/js/stores/identityStore.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -88,8 +89,8 @@ describe("Gifs (ConversationViewer)", () => {
         };
         window.api = axiosMock;
 
-        GlobalState.blockedDestinations = [];
-        GlobalState.config = { banished_effect_enabled: false };
+        useIdentityStore().blockedDestinations = [];
+        useConfigStore().config = { banished_effect_enabled: false };
 
         vi.stubGlobal("localStorage", {
             getItem: vi.fn(),

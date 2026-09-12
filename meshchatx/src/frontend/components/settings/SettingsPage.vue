@@ -1086,9 +1086,9 @@
                         <AppearanceSettingsSection
                             :visible="showSection('appearance')"
                             :config="config"
-                            :detailed-outbound-send-status="GlobalState.detailedOutboundSendStatus"
-                            :outbound-transfer-progress-enabled="GlobalState.outboundTransferProgressEnabled"
-                            :message-timestamp-grouping-enabled="GlobalState.messageTimestampGroupingEnabled"
+                            :detailed-outbound-send-status="configStore.detailedOutboundSendStatus"
+                            :outbound-transfer-progress-enabled="configStore.outboundTransferProgressEnabled"
+                            :message-timestamp-grouping-enabled="configStore.messageTimestampGroupingEnabled"
                             :message-icon-preview-style="messageIconPreviewStyle"
                             @update-field="
                                 (p) => {
@@ -2984,6 +2984,10 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
+import { mapStores } from "pinia";
+import { useAuthStore } from "../../js/stores/authStore.js";
+import { useConfigStore } from "../../js/stores/configStore.js";
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
@@ -3017,7 +3021,6 @@ import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
-import GlobalState from "../../js/GlobalState";
 import {
     numOrNull,
     sanitizeColorConfigFields as normalizeConfigColors,
@@ -3027,12 +3030,12 @@ import {
 } from "../../js/settings/settingsConfigService";
 import { applyAppearanceTheme } from "../../theme/themeEngine.js";
 import { normalizeUiLocaleCode, setLocale } from "../../js/localeLoader.js";
-import {
-    applyTransportMode,
-    applyReticulumInstanceSettings,
-    fetchReticulumInstanceSettings,
-} from "../../js/settings/settingsTransportService";
+import { applyTransportMode } from "../../js/settings/settingsTransportService";
 import * as maintenanceClient from "../../js/settings/settingsMaintenanceClient";
+import { useMessageAgePurge } from "../../js/settings/useMessageAgePurge.js";
+import { useSelfTest } from "../../js/settings/useSelfTest.js";
+import { useBatterySaver } from "../../js/settings/useBatterySaver.js";
+import { useReticulumInstance } from "../../js/settings/useReticulumInstance.js";
 import {
     loadVisualiserDisplayPrefs,
     persistVisualiserShowDisabled,
@@ -3040,11 +3043,7 @@ import {
     persistVisualiserRenderer,
     persistVisualiserViewMode,
 } from "../../js/settings/settingsVisualiserPrefs";
-import { loadBatterySaverPrefs, saveBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
-import {
-    applyBatterySaverBitrateLimits,
-    restoreBatterySaverBitrateLimits,
-} from "../../js/settings/batterySaverBitrateApply.js";
+
 import {
     incomingDeliveryBytesFromCustom,
     incomingDeliveryBytesFromPresetKey,
@@ -3065,6 +3064,7 @@ import {
 } from "../../js/settings/settingsTabs.js";
 import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
 import { getMicronWasmRuntimeOverride } from "../../js/MicronWasmRuntimeOverride.js";
 import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT } from "../../js/micronWasmVersion.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
@@ -3104,9 +3104,26 @@ export default {
         MicronWasmUpdateModal,
         NotificationSoundSettings,
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useMessageAgePurge({
+                t: (key, params) => inst?.proxy.$t(key, params),
+            }),
+            ...useSelfTest({
+                t: (key) => inst?.proxy.$t(key),
+            }),
+            ...useBatterySaver({
+                t: (key, params) => inst?.proxy.$t(key, params),
+            }),
+            ...useReticulumInstance({
+                t: (key, params) => inst?.proxy.$t(key, params),
+                getRpcKeyVisible: () => inst?.proxy.rpcKeyVisible,
+            }),
+        };
+    },
     data() {
         return {
-            GlobalState,
             ElectronUtils,
             KeyboardShortcuts,
             shortcutsExpanded: typeof window !== "undefined" ? window.innerWidth >= 1024 : true,
@@ -3252,12 +3269,7 @@ export default {
             shortcuts: [],
             reloadingRns: false,
             reloadRnsStatusMessage: "",
-            messageAgePurgeMode: "days",
-            messageAgePurgeDays: 90,
-            messageAgePurgeBeforeDate: "",
-            messageAgePurgePreviewCount: null,
-            messageAgePurgePreviewLoading: false,
-            messageAgePurgeBusy: false,
+
             searchQuery: "",
             searchTabFilter: null,
             settingsMode: "simple",
@@ -3274,12 +3286,7 @@ export default {
             visualiserShowDiscoveredInterfaces: false,
             visualiserRenderer: "auto",
             visualiserViewMode: "flat",
-            batterySaver: loadBatterySaverPrefs(),
-            batteryInterfaceRows: [],
-            batteryBitrateBusy: false,
-            selfTestRunning: false,
-            selfTestResults: null,
-            selfTestExpandedReasons: {},
+
             rpcKeyVisible: false,
             desktopCloseSettings: {
                 closeBehavior: "ask",
@@ -3295,26 +3302,10 @@ export default {
             androidRemoteBackendUrl: "",
             androidEffectiveBackendUrl: "",
             androidRemoteBackendActive: false,
-            reticulumInstance: {
-                share_instance: true,
-                local_hops_delta: false,
-                respond_to_probes: false,
-                enable_remote_management: false,
-                remote_management_allowed: [],
-                shared_instance_type: "",
-                instance_name: "default",
-                rpc_key: null,
-                rpc_config_snippet: null,
-                is_connected_to_shared_instance: false,
-                enable_transport: false,
-            },
-            reticulumInstanceSaving: false,
-            remoteManagementAllowedText: "",
-            settingsMgmtIdentityPath: "",
-            settingsMgmtIdentityHash: "",
         };
     },
     computed: {
+        ...mapStores(useConfigStore),
         sectionKeywords() {
             return getAllSettingsSectionKeywords();
         },
@@ -3390,88 +3381,6 @@ export default {
         hasSearchResults() {
             if (!this.settingsSearchActive) return true;
             return this.settingsSearchMatchTotal > 0;
-        },
-        selfTestChecks() {
-            if (!this.selfTestResults) {
-                return [];
-            }
-            const r = this.selfTestResults;
-            const item = (key, labelKey) => ({
-                key,
-                label: this.$t(labelKey),
-                passed: r[key]?.status === "ok",
-                reason: r[key]?.reason || "",
-            });
-            return [
-                item("stack_up", "selftest.stack_up"),
-                item("config_good", "selftest.config_good"),
-                item("db_good", "selftest.db_good"),
-                item("read_write_good", "selftest.read_write"),
-                item("identity_good", "selftest.identity_good"),
-                item("imports_good", "selftest.imports_good"),
-                item("umsgpack_roundtrip", "selftest.umsgpack_roundtrip"),
-                item("storage_lock_good", "selftest.storage_lock_good"),
-                item("temp_fs_good", "selftest.temp_fs_good"),
-                item("public_assets_good", "selftest.public_assets_good"),
-                item("lxmf_router_good", "selftest.lxmf_router_good"),
-                item("lxst_telephony", "selftest.lxst_telephony"),
-                item("subprocess_good", "selftest.subprocess_good"),
-                item("run_module_good", "selftest.run_module_good"),
-                item("audio_codec_roundtrip", "selftest.audio_codec_roundtrip"),
-                item("miniaudio_decode", "selftest.miniaudio_decode"),
-                item("translation_pack_import", "selftest.translation_pack_import"),
-                item("sqlite_roundtrip", "selftest.sqlite_roundtrip"),
-                item("identity_roundtrip", "selftest.identity_roundtrip"),
-                item("loopback_tcp", "selftest.loopback_tcp"),
-                item("unicode_path_good", "selftest.unicode_path_good"),
-                item("rnode_support_good", "selftest.rnode_support_good"),
-                item("bot_launcher_good", "selftest.bot_launcher_good"),
-                item("http_status_good", "selftest.http_status_good"),
-                item("http_app_info_good", "selftest.http_app_info_good"),
-                item("http_config_good", "selftest.http_config_good"),
-                item("http_db_health_good", "selftest.http_db_health_good"),
-                item("http_auth_csrf_good", "selftest.http_auth_csrf_good"),
-                item("http_bots_status_good", "selftest.http_bots_status_good"),
-                item("http_security_good", "selftest.http_security_good"),
-                item("http_interfaces_good", "selftest.http_interfaces_good"),
-                item("http_reticulum_instance_good", "selftest.http_reticulum_instance_good"),
-                item("http_identities_good", "selftest.http_identities_good"),
-                item("http_favourites_good", "selftest.http_favourites_good"),
-                item("http_telephone_good", "selftest.http_telephone_good"),
-                item("http_plugins_good", "selftest.http_plugins_good"),
-                item("http_plugins_trust_good", "selftest.http_plugins_trust_good"),
-                item("http_sideband_plugins_good", "selftest.http_sideband_plugins_good"),
-                item("http_sideband_config_good", "selftest.http_sideband_config_good"),
-                item("http_rrc_hubs_good", "selftest.http_rrc_hubs_good"),
-                item("http_rrc_servers_good", "selftest.http_rrc_servers_good"),
-                item("plugins_runtime_good", "selftest.plugins_runtime_good"),
-                item("websocket_good", "selftest.websocket_good"),
-                item("websocket_rns_link_good", "selftest.websocket_rns_link_good"),
-                item("bots_lifecycle", "selftest.bots_lifecycle"),
-            ];
-        },
-        allSelfTestChecksPassed() {
-            return this.selfTestChecks.length > 0 && this.selfTestChecks.every((check) => check.passed);
-        },
-        displayedRpcConfigSnippet() {
-            const snippet = this.reticulumInstance?.rpc_config_snippet;
-            if (!snippet) {
-                return this.$t("app.rpc_config_unavailable");
-            }
-            if (this.rpcKeyVisible) {
-                return snippet;
-            }
-            return snippet
-                .split("\n")
-                .map((line) => {
-                    const match = line.match(/^(\s*rpc_key\s*=\s*)(.*)$/i);
-                    if (!match) {
-                        return line;
-                    }
-                    const value = match[2] || "";
-                    return `${match[1]}${"•".repeat(Math.max(8, Math.min(value.length, 48)))}`;
-                })
-                .join("\n");
         },
         safeConfig() {
             if (!this.config) {
@@ -3582,10 +3491,10 @@ export default {
     },
     beforeUnmount() {
         // stop listening for websocket events
-        offWsEvent("config", this.onConfigEvent);
-        offWsEvent("keyboard_shortcuts", this.onKeyboardShortcutsEvent);
-        offWsEvent("reticulum_reload_status", this.onReloadStatusEvent);
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        offWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
+        offWsEvent(WS_EVENTS.KEYBOARD_SHORTCUTS, this.onKeyboardShortcutsEvent);
+        offWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReloadStatusEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseInfo);
         window.removeEventListener("keydown", this.onSettingsSearchHotkey);
         // stop any pending debounced saves
@@ -3598,10 +3507,10 @@ export default {
     },
     mounted() {
         // listen for websocket events
-        onWsEvent("config", this.onConfigEvent);
-        onWsEvent("keyboard_shortcuts", this.onKeyboardShortcutsEvent);
-        onWsEvent("reticulum_reload_status", this.onReloadStatusEvent);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        onWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
+        onWsEvent(WS_EVENTS.KEYBOARD_SHORTCUTS, this.onKeyboardShortcutsEvent);
+        onWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReloadStatusEvent);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseInfo);
         window.addEventListener("keydown", this.onSettingsSearchHotkey);
 
@@ -3620,7 +3529,7 @@ export default {
         this.loadReticulumInstanceSettings();
         this.loadAndroidShellPrivacy();
         try {
-            const savedMode = localStorage.getItem("meshchatx_settings_mode");
+            const savedMode = localStorage.getItem(STORAGE_KEYS.SETTINGS_MODE);
             if (savedMode === "simple" || savedMode === "advanced") {
                 this.settingsMode = savedMode;
             }
@@ -3639,50 +3548,6 @@ export default {
             this.loadReticulumInstanceSettings();
             this.loadAndroidShellPrivacy();
         },
-        loadBatterySaverPrefsFromStorage() {
-            this.batterySaver = loadBatterySaverPrefs();
-            if (!this.batterySaver.interfaceBitrateLimits) {
-                this.batterySaver.interfaceBitrateLimits = {};
-            }
-        },
-        async loadBatteryInterfaceRows() {
-            try {
-                const response = await window.api.get("/api/v1/reticulum/interfaces");
-                const interfaces = response?.data?.interfaces || {};
-                this.batteryInterfaceRows = Object.entries(interfaces)
-                    .map(([name, iface]) => ({
-                        name,
-                        type: iface?.type || "",
-                        bitrate: iface?.bitrate ?? null,
-                    }))
-                    .sort((a, b) => a.name.localeCompare(b.name));
-                for (const row of this.batteryInterfaceRows) {
-                    if (this.batterySaver.interfaceBitrateLimits[row.name] == null && row.bitrate != null) {
-                        const n = Number(row.bitrate);
-                        if (Number.isFinite(n) && n >= 0) {
-                            // leave unset so empty means "no forced limit"
-                        }
-                    }
-                }
-            } catch {
-                this.batteryInterfaceRows = [];
-            }
-        },
-        patchBatterySaver(patch) {
-            this.batterySaver = saveBatterySaverPrefs(patch);
-            if (!this.batterySaver.interfaceBitrateLimits) {
-                this.batterySaver.interfaceBitrateLimits = {};
-            }
-        },
-        onBatterySaverEnabledChange(val) {
-            const enabled = val === true;
-            this.patchBatterySaver({ enabled });
-            if (enabled && this.batterySaver.applyInterfaceBitrateLimits) {
-                this.applyBatteryBitrateLimitsNow();
-            } else if (!enabled && Object.keys(this.batterySaver.interfaceBitratePrevious || {}).length > 0) {
-                this.restoreBatteryBitrateLimitsNow();
-            }
-        },
         onLiveTransportModeChange(value) {
             const mode = ["auto", "websocket", "webtransport"].includes(value) ? value : "auto";
             this.config.live_transport_mode = mode;
@@ -3692,161 +3557,6 @@ export default {
             const enabled = value === true;
             this.config.webtransport_sidecar_enabled = enabled;
             this.updateConfig({ webtransport_sidecar_enabled: enabled }, "webtransport_sidecar_enabled");
-        },
-        onBatteryBitrateLimitChange(name) {
-            const limits = { ...(this.batterySaver.interfaceBitrateLimits || {}) };
-            const raw = limits[name];
-            if (raw === "" || raw == null || Number.isNaN(Number(raw))) {
-                delete limits[name];
-            } else {
-                limits[name] = Math.max(0, Math.round(Number(raw)));
-            }
-            this.patchBatterySaver({ interfaceBitrateLimits: limits });
-        },
-        async applyBatteryBitrateLimitsNow() {
-            if (this.batteryBitrateBusy) return;
-            this.batteryBitrateBusy = true;
-            try {
-                this.patchBatterySaver({
-                    applyInterfaceBitrateLimits: true,
-                    interfaceBitrateLimits: { ...(this.batterySaver.interfaceBitrateLimits || {}) },
-                });
-                const result = await applyBatterySaverBitrateLimits({ reload: true });
-                this.loadBatterySaverPrefsFromStorage();
-                if (result.updated.length === 0) {
-                    ToastUtils.error(this.$t("settings.battery.bitrates_none_applied"));
-                } else {
-                    ToastUtils.success(this.$t("settings.battery.bitrates_applied", { count: result.updated.length }));
-                }
-                await this.loadBatteryInterfaceRows();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("settings.battery.bitrates_apply_failed"));
-            } finally {
-                this.batteryBitrateBusy = false;
-            }
-        },
-        async restoreBatteryBitrateLimitsNow() {
-            if (this.batteryBitrateBusy) return;
-            this.batteryBitrateBusy = true;
-            try {
-                const result = await restoreBatterySaverBitrateLimits({ reload: true });
-                this.loadBatterySaverPrefsFromStorage();
-                if (result.updated.length === 0) {
-                    ToastUtils.error(this.$t("settings.battery.bitrates_none_restored"));
-                } else {
-                    ToastUtils.success(this.$t("settings.battery.bitrates_restored", { count: result.updated.length }));
-                }
-                await this.loadBatteryInterfaceRows();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("settings.battery.bitrates_restore_failed"));
-            } finally {
-                this.batteryBitrateBusy = false;
-            }
-        },
-        async loadReticulumInstanceSettings() {
-            try {
-                const instance = await fetchReticulumInstanceSettings(window.api);
-                if (instance && typeof instance === "object") {
-                    this.reticulumInstance = {
-                        ...this.reticulumInstance,
-                        ...instance,
-                        shared_instance_type: instance.shared_instance_type || "",
-                        instance_name: instance.instance_name || "default",
-                        remote_management_allowed: Array.isArray(instance.remote_management_allowed)
-                            ? instance.remote_management_allowed
-                            : [],
-                    };
-                    this.remoteManagementAllowedText = (this.reticulumInstance.remote_management_allowed || []).join(
-                        "\n"
-                    );
-                }
-            } catch (e) {
-                console.log(e);
-            }
-        },
-        async patchReticulumInstance(patch) {
-            if (this.reticulumInstanceSaving) return;
-            this.reticulumInstanceSaving = true;
-            try {
-                const response = await applyReticulumInstanceSettings(patch, window.api);
-                if (response?.data?.instance) {
-                    const instance = response.data.instance;
-                    this.reticulumInstance = {
-                        ...this.reticulumInstance,
-                        ...instance,
-                        shared_instance_type: instance.shared_instance_type || "",
-                        instance_name: instance.instance_name || "default",
-                        remote_management_allowed: Array.isArray(instance.remote_management_allowed)
-                            ? instance.remote_management_allowed
-                            : [],
-                    };
-                    if ("remote_management_allowed" in (patch || {})) {
-                        this.remoteManagementAllowedText = (
-                            this.reticulumInstance.remote_management_allowed || []
-                        ).join("\n");
-                    }
-                }
-                if (response?.data?.message) {
-                    ToastUtils.success(response.data.message);
-                }
-            } catch {
-                ToastUtils.error(this.$t("settings.failed_update_reticulum_instance"));
-                await this.loadReticulumInstanceSettings();
-            } finally {
-                this.reticulumInstanceSaving = false;
-            }
-        },
-        onShareInstanceChange(value) {
-            this.patchReticulumInstance({ share_instance: !!value });
-        },
-        onLocalHopsDeltaChange(value) {
-            this.patchReticulumInstance({ local_hops_delta: !!value });
-        },
-        onRespondToProbesChange(value) {
-            this.patchReticulumInstance({ respond_to_probes: !!value });
-        },
-        onEnableRemoteManagementChange(value) {
-            this.patchReticulumInstance({ enable_remote_management: !!value });
-        },
-        saveRemoteManagementAllowed() {
-            const hashes = (this.remoteManagementAllowedText || "")
-                .split(/[\s,]+/)
-                .map((value) => value.trim().toLowerCase())
-                .filter((value) => value.length > 0);
-            this.patchReticulumInstance({ remote_management_allowed: hashes });
-        },
-        onSettingsMgmtIdentityHash(hash) {
-            this.settingsMgmtIdentityHash = hash || "";
-        },
-        onSharedInstanceTypeChange() {
-            const value = this.reticulumInstance.shared_instance_type || null;
-            this.patchReticulumInstance({ shared_instance_type: value });
-        },
-        onInstanceNameChange() {
-            this.patchReticulumInstance({
-                instance_name: this.reticulumInstance.instance_name || "default",
-            });
-        },
-        async copyRpcConfigSnippet() {
-            const snippet = this.reticulumInstance.rpc_config_snippet;
-            if (!snippet) return;
-            try {
-                await navigator.clipboard.writeText(snippet);
-                ToastUtils.success(this.$t("app.rpc_config_copied"));
-            } catch {
-                ToastUtils.error(this.$t("app.copy_failed"));
-            }
-        },
-        isSelfTestReasonExpanded(key) {
-            return !!this.selfTestExpandedReasons?.[key];
-        },
-        toggleSelfTestReason(key) {
-            this.selfTestExpandedReasons = {
-                ...this.selfTestExpandedReasons,
-                [key]: !this.selfTestExpandedReasons?.[key],
-            };
         },
         async loadDesktopCloseSettings() {
             if (!ElectronUtils.isElectron()) {
@@ -3942,70 +3652,6 @@ export default {
                 ToastUtils.error(this.$t("common.save_failed"));
             }
         },
-        async runSelfTest() {
-            if (this.selfTestRunning) {
-                return;
-            }
-            this.selfTestRunning = true;
-            this.selfTestResults = null;
-            this.selfTestExpandedReasons = {};
-            try {
-                const response = await window.api.get("/api/v1/self-test");
-                this.selfTestResults = response.data;
-            } catch (e) {
-                console.error("Failed to run system self-test", e);
-                const failed = { status: "failed", reason: e.message || String(e) };
-                this.selfTestResults = {
-                    stack_up: { ...failed },
-                    config_good: { ...failed },
-                    db_good: { ...failed },
-                    read_write_good: { ...failed },
-                    identity_good: { ...failed },
-                    imports_good: { ...failed },
-                    umsgpack_roundtrip: { ...failed },
-                    storage_lock_good: { ...failed },
-                    temp_fs_good: { ...failed },
-                    public_assets_good: { ...failed },
-                    lxmf_router_good: { ...failed },
-                    lxst_telephony: { ...failed },
-                    subprocess_good: { ...failed },
-                    run_module_good: { ...failed },
-                    audio_codec_roundtrip: { ...failed },
-                    miniaudio_decode: { ...failed },
-                    translation_pack_import: { ...failed },
-                    sqlite_roundtrip: { ...failed },
-                    identity_roundtrip: { ...failed },
-                    loopback_tcp: { ...failed },
-                    unicode_path_good: { ...failed },
-                    rnode_support_good: { ...failed },
-                    bot_launcher_good: { ...failed },
-                    http_status_good: { ...failed },
-                    http_app_info_good: { ...failed },
-                    http_config_good: { ...failed },
-                    http_db_health_good: { ...failed },
-                    http_auth_csrf_good: { ...failed },
-                    http_bots_status_good: { ...failed },
-                    http_security_good: { ...failed },
-                    http_interfaces_good: { ...failed },
-                    http_reticulum_instance_good: { ...failed },
-                    http_identities_good: { ...failed },
-                    http_favourites_good: { ...failed },
-                    http_telephone_good: { ...failed },
-                    http_plugins_good: { ...failed },
-                    http_plugins_trust_good: { ...failed },
-                    http_sideband_plugins_good: { ...failed },
-                    http_sideband_config_good: { ...failed },
-                    http_rrc_hubs_good: { ...failed },
-                    http_rrc_servers_good: { ...failed },
-                    plugins_runtime_good: { ...failed },
-                    websocket_good: { ...failed },
-                    websocket_rns_link_good: { ...failed },
-                    bots_lifecycle: { ...failed },
-                };
-            } finally {
-                this.selfTestRunning = false;
-            }
-        },
         loadVisualiserDisplayPrefsFromStorage() {
             const p = loadVisualiserDisplayPrefs();
             this.visualiserShowDisabledInterfaces = p.showDisabledInterfaces;
@@ -4029,7 +3675,7 @@ export default {
         },
         async getTrustedTelemetryPeers() {
             try {
-                const response = await window.api.get("/api/v1/telemetry/trusted-peers");
+                const response = await window.api.get(apiPath("/telemetry/trusted-peers"));
                 this.trustedTelemetryPeers = response.data.trusted_peers;
             } catch (e) {
                 console.error("Failed to fetch trusted telemetry peers", e);
@@ -4037,7 +3683,7 @@ export default {
         },
         async revokeTelemetryTrust(peer) {
             try {
-                await window.api.patch(`/api/v1/telephone/contacts/${peer.id}`, {
+                await window.api.patch(apiPath(`/telephone/contacts/${peer.id}`), {
                     is_telemetry_trusted: false,
                 });
                 this.getTrustedTelemetryPeers();
@@ -4087,7 +3733,7 @@ export default {
             this.selectSettingsTab(tabId);
         },
         sectionAvailable(sectionKey) {
-            if (sectionKey === "plugins" && GlobalState.pluginsEnabled === false) {
+            if (sectionKey === "plugins" && useAuthStore().pluginsEnabled === false) {
                 return false;
             }
             return true;
@@ -4220,7 +3866,7 @@ export default {
         onSettingsModeChange(mode) {
             this.settingsMode = mode === "simple" ? "simple" : "advanced";
             try {
-                localStorage.setItem("meshchatx_settings_mode", this.settingsMode);
+                localStorage.setItem(STORAGE_KEYS.SETTINGS_MODE, this.settingsMode);
             } catch {
                 /* ignore */
             }
@@ -4300,8 +3946,8 @@ export default {
         },
         loadExposureAcknowledgements() {
             try {
-                this.exposureAckFirewall = localStorage.getItem("meshchatx_exposure_ack_firewall") === "1";
-                this.exposureAckVpn = localStorage.getItem("meshchatx_exposure_ack_vpn") === "1";
+                this.exposureAckFirewall = localStorage.getItem(STORAGE_KEYS.EXPOSURE_ACK_FIREWALL) === "1";
+                this.exposureAckVpn = localStorage.getItem(STORAGE_KEYS.EXPOSURE_ACK_VPN) === "1";
             } catch {
                 this.exposureAckFirewall = false;
                 this.exposureAckVpn = false;
@@ -4309,15 +3955,15 @@ export default {
         },
         persistExposureAcknowledgements() {
             try {
-                localStorage.setItem("meshchatx_exposure_ack_firewall", this.exposureAckFirewall ? "1" : "0");
-                localStorage.setItem("meshchatx_exposure_ack_vpn", this.exposureAckVpn ? "1" : "0");
+                localStorage.setItem(STORAGE_KEYS.EXPOSURE_ACK_FIREWALL, this.exposureAckFirewall ? "1" : "0");
+                localStorage.setItem(STORAGE_KEYS.EXPOSURE_ACK_VPN, this.exposureAckVpn ? "1" : "0");
             } catch {
                 // ignore storage failures
             }
         },
         async getServerSecurity() {
             try {
-                const response = await window.api.get("/api/v1/server/security");
+                const response = await window.api.get(apiPath("/server/security"));
                 this.serverSecurity = { ...this.serverSecurity, ...response.data };
             } catch (e) {
                 console.log(e);
@@ -4333,7 +3979,7 @@ export default {
             if (this.saveTimeouts.webUiAllowlist) clearTimeout(this.saveTimeouts.webUiAllowlist);
             this.saveTimeouts.webUiAllowlist = setTimeout(async () => {
                 try {
-                    const response = await window.api.patch("/api/v1/server/security", {
+                    const response = await window.api.patch(apiPath("/server/security"), {
                         web_ui_ip_allowlist: this.serverSecurity.web_ui_ip_allowlist,
                     });
                     this.serverSecurity = { ...this.serverSecurity, ...response.data };
@@ -4680,27 +4326,27 @@ export default {
         },
         onDetailedOutboundSendStatusChange(event) {
             const checked = event.target.checked;
-            GlobalState.detailedOutboundSendStatus = checked;
+            useConfigStore().detailedOutboundSendStatus = checked;
             try {
-                localStorage.setItem("meshchatx_detailed_outbound_send_status", checked ? "true" : "false");
+                localStorage.setItem(STORAGE_KEYS.DETAILED_OUTBOUND_SEND_STATUS, checked ? "true" : "false");
             } catch {
                 // ignore
             }
         },
         onOutboundTransferProgressEnabledChange(event) {
             const checked = event.target.checked;
-            GlobalState.outboundTransferProgressEnabled = checked;
+            useConfigStore().outboundTransferProgressEnabled = checked;
             try {
-                localStorage.setItem("meshchatx_outbound_transfer_progress_enabled", checked ? "true" : "false");
+                localStorage.setItem(STORAGE_KEYS.OUTBOUND_TRANSFER_PROGRESS_ENABLED, checked ? "true" : "false");
             } catch {
                 // ignore
             }
         },
         onMessageTimestampGroupingChange(event) {
             const checked = event.target.checked;
-            GlobalState.messageTimestampGroupingEnabled = checked;
+            useConfigStore().messageTimestampGroupingEnabled = checked;
             try {
-                localStorage.setItem("meshchatx_message_timestamp_grouping_enabled", checked ? "true" : "false");
+                localStorage.setItem(STORAGE_KEYS.MESSAGE_TIMESTAMP_GROUPING_ENABLED, checked ? "true" : "false");
             } catch {
                 // ignore
             }
@@ -5418,71 +5064,6 @@ export default {
                 ToastUtils.error(this.$t("common.error"));
             }
         },
-        messageAgeFilterParams() {
-            return maintenanceClient.buildMessageAgeFilterParams({
-                mode: this.messageAgePurgeMode,
-                days: this.messageAgePurgeDays,
-                beforeDate: this.messageAgePurgeBeforeDate,
-            });
-        },
-        async refreshMessageAgePurgePreview() {
-            const params = this.messageAgeFilterParams();
-            if (!params) {
-                this.messageAgePurgePreviewCount = null;
-                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
-                return;
-            }
-            this.messageAgePurgePreviewLoading = true;
-            try {
-                const { count } = await maintenanceClient.previewMessageAgePurge(window.api, params);
-                this.messageAgePurgePreviewCount = count;
-            } catch {
-                this.messageAgePurgePreviewCount = null;
-                ToastUtils.error(this.$t("common.error"));
-            } finally {
-                this.messageAgePurgePreviewLoading = false;
-            }
-        },
-        async exportOldMessagesArchive() {
-            const params = this.messageAgeFilterParams();
-            if (!params) {
-                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
-                return;
-            }
-            this.messageAgePurgeBusy = true;
-            try {
-                const bundle = await maintenanceClient.exportMessagesBundle(window.api, params);
-                const dataStr = JSON.stringify(bundle, null, 2);
-                const blob = new Blob([dataStr], { type: "application/json" });
-                const stamp =
-                    params.before || (params.older_than_days != null ? `${params.older_than_days}d` : "filtered");
-                const exportFileDefaultName = `meshchat_messages_archive_${stamp}_${new Date().toISOString().slice(0, 10)}.json`;
-                await DownloadUtils.downloadFile(exportFileDefaultName, blob);
-                ToastUtils.success(this.$t("maintenance.export_old_archive_done"));
-            } catch {
-                ToastUtils.error(this.$t("common.error"));
-            } finally {
-                this.messageAgePurgeBusy = false;
-            }
-        },
-        async purgeOldMessages() {
-            const params = this.messageAgeFilterParams();
-            if (!params) {
-                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
-                return;
-            }
-            if (!(await DialogUtils.confirm(this.$t("maintenance.purge_old_confirm")))) return;
-            this.messageAgePurgeBusy = true;
-            try {
-                const { deleted } = await maintenanceClient.purgeMessagesByAge(window.api, params);
-                this.messageAgePurgePreviewCount = 0;
-                ToastUtils.success(this.$t("maintenance.purge_old_done", { count: deleted }));
-            } catch {
-                ToastUtils.error(this.$t("common.error"));
-            } finally {
-                this.messageAgePurgeBusy = false;
-            }
-        },
         async clearAnnounces() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
@@ -5525,7 +5106,7 @@ export default {
         },
         async exportStickers() {
             try {
-                const response = await window.api.get("/api/v1/stickers/export");
+                const response = await window.api.get(apiPath("/stickers/export"));
                 const dataStr = JSON.stringify(response.data, null, 2);
                 const exportFileDefaultName = `meshchat_stickers_${new Date().toISOString().slice(0, 10)}.json`;
                 await DownloadUtils.downloadFile(
@@ -5544,7 +5125,7 @@ export default {
             reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    const response = await window.api.post("/api/v1/stickers/import", {
+                    const response = await window.api.post(apiPath("/stickers/import"), {
                         ...data,
                         replace_duplicates: this.stickerImportReplaceDuplicates,
                     });
@@ -5579,7 +5160,7 @@ export default {
         },
         async exportGifs() {
             try {
-                const response = await window.api.get("/api/v1/gifs/export");
+                const response = await window.api.get(apiPath("/gifs/export"));
                 const dataStr = JSON.stringify(response.data, null, 2);
                 const exportFileDefaultName = `meshchat_gifs_${new Date().toISOString().slice(0, 10)}.json`;
                 await DownloadUtils.downloadFile(
@@ -5598,7 +5179,7 @@ export default {
             reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    const response = await window.api.post("/api/v1/gifs/import", {
+                    const response = await window.api.post(apiPath("/gifs/import"), {
                         ...data,
                         replace_duplicates: this.gifImportReplaceDuplicates,
                     });
@@ -5674,7 +5255,7 @@ export default {
         },
         async exportFolders() {
             try {
-                const response = await window.api.get("/api/v1/lxmf/folders/export");
+                const response = await window.api.get(apiPath("/lxmf/folders/export"));
                 const dataStr = JSON.stringify(response.data, null, 2);
                 const blob = new Blob([dataStr], { type: "application/json" });
                 const exportFileDefaultName = `meshchat_folders_${new Date().toISOString().slice(0, 10)}.json`;
@@ -5697,7 +5278,7 @@ export default {
                     const data = JSON.parse(e.target.result);
                     if (!data.folders || !data.mappings) throw new Error("Invalid file format");
 
-                    await window.api.post("/api/v1/lxmf/folders/import", data);
+                    await window.api.post(apiPath("/lxmf/folders/import"), data);
                     ToastUtils.success(this.$t("settings.folders_imported"));
                 } catch {
                     ToastUtils.error(this.$t("settings.failed_import_folders"));
@@ -5776,7 +5357,7 @@ export default {
             }
             let favourites = [];
             try {
-                const response = await window.api.get("/api/v1/favourites");
+                const response = await window.api.get(apiPath("/favourites"));
                 favourites = response.data.favourites || [];
             } catch {
                 // continue without favourite records
@@ -5815,7 +5396,7 @@ export default {
                         throw new Error("invalid file");
                     }
                     if (Array.isArray(data.favourites) && data.favourites.length > 0) {
-                        await window.api.post("/api/v1/favourites/import", {
+                        await window.api.post(apiPath("/favourites/import"), {
                             favourites: data.favourites,
                         });
                     }
@@ -5826,7 +5407,7 @@ export default {
                     } else {
                         throw new Error("invalid file");
                     }
-                    GlobalEmitter.emit("nomadnet-favourites-layout-imported");
+                    GlobalEmitter.emit(EMITTER_EVENTS.NOMADNET_FAVOURITES_LAYOUT_IMPORTED);
                     ToastUtils.success(this.$t("maintenance.nomadnet_favourites_imported"));
                 } catch {
                     ToastUtils.error(this.$t("maintenance.nomadnet_favourites_import_failed"));

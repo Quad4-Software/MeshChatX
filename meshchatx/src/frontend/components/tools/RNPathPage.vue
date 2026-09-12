@@ -357,6 +357,8 @@ import DialogUtils from "../../js/DialogUtils";
 import Utils from "../../js/Utils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import ManagementIdentityPicker from "./ManagementIdentityPicker.vue";
+import { apiPath } from "../../js/constants.js";
+import * as rnpathApi from "../../js/api/rnpath.js";
 
 export default {
     name: "RNPathPage",
@@ -444,9 +446,9 @@ export default {
                 const remoteParams = this.remoteQueryParams();
                 const [pathRes, rateRes, ifaceRes, discRes] = await Promise.all([
                     this.fetchPathTable(),
-                    window.api.get("/api/v1/rnpath/rates", { params: remoteParams }),
-                    window.api.get("/api/v1/reticulum/interfaces"),
-                    window.api.get("/api/v1/reticulum/discovered-interfaces").catch(() => ({ data: {} })),
+                    rnpathApi.listRates({ params: remoteParams }),
+                    window.api.get(apiPath("/reticulum/interfaces")),
+                    window.api.get(apiPath("/reticulum/discovered-interfaces")).catch(() => ({ data: {} })),
                 ]);
                 this.pathTable = pathRes.table;
                 this.totalItems = pathRes.total;
@@ -512,7 +514,7 @@ export default {
                 hops,
                 ...this.remoteQueryParams(),
             };
-            const res = await window.api.get("/api/v1/rnpath/table", { params });
+            const res = await rnpathApi.getTable({ params });
             return res.data;
         },
         getStateColor(state) {
@@ -530,7 +532,7 @@ export default {
                 return;
             }
             try {
-                const res = await window.api.post("/api/v1/rnpath/drop", { destination_hash: hash });
+                const res = await window.api.post(apiPath("/rnpath/drop"), { destination_hash: hash });
                 if (res.data.success) {
                     ToastUtils.success(this.$t("tools.rnpath.path_dropped"));
                     this.refreshAll();
@@ -543,7 +545,7 @@ export default {
         },
         async requestPath() {
             try {
-                await window.api.post("/api/v1/rnpath/request", { destination_hash: this.requestHash });
+                await window.api.post(apiPath("/rnpath/request"), { destination_hash: this.requestHash });
                 ToastUtils.success(this.$t("tools.rnpath.path_requested", { hash: this.requestHash.substring(0, 8) }));
                 this.requestHash = "";
             } catch {
@@ -555,7 +557,7 @@ export default {
                 return;
             }
             try {
-                const res = await window.api.post("/api/v1/rnpath/drop-via", {
+                const res = await window.api.post(apiPath("/rnpath/drop-via"), {
                     transport_instance_hash: this.dropViaHash,
                 });
                 if (res.data.success) {
@@ -572,7 +574,7 @@ export default {
                 return;
             }
             try {
-                await window.api.post("/api/v1/rnpath/drop-queues");
+                await window.api.post(apiPath("/rnpath/drop-queues"));
                 ToastUtils.success(this.$t("tools.rnpath.queues_purged"));
             } catch {
                 ToastUtils.error(this.$t("tools.rnpath.failed_purge"));

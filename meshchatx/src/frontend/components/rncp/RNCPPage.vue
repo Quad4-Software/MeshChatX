@@ -459,6 +459,7 @@ import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, WS_EVENTS } from "../../js/constants.js";
 
 const RNCP_LISTEN_PREFS_KEY = "meshchatx.rncp.listenForm.v1";
 
@@ -514,14 +515,14 @@ export default {
         },
     },
     mounted() {
-        onWsEvent("rncp.transfer.progress", this.onTransferProgress);
-        onWsEvent("rncp.receive.completed", this.onReceiveCompleted);
+        onWsEvent(WS_EVENTS.RNCP_TRANSFER_PROGRESS, this.onTransferProgress);
+        onWsEvent(WS_EVENTS.RNCP_RECEIVE_COMPLETED, this.onReceiveCompleted);
         this.loadRncpListenPrefs();
         this.syncListenerStatusFromServer();
     },
     beforeUnmount() {
-        offWsEvent("rncp.transfer.progress", this.onTransferProgress);
-        offWsEvent("rncp.receive.completed", this.onReceiveCompleted);
+        offWsEvent(WS_EVENTS.RNCP_TRANSFER_PROGRESS, this.onTransferProgress);
+        offWsEvent(WS_EVENTS.RNCP_RECEIVE_COMPLETED, this.onReceiveCompleted);
         this.cancelSend();
         this.cancelFetch();
     },
@@ -566,7 +567,7 @@ export default {
         },
         async syncListenerStatusFromServer() {
             try {
-                const response = await window.api.get("/api/v1/rncp/status");
+                const response = await window.api.get(apiPath("/rncp/status"));
                 const s = response.data;
                 this.receiveDirectory = s.receive_directory || null;
                 if (!s?.listening) {
@@ -699,7 +700,7 @@ export default {
             this.sendTransferId = null;
 
             try {
-                const response = await window.api.post("/api/v1/rncp/send", {
+                const response = await window.api.post(apiPath("/rncp/send"), {
                     destination_hash: this.sendDestinationHash,
                     file_path: this.sendFilePath,
                     timeout: this.sendTimeout,
@@ -730,7 +731,7 @@ export default {
             this.sendInProgress = false;
             this.sendProgress = 0;
             try {
-                await window.api.post("/api/v1/rncp/cancel", {
+                await window.api.post(apiPath("/rncp/cancel"), {
                     transfer_id: transferId || undefined,
                 });
             } catch (e) {
@@ -753,7 +754,7 @@ export default {
             this.fetchTransferId = null;
 
             try {
-                const response = await window.api.post("/api/v1/rncp/fetch", {
+                const response = await window.api.post(apiPath("/rncp/fetch"), {
                     destination_hash: this.fetchDestinationHash,
                     file_path: this.fetchFilePath,
                     timeout: this.fetchTimeout,
@@ -786,7 +787,7 @@ export default {
             this.fetchInProgress = false;
             this.fetchProgress = 0;
             try {
-                await window.api.post("/api/v1/rncp/cancel", {
+                await window.api.post(apiPath("/rncp/cancel"), {
                     transfer_id: transferId || undefined,
                 });
             } catch (e) {
@@ -807,7 +808,7 @@ export default {
             this.listenResult = null;
 
             try {
-                const response = await window.api.post("/api/v1/rncp/listen", {
+                const response = await window.api.post(apiPath("/rncp/listen"), {
                     allowed_hashes: allowedHashes,
                     fetch_allowed: this.listenFetchAllowed,
                     fetch_jail: this.listenFetchJail || null,
@@ -831,7 +832,7 @@ export default {
         },
         async stopListen() {
             try {
-                await window.api.post("/api/v1/rncp/stop");
+                await window.api.post(apiPath("/rncp/stop"));
             } catch (e) {
                 console.error(e);
                 this.listenResult = {

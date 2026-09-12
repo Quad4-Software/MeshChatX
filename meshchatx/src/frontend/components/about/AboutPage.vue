@@ -1337,6 +1337,7 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
 import Utils from "../../js/Utils";
 import ElectronUtils from "../../js/ElectronUtils";
 import DialogUtils from "../../js/DialogUtils";
@@ -1344,6 +1345,8 @@ import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import * as databaseApi from "../../js/api/database.js";
 import {
     appBatteryUsageToneClass,
     batteryStatusIconName,
@@ -1366,6 +1369,7 @@ import {
     sandboxSummaryType,
 } from "../../js/sandboxStatus.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import { useDatabaseBackups } from "../../js/about/useDatabaseBackups.js";
 import logoUrl from "../../assets/images/logo.png";
 import {
     channelBadgeClass,
@@ -1378,6 +1382,14 @@ export default {
     name: "AboutPage",
     components: {
         MaterialDesignIcon,
+    },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useDatabaseBackups({
+                t: (key, params) => inst?.proxy.$t(key, params),
+            }),
+        };
     },
     data() {
         return {
@@ -1406,18 +1418,6 @@ export default {
             restoreFileName: "",
             restoreFile: null,
             reloadingRns: false,
-            snapshotName: "",
-            snapshots: [],
-            snapshotsTotal: 0,
-            snapshotsOffset: 0,
-            snapshotsLimit: 3,
-            snapshotInProgress: false,
-            snapshotMessage: "",
-            snapshotError: "",
-            autoBackups: [],
-            autoBackupsTotal: 0,
-            autoBackupsOffset: 0,
-            autoBackupsLimit: 4,
             electronVersion: null,
             chromeVersion: null,
             nodeVersion: null,
@@ -1621,12 +1621,12 @@ export default {
             this.restartAboutPollIntervals();
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
-        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         this.sessionsWsHandler = (payload) => {
             this.applyActiveSessionsPayload(payload);
         };
-        onWsEvent("app.sessions.updated", this.sessionsWsHandler);
+        onWsEvent(WS_EVENTS.APP_SESSIONS_UPDATED, this.sessionsWsHandler);
         this.restartAboutPollIntervals();
         this.$nextTick(() => {
             this.scrollToDatabaseBackupsIfNeeded();
@@ -1642,10 +1642,10 @@ export default {
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
-        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (this.sessionsWsHandler) {
-            offWsEvent("app.sessions.updated", this.sessionsWsHandler);
+            offWsEvent(WS_EVENTS.APP_SESSIONS_UPDATED, this.sessionsWsHandler);
             this.sessionsWsHandler = null;
         }
     },
@@ -1695,119 +1695,6 @@ export default {
                 applyBackgroundPollInterval(30000, prefs)
             );
         },
-        async listSnapshots() {
-            try {
-                const response = await window.api.get("/api/v1/database/snapshots", {
-                    params: {
-                        limit: this.snapshotsLimit,
-                        offset: this.snapshotsOffset,
-                    },
-                });
-                this.snapshots = response.data.snapshots;
-                this.snapshotsTotal = response.data.total;
-            } catch (e) {
-                console.log("Failed to list snapshots", e);
-            }
-        },
-        async listAutoBackups() {
-            try {
-                const response = await window.api.get("/api/v1/database/backups", {
-                    params: {
-                        limit: this.autoBackupsLimit,
-                        offset: this.autoBackupsOffset,
-                    },
-                });
-                this.autoBackups = response.data.backups;
-                this.autoBackupsTotal = response.data.total;
-            } catch {
-                console.log("Failed to list auto-backups");
-            }
-        },
-        async downloadSnapshot(filename) {
-            try {
-                const downloadName = filename.endsWith(".zip") ? filename : `${filename}.zip`;
-                const response = await window.api.post(`/api/v1/database/snapshots/${filename}/download`, null, {
-                    responseType: "arraybuffer",
-                });
-                await DownloadUtils.downloadFromApiResponse(response, downloadName);
-                ToastUtils.success(this.$t("about.snapshot_downloaded"));
-            } catch {
-                ToastUtils.error(this.$t("about.snapshot_download_failed"));
-            }
-        },
-        async downloadBackupFile(filename) {
-            try {
-                const response = await window.api.post(`/api/v1/database/backups/${filename}/download`, null, {
-                    responseType: "arraybuffer",
-                });
-                await DownloadUtils.downloadFromApiResponse(response, filename);
-                ToastUtils.success(this.$t("about.backup_downloaded"));
-            } catch {
-                ToastUtils.error(this.$t("about.backup_download_failed"));
-            }
-        },
-        async deleteSnapshot(filename) {
-            if (!(await DialogUtils.confirm(this.$t("about.delete_snapshot_confirm")))) return;
-            try {
-                await window.api.delete(`/api/v1/database/snapshots/${filename}`);
-                ToastUtils.success(this.$t("about.snapshot_deleted"));
-                await this.listSnapshots();
-            } catch {
-                ToastUtils.error(this.$t("about.failed_delete_snapshot"));
-            }
-        },
-        async deleteBackup(filename) {
-            if (!(await DialogUtils.confirm(this.$t("about.delete_backup_confirm")))) return;
-            try {
-                await window.api.delete(`/api/v1/database/backups/${filename}`);
-                ToastUtils.success(this.$t("about.backup_deleted"));
-                await this.listAutoBackups();
-            } catch {
-                ToastUtils.error(this.$t("about.failed_delete_backup"));
-            }
-        },
-        async nextSnapshots() {
-            if (this.snapshotsOffset + this.snapshotsLimit < this.snapshotsTotal) {
-                this.snapshotsOffset += this.snapshotsLimit;
-                await this.listSnapshots();
-            }
-        },
-        async prevSnapshots() {
-            if (this.snapshotsOffset > 0) {
-                this.snapshotsOffset = Math.max(0, this.snapshotsOffset - this.snapshotsLimit);
-                await this.listSnapshots();
-            }
-        },
-        async nextBackups() {
-            if (this.autoBackupsOffset + this.autoBackupsLimit < this.autoBackupsTotal) {
-                this.autoBackupsOffset += this.autoBackupsLimit;
-                await this.listAutoBackups();
-            }
-        },
-        async prevBackups() {
-            if (this.autoBackupsOffset > 0) {
-                this.autoBackupsOffset = Math.max(0, this.autoBackupsOffset - this.autoBackupsLimit);
-                await this.listAutoBackups();
-            }
-        },
-        async createSnapshot() {
-            if (this.snapshotInProgress) return;
-            this.snapshotInProgress = true;
-            this.snapshotMessage = "";
-            this.snapshotError = "";
-            try {
-                await window.api.post("/api/v1/database/snapshot", {
-                    name: this.snapshotName || `snapshot-${Math.floor(Date.now() / 1000)}`,
-                });
-                this.snapshotMessage = "Snapshot created successfully";
-                this.snapshotName = "";
-                await this.listSnapshots();
-            } catch {
-                this.snapshotError = "Failed to create snapshot";
-            } finally {
-                this.snapshotInProgress = false;
-            }
-        },
         async restoreFromSnapshot(path) {
             if (this.restoreInProgress) {
                 return;
@@ -1817,7 +1704,7 @@ export default {
                 if (!(await DialogUtils.confirm(this.$t("about.restore_snapshot_confirm")))) {
                     return;
                 }
-                const response = await window.api.post("/api/v1/database/restore", { path });
+                const response = await window.api.post(apiPath("/database/restore"), { path });
                 if (response.data.status === "success") {
                     ToastUtils.success(this.$t("about.database_restored"));
                     this.scheduleRestoreRelaunch();
@@ -1839,7 +1726,7 @@ export default {
         },
         async getAppInfo() {
             try {
-                const response = await window.api.get("/api/v1/app/info");
+                const response = await window.api.get(apiPath("/app/info"));
                 this.appInfo = {
                     ...(this.appInfo || {}),
                     ...(response?.data?.app_info || {}),
@@ -1864,7 +1751,7 @@ export default {
         },
         async getActiveSessions() {
             try {
-                const response = await window.api.get("/api/v1/app/sessions");
+                const response = await window.api.get(apiPath("/app/sessions"));
                 this.applyActiveSessionsPayload(response?.data || {});
             } catch (e) {
                 console.log(e);
@@ -1891,7 +1778,7 @@ export default {
         async acknowledgeIntegrity() {
             if (await DialogUtils.confirm(this.$t("about.integrity_acknowledge_confirm"))) {
                 try {
-                    await window.api.post("/api/v1/app/integrity/acknowledge");
+                    await window.api.post(apiPath("/app/integrity/acknowledge"));
                     ToastUtils.success(this.$t("about.integrity_acknowledged"));
                     await this.getAppInfo();
                 } catch {
@@ -1902,7 +1789,7 @@ export default {
         async getDatabaseHealth(showMessage = false) {
             this.healthLoading = true;
             try {
-                const response = await window.api.get("/api/v1/database/health");
+                const response = await window.api.get(apiPath("/database/health"));
                 this.databaseHealth = response.data.database;
                 if (showMessage) {
                     this.databaseActionMessage = "Database health refreshed";
@@ -1923,7 +1810,7 @@ export default {
             this.databaseActionError = "";
             this.databaseRecoveryActions = [];
             try {
-                const response = await window.api.post("/api/v1/database/vacuum");
+                const response = await window.api.post(apiPath("/database/vacuum"));
                 if (response.data.database?.health) {
                     this.databaseHealth = response.data.database.health;
                 }
@@ -1947,7 +1834,7 @@ export default {
             this.backupMessage = "";
             this.backupError = "";
             try {
-                const response = await window.api.post("/api/v1/database/backup/download", null, {
+                const response = await databaseApi.downloadBackup(null, {
                     responseType: "arraybuffer",
                 });
                 const filename =
@@ -1982,7 +1869,7 @@ export default {
             try {
                 const formData = new FormData();
                 formData.append("file", this.restoreFile);
-                const response = await window.api.post("/api/v1/database/restore", formData, {
+                const response = await databaseApi.restoreDatabase(formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 this.restoreMessage = response.data.message || this.$t("about.database_restored");
@@ -2012,7 +1899,7 @@ export default {
             this.databaseActionMessage = "";
             this.databaseActionError = "";
             try {
-                const response = await window.api.post("/api/v1/database/auto-recover", { relaunch: true });
+                const response = await window.api.post(apiPath("/database/auto-recover"), { relaunch: true });
                 const strategy = response.data?.strategy;
                 const msg = response.data?.message;
                 if (strategy === "restore_backup") {
@@ -2050,7 +1937,7 @@ export default {
             this.databaseActionMessage = "";
             this.databaseActionError = "";
             try {
-                const response = await window.api.post("/api/v1/database/recover");
+                const response = await window.api.post(apiPath("/database/recover"));
                 if (response.data.database?.health) {
                     this.databaseHealth = response.data.database.health;
                 }
@@ -2087,7 +1974,7 @@ export default {
             try {
                 this.reloadingRns = true;
                 ToastUtils.loading(this.$t("app.reloading_rns"), 0, "about-rns-reload");
-                const response = await window.api.post("/api/v1/reticulum/reload");
+                const response = await window.api.post(apiPath("/reticulum/reload"));
                 ToastUtils.success(response?.data?.message || this.$t("app.reloaded_rns"));
                 await this.getAppInfo();
             } catch (e) {
@@ -2101,7 +1988,7 @@ export default {
             if (await DialogUtils.confirm(this.$t("about.shutdown_confirm"))) {
                 try {
                     // try to notify backend first
-                    await window.api.post("/api/v1/app/shutdown");
+                    await window.api.post(apiPath("/app/shutdown"));
                 } catch {
                     // ignore errors if backend is already stopping
                 }
@@ -2139,10 +2026,10 @@ export default {
             }
         },
         showChangelog() {
-            GlobalEmitter.emit("show-changelog");
+            GlobalEmitter.emit(EMITTER_EVENTS.SHOW_CHANGELOG);
         },
         showTutorial() {
-            GlobalEmitter.emit("show-tutorial");
+            GlobalEmitter.emit(EMITTER_EVENTS.SHOW_TUTORIAL);
         },
         async showReticulumConfigFile() {
             const reticulumConfigPath = this.appInfo.reticulum_config_path;

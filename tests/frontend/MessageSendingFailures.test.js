@@ -2,19 +2,19 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
-import GlobalState from "@/js/GlobalState";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
 import { resetHelptipPolicyForTests } from "@/js/helptipPolicy.js";
+import { useConfigStore } from "@/js/stores/configStore.js";
 
 describe("MessageSendingFailures.test.js", () => {
     let axiosMock;
 
     beforeEach(() => {
         resetHelptipPolicyForTests();
-        GlobalState.config.theme = "light";
-        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
-        GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
+        useConfigStore().config.theme = "light";
+        useConfigStore().config.message_outbound_bubble_color = "#4f46e5";
+        useConfigStore().config.message_waiting_bubble_color = "#e5e7eb";
         WebSocketConnection.connect();
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
@@ -52,7 +52,7 @@ describe("MessageSendingFailures.test.js", () => {
         vi.spyOn(DialogUtils, "alert").mockImplementation(() => {});
         vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
         vi.spyOn(ToastUtils, "helptips").mockImplementation(() => {});
-        GlobalState.config.delivery_helptips_enabled = true;
+        useConfigStore().config.delivery_helptips_enabled = true;
     });
 
     afterEach(() => {
@@ -158,7 +158,7 @@ describe("MessageSendingFailures.test.js", () => {
 
     it("suppresses helptip toast when delivery_helptips_enabled is false", async () => {
         ToastUtils.helptips.mockClear();
-        GlobalState.config.delivery_helptips_enabled = false;
+        useConfigStore().config.delivery_helptips_enabled = false;
 
         axiosMock.post.mockImplementation((url) => {
             if (typeof url === "string" && url.includes("/lxmf-messages/send")) {

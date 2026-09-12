@@ -528,6 +528,8 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import * as lxmfApi from "../../js/api/lxmf.js";
 import {
     incomingDeliveryBytesFromCustom,
     incomingDeliveryBytesFromPresetKey,
@@ -679,8 +681,8 @@ export default {
         },
     },
     beforeUnmount() {
-        offWsEvent("config", this.onConfigEvent);
-        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        offWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         for (const timeoutKey of Object.keys(this.saveTimeouts)) {
             if (this.saveTimeouts[timeoutKey]) {
                 clearTimeout(this.saveTimeouts[timeoutKey]);
@@ -688,8 +690,8 @@ export default {
         }
     },
     mounted() {
-        onWsEvent("config", this.onConfigEvent);
-        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        onWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
 
         if (window.matchMedia && window.matchMedia("(max-width: 640px)").matches) {
             this.isLocalManagerCollapsed = true;
@@ -708,7 +710,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get("/api/v1/config");
+                const response = await window.api.get(apiPath("/config"));
                 this.config = response.data.config;
                 this.syncManagerInputsFromConfig();
                 this.syncManualHashDraftFromConfig();
@@ -719,7 +721,7 @@ export default {
         },
         async updateConfig(config) {
             try {
-                const response = await window.api.patch("/api/v1/config", config);
+                const response = await window.api.patch(apiPath("/config"), config);
                 this.config = response.data.config;
                 this.syncManagerInputsFromConfig();
                 return true;
@@ -731,7 +733,7 @@ export default {
         },
         async loadPropagationNodes() {
             try {
-                const response = await window.api.get(`/api/v1/lxmf/propagation-nodes`, {
+                const response = await lxmfApi.listPropagationNodes({
                     params: {
                         limit: 500,
                     },
@@ -839,7 +841,7 @@ export default {
         },
         async restartLocalPropagationNode() {
             try {
-                await window.api.post("/api/v1/lxmf/propagation-node/restart");
+                await window.api.post(apiPath("/lxmf/propagation-node/restart"));
                 ToastUtils.success(this.$t("tools.propagation_nodes.local_restarted"));
                 await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
                 await this.refreshPriorityNodePaths();
@@ -849,7 +851,7 @@ export default {
         },
         async stopLocalPropagationNode() {
             try {
-                await window.api.post("/api/v1/lxmf/propagation-node/stop");
+                await window.api.post(apiPath("/lxmf/propagation-node/stop"));
                 ToastUtils.success(this.$t("tools.propagation_nodes.local_stopped"));
                 await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
                 await this.refreshPriorityNodePaths();
@@ -872,7 +874,7 @@ export default {
         },
         async announceNow(showSuccessToast = true) {
             try {
-                await window.api.get("/api/v1/announce");
+                await window.api.get(apiPath("/announce"));
                 if (showSuccessToast) {
                     ToastUtils.success(this.$t("tools.propagation_nodes.announce_triggered"));
                 }

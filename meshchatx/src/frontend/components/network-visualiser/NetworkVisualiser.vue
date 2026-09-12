@@ -61,13 +61,17 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
+import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useConfigStore } from "../../js/stores/configStore.js";
+import { useVisualiserIconQueue } from "../../js/network/useVisualiserIconQueue.js";
+
 import "vis-network/styles/vis-network.css";
 import { Network } from "vis-network";
 import { DataSet } from "vis-data";
 import { getMdiIconPath } from "../../js/mdiIconNames.js";
 import Utils from "../../js/Utils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import GlobalState from "../../js/GlobalState";
 import NetworkVisualiserLoadingOverlay from "./internal/NetworkVisualiserLoadingOverlay.vue";
 import NetworkVisualiserToolbar from "./internal/NetworkVisualiserToolbar.vue";
 import NetworkVisualiserLegend from "./internal/NetworkVisualiserLegend.vue";
@@ -78,7 +82,6 @@ import {
     VIZ_PATH_TABLE_SOFT_CAP,
     buildFullGraph,
     computeLodUpdates,
-    dedupeIconQueueEntries,
     lodLevelFromScale,
     pathHashesWithinHopFilter,
     layoutSpringLength,
@@ -104,6 +107,13 @@ import {
     VISUALISER_DISPLAY_PREFS_CHANGED,
 } from "../../js/settings/settingsVisualiserPrefs.js";
 import ToastUtils from "../../js/ToastUtils";
+import { EMITTER_EVENTS } from "../../js/constants.js";
+import * as announcesApi from "../../js/api/announces.js";
+import * as configApi from "../../js/api/config.js";
+import * as interfaceStatsApi from "../../js/api/interfaceStats.js";
+import * as lxmfApi from "../../js/api/lxmf.js";
+import * as pathTableApi from "../../js/api/pathTable.js";
+import * as reticulumApi from "../../js/api/reticulum.js";
 
 const HOP_MAX_FILTER_STORAGE_KEY = "meshchatx.visualiser.maxHops";
 
@@ -184,6 +194,18 @@ export default {
         NetworkVisualiserToolbar,
         NetworkVisualiserLegend,
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useVisualiserIconQueue({
+                getAbortSignal: () => inst?.proxy.abortController?.signal,
+                getNodes: () => inst?.proxy.nodes,
+                getWebglEngine: () => inst?.proxy.webglEngine,
+                createIconImage: (iconName, fg, bg, size) => inst?.proxy.createIconImage(iconName, fg, bg, size),
+                yieldToMain,
+            }),
+        };
+    },
     data() {
         const displayPrefs = loadVisualiserDisplayPrefs();
         return {
@@ -220,7 +242,6 @@ export default {
             hoverTooltip: null,
             nodes: new DataSet(),
             edges: new DataSet(),
-            iconCache: {},
 
             pageSize: 1000,
             searchQuery: "",
@@ -228,13 +249,9 @@ export default {
             hopFilterDebounceTimer: null,
             searchDebounceTimer: null,
             abortController: new AbortController(),
-            currentLOD: "high",
             didDisableStabilization: false,
             vizChunkSize: pickAdaptiveChunkSize(),
             pathFetchConcurrency: pickAdaptiveFetchConcurrency(),
-            iconQueue: [],
-            iconQueueRunning: false,
-            iconQueueGeneration: 0,
             lodRafId: null,
             vizRunGeneration: 0,
             physicsPausedForDrag: false,
@@ -336,13 +353,13 @@ export default {
             GlobalEmitter.off(VISUALISER_DISPLAY_PREFS_CHANGED, this._visualiserPrefsHandler);
         }
         if (this._identitySwitchedHandler) {
-            GlobalEmitter.off("identity-switched", this._identitySwitchedHandler);
+            GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this._identitySwitchedHandler);
         }
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
         if (this._websocketReconnectedHandler) {
-            GlobalEmitter.off("websocket-reconnected", this._websocketReconnectedHandler);
+            GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this._websocketReconnectedHandler);
             this._websocketReconnectedHandler = null;
         }
         if (typeof this._liveTransportReadyWatch === "function") {
@@ -424,7 +441,7 @@ export default {
         this._identitySwitchedHandler = () => {
             this.onIdentitySwitched();
         };
-        GlobalEmitter.on("identity-switched", this._identitySwitchedHandler);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this._identitySwitchedHandler);
 
         this._batterySaverPrefsHandler = (prefs) => {
             this.batterySaverPrefs = prefs || loadBatterySaverPrefs();
@@ -439,10 +456,10 @@ export default {
         this._websocketReconnectedHandler = () => {
             void this.onAutoReload();
         };
-        GlobalEmitter.on("websocket-reconnected", this._websocketReconnectedHandler);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this._websocketReconnectedHandler);
 
         this._liveTransportReadyWatch = this.$watch(
-            () => GlobalState.liveTransportReady,
+            () => useNetworkStore().liveTransportReady,
             () => {
                 this.restartAutoReloadInterval();
             }
@@ -466,7 +483,7 @@ export default {
     },
     methods: {
         resolveVisualiserIsDark() {
-            const theme = GlobalState.config?.theme;
+            const theme = useConfigStore().config?.theme;
             if (theme === "light") {
                 return false;
             }
@@ -508,7 +525,7 @@ export default {
             if (ms == null) {
                 return;
             }
-            if (GlobalState.liveTransportReady === true) {
+            if (useNetworkStore().liveTransportReady === true) {
                 ms = Math.max(ms, 30000);
             }
             this.reloadInterval = setInterval(this.onAutoReload, ms);
@@ -640,7 +657,7 @@ export default {
         },
         async getInterfaceStats() {
             try {
-                const response = await window.api.get(`/api/v1/interface-stats`, {
+                const response = await interfaceStatsApi.listInterfaceStats({
                     signal: this.abortController.signal,
                 });
                 this.interfaces = response.data.interface_stats?.interfaces ?? [];
@@ -651,7 +668,7 @@ export default {
         },
         async getDiscoveredInterfaces() {
             try {
-                const response = await window.api.get(`/api/v1/reticulum/discovered-interfaces`, {
+                const response = await reticulumApi.listDiscoveredInterfaces({
                     signal: this.abortController.signal,
                 });
                 this.discoveredInterfaces = response.data?.interfaces ?? [];
@@ -665,8 +682,7 @@ export default {
             try {
                 this.loadingStatus = "Loading paths...";
                 if (destinationHashes && destinationHashes.length > 0) {
-                    const resp = await window.api.post(
-                        `/api/v1/path-table`,
+                    const resp = await pathTableApi.postPathTable(
                         { destination_hashes: destinationHashes },
                         {
                             signal: this.abortController.signal,
@@ -674,7 +690,7 @@ export default {
                     );
                     this.pathTable.push(...resp.data.path_table);
                 } else {
-                    const firstResp = await window.api.get(`/api/v1/path-table`, {
+                    const firstResp = await pathTableApi.getPathTable({
                         params: { limit: this.pageSize, offset: 0 },
                         signal: this.abortController.signal,
                     });
@@ -694,7 +710,7 @@ export default {
                                 chunk.push(offset + i * this.pageSize);
                             }
                             const promises = chunk.map((o) =>
-                                window.api.get(`/api/v1/path-table`, {
+                                pathTableApi.getPathTable({
                                     params: { limit: this.pageSize, offset: o },
                                     signal: this.abortController.signal,
                                 })
@@ -728,8 +744,7 @@ export default {
                 }
                 const promises = offsets.map((start) => {
                     const chunk = hashes.slice(start, start + ANNOUNCE_HASH_CHUNK_SIZE);
-                    return window.api.post(
-                        "/api/v1/announces/query",
+                    return announcesApi.postQuery(
                         {
                             destination_hashes: chunk,
                             aspects: VIZ_ANNOUNCE_ASPECTS,
@@ -785,7 +800,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get("/api/v1/config", {
+                const response = await configApi.getConfig({
                     signal: this.abortController.signal,
                 });
                 this.config = response.data.config;
@@ -796,7 +811,7 @@ export default {
         },
         async getConversations() {
             try {
-                const response = await window.api.get(`/api/v1/lxmf/conversations`, {
+                const response = await lxmfApi.listConversations({
                     signal: this.abortController.signal,
                     params: { limit: 2000 },
                 });
@@ -1928,72 +1943,6 @@ export default {
             this.currentBatch = 0;
             this.totalBatches = 0;
             this.scheduleIconQueue();
-        },
-        scheduleIconQueue() {
-            if (this.currentLOD === "low" || this.iconQueue.length === 0) {
-                return;
-            }
-            if (this.iconQueueRunning) {
-                return;
-            }
-            const run = () => {
-                this.runIconQueue();
-            };
-            if (typeof requestIdleCallback === "function") {
-                requestIdleCallback(run, { timeout: 1500 });
-            } else {
-                run();
-            }
-        },
-        /*
-         * Drains the deferred lxmf custom-icon queue. Runs sequentially with
-         * a yield between each icon so painting many icons cannot pin the
-         * main thread the way the old inline-await version did. Items tagged
-         * with a stale generation (a newer processVisualization started while
-         * we were running) are skipped, as are nodes that no longer exist.
-         */
-        async runIconQueue() {
-            if (this.iconQueueRunning || this.currentLOD === "low") return;
-            this.iconQueueRunning = true;
-            try {
-                const work = dedupeIconQueueEntries(this.iconQueue);
-                this.iconQueue = [];
-                for (const item of work) {
-                    if (this.abortController.signal.aborted) return;
-                    if (item.generation !== this.iconQueueGeneration) {
-                        continue;
-                    }
-                    let url = this.iconCache[item.cacheKey];
-                    if (!url) {
-                        url = await this.createIconImage(item.iconName, item.fg, item.bg, item.size);
-                        if (this.abortController.signal.aborted) return;
-                    }
-                    if (!url) {
-                        continue;
-                    }
-                    const updates = [];
-                    for (const nodeId of item.nodeIds) {
-                        if (this.webglEngine) {
-                            updates.push({ id: nodeId, image: url });
-                        } else if (this.nodes.get(nodeId)) {
-                            updates.push({ id: nodeId, image: url });
-                        }
-                    }
-                    if (updates.length > 0) {
-                        if (this.webglEngine) {
-                            this.webglEngine.updateNodeImages(updates);
-                        } else {
-                            this.nodes.update(updates);
-                        }
-                    }
-                    await yieldToMain();
-                }
-            } finally {
-                this.iconQueueRunning = false;
-                if (this.iconQueue.length > 0 && this.currentLOD !== "low") {
-                    this.scheduleIconQueue();
-                }
-            }
         },
     },
 };

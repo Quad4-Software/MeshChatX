@@ -708,6 +708,11 @@ function attachDefaultContextMenu(browserWindow) {
             template.push({
                 label: "Open link",
                 click: () => {
+                    if (shouldOpenInElectronWindow(params.linkURL)) {
+                        const child = new BrowserWindow(getChildBrowserWindowOptions());
+                        void child.loadURL(params.linkURL);
+                        return;
+                    }
                     const safe = normalizeExternalUrlForOpen(params.linkURL);
                     if (safe) {
                         shell.openExternal(safe);
@@ -1149,7 +1154,7 @@ app.whenReady().then(async () => {
                     return;
                 }
                 const currentUrl = mainWindow.webContents.getURL();
-                if (currentUrl.includes("loading.html")) {
+                if (isTrustedShellFileUrl(currentUrl)) {
                     return;
                 }
                 try {

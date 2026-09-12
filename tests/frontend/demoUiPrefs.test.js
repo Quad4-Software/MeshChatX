@@ -11,7 +11,8 @@ import {
     pickDemoUiPrefs,
 } from "../../meshchatx/src/frontend/js/demoUiPrefs.js";
 import { createApiClient } from "../../meshchatx/src/frontend/js/apiClient.js";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
 
 function memoryStorage() {
     /** @type {Record<string, string>} */
@@ -67,8 +68,8 @@ describe("demoUiPrefs", () => {
 
 describe("apiClient demo config overlay", () => {
     beforeEach(() => {
-        GlobalState.demoMode = true;
-        GlobalState.config = { theme: "light", display_name: "Server" };
+        useAuthStore().demoMode = true;
+        useConfigStore().config = { theme: "light", display_name: "Server" };
         vi.stubGlobal("localStorage", memoryStorage());
         vi.stubGlobal(
             "fetch",
@@ -109,7 +110,7 @@ describe("apiClient demo config overlay", () => {
     });
 
     it("does not treat demo_readonly as an auth error", async () => {
-        GlobalState.demoMode = true;
+        useAuthStore().demoMode = true;
         const onAuthError = vi.fn();
         vi.stubGlobal(
             "fetch",

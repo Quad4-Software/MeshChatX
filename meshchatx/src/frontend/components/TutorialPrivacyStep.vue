@@ -73,10 +73,12 @@
 </template>
 
 <script>
+import { useAuthStore } from "../js/stores/authStore.js";
+
 import ElectronUtils from "../js/ElectronUtils.js";
 import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
-import GlobalState from "../js/GlobalState.js";
+import { apiPath } from "../js/constants.js";
 import SettingToggleRow from "./settings/SettingToggleRow.vue";
 
 export default {
@@ -138,8 +140,8 @@ export default {
 
             try {
                 const [configResponse, instanceResponse] = await Promise.all([
-                    window.api.get("/api/v1/config"),
-                    window.api.get("/api/v1/reticulum/instance"),
+                    window.api.get(apiPath("/config")),
+                    window.api.get(apiPath("/reticulum/instance")),
                 ]);
                 const config = configResponse?.data?.config || {};
                 this.privacyModeEnabled = config.privacy_mode_enabled === true;
@@ -195,7 +197,7 @@ export default {
             }
             this.reticulumSaving = true;
             try {
-                await window.api.patch("/api/v1/reticulum/instance", {
+                await window.api.patch(apiPath("/reticulum/instance"), {
                     local_hops_delta: value === true,
                 });
                 this.localHopsDelta = value === true;
@@ -211,7 +213,7 @@ export default {
             if (this.configSaving) {
                 return;
             }
-            if (GlobalState.demoMode) {
+            if (useAuthStore().demoMode) {
                 // Demo forces privacy mode on the server. Keep the toggle on.
                 this.privacyModeEnabled = true;
                 ToastUtils.info(this.$t("app.demo_mode_active"));
@@ -219,7 +221,7 @@ export default {
             }
             this.configSaving = true;
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     privacy_mode_enabled: value === true,
                 });
                 this.privacyModeEnabled = value === true;
@@ -235,13 +237,13 @@ export default {
             if (this.configSaving) {
                 return;
             }
-            if (GlobalState.demoMode) {
+            if (useAuthStore().demoMode) {
                 this.telemetryEnabled = value === true;
                 return;
             }
             this.configSaving = true;
             try {
-                await window.api.patch("/api/v1/config", {
+                await window.api.patch(apiPath("/config"), {
                     telemetry_enabled: value === true,
                 });
                 this.telemetryEnabled = value === true;
