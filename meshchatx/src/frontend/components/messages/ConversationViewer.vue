@@ -1630,13 +1630,6 @@ import {
     collectImageFilesFromDataTransfer as collectImagesFromDataTransfer,
     extractClipboardImageFiles,
 } from "./conversationMessageHelpers.js";
-import {
-    isPaperMessageIngested as isPaperMessageIngestedStored,
-    listIngestedPaperMessageHashes,
-    markPaperMessageIngested,
-    normalizePaperIngestMessageHash,
-    shouldMarkPaperIngestFromResultStatus,
-} from "./conversationPaperIngest.js";
 import ConversationPeerHeader from "./ConversationPeerHeader.vue";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
@@ -1701,6 +1694,7 @@ import { createOutboundQueue } from "../../js/outboundSendQueue";
 import { useImageModal } from "../../js/messages/useImageModal.js";
 import { useAudioAttachment } from "../../js/messages/useAudioAttachment.js";
 import { useMessageDrafts } from "../../js/messages/useMessageDrafts.js";
+import { usePaperIngest } from "../../js/messages/usePaperIngest.js";
 import {
     isOpportunisticDeferredDelivery as isOpportunisticDeferredDeliveryStatus,
     lxmfStateWouldRegress,
@@ -1794,6 +1788,10 @@ export default {
                     }
                 },
             }),
+            ...usePaperIngest({
+                getIdentityKey: () => inst?.proxy._draftIdentityKey(),
+                t: (key) => inst?.proxy.$t(key),
+            }),
         };
     },
     data() {
@@ -1859,8 +1857,6 @@ export default {
             },
             isPaperMessageModalOpen: false,
             paperMessageHash: null,
-            pendingPaperIngestMessageHash: null,
-            ingestedPaperMessageHashes: {},
             isRawMessageModalOpen: false,
             rawMessageData: null,
             hasTranslator: false,
@@ -3099,24 +3095,6 @@ export default {
                 this.initialLoad();
             }
         },
-        reloadIngestedPaperMessageHashes() {
-            const hashes = listIngestedPaperMessageHashes(this._draftIdentityKey());
-            const next = {};
-            for (const hash of hashes) {
-                next[hash] = true;
-            }
-            this.ingestedPaperMessageHashes = next;
-        },
-        isPaperMessageIngested(chatItem) {
-            const hash = normalizePaperIngestMessageHash(chatItem?.lxmf_message?.hash);
-            if (!hash) {
-                return false;
-            }
-            if (this.ingestedPaperMessageHashes[hash]) {
-                return true;
-            }
-            return isPaperMessageIngestedStored(this._draftIdentityKey(), hash);
-        },
         close() {
             this.$emit("close");
         },
@@ -3440,37 +3418,6 @@ export default {
                 console.error(e);
                 ToastUtils.error(this.$t("messages.failed_add_contact"));
             }
-        },
-        async ingestPaperMessage(uri, messageHash = null) {
-            try {
-                const hash = normalizePaperIngestMessageHash(messageHash);
-                this.pendingPaperIngestMessageHash = hash || null;
-                WebSocketConnection.send(
-                    JSON.stringify({
-                        type: "lxm.ingest_uri",
-                        uri: uri,
-                    })
-                );
-                ToastUtils.info(this.$t("messages.ingesting_paper_message"));
-            } catch (e) {
-                console.error(e);
-                this.pendingPaperIngestMessageHash = null;
-                ToastUtils.error(this.$t("messages.failed_ingest_paper"));
-            }
-        },
-        onLxmIngestUriResultEvent(json) {
-            const pendingHash = this.pendingPaperIngestMessageHash;
-            this.pendingPaperIngestMessageHash = null;
-            if (!pendingHash || !shouldMarkPaperIngestFromResultStatus(json?.status)) {
-                return;
-            }
-            const list = markPaperMessageIngested(this._draftIdentityKey(), pendingHash);
-            const next = { ...this.ingestedPaperMessageHashes };
-            for (const hash of list) {
-                next[hash] = true;
-            }
-            next[pendingHash] = true;
-            this.ingestedPaperMessageHashes = next;
         },
         async generatePaperMessageFromComposition() {
             if (!this.canSendMessage) return;
