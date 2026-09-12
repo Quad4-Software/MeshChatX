@@ -24,9 +24,6 @@ vi.mock("@/js/MicronStorage", () => ({
         loadTabs: vi.fn().mockResolvedValue([]),
         saveTabs: vi.fn().mockResolvedValue(),
         clearAll: vi.fn().mockResolvedValue(),
-        loadImages: vi.fn().mockResolvedValue([]),
-        saveImage: vi.fn().mockResolvedValue(),
-        deleteImage: vi.fn().mockResolvedValue(),
     },
 }));
 
@@ -67,8 +64,6 @@ describe("MicronEditorPage.vue", () => {
             },
             writable: true,
         });
-        URL.createObjectURL = vi.fn(() => "blob:mock-url");
-        URL.revokeObjectURL = vi.fn();
     });
 
     const mountMicronEditorPage = (t = micronEditorT) => {
@@ -388,122 +383,5 @@ describe("MicronEditorPage.vue", () => {
         expect(wrapper.vm.tabs.length).toBe(2);
         expect(wrapper.vm.tabs[0].content).not.toContain("from-identity-a");
         expect(wrapper.vm.activeTabIndex).toBe(0);
-    });
-
-    it("addImageFiles inserts media markup and registers the asset", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        await wrapper.setData({
-            tabs: [{ id: 1, name: "T", content: "hello" }],
-            activeTabIndex: 0,
-        });
-        const file = new File(["x"], "My Photo.png", { type: "image/png" });
-        await wrapper.vm.addImageFiles([file]);
-        expect(wrapper.vm.tabs[0].content).toContain("`[My_Photo`:/media/My_Photo.png`img=1;s=1]");
-        expect(wrapper.vm.localImages["media/My_Photo.png"]).toBeTruthy();
-        expect(micronStorage.saveImage).toHaveBeenCalled();
-    });
-
-    it("dedupes image file names", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        wrapper.vm.localImages = {
-            "media/photo.png": { path: "media/photo.png" },
-            "media/photo-2.png": { path: "media/photo-2.png" },
-        };
-        expect(wrapper.vm.dedupeImageName("photo.png")).toBe("photo-3.png");
-    });
-
-    it("sanitizeImageFileName falls back to a mime extension for unnamed files", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const file = new File(["x"], "", { type: "image/png" });
-        expect(wrapper.vm.sanitizeImageFileName(file)).toBe("image.png");
-        const odd = new File(["x"], "scan.bmp", { type: "image/bmp" });
-        expect(wrapper.vm.sanitizeImageFileName(odd)).toBe("scan.bmp");
-        const bad = new File(["x"], "evil../../etc.png", { type: "image/png" });
-        expect(wrapper.vm.sanitizeImageFileName(bad)).not.toContain("..");
-    });
-
-    it("rejects oversized and non-image drops", async () => {
-        const ToastUtils = (await import("@/js/ToastUtils")).default;
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const big = new File([new Uint8Array(9 * 1024 * 1024)], "huge.png", { type: "image/png" });
-        const text = new File(["x"], "note.txt", { type: "text/plain" });
-        await wrapper.vm.addImageFiles([big, text]);
-        expect(Object.keys(wrapper.vm.localImages)).toHaveLength(0);
-        expect(ToastUtils.warning).toHaveBeenCalledTimes(2);
-    });
-
-    it("shows local images inline in the preview", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        await wrapper.setData({
-            tabs: [{ id: 1, name: "T", content: "`[pic`:/media/pic.png`img=1]" }],
-            activeTabIndex: 0,
-        });
-        wrapper.vm.localImages = {
-            "media/pic.png": {
-                path: "media/pic.png",
-                name: "pic.png",
-                size: 3,
-                blob: new Blob(["abc"], { type: "image/png" }),
-                objectUrl: "blob:mock-url",
-            },
-        };
-        wrapper.vm.renderActiveTab();
-        await wrapper.vm.$nextTick();
-        const img = wrapper.find(".nodeContainer .mu-image .mu-image-output");
-        expect(img.exists()).toBe(true);
-        expect(img.attributes("src")).toBe("blob:mock-url");
-        expect(img.attributes("hidden")).toBeUndefined();
-    });
-
-    it("collectLocalImageAssets only returns same-node local refs", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const hash = "a".repeat(32);
-        wrapper.vm.localImages = {
-            "media/a.png": { path: "media/a.png", name: "a.png", blob: new Blob(["1"]) },
-            "media/b.png": { path: "media/b.png", name: "b.png", blob: new Blob(["2"]) },
-        };
-        const content = `\`[x\`:/media/a.png\`img=1] \`[y\`${hash}:/media/b.png\`img=1]`;
-        const assets = wrapper.vm.collectLocalImageAssets([content]);
-        expect(assets.map((a) => a.name)).toEqual(["a.png"]);
-    });
-
-    it("publishToNode uploads referenced local images", async () => {
-        const dest = "a".repeat(32);
-        window.api = {
-            get: vi.fn().mockResolvedValue({ data: { pages: [] } }),
-            post: vi.fn().mockResolvedValue({ data: { name: "index.mu" } }),
-        };
-        DialogUtils.confirm.mockResolvedValue(false);
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        await wrapper.setData({
-            tabs: [{ id: 1, name: "New Tab 1", content: "`[p`:/media/pic.png`img=1]" }],
-            activeTabIndex: 0,
-        });
-        wrapper.vm.localImages = {
-            "media/pic.png": {
-                path: "media/pic.png",
-                name: "pic.png",
-                size: 3,
-                blob: new Blob(["abc"], { type: "image/png" }),
-            },
-        };
-        await wrapper.vm.publishToNode({
-            node_id: "n1",
-            name: "My Server",
-            running: true,
-            destination_hash: dest,
-        });
-        const filePosts = window.api.post.mock.calls.filter(
-            (c) => c[0] === "/api/v1/page-nodes/n1/files"
-        );
-        expect(filePosts).toHaveLength(1);
-        expect(filePosts[0][1] instanceof FormData).toBe(true);
     });
 });
