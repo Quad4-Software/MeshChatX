@@ -500,9 +500,7 @@ describe("MicronEditorPage.vue", () => {
             running: true,
             destination_hash: dest,
         });
-        const filePosts = window.api.post.mock.calls.filter(
-            (c) => c[0] === "/api/v1/page-nodes/n1/files"
-        );
+        const filePosts = window.api.post.mock.calls.filter((c) => c[0] === "/api/v1/page-nodes/n1/files");
         expect(filePosts).toHaveLength(1);
         expect(filePosts[0][1] instanceof FormData).toBe(true);
     });

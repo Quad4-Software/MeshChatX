@@ -16,10 +16,7 @@ describe("conversation list API caps", () => {
             resolve(ROOT, "meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue"),
             "utf8"
         );
-        const apiSrc = readFileSync(
-            resolve(ROOT, "meshchatx/src/frontend/js/api/lxmf.js"),
-            "utf8"
-        );
+        const apiSrc = readFileSync(resolve(ROOT, "meshchatx/src/frontend/js/api/lxmf.js"), "utf8");
         expect(apiSrc).toContain('apiPath("/lxmf/conversations")');
         expect(src).toMatch(/listConversations\(/);
         expect(src).toMatch(/params:\s*\{\s*limit:\s*2000\s*\}/);
@@ -27,10 +24,7 @@ describe("conversation list API caps", () => {
 
     it("MapPage requests conversations with an explicit limit", () => {
         const src = readFileSync(resolve(ROOT, "meshchatx/src/frontend/components/map/MapPage.vue"), "utf8");
-        const apiSrc = readFileSync(
-            resolve(ROOT, "meshchatx/src/frontend/js/api/lxmf.js"),
-            "utf8"
-        );
+        const apiSrc = readFileSync(resolve(ROOT, "meshchatx/src/frontend/js/api/lxmf.js"), "utf8");
         expect(apiSrc).toContain('apiPath("/lxmf/conversations")');
         expect(src).toMatch(/listConversations\(/);
         expect(src).toMatch(/params:\s*\{\s*limit:\s*2000\s*\}/);
