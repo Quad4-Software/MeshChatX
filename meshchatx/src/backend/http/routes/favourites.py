@@ -26,6 +26,7 @@ from meshchatx.src.backend.http.errors import (
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
+    read_body_limited,
     read_json_limited,
 )
 from meshchatx.src.backend.meshchat_utils import convert_db_favourite_to_dict
@@ -487,7 +488,10 @@ def register_favourites_routes(routes, app):
 
     @routes.put(API_V1_PREFIX + "/favourites/layout")
     async def favourites_layout_put(request):
-        from meshchatx.src.backend.favourites_layout import layout_payload_too_large
+        from meshchatx.src.backend.favourites_layout import (
+            MAX_LAYOUT_JSON_BYTES,
+            layout_payload_too_large,
+        )
 
         content_length = request.content_length
         if content_length is not None and layout_payload_too_large(
@@ -495,7 +499,9 @@ def register_favourites_routes(routes, app):
         ):
             return http_payload_too_large("favourites layout exceeds size limit")
         try:
-            raw = await request.read()
+            raw = await read_body_limited(request, MAX_LAYOUT_JSON_BYTES + 1)
+        except PayloadTooLargeError:
+            return http_payload_too_large("favourites layout exceeds size limit")
         except Exception:
             return http_bad_request("Invalid request body")
         if layout_payload_too_large(len(raw)):
