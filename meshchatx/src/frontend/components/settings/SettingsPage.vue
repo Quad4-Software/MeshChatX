@@ -3030,15 +3030,12 @@ import {
 } from "../../js/settings/settingsConfigService";
 import { applyAppearanceTheme } from "../../theme/themeEngine.js";
 import { normalizeUiLocaleCode, setLocale } from "../../js/localeLoader.js";
-import {
-    applyTransportMode,
-    applyReticulumInstanceSettings,
-    fetchReticulumInstanceSettings,
-} from "../../js/settings/settingsTransportService";
+import { applyTransportMode } from "../../js/settings/settingsTransportService";
 import * as maintenanceClient from "../../js/settings/settingsMaintenanceClient";
 import { useMessageAgePurge } from "../../js/settings/useMessageAgePurge.js";
 import { useSelfTest } from "../../js/settings/useSelfTest.js";
 import { useBatterySaver } from "../../js/settings/useBatterySaver.js";
+import { useReticulumInstance } from "../../js/settings/useReticulumInstance.js";
 import {
     loadVisualiserDisplayPrefs,
     persistVisualiserShowDisabled,
@@ -3118,6 +3115,10 @@ export default {
             }),
             ...useBatterySaver({
                 t: (key, params) => inst?.proxy.$t(key, params),
+            }),
+            ...useReticulumInstance({
+                t: (key, params) => inst?.proxy.$t(key, params),
+                getRpcKeyVisible: () => inst?.proxy.rpcKeyVisible,
             }),
         };
     },
@@ -3301,23 +3302,6 @@ export default {
             androidRemoteBackendUrl: "",
             androidEffectiveBackendUrl: "",
             androidRemoteBackendActive: false,
-            reticulumInstance: {
-                share_instance: true,
-                local_hops_delta: false,
-                respond_to_probes: false,
-                enable_remote_management: false,
-                remote_management_allowed: [],
-                shared_instance_type: "",
-                instance_name: "default",
-                rpc_key: null,
-                rpc_config_snippet: null,
-                is_connected_to_shared_instance: false,
-                enable_transport: false,
-            },
-            reticulumInstanceSaving: false,
-            remoteManagementAllowedText: "",
-            settingsMgmtIdentityPath: "",
-            settingsMgmtIdentityHash: "",
         };
     },
     computed: {
@@ -3397,26 +3381,6 @@ export default {
         hasSearchResults() {
             if (!this.settingsSearchActive) return true;
             return this.settingsSearchMatchTotal > 0;
-        },
-        displayedRpcConfigSnippet() {
-            const snippet = this.reticulumInstance?.rpc_config_snippet;
-            if (!snippet) {
-                return this.$t("app.rpc_config_unavailable");
-            }
-            if (this.rpcKeyVisible) {
-                return snippet;
-            }
-            return snippet
-                .split("\n")
-                .map((line) => {
-                    const match = line.match(/^(\s*rpc_key\s*=\s*)(.*)$/i);
-                    if (!match) {
-                        return line;
-                    }
-                    const value = match[2] || "";
-                    return `${match[1]}${"•".repeat(Math.max(8, Math.min(value.length, 48)))}`;
-                })
-                .join("\n");
         },
         safeConfig() {
             if (!this.config) {
@@ -3593,100 +3557,6 @@ export default {
             const enabled = value === true;
             this.config.webtransport_sidecar_enabled = enabled;
             this.updateConfig({ webtransport_sidecar_enabled: enabled }, "webtransport_sidecar_enabled");
-        },
-        async loadReticulumInstanceSettings() {
-            try {
-                const instance = await fetchReticulumInstanceSettings(window.api);
-                if (instance && typeof instance === "object") {
-                    this.reticulumInstance = {
-                        ...this.reticulumInstance,
-                        ...instance,
-                        shared_instance_type: instance.shared_instance_type || "",
-                        instance_name: instance.instance_name || "default",
-                        remote_management_allowed: Array.isArray(instance.remote_management_allowed)
-                            ? instance.remote_management_allowed
-                            : [],
-                    };
-                    this.remoteManagementAllowedText = (this.reticulumInstance.remote_management_allowed || []).join(
-                        "\n"
-                    );
-                }
-            } catch (e) {
-                console.log(e);
-            }
-        },
-        async patchReticulumInstance(patch) {
-            if (this.reticulumInstanceSaving) return;
-            this.reticulumInstanceSaving = true;
-            try {
-                const response = await applyReticulumInstanceSettings(patch, window.api);
-                if (response?.data?.instance) {
-                    const instance = response.data.instance;
-                    this.reticulumInstance = {
-                        ...this.reticulumInstance,
-                        ...instance,
-                        shared_instance_type: instance.shared_instance_type || "",
-                        instance_name: instance.instance_name || "default",
-                        remote_management_allowed: Array.isArray(instance.remote_management_allowed)
-                            ? instance.remote_management_allowed
-                            : [],
-                    };
-                    if ("remote_management_allowed" in (patch || {})) {
-                        this.remoteManagementAllowedText = (
-                            this.reticulumInstance.remote_management_allowed || []
-                        ).join("\n");
-                    }
-                }
-                if (response?.data?.message) {
-                    ToastUtils.success(response.data.message);
-                }
-            } catch {
-                ToastUtils.error(this.$t("settings.failed_update_reticulum_instance"));
-                await this.loadReticulumInstanceSettings();
-            } finally {
-                this.reticulumInstanceSaving = false;
-            }
-        },
-        onShareInstanceChange(value) {
-            this.patchReticulumInstance({ share_instance: !!value });
-        },
-        onLocalHopsDeltaChange(value) {
-            this.patchReticulumInstance({ local_hops_delta: !!value });
-        },
-        onRespondToProbesChange(value) {
-            this.patchReticulumInstance({ respond_to_probes: !!value });
-        },
-        onEnableRemoteManagementChange(value) {
-            this.patchReticulumInstance({ enable_remote_management: !!value });
-        },
-        saveRemoteManagementAllowed() {
-            const hashes = (this.remoteManagementAllowedText || "")
-                .split(/[\s,]+/)
-                .map((value) => value.trim().toLowerCase())
-                .filter((value) => value.length > 0);
-            this.patchReticulumInstance({ remote_management_allowed: hashes });
-        },
-        onSettingsMgmtIdentityHash(hash) {
-            this.settingsMgmtIdentityHash = hash || "";
-        },
-        onSharedInstanceTypeChange() {
-            const value = this.reticulumInstance.shared_instance_type || null;
-            this.patchReticulumInstance({ shared_instance_type: value });
-        },
-        onInstanceNameChange() {
-            this.patchReticulumInstance({
-                instance_name: this.reticulumInstance.instance_name || "default",
-            });
-        },
-        async copyRpcConfigSnippet() {
-            const snippet = this.reticulumInstance.rpc_config_snippet;
-            if (!snippet) return;
-            try {
-                await navigator.clipboard.writeText(snippet);
-                ToastUtils.success(this.$t("app.rpc_config_copied"));
-            } catch {
-                ToastUtils.error(this.$t("app.copy_failed"));
-            }
         },
         async loadDesktopCloseSettings() {
             if (!ElectronUtils.isElectron()) {

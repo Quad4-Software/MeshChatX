@@ -284,9 +284,11 @@ describe("behavior contracts: Reticulum instance settings", () => {
         const page = readSource("meshchatx/src/frontend/components/settings/SettingsPage.vue");
         expect(page).toContain("share-reticulum-instance");
         expect(page).toContain("obfuscate-hops");
-        expect(page).toContain("copyRpcConfigSnippet");
-        expect(page).toContain("fetchReticulumInstanceSettings");
-        expect(page).toContain("applyReticulumInstanceSettings");
+        // Instance state lives in the composable extracted from SettingsPage.
+        const instance = readSource("meshchatx/src/frontend/js/settings/useReticulumInstance.js");
+        expect(instance).toContain("copyRpcConfigSnippet");
+        expect(instance).toContain("fetchReticulumInstanceSettings");
+        expect(instance).toContain("applyReticulumInstanceSettings");
         const service = readSource("meshchatx/src/frontend/js/settings/settingsReticulumInstanceService.js");
         expect(service).toContain('apiPath("/reticulum/instance")');
         const selfCheck = readSource("meshchatx/src/backend/self_check.py");
@@ -559,8 +561,7 @@ describe("behavior contracts: security gates", () => {
         const enumValues = Object.fromEntries(
             [...constants.matchAll(/^\s*(\w+)\s*=\s*"([^"]+)"\s*$/gm)].map((m) => [m[1], m[2]])
         );
-        const resolveMembers = (block) =>
-            [...block.matchAll(/WsInboundType\.(\w+)/g)].map((m) => enumValues[m[1]]);
+        const resolveMembers = (block) => [...block.matchAll(/WsInboundType\.(\w+)/g)].map((m) => enumValues[m[1]]);
         const runtimeMatch = constants.match(/WS_RUNTIME_CONTROL_TYPES = frozenset\(\s*\{([^}]+)\}/s);
         const publicMatch = constants.match(/WS_PUBLIC_TYPES = frozenset\(\s*\{([^}]+)\}/s);
         expect(publicMatch).toBeTruthy();
