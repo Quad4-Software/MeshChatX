@@ -99,12 +99,10 @@ describe("useCallAudioDevices", () => {
         const devices = useCallAudioDevices();
         stubMediaDevices({
             getUserMedia: vi.fn(),
-            enumerateDevices: vi
-                .fn()
-                .mockResolvedValue([
-                    { kind: "audioinput", deviceId: "", label: "", groupId: "" },
-                    { kind: "audiooutput", deviceId: "", label: "", groupId: "" },
-                ]),
+            enumerateDevices: vi.fn().mockResolvedValue([
+                { kind: "audioinput", deviceId: "", label: "", groupId: "" },
+                { kind: "audiooutput", deviceId: "", label: "", groupId: "" },
+            ]),
         });
         await devices.refreshAudioDevices();
         expect(devices.audioInputDevices.value[0].deviceId).toBe("__meshchat_default_in__");
@@ -178,9 +176,9 @@ describe("useCallAudioDevices", () => {
         const err = new Error("denied");
         err.name = "NotAllowedError";
         const getUserMedia = vi.fn().mockRejectedValue(err);
-        await expect(
-            devices.getUserMediaWithMicFallback({ getUserMedia, enumerateDevices: vi.fn() })
-        ).rejects.toBe(err);
+        await expect(devices.getUserMediaWithMicFallback({ getUserMedia, enumerateDevices: vi.fn() })).rejects.toBe(
+            err
+        );
         expect(getUserMedia).toHaveBeenCalledTimes(1);
     });
 });

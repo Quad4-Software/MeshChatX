@@ -73,10 +73,9 @@ describe("useRelayMessageTimeline", () => {
         expect(prependTimelineCache).toHaveBeenCalledWith([msg(1), msg(2)]);
         expect(tl.hasMorePrevious.value).toBe(true);
         expect(tl.isLoadingPrevious.value).toBe(false);
-        expect(window.api.get).toHaveBeenCalledWith(
-            `/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/messages`,
-            { params: { limit: RELAY_MESSAGES_PREVIOUS_PAGE_SIZE, before_seq: 3 } }
-        );
+        expect(window.api.get).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/messages`, {
+            params: { limit: RELAY_MESSAGES_PREVIOUS_PAGE_SIZE, before_seq: 3 },
+        });
         // Simulate the DOM growing after the prepend, then the nextTick
         // callback restores scrollTop by the height delta.
         scrollEl.scrollHeight = 1500;
