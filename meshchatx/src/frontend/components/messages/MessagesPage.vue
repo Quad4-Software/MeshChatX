@@ -35,6 +35,7 @@
             :total-peers-count="totalPeersCount"
             :pinned-peer-hashes="pinnedPeerHashes"
             @conversation-click="onConversationClick"
+            @conversation-hover="onConversationHover"
             @peer-click="onPeerClick"
             @conversation-search-changed="onConversationSearchChanged"
             @conversation-filter-changed="onConversationFilterChanged"
@@ -347,6 +348,8 @@ import {
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import { isRetryableHttpError } from "../../js/httpRetry.js";
 import { runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
+import { prefetchConversationFirstPage } from "../../js/conversationPrefetch.js";
+import { CONVERSATION_MESSAGES_PAGE_SIZE } from "./conversationDisplayGroups.js";
 
 export default {
     name: "MessagesPage",
@@ -1446,6 +1449,13 @@ export default {
                 routeOptions.query = { ...this.$route.query };
             }
             this.$router.replace(routeOptions);
+        },
+        onConversationHover: function (conversation) {
+            const hash = conversation?.destination_hash;
+            if (!hash || this.panes?.some((p) => p?.peer?.destination_hash === hash)) {
+                return;
+            }
+            prefetchConversationFirstPage(window.api, hash, CONVERSATION_MESSAGES_PAGE_SIZE);
         },
         onConversationClick: function (conversation) {
             // object must stay compatible with format of peers
