@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import contextlib
 import os
 import sys
 from unittest.mock import MagicMock, patch
@@ -14,6 +15,16 @@ def temp_identity_dir(tmp_path):
     dir_path = tmp_path / "identity"
     dir_path.mkdir()
     return str(dir_path)
+
+
+@pytest.fixture(autouse=True)
+def _no_real_bot_subprocess():
+    """Unit tests must not spawn real bot_process daemons on ~/.reticulum."""
+    with patch("subprocess.Popen") as popen:
+        proc = MagicMock()
+        proc.pid = 43210
+        popen.return_value = proc
+        yield popen
 
 
 def test_bot_handler_init(temp_identity_dir):
@@ -178,6 +189,7 @@ def test_get_status_reads_sidecar_lxmf_address(temp_identity_dir):
 def test_start_stop_bot(mock_popen, temp_identity_dir):
     mock_process = MagicMock()
     mock_process.pid = 12345
+    mock_process.poll.return_value = None
     mock_popen.return_value = mock_process
 
     handler = BotHandler(temp_identity_dir)
@@ -187,10 +199,65 @@ def test_start_stop_bot(mock_popen, temp_identity_dir):
     status = handler.get_status()
     assert any(b["id"] == bot_id and b["running"] for b in status["bots"])
 
-    with patch("meshchatx.src.backend.bot_handler.os.kill") as mock_kill:
+    with (
+        patch("meshchatx.src.backend.bot_handler.os.kill") as mock_kill,
+        patch("meshchatx.src.backend.bot_handler.os.killpg") as mock_killpg,
+    ):
         handler.stop_bot(bot_id)
-        assert mock_kill.called
+        assert mock_killpg.called or mock_kill.called
         assert bot_id not in handler.running_bots
+
+
+@patch("subprocess.Popen")
+def test_start_bot_passes_parent_pid(mock_popen, temp_identity_dir):
+    mock_popen.return_value = MagicMock(pid=43210)
+
+    handler = BotHandler(temp_identity_dir)
+    handler.start_bot("echo", "Watched Bot")
+
+    cmd = mock_popen.call_args.args[0]
+    assert cmd[cmd.index("--parent-pid") + 1] == str(os.getpid())
+
+
+@pytest.mark.skipif(
+    not sys.platform.startswith("linux"),
+    reason="foreign pid oracle needs /proc cmdline",
+)
+def test_stop_bot_refuses_to_signal_recycled_foreign_pid(temp_identity_dir):
+    """A stale pid from state must never be killpg'd into a foreign group.
+
+    posix_spawn bypasses the autouse subprocess.Popen mock so the foreign
+    pid belongs to a real, unrelated process group.
+    """
+    handler = BotHandler(temp_identity_dir)
+    sid = "stale"
+    storage = os.path.join(handler.bots_dir, sid)
+    os.makedirs(storage, exist_ok=True)
+    foreign_pid = os.posix_spawn(
+        sys.executable,
+        [sys.executable, "-c", "import time; time.sleep(60)"],
+        os.environ,
+    )
+    try:
+        handler.bots_state = [
+            {
+                "id": sid,
+                "template_id": "echo",
+                "name": "Stale",
+                "storage_dir": storage,
+                "pid": foreign_pid,
+                "enabled": True,
+            },
+        ]
+        assert handler.stop_bot(sid) is True
+        assert BotHandler._is_pid_alive(foreign_pid)
+        assert handler.bots_state[0]["pid"] is None
+        assert handler.bots_state[0]["enabled"] is False
+    finally:
+        with contextlib.suppress(OSError):
+            os.kill(foreign_pid, 9)
+        with contextlib.suppress(ChildProcessError, OSError):
+            os.waitpid(foreign_pid, 0)
 
 
 @patch("subprocess.Popen")

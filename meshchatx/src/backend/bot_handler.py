@@ -638,6 +638,8 @@ class BotHandler:
             lxmf_sidecar,
             "--runtime-config-file",
             runtime_sidecar,
+            "--parent-pid",
+            str(os.getpid()),
         ]
         if template_id == "rrc" and rrc_cfg is not None:
             cmd += [
@@ -707,46 +709,65 @@ class BotHandler:
         tracked = self.running_bots.get(bot_id) or {}
         proc = tracked.get("proc")
         if pid:
-            try:
-                if sys.platform.startswith("win"):
-                    if proc is not None:
-                        with contextlib.suppress(Exception):
-                            proc.terminate()
-                        with contextlib.suppress(Exception):
-                            proc.wait(timeout=2)
-                    if self._is_pid_alive(pid):
-                        taskkill = shutil.which("taskkill") or "taskkill"
-                        # Process may already have exited, so suppress "not found" noise.
-                        subprocess.run(
-                            [taskkill, "/PID", str(pid), "/T", "/F"],
-                            check=False,
-                            timeout=5,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        )
-                else:
-                    try:
-                        os.killpg(pid, 15)
-                    except OSError:
-                        os.kill(pid, 15)
-                    # brief wait
-                    time.sleep(0.5)
-                    # optional force kill if still alive
-                    try:
-                        if self._is_pid_alive(pid):
-                            try:
-                                os.killpg(pid, 9)
-                            except OSError:
-                                os.kill(pid, 9)
-                    except OSError:
-                        pass
-            except Exception as exc:
+            # A pid from bots_state.json can survive a backend restart and be
+            # recycled by a foreign process group. Only skip verification when
+            # proc is the live child we spawned this session.
+            spawned_here = proc is not None and proc.pid == pid and proc.poll() is None
+            if (
+                not spawned_here
+                and self._pid_matches_bot(
+                    pid,
+                    entry.get("storage_dir"),
+                )
+                is False
+            ):
                 logger.warning(
-                    "Failed to terminate bot %s pid %s: %s",
+                    "Bot %s pid %s is not a bot_process for its storage dir; "
+                    "refusing to signal a foreign process",
                     bot_id,
                     pid,
-                    exc,
                 )
+            else:
+                try:
+                    if sys.platform.startswith("win"):
+                        if proc is not None:
+                            with contextlib.suppress(Exception):
+                                proc.terminate()
+                            with contextlib.suppress(Exception):
+                                proc.wait(timeout=2)
+                        if self._is_pid_alive(pid):
+                            taskkill = shutil.which("taskkill") or "taskkill"
+                            # Process may already have exited, so suppress "not found" noise.
+                            subprocess.run(
+                                [taskkill, "/PID", str(pid), "/T", "/F"],
+                                check=False,
+                                timeout=5,
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                            )
+                    else:
+                        try:
+                            os.killpg(pid, 15)
+                        except OSError:
+                            os.kill(pid, 15)
+                        # brief wait
+                        time.sleep(0.5)
+                        # optional force kill if still alive
+                        try:
+                            if self._is_pid_alive(pid):
+                                try:
+                                    os.killpg(pid, 9)
+                                except OSError:
+                                    os.kill(pid, 9)
+                        except OSError:
+                            pass
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to terminate bot %s pid %s: %s",
+                        bot_id,
+                        pid,
+                        exc,
+                    )
             self._reap_process(bot_id, pid)
 
         entry["pid"] = None
@@ -1006,6 +1027,28 @@ class BotHandler:
             return RNS.Identity.from_file(identity_path)
         except Exception:
             return None
+
+    @staticmethod
+    def _pid_matches_bot(pid, storage_dir):
+        """True or False when /proc proves the pid is or is not this bot.
+
+        Returns None when the check cannot decide: no /proc (macOS, Windows),
+        the process is already gone, or its cmdline is unreadable. Bots spawned
+        by the frozen binary run the bot_process module so the marker matches
+        both launch styles.
+        """
+        if not pid or sys.platform.startswith("win"):
+            return None
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                cmdline = f.read().decode("utf-8", errors="replace")
+        except OSError:
+            return None
+        if "bot_process" not in cmdline:
+            return False
+        if storage_dir and os.path.abspath(storage_dir) not in cmdline:
+            return False
+        return True
 
     @staticmethod
     def _is_pid_alive(pid):
