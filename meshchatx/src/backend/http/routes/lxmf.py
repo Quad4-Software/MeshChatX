@@ -8,7 +8,10 @@ from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
-from meshchatx.src.backend.http.errors import http_error_from_exception
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -134,6 +137,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     web,
     websocket_type_requires_auth,
     zipfile,
+)
+from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
+    PayloadTooLargeError,
+    read_json_limited,
 )
 
 
@@ -262,8 +270,12 @@ def register_lxmf_routes(routes, app):
     async def propagation_node_cancel_inbound(request):
         router = app.message_router
         data = {}
-        with contextlib.suppress(Exception):
-            data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            pass
         if not isinstance(data, dict):
             data = {}
         resource_hash = data.get("resource_hash")
@@ -496,10 +508,12 @@ def register_lxmf_routes(routes, app):
         destination_hashes = None
         if request.method == "POST":
             try:
-                body = await request.json()
+                body = await read_json_limited(request)
                 destination_hashes = body.get("destination_hashes")
                 if destination_hashes and not isinstance(destination_hashes, list):
                     destination_hashes = None
+            except PayloadTooLargeError:
+                return http_payload_too_large()
             except Exception:
                 pass
 
@@ -549,7 +563,13 @@ def register_lxmf_routes(routes, app):
         if blocked is not None:
             return blocked
         # get request body as json
-        data = await request.json()
+        try:
+            data = await read_json_limited(
+                request,
+                UPLOAD_LIMITS["audio_upload"],
+            )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
 
         if not isinstance(data, dict) or "lxmf_message" not in data:
             return web.json_response(
@@ -730,7 +750,10 @@ def register_lxmf_routes(routes, app):
 
     @routes.post("/api/v1/lxmf-messages/reactions")
     async def lxmf_messages_reactions(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash")
         target_message_hash = data.get("target_message_hash")
         emoji = data.get("emoji", "")
@@ -1099,7 +1122,9 @@ def register_lxmf_routes(routes, app):
     @routes.post("/api/v1/lxmf/conversation-pins/toggle")
     async def lxmf_conversation_pins_toggle(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response({"message": "invalid json"}, status=400)
         destination_hash = (
@@ -1319,7 +1344,10 @@ def register_lxmf_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/folders")
     async def lxmf_folders_post(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         if not name:
             return web.json_response({"message": "Name is required"}, status=400)
@@ -1332,7 +1360,10 @@ def register_lxmf_routes(routes, app):
     @routes.patch("/api/v1/lxmf/folders/{id}")
     async def lxmf_folders_patch(request):
         folder_id = int(request.match_info["id"])
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         if not name:
             return web.json_response({"message": "Name is required"}, status=400)
@@ -1356,7 +1387,10 @@ def register_lxmf_routes(routes, app):
 
     @routes.put("/api/v1/lxmf/sieve-filters")
     async def lxmf_sieve_filters_put(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         filters = data.get("filters")
         if not isinstance(filters, list):
             return web.json_response(
@@ -1377,7 +1411,10 @@ def register_lxmf_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/conversations/move-to-folder")
     async def lxmf_conversations_move_to_folder(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         peer_hashes = data.get("peer_hashes", [])
         folder_id = data.get("folder_id")  # Can be None to remove from folder
         if not peer_hashes:
@@ -1390,7 +1427,10 @@ def register_lxmf_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/conversations/bulk-mark-as-read")
     async def lxmf_conversations_bulk_mark_read(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         mark_all = bool(data.get("mark_all"))
         destination_hashes = data.get("destination_hashes", [])
         if mark_all:
@@ -1412,7 +1452,10 @@ def register_lxmf_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/conversations/bulk-delete")
     async def lxmf_conversations_bulk_delete(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hashes = data.get("destination_hashes", [])
         if not destination_hashes:
             return web.json_response(
@@ -1441,7 +1484,10 @@ def register_lxmf_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/folders/import")
     async def lxmf_folders_import(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         folders = data.get("folders", [])
         mappings = data.get("mappings", [])
 

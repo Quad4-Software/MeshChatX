@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_error_from_exception
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -130,6 +133,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 _MISSING = object()
 
@@ -170,7 +177,10 @@ def register_bots_routes(routes, app):
 
     @routes.post("/api/v1/bots/start")
     async def bots_start(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         template_id = data.get("template_id")
         name = data.get("name")
         bot_id = data.get("bot_id")
@@ -208,7 +218,10 @@ def register_bots_routes(routes, app):
 
     @routes.post("/api/v1/bots/stop")
     async def bots_stop(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
 
         if not bot_id:
@@ -225,7 +238,10 @@ def register_bots_routes(routes, app):
 
     @routes.post("/api/v1/bots/restart")
     async def bots_restart(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
 
         if not bot_id:
@@ -245,7 +261,10 @@ def register_bots_routes(routes, app):
 
     @routes.post("/api/v1/bots/delete")
     async def bots_delete(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
 
         if not bot_id:
@@ -286,7 +305,10 @@ def register_bots_routes(routes, app):
 
     @routes.patch("/api/v1/bots/update")
     async def bots_update(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
         name = data.get("name")
         lxmf_config = data.get("lxmf_config")
@@ -349,7 +371,10 @@ def register_bots_routes(routes, app):
 
     @routes.patch("/api/v1/bots/lxmf-config")
     async def bots_lxmf_config(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
         lxmf_config = data.get("lxmf_config")
 
@@ -381,7 +406,10 @@ def register_bots_routes(routes, app):
 
     @routes.post("/api/v1/bots/announce")
     async def bots_announce(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
 
         if not bot_id:
@@ -410,9 +438,11 @@ def register_bots_routes(routes, app):
     async def bots_export(request):
         bot_id = None
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             if isinstance(data, dict):
                 bot_id = data.get("bot_id")
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             bot_id = None
         if not bot_id:

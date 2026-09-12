@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from meshchatx.src.backend.crawler_manager import make_snippet
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -130,6 +131,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     web,
     websocket_type_requires_auth,
     zipfile,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
 )
 
 
@@ -330,7 +335,10 @@ def register_archives_routes(routes, app):
 
     @routes.delete("/api/v1/nomadnet/archives")
     async def delete_archived_pages(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         ids = data.get("ids", [])
 
         if not ids:
@@ -369,7 +377,10 @@ def register_archives_routes(routes, app):
 
     @routes.post("/api/v1/nomadnet/crawl/opt-outs")
     async def add_crawl_opt_out(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = (data.get("destination_hash") or "").strip().lower()
         if len(destination_hash) != 32:
             return web.json_response(
@@ -421,7 +432,10 @@ def register_archives_routes(routes, app):
     @routes.post("/api/v1/nomadnet/archives/recrawl")
     async def recrawl_archived_page(request):
         """Fetch a Nomad page now and store a fresh archive snapshot."""
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = (data.get("destination_hash") or "").strip().lower()
         page_path = (data.get("page_path") or "").strip()
         if len(destination_hash) != 32:
@@ -483,9 +497,9 @@ def register_archives_routes(routes, app):
                 failure_reason[0] = "timeout"
                 downloader.cancel()
             await download_task
-        except Exception as exc:
+        except Exception:
             return web.json_response(
-                {"message": f"Recrawl failed: {exc}"},
+                {"message": "Recrawl failed"},
                 status=502,
             )
 

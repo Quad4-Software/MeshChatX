@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,16 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+from meshchatx.src.backend.sticker_utils import (
+    MAX_STICKER_BYTES,
+    MAX_STICKERS_PER_PACK,
+)
+
+_STICKER_DOC_MAX_BYTES = MAX_STICKER_BYTES * MAX_STICKERS_PER_PACK * 2
 
 
 def register_stickers_routes(routes, app):
@@ -143,7 +154,9 @@ def register_stickers_routes(routes, app):
     async def stickers_create(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         image_b64 = data.get("image_bytes")
@@ -200,7 +213,9 @@ def register_stickers_routes(routes, app):
         identity_hash = app.identity.hash.hex()
         sticker_id = int(request.match_info.get("sticker_id", "0"))
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         applied = False
@@ -275,7 +290,9 @@ def register_stickers_routes(routes, app):
     async def stickers_import(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request, _STICKER_DOC_MAX_BYTES)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         replace = bool(data.get("replace_duplicates", False))
@@ -315,7 +332,9 @@ def register_stickers_routes(routes, app):
     async def sticker_packs_create(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         try:
@@ -358,7 +377,9 @@ def register_stickers_routes(routes, app):
         except ValueError:
             return web.json_response({"error": "invalid_pack_id"}, status=400)
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         kwargs = {}
@@ -383,7 +404,9 @@ def register_stickers_routes(routes, app):
     async def sticker_packs_reorder(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         ids = data.get("pack_ids")
@@ -440,7 +463,9 @@ def register_stickers_routes(routes, app):
     async def sticker_packs_install(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request, _STICKER_DOC_MAX_BYTES)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         replace = bool(data.get("replace_duplicates", False))

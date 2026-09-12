@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 from meshchatx.src.backend.rrc import search as rrc_search
 
 
@@ -175,7 +180,10 @@ def register_rrc_routes(routes, app):
         manager, error = _rrc_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         hub_hash_hex = (data.get("hub_hash") or "").strip()
         try:
             hub_hash = bytes.fromhex(hub_hash_hex)
@@ -211,7 +219,10 @@ def register_rrc_routes(routes, app):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if "auto_reconnect" in data:
             hub.set_auto_reconnect(bool(data["auto_reconnect"]))
         if "auto_list" in data:
@@ -238,7 +249,10 @@ def register_rrc_routes(routes, app):
         manager, error = _rrc_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         hub_hashes = data.get("hub_hashes")
         if not isinstance(hub_hashes, list):
             return web.json_response(
@@ -257,7 +271,10 @@ def register_rrc_routes(routes, app):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         room_names = data.get("room_names")
         if not isinstance(room_names, list):
             return web.json_response(
@@ -305,7 +322,10 @@ def register_rrc_routes(routes, app):
         manager, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         room = (data.get("room") or "").strip()
         if not room:
             return web.json_response(
@@ -352,7 +372,10 @@ def register_rrc_routes(routes, app):
         if error is not None:
             return error
         room = request.match_info.get("room", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         key = data.get("key")
         if not isinstance(key, str) or not key.strip():
             return web.json_response(
@@ -476,7 +499,10 @@ def register_rrc_routes(routes, app):
         if error is not None:
             return error
         room = request.match_info.get("room", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         text = data.get("text")
         is_action = bool(data.get("action"))
         try:
@@ -524,7 +550,10 @@ def register_rrc_routes(routes, app):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         text = data.get("text")
         room = data.get("room") or None
         try:
@@ -573,7 +602,10 @@ def register_rrc_routes(routes, app):
         manager, error = _rrc_server_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = (data.get("name") or "").strip() or None
         greeting = (data.get("greeting") or "").strip() or None
         announce = bool(data.get("announce", True))
@@ -608,7 +640,10 @@ def register_rrc_routes(routes, app):
         )
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         manager.update_hub(
             hub.hub_id,
             name=(data.get("name") if "name" in data else None),
@@ -665,7 +700,10 @@ def register_rrc_routes(routes, app):
         )
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = (data.get("name") or "").strip()
         if not name:
             return web.json_response(
@@ -713,7 +751,10 @@ def register_rrc_routes(routes, app):
         if error is not None:
             return error
         room = request.match_info.get("room", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         raw_key = data.get("key")
         if raw_key is None or raw_key == "":
             key = None
@@ -797,7 +838,10 @@ def register_rrc_routes(routes, app):
         )
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         action = (data.get("action") or "").strip().lower()
         peer = (data.get("peer") or "").strip()
         room = (data.get("room") or "").strip() or None

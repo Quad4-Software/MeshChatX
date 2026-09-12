@@ -13,12 +13,11 @@ from meshchatx.src.backend.http.errors import (
     http_payload_too_large,
 )
 from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
     PayloadTooLargeError,
     write_field_to_path,
 )
 from meshchatx.src.path_utils import safe_path_under_dir
-
-_TRANSLATION_PACK_MAX_BYTES = 512 * 1024 * 1024
 
 
 def register_translation_routes(routes, app) -> None:
@@ -56,7 +55,7 @@ def register_translation_routes(routes, app) -> None:
             await write_field_to_path(
                 field,
                 archive_path,
-                _TRANSLATION_PACK_MAX_BYTES,
+                UPLOAD_LIMITS["translation_pack"],
             )
 
             pairs = app.translation_pack_manager.import_archive(archive_path)

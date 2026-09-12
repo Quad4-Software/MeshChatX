@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_text_limited,
+    read_json_limited,
+)
 
 
 def register_identities_routes(routes, app):
@@ -146,10 +152,10 @@ def register_identities_routes(routes, app):
                     "Content-Disposition": 'attachment; filename="identity.bin"',
                 },
             )
-        except Exception as e:
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to create identity backup: {e!s}",
+                    "message": "Failed to create identity backup",
                 },
                 status=500,
             )
@@ -162,10 +168,10 @@ def register_identities_routes(routes, app):
                     "identity_base32": app.backup_identity_base32(),
                 },
             )
-        except Exception as e:
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to export identity: {e!s}",
+                    "message": "Failed to export identity",
                 },
                 status=500,
             )
@@ -190,7 +196,9 @@ def register_identities_routes(routes, app):
                             field.read_chunk,
                         )
                     elif field.name == "display_name":
-                        display_name = (await field.text()).strip() or None
+                        display_name = (
+                            await read_field_text_limited(field)
+                        ).strip() or None
                     field = await reader.next()
                 if identity_bytes is None:
                     return web.json_response(
@@ -202,7 +210,7 @@ def register_identities_routes(routes, app):
                     display_name=display_name,
                 )
             else:
-                data = await request.json()
+                data = await read_json_limited(request)
                 base32_value = data.get("base32")
                 if not base32_value:
                     return web.json_response(
@@ -220,6 +228,8 @@ def register_identities_routes(routes, app):
                     "identity": result,
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except ValueError as e:
             return web.json_response(
                 {
@@ -227,10 +237,10 @@ def register_identities_routes(routes, app):
                 },
                 status=400,
             )
-        except Exception as e:
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to restore identity: {e!s}",
+                    "message": "Failed to restore identity",
                 },
                 status=500,
             )
@@ -251,10 +261,10 @@ def register_identities_routes(routes, app):
                     "identities": identities,
                 },
             )
-        except Exception as e:
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to list identities: {e!s}",
+                    "message": "Failed to list identities",
                 },
                 status=500,
             )
@@ -280,10 +290,10 @@ def register_identities_routes(routes, app):
                     "Content-Disposition": 'attachment; filename="identities_export.zip"',
                 },
             )
-        except Exception as e:
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to export identities: {e!s}",
+                    "message": "Failed to export identities",
                 },
                 status=500,
             )
@@ -291,7 +301,7 @@ def register_identities_routes(routes, app):
     @routes.post("/api/v1/identities/create")
     async def identities_create(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             display_name = data.get("display_name")
             result = app.create_identity(display_name)
             return web.json_response(
@@ -300,10 +310,12 @@ def register_identities_routes(routes, app):
                     "identity": result,
                 },
             )
-        except Exception as e:
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to create identity: {e!s}",
+                    "message": "Failed to create identity",
                 },
                 status=500,
             )
@@ -338,10 +350,10 @@ def register_identities_routes(routes, app):
                 },
                 status=400,
             )
-        except Exception as e:
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to delete identity: {e!s}",
+                    "message": "Failed to delete identity",
                 },
                 status=500,
             )
@@ -349,7 +361,7 @@ def register_identities_routes(routes, app):
     @routes.post("/api/v1/identities/switch")
     async def identities_switch(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             identity_hash = normalize_identity_storage_hash(
                 data.get("identity_hash"),
             )
@@ -422,10 +434,12 @@ def register_identities_routes(routes, app):
                     "should_restart": True,
                 },
             )
-        except Exception as e:
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
             return web.json_response(
                 {
-                    "message": f"Failed to switch identity: {e!s}",
+                    "message": "Failed to switch identity",
                 },
                 status=500,
             )

@@ -134,11 +134,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
     PayloadTooLargeError,
     read_field_limited,
+    read_json_limited,
 )
-
-_REPOSITORY_UPLOAD_MAX_BYTES = 256 * 1024 * 1024
 
 
 def register_repository_server_routes(routes, app):
@@ -172,7 +172,10 @@ def register_repository_server_routes(routes, app):
                     status=400,
                 )
             filename = field.filename or "upload.bin"
-            data = await read_field_limited(field, _REPOSITORY_UPLOAD_MAX_BYTES)
+            data = await read_field_limited(
+                field,
+                UPLOAD_LIMITS["repository_upload"],
+            )
             ok, err = mgr.save_upload(filename, data)
             if not ok:
                 return web.json_response(
@@ -203,7 +206,9 @@ def register_repository_server_routes(routes, app):
         if not mgr:
             return web.json_response({"error": "Unavailable"}, status=503)
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         if not isinstance(data, dict):
@@ -246,7 +251,9 @@ def register_repository_server_routes(routes, app):
         if not mgr:
             return web.json_response({"error": "Unavailable"}, status=503)
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         if not isinstance(data, dict):

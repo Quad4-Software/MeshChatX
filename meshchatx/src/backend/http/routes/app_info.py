@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_error_from_exception
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +132,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     web,
     websocket_type_requires_auth,
     zipfile,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
 )
 
 
@@ -603,7 +610,9 @@ def register_app_info_routes(routes, app):
                 status=400,
             )
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response({"error": "Invalid JSON"}, status=400)
         action = data.get("action")
@@ -644,7 +653,10 @@ def register_app_info_routes(routes, app):
     # mark changelog as seen
     @routes.post("/api/v1/app/changelog/seen")
     async def app_changelog_seen(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         version = data.get("version")
         if not version:
             return web.json_response({"error": "Version required"}, status=400)
@@ -657,7 +669,9 @@ def register_app_info_routes(routes, app):
     @routes.post("/api/v1/app/channel-prompt/seen")
     async def app_channel_prompt_seen(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             return web.json_response({"error": "Invalid JSON"}, status=400)
         key = data.get("key") if isinstance(data, dict) else None

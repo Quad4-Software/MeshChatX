@@ -137,11 +137,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
     PayloadTooLargeError,
+    read_json_limited,
     write_field_to_path,
 )
-
-_MBTILES_MAX_BYTES = 2 * 1024 * 1024 * 1024
 
 
 def register_map_routes(routes, app):
@@ -216,7 +216,10 @@ def register_map_routes(routes, app):
     # set active MBTiles file
     @routes.post("/api/v1/map/mbtiles/active")
     async def set_active_mbtiles(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         filename = data.get("filename")
         if filename is not None and (
             not isinstance(filename, str) or "\x00" in filename
@@ -257,7 +260,10 @@ def register_map_routes(routes, app):
     @routes.post("/api/v1/map/drawings")
     async def save_map_drawing(request):
         identity_hash = app.identity.hash.hex()
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         drawing_data = data.get("data")
         app.database.map_drawings.upsert_drawing(identity_hash, name, drawing_data)
@@ -279,7 +285,10 @@ def register_map_routes(routes, app):
     async def update_map_drawing(request):
         identity_hash = app.identity.hash.hex()
         drawing_id = request.match_info.get("drawing_id")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         drawing_data = data.get("data")
         updated = app.database.map_drawings.update_drawing(
@@ -305,7 +314,9 @@ def register_map_routes(routes, app):
         if not app.map_overlay_manager:
             return web.json_response({"error": "unavailable"}, status=503)
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         identity_hash = app.identity.hash.hex()
@@ -325,7 +336,9 @@ def register_map_routes(routes, app):
         if not app.map_overlay_manager:
             return web.json_response({"error": "unavailable"}, status=503)
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         fmt = str(data.get("format") or "geojson").lower()
@@ -404,7 +417,9 @@ def register_map_routes(routes, app):
         except (TypeError, ValueError):
             return web.json_response({"error": "not_found"}, status=404)
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         identity_hash = app.identity.hash.hex()
@@ -512,7 +527,11 @@ def register_map_routes(routes, app):
                     status=400,
                 )
 
-            await write_field_to_path(field, dest_path, _MBTILES_MAX_BYTES)
+            await write_field_to_path(
+                field,
+                dest_path,
+                UPLOAD_LIMITS["map_offline_mbtiles"],
+            )
 
             # close old connection and clear cache before update
             app.map_manager.close()
@@ -554,7 +573,7 @@ def register_map_routes(routes, app):
     @routes.post("/api/v1/map/export")
     async def start_map_export(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             if not isinstance(data, dict):
                 return web.json_response({"error": "Invalid body"}, status=400)
             bbox = data.get("bbox")  # [min_lon, min_lat, max_lon, max_lat]
@@ -613,6 +632,8 @@ def register_map_routes(routes, app):
             app.map_manager.start_export(export_id, bbox, min_zoom, max_zoom, name)
 
             return web.json_response({"export_id": export_id})
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except OutboundHttpBlockedError as e:
             return web.json_response({"error": str(e)}, status=403)
         except Exception as e:
@@ -693,7 +714,9 @@ def register_map_routes(routes, app):
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         name = str(data.get("name") or "map")
@@ -757,7 +780,9 @@ def register_map_routes(routes, app):
         if not app.map_data_manager:
             return web.json_response({"error": "unavailable"}, status=503)
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         return web.json_response(
@@ -775,7 +800,9 @@ def register_map_routes(routes, app):
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         dest = data.get("destination_hash")
@@ -802,7 +829,9 @@ def register_map_routes(routes, app):
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         dest = data.get("destination_hash")
@@ -835,7 +864,9 @@ def register_map_routes(routes, app):
         from meshchatx.src.backend.map_data_manager import MapDataError
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
             return web.json_response({"error": "invalid_json"}, status=400)
         dest = data.get("destination_hash")

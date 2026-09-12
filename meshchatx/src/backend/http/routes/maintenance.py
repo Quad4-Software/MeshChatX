@@ -134,11 +134,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
     PayloadTooLargeError,
     read_field_limited,
+    read_json_limited,
 )
-
-_MESSAGE_IMPORT_MAX_BYTES = 64 * 1024 * 1024
 
 
 def register_maintenance_routes(routes, app):
@@ -305,7 +305,9 @@ def register_maintenance_routes(routes, app):
     @routes.post("/api/v1/maintenance/messages/export")
     async def maintenance_export_messages(request):
         try:
-            body = await request.json() if request.can_read_body else {}
+            body = await read_json_limited(request) if request.can_read_body else {}
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             body = {}
         if not isinstance(body, dict):
@@ -391,7 +393,7 @@ def register_maintenance_routes(routes, app):
     @routes.post("/api/v1/maintenance/messages/import")
     async def maintenance_import_messages(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request, UPLOAD_LIMITS["message_import"])
             if app.database is None:
                 return web.json_response(
                     {"error": "No active identity database"},
@@ -404,6 +406,8 @@ def register_maintenance_routes(routes, app):
                 data,
             )
             return _message_import_response(result)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return http_error_from_exception(e)
 
@@ -426,7 +430,7 @@ def register_maintenance_routes(routes, app):
 
             raw = await read_field_limited(
                 field,
-                _MESSAGE_IMPORT_MAX_BYTES,
+                UPLOAD_LIMITS["message_import"],
                 chunk_size=1024 * 1024,
             )
 

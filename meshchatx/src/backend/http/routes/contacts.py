@@ -7,7 +7,10 @@ from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
-from meshchatx.src.backend.http.errors import http_bad_request
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -134,6 +137,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 CONTACTS_DEFAULT_LIMIT = 100
 CONTACTS_MAX_LIMIT = 500
@@ -225,7 +232,10 @@ def register_contacts_routes(routes, app):
 
     @routes.post("/api/v1/telephone/contacts")
     async def telephone_contacts_post(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         remote_identity_hash = data.get("remote_identity_hash")
         lxmf_address = data.get("lxmf_address")
@@ -318,7 +328,10 @@ def register_contacts_routes(routes, app):
     @routes.patch("/api/v1/telephone/contacts/{id}")
     async def telephone_contacts_patch(request):
         contact_id = int(request.match_info["id"])
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         remote_identity_hash = data.get("remote_identity_hash")
         lxmf_address = data.get("lxmf_address")
@@ -403,7 +416,7 @@ def register_contacts_routes(routes, app):
     @routes.post("/api/v1/telephone/contacts/import")
     async def telephone_contacts_import(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             contacts = data.get("contacts", [])
             if not isinstance(contacts, list):
                 return web.json_response(
@@ -417,6 +430,8 @@ def register_contacts_routes(routes, app):
             return web.json_response(
                 {"message": "Import complete", "added": added, "skipped": skipped},
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return web.json_response(
                 {"message": f"Failed to import contacts: {e!s}"},

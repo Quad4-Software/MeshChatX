@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_config_routes(routes, app):
@@ -149,7 +154,7 @@ def register_config_routes(routes, app):
     async def config_update(request):
         # get request body as json
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             await app.update_config(data)
             try:
                 AsyncUtils.run_async(app.send_config_to_websocket_clients())
@@ -161,6 +166,8 @@ def register_config_routes(routes, app):
                     "config": app.get_config_dict(),
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
         except Exception:

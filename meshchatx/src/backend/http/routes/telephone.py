@@ -134,12 +134,12 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
     PayloadTooLargeError,
     read_field_limited,
+    read_json_limited,
     write_field_to_path,
 )
-
-_AUDIO_UPLOAD_MAX_BYTES = 64 * 1024 * 1024
 
 
 async def first_multipart_file_field(reader, field_name="file"):
@@ -152,7 +152,7 @@ async def first_multipart_file_field(reader, field_name="file"):
         if name == field_name or field.filename:
             return field
         with contextlib.suppress(Exception):
-            await read_field_limited(field, _AUDIO_UPLOAD_MAX_BYTES)
+            await read_field_limited(field, UPLOAD_LIMITS["audio_upload"])
 
 
 def register_telephone_routes(routes, app):
@@ -580,7 +580,9 @@ def register_telephone_routes(routes, app):
                 status=400,
             )
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         active = bool(data.get("active", False)) if isinstance(data, dict) else False
@@ -1132,7 +1134,11 @@ def register_telephone_routes(routes, app):
             # Save temp file
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
-            await write_field_to_path(field, temp_path, _AUDIO_UPLOAD_MAX_BYTES)
+            await write_field_to_path(
+                field,
+                temp_path,
+                UPLOAD_LIMITS["audio_upload"],
+            )
 
             try:
                 # Convert to greeting
@@ -1300,7 +1306,11 @@ def register_telephone_routes(routes, app):
             # Save temp file
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
-            await write_field_to_path(field, temp_path, _AUDIO_UPLOAD_MAX_BYTES)
+            await write_field_to_path(
+                field,
+                temp_path,
+                UPLOAD_LIMITS["audio_upload"],
+            )
 
             try:
                 # Convert to ringtone
@@ -1336,7 +1346,7 @@ def register_telephone_routes(routes, app):
     async def telephone_ringtone_patch(request):
         try:
             ringtone_id = int(request.match_info["id"])
-            data = await request.json()
+            data = await read_json_limited(request)
 
             display_name = data.get("display_name")
             is_primary = 1 if data.get("is_primary") else None
@@ -1348,6 +1358,8 @@ def register_telephone_routes(routes, app):
             )
 
             return web.json_response({"message": "Ringtone updated"})
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
@@ -1479,7 +1491,11 @@ def register_telephone_routes(routes, app):
 
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
-            await write_field_to_path(field, temp_path, _AUDIO_UPLOAD_MAX_BYTES)
+            await write_field_to_path(
+                field,
+                temp_path,
+                UPLOAD_LIMITS["audio_upload"],
+            )
 
             try:
                 storage_filename = await asyncio.to_thread(
@@ -1513,7 +1529,7 @@ def register_telephone_routes(routes, app):
     async def notification_sound_patch(request):
         try:
             sound_id = int(request.match_info["id"])
-            data = await request.json()
+            data = await read_json_limited(request)
 
             display_name = data.get("display_name")
             is_primary = 1 if data.get("is_primary") else None
@@ -1525,6 +1541,8 @@ def register_telephone_routes(routes, app):
             )
 
             return web.json_response({"message": "Notification sound updated"})
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 

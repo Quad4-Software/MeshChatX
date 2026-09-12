@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_status_routes(routes, app):
@@ -158,7 +163,9 @@ def register_status_routes(routes, app):
         config_path = app._reticulum_config_file_path()
         actions: list[str] = []
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         if not isinstance(data, dict):
@@ -228,7 +235,7 @@ def register_status_routes(routes, app):
             return web.json_response(
                 {
                     "message": "Recovery attempt failed",
-                    "error": str(exc),
+                    "error": "Recovery attempt failed",
                     "disabled_interfaces": actions,
                     "status": app._startup_status_payload(),
                 },

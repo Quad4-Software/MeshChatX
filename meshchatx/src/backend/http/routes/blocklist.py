@@ -7,7 +7,10 @@ from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
-from meshchatx.src.backend.http.errors import http_error_from_exception
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -134,6 +137,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 
 
 def register_blocklist_routes(routes, app):
@@ -149,7 +156,10 @@ def register_blocklist_routes(routes, app):
 
     @routes.put("/api/v1/lxmf/message-blocklist")
     async def lxmf_message_blocklist_put(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         blocklist_in = data.get("blocklist")
         if not isinstance(blocklist_in, dict):
             return web.json_response(
@@ -177,7 +187,10 @@ def register_blocklist_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/message-blocklist/import")
     async def lxmf_message_blocklist_import(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         document = data.get("document")
         if not isinstance(document, dict):
             return web.json_response(
@@ -235,7 +248,10 @@ def register_blocklist_routes(routes, app):
     # add blocked destination
     @routes.post("/api/v1/blocked-destinations")
     async def blocked_destinations_add(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash", "")
         if not destination_hash or len(destination_hash) != 32:
             return web.json_response(

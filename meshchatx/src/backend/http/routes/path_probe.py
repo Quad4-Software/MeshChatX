@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.errors import http_payload_too_large
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -129,6 +130,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 from meshchatx.src.backend.meshchat_utils import normalize_hex_identifier
 from meshchatx.src.backend.path_utils import path_response_window
 
@@ -167,7 +172,7 @@ async def read_path_probe_timeout_raw(request, default=None):
     method = str(getattr(request, "method", "GET") or "GET").upper()
     if method == "POST":
         try:
-            body = await request.json()
+            body = await read_json_limited(request)
         except Exception:
             body = None
         if isinstance(body, dict) and body.get("timeout") is not None:
@@ -665,10 +670,12 @@ def register_path_probe_routes(routes, app):
         destination_hashes = None
         if request.method == "POST":
             try:
-                body = await request.json()
+                body = await read_json_limited(request)
                 destination_hashes = body.get("destination_hashes")
                 if destination_hashes and not isinstance(destination_hashes, list):
                     destination_hashes = None
+            except PayloadTooLargeError:
+                return http_payload_too_large()
             except Exception:
                 pass
 
