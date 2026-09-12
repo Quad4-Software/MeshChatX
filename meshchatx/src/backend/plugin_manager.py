@@ -68,7 +68,7 @@ from meshchatx.src.backend.plugin_wasm_bundle import (
     validate_embedded_bundle,
     write_wasm_bundle,
 )
-from meshchatx.src.path_utils import is_path_within_dir
+from meshchatx.src.path_utils import is_path_within_dir, is_under_root
 
 SUPPORTED_API_VERSION = 1
 PLUGIN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
@@ -815,7 +815,7 @@ class PluginManager:
         normalized = normalize_asset_path(entry.strip())
         root = os.path.realpath(record.install_path)
         path = os.path.realpath(os.path.join(root, normalized))
-        if path != root and not path.startswith(root + os.sep):
+        if not is_under_root(path, root):
             raise PluginSecurityError("python backend entry escapes install tree")
         if not os.path.isfile(path):
             raise ValueError("python backend entry not found")
@@ -841,7 +841,7 @@ class PluginManager:
         normalized = normalize_asset_path(asset_name)
         root = os.path.realpath(record.install_path)
         path = os.path.realpath(os.path.join(root, normalized))
-        if path != root and not path.startswith(root + os.sep):
+        if not is_under_root(path, root):
             raise PluginSecurityError("invalid asset path")
         if not os.path.isfile(path):
             raise FileNotFoundError(asset_name)
@@ -868,7 +868,7 @@ class PluginManager:
             except PluginSecurityError:
                 continue
             path = os.path.realpath(os.path.join(root, normalized))
-            if path != root and not path.startswith(root + os.sep):
+            if not is_under_root(path, root):
                 continue
             if os.path.isfile(path):
                 return path
@@ -1409,7 +1409,7 @@ class PluginManager:
         normalized = normalize_asset_path(entry.strip())
         root = os.path.realpath(record.install_path)
         wasm_path = os.path.realpath(os.path.join(root, normalized))
-        if wasm_path != root and not wasm_path.startswith(root + os.sep):
+        if not is_under_root(wasm_path, root):
             raise PluginSecurityError("backend wasm entry escapes install tree")
         if not os.path.isfile(wasm_path):
             return self._ensure_minimal_wasm(record)
@@ -1486,7 +1486,7 @@ class PluginManager:
         normalized = normalize_asset_path(entry.strip())
         root = os.path.realpath(record.install_path)
         wasm_path = os.path.realpath(os.path.join(root, normalized))
-        if wasm_path != root and not wasm_path.startswith(root + os.sep):
+        if not is_under_root(wasm_path, root):
             raise PluginSecurityError("backend wasm entry escapes install tree")
         parent = os.path.dirname(wasm_path)
         if parent:
