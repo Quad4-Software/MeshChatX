@@ -1436,7 +1436,7 @@
 <script>
 import { useConfigStore } from "../../js/stores/configStore.js";
 import { useUnreadStore } from "../../js/stores/unreadStore.js";
-import { nextTick } from "vue";
+import { getCurrentInstance, nextTick } from "vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
 import * as announcesApi from "../../js/api/announces.js";
@@ -1455,12 +1455,11 @@ import {
     mergeRelayMessages,
     relayMessageAlreadyPresent,
     relayMessageKey,
-    filterUniqueOlderRelayMessages,
     prependRelayMessageTimeline,
     relayMessageTimelineSignature,
     RELAY_MESSAGES_INITIAL_PAGE_SIZE,
-    RELAY_MESSAGES_PREVIOUS_PAGE_SIZE,
 } from "../../js/relayMessageTimeline.js";
+import { useRelayMessageTimeline } from "../../js/relay/useRelayMessageTimeline.js";
 import { MIN_VIRTUAL_RELAY_ENTRIES } from "./relayMessageListVirtual.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
@@ -1504,7 +1503,6 @@ const BTN_DANGER_SM =
     "inline-flex items-center justify-center rounded-lg border border-sem-border bg-sem-canvas p-1.5 text-sem-fg transition hover:border-sem-danger hover:text-sem-danger hover:bg-sem-danger/10";
 
 const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
-const LOAD_PREVIOUS_SCROLL_EDGE_PX = 200;
 // Tabs that collapse into a mobile overflow menu so the tab bar fits narrow screens.
 const OVERFLOW_TAB_IDS = new Set(["host", "bots"]);
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
@@ -1570,6 +1568,19 @@ export default {
         hubHash: { type: String, default: null },
         room: { type: String, default: null },
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useRelayMessageTimeline({
+                getSelectedHubHash: () => inst?.proxy.selectedHubHash,
+                getSelectedRoom: () => inst?.proxy.selectedRoom,
+                getMessagesScrollElement: () => inst?.proxy.getMessagesScrollElement(),
+                encodeRoom: (room) => inst?.proxy.encodeRoom(room),
+                prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
+                t: (...args) => inst?.proxy.$t(...args),
+            }),
+        };
+    },
     data() {
         return {
             RELAY_HOST_MODAL_OVERLAY,
@@ -1621,7 +1632,6 @@ export default {
             hostUptimeTick: 0,
             hostUptimeAnchorMs: 0,
             hostUptimeTimer: null,
-            expandedPresenceGroups: {},
             relaySidebarCollapsed: loadFeatureSidebarCollapsed("relayChat") ?? false,
             smUp: false,
             smMq: null,
@@ -1648,14 +1658,7 @@ export default {
             },
             translationPacks: [],
             messageTranslations: {},
-            messages: [],
-            messageTimelineCache: null,
-            messageTimelineCacheSignature: "",
             members: [],
-            hasMorePrevious: false,
-            isLoadingPrevious: false,
-            loadPreviousInFlight: 0,
-            roomSelectSequence: 0,
             composer: "",
             sending: false,
             joinRoomName: "",
@@ -1776,12 +1779,6 @@ export default {
             }
             return String(this.hostAnnounceIntervalMinutes);
         },
-        messageTimeline() {
-            if (this.messageTimelineCache !== null) {
-                return this.messageTimelineCache;
-            }
-            return buildRelayMessageTimeline(this.messages);
-        },
         relayChatPageSelf() {
             return this;
         },
@@ -1790,18 +1787,6 @@ export default {
                 return false;
             }
             return useConfigStore().config?.message_list_virtualization !== false;
-        },
-        oldestLoadedSeq() {
-            let minSeq = null;
-            for (const msg of this.messages) {
-                if (typeof msg.seq !== "number") {
-                    continue;
-                }
-                if (minSeq === null || msg.seq < minSeq) {
-                    minSeq = msg.seq;
-                }
-            }
-            return minSeq;
         },
         searchResults() {
             return filterRelayMessages(this.messages, this.messageSearch, (msg) => this.displayName(msg));
@@ -1828,17 +1813,6 @@ export default {
         },
     },
     watch: {
-        messages: {
-            handler(msgs) {
-                const sig = relayMessageTimelineSignature(msgs);
-                if (this.messageTimelineCache === null || this.messageTimelineCacheSignature !== sig) {
-                    this.messageTimelineCache = buildRelayMessageTimeline(msgs);
-                    this.messageTimelineCacheSignature = sig;
-                }
-            },
-            deep: true,
-            immediate: true,
-        },
         relaySidebarCollapsed(collapsed) {
             saveFeatureSidebarCollapsed("relayChat", collapsed);
             this.persistRelayLayout();
@@ -1904,6 +1878,9 @@ export default {
         window.api.post(apiPath("/rrc/active/clear")).catch(() => {});
     },
     methods: {
+        // Underscore-prefixed names are reserved on setup() returns, so the
+        // timeline cache helpers stay here; their state lives in
+        // useRelayMessageTimeline and resolves through this.
         _invalidateMessageTimelineCache() {
             this.messageTimelineCache = null;
             this.messageTimelineCacheSignature = "";
@@ -2701,46 +2678,6 @@ export default {
         messageKey(msg) {
             return relayMessageKey(msg);
         },
-        timelineEntryKey(entry, index = 0) {
-            if (entry.type === "dateDivider") {
-                return `date-${entry.dayKey}-${index}`;
-            }
-            if (entry.type === "presenceGroup") {
-                return `presence-${entry.id}-${index}`;
-            }
-            const msgKey = this.messageKey(entry.msg);
-            return msgKey ? `${msgKey}-${index}` : `idx-${index}`;
-        },
-        isPresenceGroupExpanded(groupId) {
-            return !!this.expandedPresenceGroups[groupId];
-        },
-        togglePresenceGroup(groupId) {
-            if (!groupId) {
-                return;
-            }
-            this.expandedPresenceGroups[groupId] = !this.expandedPresenceGroups[groupId];
-        },
-        formatPresenceGroupSummary(entry) {
-            const joined = Number(entry?.joinedCount) || 0;
-            const left = Number(entry?.leftCount) || 0;
-            const connection = Number(entry?.connectionCount) || 0;
-            const parts = [];
-            if (joined > 0) {
-                parts.push(this.$t("relay_chat.presence_joined", { count: joined }));
-            }
-            if (left > 0) {
-                parts.push(this.$t("relay_chat.presence_left", { count: left }));
-            }
-            if (connection > 0) {
-                parts.push(this.$t("relay_chat.presence_connection", { count: connection }));
-            }
-            if (parts.length === 0) {
-                return this.$t("relay_chat.presence_events", {
-                    count: Array.isArray(entry?.messages) ? entry.messages.length : 0,
-                });
-            }
-            return parts.join(" · ");
-        },
         formatDateDividerLabel(dayKey) {
             if (!dayKey || typeof dayKey !== "string") {
                 return "";
@@ -3035,66 +2972,6 @@ export default {
                 this.clearLocalRoomUnread(hubHash, room);
             } else {
                 this.updateUnreadBadge();
-            }
-        },
-        async loadPreviousMessages() {
-            if (this.isLoadingPrevious || !this.hasMorePrevious || !this.selectedHubHash || !this.selectedRoom) {
-                return;
-            }
-            const beforeSeq = this.oldestLoadedSeq;
-            if (beforeSeq === null) {
-                this.hasMorePrevious = false;
-                return;
-            }
-            const seq = this.roomSelectSequence;
-            const hubHash = this.selectedHubHash;
-            const room = this.selectedRoom;
-            this.loadPreviousInFlight += 1;
-            this.isLoadingPrevious = true;
-            try {
-                const response = await rrcApi.getHubsRoomsMessages(hubHash, this.encodeRoom(room), {
-                    params: { limit: RELAY_MESSAGES_PREVIOUS_PAGE_SIZE, before_seq: beforeSeq },
-                });
-                if (seq !== this.roomSelectSequence || hubHash !== this.selectedHubHash || room !== this.selectedRoom) {
-                    return;
-                }
-                const older = response.data?.messages || [];
-                this.hasMorePrevious = Boolean(response.data?.has_more);
-                if (older.length === 0) {
-                    return;
-                }
-                const uniqueOlder = filterUniqueOlderRelayMessages(older, this.messages);
-                if (uniqueOlder.length === 0) {
-                    if (older.length > 0) {
-                        this.hasMorePrevious = false;
-                    }
-                    return;
-                }
-                const scrollEl = this.getMessagesScrollElement();
-                const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
-                const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
-                this.messages = [...uniqueOlder, ...this.messages];
-                this._prependMessageTimelineCache(uniqueOlder);
-                if (scrollEl) {
-                    nextTick(() => {
-                        const delta = scrollEl.scrollHeight - prevScrollHeight;
-                        scrollEl.scrollTop = prevScrollTop + delta;
-                    });
-                }
-            } catch {
-                this.hasMorePrevious = false;
-            } finally {
-                this.loadPreviousInFlight = Math.max(0, this.loadPreviousInFlight - 1);
-                this.isLoadingPrevious = this.loadPreviousInFlight > 0;
-            }
-        },
-        onMessagesScroll(event) {
-            const el = event.target;
-            if (!el || this.isLoadingPrevious || !this.hasMorePrevious) {
-                return;
-            }
-            if (el.scrollTop <= LOAD_PREVIOUS_SCROLL_EDGE_PX) {
-                this.loadPreviousMessages();
             }
         },
         getMessagesScrollElement() {
