@@ -32,6 +32,18 @@ Treat MeshChatX local API access (UI session, shared host, scripted client) as a
 - Oracle or Hypothesis: accept only when resolved path stays under the root
 - Frontend mutators go through `window.api` (apiFetchGuard stays green)
 
+## Central helpers (use these, do not re-implement)
+
+All path-jail primitives live in `meshchatx/src/path_utils.py`:
+
+- `normalize_relpath` / `resolve_under_root` / `relative_to_root` / `PathJailError` for relative-path jails (`strict=True` rejects literal `..` segments)
+- `resolve_user_path` for absolute-or-relative user paths under multiple allowed roots (expanduser, forbidden component names, forbidden prefixes)
+- `safe_basename` for upload/multipart filenames, `is_safe_archive_member` for zip/tar members
+- `is_path_within_dir` (realpath + normcase) and `is_under_root` (pre-resolved strings) for membership, `is_direct_child` / `first_component_under` for one-level checks
+- `realpath_or_none` for fallible resolution, `atomic_write_bytes`/`atomic_write_text` for safe writes
+
+`PathJailError.reason` is a closed set (`REASONS`); map it to feature error types instead of parsing messages.
+
 Full workflow: `.agents/skills/path-jail-local-fs/SKILL.md`.
 Reference implementation: `meshchatx/src/backend/rns_filesync_handler.py` (`_resolve_manager_path` and manager APIs).
-Oracle examples: `tests/backend/test_rns_filesync_security.py`, `tests/backend/test_path_jail_oracles.py`.
+Oracle examples: `tests/backend/test_rns_filesync_security.py`, `tests/backend/test_path_jail_oracles.py`, `tests/backend/test_path_utils_oracles.py`.

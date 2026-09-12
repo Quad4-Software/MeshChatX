@@ -47,8 +47,8 @@ Never use a looser picker jail for tree/upload/delete/content of a tighter featu
 Add something like `_resolve_<feature>_path(...)` that:
 
 1. Takes relative client paths only (reject absolute / drive / UNC / null bytes)
-2. Uses vendor or shared normalize helpers when available (`normalize_relpath`, `resolve_under_root`)
-3. Rejects forbidden names (dotfiles, protocol sidecars)
+2. Uses the shared helpers in `meshchatx/src/path_utils.py` (`normalize_relpath`, `resolve_under_root`, `resolve_user_path`, `safe_basename`, `is_under_root`) — do not re-implement realpath membership
+3. Rejects forbidden names (dotfiles, protocol sidecars) via `reserved_names`/`reserved_prefixes`/`forbidden_part`
 4. `realpath` membership: equal root or `root + sep` prefix
 5. Symlinks: after realpath still inside root. Prefer rejecting symlink entries for write/delete/content
 6. Returns fail-closed errors with generic messages (no out-of-jail path reflection)
