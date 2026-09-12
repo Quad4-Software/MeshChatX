@@ -2140,6 +2140,7 @@ import Toggle from "../forms/Toggle.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import { RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL } from "../../js/reticulumDocsEntryUrl.js";
+import { useRNodeInterfaceForm } from "../../js/interfaces/useRNodeInterfaceForm.js";
 
 export default {
     name: "AddInterfacePage",
@@ -2150,6 +2151,9 @@ export default {
         AddInterfaceDiscoveryPanel,
         Toggle,
         BundledDocsHint,
+    },
+    setup() {
+        return { ...useRNodeInterfaceForm() };
     },
     data() {
         return {
@@ -2286,24 +2290,7 @@ export default {
                 newInterfacePeers: [],
             },
 
-            RNodeMultiInterface: {
-                port: null,
-                subInterfaces: [],
-            },
-
             newInterfacePort: null,
-            newInterfaceRNodeUseIP: false,
-            newInterfaceRNodeUseBle: false,
-            newInterfaceRNodeBlePeer: "",
-            newInterfaceRNodeIPHost: "",
-            RNodeGHzValue: 0,
-            RNodeMHzValue: 0,
-            RNodekHzValue: 0,
-            newInterfaceFrequency: null,
-            newInterfaceBandwidth: 125000,
-            newInterfaceTxpower: 7,
-            newInterfaceSpreadingFactor: 12,
-            newInterfaceCodingRate: 5,
 
             // Serial, KISS, and AX25KISS options
             newInterfaceSpeed: null,
@@ -2331,40 +2318,6 @@ export default {
             // Pipe interface
             newInterfaceCommand: null,
             newInterfaceRespawnDelay: null,
-
-            RNodeInterfaceDefaults: {
-                // bandwidth in hz
-                bandwidths: [
-                    7800, // 7.8 kHz
-                    10400, // 10.4 kHz
-                    15600, // 15.6 kHz
-                    20800, // 20.8 kHz
-                    31250, // 31.25 kHz
-                    41700, // 41.7 kHz
-                    62500, // 62.5 kHz
-                    125000, // 125 kHz
-                    250000, // 250 kHz
-                    500000, // 500 kHz
-                    1625000, // 1625 kHz (for 2.4 GHz SX1280)
-                ],
-                codingrates: [
-                    5, // 4:5
-                    6, // 4:6
-                    7, // 4:7
-                    8, // 4:8
-                ],
-                spreadingfactors: [5, 6, 7, 8, 9, 10, 11, 12],
-                txpowerMin: 0,
-                txpowerMax: 37,
-            },
-
-            RNodeInterfaceLoRaParameters: {
-                antennaGain: 0,
-                noiseFloor: 5,
-                sensitivity: null,
-                dataRate: null,
-                linkBudget: null,
-            },
         };
     },
     computed: {
@@ -2395,17 +2348,6 @@ export default {
         reticulumMinFixedMtu() {
             return 500;
         },
-        formattedFrequency() {
-            const totalHz = Math.round(this.calculateFrequencyInHz());
-            if (totalHz >= 1e9) {
-                return `${(totalHz / 1e9).toFixed(3)} GHz`;
-            } else if (totalHz >= 1e6) {
-                return `${(totalHz / 1e6).toFixed(3)} MHz`;
-            } else if (totalHz >= 1e3) {
-                return `${(totalHz / 1e3).toFixed(3)} kHz`;
-            }
-            return `${totalHz} Hz`;
-        },
         transportEnabled() {
             if (this.config && this.config.is_transport_enabled === true) {
                 return true;
@@ -2423,11 +2365,6 @@ export default {
         },
     },
     watch: {
-        newInterfaceBandwidth: "updateRNodeCalculations",
-        newInterfaceSpreadingFactor: "updateRNodeCalculations",
-        newInterfaceCodingRate: "updateRNodeCalculations",
-        newInterfaceTxpower: "updateRNodeCalculations",
-        "RNodeInterfaceLoRaParameters.antennaGain": "updateRNodeCalculations",
         newInterfaceType(value) {
             if (value === "__external__") {
                 this.loadInstalledInterfaceModules();
@@ -2625,44 +2562,6 @@ export default {
                 console.log(e);
             }
         },
-        buildRNodeTcpPort() {
-            let h = String(this.newInterfaceRNodeIPHost ?? "").trim();
-            while (h.endsWith(":")) {
-                h = h.slice(0, -1);
-            }
-            if (!h) {
-                return "";
-            }
-            return `tcp://${h}`;
-        },
-        parseRnodeTcpHostFromPort(portStr) {
-            const s = String(portStr || "");
-            if (!s.startsWith("tcp://")) {
-                return "localhost";
-            }
-            let rest = s.slice(6);
-            while (rest.endsWith(":")) {
-                rest = rest.slice(0, -1);
-            }
-            if (!rest) {
-                return "";
-            }
-            if (rest.startsWith("[")) {
-                const close = rest.indexOf("]");
-                if (close !== -1 && rest[close + 1] === ":") {
-                    return rest.slice(0, close + 1);
-                }
-                return rest;
-            }
-            if (rest.includes(":") && rest.indexOf(":") === rest.lastIndexOf(":")) {
-                const idx = rest.indexOf(":");
-                const tail = rest.slice(idx + 1);
-                if (/^\d{1,5}$/.test(tail) && Number(tail) <= 65535) {
-                    return rest.slice(0, idx);
-                }
-            }
-            return rest;
-        },
         autoInterfaceChipActive(fieldKey, token) {
             const raw = this[fieldKey];
             if (raw == null || raw === "") {
@@ -2702,28 +2601,6 @@ export default {
                 console.log(e);
             } finally {
                 this.hostKernelInterfacesLoading = false;
-            }
-        },
-        effectiveRNodeBlePort() {
-            let p = (this.newInterfaceRNodeBlePeer || "").trim();
-            if (!p) {
-                return "ble://";
-            }
-            if (p.toLowerCase().startsWith("ble://")) {
-                return p;
-            }
-            return `ble://${p}`;
-        },
-        setRNodeTransportIp(v) {
-            this.newInterfaceRNodeUseIP = Boolean(v);
-            if (this.newInterfaceRNodeUseIP) {
-                this.newInterfaceRNodeUseBle = false;
-            }
-        },
-        setRNodeTransportBle(v) {
-            this.newInterfaceRNodeUseBle = Boolean(v);
-            if (this.newInterfaceRNodeUseBle) {
-                this.newInterfaceRNodeUseIP = false;
             }
         },
         async loadCommunityInterfaces() {
@@ -3704,59 +3581,15 @@ export default {
                 this.isSaving = false;
             }
         },
-        calculateFrequencyInHz() {
-            return Math.round(this.RNodeGHzValue * 1e9 + this.RNodeMHzValue * 1e6 + this.RNodekHzValue * 1e3);
-        },
-        updateRNodeCalculations() {
-            this.calculateRNodeParameters(
-                this.newInterfaceBandwidth,
-                this.newInterfaceSpreadingFactor,
-                this.newInterfaceCodingRate,
-                this.RNodeInterfaceLoRaParameters.noiseFloor,
-                this.RNodeInterfaceLoRaParameters.antennaGain,
-                this.newInterfaceTxpower
-            );
-        },
-        calculateRNodeParameters(bandwidth, spreadingFactor, codingRate, noiseFloor, antennaGain, transmitPower) {
-            if (!bandwidth || !spreadingFactor || !codingRate) return;
-            const crn = { 5: 1, 6: 2, 7: 3, 8: 4 };
-            const cr = crn[codingRate];
-            const sfn = { 5: -2.5, 6: -5, 7: -7.5, 8: -10, 9: -12.5, 10: -15, 11: -17.5, 12: -20 };
-            let dataRate =
-                spreadingFactor * (4 / (4 + cr) / (Math.pow(2, spreadingFactor) / (bandwidth / 1000))) * 1000;
-            let sensitivity = -174 + 10 * Math.log10(bandwidth) + noiseFloor + (sfn[spreadingFactor] || 0);
-            if (bandwidth === 203125 || bandwidth === 406250 || bandwidth > 500000) {
-                sensitivity = -165.6 + 10 * Math.log10(bandwidth) + noiseFloor + (sfn[spreadingFactor] || 0);
-            }
-            let linkBudget = transmitPower - sensitivity + antennaGain;
-            this.RNodeInterfaceLoRaParameters.dataRate =
-                dataRate < 1000 ? `${dataRate.toFixed(0)} bps` : `${(dataRate / 1000).toFixed(2)} kbps`;
-            this.RNodeInterfaceLoRaParameters.linkBudget = `${linkBudget.toFixed(1)} dB`;
-            this.RNodeInterfaceLoRaParameters.sensitivity = `${sensitivity.toFixed(1)} dBm`;
-        },
         addI2PPeer(address = "") {
             this.I2PSettings.newInterfacePeers.push(address);
         },
         removeI2PPeer(index) {
             this.I2PSettings.newInterfacePeers.splice(index, 1);
         },
-        addSubInterface() {
-            this.RNodeMultiInterface.subInterfaces.push({
-                name: "",
-                frequency: null,
-                bandwidth: null,
-                txpower: null,
-                spreadingfactor: null,
-                codingrate: null,
-                vport: null,
-            });
-        },
         useKISSAX25() {
             this.newInterfaceType =
                 this.newInterfaceType === "AX25KISSInterface" ? "KISSInterface" : "AX25KISSInterface";
-        },
-        removeSubInterface(idx) {
-            this.RNodeMultiInterface.subInterfaces.splice(idx, 1);
         },
         isDedicatedFormInterfaceType(t) {
             const builtin = new Set([
