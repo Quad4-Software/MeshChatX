@@ -316,7 +316,8 @@ def test_source_keeps_auto_resend_and_duplicate_guards():
     assert "MAX_AUTO_RESEND_ATTEMPTS" in guard_src
     assert "delete_duplicate_lxmf_messages_by_content" in messages
     assert "clearDuplicateMessages" in settings
-    assert "/api/v1/maintenance/messages/duplicates" in blob
+    # Route is declared as API_V1_PREFIX + "/maintenance/messages/duplicates".
+    assert '"/maintenance/messages/duplicates"' in blob
 
 
 def test_claim_reopens_after_cooldown_expires(db):
