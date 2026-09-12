@@ -258,6 +258,7 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MicronParser from "../../js/MicronParser.js";
 import { micronStorage } from "../../js/MicronStorage";
@@ -270,11 +271,11 @@ import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import PublishSiteModal from "./PublishSiteModal.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { EMITTER_EVENTS } from "../../js/constants.js";
 import * as pageNodesApi from "../../js/api/pageNodes.js";
+import { useMicronPublish } from "../../js/micron/useMicronPublish.js";
 
 const NOMAD_DESTINATION_HASH = /^[a-fA-F0-9]{32}$/;
-const PAGE_EXTENSIONS = [".mu", ".html", ".md", ".txt"];
 
 const IMAGE_MIME_EXTENSIONS = {
     "image/png": ".png",
@@ -292,16 +293,23 @@ const MAX_EDITOR_IMAGE_BYTES = 8 * 1024 * 1024;
 // :/file/name.webp. A leading destination hash makes them remote.
 const LOCAL_IMAGE_REF_REGEX = /(?<![0-9a-fA-F]):\/(media|file)\/([A-Za-z0-9._-]+)/g;
 
-function pageNamesFromList(pages) {
-    return (pages || []).map((entry) => (typeof entry === "string" ? entry : entry?.name)).filter(Boolean);
-}
-
 export default {
     name: "MicronEditorPage",
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
         PublishSiteModal,
+    },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useMicronPublish({
+                t: (key, params) => inst?.proxy.$t(key, params),
+                pushRoute: (payload) => inst?.proxy.$router.push(payload),
+                getActiveTab: () => inst?.proxy.tabs[inst?.proxy.activeTabIndex],
+                uploadImages: (node, contents) => inst?.proxy.uploadLocalImagesToNode(node, contents),
+            }),
+        };
     },
     data() {
         return {
@@ -313,13 +321,8 @@ export default {
             storageKey: "micron_editor_content",
             editingTabIndex: -1,
             editingTabName: "",
-            showPublishMenu: false,
-            showPublishSiteModal: false,
             dragTabIndex: -1,
             dragOverTabIndex: -1,
-            pageNodes: [],
-            publishBusy: false,
-            lastPublished: null,
             useWasm: false,
             wasmReady: false,
             wasmBundled: isMicronWasmBundled(),
@@ -1499,349 +1502,6 @@ ${b}=
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        },
-        async togglePublishMenu() {
-            this.showPublishMenu = !this.showPublishMenu;
-            if (this.showPublishMenu) {
-                try {
-                    const response = await window.api.get(apiPath("/page-nodes"));
-                    this.pageNodes = response.data;
-                } catch {
-                    this.pageNodes = [];
-                }
-            }
-        },
-        async fetchNodePages(node) {
-            const response = await window.api.get(apiPath(`/page-nodes/${node.node_id}/pages`));
-            return response.data?.pages ?? [];
-        },
-        tabNameToPageBase(tab) {
-            let name = (tab.name || "").trim().replace(/\s+/g, "_");
-            const lower = name.toLowerCase();
-            for (const ext of PAGE_EXTENSIONS) {
-                if (lower.endsWith(ext)) {
-                    return name.slice(0, -ext.length);
-                }
-            }
-            return name;
-        },
-        pageBaseWithExtension(base, tab) {
-            const trimmed = String(base || "").trim();
-            if (!trimmed) {
-                return trimmed;
-            }
-            const lower = trimmed.toLowerCase();
-            for (const ext of PAGE_EXTENSIONS) {
-                if (lower.endsWith(ext)) {
-                    return trimmed;
-                }
-            }
-            const tabName = (tab?.name || "").trim();
-            const tabLower = tabName.toLowerCase();
-            for (const ext of PAGE_EXTENSIONS) {
-                if (tabLower.endsWith(ext)) {
-                    return `${trimmed}${ext}`;
-                }
-            }
-            return trimmed;
-        },
-        isUnsetMicronTabName(name) {
-            const trimmed = (name || "").trim();
-            if (!trimmed) {
-                return true;
-            }
-            const newTabLabel = this.$t("tools.micron_editor.new_tab");
-            if (trimmed === newTabLabel) {
-                return true;
-            }
-            const numberedPrefix = `${newTabLabel} `;
-            if (!trimmed.startsWith(numberedPrefix)) {
-                return false;
-            }
-            return /^\d+$/.test(trimmed.slice(numberedPrefix.length));
-        },
-        async resolvePublishPageBase(tab, existingPages, serverName) {
-            const pageNames = pageNamesFromList(existingPages);
-            const hasIndex = pageNames.includes("index.mu");
-            if (!hasIndex) {
-                return "index";
-            }
-            if (!this.isUnsetMicronTabName(tab.name)) {
-                const base = this.tabNameToPageBase(tab);
-                return base || null;
-            }
-            const entered = await DialogUtils.prompt(
-                this.$t("tools.micron_editor.publish_prompt_name", { server: serverName })
-            );
-            if (entered === null || !String(entered).trim()) {
-                return null;
-            }
-            let base = String(entered).trim().replace(/\s+/g, "_");
-            const lower = base.toLowerCase();
-            for (const ext of PAGE_EXTENSIONS) {
-                if (lower.endsWith(ext)) {
-                    return base;
-                }
-            }
-            return base || null;
-        },
-        async ensureNodeRunning(node) {
-            if (node?.running && node.destination_hash) {
-                return node;
-            }
-            if (!node?.node_id) {
-                throw new Error("missing_node");
-            }
-            const startRes = await window.api.post(apiPath(`/page-nodes/${node.node_id}/start`));
-            const destinationHash = startRes.data?.destination_hash || node.destination_hash || "";
-            return {
-                ...node,
-                running: true,
-                destination_hash: destinationHash,
-            };
-        },
-        nomadPagePathForName(pageName) {
-            const name = String(pageName || "index.mu").trim();
-            if (!name) {
-                return "/page/index.mu";
-            }
-            if (name.startsWith("/page/")) {
-                return name;
-            }
-            if (name.startsWith("/")) {
-                return name;
-            }
-            return `/page/${name}`;
-        },
-        rememberPublished(node, pageName) {
-            const destinationHash = (node?.destination_hash || "").trim();
-            if (!destinationHash || !NOMAD_DESTINATION_HASH.test(destinationHash)) {
-                return;
-            }
-            this.lastPublished = {
-                destinationHash,
-                pagePath: this.nomadPagePathForName(pageName),
-                pageName: pageName || "index.mu",
-                serverName: node.name || "",
-            };
-        },
-        openPublishedInNomadNet() {
-            const published = this.lastPublished;
-            if (!published?.destinationHash) {
-                return;
-            }
-            this.showPublishMenu = false;
-            this.$router.push({
-                name: "nomadnetwork",
-                params: { destinationHash: published.destinationHash },
-                query: {
-                    path: published.pagePath || "/page/index.mu",
-                    newTab: "1",
-                },
-            });
-        },
-        async offerOpenInNomadNet(pageName, serverName) {
-            if (!this.lastPublished?.destinationHash) {
-                DialogUtils.alert(
-                    this.$t("tools.micron_editor.publish_published", { page: pageName, server: serverName })
-                );
-                return;
-            }
-            const open = await DialogUtils.confirm(
-                this.$t("tools.micron_editor.publish_open_nomadnet_confirm", {
-                    page: pageName,
-                    server: serverName,
-                })
-            );
-            if (open) {
-                this.openPublishedInNomadNet();
-            } else {
-                ToastUtils.success(
-                    this.$t("tools.micron_editor.publish_published", { page: pageName, server: serverName })
-                );
-            }
-        },
-        async createMeshServerAndPublish() {
-            if (this.publishBusy) {
-                return;
-            }
-            const entered = await DialogUtils.prompt(
-                this.$t("tools.micron_editor.publish_create_prompt_name"),
-                "Micron Pages"
-            );
-            if (entered === null || !String(entered).trim()) {
-                return;
-            }
-            const serverName = String(entered).trim();
-            this.publishBusy = true;
-            try {
-                const createRes = await window.api.post(apiPath("/page-nodes"), { name: serverName });
-                const created = createRes.data || {};
-                if (!created.node_id) {
-                    throw new Error("create_failed");
-                }
-                const running = await this.ensureNodeRunning(created);
-                this.pageNodes = [...this.pageNodes.filter((n) => n.node_id !== running.node_id), running];
-                await this.publishToNode(running, { alreadyRunning: true });
-            } catch (e) {
-                this.showPublishMenu = false;
-                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed_create"));
-            } finally {
-                this.publishBusy = false;
-            }
-        },
-        async publishToNode(node, options = {}) {
-            if (this.publishBusy && !options.alreadyRunning) {
-                return;
-            }
-            const tab = this.tabs[this.activeTabIndex];
-            const busyOwned = !options.alreadyRunning;
-            if (busyOwned) {
-                this.publishBusy = true;
-            }
-            try {
-                let running = node;
-                if (!options.alreadyRunning) {
-                    running = await this.ensureNodeRunning(node);
-                }
-                const existingPages = await this.fetchNodePages(running);
-                const pageBase = await this.resolvePublishPageBase(tab, existingPages, running.name);
-                if (!pageBase) {
-                    return;
-                }
-                const publishName = this.pageBaseWithExtension(pageBase, tab);
-                const response = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
-                    name: publishName,
-                    content: tab.content,
-                });
-                this.showPublishMenu = false;
-                const savedName = response.data?.name || publishName;
-                await this.uploadLocalImagesToNode(running, [tab.content]);
-                this.rememberPublished(running, savedName);
-                await this.offerOpenInNomadNet(savedName, running.name);
-            } catch (e) {
-                DialogUtils.alert(
-                    e.response?.data?.message ||
-                        (e.message === "missing_node"
-                            ? this.$t("tools.micron_editor.publish_failed")
-                            : this.$t("tools.micron_editor.publish_failed"))
-                );
-            } finally {
-                if (busyOwned) {
-                    this.publishBusy = false;
-                }
-            }
-        },
-        async openPublishSite() {
-            this.showPublishMenu = false;
-            this.showPublishSiteModal = true;
-            try {
-                const response = await window.api.get(apiPath("/page-nodes"));
-                this.pageNodes = response.data;
-            } catch {
-                this.pageNodes = [];
-            }
-        },
-        buildSiteIndexPage(destinationHash, pages) {
-            const lines = [`>Links`, ""];
-            for (const page of pages) {
-                const label = String(page.label || page.name || "")
-                    .replace(/[`[\]]/g, "")
-                    .trim();
-                const pageName = String(page.name || "").trim();
-                if (!pageName) {
-                    continue;
-                }
-                lines.push(`[${label || pageName}\`${destinationHash}:/page/${pageName}]`);
-            }
-            lines.push("");
-            return lines.join("\n");
-        },
-        async publishSite(payload) {
-            if (this.publishBusy) {
-                return;
-            }
-            const pages = payload?.pages || [];
-            if (pages.length === 0) {
-                return;
-            }
-            this.publishBusy = true;
-            try {
-                let node = payload.nodeId ? this.pageNodes.find((n) => n.node_id === payload.nodeId) : null;
-                if (!node) {
-                    if (!payload.newServerName) {
-                        DialogUtils.alert(this.$t("tools.micron_editor.publish_site_no_server"));
-                        return;
-                    }
-                    const createRes = await window.api.post(apiPath("/page-nodes"), { name: payload.newServerName });
-                    node = createRes.data || {};
-                    if (!node.node_id) {
-                        throw new Error("create_failed");
-                    }
-                }
-                const running = await this.ensureNodeRunning(node);
-                this.pageNodes = [...this.pageNodes.filter((n) => n.node_id !== running.node_id), running];
-                let published = 0;
-                let lastSavedName = null;
-                for (const page of pages) {
-                    try {
-                        const response = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
-                            name: page.name,
-                            content: page.content,
-                        });
-                        lastSavedName = response.data?.name || page.name;
-                        published++;
-                    } catch {
-                        console.error(`Failed to publish page: ${page.name}`);
-                    }
-                }
-                await this.uploadLocalImagesToNode(
-                    running,
-                    pages.map((page) => page.content)
-                );
-                if (payload.generateIndex && running.destination_hash && published > 0) {
-                    try {
-                        const indexContent = this.buildSiteIndexPage(running.destination_hash, pages);
-                        const indexRes = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
-                            name: "index.mu",
-                            content: indexContent,
-                        });
-                        lastSavedName = indexRes.data?.name || "index.mu";
-                    } catch {
-                        console.error("Failed to publish generated index page");
-                    }
-                }
-                this.showPublishSiteModal = false;
-                if (lastSavedName) {
-                    this.rememberPublished(running, lastSavedName);
-                }
-                if (published === 0) {
-                    DialogUtils.alert(this.$t("tools.micron_editor.publish_failed"));
-                    return;
-                }
-                ToastUtils.success(
-                    this.$t("tools.micron_editor.publish_site_done", {
-                        published,
-                        total: pages.length,
-                        server: running.name,
-                    })
-                );
-                if (this.lastPublished?.destinationHash) {
-                    const open = await DialogUtils.confirm(
-                        this.$t("tools.micron_editor.publish_open_nomadnet_confirm", {
-                            page: lastSavedName,
-                            server: running.name,
-                        })
-                    );
-                    if (open) {
-                        this.openPublishedInNomadNet();
-                    }
-                }
-            } catch (e) {
-                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed"));
-            } finally {
-                this.publishBusy = false;
-            }
         },
     },
 };
