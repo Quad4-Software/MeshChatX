@@ -1518,6 +1518,37 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.getNomadImagePolicy("def")).toBe("manual");
         });
 
+        it("marks the image policy icon active only when resolved policy auto-loads", () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            const GlobalState = wrapper.vm.GlobalState;
+            const previous = GlobalState.config.nomad_image_loading_policy;
+            try {
+                GlobalState.config.nomad_image_loading_policy = "manual";
+                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(false);
+
+                GlobalState.config.nomad_image_loading_policy = "auto";
+                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
+
+                GlobalState.config.nomad_image_loading_policy = "always";
+                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
+
+                // a per-node never override wins over a permissive global
+                wrapper.vm.nomadImagePerNodePolicies = { [hash]: "never" };
+                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(false);
+
+                wrapper.vm.nomadImagePerNodePolicies = { [hash]: "always" };
+                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
+            } finally {
+                if (previous === undefined) {
+                    delete GlobalState.config.nomad_image_loading_policy;
+                } else {
+                    GlobalState.config.nomad_image_loading_policy = previous;
+                }
+            }
+        });
+
         it("sends a file download with image metadata", async () => {
             const hash = "a".repeat(32);
             const wrapper = mountNomadNetworkPage({ destinationHash: hash });
