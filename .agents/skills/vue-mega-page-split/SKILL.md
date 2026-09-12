@@ -86,6 +86,9 @@ Hard constraints:
   parameters or keep the calling method on the host.
 - Lifecycle hooks may live inside the composable (`onMounted`, `onUnmounted`)
   but only when the moved cluster owns that lifecycle fully.
+- Names starting with `_` must not be returned from `setup()` — Vue treats them
+  as reserved and warns. Either keep those methods on the host, or expose them
+  through an options callback the host delegates to.
 - Composables get their own unit tests under `tests/frontend/`; the host's
   tests must stay untouched and green.
 
