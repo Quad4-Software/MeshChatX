@@ -1594,6 +1594,7 @@
 </template>
 
 <script>
+import { getCurrentInstance } from "vue";
 import { mapStores } from "pinia";
 import { useConfigStore } from "../../js/stores/configStore.js";
 import { useUnreadStore } from "../../js/stores/unreadStore.js";
@@ -1698,6 +1699,7 @@ import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from
 import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } from "../../js/relayLinkUtils.js";
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
+import { useImageModal } from "../../js/messages/useImageModal.js";
 import {
     isOpportunisticDeferredDelivery as isOpportunisticDeferredDeliveryStatus,
     lxmfStateWouldRegress,
@@ -1768,6 +1770,16 @@ export default {
         "update-peer-tracking",
         "outbound-compose-enqueued",
     ],
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useImageModal({
+                onOpened: () => inst?.proxy.$refs.imageModal?.focusOverlay?.(),
+                onDownload: (chatItem) => inst?.proxy.downloadMessageImage(chatItem),
+                onCopyToClipboard: (chatItem) => inst?.proxy.copyMessageImageToClipboard(chatItem),
+            }),
+        };
+    },
     data() {
         return {
             lastDraftIdentityKey: "",
@@ -1820,16 +1832,6 @@ export default {
             lxmfMessageAudioAttachmentOrder: [],
             isDownloadingAudio: {},
             expandedMessageInfo: null,
-            imageModalUrl: null,
-            imageModalGallery: null,
-            imageModalGalleryChatItems: null,
-            imageModalChatItem: null,
-            imageModalIndex: 0,
-            imageModalContextMenu: {
-                show: false,
-                x: 0,
-                y: 0,
-            },
             isSelectedPeerBlocked: false,
             isStrangerPeer: false,
             strangerBannerDismissed: false,
@@ -4695,81 +4697,6 @@ export default {
                 return this.formatBase64Bytes(attachment[`${type}_bytes`]);
             }
             return "0 B";
-        },
-        openImage: async function (url, galleryUrls, galleryChatItems = null) {
-            this.imageModalContextMenu.show = false;
-            if (galleryUrls && galleryUrls.length > 1) {
-                this.imageModalGallery = galleryUrls.slice();
-                this.imageModalGalleryChatItems = Array.isArray(galleryChatItems) ? galleryChatItems.slice() : null;
-                this.imageModalChatItem = null;
-                let idx = galleryUrls.indexOf(url);
-                if (idx < 0) idx = 0;
-                this.imageModalIndex = idx;
-                this.imageModalUrl = galleryUrls[idx];
-            } else {
-                this.imageModalGallery = null;
-                this.imageModalGalleryChatItems = null;
-                this.imageModalIndex = 0;
-                this.imageModalUrl = url;
-                this.imageModalChatItem =
-                    Array.isArray(galleryChatItems) && galleryChatItems.length > 0 ? galleryChatItems[0] : null;
-            }
-            this.$nextTick(() => {
-                this.$refs.imageModal?.focusOverlay?.();
-            });
-        },
-        closeImageModal() {
-            this.imageModalUrl = null;
-            this.imageModalGallery = null;
-            this.imageModalGalleryChatItems = null;
-            this.imageModalChatItem = null;
-            this.imageModalIndex = 0;
-            this.imageModalContextMenu.show = false;
-        },
-        imageModalActiveChatItem() {
-            if (this.imageModalGalleryChatItems && this.imageModalGalleryChatItems.length > 0) {
-                return this.imageModalGalleryChatItems[this.imageModalIndex] || null;
-            }
-            return this.imageModalChatItem;
-        },
-        onImageModalContextMenu(event) {
-            if (!this.imageModalActiveChatItem()) {
-                return;
-            }
-            this.imageModalContextMenu.show = true;
-            const menuWidth = 240;
-            const menuHeight = 88;
-            let x = event.clientX;
-            let y = event.clientY;
-            if (x + menuWidth > window.innerWidth) {
-                x = window.innerWidth - menuWidth - 10;
-            }
-            if (y + menuHeight > window.innerHeight) {
-                y = window.innerHeight - menuHeight - 10;
-            }
-            this.imageModalContextMenu.x = x;
-            this.imageModalContextMenu.y = y;
-        },
-        downloadImageModalCurrent() {
-            const chatItem = this.imageModalActiveChatItem();
-            this.imageModalContextMenu.show = false;
-            if (chatItem) {
-                this.downloadMessageImage(chatItem);
-            }
-        },
-        copyImageModalCurrentToClipboard() {
-            const chatItem = this.imageModalActiveChatItem();
-            this.imageModalContextMenu.show = false;
-            if (chatItem) {
-                void this.copyMessageImageToClipboard(chatItem);
-            }
-        },
-        imageModalNavigate(delta) {
-            if (!this.imageModalGallery || this.imageModalGallery.length < 2) return;
-            const n = this.imageModalGallery.length;
-            this.imageModalIndex = (this.imageModalIndex + delta + n) % n;
-            this.imageModalUrl = this.imageModalGallery[this.imageModalIndex];
-            this.imageModalContextMenu.show = false;
         },
         canMergeImageIntoImageStrip(chatItem) {
             const m = chatItem.lxmf_message;
