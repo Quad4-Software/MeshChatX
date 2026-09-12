@@ -85,7 +85,7 @@ Read **NomadNet page formats** for security rules, Markdown quirks, and API beha
 
 ## Micron editor
 
-**Tools -> Micron editor** helps author .mu pages before you upload them to your node.
+**Tools -> Micron editor** helps author .mu pages before you upload them to your node. To embed an image, drop a file onto the editor, paste one from the clipboard, or use the image button. The editor inserts the `` `[alt`:/media/name.ext`img=1] `` markup, keeps a local copy so the preview renders it, and uploads referenced images to the node when you publish.
 
 ## See also
 
