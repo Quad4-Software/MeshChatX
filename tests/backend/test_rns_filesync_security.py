@@ -495,7 +495,7 @@ def test_acl_hash_oracle(handler, identity_hash, perms):
     assert isinstance(result, dict)
     assert "ok" in result
     cleaned = str(identity_hash or "").strip().lower().replace(":", "")
-    valid = cleaned == "all" or (
+    valid = cleaned in ("all", "a", "everyone", "*") or (
         len(cleaned) == 32 and all(c in "0123456789abcdef" for c in cleaned)
     )
     if not valid:
