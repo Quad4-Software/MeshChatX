@@ -296,6 +296,10 @@ def safe_basename(filename: str, *, forbidden=None) -> str | None:
     base = os.path.basename(raw.replace("\\", "/"))
     if not base or base in (".", "..") or "/" in base or "\\" in base:
         return None
+    # Reject drive-prefixed names like "C:foo": on Windows they join as
+    # drive-relative paths and escape the intended parent directory.
+    if len(base) >= 2 and base[1] == ":" and base[0].isalpha():
+        return None
     if forbidden is not None and forbidden(base):
         return None
     return base
