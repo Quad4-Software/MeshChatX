@@ -21,7 +21,7 @@ Prefer an independent oracle (predict accept or reject from the input, then asse
 Full guidance and examples: `.agents/skills/test-oracles/SKILL.md`.
 Path jail filesystem features: `.agents/skills/path-jail-local-fs/SKILL.md` and `.agents/conventions/path-jail.md`.
 URL origin allowlists: `.agents/skills/url-origin-allowlists/SKILL.md`.
-Exploratory bug hunting: `.agents/skills/exploratory-testing/SKILL.md`.
+Exploratory bug hunting and patch-safety gates (confirm before fixing, re-run consumer suites, no churn inside a bugfix): `.agents/skills/exploratory-testing/SKILL.md`.
 
 ## Frontend mega-page ownership contracts
 
@@ -29,6 +29,7 @@ Exploratory bug hunting: `.agents/skills/exploratory-testing/SKILL.md`.
 - Symbol continuity: `tests/frontend/fixtures/frontend_symbol_continuity/`
 - Scanner tests: `tests/frontend/frontendOwnershipContract.test.js`
 - Extract workflow: `.agents/skills/vue-mega-page-split/SKILL.md`
+- Many page tests call `Component.methods.X()`, `Component.computed.X()`, or `Component.data()` on the bare options object. Options moved into composables (`setup()` returns) disappear from that surface, so check these call sites before extracting and keep delegating methods where tests need them.
 - Refresh ownership fixture only when inventory intentionally changes:
   `UPDATE_FRONTEND_OWNERSHIP=1 pnpm exec vitest run tests/frontend/frontendOwnershipContract.test.js -t ownership_fixture`
 
