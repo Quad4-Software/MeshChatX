@@ -5,12 +5,23 @@ import JSZip from "jszip";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
 import { fromLonLat } from "ol/proj";
+import { Icon, Style } from "ol/style";
 import { readGeoJsonToFeatures, writeFeaturesToGeoJson } from "@/js/mapExchange/geoJsonCodec.js";
 import { readKmlToFeatures, writeFeaturesToKml } from "@/js/mapExchange/kmlCodec.js";
 import { readKmzToFeatures, writeFeaturesToKmzBlob, resolveHrefToZipPath } from "@/js/mapExchange/kmzCodec.js";
 import { readGpxToFeatures, writeFeaturesToGpx } from "@/js/mapExchange/gpxCodec.js";
 import { getDrawFeatureMetadataPayload } from "@/js/mapExchange/metadataUtils.js";
-import { MCX_ICON_DATA_URL, MCX_STROKE_COLOR } from "@/js/mapExchange/constants.js";
+import {
+    copyStyleMetadataToProperties,
+    normalizeKmlImportedFeatures,
+    styleFromMcxProperties,
+} from "@/js/mapExchange/styleFromProperties.js";
+import {
+    MCX_ICON_ANCHOR_X,
+    MCX_ICON_ANCHOR_Y,
+    MCX_ICON_DATA_URL,
+    MCX_STROKE_COLOR,
+} from "@/js/mapExchange/constants.js";
 
 const TINY_PNG =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
@@ -179,6 +190,44 @@ describe("mapExchange GPX", () => {
         const out = writeFeaturesToGpx(features, "EPSG:3857");
         const again = readGpxToFeatures(out, "EPSG:3857");
         expect(String(again[0].get("description") || "")).toContain("edited note");
+    });
+});
+
+describe("mapExchange icon anchors", () => {
+    it("keeps icon anchor placement when copying style to properties and rebuilding", () => {
+        const src = new Icon({ src: TINY_PNG, size: [60, 60], anchor: [0.5, 1] });
+        const f = new Feature({ geometry: new Point(fromLonLat([10, 20])) });
+        copyStyleMetadataToProperties(new Style({ image: src }), f);
+        const rebuilt = styleFromMcxProperties(f);
+        const icon = rebuilt.getImage();
+        expect(icon.getAnchor()).toEqual([30, 60]);
+    });
+
+    it("keeps imported KML icon anchored when the icon image is already loaded", () => {
+        const sharedIcon = new Icon({ src: TINY_PNG, size: [60, 60], anchor: [0.5, 1] });
+        const f = new Feature({ geometry: new Point(fromLonLat([1, 2])) });
+        f.set("name", "P");
+        f.setStyle(() => [new Style({ image: sharedIcon })]);
+        normalizeKmlImportedFeatures([f]);
+        const icon = f.getStyle().getImage();
+        expect(icon.getAnchor()).toEqual([30, 60]);
+    });
+
+    it("keeps the pixel anchor through GeoJSON export and reimport", () => {
+        const f = new Feature({ geometry: new Point(fromLonLat([10, 20])) });
+        f.setStyle(new Style({ image: new Icon({ src: TINY_PNG, size: [60, 60], anchor: [0.5, 1] }) }));
+        const out = JSON.parse(writeFeaturesToGeoJson([f], "EPSG:3857"));
+        expect(out.features[0].properties[MCX_ICON_ANCHOR_X]).toBeCloseTo(30);
+        expect(out.features[0].properties[MCX_ICON_ANCHOR_Y]).toBeCloseTo(60);
+        const back = readGeoJsonToFeatures(JSON.stringify(out), "EPSG:3857");
+        expect(back[0].getStyle().getImage().getAnchor()).toEqual([30, 60]);
+    });
+
+    it("keeps imported icons visible at coarse resolutions", () => {
+        const f = new Feature({ geometry: new Point(fromLonLat([0, 0])) });
+        f.set(MCX_ICON_DATA_URL, TINY_PNG);
+        const s = styleFromMcxProperties(f, 5000);
+        expect(typeof s.getImage().getSrc).toBe("function");
     });
 });
 
