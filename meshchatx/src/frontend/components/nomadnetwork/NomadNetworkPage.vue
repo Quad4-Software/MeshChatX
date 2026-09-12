@@ -838,6 +838,7 @@ import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT 
 import ClickPopover from "../ClickPopover.vue";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
 import { isUnknownNodeDisplayName, resolveFavouriteUpsertDisplayName } from "../../js/nomadUnknownNodeName.js";
+import { useNomadNodesList } from "../../js/nomadnet/useNomadNodesList.js";
 
 export default {
     name: "NomadNetworkPage",
@@ -885,21 +886,15 @@ export default {
         },
     },
     emits: ["navigate", "open-node", "close-tab"],
+    setup() {
+        return { ...useNomadNodesList() };
+    },
     data() {
         return {
             reloadInterval: null,
-            nodesRefreshTimeout: null,
-            nodesListAbortController: null,
             nodeDetailAbortController: null,
 
             nomadNetworkSidebarCollapsed: loadFeatureSidebarCollapsed("nomadnetwork") ?? false,
-            nodes: {},
-            totalNodesCount: 0,
-            hasMoreNodes: true,
-            isLoadingMoreNodes: false,
-            isSearchingNodes: false,
-            nodesSearchTerm: "",
-            pageSize: 50,
             selectedNode: null,
             selectedNodePath: null,
 
@@ -2375,71 +2370,6 @@ export default {
                 ToastUtils.success(this.$t("nomadnet.bulk_add_favourites_done", { count: added }));
             }
         },
-        async getNomadnetworkNodeAnnounces(append = false) {
-            // capture the controller that belongs to *this* call so a later,
-            // superseding call can't have its own finally block clear the
-            // loading state for an in-flight search out from under it.
-            let myController = this.nodesListAbortController;
-            try {
-                if (!append) {
-                    if (this.nodesListAbortController) {
-                        this.nodesListAbortController.abort();
-                    }
-                    this.nodesListAbortController = new AbortController();
-                    myController = this.nodesListAbortController;
-                    this.isSearchingNodes = true;
-                } else if (!this.nodesListAbortController) {
-                    this.nodesListAbortController = new AbortController();
-                    myController = this.nodesListAbortController;
-                }
-                const offset = append ? Object.keys(this.nodes).length : 0;
-                const response = await announcesApi.listAnnounces({
-                    params: {
-                        aspect: "nomadnetwork.node",
-                        limit: this.pageSize,
-                        offset: offset,
-                        search: this.nodesSearchTerm,
-                    },
-                    signal: myController.signal,
-                });
-
-                const nodeAnnounces = response.data.announces;
-                if (!append) {
-                    this.nodes = {};
-                }
-
-                this.totalNodesCount = response.data.total_count || 0;
-
-                for (const nodeAnnounce of nodeAnnounces) {
-                    this.updateNodeFromAnnounce(nodeAnnounce);
-                }
-
-                this.hasMoreNodes = nodeAnnounces.length === this.pageSize;
-            } catch (e) {
-                if (window.api.isCancel?.(e)) return;
-                console.log(e);
-            } finally {
-                this.isLoadingMoreNodes = false;
-                if (!append && this.nodesListAbortController === myController) {
-                    this.isSearchingNodes = false;
-                }
-            }
-        },
-        async loadMoreNodes() {
-            if (this.isLoadingMoreNodes || !this.hasMoreNodes) return;
-            this.isLoadingMoreNodes = true;
-            await this.getNomadnetworkNodeAnnounces(true);
-        },
-        onNodesSearchChanged(term) {
-            this.nodesSearchTerm = term;
-            this.isSearchingNodes = true;
-            if (this.nodesRefreshTimeout) {
-                clearTimeout(this.nodesRefreshTimeout);
-            }
-            this.nodesRefreshTimeout = setTimeout(() => {
-                this.getNomadnetworkNodeAnnounces();
-            }, 500);
-        },
         async getNomadnetworkNodeAnnounce(destinationHash) {
             try {
                 if (this.nodeDetailAbortController) {
@@ -2462,9 +2392,6 @@ export default {
                 if (window.api.isCancel?.(e)) return;
                 console.log(e);
             }
-        },
-        updateNodeFromAnnounce: function (announce) {
-            this.nodes[announce.destination_hash] = announce;
         },
         async loadNodePage(
             destinationHash,
