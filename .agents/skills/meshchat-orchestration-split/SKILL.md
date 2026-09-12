@@ -44,8 +44,6 @@ Current:
 meshchatx/src/backend/http/
   context.py
   errors.py
-  live_names.py
-  meshchat_names.py
   middleware.py
   register.py
   routes/<domain>.py
@@ -58,12 +56,13 @@ Pattern:
 
 ```python
 def register_status_routes(routes, app):
-    @routes.get("/api/v1/status")
+    @routes.get(f"{API_V1_PREFIX}/status")
     async def status(request): ...
 ```
 
-`register.py` calls `register_extracted_routes`, which binds meshchat free names via
-`live_names.inject_meshchat_names` so `patch("meshchatx.meshchat.<symbol>")` still applies.
+Route modules import shared names directly (`from meshchatx.src.backend.X import Y`).
+Tests that need to patch a symbol patch it on the consuming module, not on
+`meshchatx.meshchat`, unless the consumer still resolves through meshchat lazily.
 
 Lazy-import `register_all_routes` from inside `_define_routes` so route modules load after
 meshchat is initialized.
@@ -105,6 +104,7 @@ Before declaring a large milestone done: `task test:backend` and `task test:fron
 ## Compatibility patches
 
 Tests often use `patch("meshchatx.meshchat.<symbol>")`. Keep those symbols importable from
-`meshchatx.meshchat` (re-export if moved). Live name proxies live in `backend/http/live_names.py`.
+`meshchatx.meshchat` (re-export if moved). Consumers that imported a symbol directly need
+their tests retargeted to patch the consuming module instead.
 
 `ReticulumMeshChat.on_websocket_data_received` is a one-line delegate to `http/ws/dispatch.py`.

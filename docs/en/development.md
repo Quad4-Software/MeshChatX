@@ -13,7 +13,6 @@ Contributor workflow: install, format, lint, test, version bumps, and adding loc
 
 ```bash
 task install
-task hooks:install   # pre-commit format/lint + commitlint (once per clone)
 task format
 task lint
 task test
@@ -33,7 +32,6 @@ Makefile targets call the same Taskfile commands:
 | make clean           | task clean         | Remove build artifacts and node_modules                     |
 | make tree-rsm-verify | (shell)            | Verify meshchatx.rsm signature and hashes                   |
 | make tree-rsm-sign   | (shell)            | Sign tree inventory (needs RNS_ID_PATH)                     |
-| make hooks-install   | task hooks:install | Git hooks: format/lint staged files, commitlint, RSM resign |
 
 For a Vite HMR loop, use task dev as described in **Installation and setup**.
 

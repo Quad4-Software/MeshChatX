@@ -2,12 +2,14 @@
 
 Applies when editing `meshchatx/src/frontend/**/*.{vue,js}`.
 
-- Vue 3 Options API is the dominant pattern. Match the file you edit.
-- API calls go through `window.api` (not ad-hoc axios imports in pages).
+- Vue 3 Options API is dominant in existing pages. Match the file you edit there. New components may use Composition API (`<script setup>`) and composables; do not convert an existing component inside a mechanical extract.
+- API calls go through `window.api` via the endpoint modules under `js/api/` (not ad-hoc axios imports or raw fetch in pages). Add a domain module function instead of a new inline path string.
+- Shared state lives in Pinia stores under `js/stores/` (authStore, networkStore, configStore, unreadStore, identityStore, interfaceChangesStore). Options API pages expose stores via `mapStores`/`mapState` for templates and call `useXStore()` inline in methods. New cross-page state gets a domain store, not a loose singleton.
+- Wire strings live in `js/constants.js` (API_V1_PREFIX, apiPath, WS_EVENTS, EMITTER_EVENTS, STORAGE_KEYS). Add new ones there, not inline literals.
 - Toasts: `ToastUtils.success|error|warning|info|loading|dismiss`.
 - New top-level pages need: route in `main.js`, nav entry when discoverable, `en.json` keys, frontend tests.
 - When adding user-visible strings, update `en.json` and the other maintained locale files under `meshchatx/src/frontend/locales/` with real translations (not English copies).
-- Sidebar unread pills live on nav entries in `coreNavEntries.js` and counters in `GlobalState`. Do not bring back a header notification bell for that job.
+- Sidebar unread pills live on nav entries in `coreNavEntries.js` and counters in the unread store (`js/stores/unreadStore.js`). Do not bring back a header notification bell for that job.
 - Do not use `_`-prefixed keys in Vue `data()` (`vue/no-reserved-keys`).
 - File inputs: prefer broad `accept` for identity keys (`.bin,.key,.identity,application/octet-stream,*/*`). Database restore stays `.zip`.
 - Prefer existing MaterialDesignIcon / layout patterns over new design systems.

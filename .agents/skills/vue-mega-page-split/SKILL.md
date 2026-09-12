@@ -27,7 +27,7 @@ Also read:
 
 1. Mechanical extract only. No renames, no toast or i18n churn, no API path changes in the same change as a move.
 2. One concern per change: move or behaviour, never both.
-3. Match the Options API style of the parent file. Do not introduce Composition API, provide or inject, Pinia, or a composables tree in an extract.
+3. Mechanical extracts keep the parent's Options API style so the diff stays a pure move. Outside a mechanical move — new components, new stores, behaviour changes — Composition API (`<script setup>`), composables, provide/inject, and Pinia (`js/stores/`) are allowed and preferred for new code.
 4. Follow inventory names in `.agents/module-ownership.md`. Do not invent alternate folders.
 5. Shell stays orchestration. Data ownership, `window.api`, map or canvas lifecycle init and teardown, and multi-child toast firing stay on the page shell unless a later behaviour change explicitly moves them.
 6. One slice per PR or commit series. Prefer one panel, one settings section, or one pure helper module.
@@ -86,7 +86,7 @@ After the move:
 ## Hallucination tripwires (stop-ship)
 
 - New public methods or renamed handlers for cleanliness
-- New provide or inject, Pinia, or composables without an explicit behaviour ticket
+- Switching an existing component from Options API to Composition API inside a mechanical extract
 - Child calling `window.api` when the parent previously owned that call, unless the inventory moved the whole call site and tests cover it
 - Deleted emits, props, or refs that tests or the parent still need
 - Folders not listed in ownership

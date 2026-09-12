@@ -5,7 +5,7 @@ Progressive load: root `AGENTS.md`, then one skill and one surface convention. F
 - Architecture / storage / security / env: `.agents/overview.md` (only when needed).
 - Mesh-facing work: `.agents/conventions/reticulum-zen.md` then `.agents/skills/reticulum-design-gates/SKILL.md`.
 - Prefer Taskfile targets (`format`, `lint`, `test:quick`, `test:backend`, `test:frontend`).
-- Commit messages on GitHub: `.agents/conventions/commits.md`. Run `task hooks:install` once per clone.
+- Commit messages on GitHub: `.agents/conventions/commits.md`.
 - Minimal diffs. Match nearby style. Keep SPDX headers on new project files (`0BSD` unless file already differs).
 - No emojis in repo text or agent replies. No emoji arrows or decorative unicode arrows at all.
 - No TODO/FIXME comment noise.
