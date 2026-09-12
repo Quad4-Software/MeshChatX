@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import tempfile
 import threading
 from collections.abc import Callable
 from typing import Any
@@ -18,6 +19,7 @@ from meshchatx.src.backend.results import err_result, err_result_from, ok_result
 from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
     PathJailError,
+    _fsync_dir,
     atomic_write_bytes,
     atomic_write_text,
     is_under_root,
@@ -574,6 +576,50 @@ class RnsFilesyncHandler:
             rel = self._relpath_under_sync(real) or safe_rel
             return ok_result(path=rel)
 
+    def _resolve_upload_dest(
+        self,
+        filename: str | None,
+        subdir: str | None,
+    ) -> tuple[str | None, str | None]:
+        """Validate an upload target and return (dest abspath, error)."""
+        base = _sanitize_upload_basename(filename)
+        if base is None:
+            return None, "invalid filename"
+
+        parent_abs, err = self._resolve_manager_path(
+            subdir,
+            allow_root=True,
+            must_exist=True,
+        )
+        if err or parent_abs is None:
+            return None, err or "path not allowed"
+        if not os.path.isdir(parent_abs) or os.path.islink(parent_abs):
+            return None, "path not allowed"
+
+        dest = os.path.join(parent_abs, base)
+        if os.path.islink(dest):
+            return None, "path not allowed"
+        if os.path.lexists(dest):
+            real_existing = os.path.realpath(dest)
+            if not self._is_under_sync_root(real_existing):
+                return None, "path not allowed"
+        return dest, None
+
+    def _finalize_upload(self, dest: str, size: int) -> dict[str, Any]:
+        """Re-verify a written upload stayed jailed, then nudge inventory."""
+        real = os.path.realpath(dest)
+        if not self._is_under_sync_root(real) or not os.path.isfile(real):
+            with contextlib.suppress(OSError):
+                os.unlink(dest)
+            return err_result("path not allowed")
+        rel = self._relpath_under_sync(real)
+        if rel is None:
+            with contextlib.suppress(OSError):
+                os.unlink(dest)
+            return err_result("path not allowed")
+        self._nudge_inventory(rel)
+        return ok_result(path=rel, size=size)
+
     def manager_upload(
         self,
         *,
@@ -587,45 +633,73 @@ class RnsFilesyncHandler:
                 return err_result("invalid upload data")
             if len(data) > MANAGER_UPLOAD_MAX_BYTES:
                 return err_result("upload too large")
-            base = _sanitize_upload_basename(filename)
-            if base is None:
-                return err_result("invalid filename")
-
-            parent_abs, err = self._resolve_manager_path(
-                subdir,
-                allow_root=True,
-                must_exist=True,
-            )
-            if err or parent_abs is None:
+            dest, err = self._resolve_upload_dest(filename, subdir)
+            if err or dest is None:
                 return err_result(err or "path not allowed")
-            if not os.path.isdir(parent_abs) or os.path.islink(parent_abs):
-                return err_result("path not allowed")
-
-            dest = os.path.join(parent_abs, base)
-            if os.path.islink(dest):
-                return err_result("path not allowed")
-            if os.path.lexists(dest):
-                real_existing = os.path.realpath(dest)
-                if not self._is_under_sync_root(real_existing):
-                    return err_result("path not allowed")
-
             try:
                 atomic_write_bytes(dest, data)
             except OSError as exc:
                 return err_result_from(exc, "upload failed")
+            return self._finalize_upload(dest, len(data))
 
-            real = os.path.realpath(dest)
-            if not self._is_under_sync_root(real) or not os.path.isfile(real):
+    def manager_upload_staging_path(self) -> str:
+        """Create an empty tmp file under the sync root for a streamed upload.
+
+        The .rns-xfer- sidecar prefix keeps a leftover staging file out of
+        inventory scans and manager listings. Every upload destination sits
+        under the same sync root, so the later os.replace stays atomic on
+        one filesystem.
+        """
+        with self._lock:
+            root = self._sync_root()
+            fd, tmp = tempfile.mkstemp(
+                prefix=".rns-xfer-upload-",
+                suffix=".tmp",
+                dir=root,
+            )
+            os.close(fd)
+            return tmp
+
+    def manager_upload_file(
+        self,
+        *,
+        filename: str | None,
+        src_path: str | None,
+        subdir: str | None = None,
+    ) -> dict[str, Any]:
+        """Move a file staged via manager_upload_staging_path into place."""
+        with self._lock:
+            if not isinstance(src_path, str) or not src_path:
+                return err_result("invalid upload data")
+            staged = os.path.realpath(src_path)
+            if (
+                os.path.dirname(staged) != self._sync_root()
+                or not os.path.basename(staged).startswith(".rns-xfer-upload-")
+                or not os.path.isfile(staged)
+            ):
+                return err_result("invalid upload data")
+            size = os.path.getsize(staged)
+            if size > MANAGER_UPLOAD_MAX_BYTES:
                 with contextlib.suppress(OSError):
-                    os.unlink(dest)
-                return err_result("path not allowed")
-            rel = self._relpath_under_sync(real)
-            if rel is None:
+                    os.unlink(staged)
+                return err_result("upload too large")
+
+            dest, err = self._resolve_upload_dest(filename, subdir)
+            if err or dest is None:
                 with contextlib.suppress(OSError):
-                    os.unlink(dest)
-                return err_result("path not allowed")
-            self._nudge_inventory(rel)
-            return ok_result(path=rel, size=len(data))
+                    os.unlink(staged)
+                return err_result(err or "path not allowed")
+
+            try:
+                with open(staged, "r+b") as handle:
+                    os.fsync(handle.fileno())
+                os.replace(staged, dest)
+            except OSError as exc:
+                with contextlib.suppress(OSError):
+                    os.unlink(staged)
+                return err_result_from(exc, "upload failed")
+            _fsync_dir(os.path.dirname(dest))
+            return self._finalize_upload(dest, size)
 
     def manager_delete(self, path: str) -> dict[str, Any]:
         """Delete a file or empty directory under the sync root."""
