@@ -1700,6 +1700,7 @@ import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../j
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import { useImageModal } from "../../js/messages/useImageModal.js";
 import { useAudioAttachment } from "../../js/messages/useAudioAttachment.js";
+import { useMessageDrafts } from "../../js/messages/useMessageDrafts.js";
 import {
     isOpportunisticDeferredDelivery as isOpportunisticDeferredDeliveryStatus,
     lxmfStateWouldRegress,
@@ -1783,11 +1784,20 @@ export default {
                 isMeshChatXAndroid: () => inst?.proxy.isMeshChatXAndroid(),
                 androidNativeWavAttachmentAllowed: () => inst?.proxy.androidNativeWavAttachmentAllowed(),
             }),
+            ...useMessageDrafts({
+                getIdentityKey: () => inst?.proxy._draftIdentityKey(),
+                getNewMessageText: () => inst?.proxy.newMessageText ?? "",
+                setDraftText: (text) => {
+                    if (inst) {
+                        inst.proxy.newMessageText = text;
+                        inst.proxy.$nextTick(() => inst.proxy.adjustTextareaHeight());
+                    }
+                },
+            }),
         };
     },
     data() {
         return {
-            lastDraftIdentityKey: "",
             peerPathSnapshot: null,
             deliveryHelptipCache: {},
             peerPathLoading: false,
@@ -3061,66 +3071,9 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("messages.failed_add_contact"));
             }
         },
-        loadDraft(destinationHash, identityKey) {
-            try {
-                const drafts = this._readDraftRoot();
-                const key = identityKey || this._draftIdentityKey();
-                const bucket = this._draftBucketFor(drafts, key);
-                let text = "";
-                if (bucket && typeof bucket[destinationHash] === "string") {
-                    text = bucket[destinationHash];
-                } else if (!this._hasNestedDraftBuckets(drafts) && typeof drafts[destinationHash] === "string") {
-                    // Legacy flat keys (pre identity-scoped drafts).
-                    text = drafts[destinationHash];
-                }
-                this.newMessageText = text;
-                this.$nextTick(() => {
-                    this.adjustTextareaHeight();
-                });
-            } catch (e) {
-                console.error("Failed to load draft:", e);
-            }
-        },
-        saveDraft(destinationHash, identityKey) {
-            try {
-                const drafts = this._readDraftRoot();
-                const key = identityKey || this._draftIdentityKey();
-                let bucket = this._draftBucketFor(drafts, key);
-                if (!bucket) {
-                    bucket = {};
-                    drafts[key] = bucket;
-                    if (typeof drafts[destinationHash] === "string") {
-                        delete drafts[destinationHash];
-                    }
-                }
-                if (this.newMessageText) {
-                    bucket[destinationHash] = this.newMessageText;
-                } else {
-                    delete bucket[destinationHash];
-                }
-                localStorage.setItem(STORAGE_KEYS.MESSAGE_DRAFTS, JSON.stringify(drafts));
-                this.lastDraftIdentityKey = key;
-            } catch (e) {
-                console.error("Failed to save draft:", e);
-            }
-        },
         _draftIdentityKey() {
             const hash = this.config?.identity_hash || this.myLxmfAddressHash || "";
             return typeof hash === "string" && hash ? hash : "_";
-        },
-        _readDraftRoot() {
-            const raw = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGE_DRAFTS) || "{}");
-            return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
-        },
-        _draftBucketFor(drafts, identityKey) {
-            const nested = drafts[identityKey];
-            if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-                return nested;
-            }
-            return null;
-        },
-        _hasNestedDraftBuckets(drafts) {
-            return Object.values(drafts).some((value) => value && typeof value === "object" && !Array.isArray(value));
         },
         onIdentitySwitched(json) {
             const dest = this.selectedPeer?.destination_hash;
