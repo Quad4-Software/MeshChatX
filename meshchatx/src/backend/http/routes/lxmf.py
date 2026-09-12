@@ -612,14 +612,22 @@ def register_lxmf_routes(routes, app):
             )
 
         except Exception as e:
-            detail = str(e).strip() or "Sending failed"
+            internal = str(e).strip()
             status = 503
             if isinstance(e, (ValueError, LookupError)):
                 status = 400
             elif isinstance(e, TimeoutError):
                 status = 503
+            # Only validation-style errors are safe to echo; OS/RNS errors
+            # can carry paths and internals, so clients get a generic line.
+            if isinstance(e, (ValueError, LookupError)):
+                detail = internal or "Invalid request"
+            elif isinstance(e, TimeoutError):
+                detail = "Sending timed out"
+            else:
+                detail = "Sending failed"
             body: dict[str, object] = {"message": detail}
-            lower = detail.lower()
+            lower = internal.lower()
             failure_hint = None
             if "could not recall" in lower:
                 failure_hint = "recall"
@@ -683,12 +691,17 @@ def register_lxmf_routes(routes, app):
                 },
             )
         except Exception as e:
-            detail = str(e).strip() or "Reaction failed"
             status = 503
             if isinstance(e, (ValueError, LookupError)):
                 status = 400
             elif isinstance(e, TimeoutError):
                 status = 503
+            if isinstance(e, (ValueError, LookupError)):
+                detail = str(e).strip() or "Invalid request"
+            elif isinstance(e, TimeoutError):
+                detail = "Reaction timed out"
+            else:
+                detail = "Reaction failed"
             return http_error(status, detail)
 
     # cancel sending lxmf message

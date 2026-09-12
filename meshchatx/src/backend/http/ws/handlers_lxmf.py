@@ -330,13 +330,14 @@ async def handle_lxm_ingest_uri(app, client, data):
             ),
         )
     except Exception as e:
+        detail = str(e) if isinstance(e, ValueError) else "ingest failed"
         AsyncUtils.run_async(
             client.send_str(
                 json.dumps(
                     {
                         "type": "lxm.ingest_uri.result",
                         "status": "error",
-                        "message": f"Error ingesting message from URI: {e!s}",
+                        "message": f"Error ingesting message from URI: {detail}",
                     },
                 ),
             ),
@@ -368,7 +369,7 @@ async def handle_lxm_generate_paper_uri(app, client, data):
                 )
 
         if destination_identity is None:
-            raise Exception(
+            raise ValueError(
                 "Recipient identity not found. Please wait for an announce or add them as a contact.",
             )
 
@@ -403,13 +404,14 @@ async def handle_lxm_generate_paper_uri(app, client, data):
             ),
         )
     except Exception as e:
+        detail = str(e) if isinstance(e, ValueError) else "generation failed"
         AsyncUtils.run_async(
             client.send_str(
                 json.dumps(
                     {
                         "type": "lxm.generate_paper_uri.result",
                         "status": "error",
-                        "message": f"Error generating paper message: {e!s}",
+                        "message": f"Error generating paper message: {detail}",
                     },
                 ),
             ),
