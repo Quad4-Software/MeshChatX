@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import re
 from typing import Any
 
@@ -319,26 +318,20 @@ def describe_bot_lxmf_config(
 
 
 def write_bot_lxmf_config_sidecar(storage_dir: str, settings: dict) -> str:
-    from meshchatx.src.path_utils import atomic_write_text
+    from meshchatx.src.json_store import save_json
 
     path = bot_lxmf_config_sidecar_path(storage_dir)
-    atomic_write_text(path, json.dumps(settings, indent=2) + "\n")
+    save_json(path, settings, indent=2)
     return path
 
 
 def load_bot_lxmf_config_sidecar(path: str | None) -> dict:
     if not path:
         return {}
-    import os
+    from meshchatx.src.json_store import load_json
 
-    if not os.path.isfile(path):
-        return {}
-    try:
-        with open(path, encoding="utf-8") as handle:
-            raw = json.load(handle)
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if not isinstance(raw, dict):
+    raw = load_json(path, expect=dict)
+    if raw is None:
         return {}
 
     settings: dict[str, Any] = {}

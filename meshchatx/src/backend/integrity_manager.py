@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar
 
-from meshchatx.src.path_utils import atomic_write_text
+from meshchatx.src.json_store import load_json, save_json
 
 
 class CriticalIntegrityError(RuntimeError):
@@ -343,7 +343,9 @@ class IntegrityManager:
         if registry_path is None or not registry_path.exists():
             return {}, "missing"
         try:
-            data = json.loads(registry_path.read_text())
+            data = load_json(registry_path)
+            if not isinstance(data, dict):
+                return {}, "tampered"
             entries = data.get("identities", {})
             if not isinstance(entries, dict):
                 return {}, "tampered"
@@ -363,8 +365,7 @@ class IntegrityManager:
         payload = {"identities": entries}
         payload["hmac"] = self._sign_payload(key, payload)
         try:
-            self.trust_dir.mkdir(parents=True, exist_ok=True)
-            atomic_write_text(registry_path, json.dumps(payload, indent=2))
+            save_json(registry_path, payload, indent=2, newline=False)
         except OSError:
             pass
 
@@ -726,7 +727,7 @@ class IntegrityManager:
             if key is not None:
                 manifest["hmac"] = self._manifest_hmac(key, manifest)
 
-            atomic_write_text(self.manifest_path, json.dumps(manifest, indent=2))
+            save_json(self.manifest_path, manifest, indent=2, newline=False)
             self.baseline_pending = False
 
             if key is not None and self.identity_hash:

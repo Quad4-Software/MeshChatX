@@ -11,7 +11,6 @@ bounded queue and a single persist worker.
 from __future__ import annotations
 
 import logging
-import os
 import queue
 import threading
 import time
@@ -35,17 +34,14 @@ def _persist_one(destination_hash: bytes, ratchet: bytes) -> None:
     # in frozen desktop builds where that package is not installed (issue 76).
     import RNS.vendor.umsgpack as umsgpack
 
+    from meshchatx.src.path_utils import atomic_write_bytes
+
     with RNS.Identity.ratchet_persist_lock:
         hexhash = RNS.hexrep(destination_hash, delimit=False)
         ratchet_data = {"ratchet": ratchet, "received": time.time()}
         ratchetdir = RNS.Reticulum.storagepath + "/ratchets"
-        if not os.path.isdir(ratchetdir):
-            os.makedirs(ratchetdir)
-        outpath = f"{ratchetdir}/{hexhash}.out"
         finalpath = f"{ratchetdir}/{hexhash}"
-        with open(outpath, "wb") as ratchet_file:
-            ratchet_file.write(umsgpack.packb(ratchet_data))
-        os.replace(outpath, finalpath)
+        atomic_write_bytes(finalpath, umsgpack.packb(ratchet_data))
 
 
 def _worker_loop() -> None:

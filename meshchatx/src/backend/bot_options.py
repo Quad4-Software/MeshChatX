@@ -8,7 +8,6 @@ Normalizers raise ValueError on hard-invalid input so HTTP callers can answer
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import Any
@@ -132,27 +131,25 @@ def bot_runtime_sidecar_path(storage_dir: str) -> str:
 
 
 def write_bot_runtime_sidecar(storage_dir: str, payload: dict) -> str:
-    from meshchatx.src.path_utils import atomic_write_text
+    from meshchatx.src.json_store import save_json
 
     doc: dict[str, Any] = {}
     for key in ("icon", "custom"):
         if key in payload:
             doc[key] = payload[key]
     path = bot_runtime_sidecar_path(storage_dir)
-    atomic_write_text(path, json.dumps(doc, indent=2) + "\n")
+    save_json(path, doc, indent=2)
     return path
 
 
 def load_bot_runtime_sidecar(path: str | None) -> dict:
     """Read the runtime sidecar, normalizing each section. Never raises."""
-    if not path or not os.path.isfile(path):
+    if not path:
         return {}
-    try:
-        with open(path, encoding="utf-8") as handle:
-            raw = json.load(handle)
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if not isinstance(raw, dict):
+    from meshchatx.src.json_store import load_json
+
+    raw = load_json(path, expect=dict)
+    if raw is None:
         return {}
 
     out: dict[str, Any] = {}

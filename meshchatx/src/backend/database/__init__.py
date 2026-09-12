@@ -479,14 +479,10 @@ class Database:
         return os.path.join(default_dir, BACKUP_BASELINE_FILENAME)
 
     def _read_backup_baseline(self, storage_path):
+        from meshchatx.src.json_store import load_json
+
         path = self._get_backup_baseline_path(storage_path)
-        if not os.path.exists(path):
-            return None
-        try:
-            with open(path) as f:
-                return json.load(f)
-        except (OSError, json.JSONDecodeError):
-            return None
+        return load_json(path)
 
     def _write_backup_baseline(
         self,
@@ -497,7 +493,6 @@ class Database:
     ):
         path = self._get_backup_baseline_path(storage_path)
         try:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
             data = {
                 "message_count": message_count,
                 "total_bytes": total_bytes,
@@ -505,9 +500,9 @@ class Database:
             }
             if main_bytes is not None:
                 data["main_bytes"] = main_bytes
-            from meshchatx.src.path_utils import atomic_write_text
+            from meshchatx.src.json_store import save_json
 
-            atomic_write_text(path, json.dumps(data, indent=2))
+            save_json(path, data, indent=2, newline=False)
         except OSError as e:
             print(f"Failed to write backup baseline: {e}")
 

@@ -9,6 +9,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
+from meshchatx.src.json_store import save_json
+
 WASM_MAGIC = b"\x00asm"
 WASM_VERSION = b"\x01\x00\x00\x00"
 WASM_SECTION_CUSTOM = 0
@@ -246,9 +248,7 @@ def _strip_bundle_metadata_sections(data: bytes) -> bytes:
 
 def write_wasm_bundle(dest: str, bundle: WasmBundle) -> None:
     os.makedirs(dest, exist_ok=True)
-    with open(os.path.join(dest, "plugin.json"), "w", encoding="utf-8") as handle:  # nosec: PTC-W6004
-        json.dump(bundle.manifest, handle, indent=2)
-        handle.write("\n")
+    save_json(os.path.join(dest, "plugin.json"), bundle.manifest, indent=2)
     backend = bundle.manifest.get("backend") or {}
     backend_entry = ""
     if isinstance(backend, dict):

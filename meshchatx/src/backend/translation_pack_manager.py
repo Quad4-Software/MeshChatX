@@ -10,7 +10,6 @@ same-origin to the Bergamot WASM worker.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import shutil
@@ -20,6 +19,7 @@ import zipfile
 
 import RNS
 
+from meshchatx.src.json_store import load_json, load_json_required, save_json
 from meshchatx.src.path_utils import (
     PathJailError,
     is_path_within_dir,
@@ -159,15 +159,13 @@ class TranslationPackManager:
         registry_path = os.path.join(source_dir, "registry.json")
 
         if os.path.isfile(registry_path):
-            with open(registry_path, encoding="utf-8") as f:
-                registry = json.load(f)
+            registry = load_json_required(registry_path, expect=dict)
             return self._install_registry(source_dir, registry)
 
         # Single-pair archive: look for pack.json or a single pair directory.
         pack_json_path = os.path.join(source_dir, "pack.json")
         if os.path.isfile(pack_json_path):
-            with open(pack_json_path, encoding="utf-8") as f:
-                pack = json.load(f)
+            pack = load_json_required(pack_json_path, expect=dict)
             return self._install_pack(source_dir, pack)
 
         dirs = sorted(
@@ -242,8 +240,12 @@ class TranslationPackManager:
         pack.setdefault("from", pair[:2])
         pack.setdefault("to", pair[2:4])
         pack.setdefault("version", "")
-        with open(os.path.join(dest_dir, "pack.json"), "w", encoding="utf-8") as f:
-            json.dump(pack, f, indent=2)
+        save_json(
+            os.path.join(dest_dir, "pack.json"),
+            pack,
+            indent=2,
+            newline=False,
+        )
 
         return [pair]
 
@@ -332,11 +334,9 @@ class TranslationPackManager:
             pack_json = os.path.join(pair_dir, "pack.json")
             pack: dict = {"from": pair[:2], "to": pair[2:4], "files": {}}
             if os.path.isfile(pack_json):
-                try:
-                    with open(pack_json, encoding="utf-8") as f:
-                        pack = json.load(f)
-                except (OSError, json.JSONDecodeError):
-                    pass
+                loaded = load_json(pack_json, expect=dict)
+                if loaded is not None:
+                    pack = loaded
             pack.setdefault("from", pair[:2])
             pack.setdefault("to", pair[2:4])
             pack["files"] = self._normalise_files(pack.get("files", {}), pair)
@@ -350,8 +350,7 @@ class TranslationPackManager:
             if pack["files"]:
                 registry[pair] = pack
 
-        with open(self.registry_path, "w", encoding="utf-8") as f:
-            json.dump(registry, f, indent=2)
+        save_json(self.registry_path, registry, indent=2, newline=False)
         self._registry_cache = registry
 
     def _load_registry(self) -> dict:
@@ -360,12 +359,10 @@ class TranslationPackManager:
         if not os.path.isfile(self.registry_path):
             self._registry_cache = {}
             return self._registry_cache
-        registry = {}
-        try:
-            with open(self.registry_path, encoding="utf-8") as f:
-                registry = json.load(f)
-        except (OSError, json.JSONDecodeError):
+        registry = load_json(self.registry_path)
+        if not isinstance(registry, dict):
             RNS.log("Failed to load translation pack registry", RNS.LOG_ERROR)
+            registry = {}
         self._registry_cache = registry
         return registry
 

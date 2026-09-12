@@ -4,13 +4,12 @@
 
 from __future__ import annotations
 
-import json
 import os
 import threading
 from typing import Any
 
 from meshchatx.src.backend.ip_allowlist import normalize_allowlist_text
-from meshchatx.src.path_utils import atomic_write_text
+from meshchatx.src.json_store import load_json, save_json
 
 _SETTINGS_FILENAME = "app_security.json"
 _LOCK = threading.RLock()
@@ -30,14 +29,8 @@ def _default_settings() -> dict[str, Any]:
 def load_app_security_settings(storage_dir: str) -> dict[str, Any]:
     path = _settings_path(storage_dir)
     with _LOCK:
-        if not os.path.isfile(path):
-            return _default_settings()
-        try:
-            with open(path, encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            return _default_settings()
-        if not isinstance(data, dict):
+        data = load_json(path, expect=dict)
+        if data is None:
             return _default_settings()
         merged = _default_settings()
         merged.update(data)
@@ -62,9 +55,8 @@ def save_app_security_settings(
             parse_allowlist_networks(text)
         current["trusted_proxy_cidrs"] = text
     path = _settings_path(storage_dir)
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with _LOCK:
-        atomic_write_text(path, json.dumps(current, indent=2) + "\n")
+        save_json(path, current, indent=2)
     return current
 
 

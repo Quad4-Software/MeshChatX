@@ -24,6 +24,9 @@ import time
 import uuid
 from collections import deque
 
+from meshchatx.src.json_store import load_json_required
+from meshchatx.src.path_utils import atomic_write_text
+
 try:
     import fcntl
     import pty
@@ -694,8 +697,7 @@ class RNXManager:
         path = self._store_path()
         if not os.path.exists(path):
             return
-        with open(path, encoding="utf-8") as handle:
-            data = json.load(handle)
+        data = load_json_required(path, expect=dict)
         sessions = data.get("sessions")
         if not isinstance(sessions, list):
             return
@@ -752,14 +754,7 @@ class RNXManager:
                 "sessions": [session.to_store() for session in self._sessions.values()],
             }
         path = self._store_path()
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        tmp_path = f"{path}.tmp"
-        with open(tmp_path, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, ensure_ascii=False, indent=2)
-            handle.flush()
-            with contextlib.suppress(OSError):
-                os.fsync(handle.fileno())
-        os.replace(tmp_path, path)
+        atomic_write_text(path, json.dumps(payload, ensure_ascii=False, indent=2))
 
     def list_sessions(self):
         with self._lock:

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import base64
-import contextlib
-import json
 import os
 import shutil
 
@@ -14,7 +12,8 @@ from meshchatx.src.backend.database.config import ConfigDAO
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
 from meshchatx.src.backend.meshchat_utils import normalize_identity_storage_hash
-from meshchatx.src.path_utils import atomic_write_text, is_path_within_dir
+from meshchatx.src.json_store import load_json, save_json
+from meshchatx.src.path_utils import atomic_write_bytes, is_path_within_dir
 
 
 class IdentityManager:
@@ -35,9 +34,7 @@ class IdentityManager:
             self.storage_dir,
             "identity",
         )
-        os.makedirs(os.path.dirname(target_path), exist_ok=True)
-        with open(target_path, "wb") as f:
-            f.write(identity_bytes)
+        atomic_write_bytes(target_path, identity_bytes, mode=0o600)
         return {
             "path": target_path,
             "size": os.path.getsize(target_path),
@@ -77,11 +74,7 @@ class IdentityManager:
                 continue
 
             metadata_path = os.path.join(identity_path, "metadata.json")
-            metadata = None
-            if os.path.exists(metadata_path):
-                with contextlib.suppress(Exception):
-                    with open(metadata_path) as f:
-                        metadata = json.load(f)
+            metadata = load_json(metadata_path, expect=dict)
 
             if metadata:
                 identities.append(
@@ -141,7 +134,7 @@ class IdentityManager:
                     "lxmf_address": lxmf_address,
                     "lxst_address": lxst_address,
                 }
-                atomic_write_text(metadata_path, json.dumps(metadata))
+                save_json(metadata_path, metadata, indent=None, newline=False)
             except Exception as e:
                 print(f"Error reading config for {identity_hash}: {e}")
 
@@ -173,8 +166,7 @@ class IdentityManager:
         os.makedirs(identity_dir, exist_ok=True)
 
         identity_file = os.path.join(identity_dir, "identity")
-        with open(identity_file, "wb") as f:
-            f.write(identity.get_private_key())
+        atomic_write_bytes(identity_file, identity.get_private_key(), mode=0o600)
 
         db_path = os.path.join(identity_dir, "database.db")
 
@@ -212,7 +204,7 @@ class IdentityManager:
             if key in existing_metadata:
                 metadata[key] = existing_metadata[key]
 
-        atomic_write_text(metadata_path, json.dumps(metadata))
+        save_json(metadata_path, metadata, indent=None, newline=False)
 
         return {
             "hash": identity_hash,
@@ -223,11 +215,7 @@ class IdentityManager:
     def _read_metadata_object(metadata_path: str) -> dict | None:
         if not os.path.exists(metadata_path):
             return {}
-        try:
-            with open(metadata_path) as handle:
-                loaded = json.load(handle)
-        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
-            return None
+        loaded = load_json(metadata_path)
         if not isinstance(loaded, dict):
             return None
         return loaded
@@ -243,7 +231,7 @@ class IdentityManager:
             return
 
         existing_metadata.update(metadata)
-        atomic_write_text(metadata_path, json.dumps(existing_metadata))
+        save_json(metadata_path, existing_metadata, indent=None, newline=False)
 
     def delete_identity(self, identity_hash: str, current_identity_hash: str | None):
         canonical = normalize_identity_storage_hash(identity_hash)

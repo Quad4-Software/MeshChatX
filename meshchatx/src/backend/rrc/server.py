@@ -27,6 +27,7 @@ from meshchatx.src.backend.rrc.room_key_crypto import (
 )
 from meshchatx.src.backend.rrc.room_registry import RoomRegistry
 from meshchatx.src.backend.rrc.rooms_toml import INVITE_DEFAULT_TTL_S, RoomsTomlStore
+from meshchatx.src.path_utils import atomic_write_bytes
 
 SERVER_DIR_NAME = "rrc_server"
 MESSAGE_LOG_CAP = 5000
@@ -1539,13 +1540,7 @@ class RRCServerManager:
             try:
                 with self._lock:
                     entries = [hub.config_entry() for hub in self.hubs]
-                os.makedirs(self._server_dir(), exist_ok=True)
-                with open(tmp_path, "wb") as f:
-                    f.write(proto.encode({"hubs": entries}))
-                    f.flush()
-                    with contextlib.suppress(Exception):
-                        os.fsync(f.fileno())
-                os.replace(tmp_path, path)
+                atomic_write_bytes(path, proto.encode({"hubs": entries}))
             except Exception:
                 with contextlib.suppress(Exception):
                     os.unlink(tmp_path)

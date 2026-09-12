@@ -18,6 +18,9 @@ from typing import Any
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
+from meshchatx.src.json_store import load_json
+from meshchatx.src.path_utils import atomic_write_text
+
 _ROOT_DIST_CANDIDATES = ("reticulum-meshchatx", "reticulum_meshchatx")
 _DATA_SUBPATH = Path("meshchatx") / "src" / "backend" / "data"
 _FRONTEND_LICENSES_FILENAME = "licenses_frontend.json"
@@ -246,10 +249,7 @@ def _load_embedded_backend_licenses() -> list[dict[str, Any]] | None:
     for path in _embedded_data_paths(_BACKEND_LICENSES_FILENAME):
         if not path.is_file():
             continue
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
+        raw = load_json(path)
         if not isinstance(raw, list):
             continue
         return [x for x in raw if isinstance(x, dict)]
@@ -315,10 +315,7 @@ def _workspace_root_npm_identity(repo_root: Path) -> tuple[str | None, str | Non
     pj = repo_root / "package.json"
     if not pj.is_file():
         return None, None
-    try:
-        data = json.loads(pj.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None, None
+    data = load_json(pj)
     if not isinstance(data, dict):
         return None, None
     name = data.get("name")
@@ -363,14 +360,7 @@ def collect_frontend_from_node_modules(repo_root: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for pkg_path_str in paths:
         pkg_path = Path(pkg_path_str)
-        try:
-            raw = pkg_path.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            continue
+        data = load_json(pkg_path)
         if not isinstance(data, dict):
             continue
         name = data.get("name")
@@ -473,10 +463,7 @@ def _load_embedded_frontend_licenses() -> list[dict[str, Any]] | None:
     for path in _embedded_data_paths(_FRONTEND_LICENSES_FILENAME):
         if not path.is_file():
             continue
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
+        raw = load_json(path)
         if not isinstance(raw, list):
             continue
         return [x for x in raw if isinstance(x, dict)]
@@ -587,13 +574,13 @@ def write_embedded_license_artifacts(repo_root: Path | None = None) -> dict[str,
         )
     )
     if should_write_frontend:
-        frontend_path.write_text(
+        atomic_write_text(
+            frontend_path,
             json.dumps(frontend_rows, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
         )
-    backend_path.write_text(
+    atomic_write_text(
+        backend_path,
         json.dumps(backend_rows, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
     )
     notices_path.write_text(render_third_party_notices(payload), encoding="utf-8")
     return {

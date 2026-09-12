@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
 import contextlib
-import json
 import logging
 import os
 import re
@@ -27,8 +26,8 @@ from meshchatx.src.backend.bot_options import (
     normalize_bot_icon,
     write_bot_runtime_sidecar,
 )
+from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
-    atomic_write_text,
     is_path_within_dir,
     is_under_root,
 )
@@ -183,37 +182,37 @@ class BotHandler:
         return [sys.executable, self.runner_path]
 
     def _load_state(self):
-        try:
-            with open(self.state_file, encoding="utf-8") as f:
-                loaded = json.load(f)
-                if not isinstance(loaded, list):
-                    self.bots_state = []
-                    self._state_unreadable = True
-                    return
-                kept = []
-                for entry in loaded:
-                    if not isinstance(entry, dict):
-                        continue
-                    if "storage_dir" in entry:
-                        entry["storage_dir"] = os.path.abspath(entry["storage_dir"])
-                    if entry.get("bot_config_dir"):
-                        entry["bot_config_dir"] = os.path.abspath(
-                            os.path.expanduser(entry["bot_config_dir"]),
-                        )
-                    if entry.get("reticulum_config_dir"):
-                        entry["reticulum_config_dir"] = os.path.abspath(
-                            os.path.expanduser(entry["reticulum_config_dir"]),
-                        )
-                    if self._jailed_bot_dirs(entry) is None:
-                        logger.warning(
-                            "Dropping bot %s: storage path is outside the identity bots directory",
-                            entry.get("id"),
-                        )
-                        continue
-                    kept.append(entry)
-                self.bots_state = kept
-        except FileNotFoundError:
+        if not os.path.exists(self.state_file):
             self.bots_state = []
+            return
+        loaded = load_json(self.state_file)
+        if not isinstance(loaded, list):
+            self.bots_state = []
+            self._state_unreadable = True
+            return
+        try:
+            kept = []
+            for entry in loaded:
+                if not isinstance(entry, dict):
+                    continue
+                if "storage_dir" in entry:
+                    entry["storage_dir"] = os.path.abspath(entry["storage_dir"])
+                if entry.get("bot_config_dir"):
+                    entry["bot_config_dir"] = os.path.abspath(
+                        os.path.expanduser(entry["bot_config_dir"]),
+                    )
+                if entry.get("reticulum_config_dir"):
+                    entry["reticulum_config_dir"] = os.path.abspath(
+                        os.path.expanduser(entry["reticulum_config_dir"]),
+                    )
+                if self._jailed_bot_dirs(entry) is None:
+                    logger.warning(
+                        "Dropping bot %s: storage path is outside the identity bots directory",
+                        entry.get("id"),
+                    )
+                    continue
+                kept.append(entry)
+            self.bots_state = kept
         except Exception:
             self.bots_state = []
             self._state_unreadable = True
@@ -223,10 +222,7 @@ class BotHandler:
             logger.error("Refusing to overwrite unreadable bots state file")
             return
         try:
-            atomic_write_text(
-                self.state_file,
-                json.dumps(self.bots_state, indent=2),
-            )
+            save_json(self.state_file, self.bots_state, indent=2, newline=False)
         except Exception as exc:
             logger.error("Failed to save bots state: %s", exc)
 

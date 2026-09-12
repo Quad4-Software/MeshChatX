@@ -29,6 +29,7 @@ import time
 
 import RNS
 
+from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
     PathJailError,
     is_under_root,
@@ -1214,14 +1215,10 @@ class PageNode:
             "executable_page_names": sorted(self._executable_page_names),
         }
         config_path = os.path.join(self.base_dir, "config.json")
-        with open(config_path, "w") as f:
-            json.dump(config, f, indent=2)
+        save_json(config_path, config, indent=2, newline=False)
 
     @staticmethod
     def load_config(base_dir):
         """Load node configuration from disk. Returns dict or None."""
         config_path = os.path.join(base_dir, "config.json")
-        if not os.path.isfile(config_path):
-            return None
-        with open(config_path) as f:
-            return json.load(f)
+        return load_json(config_path)

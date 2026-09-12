@@ -26,6 +26,7 @@ from meshchatx.src.backend.path_utils import (
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.room_key_crypto import decrypt_room_key, encrypt_room_key
 from meshchatx.src.backend.rrc.server import _LoopbackEndpoint
+from meshchatx.src.path_utils import atomic_write_bytes
 
 DEFAULT_DEST_NAME = proto.DEFAULT_DEST_NAME
 SLOW_CHANNEL_BPS = 300
@@ -1984,13 +1985,7 @@ class RRCManager:
                 with self._lock:
                     entries = [self._hub_entry(h) for h in self.hubs]
                 data = proto.encode({"hubs": entries})
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                with open(tmp_path, "wb") as f:
-                    f.write(data)
-                    f.flush()
-                    with contextlib.suppress(Exception):
-                        os.fsync(f.fileno())
-                os.replace(tmp_path, path)
+                atomic_write_bytes(path, data)
             except Exception:
                 with contextlib.suppress(Exception):
                     os.unlink(tmp_path)
