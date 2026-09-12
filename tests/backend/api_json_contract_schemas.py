@@ -258,7 +258,7 @@ SELF_TEST_STATUS_ITEM_SCHEMA: dict = {
     "type": "object",
     "required": ["status", "reason"],
     "properties": {
-        "status": {"type": "string", "enum": ["ok", "failed"]},
+        "status": {"type": "string", "enum": ["ok", "skipped", "failed"]},
         "reason": {"type": "string"},
     },
     "additionalProperties": False,

@@ -105,6 +105,7 @@
         "knip": "^6.33.0",
         "lighthouse": "^13.4.1",
         "micron-parser": "github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098",
+        "minimatch": "^10.2.3",
         "prettier": "^3.9.6",
         "tailwindcss": "^4.3.3",
         "terser": "^5.51.2",

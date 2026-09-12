@@ -217,6 +217,9 @@ importers:
       micron-parser:
         specifier: github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098
         version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/33feb1054c8b2cb3f5f05abbb8903360d3f0c098
+      minimatch:
+        specifier: ^10.2.3
+        version: 10.2.3
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
@@ -3829,10 +3832,6 @@ packages:
     resolution: {integrity: sha512-Rwi3pnapEqirPSbWbrZaa6N3nmqq4Xer/2XooiOKyV3q12ML06f7MOuc5DVH8ONZIFhwIYQ3yzPH4nt7iWHaTg==}
     engines: {node: 18 || 20 || >=22}
 
-  minimatch@10.2.6:
-    resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
-    engines: {node: 18 || 20 || >=22}
-
   minimatch@3.1.4:
     resolution: {integrity: sha512-twmL+S8+7yIsE9wsqgzU3E8/LumN3M3QELrBZ20OdmQ9jB2JvW5oZtBEmft84k/Gs5CG9mqtWc6Y9vW+JEzGxw==}
 
@@ -5812,7 +5811,7 @@ snapshots:
     dependencies:
       '@eslint/object-schema': 2.1.7
       debug: 4.4.3
-      minimatch: 10.2.6
+      minimatch: 10.2.3
     transitivePeerDependencies:
       - supports-color
 
@@ -5833,7 +5832,7 @@ snapshots:
       ignore: 5.3.2
       import-fresh: 3.2.1
       js-yaml: 5.2.2
-      minimatch: 10.2.6
+      minimatch: 10.2.3
       strip-json-comments: 3.1.1
     transitivePeerDependencies:
       - supports-color
@@ -5916,7 +5915,7 @@ snapshots:
   '@isaacs/cliui@8.0.2':
     dependencies:
       string-width: 5.1.2
-      string-width-cjs: string-width@4.2.3
+      string-width-cjs: string-width@4.2.0
       strip-ansi: 6.0.1
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0
@@ -7975,7 +7974,7 @@ snapshots:
       is-glob: 4.0.3
       json-stable-stringify-without-jsonify: 1.0.1
       lodash.merge: 4.6.2
-      minimatch: 10.2.6
+      minimatch: 10.2.3
       natural-compare: 1.4.0
       optionator: 0.9.4
     optionalDependencies:
@@ -9097,10 +9096,6 @@ snapshots:
   mini-svg-data-uri@1.4.4: {}
 
   minimatch@10.2.3:
-    dependencies:
-      brace-expansion: 5.0.9
-
-  minimatch@10.2.6:
     dependencies:
       brace-expansion: 5.0.9
 
