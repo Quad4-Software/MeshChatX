@@ -1387,9 +1387,9 @@ class ReticulumMeshChat:
         rnode_result = self_check_mod.check_rnode_support()
         bot_launcher_result = self_check_mod.check_bot_launcher()
         umsgpack_result = self_check_mod.check_umsgpack_roundtrip()
-        lxst_telephony_result = self_check_mod.check_lxst_telephony()
-        audio_codec_result = self_check_mod.check_audio_codec_roundtrip()
-        miniaudio_result = self_check_mod.check_miniaudio_decode()
+        lxst_telephony_result = self_check_mod.run_isolated("lxst_telephony")
+        audio_codec_result = self_check_mod.run_isolated("audio_codec_roundtrip")
+        miniaudio_result = self_check_mod.run_isolated("miniaudio_decode")
         translation_pack_result = self_check_mod.check_translation_pack_import()
         plugins_runtime_result = self_check_mod.check_plugins_runtime(self)
         web_results = self_check_mod.check_web_stack(self)
@@ -11891,6 +11891,9 @@ def main():
             check = results.get(key, {"status": "failed", "reason": "No result"})
             if check["status"] == "ok":
                 print(f"[OK]     {name}", flush=True)
+            elif check["status"] == "skipped":
+                reason = check.get("reason") or "unavailable"
+                print(f"[SKIP]   {name} - Reason: {reason}", flush=True)
             else:
                 all_passed = False
                 reason = check.get("reason") or "Unknown error"

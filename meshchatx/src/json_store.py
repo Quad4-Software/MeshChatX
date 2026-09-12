@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+from typing import Any
 
 from meshchatx.src.path_utils import atomic_write_text
 
@@ -27,7 +28,7 @@ def load_json(
     *,
     max_bytes: int | None = DEFAULT_MAX_JSON_BYTES,
     expect: type | tuple[type, ...] | None = None,
-):
+) -> Any:
     """Read and parse the JSON file at path; return default on any failure.
 
     default covers missing files, read errors, files larger than
@@ -56,7 +57,7 @@ def load_json_required(
     *,
     max_bytes: int | None = DEFAULT_MAX_JSON_BYTES,
     expect: type | tuple[type, ...] | None = None,
-):
+) -> Any:
     """load_json variant that raises ValueError instead of returning default.
 
     For files whose absence or corruption is itself an error (signed
