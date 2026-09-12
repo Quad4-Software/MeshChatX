@@ -3619,7 +3619,6 @@
             "publish_site_done": "Published {published}/{total} pages to {server}",
             "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
             "insert_image": "Lisää kuva",
-            "insert_image_hint": "Pudota tai liitä kuvia lisätäksesi ne",
             "image_added": "Kuva \"{name}\" lisätty",
             "image_not_supported": "\"{name}\" ei ole tuettu kuvatiedosto",
             "image_too_large": "\"{name}\" on liian suuri (enintään {max})",

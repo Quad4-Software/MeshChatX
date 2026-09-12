@@ -11,6 +11,23 @@
             <template #actions>
                 <button
                     type="button"
+                    class="secondary-chip py-1! px-3!"
+                    :title="$t('tools.micron_editor.insert_image')"
+                    @click="onInsertImageClick"
+                >
+                    <MaterialDesignIcon icon-name="image-plus" class="w-3.5 h-3.5" />
+                    <span class="hidden sm:inline">{{ $t("tools.micron_editor.insert_image") }}</span>
+                </button>
+                <input
+                    ref="imageInputRef"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/tiff"
+                    multiple
+                    class="hidden"
+                    @change="onImageFilePicked"
+                />
+                <button
+                    type="button"
                     class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/10! dark:hover:bg-sem-danger/20!"
                     @click="resetAll"
                 >
@@ -197,27 +214,6 @@
                 @dragleave="onEditorDragLeave"
                 @drop.prevent="onEditorDrop"
             >
-                <div class="flex items-center gap-1 px-2 py-1 border-b border-sem-border bg-sem-surface-muted shrink-0">
-                    <button
-                        type="button"
-                        class="flex items-center justify-center size-8 rounded-lg text-sem-fg-muted hover:text-teal-500 hover:bg-sem-surface transition-colors focus-ring-sem"
-                        :title="$t('tools.micron_editor.insert_image')"
-                        @click="onInsertImageClick"
-                    >
-                        <MaterialDesignIcon icon-name="image-plus" class="size-4" />
-                    </button>
-                    <span class="hidden sm:inline text-xs text-sem-fg-muted select-none">
-                        {{ $t("tools.micron_editor.insert_image_hint") }}
-                    </span>
-                    <input
-                        ref="imageInputRef"
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/tiff"
-                        multiple
-                        class="hidden"
-                        @change="onImageFilePicked"
-                    />
-                </div>
                 <textarea
                     ref="editorRef"
                     v-model="tabs[activeTabIndex].content"

@@ -3619,7 +3619,6 @@
             "publish_site_done": "Published {published}/{total} pages to {server}",
             "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
             "insert_image": "插入图片",
-            "insert_image_hint": "拖放或粘贴图片以插入",
             "image_added": "已添加图片「{name}」",
             "image_not_supported": "「{name}」不是受支持的图片文件",
             "image_too_large": "「{name}」太大（最大 {max}）",
