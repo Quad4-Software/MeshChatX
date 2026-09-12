@@ -3037,6 +3037,7 @@ import {
 } from "../../js/settings/settingsTransportService";
 import * as maintenanceClient from "../../js/settings/settingsMaintenanceClient";
 import { useMessageAgePurge } from "../../js/settings/useMessageAgePurge.js";
+import { useSelfTest } from "../../js/settings/useSelfTest.js";
 import {
     loadVisualiserDisplayPrefs,
     persistVisualiserShowDisabled,
@@ -3114,6 +3115,9 @@ export default {
         return {
             ...useMessageAgePurge({
                 t: (key, params) => inst?.proxy.$t(key, params),
+            }),
+            ...useSelfTest({
+                t: (key) => inst?.proxy.$t(key),
             }),
         };
     },
@@ -3284,9 +3288,7 @@ export default {
             batterySaver: loadBatterySaverPrefs(),
             batteryInterfaceRows: [],
             batteryBitrateBusy: false,
-            selfTestRunning: false,
-            selfTestResults: null,
-            selfTestExpandedReasons: {},
+
             rpcKeyVisible: false,
             desktopCloseSettings: {
                 closeBehavior: "ask",
@@ -3398,68 +3400,6 @@ export default {
         hasSearchResults() {
             if (!this.settingsSearchActive) return true;
             return this.settingsSearchMatchTotal > 0;
-        },
-        selfTestChecks() {
-            if (!this.selfTestResults) {
-                return [];
-            }
-            const r = this.selfTestResults;
-            const item = (key, labelKey) => ({
-                key,
-                label: this.$t(labelKey),
-                passed: r[key]?.status === "ok",
-                reason: r[key]?.reason || "",
-            });
-            return [
-                item("stack_up", "selftest.stack_up"),
-                item("config_good", "selftest.config_good"),
-                item("db_good", "selftest.db_good"),
-                item("read_write_good", "selftest.read_write"),
-                item("identity_good", "selftest.identity_good"),
-                item("imports_good", "selftest.imports_good"),
-                item("umsgpack_roundtrip", "selftest.umsgpack_roundtrip"),
-                item("storage_lock_good", "selftest.storage_lock_good"),
-                item("temp_fs_good", "selftest.temp_fs_good"),
-                item("public_assets_good", "selftest.public_assets_good"),
-                item("lxmf_router_good", "selftest.lxmf_router_good"),
-                item("lxst_telephony", "selftest.lxst_telephony"),
-                item("subprocess_good", "selftest.subprocess_good"),
-                item("run_module_good", "selftest.run_module_good"),
-                item("audio_codec_roundtrip", "selftest.audio_codec_roundtrip"),
-                item("miniaudio_decode", "selftest.miniaudio_decode"),
-                item("translation_pack_import", "selftest.translation_pack_import"),
-                item("sqlite_roundtrip", "selftest.sqlite_roundtrip"),
-                item("identity_roundtrip", "selftest.identity_roundtrip"),
-                item("loopback_tcp", "selftest.loopback_tcp"),
-                item("unicode_path_good", "selftest.unicode_path_good"),
-                item("rnode_support_good", "selftest.rnode_support_good"),
-                item("bot_launcher_good", "selftest.bot_launcher_good"),
-                item("http_status_good", "selftest.http_status_good"),
-                item("http_app_info_good", "selftest.http_app_info_good"),
-                item("http_config_good", "selftest.http_config_good"),
-                item("http_db_health_good", "selftest.http_db_health_good"),
-                item("http_auth_csrf_good", "selftest.http_auth_csrf_good"),
-                item("http_bots_status_good", "selftest.http_bots_status_good"),
-                item("http_security_good", "selftest.http_security_good"),
-                item("http_interfaces_good", "selftest.http_interfaces_good"),
-                item("http_reticulum_instance_good", "selftest.http_reticulum_instance_good"),
-                item("http_identities_good", "selftest.http_identities_good"),
-                item("http_favourites_good", "selftest.http_favourites_good"),
-                item("http_telephone_good", "selftest.http_telephone_good"),
-                item("http_plugins_good", "selftest.http_plugins_good"),
-                item("http_plugins_trust_good", "selftest.http_plugins_trust_good"),
-                item("http_sideband_plugins_good", "selftest.http_sideband_plugins_good"),
-                item("http_sideband_config_good", "selftest.http_sideband_config_good"),
-                item("http_rrc_hubs_good", "selftest.http_rrc_hubs_good"),
-                item("http_rrc_servers_good", "selftest.http_rrc_servers_good"),
-                item("plugins_runtime_good", "selftest.plugins_runtime_good"),
-                item("websocket_good", "selftest.websocket_good"),
-                item("websocket_rns_link_good", "selftest.websocket_rns_link_good"),
-                item("bots_lifecycle", "selftest.bots_lifecycle"),
-            ];
-        },
-        allSelfTestChecksPassed() {
-            return this.selfTestChecks.length > 0 && this.selfTestChecks.every((check) => check.passed);
         },
         displayedRpcConfigSnippet() {
             const snippet = this.reticulumInstance?.rpc_config_snippet;
@@ -3847,15 +3787,6 @@ export default {
                 ToastUtils.error(this.$t("app.copy_failed"));
             }
         },
-        isSelfTestReasonExpanded(key) {
-            return !!this.selfTestExpandedReasons?.[key];
-        },
-        toggleSelfTestReason(key) {
-            this.selfTestExpandedReasons = {
-                ...this.selfTestExpandedReasons,
-                [key]: !this.selfTestExpandedReasons?.[key],
-            };
-        },
         async loadDesktopCloseSettings() {
             if (!ElectronUtils.isElectron()) {
                 return;
@@ -3948,70 +3879,6 @@ export default {
             } catch (e) {
                 console.log(e);
                 ToastUtils.error(this.$t("common.save_failed"));
-            }
-        },
-        async runSelfTest() {
-            if (this.selfTestRunning) {
-                return;
-            }
-            this.selfTestRunning = true;
-            this.selfTestResults = null;
-            this.selfTestExpandedReasons = {};
-            try {
-                const response = await window.api.get(apiPath("/self-test"));
-                this.selfTestResults = response.data;
-            } catch (e) {
-                console.error("Failed to run system self-test", e);
-                const failed = { status: "failed", reason: e.message || String(e) };
-                this.selfTestResults = {
-                    stack_up: { ...failed },
-                    config_good: { ...failed },
-                    db_good: { ...failed },
-                    read_write_good: { ...failed },
-                    identity_good: { ...failed },
-                    imports_good: { ...failed },
-                    umsgpack_roundtrip: { ...failed },
-                    storage_lock_good: { ...failed },
-                    temp_fs_good: { ...failed },
-                    public_assets_good: { ...failed },
-                    lxmf_router_good: { ...failed },
-                    lxst_telephony: { ...failed },
-                    subprocess_good: { ...failed },
-                    run_module_good: { ...failed },
-                    audio_codec_roundtrip: { ...failed },
-                    miniaudio_decode: { ...failed },
-                    translation_pack_import: { ...failed },
-                    sqlite_roundtrip: { ...failed },
-                    identity_roundtrip: { ...failed },
-                    loopback_tcp: { ...failed },
-                    unicode_path_good: { ...failed },
-                    rnode_support_good: { ...failed },
-                    bot_launcher_good: { ...failed },
-                    http_status_good: { ...failed },
-                    http_app_info_good: { ...failed },
-                    http_config_good: { ...failed },
-                    http_db_health_good: { ...failed },
-                    http_auth_csrf_good: { ...failed },
-                    http_bots_status_good: { ...failed },
-                    http_security_good: { ...failed },
-                    http_interfaces_good: { ...failed },
-                    http_reticulum_instance_good: { ...failed },
-                    http_identities_good: { ...failed },
-                    http_favourites_good: { ...failed },
-                    http_telephone_good: { ...failed },
-                    http_plugins_good: { ...failed },
-                    http_plugins_trust_good: { ...failed },
-                    http_sideband_plugins_good: { ...failed },
-                    http_sideband_config_good: { ...failed },
-                    http_rrc_hubs_good: { ...failed },
-                    http_rrc_servers_good: { ...failed },
-                    plugins_runtime_good: { ...failed },
-                    websocket_good: { ...failed },
-                    websocket_rns_link_good: { ...failed },
-                    bots_lifecycle: { ...failed },
-                };
-            } finally {
-                this.selfTestRunning = false;
             }
         },
         loadVisualiserDisplayPrefsFromStorage() {
