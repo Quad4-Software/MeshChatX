@@ -23,9 +23,6 @@ vi.mock("../../meshchatx/src/frontend/js/MicronStorage", () => ({
         clearAll: vi.fn().mockResolvedValue(undefined),
         loadTabs: vi.fn().mockResolvedValue([]),
         saveTabs: vi.fn().mockResolvedValue(undefined),
-        loadImages: vi.fn().mockResolvedValue([]),
-        saveImage: vi.fn().mockResolvedValue(undefined),
-        deleteImage: vi.fn().mockResolvedValue(undefined),
     },
 }));
 
