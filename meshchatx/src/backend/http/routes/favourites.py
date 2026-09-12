@@ -3,148 +3,43 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+import logging
+
+from aiohttp import web
+
+from meshchatx.src.backend.announce_manager import (
+    filter_announced_dicts_by_search_query,
+)
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
-from meshchatx.src.backend.http.errors import http_payload_too_large
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    drop_cached_link,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    nomad_link_identity_kwargs,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.meshchat_utils import convert_db_favourite_to_dict
+from meshchatx.src.backend.nomadnet_downloader import (
+    drop_cached_link,
+    get_cached_active_link,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def register_favourites_routes(routes, app):
     # announce
-    @routes.get("/api/v1/announce")
+    @routes.get(API_V1_PREFIX + "/announce")
     async def announce_trigger(request):
         await app.announce()
 
@@ -157,7 +52,7 @@ def register_favourites_routes(routes, app):
     # serve announces
 
     # serve announces
-    @routes.get("/api/v1/announces")
+    @routes.get(API_V1_PREFIX + "/announces")
     async def announces_get(request):
         unavailable = require_database(app)
         if unavailable is not None:
@@ -274,7 +169,7 @@ def register_favourites_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/announces/query")
+    @routes.post(API_V1_PREFIX + "/announces/query")
     async def announces_query(request):
         try:
             data = await read_json_limited(request)
@@ -318,7 +213,7 @@ def register_favourites_routes(routes, app):
     # serve favourites
 
     # serve favourites
-    @routes.get("/api/v1/favourites")
+    @routes.get(API_V1_PREFIX + "/favourites")
     async def favourites_get(request):
         unavailable = require_database(app)
         if unavailable is not None:
@@ -341,7 +236,7 @@ def register_favourites_routes(routes, app):
     # add favourite
 
     # add favourite
-    @routes.post("/api/v1/favourites/add")
+    @routes.post(API_V1_PREFIX + "/favourites/add")
     async def favourites_add(request):
         # get request data
         try:
@@ -354,30 +249,15 @@ def register_favourites_routes(routes, app):
 
         # destination hash is required
         if destination_hash is None:
-            return web.json_response(
-                {
-                    "message": "destination_hash is required",
-                },
-                status=422,
-            )
+            return http_error(422, "destination_hash is required")
 
         # display name is required
         if display_name is None:
-            return web.json_response(
-                {
-                    "message": "display_name is required",
-                },
-                status=422,
-            )
+            return http_error(422, "display_name is required")
 
         # aspect is required
         if aspect is None:
-            return web.json_response(
-                {
-                    "message": "aspect is required",
-                },
-                status=422,
-            )
+            return http_error(422, "aspect is required")
 
         # upsert favourite
         app.database.announces.upsert_favourite(
@@ -394,7 +274,7 @@ def register_favourites_routes(routes, app):
     # rename favourite
 
     # rename favourite
-    @routes.post("/api/v1/favourites/{destination_hash}/rename")
+    @routes.post(API_V1_PREFIX + "/favourites/{destination_hash}/rename")
     async def favourites_rename(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
@@ -416,10 +296,7 @@ def register_favourites_routes(routes, app):
             destination_hash,
         )
         if favourite is None:
-            return web.json_response(
-                {"message": "Favourite not found"},
-                status=404,
-            )
+            return http_not_found("Favourite not found")
 
         # update display name if provided
         if len(display_name) > 0:
@@ -439,7 +316,7 @@ def register_favourites_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/favourites/{destination_hash}/identify-on-connect")
+    @routes.post(API_V1_PREFIX + "/favourites/{destination_hash}/identify-on-connect")
     async def favourites_identify_on_connect(request):
         destination_hash = request.match_info.get("destination_hash", "")
         try:
@@ -447,15 +324,9 @@ def register_favourites_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         if not isinstance(data, dict):
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
 
         enabled = bool(data.get("enabled"))
         aspect = data.get("aspect") or "nomadnetwork.node"
@@ -533,7 +404,7 @@ def register_favourites_routes(routes, app):
     # delete favourite
 
     # delete favourite
-    @routes.delete("/api/v1/favourites/{destination_hash}")
+    @routes.delete(API_V1_PREFIX + "/favourites/{destination_hash}")
     async def favourites_delete(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
@@ -549,17 +420,14 @@ def register_favourites_routes(routes, app):
     # bulk import favourites
 
     # bulk import favourites
-    @routes.post("/api/v1/favourites/import")
+    @routes.post(API_V1_PREFIX + "/favourites/import")
     async def favourites_import(request):
         try:
             data = await read_json_limited(request)
             entries = data.get("favourites", [])
             if not isinstance(entries, list):
-                return web.json_response(
-                    {
-                        "message": "Invalid import format: favourites must be an array",
-                    },
-                    status=400,
+                return http_bad_request(
+                    "Invalid import format: favourites must be an array",
                 )
             seen = {}
             no_hash = []
@@ -603,12 +471,9 @@ def register_favourites_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to import favourites: {e!s}"},
-                status=500,
-            )
+            return http_unexpected(f"Failed to import favourites: {e!s}")
 
-    @routes.get("/api/v1/favourites/layout")
+    @routes.get(API_V1_PREFIX + "/favourites/layout")
     async def favourites_layout_get(request):
         unavailable = require_database(app)
         if unavailable is not None:
@@ -620,7 +485,7 @@ def register_favourites_routes(routes, app):
             logger.exception("favourites_layout_get failed")
             return http_for_database_exception(e)
 
-    @routes.put("/api/v1/favourites/layout")
+    @routes.put(API_V1_PREFIX + "/favourites/layout")
     async def favourites_layout_put(request):
         from meshchatx.src.backend.favourites_layout import layout_payload_too_large
 
@@ -628,34 +493,22 @@ def register_favourites_routes(routes, app):
         if content_length is not None and layout_payload_too_large(
             content_length,
         ):
-            return web.json_response(
-                {"message": "favourites layout exceeds size limit"},
-                status=413,
-            )
+            return http_payload_too_large("favourites layout exceeds size limit")
         try:
             raw = await request.read()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         if layout_payload_too_large(len(raw)):
-            return web.json_response(
-                {"message": "favourites layout exceeds size limit"},
-                status=413,
-            )
+            return http_payload_too_large("favourites layout exceeds size limit")
         try:
             data = json.loads(raw.decode("utf-8"))
         except Exception:
-            return web.json_response(
-                {"message": "Invalid JSON body"},
-                status=400,
-            )
+            return http_bad_request("Invalid JSON body")
         layout = data.get("layout") if isinstance(data, dict) else None
         try:
             saved = app.database.announces.set_favourites_layout(layout)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"layout": saved})
 
     # serve archived pages

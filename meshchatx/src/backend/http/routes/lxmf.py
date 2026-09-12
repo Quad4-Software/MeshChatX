@@ -3,146 +3,68 @@
 
 from __future__ import annotations
 
+import asyncio
+import base64
+import binascii
+import contextlib
+import json
+import logging
+import os
+from datetime import UTC, datetime
+
+import RNS
+from aiohttp import web
+
+from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
     http_error_from_exception,
+    http_not_found,
     http_payload_too_large,
-)
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+    http_unavailable,
 )
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.lxmf_message_fields import (
+    LxmfAudioField,
+    LxmfFileAttachment,
+    LxmfFileAttachmentsField,
+    LxmfImageField,
+)
+from meshchatx.src.backend.lxmf_sieve import (
+    normalize_lxmf_sieve_filters,
+    parse_lxmf_sieve_filters_json,
+)
+from meshchatx.src.backend.lxmf_utils import (
+    compute_lxmf_conversation_unread_from_latest_row,
+    convert_db_lxmf_message_to_dict,
+    convert_lxmf_message_to_dict,
+    lxmf_sidebar_preview_for_conversation_latest_row,
+)
+from meshchatx.src.backend.meshchat_utils import (
+    cancel_inbound_deliveries,
+    convert_propagation_node_state_to_string,
+    list_inbound_deliveries,
+    message_fields_have_attachments,
+    parse_bool_query_param,
+    parse_lxmf_display_name,
+    parse_lxmf_propagation_node_app_data,
+    parse_nomadnetwork_node_display_name,
+)
+from meshchatx.src.backend.sticker_utils import detect_image_format_from_magic
+from meshchatx.src.backend.telemetry_utils import Telemeter
+
+logger = logging.getLogger(__name__)
 
 # Attachment bytes are content-addressed by message hash and never change, so
 # clients may keep them forever. "private" because they sit behind auth.
@@ -152,7 +74,7 @@ LXMF_ATTACHMENT_CACHE_HEADERS = {
 
 
 def register_lxmf_routes(routes, app):
-    @routes.get("/api/v1/lxmf/propagation-node/status")
+    @routes.get(API_V1_PREFIX + "/lxmf/propagation-node/status")
     async def propagation_node_status(request):
         router = app.message_router
         current_state = None
@@ -222,7 +144,7 @@ def register_lxmf_routes(routes, app):
     # sync propagation node
 
     # sync propagation node
-    @routes.post("/api/v1/lxmf/propagation-node/sync")
+    @routes.post(API_V1_PREFIX + "/lxmf/propagation-node/sync")
     async def propagation_node_sync(request):
         from meshchatx.src.backend.demo_mode import demo_mode_block_response
 
@@ -232,11 +154,8 @@ def register_lxmf_routes(routes, app):
         # ensure propagation node is configured before attempting to sync
         outbound_node = app.message_router.get_outbound_propagation_node()
         if outbound_node is None:
-            return web.json_response(
-                {
-                    "message": "A propagation node must be configured to sync messages.",
-                },
-                status=400,
+            return http_bad_request(
+                "A propagation node must be configured to sync messages."
             )
 
         # proactively request path, but do not block/fail here.
@@ -257,7 +176,7 @@ def register_lxmf_routes(routes, app):
     # stop syncing propagation node
 
     # stop syncing propagation node
-    @routes.post("/api/v1/lxmf/propagation-node/stop-sync")
+    @routes.post(API_V1_PREFIX + "/lxmf/propagation-node/stop-sync")
     async def propagation_node_stop_sync(request):
         from meshchatx.src.backend.demo_mode import demo_mode_block_response
 
@@ -272,7 +191,7 @@ def register_lxmf_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/lxmf/propagation-node/cancel-inbound")
+    @routes.post(API_V1_PREFIX + "/lxmf/propagation-node/cancel-inbound")
     async def propagation_node_cancel_inbound(request):
         router = app.message_router
         data = {}
@@ -288,15 +207,13 @@ def register_lxmf_routes(routes, app):
         result = cancel_inbound_deliveries(router, resource_hash=resource_hash)
         if not result.get("ok"):
             status = 503 if "unavailable" in str(result.get("error") or "") else 400
-            return web.json_response(
-                {
-                    "message": result.get(
-                        "error",
-                        "Failed to cancel inbound deliveries",
-                    ),
-                    "cancelled": result.get("cancelled", 0),
-                },
-                status=status,
+            return http_error(
+                status,
+                result.get(
+                    "error",
+                    "Failed to cancel inbound deliveries",
+                ),
+                cancelled=result.get("cancelled", 0),
             )
         cancelled = int(result.get("cancelled") or 0)
         if resource_hash:
@@ -317,7 +234,7 @@ def register_lxmf_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/lxmf/propagation-node/stop")
+    @routes.post(API_V1_PREFIX + "/lxmf/propagation-node/stop")
     async def propagation_node_stop(request):
         app.config.lxmf_local_propagation_node_enabled.set(False)
         app.stop_local_propagation_node()
@@ -329,7 +246,7 @@ def register_lxmf_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/lxmf/propagation-node/restart")
+    @routes.post(API_V1_PREFIX + "/lxmf/propagation-node/restart")
     async def propagation_node_restart(request):
         app.config.lxmf_local_propagation_node_enabled.set(True)
         app.restart_local_propagation_node()
@@ -344,16 +261,11 @@ def register_lxmf_routes(routes, app):
     # serve propagation nodes
 
     # serve propagation nodes
-    @routes.get("/api/v1/lxmf/propagation-nodes")
+    @routes.get(API_V1_PREFIX + "/lxmf/propagation-nodes")
     async def propagation_nodes_get(request):
         ctx = app.current_context
         if not ctx or not getattr(ctx, "running", False) or ctx.database is None:
-            return web.json_response(
-                {
-                    "message": "Application is initializing or switching identity",
-                },
-                status=503,
-            )
+            return http_unavailable("Application is initializing or switching identity")
         database = ctx.database
         # get query params
         limit = request.query.get("limit", None)
@@ -561,7 +473,7 @@ def register_lxmf_routes(routes, app):
         )
 
     # send lxmf message
-    @routes.post("/api/v1/lxmf-messages/send")
+    @routes.post(API_V1_PREFIX + "/lxmf-messages/send")
     async def lxmf_messages_send(request):
         from meshchatx.src.backend.demo_mode import demo_mode_block_response
 
@@ -578,16 +490,10 @@ def register_lxmf_routes(routes, app):
             return http_payload_too_large()
 
         if not isinstance(data, dict) or "lxmf_message" not in data:
-            return web.json_response(
-                {"message": "lxmf_message is required"},
-                status=400,
-            )
+            return http_bad_request("lxmf_message is required")
         lm = data["lxmf_message"]
         if not isinstance(lm, dict):
-            return web.json_response(
-                {"message": "lxmf_message must be an object"},
-                status=400,
-            )
+            return http_bad_request("lxmf_message must be an object")
 
         # get delivery method
         delivery_method = None
@@ -598,10 +504,7 @@ def register_lxmf_routes(routes, app):
             destination_hash = lm["destination_hash"]
             content = lm["content"]
         except (KeyError, TypeError):
-            return web.json_response(
-                {"message": "destination_hash and content are required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash and content are required")
 
         raw_fields = lm.get("fields")
         fields = dict(raw_fields) if isinstance(raw_fields, dict) else {}
@@ -621,10 +524,7 @@ def register_lxmf_routes(routes, app):
                 image_bytes = base64.b64decode(fields["image"]["image_bytes"])
                 detected = detect_image_format_from_magic(image_bytes)
                 if detected is None or detected in {"webm", "tgs"}:
-                    return web.json_response(
-                        {"message": "Invalid image attachment"},
-                        status=400,
-                    )
+                    return http_bad_request("Invalid image attachment")
                 image_type = "jpg" if detected == "jpeg" else detected
                 image_field = LxmfImageField(image_type, image_bytes)
 
@@ -672,10 +572,7 @@ def register_lxmf_routes(routes, app):
                             new_cmd[k] = v
                     commands.append(new_cmd)
         except (KeyError, TypeError, ValueError, binascii.Error):
-            return web.json_response(
-                {"message": "Invalid lxmf_message.fields"},
-                status=400,
-            )
+            return http_bad_request("Invalid lxmf_message.fields")
 
         reply_to_hash = None
         if "reply_to_hash" in lm:
@@ -754,7 +651,7 @@ def register_lxmf_routes(routes, app):
                 )
             return web.json_response(body, status=status)
 
-    @routes.post("/api/v1/lxmf-messages/reactions")
+    @routes.post(API_V1_PREFIX + "/lxmf-messages/reactions")
     async def lxmf_messages_reactions(request):
         try:
             data = await read_json_limited(request)
@@ -764,11 +661,8 @@ def register_lxmf_routes(routes, app):
         target_message_hash = data.get("target_message_hash")
         emoji = data.get("emoji", "")
         if not destination_hash or not target_message_hash or not emoji:
-            return web.json_response(
-                {
-                    "message": "destination_hash, target_message_hash, and emoji are required",
-                },
-                status=422,
+            return http_error(
+                422, "destination_hash, target_message_hash, and emoji are required"
             )
         try:
             lxmf_message = await app.send_reaction(
@@ -795,17 +689,12 @@ def register_lxmf_routes(routes, app):
                 status = 400
             elif isinstance(e, TimeoutError):
                 status = 503
-            return web.json_response(
-                {
-                    "message": detail,
-                },
-                status=status,
-            )
+            return http_error(status, detail)
 
     # cancel sending lxmf message
 
     # cancel sending lxmf message
-    @routes.post("/api/v1/lxmf-messages/{hash}/cancel")
+    @routes.post(API_V1_PREFIX + "/lxmf-messages/{hash}/cancel")
     async def lxmf_messages_cancel(request):
         # get path params
         message_hash = request.match_info.get("hash", None)
@@ -834,19 +723,14 @@ def register_lxmf_routes(routes, app):
     # identify self on existing nomadnetwork link
 
     # delete lxmf message
-    @routes.delete("/api/v1/lxmf-messages/{hash}")
+    @routes.delete(API_V1_PREFIX + "/lxmf-messages/{hash}")
     async def lxmf_messages_delete(request):
         # get path params
         message_hash = request.match_info.get("hash", None)
 
         # hash is required
         if message_hash is None:
-            return web.json_response(
-                {
-                    "message": "hash is required",
-                },
-                status=422,
-            )
+            return http_error(422, "hash is required")
 
         # delete lxmf messages from db where hash matches
         app.database.messages.delete_lxmf_message_by_hash(message_hash)
@@ -860,7 +744,7 @@ def register_lxmf_routes(routes, app):
     # serve lxmf messages for conversation
 
     # serve lxmf messages for conversation
-    @routes.get("/api/v1/lxmf-messages/conversation/{destination_hash}")
+    @routes.get(API_V1_PREFIX + "/lxmf-messages/conversation/{destination_hash}")
     async def lxmf_messages_conversation(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
@@ -882,15 +766,11 @@ def register_lxmf_routes(routes, app):
         except Exception as e:
             RNS.log(f"Error in lxmf_messages_conversation: {e}", RNS.LOG_ERROR)
             status = 503 if sqlite_error_is_retryable(e) else 500
-            return web.json_response(
-                {
-                    "message": (
-                        "Database temporarily unavailable. Retry shortly."
-                        if status == 503
-                        else "Failed to load conversation"
-                    ),
-                },
-                status=status,
+            return http_error(
+                status,
+                "Database temporarily unavailable. Retry shortly."
+                if status == 503
+                else "Failed to load conversation",
             )
 
         # convert to response json
@@ -908,7 +788,9 @@ def register_lxmf_routes(routes, app):
     # fetch lxmf message attachment
 
     # fetch lxmf message attachment
-    @routes.get("/api/v1/lxmf-messages/attachment/{message_hash}/{attachment_type}")
+    @routes.get(
+        API_V1_PREFIX + "/lxmf-messages/attachment/{message_hash}/{attachment_type}"
+    )
     async def lxmf_message_attachment(request):
         message_hash = request.match_info.get("message_hash")
         attachment_type = request.match_info.get("attachment_type")
@@ -919,45 +801,30 @@ def register_lxmf_routes(routes, app):
             message_hash,
         )
         if db_lxmf_message is None:
-            return web.json_response({"message": "Message not found"}, status=404)
+            return http_not_found("Message not found")
 
         from meshchatx.src.backend.lxmf_utils import parse_stored_lxmf_fields
 
         fields = parse_stored_lxmf_fields(db_lxmf_message["fields"])
         if fields is None:
-            return web.json_response(
-                {"message": "Invalid attachment data"},
-                status=400,
-            )
+            return http_bad_request("Invalid attachment data")
 
         # handle image
         if attachment_type == "image" and "image" in fields:
             image_field = fields["image"]
             if not isinstance(image_field, dict):
-                return web.json_response(
-                    {"message": "Invalid image attachment"},
-                    status=400,
-                )
+                return http_bad_request("Invalid image attachment")
             image_bytes_b64 = image_field.get("image_bytes")
             if not isinstance(image_bytes_b64, str) or not image_bytes_b64:
-                return web.json_response(
-                    {"message": "Missing image data"},
-                    status=400,
-                )
+                return http_bad_request("Missing image data")
             try:
                 image_data = base64.b64decode(image_bytes_b64)
             except Exception:
-                return web.json_response(
-                    {"message": "Invalid image data"},
-                    status=400,
-                )
+                return http_bad_request("Invalid image data")
             allowed_image_types = {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
             detected = detect_image_format_from_magic(image_data)
             if detected is None or detected not in allowed_image_types:
-                return web.json_response(
-                    {"message": "Invalid image attachment"},
-                    status=400,
-                )
+                return http_bad_request("Invalid image attachment")
             # Serve Content-Type from magic bytes, not the peer-declared type.
             image_type = "jpeg" if detected == "jpeg" else detected
             return web.Response(
@@ -970,23 +837,14 @@ def register_lxmf_routes(routes, app):
         if attachment_type == "audio" and "audio" in fields:
             audio_field = fields["audio"]
             if not isinstance(audio_field, dict):
-                return web.json_response(
-                    {"message": "Invalid audio attachment"},
-                    status=400,
-                )
+                return http_bad_request("Invalid audio attachment")
             audio_bytes_b64 = audio_field.get("audio_bytes")
             if not isinstance(audio_bytes_b64, str) or not audio_bytes_b64:
-                return web.json_response(
-                    {"message": "Missing audio data"},
-                    status=400,
-                )
+                return http_bad_request("Missing audio data")
             try:
                 audio_data = base64.b64decode(audio_bytes_b64)
             except Exception:
-                return web.json_response(
-                    {"message": "Invalid audio data"},
-                    status=400,
-                )
+                return http_bad_request("Invalid audio data")
             return web.Response(
                 body=audio_data,
                 content_type="application/octet-stream",
@@ -999,37 +857,22 @@ def register_lxmf_routes(routes, app):
                 try:
                     index = int(file_index)
                     if index < 0:
-                        return web.json_response(
-                            {"message": "Invalid file index"},
-                            status=400,
-                        )
+                        return http_bad_request("Invalid file index")
                     file_attachments = fields["file_attachments"]
                     if not isinstance(file_attachments, list) or index >= len(
                         file_attachments,
                     ):
-                        return web.json_response(
-                            {"message": "Invalid file index"},
-                            status=400,
-                        )
+                        return http_bad_request("Invalid file index")
                     file_attachment = file_attachments[index]
                     if not isinstance(file_attachment, dict):
-                        return web.json_response(
-                            {"message": "Invalid file attachment"},
-                            status=400,
-                        )
+                        return http_bad_request("Invalid file attachment")
                     file_bytes_b64 = file_attachment.get("file_bytes")
                     if not isinstance(file_bytes_b64, str) or not file_bytes_b64:
-                        return web.json_response(
-                            {"message": "Missing file data"},
-                            status=400,
-                        )
+                        return http_bad_request("Missing file data")
                     try:
                         file_data = base64.b64decode(file_bytes_b64)
                     except Exception:
-                        return web.json_response(
-                            {"message": "Invalid file data"},
-                            status=400,
-                        )
+                        return http_bad_request("Invalid file data")
                     raw_name = file_attachment.get("file_name") or "download"
                     if not isinstance(raw_name, str):
                         raw_name = "download"
@@ -1051,9 +894,9 @@ def register_lxmf_routes(routes, app):
                 except (ValueError, IndexError):
                     pass
 
-        return web.json_response({"message": "Attachment not found"}, status=404)
+        return http_not_found("Attachment not found")
 
-    @routes.get("/api/v1/lxmf-messages/{message_hash}/uri")
+    @routes.get(API_V1_PREFIX + "/lxmf-messages/{message_hash}/uri")
     async def lxmf_message_uri(request):
         """Build a reticulum:// URI; prefer the router cache over DB-only state."""
         from meshchatx.src.backend.meshchat_utils import (
@@ -1066,25 +909,16 @@ def register_lxmf_routes(routes, app):
         raw_hash = request.match_info.get("message_hash")
         nh = normalized_meshchat_lxmf_message_hash_hex(raw_hash)
         if not nh:
-            return web.json_response(
-                {"message": "Invalid message hash"},
-                status=400,
-            )
+            return http_bad_request("Invalid message hash")
         hb = hex_identifier_to_bytes(nh)
         if hb is None:
-            return web.json_response(
-                {"message": "Invalid message hash"},
-                status=400,
-            )
+            return http_bad_request("Invalid message hash")
 
         lxm = find_lxm_by_content_hash_for_paper_uri(app.message_router, hb)
 
         if not lxm:
-            return web.json_response(
-                {
-                    "message": "Original message bytes not available for URI generation",
-                },
-                status=404,
+            return http_not_found(
+                "Original message bytes not available for URI generation"
             )
 
         uri, err_detail = lxmf_message_try_paper_uri_string(lxm)
@@ -1101,7 +935,7 @@ def register_lxmf_routes(routes, app):
     # delete lxmf messages for conversation
 
     # delete lxmf messages for conversation
-    @routes.delete("/api/v1/lxmf-messages/conversation/{destination_hash}")
+    @routes.delete(API_V1_PREFIX + "/lxmf-messages/conversation/{destination_hash}")
     async def lxmf_messages_conversation_delete(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
@@ -1126,27 +960,24 @@ def register_lxmf_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/lxmf/conversation-pins")
+    @routes.get(API_V1_PREFIX + "/lxmf/conversation-pins")
     async def lxmf_conversation_pins_get(request):
         peer_hashes = app.database.messages.get_pinned_peer_hashes()
         return web.json_response({"peer_hashes": peer_hashes})
 
-    @routes.post("/api/v1/lxmf/conversation-pins/toggle")
+    @routes.post(API_V1_PREFIX + "/lxmf/conversation-pins/toggle")
     async def lxmf_conversation_pins_toggle(request):
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
-            return web.json_response({"message": "invalid json"}, status=400)
+            return http_bad_request("invalid json")
         destination_hash = (
             data.get("destination_hash") if isinstance(data, dict) else None
         )
         if not destination_hash:
-            return web.json_response(
-                {"message": "missing destination_hash"},
-                status=400,
-            )
+            return http_bad_request("missing destination_hash")
         pinned = app.database.messages.toggle_peer_pin(destination_hash)
         return web.json_response(
             {
@@ -1158,7 +989,7 @@ def register_lxmf_routes(routes, app):
     # get lxmf conversations
 
     # get lxmf conversations
-    @routes.get("/api/v1/lxmf/conversations")
+    @routes.get(API_V1_PREFIX + "/lxmf/conversations")
     async def lxmf_conversations_get(request):
         not_ready = app._require_identity_context_ready()
         if not_ready is not None:
@@ -1332,18 +1163,14 @@ def register_lxmf_routes(routes, app):
         except Exception as e:
             RNS.log(f"Error in lxmf_conversations_get: {e}", RNS.LOG_ERROR)
             status = 503 if sqlite_error_is_retryable(e) else 500
-            return web.json_response(
-                {
-                    "message": (
-                        "Database temporarily unavailable. Retry shortly."
-                        if status == 503
-                        else "Failed to load conversations"
-                    ),
-                },
-                status=status,
+            return http_error(
+                status,
+                "Database temporarily unavailable. Retry shortly."
+                if status == 503
+                else "Failed to load conversations",
             )
 
-    @routes.get("/api/v1/lxmf/folders")
+    @routes.get(API_V1_PREFIX + "/lxmf/folders")
     async def lxmf_folders_get(request):
         unavailable = require_database(app)
         if unavailable is not None:
@@ -1354,7 +1181,7 @@ def register_lxmf_routes(routes, app):
         except Exception as e:
             return http_for_database_exception(e)
 
-    @routes.post("/api/v1/lxmf/folders")
+    @routes.post(API_V1_PREFIX + "/lxmf/folders")
     async def lxmf_folders_post(request):
         try:
             data = await read_json_limited(request)
@@ -1362,14 +1189,14 @@ def register_lxmf_routes(routes, app):
             return http_payload_too_large()
         name = data.get("name")
         if not name:
-            return web.json_response({"message": "Name is required"}, status=400)
+            return http_bad_request("Name is required")
         try:
             app.database.messages.create_folder(name)
             return web.json_response({"message": "Folder created"})
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.patch("/api/v1/lxmf/folders/{id}")
+    @routes.patch(API_V1_PREFIX + "/lxmf/folders/{id}")
     async def lxmf_folders_patch(request):
         folder_id = int(request.match_info["id"])
         try:
@@ -1378,17 +1205,17 @@ def register_lxmf_routes(routes, app):
             return http_payload_too_large()
         name = data.get("name")
         if not name:
-            return web.json_response({"message": "Name is required"}, status=400)
+            return http_bad_request("Name is required")
         app.database.messages.rename_folder(folder_id, name)
         return web.json_response({"message": "Folder renamed"})
 
-    @routes.delete("/api/v1/lxmf/folders/{id}")
+    @routes.delete(API_V1_PREFIX + "/lxmf/folders/{id}")
     async def lxmf_folders_delete(request):
         folder_id = int(request.match_info["id"])
         app.database.messages.delete_folder(folder_id)
         return web.json_response({"message": "Folder deleted"})
 
-    @routes.get("/api/v1/lxmf/sieve-filters")
+    @routes.get(API_V1_PREFIX + "/lxmf/sieve-filters")
     async def lxmf_sieve_filters_get(request):
         raw = app.config.lxmf_sieve_filters_json.get()
         return web.json_response(
@@ -1397,7 +1224,7 @@ def register_lxmf_routes(routes, app):
             },
         )
 
-    @routes.put("/api/v1/lxmf/sieve-filters")
+    @routes.put(API_V1_PREFIX + "/lxmf/sieve-filters")
     async def lxmf_sieve_filters_put(request):
         try:
             data = await read_json_limited(request)
@@ -1405,23 +1232,17 @@ def register_lxmf_routes(routes, app):
             return http_payload_too_large()
         filters = data.get("filters")
         if not isinstance(filters, list):
-            return web.json_response(
-                {"message": "filters must be a list"},
-                status=400,
-            )
+            return http_bad_request("filters must be a list")
         normalized = normalize_lxmf_sieve_filters(filters)
         folder_rows = app.database.messages.get_all_folders()
         valid_folder_ids = {f["id"] for f in folder_rows}
         for r in normalized:
             if r["action"] == "folder" and r["folder_id"] not in valid_folder_ids:
-                return web.json_response(
-                    {"message": f"Unknown folder_id {r['folder_id']}"},
-                    status=400,
-                )
+                return http_bad_request(f"Unknown folder_id {r['folder_id']}")
         app.config.lxmf_sieve_filters_json.set(json.dumps(normalized))
         return web.json_response({"filters": normalized})
 
-    @routes.post("/api/v1/lxmf/conversations/move-to-folder")
+    @routes.post(API_V1_PREFIX + "/lxmf/conversations/move-to-folder")
     async def lxmf_conversations_move_to_folder(request):
         try:
             data = await read_json_limited(request)
@@ -1430,14 +1251,11 @@ def register_lxmf_routes(routes, app):
         peer_hashes = data.get("peer_hashes", [])
         folder_id = data.get("folder_id")  # Can be None to remove from folder
         if not peer_hashes:
-            return web.json_response(
-                {"message": "peer_hashes is required"},
-                status=400,
-            )
+            return http_bad_request("peer_hashes is required")
         app.database.messages.move_conversations_to_folder(peer_hashes, folder_id)
         return web.json_response({"message": "Conversations moved"})
 
-    @routes.post("/api/v1/lxmf/conversations/bulk-mark-as-read")
+    @routes.post(API_V1_PREFIX + "/lxmf/conversations/bulk-mark-as-read")
     async def lxmf_conversations_bulk_mark_read(request):
         try:
             data = await read_json_limited(request)
@@ -1452,17 +1270,14 @@ def register_lxmf_routes(routes, app):
                 {"message": "All conversations marked as read"},
             )
         if not destination_hashes:
-            return web.json_response(
-                {"message": "destination_hashes is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hashes is required")
         app.database.messages.mark_conversations_as_read(destination_hashes)
         # Keep notification viewed state in sync so the bell never
         # disagrees with the conversation list.
         app.database.messages.mark_all_notifications_as_viewed(destination_hashes)
         return web.json_response({"message": "Conversations marked as read"})
 
-    @routes.post("/api/v1/lxmf/conversations/bulk-delete")
+    @routes.post(API_V1_PREFIX + "/lxmf/conversations/bulk-delete")
     async def lxmf_conversations_bulk_delete(request):
         try:
             data = await read_json_limited(request)
@@ -1470,10 +1285,7 @@ def register_lxmf_routes(routes, app):
             return http_payload_too_large()
         destination_hashes = data.get("destination_hashes", [])
         if not destination_hashes:
-            return web.json_response(
-                {"message": "destination_hashes is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hashes is required")
         local_hash = app.local_lxmf_destination.hexhash
         for dest_hash in destination_hashes:
             for message_hash in app.database.messages.list_message_hashes_for_peer(
@@ -1486,7 +1298,7 @@ def register_lxmf_routes(routes, app):
             app.message_handler.delete_conversation(local_hash, dest_hash)
         return web.json_response({"message": "Conversations deleted"})
 
-    @routes.get("/api/v1/lxmf/folders/export")
+    @routes.get(API_V1_PREFIX + "/lxmf/folders/export")
     async def lxmf_folders_export(request):
         folders = [dict(f) for f in app.database.messages.get_all_folders()]
         mappings = [
@@ -1494,7 +1306,7 @@ def register_lxmf_routes(routes, app):
         ]
         return web.json_response({"folders": folders, "mappings": mappings})
 
-    @routes.post("/api/v1/lxmf/folders/import")
+    @routes.post(API_V1_PREFIX + "/lxmf/folders/import")
     async def lxmf_folders_import(request):
         try:
             data = await read_json_limited(request)
@@ -1537,7 +1349,7 @@ def register_lxmf_routes(routes, app):
     # mark lxmf conversation as read
 
     # mark lxmf conversation as read
-    @routes.post("/api/v1/lxmf/conversations/{destination_hash}/mark-as-read")
+    @routes.post(API_V1_PREFIX + "/lxmf/conversations/{destination_hash}/mark-as-read")
     async def lxmf_conversations_mark_read(request):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")

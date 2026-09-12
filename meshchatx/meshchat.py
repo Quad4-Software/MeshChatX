@@ -5,7 +5,6 @@ import argparse
 import asyncio
 import atexit
 import base64
-import binascii
 import configparser
 import contextlib
 import copy
@@ -14,31 +13,23 @@ import gc
 import hashlib
 import importlib
 import importlib.metadata
-import io
 import json
 import logging
 import os
-import platform
 import re
 import runpy
 import secrets
 import shutil
 import signal
 import socket
-import sqlite3
 import ssl
 import sys
-import tempfile
 import threading
 import time
 import traceback
 import webbrowser
-import zipfile
 from datetime import UTC, datetime, timedelta
-from typing import cast
-from urllib.parse import urlparse
 
-import aiohttp
 import bcrypt
 import LXMF
 
@@ -47,35 +38,25 @@ import LXMF
 import LXST
 import psutil
 import RNS
-from aiohttp import WSCloseCode, WSMessage, WSMsgType, web
+from aiohttp import WSCloseCode, web
 from aiohttp_session import get_session
 from aiohttp_session import setup as setup_session
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
-from RNS.Discovery import InterfaceDiscovery
-from serial.tools import list_ports
 
 from meshchatx.android_push_bridge import (
     _get_android_external_files_dir,
     _is_chaquopy_android,
 )
 from meshchatx.src.backend import (
-    gif_utils,
     i2p_support,
     reticulum_pathfinding,
-    sticker_pack_utils,
 )
 from meshchatx.src.backend.active_sessions import (
     ActiveSessionTracker,
     should_warn_multi_session,
 )
-from meshchatx.src.backend.announce_manager import (
-    filter_announced_dicts_by_search_query,
-)
 from meshchatx.src.backend.app_security_settings import (
     get_trusted_proxy_cidrs,
-    get_web_ui_ip_allowlist,
-    load_app_security_settings,
-    save_app_security_settings,
 )
 from meshchatx.src.backend.appcontainer_sandbox import (
     appcontainer_auto_enabled,
@@ -100,17 +81,11 @@ from meshchatx.src.backend.auto_resend_guard import (
     should_skip_for_budget,
 )
 from meshchatx.src.backend.colour_utils import ColourUtils
-from meshchatx.src.backend.csrf import (
-    ensure_session_csrf_token,
-    rotate_session_csrf_token,
-    validate_csrf_header,
-)
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.database.access_attempts import (
-    LOGIN_PATH,
     MAX_FAILED_BEFORE_LOCKOUT,
     MAX_TRUSTED_LOGIN_PER_WINDOW,
     MAX_UNTRUSTED_LOGIN_PER_WINDOW,
-    SETUP_PATH,
     WINDOW_LOCKOUT_S,
     WINDOW_RATE_TRUSTED_S,
     WINDOW_RATE_UNTRUSTED_S,
@@ -122,13 +97,7 @@ from meshchatx.src.backend.demo_mode import (
 )
 from meshchatx.src.backend.identity_context import IdentityContext
 from meshchatx.src.backend.identity_manager import IdentityManager
-from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
 from meshchatx.src.backend.interface_editor import InterfaceEditor
-from meshchatx.src.backend.interface_port_check import (
-    describe_port_conflict,
-    is_port_in_use,
-)
-from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.landlock_sandbox import (
     apply_landlock_sandbox,
     extra_read_roots_from_app,
@@ -139,14 +108,7 @@ from meshchatx.src.backend.landlock_sandbox import (
     landlock_requested,
 )
 from meshchatx.src.backend.legacy_migrator import (
-    assert_migration_context_paths,
-    fresh_storage_at_target,
-    migrate_legacy_to_target,
     resolve_startup_storage,
-)
-from meshchatx.src.backend.local_message_retention import (
-    purge_messages_before_cutoff,
-    resolve_message_age_cutoff,
 )
 from meshchatx.src.backend.lxmf_message_fields import (
     LxmfAudioField,
@@ -156,7 +118,6 @@ from meshchatx.src.backend.lxmf_message_fields import (
 )
 from meshchatx.src.backend.lxmf_sieve import (
     first_matching_lxmf_sieve_rule,
-    normalize_lxmf_sieve_filters,
     parse_lxmf_sieve_filters_json,
 )
 from meshchatx.src.backend.lxmf_utils import (
@@ -165,41 +126,23 @@ from meshchatx.src.backend.lxmf_utils import (
     FIELD_REPLY_TO,
     LXMF_APP_EXTENSIONS_FIELD,
     build_lxmf_reaction_field,
-    compute_lxmf_conversation_unread_from_latest_row,
-    convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_method_to_string,
     convert_lxmf_state_to_string,
     extract_sideband_command_entries,
     is_lxmf_outbound_progress_terminal,
-    is_user_facing_lxmf_payload,
     lxmf_is_reaction_only_delivery,
-    lxmf_sidebar_preview_for_conversation_latest_row,
 )
-from meshchatx.src.backend.map_geo_validator import GeoValidationError
-from meshchatx.src.backend.map_manager import (
-    MAX_EXPORT_TILES,
-    MAX_EXPORT_ZOOM,
-    TRANSPARENT_TILE,
-    is_mbtiles_filename,
-)
-from meshchatx.src.backend.map_overlay_export import OverlayExportError
 from meshchatx.src.backend.map_overlay_manager import (
     CONFIG_CLAMPS,
     clamp_overlay_config_value,
 )
-from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
-from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.memory_pressure import (
     MemoryPressureManager,
-    cache_stats,
     prune_announce_timestamps,
     prune_lxmf_incoming_timestamps,
 )
 from meshchatx.src.backend.meshchat_utils import (
-    cancel_inbound_deliveries,
-    convert_db_favourite_to_dict,
-    convert_propagation_node_state_to_string,
     has_attachments,
     hex_identifier_to_bytes,
     interval_action_due,
@@ -209,51 +152,29 @@ from meshchatx.src.backend.meshchat_utils import (
     normalize_hex_identifier,
     normalize_identity_storage_hash,
     normalize_lxmf_destination_hash,
-    parse_bool_query_param,
     parse_lxmf_audio_field_value,
     parse_lxmf_display_name,
     parse_lxmf_file_attachments_field_value,
     parse_lxmf_icon_appearance,
     parse_lxmf_image_field_value,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_stamp_cost,
     parse_nomadnetwork_node_display_name,
     propagation_sync_idle_like,
     propagation_sync_is_terminal,
 )
 from meshchatx.src.backend.message_blocklist import (
-    build_export_document as build_blocklist_export_document,
-)
-from meshchatx.src.backend.message_blocklist import (
     first_matching_blocklist_entry,
-    normalize_message_blocklist,
-    parse_import_document,
     parse_message_blocklist_json,
 )
-from meshchatx.src.backend.message_export_bundle import (
-    build_messages_export_bundle,
-    import_messages_export_bundle,
-)
 from meshchatx.src.backend.nomadnet_downloader import (
-    NomadnetFileDownloader,
     NomadnetPageDownloader,
     clear_all_nomadnet_cached_links,
-    drop_cached_link,
-    get_cached_active_link,
     nomad_link_identity_kwargs,
 )
-from meshchatx.src.backend.nomadnet_utils import (
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-)
 from meshchatx.src.backend.page_node_manager import PageNodeManager
-from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
-from meshchatx.src.backend.plugin_guard import PluginSecurityError
+from meshchatx.src.backend.persistent_log_handler import memory_log_handler
 from meshchatx.src.backend.plugin_manager import PluginManager
 from meshchatx.src.backend.privacy_mode import (
-    OutboundHttpBlockedError,
     ensure_outbound_http_allowed,
-    privacy_mode_enabled,
 )
 from meshchatx.src.backend.recovery import (
     CrashRecovery,
@@ -266,7 +187,6 @@ from meshchatx.src.backend.reticulum_config_guard import (
     repair_unparseable_reticulum_config,
     reticulum_config_has_required_sections,
 )
-from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.rns_filesync_handler import (
     collect_external_filesync_rw_roots,
 )
@@ -293,27 +213,16 @@ from meshchatx.src.backend.seccomp_sandbox import (
 )
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
-from meshchatx.src.backend.sticker_utils import (
-    build_export_document,
-    detect_image_format_from_magic,
-    mime_for_image_type,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    validate_export_document,
-)
 from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
-from meshchatx.src.backend.websocket_config_guard import (
-    sanitize_websocket_config_update,
-    websocket_type_requires_auth,
-)
-from meshchatx.src.env_utils import env_bool
+from meshchatx.src.env_config import MeshchatEnv
+from meshchatx.src.env_utils import env_bool, env_str
 from meshchatx.src.path_utils import (
     get_file_path,
+    is_loopback_bind_host,
     is_path_within_dir,
     resolve_log_dir,
     resolve_meshchat_data_roots,
-    safe_path_under_dir,
 )
 from meshchatx.src.path_utils import (
     request_client_ip as _request_client_ip,
@@ -327,8 +236,7 @@ def _truncated_hash32_hex_ok(value: str | None) -> bool:
     return bool(normalize_identity_storage_hash(value))
 
 
-# Global log handler
-memory_log_handler = PersistentLogHandler()
+# Global log handler (singleton lives in persistent_log_handler)
 log_dir = resolve_log_dir()
 handlers = [memory_log_handler]
 
@@ -373,7 +281,7 @@ def _parse_rns_loglevel_value(raw: str | None) -> int | None:
 def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
     if cli_override is not None and str(cli_override).strip():
         return _parse_rns_loglevel_value(cli_override)
-    return _parse_rns_loglevel_value(os.environ.get("MESHCHAT_RNS_LOG_LEVEL"))
+    return _parse_rns_loglevel_value(env_str("MESHCHAT_RNS_LOG_LEVEL"))
 
 
 _rns_bridge_logger = logging.getLogger("meshchatx.rns")
@@ -394,7 +302,7 @@ def _resolve_rns_logdest():
     so RNS output shares SafeRotatingFileHandler and does not flood Docker
     stdout. Set MESHCHAT_RNS_LOG_DEST=stdout to keep the RNS console default.
     """
-    raw = (os.environ.get("MESHCHAT_RNS_LOG_DEST") or "").strip().lower()
+    raw = (env_str("MESHCHAT_RNS_LOG_DEST") or "").strip().lower()
     if raw in ("stdout", "console", "stderr"):
         return None
     if raw in ("", "logging", "callback", "file") and log_dir:
@@ -485,127 +393,8 @@ def _install_reticulum_signal_handlers() -> bool:
     return install_meshchat_signal_handlers()
 
 
-def list_host_network_interfaces():
-    """Enumerate kernel network interfaces on the host running MeshChat.
-
-    Uses psutil (Linux, macOS, Windows). Fails soft on restricted environments
-    (e.g. some Android sandboxes) and returns ([], error).
-
-    Reticulum's device field on server-style interfaces is a *single* interface
-    name, or omitted when binding only via listen_ip.
-    """
-    try:
-        raw = psutil.net_if_addrs()
-    except Exception as exc:
-        logging.debug("list_host_network_interfaces: net_if_addrs failed: %s", exc)
-        return [], str(exc)
-    out: list[dict[str, object]] = []
-    for name in sorted(raw.keys(), key=lambda n: str(n).lower()):
-        addrs: list[str] = []
-        for addr in raw[name]:
-            if addr.family == socket.AF_INET:
-                addrs.append(addr.address)
-            elif addr.family == socket.AF_INET6:
-                if addr.address.startswith("fe80:"):
-                    continue
-                addrs.append(addr.address)
-        out.append({"name": name, "addresses": addrs})
-    return out, None
-
-
-def _is_loopback_bind_host(host: str | None) -> bool:
-    h = (host or "").strip().lower()
-    # Unset or empty means the default loopback bind has not been overridden.
-    if not h:
-        return True
-    return h in ("127.0.0.1", "localhost", "::1", "[::1]")
-
-
 def _csrf_exempt_path(path: str) -> bool:
-    return path == "/api/v1/auth/csrf"
-
-
-# Live-name anchors for backend.http (meshchat_names / LiveMeshchatName).
-_HTTP_LIVE_NAME_ANCHORS = (
-    binascii,
-    build_blocklist_export_document,
-    io,
-    platform,
-    sqlite3,
-    tempfile,
-    zipfile,
-    cast,
-    urlparse,
-    aiohttp,
-    bcrypt,
-    WSMessage,
-    WSMsgType,
-    InterfaceDiscovery,
-    list_ports,
-    gif_utils,
-    sticker_pack_utils,
-    filter_announced_dicts_by_search_query,
-    get_web_ui_ip_allowlist,
-    load_app_security_settings,
-    save_app_security_settings,
-    ensure_session_csrf_token,
-    rotate_session_csrf_token,
-    validate_csrf_header,
-    LOGIN_PATH,
-    SETUP_PATH,
-    InterfaceConfigParser,
-    describe_port_conflict,
-    is_port_in_use,
-    client_ip_allowed,
-    assert_migration_context_paths,
-    fresh_storage_at_target,
-    migrate_legacy_to_target,
-    normalize_lxmf_sieve_filters,
-    compute_lxmf_conversation_unread_from_latest_row,
-    convert_db_lxmf_message_to_dict,
-    is_user_facing_lxmf_payload,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    GeoValidationError,
-    MAX_EXPORT_TILES,
-    MAX_EXPORT_ZOOM,
-    TRANSPARENT_TILE,
-    is_mbtiles_filename,
-    OverlayExportError,
-    OverlaySourceParseError,
-    MarkdownRenderer,
-    cache_stats,
-    cancel_inbound_deliveries,
-    convert_db_favourite_to_dict,
-    convert_propagation_node_state_to_string,
-    parse_bool_query_param,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_stamp_cost,
-    build_export_document,
-    normalize_message_blocklist,
-    parse_import_document,
-    purge_messages_before_cutoff,
-    resolve_message_age_cutoff,
-    build_messages_export_bundle,
-    import_messages_export_bundle,
-    NomadnetFileDownloader,
-    get_cached_active_link,
-    drop_cached_link,
-    nomad_link_identity_kwargs,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    PluginSecurityError,
-    OutboundHttpBlockedError,
-    privacy_mode_enabled,
-    RNProbeHandler,
-    detect_image_format_from_magic,
-    mime_for_image_type,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    validate_export_document,
-    sanitize_websocket_config_update,
-    websocket_type_requires_auth,
-    safe_path_under_dir,
-)
+    return path == f"{API_V1_PREFIX}/auth/csrf"
 
 
 class ReticulumMeshChat:
@@ -646,14 +435,7 @@ class ReticulumMeshChat:
             reticulum_config_dir,
         )
         self.storage_dir = storage_dir or os.path.join("storage")
-        skip_storage_lock = os.environ.get(
-            "MESHCHAT_SKIP_STORAGE_LOCK",
-            "",
-        ).lower() in (
-            "1",
-            "true",
-            "yes",
-        )
+        skip_storage_lock = env_bool("MESHCHAT_SKIP_STORAGE_LOCK")
         self._storage_lock = None
         if not skip_storage_lock:
             # Serializes startup, schema migration, and runtime for one storage_dir.
@@ -812,8 +594,7 @@ class ReticulumMeshChat:
         """
         if _is_chaquopy_android():
             return True
-        force = os.environ.get("MESHCHAT_FORCE_WEB_AUDIO", "").strip().lower()
-        if force in ("1", "true", "yes", "on"):
+        if env_bool("MESHCHAT_FORCE_WEB_AUDIO"):
             return True
         cached = getattr(self, "_host_audio_unavailable_cached", None)
         if cached is not None:
@@ -1188,8 +969,10 @@ class ReticulumMeshChat:
             os.makedirs(identity_dir, exist_ok=True)
             os.makedirs(rns_dir, exist_ok=True)
 
-            previous_rns = os.environ.get("MESHCHAT_BOT_RETICULUM_CONFIG_DIR")
-            os.environ["MESHCHAT_BOT_RETICULUM_CONFIG_DIR"] = rns_dir
+            # Process-env plumbing across the bot subprocess boundary, not
+            # config: keep raw save/set/restore of the inherited value.
+            previous_rns = env_str("MESHCHAT_BOT_RETICULUM_CONFIG_DIR")
+            os.environ.update({"MESHCHAT_BOT_RETICULUM_CONFIG_DIR": rns_dir})
             try:
                 handler = BotHandler(identity_path=identity_dir)
                 bot_id = handler.start_bot("echo", "Self-Check Echo Bot")
@@ -1197,7 +980,9 @@ class ReticulumMeshChat:
                 if previous_rns is None:
                     os.environ.pop("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", None)
                 else:
-                    os.environ["MESHCHAT_BOT_RETICULUM_CONFIG_DIR"] = previous_rns
+                    os.environ.update(
+                        {"MESHCHAT_BOT_RETICULUM_CONFIG_DIR": previous_rns},
+                    )
 
             entry = next(
                 (e for e in handler.bots_state if e.get("id") == bot_id),
@@ -1981,7 +1766,7 @@ class ReticulumMeshChat:
                 "listen_host": self.listen_host,
                 "listen_port": self.listen_port,
                 "https_enabled": self.use_https,
-                "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+                "is_loopback_bind": is_loopback_bind_host(self.listen_host),
                 "plugins_enabled": self.plugins_enabled,
                 **demo_fields,
                 **self._landlock_status_dict(),
@@ -2005,7 +1790,7 @@ class ReticulumMeshChat:
             "listen_host": self.listen_host,
             "listen_port": self.listen_port,
             "https_enabled": self.use_https,
-            "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+            "is_loopback_bind": is_loopback_bind_host(self.listen_host),
             "plugins_enabled": self.plugins_enabled,
             **demo_fields,
             **self._landlock_status_dict(),
@@ -11448,7 +11233,7 @@ def main():
         sys.platform == "win32"
         and appcontainer_requested()
         and not is_appcontainer_child()
-        and os.environ.get("MESHCHAT_APPCONTAINER_LAUNCHER", "").strip()
+        and (env_str("MESHCHAT_APPCONTAINER_LAUNCHER") or "").strip()
         not in (
             "1",
             "true",
@@ -11459,7 +11244,7 @@ def main():
     ):
         from meshchatx.src.backend.appcontainer_launcher import run_launcher
 
-        os.environ["MESHCHAT_APPCONTAINER_LAUNCHER"] = "1"
+        os.environ.update({"MESHCHAT_APPCONTAINER_LAUNCHER": "1"})
         raise SystemExit(run_launcher(sys.argv[1:]))
 
     # Initialize crash recovery system early to catch startup errors
@@ -11469,24 +11254,26 @@ def main():
     install_rns_panic_containment()
     install_bounded_ratchet_persist()
 
+    env = MeshchatEnv.load()
     parser = argparse.ArgumentParser(description="ReticulumMeshChat")
     parser.add_argument(
         "--host",
         nargs="?",
-        default=os.environ.get("MESHCHAT_HOST", "127.0.0.1"),
+        default=env.host,
         type=str,
         help="The address the web server should listen on. Can also be set via MESHCHAT_HOST environment variable.",
     )
     parser.add_argument(
         "--port",
         nargs="?",
-        default=int(os.environ.get("MESHCHAT_PORT", "8000")),
+        default=env.port,
         type=int,
         help="The port the web server should listen on. Can also be set via MESHCHAT_PORT environment variable.",
     )
     # If we are running from a frozen application (AppImage, EXE, etc),
     # we should default to headless mode unless explicitly requested.
     is_frozen = getattr(sys, "frozen", False)
+    # env_bool keeps MESHCHAT_HEADLESS=0 able to override the frozen default.
     default_headless = env_bool("MESHCHAT_HEADLESS", is_frozen)
 
     parser.add_argument(
@@ -11498,19 +11285,19 @@ def main():
     parser.add_argument(
         "--identity-file",
         type=str,
-        default=os.environ.get("MESHCHAT_IDENTITY_FILE"),
+        default=env.identity_file,
         help="Path to a Reticulum Identity file to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_FILE environment variable.",
     )
     parser.add_argument(
         "--identity-base64",
         type=str,
-        default=os.environ.get("MESHCHAT_IDENTITY_BASE64"),
+        default=env.identity_base64,
         help="A base64 encoded Reticulum Identity to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_BASE64 environment variable.",
     )
     parser.add_argument(
         "--identity-base32",
         type=str,
-        default=os.environ.get("MESHCHAT_IDENTITY_BASE32"),
+        default=env.identity_base32,
         help="A base32 encoded Reticulum Identity to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_BASE32 environment variable.",
     )
     parser.add_argument(
@@ -11526,45 +11313,45 @@ def main():
     parser.add_argument(
         "--auto-recover",
         action="store_true",
-        default=env_bool("MESHCHAT_AUTO_RECOVER", False),
+        default=env.auto_recover,
         help="Attempt to automatically recover the SQLite database on startup before serving the app. Can also be set via MESHCHAT_AUTO_RECOVER environment variable.",
     )
     parser.add_argument(
         "--auth",
         action="store_true",
-        default=env_bool("MESHCHAT_AUTH", False),
+        default=env.auth,
         help="Enable basic authentication for the web interface. Can also be set via MESHCHAT_AUTH environment variable.",
     )
     parser.add_argument(
         "--demo",
         action="store_true",
-        default=env_bool("MESHCHAT_DEMO_MODE", False),
+        default=env.demo_mode,
         help="Public demo mode: read-only mesh and blocked API mutations. Can also be set via MESHCHAT_DEMO_MODE environment variable.",
     )
     parser.add_argument(
         "--no-https",
         action="store_true",
-        default=env_bool("MESHCHAT_NO_HTTPS", False),
+        default=env.no_https,
         help="Disable HTTPS and use HTTP instead. Can also be set via MESHCHAT_NO_HTTPS environment variable.",
     )
     parser.add_argument(
         "--ssl-cert",
         type=str,
-        default=os.environ.get("MESHCHAT_SSL_CERT"),
+        default=env.ssl_cert,
         metavar="PATH",
         help="Path to PEM TLS certificate. Use with --ssl-key (or MESHCHAT_SSL_KEY). Overrides the default identity storage ssl/cert.pem.",
     )
     parser.add_argument(
         "--ssl-key",
         type=str,
-        default=os.environ.get("MESHCHAT_SSL_KEY"),
+        default=env.ssl_key,
         metavar="PATH",
         help="Path to PEM TLS private key. Use with --ssl-cert (or MESHCHAT_SSL_CERT). Overrides the default identity storage ssl/key.pem.",
     )
     parser.add_argument(
         "--no-crash-recovery",
         action="store_true",
-        default=env_bool("MESHCHAT_NO_CRASH_RECOVERY", False),
+        default=env.no_crash_recovery,
         help="Disable the crash recovery and diagnostic system. Can also be set via MESHCHAT_NO_CRASH_RECOVERY environment variable.",
     )
     parser.add_argument(
@@ -11595,7 +11382,7 @@ def main():
     parser.add_argument(
         "--data-dir",
         type=str,
-        default=os.environ.get("MESHCHAT_DATA_DIR"),
+        default=env.data_dir,
         help=(
             "Portable data root: uses <dir>/storage and <dir>/.reticulum when "
             "--storage-dir and --reticulum-config-dir are not set. "
@@ -11605,25 +11392,25 @@ def main():
     parser.add_argument(
         "--reticulum-config-dir",
         type=str,
-        default=os.environ.get("MESHCHAT_RETICULUM_CONFIG_DIR"),
+        default=env.reticulum_config_dir,
         help="Path to a Reticulum config directory for the RNS stack to use (e.g: ~/.reticulum). Can also be set via MESHCHAT_RETICULUM_CONFIG_DIR environment variable.",
     )
     parser.add_argument(
         "--storage-dir",
         type=str,
-        default=os.environ.get("MESHCHAT_STORAGE_DIR"),
+        default=env.storage_dir,
         help="Path to a directory for storing databases and config files (default: ./storage). Can also be set via MESHCHAT_STORAGE_DIR environment variable.",
     )
     parser.add_argument(
         "--public-dir",
         type=str,
-        default=os.environ.get("MESHCHAT_PUBLIC_DIR"),
+        default=env.public_dir,
         help="Path to the directory containing the frontend static files (default: bundled public folder). Can also be set via MESHCHAT_PUBLIC_DIR environment variable.",
     )
     parser.add_argument(
         "--gitea-base-url",
         type=str,
-        default=os.environ.get("MESHCHAT_GITEA_BASE_URL"),
+        default=env.gitea_base_url,
         help="Base URL for Gitea instance. Can also be set via MESHCHAT_GITEA_BASE_URL environment variable.",
     )
     parser.add_argument(
@@ -11639,7 +11426,7 @@ def main():
         "--emergency",
         action="store_true",
         help="Start in emergency mode (no database, LXMF and peer announces only). Can also be set via MESHCHAT_EMERGENCY environment variable.",
-        default=env_bool("MESHCHAT_EMERGENCY", False),
+        default=env.emergency,
     )
 
     parser.add_argument(
@@ -11658,34 +11445,34 @@ def main():
         "--restore-from-snapshot",
         type=str,
         help="Restore the database from a specific snapshot name or path on startup.",
-        default=os.environ.get("MESHCHAT_RESTORE_SNAPSHOT"),
+        default=env.restore_snapshot,
     )
 
     parser.add_argument(
         "--reset-password",
         action="store_true",
-        default=env_bool("MESHCHAT_RESET_PASSWORD", False),
+        default=env.reset_password,
         help="Clear the stored password hash on startup so a new password can be set via the web UI. Can also be set via MESHCHAT_RESET_PASSWORD environment variable.",
     )
 
     parser.add_argument(
         "--memory-diag",
         action="store_true",
-        default=env_bool("MESHCHAT_MEMORY_DIAG", False),
+        default=env.memory_diag,
         help="Enable tracemalloc-based memory diagnostics. Can also be set via MESHCHAT_MEMORY_DIAG environment variable.",
     )
 
     parser.add_argument(
         "--disable-plugins",
         action="store_true",
-        default=env_bool("MESHCHAT_DISABLE_PLUGINS", False),
+        default=env.disable_plugins,
         help="Disable the plugin system entirely. Can also be set via MESHCHAT_DISABLE_PLUGINS environment variable.",
     )
 
     parser.add_argument(
         "--self-check",
         action="store_true",
-        default=env_bool("MESHCHAT_SELF_CHECK", False),
+        default=env.self_check,
         help="Run system self-check diagnostics on startup and then exit with 0 if all checks pass, or 1 if any fail. Can also be set via MESHCHAT_SELF_CHECK environment variable.",
     )
 

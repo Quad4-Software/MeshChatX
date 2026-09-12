@@ -12,6 +12,7 @@ import site
 import sys
 import tempfile
 
+from meshchatx.src.env_utils import env_str
 from meshchatx.src.path_utils import realpath_or_none
 
 logger = logging.getLogger("meshchatx.landlock")
@@ -129,7 +130,7 @@ def _kernel_version_meets_minimum(min_major: int = 5, min_minor: int = 13) -> bo
 
 
 def _landlock_env_override() -> bool | None:
-    raw = os.environ.get("MESHCHAT_LANDLOCK")
+    raw = env_str("MESHCHAT_LANDLOCK")
     if raw is None:
         return None
     val = raw.strip().lower()
@@ -404,7 +405,7 @@ def _collect_read_roots() -> list[str]:
     for prefix_candidate in (
         getattr(sys, "base_prefix", None),
         sys.prefix,
-        os.environ.get("VIRTUAL_ENV"),
+        env_str("VIRTUAL_ENV"),
     ):
         prefix = _existing_dir(prefix_candidate)
         if prefix:

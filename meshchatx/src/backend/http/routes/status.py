@@ -3,132 +3,16 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.errors import http_payload_too_large
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+import contextlib
+import traceback
+
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+    http_unexpected,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -138,11 +22,11 @@ from meshchatx.src.backend.http.uploads import (
 
 def register_status_routes(routes, app):
 
-    @routes.get("/api/v1/status")
+    @routes.get(API_V1_PREFIX + "/status")
     async def status(request):
         return web.json_response(app._startup_status_payload())
 
-    @routes.post("/api/v1/reticulum/recover")
+    @routes.post(API_V1_PREFIX + "/reticulum/recover")
     async def reticulum_recover(request):
         """Disable risky interfaces and retry network setup without wiping data."""
         if app._network_ready and app.current_context and app.current_context.running:
@@ -155,10 +39,7 @@ def register_status_routes(routes, app):
 
         identity = app._pending_identity or app.identity
         if identity is None:
-            return web.json_response(
-                {"message": "No identity available for recovery"},
-                status=400,
-            )
+            return http_bad_request("No identity available for recovery")
 
         config_path = app._reticulum_config_file_path()
         actions: list[str] = []
@@ -232,17 +113,13 @@ def register_status_routes(routes, app):
         except Exception as exc:
             traceback.print_exc()
             app._mark_network_degraded(str(exc))
-            return web.json_response(
-                {
-                    "message": "Recovery attempt failed",
-                    "error": "Recovery attempt failed",
-                    "disabled_interfaces": actions,
-                    "status": app._startup_status_payload(),
-                },
-                status=500,
+            return http_unexpected(
+                "Recovery attempt failed",
+                disabled_interfaces=actions,
+                status=app._startup_status_payload(),
             )
 
-    @routes.get("/api/v1/self-test")
+    @routes.get(API_V1_PREFIX + "/self-test")
     async def self_test(request):
         results = app.run_self_test()
         return web.json_response(results)

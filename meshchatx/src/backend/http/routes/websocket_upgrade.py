@@ -3,131 +3,22 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
+import json
+import logging
+from typing import cast
+
+from aiohttp import (
+    WSMessage,
     WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
     web,
-    websocket_type_requires_auth,
-    zipfile,
+)
+from aiohttp_session import get_session
+
+from meshchatx.src.backend.app_security_settings import get_trusted_proxy_cidrs
+from meshchatx.src.backend.http.errors import (
+    http_forbidden,
+    http_unauthorized,
+    http_unavailable,
 )
 from meshchatx.src.backend.websocket_config_guard import websocket_origin_allowed
 from meshchatx.src.backend.websocket_runtime import (
@@ -141,6 +32,7 @@ from meshchatx.src.backend.websocket_runtime import (
     touch_client_activity,
     websocket_origin_policy_allows,
 )
+from meshchatx.src.path_utils import is_loopback_bind_host
 
 
 async def _reject_forbidden_ws_session(app, request):
@@ -150,7 +42,7 @@ async def _reject_forbidden_ws_session(app, request):
     try:
         session = await get_session(request)
     except Exception:
-        return web.json_response({"error": "Authentication required"}, status=401)
+        return http_unauthorized("Authentication required")
     identity_hash = None
     identity = getattr(app, "identity", None)
     if identity is not None and getattr(identity, "hash", None) is not None:
@@ -160,7 +52,7 @@ async def _reject_forbidden_ws_session(app, request):
         and identity_hash
         and session.get("identity_hash") == identity_hash
     ):
-        return web.json_response({"error": "Authentication required"}, status=401)
+        return http_unauthorized("Authentication required")
     return None
 
 
@@ -173,10 +65,10 @@ def _reject_forbidden_ws_origin(app, request):
         auth_enabled=auth_enabled,
         trusted_proxy_cidrs=get_trusted_proxy_cidrs(app.storage_dir),
         origin_allowed_fn=websocket_origin_allowed,
-        is_loopback_fn=_is_loopback_bind_host,
+        is_loopback_fn=is_loopback_bind_host,
     ):
         return None
-    return web.json_response({"error": "Forbidden origin"}, status=403)
+    return http_forbidden("Forbidden origin")
 
 
 def register_websocket_upgrade_routes(routes, app):
@@ -191,10 +83,7 @@ def register_websocket_upgrade_routes(routes, app):
             return forbidden_session
         max_clients = int(getattr(app, "max_websocket_clients", 64) or 64)
         if len(app.websocket_clients) >= max_clients:
-            return web.json_response(
-                {"error": "Too many websocket clients"},
-                status=503,
-            )
+            return http_unavailable("Too many websocket clients")
 
         # Control + chunked Nomad frames. Whole-file success under the Nomad
         # app cap still fits (10 MiB raw + base64) under 50 MiB legacy until

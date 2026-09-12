@@ -29,6 +29,8 @@ import time
 
 import RNS
 
+from meshchatx.src.backend import constants
+from meshchatx.src.env_utils import env_snapshot, env_str
 from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
     PathJailError,
@@ -64,9 +66,9 @@ MEDIA_QUALITY = 85
 MEDIA_MAX_DIMENSION = 1920
 MEDIA_CONVERT_TIMEOUT_SECONDS = 10
 
-DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
-MIN_ANNOUNCE_INTERVAL_SECONDS = 60
-MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
+DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
+MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
 EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
 MAX_UNIQUE_REMOTE_HASHES = 4096
 
@@ -269,8 +271,9 @@ def _build_executable_page_env(
 ) -> dict[str, str]:
     env_map: dict[str, str] = {}
     for key in _EXECUTABLE_PAGE_HOST_ENV_KEYS:
-        if key in os.environ:
-            env_map[key] = os.environ[key]
+        value = env_str(key)
+        if value is not None:
+            env_map[key] = value
     if link_id is not None:
         with contextlib.suppress(Exception):
             env_map["link_id"] = RNS.hexrep(link_id, delimit=False)
@@ -907,10 +910,8 @@ class PageNode:
             return None
         os.makedirs(self.media_cache_dir, exist_ok=True)
 
-        old_env = {}
         env_keys = ("TMPDIR", "TMP", "TEMP", "MAGICK_TMPDIR", "MAGICK_TEMPORARY_PATH")
-        for key in env_keys:
-            old_env[key] = os.environ.get(key)
+        old_env = env_snapshot(env_keys)
         old_tmpdir = tempfile.tempdir
         tempfile.tempdir = self.media_cache_dir
         for key in env_keys:
@@ -925,10 +926,11 @@ class PageNode:
         finally:
             tempfile.tempdir = old_tmpdir
             for key in env_keys:
-                if old_env[key] is None:
+                old_value = old_env[key]
+                if old_value is None:
                     os.environ.pop(key, None)
                 else:
-                    os.environ[key] = old_env[key]
+                    os.environ[key] = old_value
 
         if not tmp_path or not os.path.isfile(tmp_path):
             return None

@@ -17,6 +17,7 @@ from collections import deque
 
 import RNS
 
+from meshchatx.src.backend import constants
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.hub_commands import HubCommandHandler
 from meshchatx.src.backend.rrc.hub_policy import HubPolicy
@@ -39,9 +40,9 @@ MIN_SESSIONS_PER_PEER = 2
 STORE_FILENAME = "hubs"
 HUB_CONFIG_FILENAME = "hub.toml"
 ROOMS_FILENAME = "rooms.toml"
-DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
-MIN_ANNOUNCE_INTERVAL_SECONDS = 60
-MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
+DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
+MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
 
 
 def normalize_announce_interval_seconds(

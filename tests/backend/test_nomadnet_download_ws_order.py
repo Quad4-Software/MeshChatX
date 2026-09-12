@@ -191,7 +191,10 @@ async def test_private_page_download_skips_archive_on_remote_success(
         async def download(self):
             return None
 
-    monkeypatch.setattr(meshchat_module, "NomadnetPageDownloader", FakeDownloader)
+    monkeypatch.setattr(
+        "meshchatx.src.backend.http.ws.handlers_nomad.NomadnetPageDownloader",
+        FakeDownloader,
+    )
 
     mock_ws = MagicMock()
     mock_ws.send_str = AsyncMock()

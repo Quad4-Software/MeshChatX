@@ -3,138 +3,37 @@
 
 from __future__ import annotations
 
+import asyncio
+import io
+import json
+import re
+import secrets
+import zipfile
+from datetime import UTC, datetime
+
+from aiohttp import web
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.crawler_manager import make_snippet
-from meshchatx.src.backend.http.errors import http_payload_too_large
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    LOGIN_PATH,
-    LXMF,
-    MAX_EXPORT_TILES,
-    RNS,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
-    UTC,
-    AsyncUtils,
-    GeoValidationError,
-    InterfaceConfigParser,
-    InterfaceDiscovery,
-    InterfaceEditor,
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfFileAttachmentsField,
-    LxmfImageField,
-    MarkdownRenderer,
-    NomadnetFileDownloader,
-    NomadnetPageDownloader,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
-    ReticulumMeshChat,
-    RNProbeHandler,
-    Telemeter,
-    WSMsgType,
-    _is_chaquopy_android,
-    _is_loopback_bind_host,
-    _request_client_ip,
-    aiohttp,
-    app_version,
-    assert_migration_context_paths,
-    asyncio,
-    base64,
-    bcrypt,
-    binascii,
-    build_blocklist_export_document,
-    build_export_document,
-    build_messages_export_bundle,
-    cache_stats,
-    cancel_inbound_deliveries,
-    cast,
-    compute_lxmf_conversation_unread_from_latest_row,
-    configparser,
-    contextlib,
-    convert_db_favourite_to_dict,
-    convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_nomadnet_field_data_to_map,
-    convert_nomadnet_string_data_to_map,
-    convert_propagation_node_state_to_string,
-    copy,
-    datetime,
-    describe_port_conflict,
-    detect_image_format_from_magic,
-    ensure_outbound_http_allowed,
-    ensure_session_csrf_token,
-    filter_announced_dicts_by_search_query,
-    fresh_storage_at_target,
-    get_cached_active_link,
-    get_file_path,
-    get_session,
-    get_trusted_proxy_cidrs,
-    gif_utils,
-    i2p_support,
-    import_messages_export_bundle,
-    io,
-    is_mbtiles_filename,
-    is_path_within_dir,
-    is_port_in_use,
-    is_user_facing_lxmf_payload,
-    json,
-    list_host_network_interfaces,
-    list_inbound_deliveries,
-    list_ports,
-    load_app_security_settings,
-    logger,
-    logging,
-    lxmf_sidebar_preview_for_conversation_latest_row,
-    memory_log_handler,
-    message_fields_have_attachments,
-    migrate_legacy_to_target,
-    mime_for_image_type,
-    nomad_link_identity_kwargs,
-    normalize_identity_storage_hash,
-    normalize_lxmf_sieve_filters,
-    normalize_message_blocklist,
-    os,
-    parse_bool_query_param,
-    parse_import_document,
-    parse_lxmf_display_name,
-    parse_lxmf_propagation_node_app_data,
-    parse_lxmf_sieve_filters_json,
-    parse_lxmf_stamp_cost,
-    parse_message_blocklist_json,
-    parse_nomadnetwork_node_display_name,
-    platform,
-    privacy_mode_enabled,
-    psutil,
-    purge_messages_before_cutoff,
-    re,
-    resolve_message_age_cutoff,
-    reticulum_pathfinding,
-    rotate_session_csrf_token,
-    rrc_protocol,
-    safe_path_under_dir,
-    sanitize_sticker_emoji,
-    sanitize_sticker_name,
-    sanitize_websocket_config_update,
-    save_app_security_settings,
-    secrets,
-    shutil,
-    sqlite3,
-    sticker_pack_utils,
-    sys,
-    tempfile,
-    threading,
-    time,
-    traceback,
-    user_agent_hash,
-    validate_export_document,
-    web,
-    websocket_type_requires_auth,
-    zipfile,
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_forbidden,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
+)
+from meshchatx.src.backend.meshchat_utils import (
+    parse_bool_query_param,
+    parse_nomadnetwork_node_display_name,
+)
+from meshchatx.src.backend.nomadnet_downloader import (
+    NomadnetPageDownloader,
+    nomad_link_identity_kwargs,
 )
 
 
@@ -148,7 +47,7 @@ def _resolve_node_name(app, destination_hash: str) -> str:
 
 
 def register_archives_routes(routes, app):
-    @routes.get("/api/v1/nomadnet/archives")
+    @routes.get(API_V1_PREFIX + "/nomadnet/archives")
     async def get_all_archived_pages(request):
         query = request.query.get("q", "").strip()
         destination_hash = request.query.get("destination_hash", "").strip() or None
@@ -236,7 +135,7 @@ def register_archives_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/nomadnet/archives/export")
+    @routes.get(API_V1_PREFIX + "/nomadnet/archives/export")
     async def export_archived_pages(request):
         """Download the filtered archive set as a single zip bundle."""
         query = request.query.get("q", "").strip()
@@ -309,15 +208,15 @@ def register_archives_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/nomadnet/archives/{archive_id}")
+    @routes.get(API_V1_PREFIX + "/nomadnet/archives/{archive_id}")
     async def get_archived_page(request):
         try:
             archive_id = int(request.match_info["archive_id"])
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid archive id"}, status=400)
+            return http_bad_request("Invalid archive id")
         archive = app.database.misc.get_archived_page_by_id(archive_id)
         if not archive:
-            return web.json_response({"message": "Archive not found"}, status=404)
+            return http_not_found("Archive not found")
         return web.json_response(
             {
                 "archive": {
@@ -333,7 +232,7 @@ def register_archives_routes(routes, app):
             },
         )
 
-    @routes.delete("/api/v1/nomadnet/archives")
+    @routes.delete(API_V1_PREFIX + "/nomadnet/archives")
     async def delete_archived_pages(request):
         try:
             data = await read_json_limited(request)
@@ -342,12 +241,7 @@ def register_archives_routes(routes, app):
         ids = data.get("ids", [])
 
         if not ids:
-            return web.json_response(
-                {
-                    "message": "No archive IDs provided!",
-                },
-                status=400,
-            )
+            return http_bad_request("No archive IDs provided!")
 
         app.database.misc.delete_archived_pages(ids=ids)
 
@@ -357,7 +251,7 @@ def register_archives_routes(routes, app):
             },
         )
 
-    @routes.get("/api/v1/nomadnet/crawl/opt-outs")
+    @routes.get(API_V1_PREFIX + "/nomadnet/crawl/opt-outs")
     async def list_crawl_opt_outs(_request):
         rows = app.database.misc.list_crawl_opt_outs()
         return web.json_response(
@@ -375,7 +269,7 @@ def register_archives_routes(routes, app):
             },
         )
 
-    @routes.post("/api/v1/nomadnet/crawl/opt-outs")
+    @routes.post(API_V1_PREFIX + "/nomadnet/crawl/opt-outs")
     async def add_crawl_opt_out(request):
         try:
             data = await read_json_limited(request)
@@ -383,9 +277,8 @@ def register_archives_routes(routes, app):
             return http_payload_too_large()
         destination_hash = (data.get("destination_hash") or "").strip().lower()
         if len(destination_hash) != 32:
-            return web.json_response(
-                {"message": "destination_hash must be 32 hex characters"},
-                status=400,
+            return http_bad_request(
+                "destination_hash must be 32 hex characters",
             )
         reason = (data.get("reason") or "user").strip()[:200] or "user"
         crawler = (
@@ -406,15 +299,14 @@ def register_archives_routes(routes, app):
             {"message": "opt-out recorded", "destination_hash": destination_hash},
         )
 
-    @routes.delete("/api/v1/nomadnet/crawl/opt-outs/{destination_hash}")
+    @routes.delete(API_V1_PREFIX + "/nomadnet/crawl/opt-outs/{destination_hash}")
     async def remove_crawl_opt_out(request):
         destination_hash = (
             (request.match_info.get("destination_hash") or "").strip().lower()
         )
         if len(destination_hash) != 32:
-            return web.json_response(
-                {"message": "destination_hash must be 32 hex characters"},
-                status=400,
+            return http_bad_request(
+                "destination_hash must be 32 hex characters",
             )
         crawler = (
             getattr(app.current_context, "crawler_manager", None)
@@ -429,7 +321,7 @@ def register_archives_routes(routes, app):
             {"message": "opt-out removed", "destination_hash": destination_hash},
         )
 
-    @routes.post("/api/v1/nomadnet/archives/recrawl")
+    @routes.post(API_V1_PREFIX + "/nomadnet/archives/recrawl")
     async def recrawl_archived_page(request):
         """Fetch a Nomad page now and store a fresh archive snapshot."""
         try:
@@ -439,9 +331,8 @@ def register_archives_routes(routes, app):
         destination_hash = (data.get("destination_hash") or "").strip().lower()
         page_path = (data.get("page_path") or "").strip()
         if len(destination_hash) != 32:
-            return web.json_response(
-                {"message": "destination_hash must be 32 hex characters"},
-                status=400,
+            return http_bad_request(
+                "destination_hash must be 32 hex characters",
             )
         if not page_path:
             page_path = (
@@ -454,10 +345,7 @@ def register_archives_routes(routes, app):
             else None
         )
         if crawler and crawler.is_opted_out(destination_hash):
-            return web.json_response(
-                {"message": "Node is on the crawl opt-out list"},
-                status=403,
-            )
+            return http_forbidden("Node is on the crawl opt-out list")
 
         done_event = asyncio.Event()
         success = [False]
@@ -498,16 +386,10 @@ def register_archives_routes(routes, app):
                 downloader.cancel()
             await download_task
         except Exception:
-            return web.json_response(
-                {"message": "Recrawl failed"},
-                status=502,
-            )
+            return http_error(502, "Recrawl failed")
 
         if not success[0]:
-            return web.json_response(
-                {"message": f"Recrawl failed: {failure_reason[0]}"},
-                status=502,
-            )
+            return http_error(502, f"Recrawl failed: {failure_reason[0]}")
 
         app.archive_page(
             destination_hash,
@@ -529,9 +411,8 @@ def register_archives_routes(routes, app):
         )
         latest = versions[0] if versions else None
         if not latest:
-            return web.json_response(
-                {"message": "Page fetched but archive was not stored"},
-                status=500,
+            return http_unexpected(
+                "Page fetched but archive was not stored",
             )
         return web.json_response(
             {

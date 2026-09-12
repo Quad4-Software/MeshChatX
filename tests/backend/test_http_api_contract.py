@@ -31,7 +31,7 @@ def test_meshchat_http_routes_match_fixture():
     expected = load_route_fixture(_FIXTURE)
     assert live == expected, (
         "HTTP route list drifted. If you added or renamed routes, run: "
-        "UPDATE_HTTP_API_ROUTES=1 poetry run pytest tests/backend/test_http_api_contract.py -k "
+        "UPDATE_HTTP_API_ROUTES=1 uv run pytest tests/backend/test_http_api_contract.py -k "
         "meshchat_http_routes_match_fixture"
     )
 
