@@ -496,12 +496,12 @@ import { useNetworkStore } from "../js/stores/networkStore.js";
 import { useConfigStore } from "../js/stores/configStore.js";
 import { useUnreadStore } from "../js/stores/unreadStore.js";
 import { useIdentityStore } from "../js/stores/identityStore.js";
-import { watch } from "vue";
+import { getCurrentInstance, watch } from "vue";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import LiveTransport from "../js/liveTransport.js";
 import { installWsLiveSync } from "../js/wsLiveSync.js";
-import { formatDisconnectedDuration, WS_DISCONNECT_BANNER_GRACE_MS } from "../js/wsConnectionSupport";
+import { useWsDisconnectBanner } from "../js/app/useWsDisconnectBanner.js";
 import { applyAuthStatusToStores, fetchAuthStatus } from "../js/authSessionSync.js";
 import { countRelayMentions } from "../js/relayMentionCount.js";
 import { isRetryableHttpError } from "../js/httpRetry.js";
@@ -632,6 +632,22 @@ export default {
         AppSidebarClassicFooter,
         FatalErrorPage,
     },
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useWsDisconnectBanner({
+                isShellRunning: () => Boolean(inst?.proxy.shellRunning),
+                onTransportDown: () => {
+                    if (inst?.proxy) {
+                        inst.proxy.liveTransportReady = false;
+                        useNetworkStore().liveTransportReady = false;
+                        inst.proxy.startShellPollIntervals();
+                    }
+                },
+                onReconnect: () => inst?.proxy.resyncShellAfterWebsocketReconnect(),
+            }),
+        };
+    },
     data() {
         return {
             logoUrl,
@@ -682,16 +698,6 @@ export default {
             initiationTargetName: null,
             isCallWindowOpen: false,
 
-            wsDisconnected: false,
-            wsDisconnectedAt: null,
-            wsDisconnectedDurationText: "",
-            wsReconnectedBanner: false,
-            wsDisconnectTickTimer: null,
-            wsDisconnectGraceTimer: null,
-            wsDisconnectBannerShown: false,
-            wsReconnectedHideTimer: null,
-            backendProcessExited: false,
-            backendExitCode: null,
             backendRestarting: false,
             networkRecovering: false,
             databaseAutoRecovering: false,
@@ -1390,40 +1396,10 @@ export default {
             GlobalEmitter.off(EMITTER_EVENTS.TUTORIAL_FINISHED, this.onTutorialFinishedShell);
             GlobalEmitter.off(EMITTER_EVENTS.CHANGELOG_CLOSED, this.onChangelogClosedShell);
             GlobalEmitter.off(EMITTER_EVENTS.NOTIFICATIONS_CHANGED, this.updateUnreadConversationsCount);
-            this.clearWsShellUiTimers();
-            this.wsDisconnected = false;
-            this.wsDisconnectedAt = null;
-            this.wsDisconnectedDurationText = "";
-            this.wsDisconnectBannerShown = false;
-            this.wsReconnectedBanner = false;
-            this.backendProcessExited = false;
-            this.backendExitCode = null;
+            this.resetWsDisconnectBanner();
             this.backendRestarting = false;
             this.liveTransportReady = false;
             LiveTransport.destroy();
-        },
-        clearWsShellUiTimers() {
-            if (this.wsDisconnectTickTimer != null) {
-                clearInterval(this.wsDisconnectTickTimer);
-                this.wsDisconnectTickTimer = null;
-            }
-            if (this.wsDisconnectGraceTimer != null) {
-                clearTimeout(this.wsDisconnectGraceTimer);
-                this.wsDisconnectGraceTimer = null;
-            }
-            if (this.wsReconnectedHideTimer != null) {
-                clearTimeout(this.wsReconnectedHideTimer);
-                this.wsReconnectedHideTimer = null;
-            }
-        },
-        onBackendProcessExited(payload = {}) {
-            if (!this.shellRunning) {
-                return;
-            }
-            this.backendProcessExited = true;
-            this.backendExitCode = payload?.code ?? null;
-            // Process exit is serious: show disconnect immediately.
-            this._showWsDisconnectedBannerNow();
         },
         async onRestartBackend() {
             if (!window.electron?.restartBackend) {
@@ -1544,98 +1520,7 @@ export default {
                 ToastUtils.error(this.$t("app.view_backend_logs_failed"));
             }
         },
-        _showWsDisconnectedBannerNow() {
-            if (!this.shellRunning) {
-                return;
-            }
-            if (this.wsDisconnectGraceTimer != null) {
-                clearTimeout(this.wsDisconnectGraceTimer);
-                this.wsDisconnectGraceTimer = null;
-            }
-            this.wsDisconnected = true;
-            this.wsDisconnectBannerShown = true;
-            this.wsDisconnectedAt = this.wsDisconnectedAt || Date.now();
-            this._tickWsDisconnectedLabel();
-            if (this.wsDisconnectTickTimer != null) {
-                clearInterval(this.wsDisconnectTickTimer);
-            }
-            this.wsDisconnectTickTimer = setInterval(() => this._tickWsDisconnectedLabel(), 1000);
-        },
-        onWsShellDisconnected() {
-            if (!this.shellRunning) {
-                return;
-            }
-            this.liveTransportReady = false;
-            useNetworkStore().liveTransportReady = false;
-            this.startShellPollIntervals();
-            // Ignore brief reconnect blips (startup, Android resume). Only scare
-            // the user if the socket stays down past the grace window.
-            if (this.wsDisconnected) {
-                return;
-            }
-            if (this.wsDisconnectGraceTimer != null) {
-                return;
-            }
-            this.wsDisconnectedAt = Date.now();
-            this.wsDisconnectGraceTimer = setTimeout(() => {
-                this.wsDisconnectGraceTimer = null;
-                this._showWsDisconnectedBannerNow();
-            }, WS_DISCONNECT_BANNER_GRACE_MS);
-        },
-        _tickWsDisconnectedLabel() {
-            if (!this.wsDisconnectedAt) {
-                this.wsDisconnectedDurationText = "";
-                return;
-            }
-            this.wsDisconnectedDurationText = formatDisconnectedDuration(Date.now() - this.wsDisconnectedAt);
-        },
-        _clearWsDisconnectedUi() {
-            if (this.wsDisconnectGraceTimer != null) {
-                clearTimeout(this.wsDisconnectGraceTimer);
-                this.wsDisconnectGraceTimer = null;
-            }
-            this.wsDisconnected = false;
-            this.wsDisconnectedAt = null;
-            this.wsDisconnectedDurationText = "";
-            this.wsDisconnectBannerShown = false;
-            this.backendProcessExited = false;
-            this.backendExitCode = null;
-            if (this.wsDisconnectTickTimer != null) {
-                clearInterval(this.wsDisconnectTickTimer);
-                this.wsDisconnectTickTimer = null;
-            }
-        },
-        _celebrateWsReconnected() {
-            this.wsReconnectedBanner = true;
-            if (this.wsReconnectedHideTimer != null) {
-                clearTimeout(this.wsReconnectedHideTimer);
-            }
-            this.wsReconnectedHideTimer = setTimeout(() => {
-                this.wsReconnectedBanner = false;
-                this.wsReconnectedHideTimer = null;
-            }, 4500);
-        },
-        async onWsShellConnected(payload = {}) {
-            if (!this.shellRunning) {
-                return;
-            }
-            // TCP open is not recovery. Vite proxies and restart flaps can OPEN then
-            // CLOSE without a backend frame. Keep the grace timer running until ready.
-            const isReconnect = payload.isReconnect === true;
-            if (isReconnect) {
-                await this.resyncShellAfterWebsocketReconnect();
-            }
-        },
-        onWsShellReady() {
-            if (!this.shellRunning) {
-                return;
-            }
-            const sawDisconnectBanner = this.wsDisconnectBannerShown;
-            this._clearWsDisconnectedUi();
-            if (sawDisconnectBanner) {
-                this._celebrateWsReconnected();
-            }
-        },
+
         async resyncShellAfterWebsocketReconnect() {
             try {
                 const status = await fetchAuthStatus(window.api);
