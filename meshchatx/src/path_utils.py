@@ -397,19 +397,32 @@ def resolve_path_under_dir(directory: str, user_path: str) -> str | None:
     return realpath_or_none(joined)
 
 
-def atomic_write_bytes(path: str | os.PathLike[str], data: bytes) -> None:
-    """Write data to path via a sibling tmp file, then os.replace."""
+def atomic_write_bytes(
+    path: str | os.PathLike[str],
+    data: bytes,
+    *,
+    mode: int = 0o644,
+) -> None:
+    """Write data to path via a sibling tmp file, then os.replace.
+
+    The tmp sibling is opened with O_NOFOLLOW where the platform supports it
+    so a planted symlink cannot redirect the write. fchmod pins mode even
+    when a stale regular tmp is truncated in place; pass 0o600 for private
+    state.
+    """
     path = os.fspath(path)
     parent = os.path.dirname(path) or "."
     os.makedirs(parent, exist_ok=True)
     tmp = path + ".tmp"
     if os.path.lexists(tmp) and (os.path.islink(tmp) or os.path.isdir(tmp)):
-        raise OSError("invalid overlay cache destination")
+        raise OSError("invalid atomic write destination")
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
-    fd = os.open(tmp, flags, 0o644)
+    fd = os.open(tmp, flags, mode)
     try:
+        if hasattr(os, "fchmod"):
+            os.fchmod(fd, mode)
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
             handle.flush()
@@ -426,9 +439,10 @@ def atomic_write_text(
     text: str,
     *,
     encoding: str = "utf-8",
+    mode: int = 0o644,
 ) -> None:
     """Write text to path via atomic_write_bytes."""
-    atomic_write_bytes(os.fspath(path), text.encode(encoding))
+    atomic_write_bytes(os.fspath(path), text.encode(encoding), mode=mode)
 
 
 def resolve_log_dir():
