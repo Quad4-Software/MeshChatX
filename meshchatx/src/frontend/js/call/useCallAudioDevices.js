@@ -121,11 +121,11 @@ export function useCallAudioDevices() {
             // Keep the Default placeholder so we do not lock onto phantom IDs.
             const inputsUsable = inputs.some((d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label);
             if (!inputsUsable) {
-                inputs = [defaultIn];
+                inputs = /** @type {MediaDeviceInfo[]} */ ([defaultIn]);
             }
             const outputsUsable = outputs.some((d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label);
             if (!outputsUsable) {
-                outputs = [defaultOut];
+                outputs = /** @type {MediaDeviceInfo[]} */ ([defaultOut]);
             }
             audioInputDevices.value = inputs;
             audioOutputDevices.value = outputs;
