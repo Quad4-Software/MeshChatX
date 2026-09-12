@@ -80,8 +80,11 @@ def test_eect_favourites_layout_fuzz_never_raises(raw):
         )
 
 
-def test_eect_bug_report_redacts_secrets(tmp_path):
+def test_eect_bug_report_redacts_secrets(tmp_path, monkeypatch):
     with eect_scenario("hostile.bug_report.redacts_secrets") as (_s, _seed, _rng):
+        from meshchatx.src.backend import persistent_log_handler as plh
+
+        monkeypatch.setattr(plh, "memory_log_handler", None)
         full_hash = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
 
         class FakeLogs:
