@@ -20,6 +20,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from meshchatx.src.path_utils import safe_basename
+
 _PYPI_USER_AGENT = "MeshChatXRepositoryBundler/1 (+https://github.com/)"
 
 _MESHCHATX_BUNDLE_PIP_NAME = "reticulum-meshchatx"
@@ -402,8 +404,8 @@ def make_repository_http_request_handler(
 
 
 def _safe_any_upload_filename(name: str) -> str | None:
-    base = os.path.basename(name)
-    if not base or base != name or ".." in base:
+    base = safe_basename(name)
+    if base is None or base != name or ".." in base:
         return None
     if not re.fullmatch(r"[A-Za-z0-9._+\-]+", base):
         return None

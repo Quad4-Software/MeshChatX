@@ -29,6 +29,13 @@ import time
 
 import RNS
 
+from meshchatx.src.path_utils import (
+    PathJailError,
+    is_under_root,
+    resolve_under_root,
+    safe_basename,
+)
+
 try:
     from RNS.Utilities.rngit.media import convert_file_to_webp
 except Exception:
@@ -132,16 +139,14 @@ def is_allowed_page_filename(name: str) -> bool:
 
 def _safe_mesh_file_basename(name: str) -> str:
     """Reject empty, dot, or parent-segment names after basename (path traversal)."""
-    base = os.path.basename((name or "").strip())
-    if not base or base in (".", ".."):
-        raise ValueError("invalid file name")
-    if "/" in base or "\\" in base:
+    base = safe_basename(name)
+    if base is None:
         raise ValueError("invalid file name")
     return base
 
 
 def _path_is_under_root(resolved: str, root: str) -> bool:
-    return resolved == root or resolved.startswith(root + os.sep)
+    return is_under_root(resolved, root)
 
 
 def _is_windows_platform() -> bool:
@@ -597,14 +602,14 @@ class PageNode:
             return None
         if not os.path.isdir(self.pages_dir):
             return None
-        root = os.path.realpath(self.pages_dir)
-        raw = os.path.join(root, safe_name)
-        resolved = os.path.realpath(raw)
-        if not _path_is_under_root(resolved, root):
+        try:
+            return resolve_under_root(
+                self.pages_dir,
+                safe_name,
+                must_be_file=must_exist,
+            )
+        except PathJailError:
             return None
-        if must_exist and not os.path.isfile(resolved):
-            return None
-        return resolved
 
     def _resolve_page_path(self, name):
         return self._jail_page_path(name, must_exist=True)
@@ -797,14 +802,14 @@ class PageNode:
             return None
         if not os.path.isdir(self.files_dir):
             return None
-        root = os.path.realpath(self.files_dir)
-        raw = os.path.join(root, safe_name)
-        resolved = os.path.realpath(raw)
-        if not _path_is_under_root(resolved, root):
+        try:
+            return resolve_under_root(
+                self.files_dir,
+                safe_name,
+                must_be_file=must_exist,
+            )
+        except PathJailError:
             return None
-        if must_exist and not os.path.isfile(resolved):
-            return None
-        return resolved
 
     def read_hosted_file(self, name):
         """Read a hosted file from the files jail.
@@ -873,17 +878,14 @@ class PageNode:
         for root_dir in (self.files_dir, self.pages_dir):
             if not os.path.isdir(root_dir):
                 continue
-            root = os.path.realpath(root_dir)
-            raw = os.path.join(root, name.replace("/", os.sep))
-            resolved = os.path.realpath(raw)
-            if not _path_is_under_root(resolved, root):
+            try:
+                return resolve_under_root(
+                    root_dir,
+                    name,
+                    must_be_file=must_exist,
+                )
+            except PathJailError:
                 continue
-            if must_exist and not os.path.isfile(resolved):
-                continue
-            if not must_exist:
-                return resolved
-            if os.path.isfile(resolved):
-                return resolved
         return None
 
     def _media_cache_key(self, source_path, quality, max_dimension):

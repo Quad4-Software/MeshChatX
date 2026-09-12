@@ -3,7 +3,6 @@
 import asyncio
 import io
 import logging
-import os
 import threading
 import time
 from collections.abc import Callable
@@ -16,6 +15,7 @@ from meshchatx.src.backend.path_utils import (
     path_response_window,
 )
 from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
+from meshchatx.src.path_utils import safe_basename
 
 # Global cache for Nomad Network links (reuse instead of reconnecting per request).
 # Protected by _nomadnet_links_lock for callers that may touch Reticulum from multiple threads.
@@ -603,10 +603,10 @@ class NomadnetFileDownloader(NomadnetDownloader):
         try:
             if isinstance(name, (bytes, bytearray)):
                 name = name.decode("utf-8", errors="replace")
-            base = os.path.basename(str(name).replace("\\", "/"))
+            base = safe_basename(str(name).replace("\x00", ""))
         except (AttributeError, TypeError, ValueError):
             return "downloaded_file"
-        if not base or base in {".", ".."}:
+        if base is None:
             return "downloaded_file"
         # Drop path separators, control chars, and nulls that survive basename.
         base = "".join(

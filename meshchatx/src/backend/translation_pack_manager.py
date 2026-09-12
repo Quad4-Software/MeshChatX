@@ -21,8 +21,10 @@ import zipfile
 import RNS
 
 from meshchatx.src.path_utils import (
+    PathJailError,
     is_path_within_dir,
     resolve_path_under_dir,
+    resolve_under_root,
     safe_path_under_dir,
 )
 
@@ -143,13 +145,15 @@ class TranslationPackManager:
         """Return the absolute path to a pack file, or None if outside packs_dir."""
         if not isinstance(requested, str) or not requested or "\x00" in requested:
             return None
-        normalised = requested.replace("\\", "/")
-        if normalised.startswith("/") or ".." in normalised.split("/"):
+        try:
+            return resolve_under_root(
+                self.packs_dir,
+                requested,
+                strict=True,
+                must_be_file=True,
+            )
+        except PathJailError:
             return None
-        candidate = resolve_path_under_dir(self.packs_dir, normalised)
-        if not candidate or not os.path.isfile(candidate):
-            return None
-        return candidate
 
     def _install_from_directory(self, source_dir: str) -> list[str]:
         registry_path = os.path.join(source_dir, "registry.json")

@@ -858,19 +858,17 @@ class Database:
         member: str,
         target_dir: str,
     ) -> None:
+        from meshchatx.src.path_utils import is_safe_archive_member, is_under_root
+
         # Normalize separators and reject absolute / parent traversal early.
         normalized = member.replace("\\", "/")
-        if (
-            not normalized
-            or normalized.startswith("/")
-            or any(part == ".." for part in normalized.split("/"))
-        ):
+        if not is_safe_archive_member(normalized):
             msg = f"Unsafe zip entry path: {member}"
             raise DatabaseRestoreError(msg)
         abs_target = os.path.realpath(target_dir)
         # realpath resolves existing symlink prefixes (e.g. identity_dir/plugins -> outside).
         abs_dest = os.path.realpath(os.path.join(target_dir, normalized))
-        if abs_dest != abs_target and not abs_dest.startswith(abs_target + os.sep):
+        if not is_under_root(abs_dest, abs_target):
             msg = f"Unsafe zip entry path: {member}"
             raise DatabaseRestoreError(msg)
         zf.extract(member, target_dir)

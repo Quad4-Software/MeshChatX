@@ -11,6 +11,12 @@ import stat
 import zipfile
 
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
+from meshchatx.src.path_utils import (
+    PathJailError,
+    is_safe_archive_member,
+    normalize_relpath,
+    resolve_under_root,
+)
 
 BUNDLED_DOCS_SUBDIR = os.path.join("reticulum-docs-bundled", "current")
 MANIFEST_FILENAME = "manifest.json"
@@ -18,16 +24,7 @@ DOC_FILE_SUFFIXES = (".md", ".txt")
 
 
 def _docs_zip_member_is_safe(name: str) -> bool:
-    if not isinstance(name, str) or "\x00" in name:
-        return False
-    if ".." in name.split("/"):
-        return False
-    normalized = os.path.normpath(name).replace("\\", "/")
-    if normalized.startswith("../") or normalized.startswith("/"):
-        return False
-    if ":" in normalized:
-        return False
-    return True
+    return is_safe_archive_member(name)
 
 
 class DocsManager:
@@ -443,13 +440,14 @@ class DocsManager:
     def _is_safe_doc_path(path):
         if not path or not isinstance(path, str):
             return False
-        if "\0" in path:
-            return False
         normalized = path.replace("\\", "/").strip()
-        if not normalized or normalized.startswith("/"):
+        if not normalized:
             return False
-        parts = [part for part in normalized.split("/") if part not in ("", ".")]
-        return ".." not in parts
+        try:
+            normalize_relpath(normalized, strict=True)
+        except PathJailError:
+            return False
+        return True
 
     def _read_manifest(self):
         manifest_path = os.path.join(self.meshchatx_docs_dir, MANIFEST_FILENAME)
@@ -575,13 +573,13 @@ class DocsManager:
         if not self._is_safe_doc_path(path):
             return None
         try:
-            full_path = os.path.realpath(os.path.join(self.meshchatx_docs_dir, path))
-            base = os.path.realpath(self.meshchatx_docs_dir)
-        except (ValueError, OSError):
-            return None
-        if not full_path.startswith(base + os.sep) and full_path != base:
-            return None
-        if not os.path.isfile(full_path):
+            full_path = resolve_under_root(
+                self.meshchatx_docs_dir,
+                path,
+                strict=True,
+                must_be_file=True,
+            )
+        except PathJailError:
             return None
 
         try:
@@ -812,14 +810,9 @@ class DocsManager:
             if not base or not os.path.isdir(base):
                 continue
             try:
-                candidate = os.path.realpath(os.path.join(base, rel_path))
-                base_real = os.path.realpath(base)
-            except (ValueError, OSError):
+                return resolve_under_root(base, rel_path, must_be_file=True)
+            except PathJailError:
                 continue
-            if candidate != base_real and not candidate.startswith(base_real + os.sep):
-                continue
-            if os.path.isfile(candidate):
-                return candidate
         return None
 
     def _active_reticulum_docs_dir(self):
@@ -861,10 +854,10 @@ class DocsManager:
             raise ValueError(f"Invalid version name: {version}")
 
         version_dir = os.path.join(self.versions_dir, safe_version)
-        resolved = os.path.realpath(version_dir)
-        base = os.path.realpath(self.versions_dir)
-        if not resolved.startswith(base + os.sep):
-            raise ValueError(f"Invalid version name: {version}")
+        try:
+            resolve_under_root(self.versions_dir, safe_version)
+        except PathJailError:
+            raise ValueError(f"Invalid version name: {version}") from None
 
         if os.path.exists(version_dir):
             self._remove_tree_force_writable(version_dir)
