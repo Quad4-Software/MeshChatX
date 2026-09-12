@@ -1152,8 +1152,12 @@ class Database:
             msg = "Invalid path"
             raise ValueError(msg)
 
-        if os.path.exists(abs_path):
-            os.remove(abs_path)
+        # Unlink the literal entry, not the resolved path: safe_path_under_dir
+        # returns a realpath, so removing it would delete the target of a
+        # symlink entry and leave the link itself behind.
+        entry = os.path.join(directory, name)
+        if os.path.lexists(entry):
+            os.remove(entry)
             return True
         return False
 
