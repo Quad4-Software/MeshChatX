@@ -501,7 +501,10 @@ class ReticulumMeshChat:
         self.announce_timestamps = []
 
         # track incoming lxmf message timestamps for flood protection
+        # on_lxmf_delivery runs on RNS threads and the cooldown loop on the
+        # event loop, so every mutation of this state goes through the lock.
         self._lxmf_incoming_timestamps = []
+        self._lxmf_flood_lock = threading.RLock()
         self._flood_protection_current_cost = None
         self._flood_protection_last_bump_time = 0
 
@@ -2011,7 +2014,8 @@ class ReticulumMeshChat:
             return
         if not hasattr(self, "reticulum"):
             return
-        self._reticulum_secondary_started = True
+        # Mark started only after the attempts run: setting the flag first
+        # would leave a mid-run failure permanently unretried.
         try:
             self.page_node_manager.start_all()
             for node in self.page_node_manager.nodes.values():
@@ -2029,6 +2033,7 @@ class ReticulumMeshChat:
             self._ensure_sideband_telemetry_loop()
         except Exception as exc:
             print(f"Sideband plugin loader init failed: {exc}")
+        self._reticulum_secondary_started = True
 
     def _checkpoint_and_close(self):
         # delegated to database instance
@@ -8762,53 +8767,54 @@ class ReticulumMeshChat:
         if ctx.config.block_all_from_strangers.get():
             return
 
-        now = time.time()
-        self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
-            self._lxmf_incoming_timestamps,
-            now=now,
-        )
-        msgs_per_minute = len(
-            [t for t in self._lxmf_incoming_timestamps if now - t <= 60.0],
-        )
+        with self._lxmf_flood_lock:
+            now = time.time()
+            self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
+                self._lxmf_incoming_timestamps,
+                now=now,
+            )
+            msgs_per_minute = len(
+                [t for t in self._lxmf_incoming_timestamps if now - t <= 60.0],
+            )
 
-        threshold = ctx.config.lxmf_flood_threshold_per_minute.get()
-        max_cost = ctx.config.lxmf_flood_max_stamp_cost.get()
-        current_cost = ctx.config.lxmf_inbound_stamp_cost.get()
-        current_cost = max(current_cost, 0)
+            threshold = ctx.config.lxmf_flood_threshold_per_minute.get()
+            max_cost = ctx.config.lxmf_flood_max_stamp_cost.get()
+            current_cost = ctx.config.lxmf_inbound_stamp_cost.get()
+            current_cost = max(current_cost, 0)
 
-        # Determine base cost (the normal non-flood cost)
-        if self._flood_protection_current_cost is not None:
-            base_cost = self._flood_protection_current_cost
-        else:
-            base_cost = current_cost
+            # Determine base cost (the normal non-flood cost)
+            if self._flood_protection_current_cost is not None:
+                base_cost = self._flood_protection_current_cost
+            else:
+                base_cost = current_cost
 
-        if msgs_per_minute > threshold:
-            # Flood detected: bump stamp cost
-            new_cost = min(current_cost + 2, max_cost)
-            if new_cost != current_cost:
-                print(
-                    f"LXMF flood detected: {msgs_per_minute} msg/min "
-                    f"(threshold {threshold}). Raising stamp cost from "
-                    f"{current_cost} to {new_cost}.",
-                )
-                if self._flood_protection_current_cost is None:
-                    self._flood_protection_current_cost = base_cost
-                self._flood_protection_last_bump_time = now
-                self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
-        elif current_cost > base_cost:
-            cooldown = ctx.config.lxmf_flood_cooldown_seconds.get()
-            if now - self._flood_protection_last_bump_time > cooldown:
-                # Step down by 1 toward base cost
-                new_cost = max(current_cost - 1, base_cost)
+            if msgs_per_minute > threshold:
+                # Flood detected: bump stamp cost
+                new_cost = min(current_cost + 2, max_cost)
                 if new_cost != current_cost:
                     print(
-                        f"LXMF flood subsided: {msgs_per_minute} msg/min. "
-                        f"Lowering stamp cost from {current_cost} to {new_cost}.",
+                        f"LXMF flood detected: {msgs_per_minute} msg/min "
+                        f"(threshold {threshold}). Raising stamp cost from "
+                        f"{current_cost} to {new_cost}.",
                     )
+                    if self._flood_protection_current_cost is None:
+                        self._flood_protection_current_cost = base_cost
+                    self._flood_protection_last_bump_time = now
                     self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
-                if new_cost == base_cost:
-                    self._flood_protection_current_cost = None
-                    self._flood_protection_last_bump_time = 0
+            elif current_cost > base_cost:
+                cooldown = ctx.config.lxmf_flood_cooldown_seconds.get()
+                if now - self._flood_protection_last_bump_time > cooldown:
+                    # Step down by 1 toward base cost
+                    new_cost = max(current_cost - 1, base_cost)
+                    if new_cost != current_cost:
+                        print(
+                            f"LXMF flood subsided: {msgs_per_minute} msg/min. "
+                            f"Lowering stamp cost from {current_cost} to {new_cost}.",
+                        )
+                        self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
+                    if new_cost == base_cost:
+                        self._flood_protection_current_cost = None
+                        self._flood_protection_last_bump_time = 0
 
     async def lxmf_flood_protection_cooldown_loop(self, session_id, context=None):
         """Background loop to step down flood protection stamp cost during quiet periods."""
@@ -9046,10 +9052,11 @@ class ReticulumMeshChat:
                 return
 
             # track incoming message timestamps for flood protection
-            self._lxmf_incoming_timestamps.append(time.time())
-            self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
-                self._lxmf_incoming_timestamps,
-            )
+            with self._lxmf_flood_lock:
+                self._lxmf_incoming_timestamps.append(time.time())
+                self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
+                    self._lxmf_incoming_timestamps,
+                )
             self._check_lxmf_flood_protection(context=ctx)
 
             if ctx.config.block_all_from_strangers.get() and not self._is_contact(

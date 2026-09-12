@@ -104,8 +104,11 @@ class DatabaseProvider:
             ident = meta.get("thread_ident")
             if ident is not None and self._by_ident.get(ident) is conn:
                 self._by_ident.pop(ident, None)
+        # Roll back, never commit: a connection being dropped may hold a
+        # half-finished explicit transaction, and committing it would
+        # persist partial work. No-op when autocommit already settled.
         try:
-            conn.commit()
+            conn.rollback()
         except Exception:
             pass
         try:
@@ -322,6 +325,14 @@ class DatabaseProvider:
             return fn()
         except (sqlite3.ProgrammingError, sqlite3.OperationalError) as exc:
             if not sqlite_error_is_retryable(exc):
+                raise
+            # Never drop-and-retry inside an explicit transaction: the
+            # connection owns the BEGIN block, so dropping it would roll
+            # back earlier statements and the retried statement would run
+            # on a fresh autocommit connection, splitting the unit of work.
+            # Re-raise so the provider context manager rolls back cleanly.
+            conn = getattr(self._local, "connection", None)
+            if conn is not None and conn.in_transaction:
                 raise
             self._drop_local_connection()
             return fn()

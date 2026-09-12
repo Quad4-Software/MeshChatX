@@ -48,10 +48,20 @@ class AsyncUtils:
 
     @staticmethod
     def set_main_loop(loop: asyncio.AbstractEventLoop):
-        AsyncUtils.main_loop = loop
-        for coro in AsyncUtils._pending_coroutines:
-            AsyncUtils.run_async(coro)
-        AsyncUtils._pending_coroutines.clear()
+        # Swap the buffer under the lock so a run_async caller racing the
+        # loop install lands either in the drained list (scheduled below)
+        # or takes the live-loop path, never into a list nobody reads.
+        with AsyncUtils._futures_lock:
+            AsyncUtils.main_loop = loop
+            pending = AsyncUtils._pending_coroutines
+            AsyncUtils._pending_coroutines = []
+        # Schedule directly on the loop: it may not be running yet (the
+        # installer calls this before run_forever), but run_coroutine_
+        # threadsafe queues the coroutine for when the loop starts.
+        for coro in pending:
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            with AsyncUtils._futures_lock:
+                AsyncUtils._pending_futures.append(future)
 
     @staticmethod
     def run_async(coroutine: Coroutine):
@@ -60,12 +70,13 @@ class AsyncUtils:
         Returned futures are tracked so they (and the closures they reference)
         can be garbage-collected promptly once finished.
         """
-        if AsyncUtils.main_loop and AsyncUtils.main_loop.is_running():
-            future = asyncio.run_coroutine_threadsafe(
-                coroutine,
-                AsyncUtils.main_loop,
-            )
-            with AsyncUtils._futures_lock:
+        with AsyncUtils._futures_lock:
+            loop = AsyncUtils.main_loop
+            if loop is not None and loop.is_running():
+                future = asyncio.run_coroutine_threadsafe(
+                    coroutine,
+                    loop,
+                )
                 AsyncUtils._pending_futures.append(future)
                 if (
                     len(AsyncUtils._pending_futures)
@@ -74,19 +85,19 @@ class AsyncUtils:
                     AsyncUtils._pending_futures = [
                         f for f in AsyncUtils._pending_futures if not f.done()
                     ]
-            return
+                return
 
-        # If the loop isn't available yet (or has stopped), buffer the coroutine
-        # but cap the backlog so we don't leak memory indefinitely.
-        AsyncUtils._pending_coroutines.append(coroutine)
-        if len(AsyncUtils._pending_coroutines) > AsyncUtils._COROUTINES_MAX:
-            dropped = len(AsyncUtils._pending_coroutines) - AsyncUtils._COROUTINES_MAX
-            AsyncUtils._pending_coroutines = AsyncUtils._pending_coroutines[
-                -AsyncUtils._COROUTINES_MAX :
-            ]
-            import logging
-
-            logging.getLogger("meshchatx.async").warning(
-                "Dropped %d buffered coroutine(s) because the event loop is not running",
-                dropped,
-            )
+            # If the loop isn't available yet (or has stopped), buffer the
+            # coroutine but cap the backlog so we don't leak memory forever.
+            AsyncUtils._pending_coroutines.append(coroutine)
+            if len(AsyncUtils._pending_coroutines) > AsyncUtils._COROUTINES_MAX:
+                dropped = (
+                    len(AsyncUtils._pending_coroutines) - AsyncUtils._COROUTINES_MAX
+                )
+                AsyncUtils._pending_coroutines = AsyncUtils._pending_coroutines[
+                    -AsyncUtils._COROUTINES_MAX :
+                ]
+                _logger.warning(
+                    "Dropped %d buffered coroutine(s) because the event loop is not running",
+                    dropped,
+                )
