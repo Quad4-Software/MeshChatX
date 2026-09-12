@@ -78,6 +78,7 @@ def save_json(
     sort_keys: bool = False,
     mode: int = 0o644,
     newline: bool = True,
+    fsync_dir: bool = True,
 ) -> None:
     """Serialize obj and write it atomically to path.
 
@@ -87,4 +88,4 @@ def save_json(
     text = json.dumps(obj, indent=indent, sort_keys=sort_keys)
     if newline:
         text += "\n"
-    atomic_write_text(path, text, mode=mode)
+    atomic_write_text(path, text, mode=mode, fsync_dir=fsync_dir)
