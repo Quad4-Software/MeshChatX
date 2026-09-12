@@ -1077,7 +1077,7 @@
 <script>
 import { useConfigStore } from "../../js/stores/configStore.js";
 
-import { markRaw } from "vue";
+import { getCurrentInstance, markRaw } from "vue";
 import "ol/ol.css";
 import "../../js/mapVectorWebFonts.js";
 import { apply as applyMapboxStyle } from "ol-mapbox-style";
@@ -1202,6 +1202,7 @@ import { styleFromMcxProperties } from "../../js/mapExchange/styleFromProperties
 import { computeSegmentMetrics, buildBearingOverlayHtml, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
 import { isLocalMapServiceUrl } from "../../js/mapLocalUrl.js";
 import * as lxmfApi from "../../js/api/lxmf.js";
+import { useMapPing } from "../../js/map/useMapPing.js";
 
 const OPENFREEMAP_DEFAULT_STYLE = "https://tiles.openfreemap.org/styles/bright";
 const DEFAULT_OSM_RASTER = DEFAULT_TILE_SERVER_URL;
@@ -1255,6 +1256,15 @@ export default {
         },
     },
     emits: ["update-title"],
+    setup() {
+        const inst = getCurrentInstance();
+        return {
+            ...useMapPing({
+                t: (key) => inst?.proxy.$t(key),
+                getLayers: () => inst?.proxy.layersTagForShare(),
+            }),
+        };
+    },
     data() {
         return {
             map: null,
@@ -1405,12 +1415,6 @@ export default {
             contextMenuFeature: null,
             contextMenuCoord: null,
 
-            showMapPingModal: false,
-            pingDestinationHash: "",
-            mapPingLat: 0,
-            mapPingLon: 0,
-            mapPingZoom: 10,
-
             exportRegionPresets: [
                 { id: "world", bbox: WORLD_MBTILES_BBOX.slice(), minZoom: 0, maxZoom: 4 },
                 { id: "europe", bbox: [-12, 35, 40, 72], minZoom: 0, maxZoom: 10 },
@@ -1548,9 +1552,6 @@ export default {
             }
             out.sort((a, b) => a.label.localeCompare(b.label));
             return out;
-        },
-        mapPingSummary() {
-            return `${this.mapPingLat.toFixed(6)}, ${this.mapPingLon.toFixed(6)} @ z${Math.round(this.mapPingZoom)}`;
         },
         drawFeatureDescriptionSanitized() {
             const p = this.drawFeatureInfoPayload;
@@ -2493,42 +2494,6 @@ export default {
             this.mapPingZoom = view.getZoom();
             this.pingDestinationHash = "";
             this.showMapPingModal = true;
-        },
-        openPingModalAt(lat, lon, zoom) {
-            this.mapPingLat = lat;
-            this.mapPingLon = lon;
-            this.mapPingZoom = zoom;
-            this.pingDestinationHash = "";
-            this.showMapPingModal = true;
-        },
-        async sendMapPing() {
-            const hash = (this.pingDestinationHash || "").trim();
-            if (!hash || hash.length !== 32) {
-                ToastUtils.error(this.$t("map.ping_invalid_destination"));
-                return;
-            }
-            const layers = this.layersTagForShare();
-            const uri = buildMeshchatMapUri({
-                lat: this.mapPingLat,
-                lon: this.mapPingLon,
-                zoom: this.mapPingZoom,
-                layers,
-                label: "Ping",
-            });
-            const content = `${this.$t("map.ping_message_prefix")} ${uri}`;
-            try {
-                await window.api.post(apiPath("/lxmf-messages/send"), {
-                    lxmf_message: {
-                        destination_hash: hash,
-                        content,
-                    },
-                });
-                ToastUtils.success(this.$t("map.ping_sent"));
-                this.showMapPingModal = false;
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("map.ping_failed"));
-            }
         },
         isLocalUrl(url) {
             return isLocalMapServiceUrl(url, typeof window !== "undefined" ? window.location.origin : "");
