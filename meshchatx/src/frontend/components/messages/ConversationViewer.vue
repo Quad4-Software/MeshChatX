@@ -196,9 +196,27 @@
                 </div>
                 <div
                     v-if="!messagesViewportReady"
-                    class="absolute inset-0 z-20 bg-sem-surface pointer-events-none select-none"
+                    class="absolute inset-0 z-20 bg-sem-surface pointer-events-none select-none overflow-hidden px-4 py-6 space-y-5"
                     aria-hidden="true"
-                />
+                >
+                    <div
+                        v-for="n in 8"
+                        :key="'msg-skel-' + n"
+                        class="flex"
+                        :class="n % 2 === 0 ? 'justify-end' : 'justify-start'"
+                    >
+                        <div
+                            class="flex flex-col gap-1.5"
+                            :class="[n % 2 === 0 ? 'items-end' : 'items-start', n % 3 === 0 ? 'w-2/5' : 'w-3/5']"
+                        >
+                            <Skeleton
+                                variant="line"
+                                :root-class="n % 3 === 1 ? 'h-8 rounded-2xl' : 'h-6 rounded-2xl'"
+                            />
+                            <Skeleton variant="line" root-class="w-1/3 h-2" />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <Transition name="scroll-fab">
@@ -1617,6 +1635,8 @@ import {
 import ConversationPeerHeader from "./ConversationPeerHeader.vue";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
+import Skeleton from "../Skeleton.vue";
+import { takeConversationPrefetch } from "../../js/conversationPrefetch.js";
 import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
 import {
     buildDisplayGroupsNewestFirst,
@@ -1703,6 +1723,7 @@ export default {
         LxmfUserIcon,
         ConversationMessageEntry,
         ConversationMessageListVirtual,
+        Skeleton,
         StickerView,
         InViewAnimatedImg,
         TelemetryHistoryModal,
@@ -3242,16 +3263,22 @@ export default {
                 const seq = ++this.lxmfMessagesRequestSequence;
 
                 const pageSize = CONVERSATION_MESSAGES_PAGE_SIZE;
-                const response = await window.api.get(
-                    `/api/v1/lxmf-messages/conversation/${this.selectedPeer.destination_hash}`,
-                    {
-                        params: {
-                            count: pageSize,
-                            order: "desc",
-                            after_id: this.oldestMessageId,
-                        },
-                    }
-                );
+                // First page may have been warmed by a sidebar hover/focus prefetch.
+                const prefetched =
+                    this.oldestMessageId == null ? takeConversationPrefetch(this.selectedPeer.destination_hash) : null;
+                let response = prefetched ? await prefetched : null;
+                if (!response) {
+                    response = await window.api.get(
+                        `/api/v1/lxmf-messages/conversation/${this.selectedPeer.destination_hash}`,
+                        {
+                            params: {
+                                count: pageSize,
+                                order: "desc",
+                                after_id: this.oldestMessageId,
+                            },
+                        }
+                    );
+                }
 
                 if (seq !== this.lxmfMessagesRequestSequence) {
                     return;
@@ -4607,14 +4634,32 @@ export default {
         },
         autoLoadAudioAttachments(items = null) {
             const scanItems = Array.isArray(items) ? items : this.chatItems;
-            for (const chatItem of scanItems) {
-                if (
+            const pending = scanItems.filter(
+                (chatItem) =>
                     chatItem.lxmf_message.fields?.audio &&
                     !this.lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash] &&
                     !this.isDownloadingAudio[chatItem.lxmf_message.hash]
-                ) {
+            );
+            // Fetch and decode in small idle chunks so opening a thread does not
+            // burst a full page of audio downloads onto the main thread/network.
+            const runChunk = () => {
+                const chunk = pending.splice(0, 2);
+                for (const chatItem of chunk) {
                     this.downloadAndDecodeAudio(chatItem);
                 }
+                if (pending.length > 0) {
+                    schedule();
+                }
+            };
+            const schedule = () => {
+                if (typeof requestIdleCallback === "function") {
+                    requestIdleCallback(runChunk, { timeout: 1500 });
+                } else {
+                    setTimeout(runChunk, 60);
+                }
+            };
+            if (pending.length > 0) {
+                schedule();
             }
         },
         formatAttachmentSize(attachment, type) {

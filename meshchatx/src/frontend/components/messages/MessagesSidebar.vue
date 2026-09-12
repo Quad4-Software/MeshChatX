@@ -57,6 +57,8 @@
                     "
                     :title="c.custom_display_name ?? c.display_name"
                     @click="onConversationClick(c)"
+                    @mouseenter="onConversationHover(c)"
+                    @focusin="onConversationHover(c)"
                 >
                     <LxmfUserIcon
                         :custom-image="c.contact_image"
@@ -414,6 +416,8 @@
                                     ]"
                                     draggable="true"
                                     @click="onConversationRowActivate(conversation)"
+                                    @mouseenter="onConversationHover(conversation)"
+                                    @focusin="onConversationHover(conversation)"
                                     @touchstart.passive="onConversationTouchStart($event, conversation)"
                                     @touchmove="onConversationTouchMove"
                                     @touchend="onConversationTouchEnd"
@@ -566,6 +570,8 @@
                                 ]"
                                 draggable="true"
                                 @click="onConversationRowActivate(conversation)"
+                                @mouseenter="onConversationHover(conversation)"
+                                @focusin="onConversationHover(conversation)"
                                 @touchstart.passive="onConversationTouchStart($event, conversation)"
                                 @touchmove="onConversationTouchMove"
                                 @touchend="onConversationTouchEnd"
@@ -1098,6 +1104,7 @@ export default {
     },
     emits: [
         "conversation-click",
+        "conversation-hover",
         "peer-click",
         "conversation-search-changed",
         "conversation-filter-changed",
@@ -1613,6 +1620,9 @@ export default {
                 clearTimeout(this.conversationLongPressTimer);
                 this.conversationLongPressTimer = null;
             }
+        },
+        onConversationHover(conversation) {
+            this.$emit("conversation-hover", conversation);
         },
         onConversationClick(conversation) {
             if (this.isBlocked(conversation.destination_hash)) {
