@@ -3619,7 +3619,6 @@
             "publish_site_done": "Published {published}/{total} pages to {server}",
             "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
             "insert_image": "Вставити зображення",
-            "insert_image_hint": "Перетягніть або вставте зображення, щоб додати їх",
             "image_added": "Зображення \"{name}\" додано",
             "image_not_supported": "\"{name}\" не є підтримуваним файлом зображення",
             "image_too_large": "\"{name}\" завелике (макс. {max})",

@@ -3619,7 +3619,6 @@
             "publish_site_done": "Published {published}/{total} pages to {server}",
             "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
             "insert_image": "Insert image",
-            "insert_image_hint": "Drop or paste images to insert them",
             "image_added": "Added image \"{name}\"",
             "image_not_supported": "\"{name}\" is not a supported image file",
             "image_too_large": "\"{name}\" is too large (max {max})",

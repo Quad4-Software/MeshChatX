@@ -3619,7 +3619,6 @@
             "publish_site_done": "Published {published}/{total} pages to {server}",
             "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
             "insert_image": "Afbeelding invoegen",
-            "insert_image_hint": "Sleep of plak afbeeldingen om ze in te voegen",
             "image_added": "Afbeelding \"{name}\" toegevoegd",
             "image_not_supported": "\"{name}\" is geen ondersteund afbeeldingsbestand",
             "image_too_large": "\"{name}\" is te groot (max {max})",

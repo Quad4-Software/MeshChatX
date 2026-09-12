@@ -101,7 +101,7 @@ describe("MicronEditorPage.vue", () => {
         await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
         const initialCount = wrapper.vm.tabs.length;
 
-        const addButton = wrapper.findAll("button").find((b) => b.html().includes("plus"));
+        const addButton = wrapper.findAll("button").find((b) => b.html().includes('data-icon-name="plus"'));
         await addButton.trigger("click");
 
         expect(wrapper.vm.tabs.length).toBe(initialCount + 1);
