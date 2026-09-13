@@ -1062,10 +1062,10 @@
                                 <input
                                     id="rrc-create-announce-interval-input"
                                     type="text"
-                                    inputmode="numeric"
+                                    inputmode="text"
                                     autocomplete="off"
-                                    maxlength="5"
-                                    class="w-16 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
+                                    maxlength="12"
+                                    class="w-20 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
                                     :value="createAnnounceIntervalMinutesShown"
                                     :aria-label="$t('relay_chat.host_announce_interval')"
                                     @focus="onCreateAnnounceIntervalFocus"
@@ -1086,7 +1086,7 @@
                             <p class="text-xs text-sem-fg-muted">
                                 {{
                                     $t("relay_chat.host_announce_interval_hint", {
-                                        minutes: createAnnounceIntervalMinutes,
+                                        interval: createAnnounceIntervalLabel,
                                     })
                                 }}
                             </p>
@@ -1135,10 +1135,10 @@
                                 <input
                                     id="rrc-host-announce-interval-input"
                                     type="text"
-                                    inputmode="numeric"
+                                    inputmode="text"
                                     autocomplete="off"
-                                    maxlength="5"
-                                    class="w-16 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
+                                    maxlength="12"
+                                    class="w-20 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
                                     :value="hostAnnounceIntervalMinutesShown"
                                     :aria-label="$t('relay_chat.host_announce_interval')"
                                     @focus="onHostAnnounceIntervalFocus"
@@ -1159,7 +1159,7 @@
                             <p class="text-xs text-sem-fg-muted">
                                 {{
                                     $t("relay_chat.host_announce_interval_hint", {
-                                        minutes: hostAnnounceIntervalMinutes,
+                                        interval: hostAnnounceIntervalLabel,
                                     })
                                 }}
                             </p>
@@ -1472,6 +1472,8 @@ import {
     ANNOUNCE_SLIDER_POS_MAX,
     announceMinutesToSliderPos,
     announceSliderPosToMinutes,
+    formatAnnounceIntervalMinutes,
+    parseAnnounceIntervalMinutes,
 } from "../../js/announceIntervalSliderMap.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
@@ -1765,7 +1767,10 @@ export default {
             if (this.createAnnounceIntervalDraft != null) {
                 return this.createAnnounceIntervalDraft;
             }
-            return String(this.createAnnounceIntervalMinutes);
+            return formatAnnounceIntervalMinutes(this.createAnnounceIntervalMinutes);
+        },
+        createAnnounceIntervalLabel() {
+            return formatAnnounceIntervalMinutes(this.createAnnounceIntervalMinutes);
         },
         hostAnnounceIntervalMinutes() {
             return secondsToAnnounceMinutes(this.hostHubSettingsForm.announce_interval_seconds);
@@ -1777,7 +1782,10 @@ export default {
             if (this.hostAnnounceIntervalDraft != null) {
                 return this.hostAnnounceIntervalDraft;
             }
-            return String(this.hostAnnounceIntervalMinutes);
+            return formatAnnounceIntervalMinutes(this.hostAnnounceIntervalMinutes);
+        },
+        hostAnnounceIntervalLabel() {
+            return formatAnnounceIntervalMinutes(this.hostAnnounceIntervalMinutes);
         },
         relayChatPageSelf() {
             return this;
@@ -2127,23 +2135,22 @@ export default {
             this.createAnnounceIntervalDraft = null;
         },
         onCreateAnnounceIntervalFocus() {
-            this.createAnnounceIntervalDraft = String(this.createAnnounceIntervalMinutes);
+            this.createAnnounceIntervalDraft = formatAnnounceIntervalMinutes(this.createAnnounceIntervalMinutes);
         },
         onCreateAnnounceIntervalInput(event) {
-            const raw = String(event?.target?.value ?? "").replace(/\D/g, "");
+            const raw = String(event?.target?.value ?? "");
             this.createAnnounceIntervalDraft = raw;
-            if (raw === "") {
+            if (raw.trim() === "") {
                 return;
             }
-            const minutes = Number.parseInt(raw, 10);
-            if (Number.isFinite(minutes)) {
+            const minutes = parseAnnounceIntervalMinutes(raw);
+            if (minutes != null) {
                 this.createHubForm.announce_interval_seconds = clampAnnounceIntervalMinutes(minutes) * 60;
             }
         },
         onCreateAnnounceIntervalBlur() {
-            const minutes = clampAnnounceIntervalMinutes(
-                this.createAnnounceIntervalDraft || this.createAnnounceIntervalMinutes
-            );
+            const parsed = parseAnnounceIntervalMinutes(this.createAnnounceIntervalDraft);
+            const minutes = clampAnnounceIntervalMinutes(parsed ?? this.createAnnounceIntervalMinutes);
             this.createHubForm.announce_interval_seconds = minutes * 60;
             this.createAnnounceIntervalDraft = null;
         },
@@ -2153,23 +2160,22 @@ export default {
             this.hostAnnounceIntervalDraft = null;
         },
         onHostAnnounceIntervalFocus() {
-            this.hostAnnounceIntervalDraft = String(this.hostAnnounceIntervalMinutes);
+            this.hostAnnounceIntervalDraft = formatAnnounceIntervalMinutes(this.hostAnnounceIntervalMinutes);
         },
         onHostAnnounceIntervalInput(event) {
-            const raw = String(event?.target?.value ?? "").replace(/\D/g, "");
+            const raw = String(event?.target?.value ?? "");
             this.hostAnnounceIntervalDraft = raw;
-            if (raw === "") {
+            if (raw.trim() === "") {
                 return;
             }
-            const minutes = Number.parseInt(raw, 10);
-            if (Number.isFinite(minutes)) {
+            const minutes = parseAnnounceIntervalMinutes(raw);
+            if (minutes != null) {
                 this.hostHubSettingsForm.announce_interval_seconds = clampAnnounceIntervalMinutes(minutes) * 60;
             }
         },
         onHostAnnounceIntervalBlur() {
-            const minutes = clampAnnounceIntervalMinutes(
-                this.hostAnnounceIntervalDraft || this.hostAnnounceIntervalMinutes
-            );
+            const parsed = parseAnnounceIntervalMinutes(this.hostAnnounceIntervalDraft);
+            const minutes = clampAnnounceIntervalMinutes(parsed ?? this.hostAnnounceIntervalMinutes);
             this.hostHubSettingsForm.announce_interval_seconds = minutes * 60;
             this.hostAnnounceIntervalDraft = null;
         },
