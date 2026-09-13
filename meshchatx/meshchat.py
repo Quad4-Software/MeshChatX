@@ -1669,10 +1669,12 @@ class ReticulumMeshChat:
             guard_invalid_rnode_txpower_in_config,
             guard_rnode_interfaces_on_android,
             guard_rnode_interfaces_on_desktop,
+            normalize_rnode_bluetooth_in_config,
             normalize_rnode_tcp_host_in_config,
         )
 
         normalize_rnode_tcp_host_in_config(config_path)
+        normalize_rnode_bluetooth_in_config(config_path)
         guard_rnode_interfaces_on_android(config_path)
         guard_rnode_interfaces_on_desktop(config_path)
         guard_invalid_rnode_txpower_in_config(config_path)

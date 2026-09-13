@@ -997,11 +997,25 @@ new_block = '''        import importlib.util
             raise SystemError("Android-specific interface was used on non-Android OS")
 '''
 
+bt_enabled_marker = '''    def bt_enabled(self):
+        return self.bt_adapter.getDefaultAdapter().isEnabled()
+'''
+bt_enabled_new = '''    def bt_enabled(self):
+        adapter = self.bt_adapter.getDefaultAdapter()
+        return adapter != None and adapter.isEnabled()
+'''
+
 def patch_rnode_interface(data):
     text = data.decode("utf-8")
     start_idx = text.index(start_marker)
     end_idx = text.index(end_marker, start_idx) + len(end_marker)
-    return (text[:start_idx] + new_block + text[end_idx:]).encode("utf-8")
+    text = text[:start_idx] + new_block + text[end_idx:]
+    # getDefaultAdapter() returns null on devices without Bluetooth; a null
+    # dereference here would kill the BLE connection job thread.
+    if bt_enabled_marker not in text:
+        raise SystemExit("bt_enabled marker not found in RNodeInterface.py")
+    text = text.replace(bt_enabled_marker, bt_enabled_new, 1)
+    return text.encode("utf-8")
 
 patched_target = "RNS/Interfaces/Android/RNodeInterface.py"
 found = False
