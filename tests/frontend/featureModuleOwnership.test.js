@@ -407,7 +407,6 @@ const FEATURE_MODULE_OWNERS = [
             "meshchatx/src/frontend/features/bots/components/BotCard.svelte",
             "meshchatx/src/frontend/features/bots/components/BotCustomCommandsEditor.svelte",
             "meshchatx/src/frontend/features/bots/components/BotRrcFields.svelte",
-            "meshchatx/src/frontend/features/bots/components/BotStartModal.svelte",
             "meshchatx/src/frontend/features/bots/components/BotLxmfConfigModal.svelte",
             "meshchatx/src/frontend/features/bots/components/BotProcessLogModal.svelte",
             "meshchatx/src/frontend/features/bots/components/BotLxmfConfigFields.svelte",
