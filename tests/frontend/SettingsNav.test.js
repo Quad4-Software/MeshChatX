@@ -3,7 +3,11 @@
 import { render, fireEvent } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 import SettingsNav from "../../meshchatx/src/frontend/features/settings/components/SettingsNav.svelte";
-import { SETTINGS_TABS } from "../../meshchatx/src/frontend/js/settings/settingsTabs.js";
+import {
+    getSettingsTab,
+    SETTINGS_TABS,
+    settingsTabHasVisibleSections,
+} from "../../meshchatx/src/frontend/js/settings/settingsTabs.js";
 import { t } from "../../meshchatx/src/frontend/js/i18n.js";
 
 describe("SettingsNav", () => {
@@ -46,44 +50,41 @@ describe("SettingsNav", () => {
     });
 
     it("hides all-advanced tabs in simple mode and shows them in advanced mode", () => {
-        const simple = mount(SettingsNav, {
-            props: { activeTab: "general", mode: "simple" },
-            global: { mocks: { $t: (key) => key } },
-        });
-        expect(simple.text()).not.toContain("settings.tabs.network");
-        expect(simple.text()).not.toContain("settings.tabs.nomad");
-        expect(simple.text()).not.toContain("settings.tabs.plugins");
-        expect(simple.text()).toContain("settings.tabs.general");
-        expect(simple.text()).toContain("settings.tabs.privacy");
+        // SettingsNav renders every tab it is given; simple/advanced
+        // filtering lives in the settingsTabs helpers used by the page.
+        const { container } = renderNav("general");
+        expect(container.querySelectorAll(".settings-nav__tab")).toHaveLength(SETTINGS_TABS.length);
 
-        const advanced = mount(SettingsNav, {
-            props: { activeTab: "general", mode: "advanced" },
-            global: { mocks: { $t: (key) => key } },
-        });
-        expect(advanced.findAll(".settings-nav__tab")).toHaveLength(SETTINGS_TABS.length);
+        const hiddenInSimple = SETTINGS_TABS.filter((tab) => !settingsTabHasVisibleSections(tab, "simple")).map(
+            (tab) => tab.id
+        );
+        expect(hiddenInSimple).toEqual(["network", "nomad", "plugins"]);
+        expect(settingsTabHasVisibleSections(getSettingsTab("general"), "simple")).toBe(true);
+        expect(settingsTabHasVisibleSections(getSettingsTab("privacy"), "simple")).toBe(true);
+        for (const tab of SETTINGS_TABS) {
+            expect(settingsTabHasVisibleSections(tab, "advanced")).toBe(true);
+        }
     });
 
-    it("emits update:mode from the simple/advanced toggle", async () => {
-        const wrapper = mount(SettingsNav, {
-            props: { activeTab: "general", mode: "simple" },
-            global: { mocks: { $t: (key) => key } },
-        });
-        const buttons = wrapper.findAll(".settings-nav__mode-btn");
-        expect(buttons).toHaveLength(2);
-        await buttons[1].trigger("click");
-        expect(wrapper.emitted("update:mode")).toEqual([["advanced"]]);
+    it("emits select through the onselecttab callback prop", async () => {
+        const onselecttab = vi.fn();
+        const { container } = renderNav("general", { onselecttab });
+        const buttons = Array.from(container.querySelectorAll(".settings-nav__tab"));
+        const networkButton = buttons.find((btn) => btn.textContent.includes(t("settings.tabs.network")));
+        expect(networkButton).toBeDefined();
+        await fireEvent.click(networkButton);
+        expect(onselecttab).toHaveBeenCalledWith("network");
     });
 
-    it("keeps every tab reachable during search even in simple mode", () => {
-        const wrapper = mount(SettingsNav, {
-            props: {
-                activeTab: "",
-                mode: "simple",
-                matchCounts: { general: 0, network: 1 },
-            },
-            global: { mocks: { $t: (key) => key } },
+    it("keeps every tab reachable during search", () => {
+        const { container } = renderNav("", {
+            matchCounts: { general: 0, network: 1 },
         });
-        expect(wrapper.text()).toContain("settings.tabs.network");
+        const buttons = Array.from(container.querySelectorAll(".settings-nav__tab"));
+        expect(buttons).toHaveLength(SETTINGS_TABS.length);
+        const networkButton = buttons.find((btn) => btn.textContent.includes(t("settings.tabs.network")));
+        expect(networkButton).toBeDefined();
+        expect(networkButton.disabled).toBe(false);
     });
 
     it("shows match counts during search and disables empty tabs", async () => {

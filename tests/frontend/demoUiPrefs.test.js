@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
     DEMO_UI_PREFS_STORAGE_KEY,
     isDemoReadonlyRejection,
@@ -11,8 +11,7 @@ import {
     pickDemoUiPrefs,
 } from "../../meshchatx/src/frontend/js/demoUiPrefs.js";
 import { createApiClient } from "../../meshchatx/src/frontend/js/apiClient.js";
-import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
 
 function memoryStorage() {
     /** @type {Record<string, string>} */
@@ -67,9 +66,15 @@ describe("demoUiPrefs", () => {
 });
 
 describe("apiClient demo config overlay", () => {
+    let snapshot;
+
     beforeEach(() => {
-        useAuthStore().demoMode = true;
-        useConfigStore().config = { theme: "light", display_name: "Server" };
+        snapshot = {
+            demoMode: GlobalState.demoMode,
+            config: { ...GlobalState.config },
+        };
+        GlobalState.demoMode = true;
+        GlobalState.config = { theme: "light", display_name: "Server" };
         vi.stubGlobal("localStorage", memoryStorage());
         vi.stubGlobal(
             "fetch",
@@ -77,6 +82,12 @@ describe("apiClient demo config overlay", () => {
                 throw new Error("network should not be used for demo UI prefs");
             })
         );
+    });
+
+    afterEach(() => {
+        GlobalState.demoMode = snapshot.demoMode;
+        GlobalState.config = snapshot.config;
+        vi.unstubAllGlobals();
     });
 
     it("stores theme and language patches locally in demo mode", async () => {
@@ -110,7 +121,7 @@ describe("apiClient demo config overlay", () => {
     });
 
     it("does not treat demo_readonly as an auth error", async () => {
-        useAuthStore().demoMode = true;
+        GlobalState.demoMode = true;
         const onAuthError = vi.fn();
         vi.stubGlobal(
             "fetch",
