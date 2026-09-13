@@ -399,6 +399,14 @@ def create_reticulum_with_recovery(
         install_rns_rnode_patches()
     except Exception:
         logger.debug("RNS RNode patch install skipped", exc_info=True)
+    try:
+        from meshchatx.src.backend.rns_backbone_patch import (
+            install_rns_backbone_patches,
+        )
+
+        install_rns_backbone_patches()
+    except Exception:
+        logger.debug("RNS backbone patch install skipped", exc_info=True)
     config_path = os.path.join(config_dir, "config")
     ensure_panic_on_interface_error_disabled(config_path)
 
