@@ -75,8 +75,7 @@ export default defineConfig({
         // when the worker closes surfaces as an unhandled rejection even
         // though every test passed. Ignore only that specific race.
         onUnhandledError(error) {
-            const message =
-                error && error.message ? String(error.message) : String(error);
+            const message = error && error.message ? String(error.message) : String(error);
             if (message.includes("Closing rpc while")) {
                 return false;
             }
