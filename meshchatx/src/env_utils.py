@@ -65,3 +65,21 @@ def env_snapshot(env_names: tuple[str, ...] | list[str]) -> dict[str, str | None
     variables.
     """
     return {name: os.environ.get(name) for name in env_names}
+
+
+def env_set(env_name: str, value: str) -> None:
+    """Set a process environment variable for child process plumbing."""
+    os.environ[env_name] = value
+
+
+def env_unset(env_name: str) -> None:
+    """Remove a process environment variable if present."""
+    os.environ.pop(env_name, None)
+
+
+def env_restore(env_name: str, previous: str | None) -> None:
+    """Restore a saved env value, removing it when there was none."""
+    if previous is None:
+        env_unset(env_name)
+    else:
+        env_set(env_name, previous)

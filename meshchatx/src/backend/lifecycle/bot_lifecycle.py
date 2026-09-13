@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from meshchatx.src.env_utils import env_restore, env_set, env_str
+
 # ruff: noqa: F821
 
 
@@ -35,16 +37,13 @@ def check_bot_lifecycle(app: Any) -> tuple[bool, str]:
         os.makedirs(identity_dir, exist_ok=True)
         os.makedirs(rns_dir, exist_ok=True)
 
-        previous_rns = os.environ.get("MESHCHAT_BOT_RETICULUM_CONFIG_DIR")
-        os.environ["MESHCHAT_BOT_RETICULUM_CONFIG_DIR"] = rns_dir
+        previous_rns = env_str("MESHCHAT_BOT_RETICULUM_CONFIG_DIR")
+        env_set("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", rns_dir)
         try:
             handler = BotHandler(identity_path=identity_dir)
             bot_id = handler.start_bot("echo", "Self-Check Echo Bot")
         finally:
-            if previous_rns is None:
-                os.environ.pop("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", None)
-            else:
-                os.environ["MESHCHAT_BOT_RETICULUM_CONFIG_DIR"] = previous_rns
+            env_restore("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", previous_rns)
 
         entry = next(
             (e for e in handler.bots_state if e.get("id") == bot_id),

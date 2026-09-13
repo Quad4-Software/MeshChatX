@@ -16,6 +16,7 @@ from collections.abc import Callable
 from typing import Any
 
 from meshchatx.src.backend import self_check_probe as _self_check_probe  # noqa: F401
+from meshchatx.src.env_utils import env_restore, env_set, env_str
 
 _CRITICAL_IMPORTS = (
     "email.header",
@@ -384,19 +385,16 @@ def check_appcontainer_launch() -> dict[str, str]:
     marker_dir = tempfile.mkdtemp(prefix="meshchatx_ac_probe_")
     marker = os.path.join(marker_dir, "probe.out")
     env_flag = "MESHCHATX_SELF_CHECK_PROBE_PATH"
-    previous = os.environ.get(env_flag)
-    os.environ[env_flag] = marker
+    previous = env_str(env_flag)
+    env_set(env_flag, marker)
     try:
         if _is_frozen_executable():
             args = [_MESHCHATX_RUN_MODULE_FLAG, _SELF_CHECK_PROBE_MODULE]
         else:
             args = [
                 "-c",
-                (
-                    "import os; "
-                    "open(os.environ['MESHCHATX_SELF_CHECK_PROBE_PATH'], 'w')"
-                    ".write('ok')"
-                ),
+                "import sys; open(sys.argv[1], 'w').write('ok')",
+                marker,
             ]
         result = ac.launch_backend_sandboxed(
             exe,
@@ -407,10 +405,7 @@ def check_appcontainer_launch() -> dict[str, str]:
             forced=True,
         )
     finally:
-        if previous is None:
-            os.environ.pop(env_flag, None)
-        else:
-            os.environ[env_flag] = previous
+        env_restore(env_flag, previous)
 
     try:
         if not result.ok:
