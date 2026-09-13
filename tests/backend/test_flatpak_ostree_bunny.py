@@ -47,8 +47,8 @@ def test_flatpak_branch_from_ref_name(channel: ModuleType) -> None:
     )
     assert channel.flatpak_branch_from_ref_name("beta-2026.09.03-abc1234") == "beta"
     assert channel.flatpak_branch_from_ref_name("preview-dev-2026.09.03-abc") == "beta"
-    assert channel.flatpak_branch_from_ref_name("v4.9.0") == "stable"
-    assert channel.flatpak_branch_from_ref_name("4.9.0") == "stable"
+    assert channel.flatpak_branch_from_ref_name("v1.2.3") == "stable"
+    assert channel.flatpak_branch_from_ref_name("1.2.3") == "stable"
 
 
 def test_upload_phase_order(ostree_up: ModuleType) -> None:

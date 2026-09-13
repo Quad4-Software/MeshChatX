@@ -60,7 +60,7 @@ To update dependencies on purpose, run pnpm update or uv lock in its own commit 
 
 ## Versioning
 
-Edit the version field in package.json, then run pnpm run version:sync (also the first step of pnpm run build). That copies the number into pyproject.toml, the Python version modules, Android Gradle, electron/app-version.json, the README and translated READMEs, the Raspberry Pi pipx example, Arch PKGBUILD helpers, third-party notices, and GitHub issue-template placeholders.
+Edit the version field in package.json, then run pnpm run version:sync (also the first step of pnpm run build). That copies the number into pyproject.toml, the Python version modules, Android Gradle, electron/app-version.json, Arch PKGBUILD helpers, and third-party notices. Docs, READMEs and issue templates do not carry the version.
 
 pnpm run version:sync also runs scripts/bake_build_meta.js, which writes gitignored _build_meta_baked.py with commit, product channel (testing / beta / stable / local), and release/channel_prompt.json. Override channel with MESHCHATX_BUILD_CHANNEL.
 
