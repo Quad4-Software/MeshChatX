@@ -14,6 +14,9 @@
         pathfinderInProgress?: boolean;
         hasArchives?: boolean;
         isPrivate?: boolean;
+        imagePolicy?: string;
+        imagesAutoLoad?: boolean;
+        onimagepolicychange?: (value: string) => void;
         onhome?: () => void;
         onrefresh?: () => void;
         ontogglesource?: () => void;
@@ -34,6 +37,9 @@
         pathfinderInProgress = false,
         hasArchives = false,
         isPrivate = false,
+        imagePolicy = "inherit",
+        imagesAutoLoad = false,
+        onimagepolicychange,
         onhome,
         onrefresh,
         ontogglesource,
@@ -47,6 +53,17 @@
     }: Props = $props();
 
     let pathfinderMenuOpen = $state(false);
+    let imagePolicyMenuOpen = $state(false);
+
+    const imagePolicyOptions = $derived([
+        { value: "inherit", label: t("nomadnet.image_loading_policy_inherit") },
+        { value: "never", label: t("nomadnet.image_loading_policy_never_short") },
+        { value: "manual", label: t("nomadnet.image_loading_policy_manual_short") },
+        { value: "auto", label: t("nomadnet.image_loading_policy_auto_short") },
+        { value: "always", label: t("nomadnet.image_loading_policy_always_short") },
+    ]);
+
+    const imagePolicyLabel = $derived(imagePolicyOptions.find((o) => o.value === imagePolicy)?.label || "");
 </script>
 
 <div
@@ -96,8 +113,55 @@
         <MaterialDesignIcon iconName="arrow-right" class="size-5" />
     </IconButton>
 
-    {#if selectedNode}
+    {#if !isPrivate && selectedNode}
         <div class="relative shrink-0">
+            <IconButton
+                class="nomad-icon-btn {imagesAutoLoad ? 'text-sem-accent' : 'text-sem-fg-muted'}"
+                title="{t('nomadnet.image_loading_policy_title')}: {imagePolicyLabel}"
+                aria-label={t("nomadnet.image_loading_policy_title")}
+                aria-haspopup="menu"
+                onclick={() => {
+                    imagePolicyMenuOpen = !imagePolicyMenuOpen;
+                }}
+            >
+                <MaterialDesignIcon iconName="image-outline" class="size-5" />
+            </IconButton>
+
+            {#if imagePolicyMenuOpen}
+                <div
+                    class="absolute right-0 top-full mt-1 z-50 min-w-44 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
+                    role="menu"
+                >
+                    <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted">
+                        {t("nomadnet.image_loading_policy_title")}
+                    </div>
+                    {#each imagePolicyOptions as option (option.value)}
+                        <button
+                            type="button"
+                            class="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                            role="menuitem"
+                            onclick={() => {
+                                imagePolicyMenuOpen = false;
+                                onimagepolicychange?.(option.value);
+                            }}
+                        >
+                            <span class="flex size-5 shrink-0 items-center justify-center">
+                                {#if imagePolicy === option.value}
+                                    <MaterialDesignIcon iconName="check" class="size-4 text-sem-accent" />
+                                {/if}
+                            </span>
+                            <span>{option.label}</span>
+                        </button>
+                    {/each}
+                </div>
+            {/if}
+        </div>
+    {/if}
+
+    {#if selectedNode}
+        <!-- path ops stay in the mobile ... menu; below xl they would
+             squeeze the URL input on narrow screens -->
+        <div class="relative shrink-0 hidden xl:block">
             <IconButton
                 title={t("nomadnet.path_finder")}
                 class="nomad-icon-btn text-sem-accent"

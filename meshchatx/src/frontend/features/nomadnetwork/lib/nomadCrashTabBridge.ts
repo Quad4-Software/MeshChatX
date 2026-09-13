@@ -209,11 +209,14 @@ export interface CrashTabMessageCallbacks {
     onReady: () => void;
     onPong: () => void;
     onRenderStarted: () => void;
-    onRenderDone: (partials: unknown[]) => void;
+    onRenderDone: (partials: unknown[], images: unknown[]) => void;
     onRenderError: () => void;
     onShellBackground: (bg: string | null) => void;
     onAborted: () => void;
     onNavigate: (event: NomadNavigateEvent) => void;
+    onPageContextMenu?: (data: { x?: number; y?: number }) => void;
+    onFieldContextMenu?: (data: { x?: number; y?: number }) => void;
+    onImageAction?: (payload: Record<string, unknown>) => void;
 }
 
 export function handleCrashTabMessage(
@@ -245,7 +248,10 @@ export function handleCrashTabMessage(
             callbacks.onRenderStarted();
             break;
         case "render-done":
-            callbacks.onRenderDone(Array.isArray(data.partials) ? data.partials : []);
+            callbacks.onRenderDone(
+                Array.isArray(data.partials) ? data.partials : [],
+                Array.isArray(data.images) ? data.images : []
+            );
             break;
         case "render-error":
             callbacks.onRenderError();
@@ -265,6 +271,26 @@ export function handleCrashTabMessage(
                 button: data.button,
                 ctrlKey: data.ctrlKey,
                 metaKey: data.metaKey,
+            });
+            break;
+        case "page-contextmenu":
+            callbacks.onPageContextMenu?.({ x: data.x, y: data.y });
+            break;
+        case "field-contextmenu":
+            callbacks.onFieldContextMenu?.({ x: data.x, y: data.y });
+            break;
+        case "image-action":
+            callbacks.onImageAction?.({
+                action: data.action,
+                index: data.index,
+                url: data.url,
+                alt: data.alt,
+                w: data.w,
+                h: data.h,
+                size: data.size,
+                key: data.key,
+                align: data.align,
+                profile: data.profile,
             });
             break;
     }

@@ -1,9 +1,16 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
+<script module lang="ts">
+    // Remember the last picked sidebar tab for this session so a fresh sidebar
+    // (new tab, remount) reopens where the user left off instead of Favourites.
+    let lastSidebarTab: "favourites" | "announces" = "favourites";
+</script>
+
 <script lang="ts">
     import { onMount } from "svelte";
     import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import IconButton from "../../../ui/svelte/IconButton.svelte";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import { t } from "../../../js/i18n.js";
     import NomadNetworkSidebarFavourites from "./NomadNetworkSidebarFavourites.svelte";
@@ -30,6 +37,7 @@
         ontoggleidentifyonconnect?: (hash: string) => void;
         onnodessearchchanged?: (term: string) => void;
         onloadmorenodes?: () => void;
+        onnavigateurl?: (url: string) => void;
         ontogglecollapse?: () => void;
         onbulkremovefavourites?: (hashes: string[]) => void;
         onbulkaddfavourites?: (nodes: NomadNode[]) => void;
@@ -53,12 +61,23 @@
         ontoggleidentifyonconnect,
         onnodessearchchanged,
         onloadmorenodes,
+        onnavigateurl,
         ontogglecollapse,
         onbulkremovefavourites,
         onbulkaddfavourites,
     }: Props = $props();
 
-    let tab = $state<"favourites" | "announces">("favourites");
+    let tab = $state<"favourites" | "announces">(lastSidebarTab);
+    let mobileUrlInput = $state("");
+
+    function submitMobileUrl() {
+        const url = mobileUrlInput.trim();
+        if (!url) {
+            return;
+        }
+        mobileUrlInput = "";
+        onnavigateurl?.(url);
+    }
     let smUp = $state(typeof window !== "undefined" ? window.innerWidth >= 640 : true);
 
     const effectiveCollapsed = $derived(collapsed && smUp);
@@ -91,6 +110,10 @@
     }
 
     useEventListener(() => mql, "change", onResize);
+
+    $effect(() => {
+        lastSidebarTab = tab;
+    });
 
     onMount(() => {
         if (typeof window !== "undefined") {
@@ -215,6 +238,23 @@
             >
                 <MaterialDesignIcon iconName="chevron-left" class="size-5" />
             </button>
+        </div>
+
+        <!-- mobile-only URL entry: below sm the viewer pane (with its
+             empty-state URL input) is hidden until a node opens -->
+        <div class="flex items-center gap-1.5 border-b border-sem-border px-2 py-1.5 sm:hidden">
+            <input
+                bind:value={mobileUrlInput}
+                type="text"
+                placeholder={t("nomadnet.enter_nomadnet_url")}
+                class="input-field w-full min-w-0"
+                onkeydown={(e) => {
+                    if (e.key === "Enter") submitMobileUrl();
+                }}
+            />
+            <IconButton title={t("nomadnet.nav_go")} class="shrink-0" onclick={submitMobileUrl}>
+                <MaterialDesignIcon iconName="arrow-right" class="size-5" />
+            </IconButton>
         </div>
 
         {#if tab === "favourites"}

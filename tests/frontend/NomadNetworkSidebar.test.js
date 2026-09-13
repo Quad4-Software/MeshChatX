@@ -62,4 +62,37 @@ describe("NomadNetworkSidebar.svelte", () => {
 
         expect(container.querySelector(".w-16")).toBeTruthy();
     });
+
+    it("mobile URL input calls onnavigateurl and clears", async () => {
+        const onnavigateurl = vi.fn();
+        const { getByPlaceholderText } = render(NomadNetworkSidebar, {
+            favourites: [],
+            nodes: {},
+            onnavigateurl,
+        });
+
+        const input = getByPlaceholderText("Enter a Nomadnet URL");
+        await fireEvent.input(input, {
+            target: { value: "abcd1234abcd1234abcd1234abcd1234:/page/index.mu" },
+        });
+        await fireEvent.keyDown(input, { key: "Enter" });
+
+        expect(onnavigateurl).toHaveBeenCalledWith("abcd1234abcd1234abcd1234abcd1234:/page/index.mu");
+        expect(input.value).toBe("");
+    });
+
+    it("mobile URL input ignores blank submissions", async () => {
+        const onnavigateurl = vi.fn();
+        const { getByPlaceholderText } = render(NomadNetworkSidebar, {
+            favourites: [],
+            nodes: {},
+            onnavigateurl,
+        });
+
+        const input = getByPlaceholderText("Enter a Nomadnet URL");
+        await fireEvent.input(input, { target: { value: "   " } });
+        await fireEvent.keyDown(input, { key: "Enter" });
+
+        expect(onnavigateurl).not.toHaveBeenCalled();
+    });
 });

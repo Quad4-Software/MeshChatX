@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: 0BSD
-import { render, cleanup, waitFor } from "@testing-library/svelte";
+import { render, cleanup, waitFor, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import NomadNetworkPage from "@/features/nomadnetwork/components/NomadNetworkPage.svelte";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import { dispatchWsEvent } from "@/js/registries/wsEventRegistry";
 import { resetWsEventBridgeForTests } from "@/js/registries/wsEventBridge";
+import GlobalState from "@/js/GlobalState";
+import { NOMAD_CRASH_TAB_CHANNEL } from "@/js/nomadCrashTabShell.js";
+import {
+    resolveNomadImageDestination,
+    resolveNomadImagePolicy,
+    getNomadImageDataUrl,
+    setNomadImageCacheEntry,
+} from "@/features/nomadnetwork/lib/nomadPageImages.js";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
@@ -94,7 +102,7 @@ describe("NomadNetworkPage.svelte", () => {
     });
 
     it("displays page content when page download completes", async () => {
-        const { container } = render(NomadNetworkPage, {
+        const { baseElement } = render(NomadNetworkPage, {
             destinationHash: TEST_DESTINATION_HASH,
             pagePath: "/page/index.mu",
         });
@@ -125,7 +133,7 @@ describe("NomadNetworkPage.svelte", () => {
         });
 
         await waitFor(() => {
-            expect(container.querySelector("iframe")).toBeTruthy();
+            expect(baseElement.querySelector("iframe")).toBeTruthy();
         });
     });
 
@@ -195,6 +203,60 @@ describe("NomadNetworkPage.svelte", () => {
         });
     });
 
+    it("browse tab keeps the tab and list when closing a node", async () => {
+        const onclose = vi.fn();
+        let view;
+        // The browser shell applies the navigate back onto the tab props.
+        const onnavigate = vi.fn((dHash, pPath) => {
+            void view.rerender({
+                destinationHash: dHash || "",
+                pagePath: pPath || "/page/index.mu",
+                onnavigate,
+                onclose,
+            });
+        });
+        view = render(NomadNetworkPage, {
+            destinationHash: "",
+            pagePath: "",
+            onnavigate,
+            onclose,
+        });
+
+        // A sidebar node click re-points this tab at a node.
+        await view.rerender({
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
+            onnavigate,
+            onclose,
+        });
+
+        const closeBtn = await waitFor(() => view.getByTitle("Cancel"));
+        await closeBtn.click();
+
+        expect(onclose).not.toHaveBeenCalled();
+        expect(onnavigate).toHaveBeenCalledWith("", "/page/index.mu", false);
+        await waitFor(() => {
+            expect(view.queryByTitle("Cancel")).toBeNull();
+        });
+    });
+
+    it("tab opened on a node closes the whole tab", async () => {
+        const onnavigate = vi.fn();
+        const onclose = vi.fn();
+        const { getByTitle } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
+            onnavigate,
+            onclose,
+        });
+
+        const closeBtn = await waitFor(() => getByTitle("Cancel"));
+        await closeBtn.click();
+
+        expect(onclose).toHaveBeenCalled();
+        expect(onnavigate).not.toHaveBeenCalled();
+    });
+
     it("posts identify-on-connect and refreshes favourites", async () => {
         const onfavouriteschanged = vi.fn();
         const { getByTitle } = render(NomadNetworkPage, {
@@ -221,7 +283,7 @@ describe("NomadNetworkPage.svelte", () => {
     });
 
     it("reassembles chunked page downloads into page content", async () => {
-        const { container } = render(NomadNetworkPage, {
+        const { baseElement } = render(NomadNetworkPage, {
             destinationHash: TEST_DESTINATION_HASH,
             pagePath: "/page/index.mu",
         });
@@ -290,7 +352,7 @@ describe("NomadNetworkPage.svelte", () => {
         });
 
         await waitFor(() => {
-            expect(container.querySelector("iframe")).toBeTruthy();
+            expect(baseElement.querySelector("iframe")).toBeTruthy();
         });
     });
 
@@ -337,6 +399,24 @@ describe("NomadNetworkPage.svelte", () => {
         expect(sendCountAfterHome).toBe(sendCountAfterFirst);
     });
 
+    it("hides the path finder menu below xl so the URL bar keeps width", async () => {
+        const { getByTitle } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
+        });
+
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
+        });
+
+        const pfButton = getByTitle("Path Finder");
+        let el = pfButton;
+        while (el && !(el.classList.contains("hidden") && /xl:(block|inline-block|inline-flex)/.test(el.className))) {
+            el = el.parentElement;
+        }
+        expect(el, "path finder dropdown must stay hidden below xl").toBeTruthy();
+    });
+
     it("uses destination path finder HTTP helpers instead of path_probe WS", async () => {
         const ToastUtils = (await import("@/js/ToastUtils")).default;
         const { getByTitle, getByText } = render(NomadNetworkPage, {
@@ -362,243 +442,361 @@ describe("NomadNetworkPage.svelte", () => {
     });
 
     describe("image support", () => {
+        const IMG_HASH = "a".repeat(32);
+        const OTHER_HASH = "b".repeat(32);
+
+        afterEach(() => {
+            delete GlobalState.config.nomad_image_loading_policy;
+        });
+
+        function dispatchFrameMessage(source, data) {
+            const event = new MessageEvent("message", { data });
+            Object.defineProperty(event, "source", { value: source, configurable: true });
+            Object.defineProperty(event, "origin", { value: "null", configurable: true });
+            window.dispatchEvent(event);
+        }
+
+        function fileDownloadSends() {
+            return WebSocketConnection.send.mock.calls
+                .map((call) => String(call[0] || ""))
+                .filter((raw) => raw.includes('"nomadnet.file.download"'))
+                .map((raw) => JSON.parse(raw));
+        }
+
+        async function renderLoadedPage(props = {}) {
+            const view = render(NomadNetworkPage, {
+                destinationHash: IMG_HASH,
+                pagePath: "/page/index.mu",
+                ...props,
+            });
+            await waitFor(() => {
+                expect(WebSocketConnection.send).toHaveBeenCalled();
+            });
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 31,
+                nomadnet_page_download: {
+                    status: "started",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
+                },
+            });
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 31,
+                nomadnet_page_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
+                    page_content: ">#!\n# Hi",
+                },
+            });
+            let frame = null;
+            await waitFor(() => {
+                frame = document.body.querySelector("iframe");
+                expect(frame).toBeTruthy();
+            });
+            const fakeWindow = { postMessage: vi.fn() };
+            Object.defineProperty(frame, "contentWindow", {
+                configurable: true,
+                get: () => fakeWindow,
+            });
+            return { ...view, frame, fakeWindow };
+        }
+
+        function pushImages(fakeWindow, images) {
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "render-done",
+                partials: [],
+                images,
+            });
+        }
+
         it("resolves a relative image URL to the selected node", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            const resolved = wrapper.vm.resolveNomadImageDestination(":/file/img.webp");
-            expect(resolved.destinationHash).toBe(hash);
+            const resolved = resolveNomadImageDestination(":/file/img.webp", IMG_HASH);
+            expect(resolved.destinationHash).toBe(IMG_HASH);
             expect(resolved.filePath).toBe("/file/img.webp");
         });
 
         it("resolves an absolute image URL with destination hash", () => {
-            const hash = "a".repeat(32);
-            const other = "b".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            const resolved = wrapper.vm.resolveNomadImageDestination(`${other}:/file/img.webp`);
-            expect(resolved.destinationHash).toBe(other);
+            const resolved = resolveNomadImageDestination(`${OTHER_HASH}:/file/img.webp`, IMG_HASH);
+            expect(resolved.destinationHash).toBe(OTHER_HASH);
             expect(resolved.filePath).toBe("/file/img.webp");
         });
 
-        it("maps unknown policy values to manual", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.config = { nomad_image_loading_policy: "bogus" };
-            expect(wrapper.vm.getNomadImagePolicy()).toBe("manual");
-        });
-
-        it("uses per-node image policy override when present", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
-            wrapper.vm.nomadImagePerNodePolicies = { abc: "always" };
-            expect(wrapper.vm.getNomadImagePolicy("abc")).toBe("always");
-            expect(wrapper.vm.getNomadImagePolicy("def")).toBe("manual");
-        });
-
-        it("marks the image policy icon active only when resolved policy auto-loads", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            const configStore = wrapper.vm.configStore;
-            const previous = configStore.config.nomad_image_loading_policy;
-            try {
-                configStore.config.nomad_image_loading_policy = "manual";
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(false);
-
-                configStore.config.nomad_image_loading_policy = "auto";
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
-
-                configStore.config.nomad_image_loading_policy = "always";
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
-
-                // a per-node never override wins over a permissive global
-                wrapper.vm.nomadImagePerNodePolicies = { [hash]: "never" };
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(false);
-
-                wrapper.vm.nomadImagePerNodePolicies = { [hash]: "always" };
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
-            } finally {
-                if (previous === undefined) {
-                    delete configStore.config.nomad_image_loading_policy;
-                } else {
-                    configStore.config.nomad_image_loading_policy = previous;
-                }
-            }
-        });
-
-        it("sends a file download with image metadata", async () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
-            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
-            wrapper.vm.crashTabImages = [
-                {
-                    url: ":/file/img.webp",
-                    alt: "test",
-                    w: "100",
-                    h: "50",
-                    size: null,
-                    key: "",
-                    align: "left",
-                    profile: "fast",
-                },
-            ];
-            wrapper.vm.setCrashTabImage = vi.fn();
-            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
-            const calls = WebSocketConnection.send.mock.calls.filter((c) =>
-                String(c[0]).includes('"nomadnet.file.download"')
-            );
-            expect(calls.length).toBe(1);
-            const payload = JSON.parse(calls[0][0]);
-            expect(payload.nomadnet_file_download.destination_hash).toBe(hash);
-            expect(payload.nomadnet_file_download.file_path).toBe("/file/img.webp");
-            expect(payload.nomadnet_file_download.data.image_id).toBe(0);
-            expect(payload.nomadnet_file_download.data.image_profile).toBe("fast");
-        });
-
-        it("rejects non-webp and traversal image URLs", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.png").destinationHash).toBe("");
-            expect(wrapper.vm.resolveNomadImageDestination(":/page/index.mu").destinationHash).toBe("");
-            expect(wrapper.vm.resolveNomadImageDestination(":/file/../etc/shadow.webp").destinationHash).toBe("");
-            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.webp?x=1").destinationHash).toBe(hash);
-        });
-
-        it("sets the per-node image policy from the toolbar dropdown", async () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            await wrapper.vm.$nextTick();
-
-            // one instance on mobile toolbar, one inside the desktop toolbar group
-            const imageButtons = wrapper.findAll('[data-icon-name="image-outline"]');
-            expect(imageButtons.length).toBe(2);
-
-            await imageButtons[0].trigger("click");
-            await wrapper.vm.$nextTick();
-
-            const panel = document.body.querySelector(".dropdown-panel");
-            expect(panel).toBeTruthy();
-            const items = [...panel.querySelectorAll("div")].filter((el) =>
-                el.textContent.includes("nomadnet.image_loading_policy_manual_short")
-            );
-            expect(items.length).toBeGreaterThan(0);
-            items[items.length - 1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
-            await wrapper.vm.$nextTick();
-
-            expect(wrapper.vm.nomadImagePerNodePolicies[hash]).toBe("manual");
-
-            // choosing inherit clears the override
-            await imageButtons[0].trigger("click");
-            await wrapper.vm.$nextTick();
-            const panel2 = document.body.querySelectorAll(".dropdown-panel");
-            const lastPanel = panel2[panel2.length - 1];
-            const inheritItem = [...lastPanel.querySelectorAll("div")].filter((el) =>
-                el.textContent.includes("nomadnet.image_loading_policy_inherit")
-            );
-            inheritItem[inheritItem.length - 1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
-            await wrapper.vm.$nextTick();
-
-            expect(wrapper.vm.nomadImagePerNodePolicies[hash]).toBeUndefined();
-            wrapper.unmount();
-            document.body.innerHTML = "";
-        });
-
         it("resolves /media image URLs with any supported extension", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
             for (const ext of ["webp", "png", "jpg", "jpeg", "bmp", "gif", "tiff"]) {
-                const resolved = wrapper.vm.resolveNomadImageDestination(`${hash}:/media/img.${ext}`);
-                expect(resolved.destinationHash).toBe(hash);
+                const resolved = resolveNomadImageDestination(`${IMG_HASH}:/media/img.${ext}`, "");
+                expect(resolved.destinationHash).toBe(IMG_HASH);
                 expect(resolved.filePath).toBe(`/media/img.${ext}`);
             }
         });
 
+        it("rejects non-webp, non-image, and traversal image URLs", () => {
+            expect(resolveNomadImageDestination(":/file/img.png", IMG_HASH).destinationHash).toBe("");
+            expect(resolveNomadImageDestination(":/page/index.mu", IMG_HASH).destinationHash).toBe("");
+            expect(resolveNomadImageDestination(":/file/../etc/shadow.webp", IMG_HASH).destinationHash).toBe("");
+            expect(resolveNomadImageDestination(":/file/img.webp?x=1", IMG_HASH).destinationHash).toBe(IMG_HASH);
+        });
+
+        it("maps unknown policy values to manual", () => {
+            expect(resolveNomadImagePolicy(undefined, "bogus")).toBe("manual");
+            expect(resolveNomadImagePolicy(undefined, undefined)).toBe("manual");
+            expect(resolveNomadImagePolicy("always", "bogus")).toBe("always");
+        });
+
+        it("uses per-node image policy override when present", () => {
+            expect(resolveNomadImagePolicy("always", "manual")).toBe("always");
+            expect(resolveNomadImagePolicy("never", "always")).toBe("never");
+            expect(resolveNomadImagePolicy(undefined, "auto")).toBe("auto");
+        });
+
         it("detects the MIME type from downloaded image bytes", () => {
-            const wrapper = mountNomadNetworkPage();
             const pngB64 = btoa("\x89PNG\r\n\x1a\n");
             const gifB64 = btoa("GIF89a");
             const webpB64 = btoa("RIFF\x00\x00\x00\x00WEBPVP8 ");
-            expect(wrapper.vm.getNomadImageDataUrl(pngB64)).toBe(`data:image/png;base64,${pngB64}`);
-            expect(wrapper.vm.getNomadImageDataUrl(gifB64)).toBe(`data:image/gif;base64,${gifB64}`);
-            expect(wrapper.vm.getNomadImageDataUrl(webpB64)).toBe(`data:image/webp;base64,${webpB64}`);
-        });
-
-        it("ignores stale image websocket events with mismatched request_id", async () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
-            wrapper.vm.crashTabImages = [{ url: ":/file/img.webp", alt: "test" }];
-            wrapper.vm.setCrashTabImage = vi.fn();
-            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
-            const badRequestId = "stale-123";
-            const handled = wrapper.vm.ownsNomadImageDownloadEvent(
-                {
-                    request_id: badRequestId,
-                    destination_hash: hash,
-                    file_path: "/file/img.webp",
-                },
-                0
-            );
-            expect(handled).toBe(false);
+            expect(getNomadImageDataUrl(pngB64)).toBe(`data:image/png;base64,${pngB64}`);
+            expect(getNomadImageDataUrl(gifB64)).toBe(`data:image/gif;base64,${gifB64}`);
+            expect(getNomadImageDataUrl(webpB64)).toBe(`data:image/webp;base64,${webpB64}`);
         });
 
         it("does not cache images in private browsing", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash, isPrivate: true });
-            wrapper.vm.setNomadImageCacheEntry(hash + ":/file/img.webp", { dataUrl: "data:," });
-            expect(wrapper.vm.nomadImageCache.size).toBe(0);
+            const cache = new Map();
+            const key = `${IMG_HASH}:/file/img.webp`;
+            setNomadImageCacheEntry(cache, key, { dataUrl: "data:,", size: "0 B" }, true);
+            expect(cache.size).toBe(0);
+            setNomadImageCacheEntry(cache, key, { dataUrl: "data:,", size: "0 B" }, false);
+            expect(cache.size).toBe(1);
+        });
+
+        it("marks the image policy icon active only when resolved policy auto-loads", async () => {
+            GlobalState.config.nomad_image_loading_policy = "manual";
+            const { container } = await renderLoadedPage();
+            const btn = container.querySelector('[aria-label="Image loading for this node"]');
+            expect(btn).toBeTruthy();
+            expect(btn.className).not.toContain("text-sem-accent");
+
+            // per-node always override wins over a manual global policy
+            const menuItem = (label) =>
+                [...container.querySelectorAll('[role="menuitem"]')].find((el) =>
+                    el.textContent.trim().endsWith(label)
+                );
+
+            // per-node always override wins over a manual global policy
+            await fireEvent.click(btn);
+            await fireEvent.click(menuItem("Always"));
+            expect(btn.className).toContain("text-sem-accent");
+
+            // a per-node never override wins over a permissive global
+            GlobalState.config.nomad_image_loading_policy = "always";
+            await fireEvent.click(btn);
+            await fireEvent.click(menuItem("Never"));
+            expect(btn.className).not.toContain("text-sem-accent");
+        });
+
+        it("sends a file download with image metadata on manual load", async () => {
+            GlobalState.config.nomad_image_loading_policy = "manual";
+            const { fakeWindow } = await renderLoadedPage();
+            pushImages(fakeWindow, [{ url: ":/file/img.webp", path: ":/file/img.webp", alt: "test", profile: "fast" }]);
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "image-action",
+                action: "load",
+                index: 0,
+            });
+
+            await waitFor(() => {
+                expect(fileDownloadSends().length).toBe(1);
+            });
+            const payload = fileDownloadSends()[0];
+            expect(payload.nomadnet_file_download.destination_hash).toBe(IMG_HASH);
+            expect(payload.nomadnet_file_download.file_path).toBe("/file/img.webp");
+            expect(payload.nomadnet_file_download.data.image_id).toBe(0);
+            expect(payload.nomadnet_file_download.data.image_profile).toBe("fast");
+            expect(payload.nomadnet_file_download.data.request_id).toBeTruthy();
+            expect(payload.request_id).toBe(payload.nomadnet_file_download.data.request_id);
+        });
+
+        it("ignores stale image websocket events with mismatched request_id", async () => {
+            GlobalState.config.nomad_image_loading_policy = "manual";
+            const { fakeWindow } = await renderLoadedPage();
+            pushImages(fakeWindow, [{ url: ":/file/img.webp", alt: "test" }]);
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "image-action",
+                action: "load",
+                index: 0,
+            });
+            await waitFor(() => {
+                expect(fileDownloadSends().length).toBe(1);
+            });
+            const requestId = fileDownloadSends()[0].nomadnet_file_download.data.request_id;
+
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 77,
+                request_id: requestId,
+                nomadnet_file_download: {
+                    status: "started",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    data: { image_id: 0, request_id: requestId },
+                },
+            });
+
+            // stale event: same image_id but a different request_id
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 77,
+                nomadnet_file_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    file_name: "img.webp",
+                    file_bytes: btoa("RIFF\x00\x00\x00\x00WEBPVP8 "),
+                    data: { image_id: 0, request_id: "stale-123" },
+                },
+            });
+
+            expect(
+                fakeWindow.postMessage.mock.calls.filter((c) => c[0]?.type === "set-image" && c[0]?.state === "loaded")
+            ).toHaveLength(0);
+
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 77,
+                request_id: requestId,
+                nomadnet_file_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    file_name: "img.webp",
+                    file_bytes: btoa("RIFF\x00\x00\x00\x00WEBPVP8 "),
+                    data: { image_id: 0, request_id: requestId },
+                },
+            });
+
+            await waitFor(() => {
+                const loaded = fakeWindow.postMessage.mock.calls.filter(
+                    (c) => c[0]?.type === "set-image" && c[0]?.state === "loaded"
+                );
+                expect(loaded.length).toBe(1);
+                expect(loaded[0][0].dataUrl).toContain("data:image/webp;base64,");
+            });
+        });
+
+        it("does not cache images in private browsing across re-renders", async () => {
+            GlobalState.config.nomad_image_loading_policy = "auto";
+            const { fakeWindow } = await renderLoadedPage({ isPrivate: true });
+            const image = { url: ":/file/img.webp", alt: "test" };
+            pushImages(fakeWindow, [image]);
+            await waitFor(() => {
+                expect(fileDownloadSends().length).toBe(1);
+            });
+            const requestId = fileDownloadSends()[0].nomadnet_file_download.data.request_id;
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 78,
+                request_id: requestId,
+                nomadnet_file_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    file_name: "img.webp",
+                    file_bytes: btoa("RIFF\x00\x00\x00\x00WEBPVP8 "),
+                    data: { image_id: 0, request_id: requestId },
+                },
+            });
+            pushImages(fakeWindow, [image]);
+            await waitFor(() => {
+                expect(fileDownloadSends().length).toBe(2);
+            });
         });
     });
 
     describe("crash tab context menu forwarding", () => {
-        it("opens the standalone context menu at the forwarded coordinates", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.onCrashTabContextMenu({ clientX: 30, clientY: 40 });
-            expect(wrapper.vm.standaloneContextMenu.show).toBe(true);
-            expect(wrapper.vm.standaloneContextMenu.x).toBe(30);
-            expect(wrapper.vm.standaloneContextMenu.y).toBe(40);
-        });
+        const IMG_HASH = "a".repeat(32);
 
-        it("routes to the browser tab context menu when embedded", () => {
-            const openContextMenu = vi.fn();
-            const wrapper = mount(NomadNetworkPage, {
-                props: { destinationHash: "", embedded: true },
-                global: {
-                    mocks: {
-                        $t: (key) => key,
-                        $route: { query: {} },
-                        $router: { replace: vi.fn() },
-                    },
-                    provide: {
-                        nomadBrowserTabActions: { openContextMenu },
-                    },
-                    stubs: {
-                        MaterialDesignIcon: {
-                            template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                            props: ["iconName"],
-                        },
-                        LoadingSpinner: true,
-                        NomadNetworkSidebar: {
-                            template: '<div class="sidebar-stub"></div>',
-                            props: ["nodes", "selectedDestinationHash"],
-                        },
-                        NomadBrowserContextMenu: true,
-                        NomadCrashTab: true,
-                        VTooltip: {
-                            template: '<div class="v-tooltip-stub"><slot /></div>',
-                        },
-                    },
+        function dispatchFrameMessage(source, data) {
+            const event = new MessageEvent("message", { data });
+            Object.defineProperty(event, "source", { value: source, configurable: true });
+            Object.defineProperty(event, "origin", { value: "null", configurable: true });
+            window.dispatchEvent(event);
+        }
+
+        async function renderLoadedPage(props = {}) {
+            const view = render(NomadNetworkPage, {
+                destinationHash: IMG_HASH,
+                pagePath: "/page/index.mu",
+                ...props,
+            });
+            await waitFor(() => {
+                expect(WebSocketConnection.send).toHaveBeenCalled();
+            });
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 41,
+                nomadnet_page_download: {
+                    status: "started",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
                 },
             });
-            wrapper.vm.onCrashTabContextMenu({ clientX: 11, clientY: 22 });
-            expect(openContextMenu).toHaveBeenCalledWith({ clientX: 11, clientY: 22 });
-            expect(wrapper.vm.standaloneContextMenu.show).toBe(false);
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 41,
+                nomadnet_page_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
+                    page_content: ">#!\n# Hi",
+                },
+            });
+            let frame = null;
+            await waitFor(() => {
+                frame = document.body.querySelector("iframe");
+                expect(frame).toBeTruthy();
+            });
+            const fakeWindow = { postMessage: vi.fn() };
+            Object.defineProperty(frame, "contentWindow", {
+                configurable: true,
+                get: () => fakeWindow,
+            });
+            return { ...view, frame, fakeWindow };
+        }
+
+        it("opens the standalone context menu at the forwarded coordinates", async () => {
+            const { fakeWindow } = await renderLoadedPage();
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "page-contextmenu",
+                x: 30,
+                y: 40,
+            });
+            await waitFor(() => {
+                const panel = document.body.querySelector(".context-menu-panel");
+                expect(panel).toBeTruthy();
+                expect(panel.style.left).toBe("30px");
+                expect(panel.style.top).toBe("40px");
+            });
+        });
+
+        it("routes to the host context menu when embedded", async () => {
+            const onpagecontextmenu = vi.fn();
+            const { fakeWindow } = await renderLoadedPage({ onpagecontextmenu });
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "page-contextmenu",
+                x: 11,
+                y: 22,
+            });
+            await waitFor(() => {
+                expect(onpagecontextmenu).toHaveBeenCalledWith(
+                    expect.objectContaining({ clientX: 11, clientY: 22, hasActivePage: true })
+                );
+            });
+            expect(document.body.querySelector(".context-menu-panel")).toBeFalsy();
         });
     });
 });

@@ -1,11 +1,9 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount, onDestroy, untrack } from "svelte";
     import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
-    import DialogUtils from "../../../js/DialogUtils.js";
-    import LinkUtils from "../../../js/LinkUtils.js";
     import ToastUtils from "../../../js/ToastUtils.js";
     import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
     import { isMicronWasmBundled, preloadNomadMicronWasm } from "../../../js/MicronWasmLoader.js";
@@ -14,6 +12,9 @@
         resolveMicronWasmReleaseLabel,
     } from "../../../js/micronWasmVersion.js";
     import { patchServerConfig } from "../../../js/settings/settingsConfigService.js";
+    import { openAppContextMenuUnlessTextSelection } from "../../../js/contextMenuUtils.js";
+    import { NomadImageLoader, sanitizeNomadImagePolicy } from "../lib/nomadPageImages.js";
+    import { toggleNomadIdentifyOnConnect } from "../lib/nomadBrowserData.js";
     import DestinationPathModal from "./DestinationPathModal.svelte";
     import { t } from "../../../js/i18n.js";
     import NomadPageHeader from "./NomadPageHeader.svelte";
@@ -22,7 +23,7 @@
     import NomadPageRendererHost from "./NomadPageRendererHost.svelte";
     import NomadBrowserContextMenu from "./NomadBrowserContextMenu.svelte";
     import { DEFAULT_PAGE_PATH, PAGE_LOAD_TIMEOUT_MS } from "../lib/constants.js";
-    import { parseNomadUrl, resolveRelativeNomadPath, encodeNomadFormQuery } from "../lib/nomadPageNavigation.js";
+    import { parseNomadUrl, navigateNomadPageEvent } from "../lib/nomadPageNavigation.js";
     import {
         requestPageArchives,
         requestArchiveLoad,
@@ -32,7 +33,6 @@
     import {
         createPageDownloadRequestPayload,
         createFileDownloadRequestPayload,
-        createCancelDownloadPayload,
         discardDownloadChunks,
         sendNomadWs,
         relativePagePathFromCombined,
@@ -47,6 +47,7 @@
         resolveNomadCrashTabContentClass,
     } from "../lib/nomadCrashTabHost.js";
     import {
+        cancelNomadActiveDownload,
         onNomadDownloadCancelledEvent,
         onNomadFileDownloadEvent,
         onNomadPageArchiveAddedEvent,
@@ -59,6 +60,7 @@
     import type {
         NomadContextMenuState,
         NomadDestinationPath,
+        NomadPageContextMenuRequest,
         NomadFavourite,
         NomadNavigateEvent,
         NomadNode,
@@ -82,6 +84,7 @@
         onclose?: () => void;
         ontabactivity?: () => void;
         onfavouriteschanged?: () => void;
+        onpagecontextmenu?: (menu: NomadPageContextMenuRequest) => void;
     }
 
     let {
@@ -99,9 +102,14 @@
         onclose,
         ontabactivity,
         onfavouriteschanged,
+        onpagecontextmenu,
     }: Props = $props();
 
     let rendererHost = $state<any>(null);
+
+    // Tabs that opened on a node close it entirely. Tabs that started on
+    // the node list keep that list when the viewer closes.
+    const startedWithDestination = untrack(() => Boolean((destinationHash || "").trim()));
 
     let selectedNode = $state<NomadNode | null>(null);
     let nodePagePath = $state<string | null>(null);
@@ -154,6 +162,33 @@
         y: 0,
         tabId: null,
     });
+
+    // Per-node image policies stay in memory only so private sessions never leak.
+    let nomadImagePerNodePolicies = $state<Record<string, string>>({});
+    const nomadImageLoader = new NomadImageLoader({
+        getSelectedHash: () => selectedNode?.destination_hash || "",
+        getPagePath: () => nodePagePath || "",
+        isPrivate: () => isPrivate,
+        getPerNodePolicy: (hash) => nomadImagePerNodePolicies[hash],
+        getGlobalPolicy: () => GlobalState.config?.nomad_image_loading_policy,
+        setImage: (index, state, payload) => rendererHost?.setImage(index, state, payload),
+        chunkBuffers: nomadFileDownloadChunkBuffers,
+    });
+
+    const selectedNodeImagePolicy = $derived(
+        sanitizeNomadImagePolicy(nomadImagePerNodePolicies[selectedNode?.destination_hash || ""]) || "inherit"
+    );
+    const selectedNodeImagesAutoLoad = $derived(nomadImageLoader.autoLoads(selectedNode?.destination_hash || ""));
+
+    function onImagePolicyChange(value: string) {
+        const hash = selectedNode?.destination_hash;
+        if (!hash) return;
+        const safe = sanitizeNomadImagePolicy(value);
+        const next = { ...nomadImagePerNodePolicies };
+        if (safe) next[hash] = safe;
+        else delete next[hash];
+        nomadImagePerNodePolicies = next;
+    }
 
     const isFavouriteNode = $derived.by(() => {
         const hash = selectedNode?.destination_hash;
@@ -415,10 +450,14 @@
         get: () => ({
             active,
             isPrivate,
+            isLoadingNodePage,
+            isDownloadingNodeFile,
+            isCrashTabRendering,
             currentPageDownloadId,
             pendingPageCancelWithoutId,
             currentFileDownloadId,
             nodeFilePath,
+            nodePageContent,
             selectedNode,
             relativePagePath,
             nodePagePath,
@@ -449,6 +488,7 @@
             if (patch.nodeFileDownloadSpeed !== undefined) nodeFileDownloadSpeed = patch.nodeFileDownloadSpeed;
             if (patch.pageRenderAborted !== undefined) pageRenderAborted = patch.pageRenderAborted;
             if (patch.pageArchives !== undefined) pageArchives = patch.pageArchives;
+            if (patch.isCrashTabRendering !== undefined) isCrashTabRendering = patch.isCrashTabRendering;
             if (
                 patch.nodePageContent !== undefined &&
                 patch.isLoadingNodePage === false &&
@@ -483,6 +523,7 @@
     }
 
     function onFileDownloadEvent(json: Record<string, unknown>) {
+        if (nomadImageLoader.handleFileDownloadEvent(json)) return;
         onNomadFileDownloadEvent(downloadAccess, json);
     }
 
@@ -499,33 +540,19 @@
     }
 
     function handleNavigate(e: NomadNavigateEvent) {
-        if (!e.url) return;
-        if (LinkUtils.httpUrlHrefOrNull(e.url)) {
-            window.open(e.url, "_blank");
-            return;
-        }
-        const { destinationHash: dHash, pagePath: pPath } = parseNomadUrl(e.url);
-        if (dHash) {
-            const targetPath = pPath || DEFAULT_PAGE_PATH;
-            if (nodePagePath) pathHistory.push(nodePagePath);
-            selectedNode = nodes[dHash] || {
-                destination_hash: dHash,
-                display_name: dHash.substring(0, 16),
-            };
-            void loadPage(dHash, targetPath, { loadFromCache: false });
-            onnavigate?.(dHash, targetPath, isPrivate);
-        } else if (selectedNode?.destination_hash && pPath) {
-            const resolved = resolveRelativeNomadPath(relativePagePath || "/", pPath);
-            if (e.fields && Object.keys(e.fields).length > 0) {
-                const query = encodeNomadFormQuery(e.fields);
-                const full = `${resolved}?${query}`;
-                if (nodePagePath) pathHistory.push(nodePagePath);
-                void loadPage(selectedNode.destination_hash, full, { loadFromCache: false });
-            } else {
-                if (nodePagePath) pathHistory.push(nodePagePath);
-                void loadPage(selectedNode.destination_hash, resolved, { loadFromCache: false });
-            }
-        }
+        navigateNomadPageEvent(e, {
+            nodes,
+            selectedNode,
+            nodePagePath,
+            relativePagePath,
+            isPrivate,
+            pushHistory: (p) => pathHistory.push(p),
+            selectNode: (n) => {
+                selectedNode = n;
+            },
+            loadPage: (hash, path) => void loadPage(hash, path, { loadFromCache: false }),
+            onNavigate: onnavigate,
+        });
     }
 
     function handleUrlSubmit(url: string) {
@@ -541,41 +568,7 @@
     }
 
     function handleCancel() {
-        const cancellingDownload =
-            isLoadingNodePage ||
-            currentPageDownloadId != null ||
-            pendingPageCancelWithoutId ||
-            isDownloadingNodeFile ||
-            currentFileDownloadId != null;
-
-        if (cancellingDownload) {
-            if (currentPageDownloadId != null) {
-                discardDownloadChunks(nomadPageDownloadChunkBuffers, currentPageDownloadId);
-                sendNomadWs(createCancelDownloadPayload(currentPageDownloadId));
-                currentPageDownloadId = null;
-            } else if (isLoadingNodePage) {
-                pendingPageCancelWithoutId = true;
-            }
-            if (currentFileDownloadId != null) {
-                discardDownloadChunks(nomadFileDownloadChunkBuffers, currentFileDownloadId);
-                sendNomadWs(createCancelDownloadPayload(currentFileDownloadId));
-                currentFileDownloadId = null;
-            }
-            clearPageLoadTimeout();
-            isLoadingNodePage = false;
-            isDownloadingNodeFile = false;
-            isCrashTabRendering = false;
-            pageRenderAborted = false;
-            if (!nodePageContent) {
-                nodePageContent = "nomadnet.page_download_cancelled";
-            }
-            return;
-        }
-
-        if (isCrashTabRendering) {
-            rendererHost?.abortRender();
-            isCrashTabRendering = false;
-        }
+        cancelNomadActiveDownload(downloadAccess, { abortRender: () => rendererHost?.abortRender() });
     }
 
     function handleBack() {
@@ -639,82 +632,76 @@
             ToastUtils.info(t("nomadnet.private_browsing_hint"));
             return;
         }
-        const destinationHashValue = selectedNode?.destination_hash;
-        if (!destinationHashValue) return;
-        const api = (window as any).api;
-        if (!api) return;
-        const currentlyOn = selectedNodeIdentifiesOnConnect;
-        const enable = !currentlyOn;
-        try {
-            if (enable) {
-                if (!(await DialogUtils.confirm(t("nomadnet.identify_confirm")))) {
-                    return;
-                }
-            }
-            const existing = favourites.find((f) => f.destination_hash === destinationHashValue);
-            const displayName =
-                selectedNode?.custom_display_name ||
-                selectedNode?.display_name ||
-                existing?.custom_display_name ||
-                existing?.display_name ||
-                t("nomadnet.unknown_node");
-            await api.post(`/api/v1/favourites/${destinationHashValue}/identify-on-connect`, {
-                enabled: enable,
-                display_name: displayName,
-                aspect: "nomadnetwork.node",
-            });
-            onfavouriteschanged?.();
-            GlobalEmitter.emit("nomadnet-favourites-changed");
-            if (enable && relativePagePath) {
-                lastLoadedKey = "";
-                await loadPage(destinationHashValue, relativePagePath, { loadFromCache: false });
-            }
-        } catch (e: any) {
-            ToastUtils.error(e?.response?.data?.message ?? t("nomadnet.identify_on_connect_failed"));
+        const hash = selectedNode?.destination_hash;
+        if (!hash) return;
+        const name = selectedNode?.custom_display_name || selectedNode?.display_name;
+        if (!(await toggleNomadIdentifyOnConnect(hash, favourites, name))) return;
+        onfavouriteschanged?.();
+        GlobalEmitter.emit("nomadnet-favourites-changed");
+        if (!selectedNodeIdentifiesOnConnect && relativePagePath) {
+            lastLoadedKey = "";
+            await loadPage(hash, relativePagePath, { loadFromCache: false });
         }
     }
 
     async function applyBootstrapArchive(archiveId: string | number) {
         const api = (window as any).api;
-        if (!api) {
-            handleLoadArchivedPage(archiveId);
-            return;
-        }
-        try {
-            const result = await fetchArchiveContent(api, archiveId);
-            if (result && result.content) {
-                if (result.page_path && selectedNode?.destination_hash) {
-                    nodePagePath = `${selectedNode.destination_hash}:${result.page_path}`;
-                    nodePagePathUrlInput = nodePagePath;
-                }
-                nodePageContent = result.content;
-                isShowingArchivedVersion = true;
-                archivedAt = result.created_at || null;
-                isLoadingNodePage = false;
-                clearPageLoadTimeout();
-                if (selectedNode?.destination_hash && relativePagePath) {
-                    requestPageArchives(selectedNode.destination_hash, relativePagePath);
-                }
-                return;
+        const result = api ? await fetchArchiveContent(api, archiveId).catch(() => null) : null;
+        if (result && result.content) {
+            if (result.page_path && selectedNode?.destination_hash) {
+                nodePagePath = `${selectedNode.destination_hash}:${result.page_path}`;
+                nodePagePathUrlInput = nodePagePath;
             }
-        } catch {
-            // fall through to WS load
+            nodePageContent = result.content;
+            isShowingArchivedVersion = true;
+            archivedAt = result.created_at || null;
+            isLoadingNodePage = false;
+            clearPageLoadTimeout();
+            if (selectedNode?.destination_hash && relativePagePath) {
+                requestPageArchives(selectedNode.destination_hash, relativePagePath);
+            }
+            return;
         }
         handleLoadArchivedPage(archiveId);
     }
 
-    function handleContextMenu(e: MouseEvent) {
-        e.preventDefault();
-        contextMenu = {
-            show: true,
-            justOpened: true,
-            x: e.clientX,
-            y: e.clientY,
-            tabId: null,
-        };
+    function openPageContextMenuAt(x: number, y: number) {
+        if (onpagecontextmenu) {
+            onpagecontextmenu({
+                clientX: x,
+                clientY: y,
+                hasActivePage: Boolean(nodePageContent),
+                canFavourite: Boolean(selectedNode) && !isPrivate,
+                isFavourite: isFavouriteNode,
+                canDownloadPage: Boolean(nodePageContent) && !isPrivate,
+                viewSource: () => {
+                    isShowingNodePageSource = !isShowingNodePageSource;
+                },
+                reload: reloadCurrentPage,
+                favorite: () => {
+                    if (selectedNode) GlobalEmitter.emit("nomadnet-add-favourite", selectedNode);
+                },
+                downloadPage: downloadPageToDisk,
+            });
+            return;
+        }
+        contextMenu = { show: true, justOpened: true, x, y, tabId: null };
         setTimeout(() => {
             contextMenu.justOpened = false;
         }, 50);
+    }
+
+    function downloadPageToDisk() {
+        if (selectedNode?.destination_hash && relativePagePath) {
+            sendNomadWs(createFileDownloadRequestPayload(selectedNode.destination_hash, relativePagePath, isPrivate));
+        }
+    }
+
+    function handleContextMenu(e: MouseEvent) {
+        openAppContextMenuUnlessTextSelection(e, (ev) => {
+            const mev = ev as MouseEvent;
+            openPageContextMenuAt(mev.clientX, mev.clientY);
+        });
     }
 
     function forceMicronPageRerender() {
@@ -754,7 +741,13 @@
         const nextPath = pagePath || DEFAULT_PAGE_PATH;
         const archiveId = bootstrapArchiveId;
         const routeKey = `${nextHash}|${nextPath}|${archiveId ?? ""}|${isPrivate ? 1 : 0}`;
-        if (!nextHash || routeKey === lastAppliedRouteKey) return;
+        if (!nextHash) {
+            // Record the cleared key so a stale flush cannot re-apply the
+            // node that onclosenode just asked the parent to clear.
+            lastAppliedRouteKey = routeKey;
+            return;
+        }
+        if (routeKey === lastAppliedRouteKey) return;
         lastAppliedRouteKey = routeKey;
         void (async () => {
             await setDestination(nextHash, nextPath);
@@ -787,6 +780,7 @@
         offWsEvent("nomadnet.download.cancelled", onDownloadCancelledEvent);
         offWsEvent("nomadnet.page.archives", onPageArchivesEvent);
         offWsEvent("nomadnet.page.archive.added", onPageArchiveAddedEvent);
+        nomadImageLoader.clear();
         clearPageLoadTimeout();
     });
 </script>
@@ -833,13 +827,28 @@
             onpopout={() => openNomadnetPopout()}
             onclosenode={() => {
                 selectedNode = null;
-                lastAppliedRouteKey = "";
                 nodePageContent = null;
                 nodePagePath = "";
+                if (startedWithDestination) {
+                    onclose?.();
+                    return;
+                }
+                // A browse tab keeps its list context. Emitting navigate with
+                // an empty hash resets the tab state instead of destroying it.
                 onnavigate?.("", DEFAULT_PAGE_PATH, isPrivate);
+                ontabtitlechange?.("");
             }}
             ontogglesource={() => {
                 isShowingNodePageSource = !isShowingNodePageSource;
+            }}
+            onpathfinderquick={() => {
+                void runPathFinder("quick");
+            }}
+            onpathfinderforce={() => {
+                void runPathFinder("force");
+            }}
+            onpathfinderdrop={() => {
+                void runPathFinder("drop_then_request");
             }}
             onapplymicronengine={(eng) => {
                 void applyNomadMicronDefaultEngine(eng);
@@ -854,6 +863,9 @@
             {pathfinderInProgress}
             hasArchives={pageArchives.length > 0}
             {isPrivate}
+            imagePolicy={selectedNodeImagePolicy}
+            imagesAutoLoad={selectedNodeImagesAutoLoad}
+            onimagepolicychange={onImagePolicyChange}
             onhome={() => {
                 if (selectedNode?.destination_hash) {
                     lastLoadedKey = "";
@@ -940,6 +952,9 @@
             oncontentcontextmenu={handleContextMenu}
             oncrashtabnavigate={handleNavigate}
             oncrashtabpartials={(_p) => {}}
+            oncrashtabimages={(imgs) => nomadImageLoader.onImages(imgs)}
+            oncrashtabimageaction={(p) => nomadImageLoader.onImageAction(p)}
+            oncrashtabcontextmenu={(c) => openPageContextMenuAt(c.clientX, c.clientY)}
             onviewsource={() => {
                 isShowingNodePageSource = !isShowingNodePageSource;
             }}
@@ -993,13 +1008,7 @@
                 GlobalEmitter.emit("nomadnet-add-favourite", selectedNode);
             }
         }}
-        ondownloadpage={() => {
-            if (selectedNode?.destination_hash && relativePagePath) {
-                sendNomadWs(
-                    createFileDownloadRequestPayload(selectedNode.destination_hash, relativePagePath, isPrivate)
-                );
-            }
-        }}
+        ondownloadpage={downloadPageToDisk}
         onnewprivatetab={() => {
             onnavigate?.(destinationHash, pagePath, true);
         }}
