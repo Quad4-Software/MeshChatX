@@ -24,6 +24,7 @@ const LEGACY_LEAF_ALLOWLIST = new Set([
     "ConversationPeerHeader.svelte",
     "MapBrowser.svelte", // map tab context-menu port, follow-up split required
     "NomadCrashTab.svelte", // NomadNetwork crash tab port, follow-up split required
+    "NomadNetworkBrowser.svelte", // nomad browser host after image policy and route-restore ports
 ]);
 
 /** Legacy page shells still above hard cap, follow-up split required. */
