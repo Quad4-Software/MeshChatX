@@ -151,6 +151,21 @@ describe("NomadNetworkPage.vue", () => {
         expect(wrapper.text()).toContain("nomadnet.no_active_node");
     });
 
+    it("hides the path finder menu below xl so the URL bar keeps width", async () => {
+        const wrapper = mountNomadNetworkPage();
+        wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "N" };
+        wrapper.vm.nodePagePath = "/page/index.mu";
+        await wrapper.vm.$nextTick();
+
+        const pfButton = wrapper.find('[title="nomadnet.path_finder"]');
+        expect(pfButton.exists()).toBe(true);
+        let el = pfButton.element;
+        while (el && !(el.classList.contains("hidden") && el.classList.contains("xl:inline-block"))) {
+            el = el.parentElement;
+        }
+        expect(el, "path finder dropdown must stay hidden below xl").toBeTruthy();
+    });
+
     it("debounces node search and passes search param to announces API", async () => {
         vi.useFakeTimers();
         axiosMock.isCancel = vi.fn(() => false);

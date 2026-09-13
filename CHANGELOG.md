@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - Windows desktop: the AppContainer child no longer dies during loader init (exit 0xC0000142) on hosts where the LPAC token lacks window station and desktop access. The launcher now grants the package SID explicit access to the interactive winsta and desktop, and a sandboxed child that still fails to start falls back to an unsandboxed backend in auto mode.
 - Packaged builds: `.gitkeep` keep-marker placeholders are no longer hashed into `backend-manifest.json`, so a dropped placeholder cannot produce a Missing integrity warning that blocks onboarding.
 - Relay chat: the hosted hub announce interval now displays hours and days (for example "6 h", "1 h 30 min", "1 d") and the input accepts unit-suffixed values like "6h" or "1d" instead of raw minutes only.
+- Messages: reopening a conversation could paint a stale cached first page and never merge messages sent while the pane was closed, so the sidebar showed the new message but the chat view did not. The stash is now invalidated on message events, a soft resync runs whenever a cached page was painted, and the resync refreshes the stash instead of renewing the stale snapshot.
+- NomadNet: the path-finder menu now hides below xl so the URL input keeps usable width on small screens, and the mobile sidebar gains a direct URL entry row since the empty-state input only exists in the hidden viewer pane.
+- Relay chat: on narrow screens the Host, Bots and Search tabs collapse into the overflow menu so the tab bar no longer scrolls horizontally on phones.
 
 ### Changed
 

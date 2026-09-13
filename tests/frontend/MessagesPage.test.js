@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MessagesPage from "@/components/messages/MessagesPage.vue";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import NotificationUtils from "@/js/NotificationUtils";
+import { stashConversationFirstPage, takeConversationPrefetch } from "@/js/conversationPrefetch.js";
 
 vi.mock("@/js/GlobalEmitter", () => ({
     default: {
@@ -836,5 +837,42 @@ describe("MessagesPage.vue", () => {
 
         expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("notifications-changed");
         expect(NotificationUtils.clearMessageNotifications).not.toHaveBeenCalled();
+    });
+
+    it("drops the stashed first page when an outbound message is created", async () => {
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        const peerHash = "ab".repeat(16);
+        stashConversationFirstPage(peerHash, { lxmf_messages: [{ hash: "old" }] });
+
+        wrapper.vm.onLxmfMessageCreatedEvent({
+            lxmf_message: {
+                source_hash: "my-hash",
+                destination_hash: peerHash,
+                is_incoming: false,
+                content: "hello",
+                timestamp: 1700000000,
+            },
+        });
+
+        expect(takeConversationPrefetch(peerHash)).toBeNull();
+    });
+
+    it("drops the stashed first page when an inbound message is delivered", async () => {
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        const peerHash = "cd".repeat(16);
+        stashConversationFirstPage(peerHash, { lxmf_messages: [{ hash: "old" }] });
+
+        wrapper.vm.onLxmfDeliveryEvent({
+            lxmf_message: {
+                source_hash: peerHash,
+                destination_hash: "my-hash",
+                is_incoming: true,
+                content: "hi",
+            },
+        });
+
+        expect(takeConversationPrefetch(peerHash)).toBeNull();
     });
 });
