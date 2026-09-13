@@ -726,8 +726,10 @@ def check_rnode_support() -> dict[str, str]:
         cases = (
             ({"port": "tcp://127.0.0.1"}, "tcp"),
             ({"port": "ble://aa:bb:cc:dd:ee:ff"}, "ble"),
+            ({"port": "bt://MyRNode"}, "bluetooth_classic"),
             ({"port": "/dev/ttyUSB0"}, "serial"),
             ({"port": "", "allow_bluetooth": "true"}, "bluetooth_classic"),
+            ({"ble_name": "MyRNode"}, "ble"),
         )
         for iface, expected in cases:
             got = rn._rnode_iface_transport(iface)
