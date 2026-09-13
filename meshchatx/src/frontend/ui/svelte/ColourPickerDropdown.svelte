@@ -1,8 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onClickOutside } from "runed";
-    import { DEFAULT_COLOR_SWATCHES, normalizeHexColour } from "../lib/profileIcon.js";
+    import { DEFAULT_COLOR_SWATCHES, normalizeHexColour } from "../../js/colorUtils.js";
 
     interface Props {
         colour?: string;
@@ -37,12 +36,16 @@
         isShowingMenu = false;
     }
 
-    onClickOutside(
-        () => rootEl,
-        () => {
-            isShowingMenu = false;
-        }
-    );
+    $effect(() => {
+        if (!isShowingMenu) return;
+        const onDocMouseDown = (event: MouseEvent) => {
+            if (rootEl && !rootEl.contains(event.target as Node)) {
+                isShowingMenu = false;
+            }
+        };
+        document.addEventListener("mousedown", onDocMouseDown, true);
+        return () => document.removeEventListener("mousedown", onDocMouseDown, true);
+    });
 </script>
 
 <div bind:this={rootEl} class="cursor-default relative inline-block text-left">

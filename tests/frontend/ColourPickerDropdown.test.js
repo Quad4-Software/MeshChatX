@@ -2,7 +2,7 @@
 
 import { render, fireEvent, cleanup } from "@testing-library/svelte";
 import { describe, expect, it, afterEach, vi } from "vitest";
-import ColourPickerDropdown from "../../meshchatx/src/frontend/features/profile/components/ColourPickerDropdown.svelte";
+import ColourPickerDropdown from "../../meshchatx/src/frontend/ui/svelte/ColourPickerDropdown.svelte";
 
 describe("ColourPickerDropdown.svelte", () => {
     afterEach(() => {

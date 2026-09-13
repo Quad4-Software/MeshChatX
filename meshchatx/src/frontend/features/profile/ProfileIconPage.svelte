@@ -9,7 +9,7 @@
     import { t } from "../../js/i18n.js";
     import LxmfUserIcon from "../../ui/svelte/LxmfUserIcon.svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
-    import ColourPickerDropdown from "./components/ColourPickerDropdown.svelte";
+    import ColourPickerDropdown from "../../ui/svelte/ColourPickerDropdown.svelte";
     import {
         DEFAULT_BACKGROUND_COLOUR,
         DEFAULT_FOREGROUND_COLOUR,
