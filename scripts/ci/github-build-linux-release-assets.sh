@@ -154,6 +154,13 @@ if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
             # shellcheck disable=SC2086
             run_electron_builder --linux $appimage_deb_targets --arm64 --publish=never
         fi
+        # Catch extraResources dropping manifest-hashed files before the
+        # unpacked staging tree is cleaned up by the caller or a later step.
+        for _unpacked in dist/linux-unpacked dist/linux-*-unpacked; do
+            if [[ -d "$_unpacked" ]]; then
+                node scripts/ci/github-verify-backend-manifest.mjs "$_unpacked"
+            fi
+        done
     else
         echo "Skipping AppImage/deb (not selected in MESHCHATX_LINUX_FORMATS)."
     fi

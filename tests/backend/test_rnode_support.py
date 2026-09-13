@@ -415,11 +415,21 @@ def test_rnode_transport_supported_tcp_always_true_on_android(monkeypatch):
     )
 
 
-def test_rnode_transport_supported_tcp_always_true_on_desktop_without_pyserial(
-    monkeypatch,
-):
+def test_rnode_transport_supported_tcp_needs_pyserial_on_desktop(monkeypatch):
+    """Desktop RNodeInterface imports pyserial unconditionally.
+
+    RNS does this before deciding the transport, so even tcp:// needs it.
+    """
     monkeypatch.setattr(rnode_support, "desktop_serial_stack_available", lambda: False)
 
+    assert (
+        rnode_support.rnode_transport_supported(
+            {"port": "tcp://example.org:4242"},
+            is_android=False,
+        )
+        is False
+    )
+    monkeypatch.setattr(rnode_support, "desktop_serial_stack_available", lambda: True)
     assert (
         rnode_support.rnode_transport_supported(
             {"port": "tcp://example.org:4242"},
@@ -493,7 +503,12 @@ def test_rnode_port_prefix_detection(port, is_tcp, is_ble):
     ("iface", "expected"),
     [
         ({"port": "tcp://host:1"}, "tcp"),
+        ({"tcp_host": "host:1"}, "tcp"),
         ({"port": "ble://aa:bb"}, "ble"),
+        ({"ble_name": "MyRNode"}, "ble"),
+        ({"ble_addr": "aa:bb:cc:dd:ee:ff"}, "ble"),
+        ({"force_ble": "yes"}, "ble"),
+        ({"port": "bt://MyRNode"}, "bluetooth_classic"),
         ({"port": "", "allow_bluetooth": "true"}, "bluetooth_classic"),
         ({"port": "   ", "allow_bluetooth": "on"}, "bluetooth_classic"),
         ({"port": "/dev/ttyUSB0"}, "serial"),
@@ -531,9 +546,10 @@ port = tcp://192.0.2.1:4242
         )
         is True
     )
+    # Desktop RNS imports pyserial unconditionally, so without it even the
+    # tcp:// entry cannot be constructed and gets disabled too.
     text = config_path.read_text(encoding="utf-8").lower()
-    assert "interface_enabled = false" in text
-    assert text.count("interface_enabled = false") == 1
+    assert text.count("interface_enabled = false") == 2
 
 
 def test_guard_disables_rnode_with_invalid_txpower(tmp_path):
@@ -774,3 +790,128 @@ port = /dev/ttyUSB0
 def test_tcp_host_from_port_round_trips_host_port(host, port):
     value = f"tcp://{host}:{port}"
     assert rnode_support._tcp_host_from_port(value) == f"{host}:{port}"
+
+
+def _write_rnode_config(tmp_path, body: str):
+    config_path = tmp_path / "config"
+    config_path.write_text(
+        "[interfaces]\n[[Sim RNode]]\ntype = RNodeInterface\ninterface_enabled = True\n"
+        + body,
+        encoding="utf-8",
+    )
+    return config_path
+
+
+def test_normalize_bluetooth_rewrites_ble_name_on_android(tmp_path):
+    config_path = _write_rnode_config(tmp_path, "port = ble://MyRNode\n")
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=True
+        )
+        is True
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "ble_name = MyRNode" in text
+    assert "port" not in text
+
+
+def test_normalize_bluetooth_rewrites_ble_addr_on_android(tmp_path):
+    config_path = _write_rnode_config(tmp_path, "port = ble://aa:bb:cc:dd:ee:ff\n")
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=True
+        )
+        is True
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "ble_addr = aa:bb:cc:dd:ee:ff" in text
+    assert "port" not in text
+
+
+def test_normalize_bluetooth_rewrites_bare_ble_to_force_ble(tmp_path):
+    config_path = _write_rnode_config(tmp_path, "port = ble://\n")
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=True
+        )
+        is True
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "force_ble = True" in text or "force_ble = true" in text.lower()
+    assert "port" not in text
+
+
+def test_normalize_bluetooth_rewrites_bt_name_on_android(tmp_path):
+    config_path = _write_rnode_config(tmp_path, "port = bt://MyRNode\n")
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=True
+        )
+        is True
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "allow_bluetooth = True" in text
+    assert "target_device_name = MyRNode" in text
+    assert "port" not in text
+
+
+def test_normalize_bluetooth_rewrites_bt_addr_on_android(tmp_path):
+    config_path = _write_rnode_config(tmp_path, "port = bt://aa:bb:cc:dd:ee:ff\n")
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=True
+        )
+        is True
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "allow_bluetooth = True" in text
+    assert "target_device_address = aa:bb:cc:dd:ee:ff" in text
+
+
+def test_normalize_bluetooth_strips_blank_port_with_allow_bluetooth(tmp_path):
+    """A blank port must not pin the interface to USB serial.
+
+    Android RNodeInterface treats any present port key as the USB path, so
+    it would never reach classic Bluetooth while port is set.
+    """
+    config_path = _write_rnode_config(
+        tmp_path,
+        "port = \nallow_bluetooth = yes\ntarget_device_name = MyRNode\n",
+    )
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=True
+        )
+        is True
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "\nport" not in text
+    assert "target_device_name = MyRNode" in text
+
+
+def test_normalize_bluetooth_leaves_serial_and_tcp_alone(tmp_path):
+    config_path = _write_rnode_config(
+        tmp_path,
+        "port = /dev/ttyUSB0\n\n[[Sim TCP]]\ntype = RNodeInterface\nport = tcp://10.0.0.2\n",
+    )
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=True
+        )
+        is False
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "port = /dev/ttyUSB0" in text
+    assert "port = tcp://10.0.0.2" in text
+
+
+def test_normalize_bluetooth_is_noop_off_android(tmp_path):
+    config_path = _write_rnode_config(tmp_path, "port = ble://MyRNode\n")
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=False
+        )
+        is False
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "port = ble://MyRNode" in text

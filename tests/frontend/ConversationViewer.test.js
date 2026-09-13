@@ -9,6 +9,7 @@ import DownloadUtils from "@/js/DownloadUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import NotificationUtils from "@/js/NotificationUtils";
 import { useConfigStore } from "@/js/stores/configStore.js";
+import { stashConversationFirstPage, takeConversationPrefetch } from "@/js/conversationPrefetch.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -974,6 +975,86 @@ describe("ConversationViewer.vue", () => {
         await vi.waitFor(() =>
             expect(axiosMock.get).toHaveBeenCalledWith(expect.stringContaining("/audio"), expect.any(Object))
         );
+    });
+
+    it("merges newer messages after painting a stashed first page", async () => {
+        // Reproduces: send message, navigate away, reopen inside the stash
+        // TTL. The viewer must not stay on the cached page forever.
+        const peerHash = "test-hash";
+        stashConversationFirstPage(peerHash, {
+            lxmf_messages: [
+                {
+                    hash: "m-old",
+                    content: "old",
+                    source_hash: peerHash,
+                    destination_hash: "my-hash",
+                    timestamp: 1000,
+                },
+            ],
+        });
+        axiosMock.get.mockImplementation((url) => {
+            if (url.includes("/lxmf-messages/conversation/")) {
+                return Promise.resolve({
+                    data: {
+                        lxmf_messages: [
+                            {
+                                hash: "m-new",
+                                content: "new",
+                                source_hash: peerHash,
+                                destination_hash: "my-hash",
+                                timestamp: 2000,
+                            },
+                            {
+                                hash: "m-old",
+                                content: "old",
+                                source_hash: peerHash,
+                                destination_hash: "my-hash",
+                                timestamp: 1000,
+                            },
+                        ],
+                    },
+                });
+            }
+            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
+            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountConversationViewer();
+        await vi.waitFor(() => {
+            const hashes = wrapper.vm.chatItems.map((c) => c.lxmf_message?.hash);
+            expect(hashes).toContain("m-new");
+            expect(hashes).toContain("m-old");
+        });
+        wrapper.unmount();
+    });
+
+    it("restashes the resynced first page, not the consumed stale snapshot", async () => {
+        const peerHash = "test-hash";
+        const stale = { hash: "m-stale", source_hash: peerHash, destination_hash: "my-hash", timestamp: 1 };
+        const fresh = { hash: "m-fresh", source_hash: peerHash, destination_hash: "my-hash", timestamp: 2 };
+        stashConversationFirstPage(peerHash, { lxmf_messages: [stale] });
+        axiosMock.get.mockImplementation((url) => {
+            if (url.includes("/lxmf-messages/conversation/")) {
+                return Promise.resolve({ data: { lxmf_messages: [fresh, stale] } });
+            }
+            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
+            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountConversationViewer();
+        await vi.waitFor(async () => {
+            // loadPrevious consumed the stale stash; the soft resync must
+            // have restashed the fresh response by now.
+            const entry = takeConversationPrefetch(peerHash);
+            expect(entry).not.toBeNull();
+            const res = await entry;
+            expect(res.data.lxmf_messages.map((m) => m.hash)).toEqual(["m-fresh", "m-stale"]);
+        });
+        wrapper.unmount();
     });
 
     it("shows retry button in context menu for failed outbound messages", async () => {

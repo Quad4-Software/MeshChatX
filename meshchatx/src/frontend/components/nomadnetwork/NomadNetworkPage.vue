@@ -23,6 +23,7 @@
             @bulk-remove-favourites="onBulkRemoveFavourites"
             @bulk-add-favourites="onBulkAddFavouritesFromAnnounces"
             @nodes-search-changed="onNodesSearchChanged"
+            @navigate-url="onNodePageUrlClick"
             @load-more-nodes="loadMoreNodes"
             @toggle-collapse="nomadNetworkSidebarCollapsed = !nomadNetworkSidebarCollapsed"
         />
@@ -481,7 +482,9 @@
                         <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
                     </IconButton>
 
-                    <DropDownMenu v-if="selectedNode" class="shrink-0 hidden lg:inline-block">
+                    <!-- path ops stay in the mobile ⋯ menu; below xl they
+                         would squeeze the URL input on narrow screens -->
+                    <DropDownMenu v-if="selectedNode" class="shrink-0 hidden xl:inline-block">
                         <template #button>
                             <IconButton
                                 :title="$t('nomadnet.path_finder')"
@@ -1474,6 +1477,11 @@ export default {
         offWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVE_ADDED, this.onNomadPageArchiveAddedEvent);
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
+    },
+    created() {
+        // Tabs that opened on a node close it entirely. Tabs that started on
+        // the node list keep that list when the viewer closes.
+        this._startedWithDestination = Boolean((this.destinationHash || "").trim());
     },
     mounted() {
         // listen for websocket messages
@@ -3688,7 +3696,13 @@ export default {
             this.selectedNode = null;
 
             if (this.embedded) {
-                this.$emit("close-tab");
+                if (this._startedWithDestination) {
+                    this.$emit("close-tab");
+                    return;
+                }
+                // A browse tab keeps its list context. Emitting navigate with
+                // an empty hash resets the tab state instead of destroying it.
+                this.$emit("navigate", { destinationHash: "", pagePath: "", title: "" });
                 return;
             }
 

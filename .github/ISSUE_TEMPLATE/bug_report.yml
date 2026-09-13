@@ -13,8 +13,8 @@ body:
       id: version
       attributes:
           label: MeshChatX version
-          description: The version shown in Settings or About (for example 4.9.0).
-          placeholder: "4.9.0"
+          description: The version shown in Settings or About.
+          placeholder: "x.y.z"
       validations:
           required: true
 

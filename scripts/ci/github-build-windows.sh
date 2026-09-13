@@ -23,6 +23,15 @@ else
     pnpm run dist:windows
 fi
 
+# Catch extraResources dropping manifest-hashed files before the unpacked
+# staging tree is pruned. A missing file surfaces at runtime as an integrity
+# warning that blocks onboarding.
+for unpacked in dist/win-unpacked dist/win-*-unpacked; do
+    if [[ -d "$unpacked" ]]; then
+        node scripts/ci/github-verify-backend-manifest.mjs "$unpacked"
+    fi
+done
+
 bash scripts/ci/github-prune-electron-dist-staging.sh
 bash scripts/ci/github-verify-electron-dist.sh win
 
@@ -32,6 +41,7 @@ if [[ -d build/exe ]]; then
     bash scripts/ci/github-verify-frozen-runtime.sh build/exe
     bash scripts/ci/github-verify-frozen-codec2.sh build/exe
     bash scripts/ci/github-verify-frozen-umsgpack.sh build/exe
+    bash scripts/ci/github-verify-frozen-bleak.sh build/exe
 fi
 
 # Optional packaged smoke (manual / future CI job on a Windows runner):

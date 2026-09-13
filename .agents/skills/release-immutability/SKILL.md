@@ -54,8 +54,24 @@ This means a manually created release blocks the workflow from attaching built a
 
 ## rngit releases
 
-- Build the wheel locally: `uv build --wheel`.
-- Verify and sign the manifest: `rngit release ... create vX.Y.Z:python-dist/`.
+Use `scripts/rngit_release.py`. It wraps `python -m RNS.Utilities.rngit.server release` plus the wheel/pyz builds:
+
+```bash
+python3 scripts/rngit_release.py release vX.Y.Z --notes-file /path/to/notes.md
+```
+
+That builds the wheel and pyz into `python-dist/`, signs and uploads everything, then fetches the manifest back and verifies it. Pass `--changelog` to reuse the changelog section as notes, or `--edit` for an interactive editor. `create` accepts `-L`/`--local` to generate the manifest and signatures without uploading.
+
+Manual equivalents and gotchas:
+
+- The release remote is the same `rns://...` URL used for `git clone` (see README).
+- The signing identity is the rngit client identity (`~/.rngit/client_identity`), used by default. Do not pass a different `-i` identity; the server answers "Not allowed" during init if the identity is not the repo publisher.
+- Artifacts dir convention is `python-dist/`. Build with `uv build --wheel && python3 scripts/move_wheels.py`, then `PYZ_OUTPUT=python-dist/meshchatx-X.Y.Z.pyz SKIP_WHEEL=1 bash scripts/build-pyz.sh` so the pyz ships with the wheel.
+- rngit writes `manifest.rsm` and `*.rsg` into the artifacts dir. Remove them before re-running create or they upload as artifacts. The helper script does this automatically.
+- Notes come from $EDITOR (client_config sets nano). `#` comment lines are stripped on save, but text typed without a leading newline merges into the template's first comment line and survives. The helper script avoids this by injecting notes non-interactively.
+- `fetch` takes `tag:artifact-name` or `latest:name`; the manifest lands as `<RepoName>_<tag>.rsm` in the cwd.
+- `verify` is offline only: `rngit release -o <manifest.rsm> verify` with the artifacts beside the manifest.
+- `delete` prompts `y/N` (the script's `--yes` answers it). Recreate right after if the delete was for a notes or artifact fix.
 - rngit releases can be created after the GitHub draft is ready. They do not conflict with the GitHub release workflow.
 - Do not delete an old rngit release until the new one is confirmed on the repository.
 

@@ -4,6 +4,9 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 -keep class com.hoho.android.usbserial.** { *; }
+# Loaded dynamically from Python via jclass("org.able.BLE"); stripping or
+# renaming breaks the bundled able BLE shim used by RNode ble:// interfaces.
+-keep class org.able.** { *; }
 -keep class org.json.** { *; }
 -keep class org.conscrypt.** { *; }
 -dontwarn com.chaquo.python.**
