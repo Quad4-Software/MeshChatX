@@ -28,6 +28,7 @@ import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -191,7 +192,30 @@ public class MainActivity extends AppCompatActivity {
         getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, false);
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
-        setContentView(R.layout.activity_main);
+        try {
+            setContentView(R.layout.activity_main);
+        } catch (Throwable layoutError) {
+            // WebView inflation throws when the provider is missing, disabled,
+            // or mid-update (Vanadium/System WebView). Show a readable error
+            // instead of letting the tap-to-open die silently.
+            backendFailed = true;
+            TextView fallback = new TextView(this);
+            int pad = (int) (24 * getResources().getDisplayMetrics().density);
+            fallback.setPadding(pad, pad, pad, pad);
+            fallback.setText(
+                StartupErrorReport.format(
+                    "MeshChatX UI failed to load:",
+                    toStackTrace(layoutError),
+                    StartupErrorReport.collect(this)
+                )
+            );
+            try {
+                setContentView(fallback);
+            } catch (Throwable ignored) {
+                finish();
+            }
+            return;
+        }
         // Mitigate overlay tapjacking without changing user-visible behavior.
         getWindow().getDecorView().setFilterTouchesWhenObscured(true);
         applyBlockScreenshots(isBlockScreenshotsEnabled());
@@ -212,7 +236,10 @@ public class MainActivity extends AppCompatActivity {
             if (!Python.isStarted()) {
                 try {
                     Python.start(new AndroidPlatform(this));
-                } catch (Exception e) {
+                } catch (Throwable e) {
+                    // UnsatisfiedLinkError is an Error, not an Exception: a bad
+                    // native lib load would escape an Exception catch and kill
+                    // the process with no message.
                     backendFailed = true;
                     showStartupError("MeshChatX Python runtime failed to start:", toStackTrace(e));
                     return;
@@ -293,6 +320,23 @@ public class MainActivity extends AppCompatActivity {
                 if (!startupPageLoaded) {
                     progressBar.setVisibility(android.view.View.VISIBLE);
                 }
+            }
+
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                // Without this callback the whole process dies when the
+                // renderer crashes or is killed (OOM). Returning true marks the
+                // view dead; pending retries are cancelled so nothing reuses it.
+                String reason =
+                    detail != null && detail.didCrash() ? "renderer crashed" : "renderer was killed";
+                try {
+                    view.stopLoading();
+                } catch (Throwable ignored) {
+                }
+                backendFailed = true;
+                startupRequestHadLoadError = true;
+                showStartupError("MeshChatX WebView failed:", reason);
+                return true;
             }
 
             @Override
@@ -532,7 +576,7 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             AndroidStorageManager.runPendingMigration(this);
-        } catch (IOException migrationError) {
+        } catch (Exception migrationError) {
             showStartupError(
                 "MeshChatX could not copy data to file-manager storage:",
                 migrationError.getMessage()

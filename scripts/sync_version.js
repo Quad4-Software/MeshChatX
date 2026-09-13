@@ -4,14 +4,13 @@
  *
  * Writes: meshchatx/__init__.py (__version__), meshchatx/src/version.py, pyproject.toml [project].version,
  * meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt (reticulum-meshchatx line only),
- * README + lang README "current version" lines, docs/en/platform-guides/raspberry-pi.md,
- * meshchatx/src/frontend/public/meshchatx-docs/en/platform-guides/raspberry-pi.md,
  * meshchatx/src/backend/data/licenses_backend.json (reticulum-meshchatx entry),
  * android/app/build.gradle,
  * electron/app-version.json,
- * .github/ISSUE_TEMPLATE bug and feature version placeholders,
- * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback,
+ * packaging/arch/PKGBUILD pkgver / printf fallback,
  * then runs scripts/bake_build_meta.js (git commit / channel overlay).
+ *
+ * Docs and issue templates do not carry the version. Changelog entries stay handwritten.
  *
  * __version__ lives in meshchatx/__init__.py so Chaquopy/Android (which may not ship loose .py
  * data files next to bytecode) always has a resolvable version. src/version.py stays for packaging and tools.
@@ -80,32 +79,6 @@ function patchFile(rel, fn) {
     }
 }
 
-patchFile("README.md", (c) => c.replace(/(Current version is )\d+\.\d+\.\d+/, `$1${version}`));
-
-patchFile("lang/README.de.md", (c) =>
-    c.replace(/(Aktuelle Version in diesem Repository: `)[^`]+(`)/, `$1${version}$2`)
-);
-patchFile("lang/README.it.md", (c) => c.replace(/(Versione attuale nel repository: `)[^`]+(`)/, `$1${version}$2`));
-patchFile("lang/README.ja.md", (c) =>
-    c.replace(/(このリポジトリの現在のバージョンは `)[^`]+(` です。)/, `$1${version}$2`)
-);
-patchFile("lang/README.ru.md", (c) => c.replace(/(Текущая версия в репозитории: `)[^`]+(`)/, `$1${version}$2`));
-patchFile("lang/README.zh.md", (c) => c.replace(/(本仓库当前版本: `)[^`]+(`)/, `$1${version}$2`));
-
-function patchRaspberryPiDoc(c) {
-    let x = c;
-    x = x.replace(/\(\d+\.\d+\.\d+ or newer\)/, `(${version} or newer)`);
-    x = x.replace(/Direct example \(v\d+\.\d+\.\d+\):/, `Direct example (v${version}):`);
-    x = x.replace(
-        /releases\/download\/v\d+\.\d+\.\d+\/reticulum_meshchatx-\d+\.\d+\.\d+-py3-none-any\.whl/g,
-        `releases/download/v${version}/reticulum_meshchatx-${version}-py3-none-any.whl`
-    );
-    return x;
-}
-
-patchFile("docs/en/platform-guides/raspberry-pi.md", patchRaspberryPiDoc);
-patchFile("meshchatx/src/frontend/public/meshchatx-docs/en/platform-guides/raspberry-pi.md", patchRaspberryPiDoc);
-
 const licensesBackendPath = path.join(root, "meshchatx", "src", "backend", "data", "licenses_backend.json");
 if (fs.existsSync(licensesBackendPath)) {
     const licensesBackend = JSON.parse(fs.readFileSync(licensesBackendPath, "utf8"));
@@ -141,15 +114,6 @@ console.log(`Synced version ${version} from package.json`);
 
 const appVersionPath = path.join(root, "electron", "app-version.json");
 writeIfChanged(appVersionPath, `${JSON.stringify({ version }, null, 4)}\n`);
-
-patchFile(".github/ISSUE_TEMPLATE/bug_report.yml", (c) => {
-    let x = c.replace(/placeholder: "\d+\.\d+\.\d+"/, `placeholder: "${version}"`);
-    x = x.replace(/\(for example \d+\.\d+\.\d+\)/, `(for example ${version})`);
-    return x;
-});
-patchFile(".github/ISSUE_TEMPLATE/feature_request.yml", (c) =>
-    c.replace(/placeholder: "\d+\.\d+\.\d+"/, `placeholder: "${version}"`)
-);
 
 try {
     require("./bake_build_meta.js");

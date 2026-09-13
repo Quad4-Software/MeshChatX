@@ -120,6 +120,7 @@ def run_self_test(app: Any) -> dict:
     )
     temp_fs_result = self_check_mod.check_temp_filesystem()
     fs_sandbox_result = self_check_mod.check_fs_sandbox()
+    appcontainer_launch_result = self_check_mod.check_appcontainer_launch()
     public_assets_result = self_check_mod.check_public_assets(app.get_public_path)
     lxmf_result = self_check_mod.check_lxmf_router(
         app.message_router,
@@ -161,6 +162,7 @@ def run_self_test(app: Any) -> dict:
         "storage_lock_good": storage_lock_result,
         "temp_fs_good": temp_fs_result,
         "fs_sandbox_good": fs_sandbox_result,
+        "appcontainer_launch": appcontainer_launch_result,
         "public_assets_good": public_assets_result,
         "lxmf_router_good": lxmf_result,
         "subprocess_good": subprocess_result,
