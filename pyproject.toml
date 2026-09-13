@@ -152,7 +152,22 @@ paths_to_mutate = ["meshchatx/src/backend/"]
 # mutmut copies only paths_to_mutate into mutants/, then pytest runs from that
 # directory. meshchatx/ then shadows the installed package as a namespace
 # package, so these non-backend modules must be copied too.
+# Backend tests also read repo-relative paths (pytest.ini config, CI scripts,
+# workflow files, packaging metadata, and frontend/android sources used by
+# oracle tests). Those must exist under mutants/ as well or baseline test
+# collection fails before any mutant is measured.
 also_copy = [
+    "pytest.ini",
+    "package.json",
+    "cx_setup.py",
+    "Taskfile.yml",
+    ".agents/",
+    ".github/",
+    "android/",
+    "electron/",
+    "packaging/",
+    "scripts/",
+    "typings/",
     "meshchatx/__init__.py",
     "meshchatx/android_codec2.py",
     "meshchatx/android_push_bridge.py",
@@ -167,6 +182,8 @@ also_copy = [
     "meshchatx/src/path_utils.py",
     "meshchatx/src/ssl_self_signed.py",
     "meshchatx/src/version.py",
+    "meshchatx/src/frontend/components/",
+    "meshchatx/src/frontend/js/",
 ]
 pytest_add_cli_args = [
     "-m",
