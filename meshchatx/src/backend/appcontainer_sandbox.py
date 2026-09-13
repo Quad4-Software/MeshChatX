@@ -646,7 +646,6 @@ def _grant_window_object_access(
     access_mask: int,
 ) -> None:
     """Merge a package-SID allow ACE into a window station or desktop DACL."""
-    user32 = ctypes.WinDLL("user32", use_last_error=True)
     advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
     ea = _EXPLICIT_ACCESS_W()
     ea.grfAccessPermissions = access_mask
@@ -660,7 +659,7 @@ def _grant_window_object_access(
 
     p_sd = ctypes.c_void_p()
     p_dacl = ctypes.c_void_p()
-    get_status = user32.GetSecurityInfo(
+    get_status = advapi32.GetSecurityInfo(
         handle,
         _SE_WINDOW_OBJECT,
         _DACL_SECURITY_INFORMATION,
@@ -689,7 +688,7 @@ def _grant_window_object_access(
                 status,
                 f"SetEntriesInAclW for window object failed: status={status}",
             )
-        result = user32.SetSecurityInfo(
+        result = advapi32.SetSecurityInfo(
             handle,
             _SE_WINDOW_OBJECT,
             _DACL_SECURITY_INFORMATION,
@@ -1168,7 +1167,7 @@ def launch_backend_sandboxed(
         # fails to initialise (0xC0000142). Grant the package SID explicitly.
         try:
             grant_winstation_desktop_access(sid)
-        except OSError as grant_exc:
+        except Exception as grant_exc:
             logger.warning(
                 "Window station/desktop grant failed; sandboxed child may "
                 "fail during loader init: %s",
@@ -1225,7 +1224,7 @@ def launch_backend_sandboxed(
             used_appcontainer=True,
             fell_back=False,
         )
-    except OSError as exc:
+    except Exception as exc:
         logger.exception("AppContainer launch failed: %s", exc)
         if forced:
             return LaunchResult(

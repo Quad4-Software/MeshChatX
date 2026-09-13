@@ -16,6 +16,7 @@ from collections.abc import Callable
 from typing import Any
 
 from meshchatx.src.backend import self_check_probe as _self_check_probe  # noqa: F401
+from meshchatx.src.env_utils import env_snapshot
 
 _CRITICAL_IMPORTS = (
     "email.header",
@@ -384,29 +385,26 @@ def check_appcontainer_launch() -> dict[str, str]:
     marker_dir = tempfile.mkdtemp(prefix="meshchatx_ac_probe_")
     marker = os.path.join(marker_dir, "probe.out")
     env_flag = "MESHCHATX_SELF_CHECK_PROBE_PATH"
-    previous = os.environ.get(env_flag)
+    saved = env_snapshot((env_flag,))
     os.environ[env_flag] = marker
     try:
         if _is_frozen_executable():
             args = [_MESHCHATX_RUN_MODULE_FLAG, _SELF_CHECK_PROBE_MODULE]
         else:
-            args = [
-                "-c",
-                (
-                    "import os; "
-                    "open(os.environ['MESHCHATX_SELF_CHECK_PROBE_PATH'], 'w')"
-                    ".write('ok')"
-                ),
-            ]
-        result = ac.launch_backend_sandboxed(
-            exe,
-            args,
-            storage_dir=marker_dir,
-            reticulum_config_dir=marker_dir,
-            log_dir=marker_dir,
-            forced=True,
-        )
+            args = ["-m", _SELF_CHECK_PROBE_MODULE]
+        try:
+            result = ac.launch_backend_sandboxed(
+                exe,
+                args,
+                storage_dir=marker_dir,
+                reticulum_config_dir=marker_dir,
+                log_dir=marker_dir,
+                forced=True,
+            )
+        except Exception as exc:
+            return _status(False, f"sandboxed spawn raised: {exc}")
     finally:
+        previous = saved[env_flag]
         if previous is None:
             os.environ.pop(env_flag, None)
         else:

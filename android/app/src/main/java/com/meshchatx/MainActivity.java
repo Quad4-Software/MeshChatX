@@ -323,6 +323,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            @RequiresApi(api = Build.VERSION_CODES.O)
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 // Without this callback the whole process dies when the
                 // renderer crashes or is killed (OOM). Returning true marks the
