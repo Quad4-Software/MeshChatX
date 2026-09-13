@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../../js/i18n.js";
 
@@ -80,18 +81,15 @@
         isShowingMenu = !isShowingMenu;
     }
 
+    onClickOutside(
+        () => rootEl,
+        () => {
+            isShowingMenu = false;
+        }
+    );
+
     $effect(() => {
-        if (!isShowingMenu) return;
-        const onDoc = (event: MouseEvent) => {
-            if (rootEl && !rootEl.contains(event.target as Node)) {
-                isShowingMenu = false;
-            }
-        };
-        document.addEventListener("mousedown", onDoc, true);
-        return () => {
-            document.removeEventListener("mousedown", onDoc, true);
-            clearCompactLongPressTimer();
-        };
+        return () => clearCompactLongPressTimer();
     });
 </script>
 

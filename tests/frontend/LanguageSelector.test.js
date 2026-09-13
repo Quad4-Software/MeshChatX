@@ -99,18 +99,15 @@ describe("LanguageSelector.svelte", () => {
     });
 
     it("uses BCP 47 codes and native names for region-tagged packs", async () => {
-        const wrapper = mountLanguageSelector("en");
-        await wrapper.find("button").trigger("click");
-
-        const languageButtons = wrapper.findAll(".fixed button");
-        const ptOption = languageButtons.find((b) => b.text().includes("Português (Brasil)"));
-        expect(ptOption).toBeDefined();
-
-        await ptOption.trigger("click");
-        await flushPromises();
-        await nextTick();
-
-        expect(wrapper.emitted("language-change")).toBeTruthy();
-        expect(wrapper.emitted("language-change")[0]).toEqual(["pt-BR"]);
+        const onlanguagechange = vi.fn();
+        const { container } = render(LanguageSelector, { onlanguagechange });
+        await fireEvent.click(screen.getByRole("button", { name: /language/i }));
+        const ptButton = [...container.querySelectorAll('[role="menu"] button')].find((b) =>
+            b.textContent?.includes("Português (Brasil)")
+        );
+        expect(ptButton).toBeTruthy();
+        await fireEvent.click(ptButton);
+        await tick();
+        expect(onlanguagechange).toHaveBeenCalledWith("pt-br");
     });
 });

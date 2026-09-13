@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import QRCode from "qrcode";
     import EmptyState from "../../ui/svelte/EmptyState.svelte";
     import LoadingState from "../../ui/svelte/LoadingState.svelte";
@@ -201,14 +202,14 @@
         reader.readAsText(file);
     }
 
+    useEventListener(document, "click", closeContextMenu);
+
     onMount(() => {
-        document.addEventListener("click", closeContextMenu);
         onWsEvent("lxm.ingest_uri.result", onLxmIngestUriResult);
         getConfig();
         getContacts();
         return () => {
             offWsEvent("lxm.ingest_uri.result", onLxmIngestUriResult);
-            document.removeEventListener("click", closeContextMenu);
             if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
         };
     });

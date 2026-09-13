@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";
     import { MESHCHATX_LOGO_URL, RETICULUM_LOGO_URL } from "../lib/constants.js";
@@ -67,21 +67,18 @@
     let versionsDropdownEl = $state<HTMLElement | null>(null);
     let languagesDropdownEl = $state<HTMLElement | null>(null);
 
-    onMount(() => {
-        function handleClickOutside(event: MouseEvent): void {
-            const target = event.target as Node | null;
-            if (showVersions && versionsDropdownEl && !versionsDropdownEl.contains(target)) {
-                showVersions = false;
-            }
-            if (showLanguages && languagesDropdownEl && !languagesDropdownEl.contains(target)) {
-                showLanguages = false;
-            }
+    onClickOutside(
+        () => versionsDropdownEl,
+        () => {
+            showVersions = false;
         }
-        document.addEventListener("click", handleClickOutside);
-        return () => {
-            document.removeEventListener("click", handleClickOutside);
-        };
-    });
+    );
+    onClickOutside(
+        () => languagesDropdownEl,
+        () => {
+            showLanguages = false;
+        }
+    );
 </script>
 
 <!-- Desktop sidebar -->
