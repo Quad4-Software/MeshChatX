@@ -62,9 +62,11 @@ export function parseAnnounceIntervalMinutes(text: string | null | undefined): n
     if (!s) {
         return null;
     }
+    // eslint-disable-next-line security/detect-unsafe-regex -- bounded digits and optional decimal only
     if (/^\d+(?:\.\d+)?$/.test(s)) {
         return Math.round(Number(s));
     }
+    // eslint-disable-next-line security/detect-unsafe-regex -- linear scan, no nested quantifiers
     const re = /(\d+(?:\.\d+)?)\s*(d|h|m(?:in)?)/g;
     let matched = "";
     let total = 0;
