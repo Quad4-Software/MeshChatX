@@ -14,6 +14,7 @@ import logging
 import os
 import sys
 import tempfile
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -48,12 +49,30 @@ _TRUSTEE_IS_SID = 0
 _TRUSTEE_IS_UNKNOWN = 0
 _SUB_CONTAINERS_AND_OBJECTS_INHERIT = 0x3
 _SE_FILE_OBJECT = 1
+_SE_WINDOW_OBJECT = 6
 _DACL_SECURITY_INFORMATION = 0x00000004
 _PROTECTED_DACL_SECURITY_INFORMATION = 0x80000000
+_READ_CONTROL = 0x00020000
+_WRITE_DAC = 0x00040000
+
+# NTSTATUS codes the Windows loader returns when a process dies before main.
+# Under LPAC these mean the sandbox hid a dependency, not that the image is
+# broken, so a fast exit is a launch failure rather than a backend crash.
+_SANDBOX_INIT_FAILURE_CODES = frozenset(
+    {
+        0xC0000022,  # STATUS_ACCESS_DENIED
+        0xC0000135,  # STATUS_DLL_NOT_FOUND
+        0xC0000139,  # STATUS_ENTRYPOINT_NOT_FOUND
+        0xC0000142,  # STATUS_DLL_INIT_FAILED
+        0xC0000143,  # STATUS_MISSING_SYSTEMFILE
+    }
+)
+_SANDBOX_INIT_FAILURE_WINDOW = 30.0
 
 _SE_GROUP_ENABLED = 0x00000004
 
 _CREATE_UNICODE_ENVIRONMENT = 0x00000400
+_STARTF_USESTDHANDLES = 0x00000100
 _EXTENDED_STARTUPINFO_PRESENT = 0x00080000
 _CREATE_NO_WINDOW = 0x08000000
 
@@ -84,6 +103,14 @@ class LaunchResult:
     error: str | None = None
     used_appcontainer: bool = False
     fell_back: bool = False
+
+
+class _SECURITY_ATTRIBUTES(ctypes.Structure):
+    _fields_ = [
+        ("nLength", ctypes.c_ulong),
+        ("lpSecurityDescriptor", ctypes.c_void_p),
+        ("bInheritHandle", ctypes.c_int),
+    ]
 
 
 class _SID_AND_ATTRIBUTES(ctypes.Structure):
@@ -622,6 +649,153 @@ def revoke_path_access(sid: ctypes.c_void_p, path: str) -> None:
         logger.debug("revoke_path_access %s: %s", path, exc)
 
 
+def _grant_window_object_access(
+    handle: ctypes.c_void_p,
+    sid: ctypes.c_void_p,
+    access_mask: int,
+) -> None:
+    """Merge a package-SID allow ACE into a window station or desktop DACL."""
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    ea = _EXPLICIT_ACCESS_W()
+    ea.grfAccessPermissions = access_mask
+    ea.grfAccessMode = _GRANT_ACCESS
+    ea.grfInheritance = 0
+    ea.Trustee.pMultipleTrustee = None
+    ea.Trustee.MultipleTrusteeOperation = 0
+    ea.Trustee.TrusteeForm = _TRUSTEE_IS_SID
+    ea.Trustee.TrusteeType = _TRUSTEE_IS_UNKNOWN
+    ea.Trustee.ptstrName = sid
+
+    p_sd = ctypes.c_void_p()
+    p_dacl = ctypes.c_void_p()
+    get_status = advapi32.GetSecurityInfo(
+        handle,
+        _SE_WINDOW_OBJECT,
+        _DACL_SECURITY_INFORMATION,
+        None,
+        None,
+        ctypes.byref(p_dacl),
+        None,
+        ctypes.byref(p_sd),
+    )
+    if get_status != _ERROR_SUCCESS:
+        raise OSError(
+            get_status,
+            f"GetSecurityInfo on window object failed: status={get_status}",
+        )
+
+    new_acl = ctypes.c_void_p()
+    try:
+        status = advapi32.SetEntriesInAclW(
+            1,
+            ctypes.byref(ea),
+            p_dacl,
+            ctypes.byref(new_acl),
+        )
+        if status != _ERROR_SUCCESS or not new_acl.value:
+            raise OSError(
+                status,
+                f"SetEntriesInAclW for window object failed: status={status}",
+            )
+        result = advapi32.SetSecurityInfo(
+            handle,
+            _SE_WINDOW_OBJECT,
+            _DACL_SECURITY_INFORMATION,
+            None,
+            None,
+            new_acl,
+            None,
+        )
+        if result != _ERROR_SUCCESS:
+            raise OSError(
+                result,
+                f"SetSecurityInfo on window object failed: result={result}",
+            )
+    finally:
+        _local_free(new_acl.value)
+        _local_free(p_sd.value)
+
+
+def grant_winstation_desktop_access(sid: ctypes.c_void_p) -> None:
+    """Grant the package SID access to the caller's window station and desktop.
+
+    LPAC children opt out of ALL_APPLICATION_PACKAGES, so they lose the ambient
+    window-object access packaged apps normally get on the interactive session.
+    Without an explicit ACE the child dies during loader init (user32.dll)
+    with STATUS_DLL_INIT_FAILED (0xC0000142). The grants live on the user's
+    winsta0/Default desktop, so they do not need revoking after the child exits.
+    """
+    if sys.platform != "win32":
+        return
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+    user32.GetProcessWindowStation.restype = ctypes.c_void_p
+    user32.GetThreadDesktop.restype = ctypes.c_void_p
+    user32.OpenWindowStationW.restype = ctypes.c_void_p
+    user32.OpenDesktopW.restype = ctypes.c_void_p
+
+    winsta = user32.GetProcessWindowStation()
+    opened_winsta = False
+    if not winsta:
+        winsta = user32.OpenWindowStationW(
+            "winsta0",
+            False,
+            _GENERIC_READ | _GENERIC_EXECUTE | _WRITE_DAC | _READ_CONTROL,
+        )
+        opened_winsta = bool(winsta)
+    try:
+        if winsta:
+            _grant_window_object_access(
+                winsta,
+                sid,
+                _GENERIC_READ | _GENERIC_EXECUTE,
+            )
+    finally:
+        if opened_winsta:
+            user32.CloseWindowStation(winsta)
+
+    desktop = user32.GetThreadDesktop(kernel32.GetCurrentThreadId())
+    opened_desktop = False
+    if not desktop:
+        desktop = user32.OpenDesktopW(
+            "Default",
+            0,
+            False,
+            _GENERIC_READ
+            | _GENERIC_WRITE
+            | _GENERIC_EXECUTE
+            | _WRITE_DAC
+            | _READ_CONTROL,
+        )
+        opened_desktop = bool(desktop)
+    try:
+        if desktop:
+            _grant_window_object_access(
+                desktop,
+                sid,
+                _GENERIC_READ | _GENERIC_WRITE | _GENERIC_EXECUTE,
+            )
+    finally:
+        if opened_desktop:
+            user32.CloseDesktop(desktop)
+
+
+def _is_sandbox_init_failure(exit_code: int | None, elapsed: float) -> bool:
+    """True when a sandboxed child died during Windows loader init.
+
+    These NTSTATUS exits mean the image never reached main. Within the short
+    window they indicate the container hid a dependency the backend needs, so
+    auto mode should retry without the sandbox.
+    """
+    if exit_code is None:
+        return False
+    return (
+        elapsed <= _SANDBOX_INIT_FAILURE_WINDOW
+        and exit_code in _SANDBOX_INIT_FAILURE_CODES
+    )
+
+
 def _build_command_line(exe: str, args: list[str]) -> str:
     parts = [exe, *args]
 
@@ -647,6 +821,28 @@ def _wait_process(handle: ctypes.c_void_p) -> int:
     return int(code.value)
 
 
+def _open_inheritable_log(path: str):
+    """Open *path* for append with an inheritable handle for child stdio."""
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    sa = _SECURITY_ATTRIBUTES()
+    sa.nLength = ctypes.sizeof(sa)
+    sa.bInheritHandle = 1
+    sa.lpSecurityDescriptor = None
+    handle = kernel32.CreateFileW(
+        ctypes.c_wchar_p(path),
+        _GENERIC_WRITE,
+        0x00000001 | 0x00000002,  # FILE_SHARE_READ | FILE_SHARE_WRITE
+        ctypes.byref(sa),
+        4,  # CREATE_ALWAYS
+        0x80,  # FILE_ATTRIBUTE_NORMAL
+        None,
+    )
+    invalid = ctypes.c_void_p(-1).value
+    if handle in (None, invalid):
+        return None
+    return handle
+
+
 def create_process_in_appcontainer(
     exe: str,
     args: list[str],
@@ -654,6 +850,7 @@ def create_process_in_appcontainer(
     env: dict[str, str] | None = None,
     use_lpac: bool = True,
     cwd: str | None = None,
+    child_log_path: str | None = None,
 ) -> tuple[ctypes.c_void_p, ctypes.c_void_p, int]:
     """Create a child process inside the MeshChatX AppContainer profile.
 
@@ -750,6 +947,7 @@ def create_process_in_appcontainer(
             "InitializeProcThreadAttributeList failed",
         )
 
+    log_handle = None
     try:
         if not kernel32.UpdateProcThreadAttribute(
             attr_list,
@@ -785,6 +983,13 @@ def create_process_in_appcontainer(
         siex.StartupInfo.cb = ctypes.sizeof(siex)
         siex.lpAttributeList = attr_list
 
+        if child_log_path:
+            log_handle = _open_inheritable_log(child_log_path)
+            if log_handle:
+                siex.StartupInfo.dwFlags |= _STARTF_USESTDHANDLES
+                siex.StartupInfo.hStdOutput = log_handle
+                siex.StartupInfo.hStdError = log_handle
+
         pi = _PROCESS_INFORMATION()
         cmdline = ctypes.create_unicode_buffer(_build_command_line(exe, args))
 
@@ -805,7 +1010,7 @@ def create_process_in_appcontainer(
             ctypes.cast(cmdline, ctypes.c_wchar_p),
             None,
             None,
-            False,
+            bool(log_handle),
             creation_flags,
             ctypes.cast(env_buf, ctypes.c_void_p),
             ctypes.c_wchar_p(cwd) if cwd else None,
@@ -816,6 +1021,8 @@ def create_process_in_appcontainer(
             raise OSError(ctypes.get_last_error(), "CreateProcessW AppContainer failed")
         return pi.hProcess, pi.hThread, int(pi.dwProcessId)
     finally:
+        if log_handle:
+            close_handle(log_handle)
         kernel32.DeleteProcThreadAttributeList(attr_list)
         # Free derived package SID after CreateProcess has copied capabilities.
         try:
@@ -867,13 +1074,17 @@ def close_handle(handle: ctypes.c_void_p | int | None) -> None:
         pass
 
 
-def _run_unsandboxed_child(exe: str, args: list[str]) -> LaunchResult:
+def _run_unsandboxed_child(
+    exe: str,
+    args: list[str],
+    env: dict[str, str] | None = None,
+) -> LaunchResult:
     """Run the real backend without a sandbox and mark it launcher-handled.
 
     The MESHCHAT_APPCONTAINER_LAUNCHER marker prevents meshchat.py from
     re-entering the launcher when this fallback child starts.
     """
-    child_env = dict(os.environ)
+    child_env = dict(os.environ if env is None else env)
     child_env.pop(CHILD_ENV_FLAG, None)
     child_env["MESHCHAT_APPCONTAINER_LAUNCHER"] = "1"
     try:
@@ -911,6 +1122,9 @@ def launch_backend_sandboxed(
     log_dir: str | None,
     forced: bool | None = None,
     use_lpac: bool = True,
+    env: dict[str, str] | None = None,
+    extra_ro_roots: list[str] | None = None,
+    child_log_path: str | None = None,
 ) -> LaunchResult:
     """Grant ACLs, launch into AppContainer, wait, revoke ACLs.
 
@@ -926,16 +1140,27 @@ def launch_backend_sandboxed(
             "AppContainer disabled by %s; running backend unsandboxed",
             ENV_VAR,
         )
-        return _run_unsandboxed_child(exe, args)
+        return _run_unsandboxed_child(exe, args, env=env)
 
     if not forced and not appcontainer_supported():
         logger.warning(
             "AppContainer APIs are unavailable; running backend unsandboxed",
         )
-        return _run_unsandboxed_child(exe, args)
+        return _run_unsandboxed_child(exe, args, env=env)
 
     rw_roots = collect_rw_roots(storage_dir, reticulum_config_dir, log_dir)
     ro_roots = collect_ro_roots(exe_dir=os.path.dirname(exe) if exe else None)
+    # A venv interpreter loads python3xx.dll and the stdlib from the real
+    # installation under base_prefix, not from the venv itself. Grant the
+    # real home too or the child dies in the loader.
+    for candidate in (
+        getattr(sys, "base_prefix", None),
+        getattr(sys, "base_exec_prefix", None),
+        *(extra_ro_roots or ()),
+    ):
+        existing = _existing_dir(candidate) if candidate else None
+        if existing and existing not in ro_roots:
+            ro_roots.append(existing)
     sid: ctypes.c_void_p | None = None
     granted: list[tuple[str, bool]] = []
     granted_set: set[str] = set()
@@ -955,15 +1180,65 @@ def launch_backend_sandboxed(
             grant_path_access(sid, path, write=False)
             _record_grant(path, False)
 
-        # Existing files under the exe directory were created before the
-        # inheritable directory ACE was set, so grant each one explicitly.
-        # Also grant traverse-only access to every parent directory so the
-        # AppContainer token can reach the executable.
-        if exe and sys.platform == "win32":
-            exe_dir = os.path.dirname(exe)
-            if exe_dir and os.path.isdir(exe_dir):
+        if sys.platform == "win32":
+            # The AppContainer token must be able to traverse every ancestor
+            # of each root before the root ACL is even evaluated. Without
+            # this the child cannot reach the granted directories at all
+            # (for example %TEMP% under C:\Users\<user>\AppData).
+            for root in rw_roots + ro_roots:
+                parent = os.path.dirname(root)
+                while parent and parent != os.path.dirname(parent):
+                    if parent not in granted_set:
+                        try:
+                            grant_execute_access(sid, parent)
+                            _record_grant(parent, False)
+                        except OSError as grant_exc:
+                            logger.debug(
+                                "grant_execute_access(%s) failed: %s",
+                                parent,
+                                grant_exc,
+                            )
+                    parent = os.path.dirname(parent)
+
+            # A venv interpreter reads pyvenv.cfg from the prefix root to
+            # find its real installation; the directory grant does not
+            # cover the existing file, so grant it explicitly.
+            prefix = getattr(sys, "prefix", None)
+            if prefix:
+                pyvenv_cfg = os.path.join(prefix, "pyvenv.cfg")
+                if os.path.isfile(pyvenv_cfg) and pyvenv_cfg not in granted_set:
+                    try:
+                        grant_path_access(sid, pyvenv_cfg, write=False)
+                        _record_grant(pyvenv_cfg, False)
+                    except OSError as grant_exc:
+                        logger.debug(
+                            "grant_path_access(%s) failed: %s",
+                            pyvenv_cfg,
+                            grant_exc,
+                        )
+
+            # Existing files under a granted directory were created before
+            # the inheritable directory ACE was set, so grant each one
+            # explicitly. Besides the exe directory this covers the real
+            # Python home for unfrozen children (python3xx.dll and the
+            # stdlib live there, not in the venv) and any caller-supplied
+            # roots such as the package source needed by a probe module.
+            walk_roots: list[str] = []
+            for candidate in (
+                os.path.dirname(exe) if exe else None,
+                getattr(sys, "base_prefix", None),
+                getattr(sys, "base_exec_prefix", None),
+                *(extra_ro_roots or ()),
+            ):
+                if (
+                    candidate
+                    and os.path.isdir(candidate)
+                    and candidate not in walk_roots
+                ):
+                    walk_roots.append(candidate)
+            for walk_root in walk_roots:
                 file_count = 0
-                for root, dirs, files in os.walk(exe_dir):
+                for root, dirs, files in os.walk(walk_root):
                     for name in dirs + files:
                         file_path = os.path.join(root, name)
                         if file_path in granted_set:
@@ -981,22 +1256,22 @@ def launch_backend_sandboxed(
                 logger.info(
                     "Granted read/execute on %d files under %s",
                     file_count,
-                    exe_dir,
+                    walk_root,
                 )
-                parent = os.path.dirname(exe_dir)
-                while parent and parent != os.path.dirname(parent):
-                    if parent not in granted_set:
-                        try:
-                            grant_execute_access(sid, parent)
-                            _record_grant(parent, False)
-                        except OSError as grant_exc:
-                            logger.debug(
-                                "grant_execute_access(%s) failed: %s",
-                                parent,
-                                grant_exc,
-                            )
-                    parent = os.path.dirname(parent)
 
+        # LPAC children do not inherit ALL_APPLICATION_PACKAGES, so the
+        # interactive window station and desktop deny them and user32.dll
+        # fails to initialise (0xC0000142). Grant the package SID explicitly.
+        try:
+            grant_winstation_desktop_access(sid)
+        except Exception as grant_exc:
+            logger.warning(
+                "Window station/desktop grant failed; sandboxed child may "
+                "fail during loader init: %s",
+                grant_exc,
+            )
+
+        started = time.monotonic()
         try:
             child_cwd = (
                 storage_dir or log_dir or reticulum_config_dir or os.path.dirname(exe)
@@ -1004,8 +1279,10 @@ def launch_backend_sandboxed(
             h_process, h_thread, _pid = create_process_in_appcontainer(
                 exe,
                 args,
+                env=env,
                 use_lpac=use_lpac,
                 cwd=child_cwd,
+                child_log_path=child_log_path,
             )
         except OSError as exc:
             # LPAC is best-effort: some Windows builds reject the policy
@@ -1021,8 +1298,10 @@ def launch_backend_sandboxed(
                 h_process, h_thread, _pid = create_process_in_appcontainer(
                     exe,
                     args,
+                    env=env,
                     use_lpac=False,
                     cwd=child_cwd,
+                    child_log_path=child_log_path,
                 )
             else:
                 raise
@@ -1031,13 +1310,22 @@ def launch_backend_sandboxed(
             exit_code = _wait_process(h_process)
         finally:
             close_handle(h_process)
+        elapsed = time.monotonic() - started
+        if not forced and _is_sandbox_init_failure(exit_code, elapsed):
+            logger.warning(
+                "AppContainer child died during loader init "
+                "(exit=0x%08X after %.1fs); retrying unsandboxed",
+                exit_code,
+                elapsed,
+            )
+            return _run_unsandboxed_child(exe, args, env=env)
         return LaunchResult(
             ok=True,
             exit_code=exit_code,
             used_appcontainer=True,
             fell_back=False,
         )
-    except OSError as exc:
+    except Exception as exc:
         logger.exception("AppContainer launch failed: %s", exc)
         if forced:
             return LaunchResult(
@@ -1047,7 +1335,7 @@ def launch_backend_sandboxed(
                 fell_back=False,
             )
         logger.warning("Falling back to unsandboxed backend launch")
-        return _run_unsandboxed_child(exe, args)
+        return _run_unsandboxed_child(exe, args, env=env)
     finally:
         if sid is not None:
             for path, _write in reversed(granted):

@@ -108,6 +108,21 @@
                 </button>
             </div>
 
+            <!-- mobile-only URL entry: below sm the viewer pane (with its
+                 empty-state URL input) is hidden until a node opens -->
+            <div class="flex items-center gap-1.5 border-b border-sem-border px-2 py-1.5 sm:hidden">
+                <input
+                    v-model="mobileUrlInput"
+                    type="text"
+                    :placeholder="$t('nomadnet.enter_nomadnet_url')"
+                    class="input-field w-full min-w-0"
+                    @keyup.enter="submitMobileUrl"
+                />
+                <IconButton :title="$t('nomadnet.nav_go')" class="shrink-0" @click="submitMobileUrl">
+                    <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
+                </IconButton>
+            </div>
+
             <div v-if="tab === 'favourites'" class="flex-1 flex flex-col min-h-0">
                 <div class="p-3 border-b border-sem-border space-y-2">
                     <input
@@ -832,6 +847,10 @@ import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
 import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
 
+// Remember the last picked sidebar tab for this session so a fresh sidebar
+// (new tab, remount) reopens where the user left off instead of Favourites.
+let lastSidebarTab = "favourites";
+
 export default {
     name: "NomadNetworkSidebar",
     components: {
@@ -894,6 +913,7 @@ export default {
         "toggle-collapse",
         "bulk-remove-favourites",
         "bulk-add-favourites",
+        "navigate-url",
     ],
     setup(props) {
         const inst = getCurrentInstance();
@@ -907,7 +927,8 @@ export default {
     },
     data() {
         return {
-            tab: "favourites",
+            tab: lastSidebarTab,
+            mobileUrlInput: "",
             favouritesSelectionMode: false,
             announcesSelectionMode: false,
             selectedFavouriteHashes: [],
@@ -1002,7 +1023,8 @@ export default {
             },
             deep: true,
         },
-        tab() {
+        tab(newTab) {
+            lastSidebarTab = newTab;
             this.exitFavouritesSelectionMode();
             this.exitAnnouncesSelectionMode();
             this.favouriteBulkMoveMenuOpen = false;
@@ -1573,6 +1595,14 @@ export default {
             if (!text) return;
             navigator.clipboard.writeText(text);
             ToastUtils.success(`${label} copied to clipboard`);
+        },
+        submitMobileUrl() {
+            const url = this.mobileUrlInput.trim();
+            if (!url) {
+                return;
+            }
+            this.mobileUrlInput = "";
+            this.$emit("navigate-url", url);
         },
         onNodesSearchInput(event) {
             this.$emit("nodes-search-changed", event.target.value);

@@ -16,6 +16,7 @@ from collections.abc import Callable
 from typing import Any
 
 from meshchatx.src.backend import self_check_probe as _self_check_probe  # noqa: F401
+from meshchatx.src.env_utils import env_snapshot
 
 _CRITICAL_IMPORTS = (
     "email.header",
@@ -48,6 +49,7 @@ SELF_CHECK_LABELS = {
     "storage_lock_good": "Storage Lock           ",
     "temp_fs_good": "Temp Filesystem        ",
     "fs_sandbox_good": "FS Sandbox Modules     ",
+    "appcontainer_launch": "AppContainer Launch    ",
     "public_assets_good": "Public Assets          ",
     "lxmf_router_good": "LXMF Router            ",
     "lxst_telephony": "LXST Telephony         ",
@@ -351,6 +353,117 @@ def check_fs_sandbox() -> dict[str, str]:
     return _status(True)
 
 
+def check_appcontainer_launch() -> dict[str, str]:
+    """Spawn a real child inside the AppContainer and require it to run.
+
+    Catches loader-init regressions such as STATUS_DLL_INIT_FAILED
+    (0xC0000142) that only appear when the frozen backend is launched into the
+    LPAC container on Windows. The child writes a marker file under the
+    sandboxed storage dir because it has no console or stdout.
+    """
+    if sys.platform != "win32":
+        return {"status": "skipped", "reason": "Windows only"}
+    try:
+        from meshchatx.src.backend import appcontainer_sandbox as ac
+    except Exception as exc:
+        return _status(False, f"import failed: {exc}")
+
+    if ac.is_appcontainer_child():
+        return {"status": "skipped", "reason": "already inside AppContainer"}
+    if not ac.appcontainer_supported():
+        return {"status": "skipped", "reason": "AppContainer APIs unavailable"}
+    if ac.appcontainer_disabled_by_env():
+        return {
+            "status": "skipped",
+            "reason": "disabled by MESHCHAT_APPCONTAINER",
+        }
+
+    exe = sys.executable
+    if not _is_frozen_executable():
+        # In a venv, sys.executable is the redirector shim. Inside the
+        # container it would have to spawn the real interpreter again and
+        # that nested CreateProcess fails with access denied, so run the
+        # real base interpreter directly.
+        exe = getattr(sys, "_base_executable", None) or exe
+    if not exe:
+        return _status(False, "sys.executable is unset")
+
+    marker_dir = tempfile.mkdtemp(prefix="meshchatx_ac_probe_")
+    marker = os.path.join(marker_dir, "probe.out")
+    child_log = os.path.join(marker_dir, "probe_child.log")
+    env_flag = "MESHCHATX_SELF_CHECK_PROBE_PATH"
+    saved = env_snapshot((env_flag,))
+    os.environ[env_flag] = marker
+    try:
+        if _is_frozen_executable():
+            args = [_MESHCHATX_RUN_MODULE_FLAG, _SELF_CHECK_PROBE_MODULE]
+        else:
+            # A self-contained snippet avoids resolving meshchatx through
+            # site-packages inside the container, where the editable-install
+            # .pth finder is unreadable.
+            args = [
+                "-c",
+                "import sys; open(sys.argv[1], 'w', encoding='utf-8').write('ok\\n')",
+                marker,
+            ]
+        results = []
+        try:
+            for use_lpac in (True, False):
+                result = ac.launch_backend_sandboxed(
+                    exe,
+                    args,
+                    storage_dir=marker_dir,
+                    reticulum_config_dir=marker_dir,
+                    log_dir=marker_dir,
+                    forced=True,
+                    use_lpac=use_lpac,
+                    child_log_path=child_log,
+                )
+                results.append((use_lpac, result))
+                # Production treats LPAC loader-init exits (0xC0000142 and
+                # friends) as fallback-worthy, so retry once as a plain
+                # AppContainer child. Any other outcome is final.
+                if (
+                    not result.ok
+                    or result.exit_code not in ac._SANDBOX_INIT_FAILURE_CODES
+                ):
+                    break
+        except Exception as exc:
+            return _status(False, f"sandboxed spawn raised: {exc}")
+    finally:
+        previous = saved[env_flag]
+        if previous is None:
+            os.environ.pop(env_flag, None)
+        else:
+            os.environ[env_flag] = previous
+
+    try:
+        for use_lpac, result in results:
+            if not result.ok:
+                return _status(False, f"sandboxed spawn failed: {result.error}")
+            if result.fell_back or not result.used_appcontainer:
+                return _status(False, "probe did not run inside the AppContainer")
+            marker_ok = False
+            if os.path.isfile(marker):
+                with open(marker, encoding="utf-8") as handle:
+                    marker_ok = "ok" in handle.read()
+            if marker_ok:
+                mode = "lpac" if use_lpac else "plain"
+                return _status(True, f"child ran inside AppContainer ({mode})")
+        detail = ""
+        if os.path.isfile(child_log):
+            with open(child_log, encoding="utf-8", errors="replace") as handle:
+                tail = handle.read().strip().splitlines()[-5:]
+            if tail:
+                detail = ", child log: " + " | ".join(tail)
+        return _status(
+            False,
+            f"sandboxed child exited {result.exit_code} without marker{detail}",
+        )
+    finally:
+        shutil.rmtree(marker_dir, ignore_errors=True)
+
+
 def _is_frozen_executable() -> bool:
     return bool(getattr(sys, "frozen", False))
 
@@ -648,8 +761,10 @@ def check_rnode_support() -> dict[str, str]:
         cases = (
             ({"port": "tcp://127.0.0.1"}, "tcp"),
             ({"port": "ble://aa:bb:cc:dd:ee:ff"}, "ble"),
+            ({"port": "bt://MyRNode"}, "bluetooth_classic"),
             ({"port": "/dev/ttyUSB0"}, "serial"),
             ({"port": "", "allow_bluetooth": "true"}, "bluetooth_classic"),
+            ({"ble_name": "MyRNode"}, "ble"),
         )
         for iface, expected in cases:
             got = rn._rnode_iface_transport(iface)

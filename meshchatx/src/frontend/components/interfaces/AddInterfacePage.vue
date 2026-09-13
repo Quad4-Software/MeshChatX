@@ -744,6 +744,18 @@
                                                         >{{ $t("interfaces.rnode_ble_toggle") }}</FormLabel
                                                     >
                                                 </div>
+                                                <div class="flex items-center gap-2">
+                                                    <Toggle
+                                                        id="rnode-use-bt"
+                                                        :model-value="newInterfaceRNodeUseBt"
+                                                        @update:model-value="setRNodeTransportBt"
+                                                    />
+                                                    <FormLabel
+                                                        for="rnode-use-bt"
+                                                        class="cursor-pointer mb-0! text-sm"
+                                                        >{{ $t("interfaces.rnode_bt_toggle") }}</FormLabel
+                                                    >
+                                                </div>
                                             </div>
 
                                             <div
@@ -785,6 +797,28 @@
                                                 />
                                                 <p class="text-[11px] leading-relaxed text-sem-fg-muted">
                                                     {{ $t("interfaces.rnode_ble_hint") }}
+                                                </p>
+                                            </div>
+                                            <div
+                                                v-else-if="
+                                                    newInterfaceType === 'RNodeInterface' && newInterfaceRNodeUseBt
+                                                "
+                                                class="space-y-2"
+                                            >
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.rnode_bt_peer_label")
+                                                }}</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceRNodeBtPeer"
+                                                    type="text"
+                                                    :placeholder="$t('interfaces.rnode_bt_peer_placeholder')"
+                                                    class="input-field font-mono text-sm"
+                                                    autocapitalize="off"
+                                                    autocomplete="off"
+                                                    spellcheck="false"
+                                                />
+                                                <p class="text-[11px] leading-relaxed text-sem-fg-muted">
+                                                    {{ $t("interfaces.rnode_bt_hint") }}
                                                 </p>
                                             </div>
                                             <div v-else>
@@ -2754,9 +2788,26 @@ export default {
                 this.newInterfaceRNodeUseIP = false;
                 this.newInterfaceRNodeUseBle = false;
                 this.newInterfaceRNodeBlePeer = "";
+                this.newInterfaceRNodeUseBt = false;
+                this.newInterfaceRNodeBtPeer = "";
                 if (iface.port && String(iface.port).toLowerCase().startsWith("ble://")) {
                     this.newInterfaceRNodeUseBle = true;
                     this.newInterfaceRNodeBlePeer = String(iface.port);
+                } else if (iface.port && String(iface.port).toLowerCase().startsWith("bt://")) {
+                    this.newInterfaceRNodeUseBt = true;
+                    this.newInterfaceRNodeBtPeer = String(iface.port);
+                } else if (iface.ble_name || iface.ble_addr || this.parseBool(iface.force_ble)) {
+                    // Android-normalized BLE entry: ble_name/ble_addr/force_ble
+                    // replace the ble:// port written by the desktop scheme.
+                    this.newInterfaceRNodeUseBle = true;
+                    this.newInterfaceRNodeBlePeer = iface.ble_addr || iface.ble_name || "ble://";
+                } else if (
+                    this.parseBool(iface.allow_bluetooth) &&
+                    (iface.target_device_name || iface.target_device_address || !iface.port)
+                ) {
+                    // Android-normalized classic Bluetooth entry.
+                    this.newInterfaceRNodeUseBt = true;
+                    this.newInterfaceRNodeBtPeer = iface.target_device_address || iface.target_device_name || "bt://";
                 } else if (iface.port && String(iface.port).startsWith("tcp://")) {
                     this.newInterfaceRNodeIPHost = this.parseRnodeTcpHostFromPort(iface.port);
                     this.newInterfaceRNodeUseIP = true;
@@ -2884,17 +2935,27 @@ export default {
             if (config.listen_port) this.newInterfaceListenPort = Number(config.listen_port);
             if (config.forward_ip) this.newInterfaceForwardIp = config.forward_ip;
             if (config.forward_port) this.newInterfaceForwardPort = Number(config.forward_port);
+            this.newInterfaceRNodeUseBle = false;
+            this.newInterfaceRNodeUseIP = false;
+            this.newInterfaceRNodeUseBt = false;
             if (config.port) {
                 this.newInterfacePort = config.port;
-                this.newInterfaceRNodeUseBle = false;
-                this.newInterfaceRNodeUseIP = false;
                 if (String(config.port).toLowerCase().startsWith("ble://")) {
                     this.newInterfaceRNodeUseBle = true;
                     this.newInterfaceRNodeBlePeer = config.port;
+                } else if (String(config.port).toLowerCase().startsWith("bt://")) {
+                    this.newInterfaceRNodeUseBt = true;
+                    this.newInterfaceRNodeBtPeer = config.port;
                 } else if (config.port.startsWith("tcp://")) {
                     this.newInterfaceRNodeIPHost = this.parseRnodeTcpHostFromPort(config.port);
                     this.newInterfaceRNodeUseIP = true;
                 }
+            } else if (config.ble_name || config.ble_addr || this.parseBool(config.force_ble)) {
+                this.newInterfaceRNodeUseBle = true;
+                this.newInterfaceRNodeBlePeer = config.ble_addr || config.ble_name || "ble://";
+            } else if (this.parseBool(config.allow_bluetooth)) {
+                this.newInterfaceRNodeUseBt = true;
+                this.newInterfaceRNodeBtPeer = config.target_device_address || config.target_device_name || "bt://";
             }
 
             // Radio params
@@ -3472,7 +3533,9 @@ export default {
                             ? this.buildRNodeTcpPort()
                             : this.newInterfaceRNodeUseBle
                               ? this.effectiveRNodeBlePort()
-                              : this.newInterfacePort,
+                              : this.newInterfaceRNodeUseBt
+                                ? this.effectiveRNodeBtPort()
+                                : this.newInterfacePort,
                     frequency: freqHz,
                     bandwidth: this.newInterfaceBandwidth,
                     txpower: this.newInterfaceTxpower,

@@ -133,6 +133,27 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.selectedHubHash).toBe(HUB_HASH);
     });
 
+    it("collapses host, bots and search tabs into the mobile overflow menu", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        // Below md these tabs live in the overflow dropdown so the tab bar
+        // never scrolls horizontally on phones.
+        expect(wrapper.vm.overflowTabs.map((t) => t.id)).toEqual(["host", "bots", "search"]);
+
+        const tabs = wrapper.findAll('[role="tab"]');
+        const searchTab = tabs.find((t) => t.text().trim() === "Search");
+        expect(searchTab).toBeTruthy();
+        expect(searchTab.classes()).toContain("hidden");
+        expect(searchTab.classes()).toContain("md:inline-flex");
+
+        // Selecting an overflow view flags the menu button as active.
+        wrapper.vm.selectView("search");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isOverflowView).toBe(true);
+        expect(wrapper.vm.overflowViewIcon).toBe("magnify");
+    });
+
     it("shows hub rooms discovered via auto-list that have not been joined yet", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rrc/hubs") {
@@ -1033,6 +1054,30 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.isBadKeyErrorText("ERROR: Bad Key (+K)")).toBe(true);
         expect(wrapper.vm.isBadKeyErrorText("failed: enable +k first")).toBe(false);
         expect(wrapper.vm.isBadKeyErrorText("+k")).toBe(false);
+    });
+
+    it("back from a room opened via search returns to the search view", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        wrapper.vm.view = "search";
+
+        await wrapper.vm.openSearchResult({ hubHash: HUB_HASH, room: "lobby" });
+        expect(wrapper.vm.view).toBe("chat");
+        expect(wrapper.vm.selectedRoom).toBe("lobby");
+
+        wrapper.vm.onBackFromRoom();
+        expect(wrapper.vm.selectedRoom).toBe(null);
+        expect(wrapper.vm.view).toBe("search");
+    });
+
+    it("back from a room opened via chat stays on the chat view", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        expect(wrapper.vm.view).toBe("chat");
+
+        wrapper.vm.onBackFromRoom();
+        expect(wrapper.vm.view).toBe("chat");
     });
 
     it("sendModerationCommand prefers peer hash over display nick", async () => {

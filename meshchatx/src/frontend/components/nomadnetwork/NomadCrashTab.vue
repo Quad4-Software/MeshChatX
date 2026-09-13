@@ -1,18 +1,24 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="nomad-crash-tab relative h-full min-h-0 w-full min-w-0 bg-black">
-        <iframe
-            ref="frame"
-            class="nomad-crash-tab__frame absolute inset-0 h-full w-full border-0 bg-black"
-            :title="crashTabTitle"
-            name="nomad-page-renderer"
-            sandbox="allow-scripts"
-            allow="local-network-access"
-            :src="frameSrc"
-            :style="frameStyle"
-            @load="onFrameLoad"
-        ></iframe>
+    <div ref="hostEl" class="nomad-crash-tab relative h-full min-h-0 w-full min-w-0 bg-black">
+        <!-- The frame lives outside the keep-alive subtree. Detaching this
+             component (route change, tab switch) would otherwise destroy the
+             iframe browsing context and force a renderer reload plus a full
+             content re-push on every return. -->
+        <Teleport to="body">
+            <iframe
+                ref="frame"
+                class="nomad-crash-tab__frame border-0 bg-black"
+                :title="crashTabTitle"
+                name="nomad-page-renderer"
+                sandbox="allow-scripts"
+                allow="local-network-access"
+                :src="frameSrc"
+                :style="frameStyle"
+                @load="onFrameLoad"
+            ></iframe>
+        </Teleport>
 
         <div
             v-if="status === 'hung' || status === 'crashed'"
@@ -84,6 +90,15 @@ const WATCHDOG_STALL_MS = 20000;
 /** Wall-clock cap for one paint. Ping liveness alone cannot clear a hung import. */
 const RENDER_DEADLINE_MS = 20000;
 const RENDER_DEADLINE_MIN_RESUME_MS = 1000;
+/**
+ * Transition or animation property names that can move or resize the host
+ * slot without producing a resize or scroll event. Filtered so paint-only
+ * transitions (color, opacity) never start the rect poll.
+ */
+const GEOMETRY_TRANSITION_RE =
+    /transform|translate|scale|rotate|inset|^top$|^left$|^right$|^bottom$|width|height|margin|padding|gap|flex|grid/;
+/** How long the rect poll keeps running after the last geometry transition. */
+const RECT_POLL_TAIL_MS = 700;
 
 export default {
     name: "NomadCrashTab",
@@ -177,16 +192,38 @@ export default {
                 x: 0,
                 y: 0,
             },
+            // Placeholder rect the teleported frame is parked over.
+            frameRect: { left: 0, top: 0, width: 0, height: 0 },
         };
     },
     computed: {
         frameStyle() {
             const bg = this.background && this.background !== "transparent" ? this.background : "#000000";
             const show = this.reveal && this.framePainted && this.status !== "rendering" && this.status !== "loading";
+            const rect = this.frameRect;
             return {
+                position: "fixed",
+                left: `${rect.left}px`,
+                top: `${rect.top}px`,
+                width: `${rect.width}px`,
+                height: `${rect.height}px`,
                 backgroundColor: bg,
                 opacity: show ? "1" : "0",
+                visibility: this.frameVisible ? "visible" : "hidden",
+                pointerEvents: this.frameVisible && this.reveal ? "auto" : "none",
             };
+        },
+        frameVisible() {
+            // Hide under the hung/crashed overlay too: the teleported frame is
+            // at body level, so an in-tree overlay cannot rely on z-order
+            // alone to cover it.
+            return (
+                this.active &&
+                this.status !== "hung" &&
+                this.status !== "crashed" &&
+                this.frameRect.width > 0 &&
+                this.frameRect.height > 0
+            );
         },
         crashTabTitle() {
             return this.path || "Nomad";
@@ -261,11 +298,14 @@ export default {
                 this.stopWatchdog();
                 this.parkRenderDeadline();
             }
+            this.$nextTick(() => this.updateFrameRect());
         },
     },
     mounted() {
         window.addEventListener("message", this.onWindowMessage);
         window.addEventListener("visibilitychange", this.onVisibilityChange);
+        this.setupFrameRectTracking();
+        this.updateFrameRect();
         if (typeof document !== "undefined") {
             document.addEventListener("freeze", this.onPageFreeze);
             document.addEventListener("resume", this.onPageResume);
@@ -279,9 +319,15 @@ export default {
             this.armRenderDeadline();
         }
     },
+    updated() {
+        // Reactive siblings (banners, state blocks) can shift the slot without
+        // firing resize or scroll. A rect read per patch is cheap insurance.
+        this.updateFrameRect();
+    },
     beforeUnmount() {
         window.removeEventListener("message", this.onWindowMessage);
         window.removeEventListener("visibilitychange", this.onVisibilityChange);
+        this.teardownFrameRectTracking();
         if (typeof document !== "undefined") {
             document.removeEventListener("freeze", this.onPageFreeze);
             document.removeEventListener("resume", this.onPageResume);
@@ -752,6 +798,78 @@ export default {
                 clearInterval(this.watchdogTimer);
                 this.watchdogTimer = null;
             }
+        },
+        updateFrameRect() {
+            const host = this.$refs.hostEl;
+            const rect = host && typeof host.getBoundingClientRect === "function" ? host.getBoundingClientRect() : null;
+            const next = rect
+                ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+                : { left: 0, top: 0, width: 0, height: 0 };
+            const prev = this.frameRect;
+            // Skip the write when nothing moved. Assigning a fresh object in
+            // updated() would re-render and loop forever on identical rects.
+            if (
+                next.left === prev.left &&
+                next.top === prev.top &&
+                next.width === prev.width &&
+                next.height === prev.height
+            ) {
+                return;
+            }
+            this.frameRect = next;
+        },
+        setupFrameRectTracking() {
+            const host = this.$refs.hostEl;
+            if (typeof window === "undefined" || !host) {
+                return;
+            }
+            if (typeof ResizeObserver === "function") {
+                this._rectObserver = new ResizeObserver(() => this.updateFrameRect());
+                this._rectObserver.observe(host);
+                this._rectObserver.observe(document.documentElement);
+            }
+            window.addEventListener("resize", this.updateFrameRect);
+            document.addEventListener("scroll", this.updateFrameRect, true);
+            document.addEventListener("transitionrun", this.onGeometryTransition, true);
+            document.addEventListener("animationstart", this.onGeometryTransition, true);
+        },
+        teardownFrameRectTracking() {
+            if (this._rectObserver) {
+                this._rectObserver.disconnect();
+                this._rectObserver = null;
+            }
+            this._rectPollUntil = 0;
+            if (this._rectPollRaf != null && typeof cancelAnimationFrame === "function") {
+                cancelAnimationFrame(this._rectPollRaf);
+                this._rectPollRaf = null;
+            }
+            if (typeof window !== "undefined") {
+                window.removeEventListener("resize", this.updateFrameRect);
+            }
+            if (typeof document !== "undefined") {
+                document.removeEventListener("scroll", this.updateFrameRect, true);
+                document.removeEventListener("transitionrun", this.onGeometryTransition, true);
+                document.removeEventListener("animationstart", this.onGeometryTransition, true);
+            }
+        },
+        onGeometryTransition(event) {
+            const prop = event ? event.propertyName : null;
+            if (prop != null && !GEOMETRY_TRANSITION_RE.test(prop)) {
+                return;
+            }
+            this._rectPollUntil = Date.now() + RECT_POLL_TAIL_MS;
+            if (this._rectPollRaf != null) {
+                return;
+            }
+            const step = () => {
+                this._rectPollRaf = null;
+                if (Date.now() >= (this._rectPollUntil || 0)) {
+                    return;
+                }
+                this.updateFrameRect();
+                this._rectPollRaf = requestAnimationFrame(step);
+            };
+            this._rectPollRaf = requestAnimationFrame(step);
         },
         reloadFrame() {
             this.clearRenderDeadline();

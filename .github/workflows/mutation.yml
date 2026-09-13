@@ -41,7 +41,9 @@ env:
 jobs:
     mutation:
         runs-on: ubuntu-latest
-        timeout-minutes: 120
+        # Stats collection runs the whole backend suite serially under a
+        # coverage-tracking plugin, which takes well over an hour on its own.
+        timeout-minutes: 360
         steps:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1

@@ -34,7 +34,7 @@ Options:
   --lxst-version V           LXST wheel version for metadata patch (default: 0.5.1)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --httpx-version V          httpx pure-python wheel version to vendor (default: 0.28.1)
-  --rns-version V            rns wheel version to patch (default: 1.5.3)
+  --rns-version V            rns wheel version to patch (default: 1.5.4)
   --no-lxst-patch            Skip LXST metadata patch
   --no-rns-patch             Skip RNS Android RNodeInterface patch
   --only-recipes LIST        Comma-separated recipe directory names under
@@ -68,7 +68,7 @@ HTTPX_VERSION="0.28.1"
 PYOPENSSL_VERSION="26.4.0"
 SERVICE_IDENTITY_VERSION="26.1.0"
 ATTRS_VERSION="26.1.0"
-RNS_VERSION="1.5.3"
+RNS_VERSION="1.5.4"
 PATCH_LXST="1"
 PATCH_RNS="1"
 ONLY_RECIPES=""
@@ -997,11 +997,25 @@ new_block = '''        import importlib.util
             raise SystemError("Android-specific interface was used on non-Android OS")
 '''
 
+bt_enabled_marker = '''    def bt_enabled(self):
+        return self.bt_adapter.getDefaultAdapter().isEnabled()
+'''
+bt_enabled_new = '''    def bt_enabled(self):
+        adapter = self.bt_adapter.getDefaultAdapter()
+        return adapter != None and adapter.isEnabled()
+'''
+
 def patch_rnode_interface(data):
     text = data.decode("utf-8")
     start_idx = text.index(start_marker)
     end_idx = text.index(end_marker, start_idx) + len(end_marker)
-    return (text[:start_idx] + new_block + text[end_idx:]).encode("utf-8")
+    text = text[:start_idx] + new_block + text[end_idx:]
+    # getDefaultAdapter() returns null on devices without Bluetooth; a null
+    # dereference here would kill the BLE connection job thread.
+    if bt_enabled_marker not in text:
+        raise SystemExit("bt_enabled marker not found in RNodeInterface.py")
+    text = text.replace(bt_enabled_marker, bt_enabled_new, 1)
+    return text.encode("utf-8")
 
 patched_target = "RNS/Interfaces/Android/RNodeInterface.py"
 found = False

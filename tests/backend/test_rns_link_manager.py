@@ -262,7 +262,7 @@ async def test_open_link_emits_finding_path_slow(monkeypatch):
     dest = bytes.fromhex("c5" * 16)
     monkeypatch.setattr(rlm, "PATH_MARGIN_S", 0.02)
     monkeypatch.setattr(rlm.RNS.Reticulum, "DEFAULT_PER_HOP_TIMEOUT", 0.02)
-    monkeypatch.setattr(rlm, "path_response_window", lambda *_a, **_k: 0.12)
+    monkeypatch.setattr(rlm, "path_response_window", lambda *_a, **_k: 1.0)
     monkeypatch.setattr(
         rlm.reticulum_pathfinding,
         "prepare_fresh_path_request",

@@ -491,8 +491,8 @@ def register_interfaces_routes(routes, app):
                 else:
                     message = (
                         "This RNode connection type is not available on this device. "
-                        "USB serial and classic Bluetooth need pyserial; BLE needs bleak. "
-                        "RNode over IP (TCP) is unaffected."
+                        "Serial, classic Bluetooth, BLE, and TCP all need pyserial "
+                        "installed; BLE additionally needs bleak."
                     )
                 return http_error(422, message)
 

@@ -389,7 +389,7 @@
                                 type="button"
                                 class="md:hidden rounded-lg p-1.5 text-sem-fg-muted hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
                                 :title="$t('relay_chat.back')"
-                                @click="selectedRoom = null"
+                                @click="onBackFromRoom"
                             >
                                 <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
                             </button>
@@ -1062,10 +1062,10 @@
                                 <input
                                     id="rrc-create-announce-interval-input"
                                     type="text"
-                                    inputmode="numeric"
+                                    inputmode="text"
                                     autocomplete="off"
-                                    maxlength="5"
-                                    class="w-16 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
+                                    maxlength="12"
+                                    class="w-20 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
                                     :value="createAnnounceIntervalMinutesShown"
                                     :aria-label="$t('relay_chat.host_announce_interval')"
                                     @focus="onCreateAnnounceIntervalFocus"
@@ -1086,7 +1086,7 @@
                             <p class="text-xs text-sem-fg-muted">
                                 {{
                                     $t("relay_chat.host_announce_interval_hint", {
-                                        minutes: createAnnounceIntervalMinutes,
+                                        interval: createAnnounceIntervalLabel,
                                     })
                                 }}
                             </p>
@@ -1135,10 +1135,10 @@
                                 <input
                                     id="rrc-host-announce-interval-input"
                                     type="text"
-                                    inputmode="numeric"
+                                    inputmode="text"
                                     autocomplete="off"
-                                    maxlength="5"
-                                    class="w-16 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
+                                    maxlength="12"
+                                    class="w-20 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
                                     :value="hostAnnounceIntervalMinutesShown"
                                     :aria-label="$t('relay_chat.host_announce_interval')"
                                     @focus="onHostAnnounceIntervalFocus"
@@ -1159,7 +1159,7 @@
                             <p class="text-xs text-sem-fg-muted">
                                 {{
                                     $t("relay_chat.host_announce_interval_hint", {
-                                        minutes: hostAnnounceIntervalMinutes,
+                                        interval: hostAnnounceIntervalLabel,
                                     })
                                 }}
                             </p>
@@ -1472,6 +1472,8 @@ import {
     ANNOUNCE_SLIDER_POS_MAX,
     announceMinutesToSliderPos,
     announceSliderPosToMinutes,
+    formatAnnounceIntervalMinutes,
+    parseAnnounceIntervalMinutes,
 } from "../../js/announceIntervalSliderMap.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
@@ -1503,8 +1505,9 @@ const BTN_DANGER_SM =
     "inline-flex items-center justify-center rounded-lg border border-sem-border bg-sem-canvas p-1.5 text-sem-fg transition hover:border-sem-danger hover:text-sem-danger hover:bg-sem-danger/10";
 
 const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
-// Tabs that collapse into a mobile overflow menu so the tab bar fits narrow screens.
-const OVERFLOW_TAB_IDS = new Set(["host", "bots"]);
+// Below md these collapse into the overflow menu so the tab bar never
+// scrolls horizontally on phones. Chat and Discovery stay pinned.
+const OVERFLOW_TAB_IDS = new Set(["host", "bots", "search"]);
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
@@ -1765,7 +1768,10 @@ export default {
             if (this.createAnnounceIntervalDraft != null) {
                 return this.createAnnounceIntervalDraft;
             }
-            return String(this.createAnnounceIntervalMinutes);
+            return formatAnnounceIntervalMinutes(this.createAnnounceIntervalMinutes);
+        },
+        createAnnounceIntervalLabel() {
+            return formatAnnounceIntervalMinutes(this.createAnnounceIntervalMinutes);
         },
         hostAnnounceIntervalMinutes() {
             return secondsToAnnounceMinutes(this.hostHubSettingsForm.announce_interval_seconds);
@@ -1777,7 +1783,10 @@ export default {
             if (this.hostAnnounceIntervalDraft != null) {
                 return this.hostAnnounceIntervalDraft;
             }
-            return String(this.hostAnnounceIntervalMinutes);
+            return formatAnnounceIntervalMinutes(this.hostAnnounceIntervalMinutes);
+        },
+        hostAnnounceIntervalLabel() {
+            return formatAnnounceIntervalMinutes(this.hostAnnounceIntervalMinutes);
         },
         relayChatPageSelf() {
             return this;
@@ -1909,6 +1918,7 @@ export default {
             this.members = [];
             this.selectedHubHash = null;
             this.selectedRoom = null;
+            this._viewBeforeRoomOpen = null;
             this.messageTranslations = {};
             this.expandedHubs = {};
             this.availableRoomsExpanded = {};
@@ -2127,23 +2137,22 @@ export default {
             this.createAnnounceIntervalDraft = null;
         },
         onCreateAnnounceIntervalFocus() {
-            this.createAnnounceIntervalDraft = String(this.createAnnounceIntervalMinutes);
+            this.createAnnounceIntervalDraft = formatAnnounceIntervalMinutes(this.createAnnounceIntervalMinutes);
         },
         onCreateAnnounceIntervalInput(event) {
-            const raw = String(event?.target?.value ?? "").replace(/\D/g, "");
+            const raw = String(event?.target?.value ?? "");
             this.createAnnounceIntervalDraft = raw;
-            if (raw === "") {
+            if (raw.trim() === "") {
                 return;
             }
-            const minutes = Number.parseInt(raw, 10);
-            if (Number.isFinite(minutes)) {
+            const minutes = parseAnnounceIntervalMinutes(raw);
+            if (minutes != null) {
                 this.createHubForm.announce_interval_seconds = clampAnnounceIntervalMinutes(minutes) * 60;
             }
         },
         onCreateAnnounceIntervalBlur() {
-            const minutes = clampAnnounceIntervalMinutes(
-                this.createAnnounceIntervalDraft || this.createAnnounceIntervalMinutes
-            );
+            const parsed = parseAnnounceIntervalMinutes(this.createAnnounceIntervalDraft);
+            const minutes = clampAnnounceIntervalMinutes(parsed ?? this.createAnnounceIntervalMinutes);
             this.createHubForm.announce_interval_seconds = minutes * 60;
             this.createAnnounceIntervalDraft = null;
         },
@@ -2153,23 +2162,22 @@ export default {
             this.hostAnnounceIntervalDraft = null;
         },
         onHostAnnounceIntervalFocus() {
-            this.hostAnnounceIntervalDraft = String(this.hostAnnounceIntervalMinutes);
+            this.hostAnnounceIntervalDraft = formatAnnounceIntervalMinutes(this.hostAnnounceIntervalMinutes);
         },
         onHostAnnounceIntervalInput(event) {
-            const raw = String(event?.target?.value ?? "").replace(/\D/g, "");
+            const raw = String(event?.target?.value ?? "");
             this.hostAnnounceIntervalDraft = raw;
-            if (raw === "") {
+            if (raw.trim() === "") {
                 return;
             }
-            const minutes = Number.parseInt(raw, 10);
-            if (Number.isFinite(minutes)) {
+            const minutes = parseAnnounceIntervalMinutes(raw);
+            if (minutes != null) {
                 this.hostHubSettingsForm.announce_interval_seconds = clampAnnounceIntervalMinutes(minutes) * 60;
             }
         },
         onHostAnnounceIntervalBlur() {
-            const minutes = clampAnnounceIntervalMinutes(
-                this.hostAnnounceIntervalDraft || this.hostAnnounceIntervalMinutes
-            );
+            const parsed = parseAnnounceIntervalMinutes(this.hostAnnounceIntervalDraft);
+            const minutes = clampAnnounceIntervalMinutes(parsed ?? this.hostAnnounceIntervalMinutes);
             this.hostHubSettingsForm.announce_interval_seconds = minutes * 60;
             this.hostAnnounceIntervalDraft = null;
         },
@@ -2896,11 +2904,26 @@ export default {
             if (!hubHash || !room) {
                 return;
             }
+            // Capture before the switch so backing out returns to Search.
+            this._viewBeforeRoomOpen = this.view;
             this.view = "chat";
             this.persistRelayLayout();
             this.selectRoom(hubHash, room);
         },
+        onBackFromRoom() {
+            this.selectedRoom = null;
+            this.restoreViewAfterRoomClose();
+        },
+        restoreViewAfterRoomClose() {
+            if (this._viewBeforeRoomOpen && this._viewBeforeRoomOpen !== this.view) {
+                this.view = this._viewBeforeRoomOpen;
+            }
+            this._viewBeforeRoomOpen = null;
+        },
         async selectRoom(hubHash, room) {
+            if (this.selectedRoom === null && this._viewBeforeRoomOpen == null) {
+                this._viewBeforeRoomOpen = this.view;
+            }
             this.selectedHubHash = hubHash;
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
@@ -3146,6 +3169,7 @@ export default {
             try {
                 await window.api.delete(apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(room)}`));
                 this.selectedRoom = null;
+                this.restoreViewAfterRoomClose();
                 this.messages = [];
                 this._invalidateMessageTimelineCache();
                 this.members = [];

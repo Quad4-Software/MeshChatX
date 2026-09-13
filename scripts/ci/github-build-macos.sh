@@ -30,6 +30,7 @@ ARCH=arm64 pnpm run build-backend
 bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-arm64"
 bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-arm64"
 bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-arm64"
+bash scripts/ci/github-verify-frozen-bleak.sh "$ROOT/build/exe/darwin-arm64"
 
 pnpm exec electron-builder --mac --arm64 --config scripts/ci/electron-builder-mac.config.js --publish=never
 

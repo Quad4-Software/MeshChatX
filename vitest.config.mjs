@@ -71,6 +71,15 @@ export default defineConfig({
         teardownTimeout: 30000,
         globals: true,
         environment: "jsdom",
+        // vitest-worker teardown race: a console log RPC still in flight
+        // when the worker closes surfaces as an unhandled rejection even
+        // though every test passed. Ignore only that specific race.
+        onUnhandledError(error) {
+            const message = error && error.message ? String(error.message) : String(error);
+            if (message.includes("Closing rpc while")) {
+                return false;
+            }
+        },
         include: ["tests/frontend/**/*.{test,spec}.{js,ts,jsx,tsx}"],
         setupFiles: ["tests/frontend/setup.js"],
         ui: false,

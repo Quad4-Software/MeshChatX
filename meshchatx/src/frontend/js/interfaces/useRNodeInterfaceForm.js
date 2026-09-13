@@ -21,6 +21,8 @@ export function useRNodeInterfaceForm() {
     const newInterfaceRNodeUseIP = ref(false);
     const newInterfaceRNodeUseBle = ref(false);
     const newInterfaceRNodeBlePeer = ref("");
+    const newInterfaceRNodeUseBt = ref(false);
+    const newInterfaceRNodeBtPeer = ref("");
     const newInterfaceRNodeIPHost = ref("");
 
     const RNodeGHzValue = ref(0);
@@ -133,10 +135,22 @@ export function useRNodeInterfaceForm() {
         return `ble://${p}`;
     }
 
+    function effectiveRNodeBtPort() {
+        let p = (newInterfaceRNodeBtPeer.value || "").trim();
+        if (!p) {
+            return "bt://";
+        }
+        if (p.toLowerCase().startsWith("bt://")) {
+            return p;
+        }
+        return `bt://${p}`;
+    }
+
     function setRNodeTransportIp(v) {
         newInterfaceRNodeUseIP.value = Boolean(v);
         if (newInterfaceRNodeUseIP.value) {
             newInterfaceRNodeUseBle.value = false;
+            newInterfaceRNodeUseBt.value = false;
         }
     }
 
@@ -144,6 +158,15 @@ export function useRNodeInterfaceForm() {
         newInterfaceRNodeUseBle.value = Boolean(v);
         if (newInterfaceRNodeUseBle.value) {
             newInterfaceRNodeUseIP.value = false;
+            newInterfaceRNodeUseBt.value = false;
+        }
+    }
+
+    function setRNodeTransportBt(v) {
+        newInterfaceRNodeUseBt.value = Boolean(v);
+        if (newInterfaceRNodeUseBt.value) {
+            newInterfaceRNodeUseIP.value = false;
+            newInterfaceRNodeUseBle.value = false;
         }
     }
 
@@ -202,6 +225,8 @@ export function useRNodeInterfaceForm() {
         newInterfaceRNodeUseIP,
         newInterfaceRNodeUseBle,
         newInterfaceRNodeBlePeer,
+        newInterfaceRNodeUseBt,
+        newInterfaceRNodeBtPeer,
         newInterfaceRNodeIPHost,
         RNodeGHzValue,
         RNodeMHzValue,
@@ -218,8 +243,10 @@ export function useRNodeInterfaceForm() {
         buildRNodeTcpPort,
         parseRnodeTcpHostFromPort,
         effectiveRNodeBlePort,
+        effectiveRNodeBtPort,
         setRNodeTransportIp,
         setRNodeTransportBle,
+        setRNodeTransportBt,
         updateRNodeCalculations,
         calculateRNodeParameters,
         addSubInterface,

@@ -238,6 +238,26 @@ describe("NomadNetworkSidebar.vue", () => {
         emitSpy.mockRestore();
     });
 
+    it("mobile URL input emits navigate-url and clears", async () => {
+        const wrapper = mountSidebar();
+        await wrapper.vm.$nextTick();
+
+        const input = wrapper.find('input[placeholder="nomadnet.enter_nomadnet_url"]');
+        expect(input.exists()).toBe(true);
+        await input.setValue("abcd1234abcd1234abcd1234abcd1234:/page/index.mu");
+        await input.trigger("keyup.enter");
+
+        expect(wrapper.emitted("navigate-url")).toEqual([["abcd1234abcd1234abcd1234abcd1234:/page/index.mu"]]);
+        expect(wrapper.vm.mobileUrlInput).toBe("");
+    });
+
+    it("mobile URL input ignores blank submissions", async () => {
+        const wrapper = mountSidebar();
+        wrapper.vm.mobileUrlInput = "   ";
+        wrapper.vm.submitMobileUrl();
+        expect(wrapper.emitted("navigate-url")).toBeUndefined();
+    });
+
     it("shows a spinner next to the search input while a node search is in progress", async () => {
         const wrapper = mountSidebar({ isSearchingNodes: true });
         const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
