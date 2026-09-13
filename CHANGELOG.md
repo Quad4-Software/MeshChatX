@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.1] - [unreleased]
 
+### Fixed
+
+- Windows desktop: the AppContainer child no longer dies during loader init (exit 0xC0000142) on hosts where the LPAC token lacks window station and desktop access. The launcher now grants the package SID explicit access to the interactive winsta and desktop, and a sandboxed child that still fails to start falls back to an unsandboxed backend in auto mode.
+- Packaged builds: `.gitkeep` keep-marker placeholders are no longer hashed into `backend-manifest.json`, so a dropped placeholder cannot produce a Missing integrity warning that blocks onboarding.
+- Relay chat: the hosted hub announce interval now displays hours and days (for example "6 h", "1 h 30 min", "1 d") and the input accepts unit-suffixed values like "6h" or "1d" instead of raw minutes only.
+
+### Changed
+
+- Bump rns to 1.5.4 and lxst to 0.5.3.
+- Headless self-check gains an AppContainer Launch probe that spawns a real sandboxed child on Windows so loader-init regressions surface via `--self-check` and CI.
+- CI verifies the packaged Electron backend tree against `backend-manifest.json` before the unpacked staging dir is pruned.
+
 ## [4.9.0] - 2026-09-12 [released]
 
 ### Added
