@@ -32,6 +32,7 @@ const {
     resolvePortableStorageRoots,
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
+    isTrustedShellFileUrl,
     shouldOpenInElectronWindow,
     shouldAllowInWindowNavigation,
     isTrustedIpcEvent,
@@ -123,14 +124,21 @@ if (process.argv.includes("--disable-gpu") || process.argv.includes("--disable-s
 }
 
 if (process.platform === "linux") {
-    app.setName("reticulum-meshchatx");
+    app.setName("com.meshchatx.app");
+    const retainedUserDataDir = path.join(app.getPath("appData"), "reticulum-meshchatx");
+    try {
+        fs.mkdirSync(retainedUserDataDir, { recursive: true });
+    } catch {
+        /* no-op */
+    }
+    app.setPath("userData", retainedUserDataDir);
 }
 
 // Windows toast notifications require a stable AppUserModelID that matches
 // the electron-builder appId. Without this, minimized-window message toasts
 // often never appear for installer and portable builds.
 if (process.platform === "win32") {
-    app.setAppUserModelId("com.quad4.meshchatx");
+    app.setAppUserModelId("com.meshchatx.app");
 }
 
 // Detect if running in Flatpak sandbox
@@ -700,6 +708,11 @@ function attachDefaultContextMenu(browserWindow) {
             template.push({
                 label: "Open link",
                 click: () => {
+                    if (shouldOpenInElectronWindow(params.linkURL)) {
+                        const child = new BrowserWindow(getChildBrowserWindowOptions());
+                        void child.loadURL(params.linkURL);
+                        return;
+                    }
                     const safe = normalizeExternalUrlForOpen(params.linkURL);
                     if (safe) {
                         shell.openExternal(safe);
@@ -795,10 +808,16 @@ function getMainWindowPageKind() {
         return "none";
     }
     const url = mainWindow.webContents.getURL();
-    if (url.includes("loading.html")) {
+    let pathname = "";
+    try {
+        pathname = new URL(url).pathname || "";
+    } catch {
+        pathname = "";
+    }
+    if (isTrustedShellFileUrl(url) && pathname.endsWith("/loading.html")) {
         return "loading";
     }
-    if (url.includes("crash.html")) {
+    if (isTrustedShellFileUrl(url) && pathname.endsWith("/crash.html")) {
         return "crash";
     }
     if (isLocalBackendUrl(url)) {
@@ -1135,7 +1154,7 @@ app.whenReady().then(async () => {
                     return;
                 }
                 const currentUrl = mainWindow.webContents.getURL();
-                if (currentUrl.includes("loading.html")) {
+                if (isTrustedShellFileUrl(currentUrl)) {
                     return;
                 }
                 try {

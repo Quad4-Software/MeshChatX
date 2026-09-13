@@ -16,6 +16,7 @@ from RNS.vendor.configobj import ConfigObj
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend import i2p_support
+from tests.backend.http_request_stubs import JsonContent
 
 
 class ConfigDict(dict):
@@ -82,6 +83,7 @@ def make_request(payload):
         return payload
 
     request.json = _json
+    request.content = JsonContent(payload)
     return request
 
 

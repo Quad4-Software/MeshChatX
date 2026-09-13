@@ -2,7 +2,7 @@
 
 Applies when editing `meshchatx/src/frontend/**/*.{js,ts,svelte}`.
 
-- Live UI is Svelte 5 (runes). Boot is `main.ts` → `features/app-shell/App.svelte` + `shell/hashRouter.ts` + `shell/PageOutlet.svelte`.
+- Live UI is Svelte 5 (runes). Boot is `main.ts` -> `features/app-shell/App.svelte` + `shell/hashRouter.ts` + `shell/PageOutlet.svelte`.
 - Do not add Vue SFCs, vue-router, vue-i18n, or Vue test-utils.
 - Feature modules, `ui/svelte/`, and the `js/` kernel use TypeScript (`.ts`, `lang="ts"` in `.svelte`). Do not grow new plain `.js` under `js/` or `features/`.
 - New routes use `registerFeature` / `routeRegistry` with `mount: "svelte"`. Do not hardcode routes in `main.ts`.

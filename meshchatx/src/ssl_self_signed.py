@@ -88,7 +88,7 @@ def collect_tls_san_entries():
         _add(_dns_name(name))
         _add(_ip_name(name))
 
-    for name in list(hostnames) + ["localhost"]:
+    for name in [*hostnames, "localhost"]:
         try:
             infos = socket.getaddrinfo(name, None)
         except OSError:

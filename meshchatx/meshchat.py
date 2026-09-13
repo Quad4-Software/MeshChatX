@@ -33,7 +33,7 @@ import time
 import traceback
 import webbrowser
 import zipfile
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from urllib.parse import urlparse
 
@@ -90,6 +90,8 @@ from meshchatx.src.backend.auth_page_hint import auth_page_hint_from_env
 from meshchatx.src.backend.auto_resend_guard import (
     AutoResendCoordinator,
 )
+from meshchatx.src.backend.colour_utils import ColourUtils
+from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.csrf import (
     ensure_session_csrf_token,
     rotate_session_csrf_token,
@@ -122,13 +124,11 @@ from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.landlock_sandbox import (
     apply_landlock_sandbox,
     extra_read_roots_from_app,
+    landlock_abi_version,
     landlock_auto_enabled,
     landlock_disabled_by_env,
     landlock_kernel_supported,
     landlock_requested,
-)
-from meshchatx.src.backend.rns_filesync_handler import (
-    collect_external_filesync_rw_roots,
 )
 from meshchatx.src.backend.legacy_migrator import (
     assert_migration_context_paths,
@@ -151,6 +151,11 @@ from meshchatx.src.backend.lxmf_sieve import (
     parse_lxmf_sieve_filters_json,
 )
 from meshchatx.src.backend.lxmf_utils import (
+    FIELD_REACTION,
+    FIELD_REPLY_QUOTE,
+    FIELD_REPLY_TO,
+    LXMF_APP_EXTENSIONS_FIELD,
+    build_lxmf_reaction_field,
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
@@ -158,6 +163,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_state_to_string,
     is_lxmf_outbound_progress_terminal,
     is_user_facing_lxmf_payload,
+    lxmf_is_reaction_only_delivery,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.map_geo_validator import GeoValidationError
@@ -167,6 +173,10 @@ from meshchatx.src.backend.map_manager import (
     is_mbtiles_filename,
 )
 from meshchatx.src.backend.map_overlay_export import OverlayExportError
+from meshchatx.src.backend.map_overlay_manager import (
+    CONFIG_CLAMPS,
+    clamp_overlay_config_value,
+)
 from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.memory_pressure import (
@@ -179,22 +189,29 @@ from meshchatx.src.backend.meshchat_utils import (
     cancel_inbound_deliveries,
     convert_db_favourite_to_dict,
     convert_propagation_node_state_to_string,
+    has_attachments,
     hex_identifier_to_bytes,
     interval_action_due,
+    list_inbound_deliveries,
+    lxmf_signature_validated,
     message_fields_have_attachments,
     normalize_hex_identifier,
     normalize_identity_storage_hash,
+    normalize_lxmf_destination_hash,
     parse_bool_query_param,
+    parse_lxmf_audio_field_value,
     parse_lxmf_display_name,
+    parse_lxmf_file_attachments_field_value,
+    parse_lxmf_icon_appearance,
+    parse_lxmf_image_field_value,
     parse_lxmf_propagation_node_app_data,
     parse_lxmf_stamp_cost,
+    parse_nomadnetwork_node_display_name,
     propagation_sync_idle_like,
     propagation_sync_is_terminal,
 )
 from meshchatx.src.backend.message_blocklist import (
     build_export_document as build_blocklist_export_document,
-)
-from meshchatx.src.backend.message_blocklist import (
     first_matching_blocklist_entry,
     normalize_message_blocklist,
     parse_import_document,
@@ -217,7 +234,7 @@ from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_string_data_to_map,
 )
 from meshchatx.src.backend.page_node_manager import PageNodeManager
-from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
+from meshchatx.src.backend.persistent_log_handler import memory_log_handler
 from meshchatx.src.backend.plugin_guard import PluginSecurityError
 from meshchatx.src.backend.plugin_manager import PluginManager
 from meshchatx.src.backend.privacy_mode import (
@@ -237,6 +254,9 @@ from meshchatx.src.backend.reticulum_config_guard import (
     reticulum_config_has_required_sections,
 )
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
+from meshchatx.src.backend.rns_filesync_handler import (
+    collect_external_filesync_rw_roots,
+)
 from meshchatx.src.backend.rns_link_manager import (
     RnsLinkManager,
     clear_all_cached_links,
@@ -268,15 +288,17 @@ from meshchatx.src.backend.sticker_utils import (
     sanitize_sticker_name,
     validate_export_document,
 )
-from meshchatx.src.backend.telemetry_utils import Telemeter
+from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
     websocket_type_requires_auth,
 )
-from meshchatx.src.env_utils import env_bool
+from meshchatx.src.env_config import MeshchatEnv
+from meshchatx.src.env_utils import env_bool, env_str
 from meshchatx.src.path_utils import (
     get_file_path,
+    is_loopback_bind_host,
     is_path_within_dir,
     resolve_log_dir,
     resolve_meshchat_data_roots,
@@ -294,8 +316,7 @@ def _truncated_hash32_hex_ok(value: str | None) -> bool:
     return bool(normalize_identity_storage_hash(value))
 
 
-# Global log handler
-memory_log_handler = PersistentLogHandler()
+# Global log handler (singleton lives in persistent_log_handler)
 log_dir = resolve_log_dir()
 handlers = [memory_log_handler]
 
@@ -340,7 +361,7 @@ def _parse_rns_loglevel_value(raw: str | None) -> int | None:
 def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
     if cli_override is not None and str(cli_override).strip():
         return _parse_rns_loglevel_value(cli_override)
-    return _parse_rns_loglevel_value(os.environ.get("MESHCHAT_RNS_LOG_LEVEL"))
+    return _parse_rns_loglevel_value(env_str("MESHCHAT_RNS_LOG_LEVEL"))
 
 
 _rns_bridge_logger = logging.getLogger("meshchatx.rns")
@@ -361,7 +382,7 @@ def _resolve_rns_logdest():
     so RNS output shares SafeRotatingFileHandler and does not flood Docker
     stdout. Set MESHCHAT_RNS_LOG_DEST=stdout to keep the RNS console default.
     """
-    raw = (os.environ.get("MESHCHAT_RNS_LOG_DEST") or "").strip().lower()
+    raw = (env_str("MESHCHAT_RNS_LOG_DEST") or "").strip().lower()
     if raw in ("stdout", "console", "stderr"):
         return None
     if raw in ("", "logging", "callback", "file") and log_dir:
@@ -452,44 +473,8 @@ def _install_reticulum_signal_handlers() -> bool:
     return install_meshchat_signal_handlers()
 
 
-def list_host_network_interfaces():
-    """Enumerate kernel network interfaces on the host running MeshChat.
-
-    Uses psutil (Linux, macOS, Windows). Fails soft on restricted environments
-    (e.g. some Android sandboxes) and returns ([], error).
-
-    Reticulum's device field on server-style interfaces is a *single* interface
-    name, or omitted when binding only via listen_ip.
-    """
-    try:
-        raw = psutil.net_if_addrs()
-    except Exception as exc:
-        logging.debug("list_host_network_interfaces: net_if_addrs failed: %s", exc)
-        return [], str(exc)
-    out: list[dict[str, object]] = []
-    for name in sorted(raw.keys(), key=lambda n: str(n).lower()):
-        addrs: list[str] = []
-        for addr in raw[name]:
-            if addr.family == socket.AF_INET:
-                addrs.append(addr.address)
-            elif addr.family == socket.AF_INET6:
-                if addr.address.startswith("fe80:"):
-                    continue
-                addrs.append(addr.address)
-        out.append({"name": name, "addresses": addrs})
-    return out, None
-
-
-def _is_loopback_bind_host(host: str | None) -> bool:
-    h = (host or "").strip().lower()
-    # Unset or empty means the default loopback bind has not been overridden.
-    if not h:
-        return True
-    return h in ("127.0.0.1", "localhost", "::1", "[::1]")
-
-
 def _csrf_exempt_path(path: str) -> bool:
-    return path == "/api/v1/auth/csrf"
+    return path == f"{API_V1_PREFIX}/auth/csrf"
 
 
 # Live-name anchors for backend.http (meshchat_names / LiveMeshchatName).
@@ -613,14 +598,7 @@ class ReticulumMeshChat:
             reticulum_config_dir,
         )
         self.storage_dir = storage_dir or os.path.join("storage")
-        skip_storage_lock = os.environ.get(
-            "MESHCHAT_SKIP_STORAGE_LOCK",
-            "",
-        ).lower() in (
-            "1",
-            "true",
-            "yes",
-        )
+        skip_storage_lock = env_bool("MESHCHAT_SKIP_STORAGE_LOCK")
         self._storage_lock = None
         if not skip_storage_lock:
             # Serializes startup, schema migration, and runtime for one storage_dir.
@@ -669,6 +647,7 @@ class ReticulumMeshChat:
         self.appcontainer_active: bool = False
         self.seccomp_active: bool = False
         self._pending_identity = identity
+        self._restore_lock = threading.Lock()
         self._network_setup_lock = threading.Lock()
         self._network_ready_event = threading.Event()
         self._network_setup_thread: threading.Thread | None = None
@@ -685,7 +664,10 @@ class ReticulumMeshChat:
         self.announce_timestamps = []
 
         # track incoming lxmf message timestamps for flood protection
+        # on_lxmf_delivery runs on RNS threads and the cooldown loop on the
+        # event loop, so every mutation of this state goes through the lock.
         self._lxmf_incoming_timestamps = []
+        self._lxmf_flood_lock = threading.RLock()
         self._flood_protection_current_cost = None
         self._flood_protection_last_bump_time = 0
 
@@ -695,8 +677,17 @@ class ReticulumMeshChat:
         # track active downloads
         self.active_downloads = {}
         self.download_id_counter = 0
+        self.download_id_lock = asyncio.Lock()
+
+        # page -> file grants for local anti-deep-linking
+        self._page_file_grants: dict[int, dict] = {}
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
+        from meshchatx.src.backend.translation_pack_manager import (
+            TranslationPackManager,
+        )
+
+        self.translation_pack_manager = TranslationPackManager(self.storage_dir)
         self.page_node_manager = PageNodeManager(
             self.storage_dir,
             on_announce=self._register_local_page_node_announce,
@@ -745,6 +736,9 @@ class ReticulumMeshChat:
         # Track long-running rns.link.* handler tasks per WS client so they can
         # be cancelled when the client disconnects.
         self._rns_link_tasks: dict[web.WebSocketResponse, set[asyncio.Task]] = {}
+        # Keep strong refs to fire-and-forget propagation request tasks so the
+        # event loop cannot garbage-collect them mid-flight.
+        self._propagation_node_request_tasks: set[asyncio.Task] = set()
         # Anchor RequestReceipts returned by link.request() for the lifetime of
         # the request. Keyed by (client, request_id).
         self._rns_request_receipts: dict = {}
@@ -766,8 +760,7 @@ class ReticulumMeshChat:
         """
         if _is_chaquopy_android():
             return True
-        force = os.environ.get("MESHCHAT_FORCE_WEB_AUDIO", "").strip().lower()
-        if force in ("1", "true", "yes", "on"):
+        if env_bool("MESHCHAT_FORCE_WEB_AUDIO"):
             return True
         cached = getattr(self, "_host_audio_unavailable_cached", None)
         if cached is not None:
@@ -1038,15 +1031,6 @@ class ReticulumMeshChat:
             self.current_context.rnprobe_handler = value
 
     @property
-    def translator_handler(self):
-        return self.current_context.translator_handler if self.current_context else None
-
-    @translator_handler.setter
-    def translator_handler(self, value):
-        if self.current_context:
-            self.current_context.translator_handler = value
-
-    @property
     def bot_handler(self):
         return self.current_context.bot_handler if self.current_context else None
 
@@ -1245,6 +1229,12 @@ class ReticulumMeshChat:
         threading.Thread(target=restart, daemon=True).start()
 
     def restore_database(self, backup_path, *, relaunch: bool = False):
+        # Two concurrent restores would interleave aside/staging moves and
+        # corrupt the live database; serialize them.
+        with self._restore_lock:
+            return self._restore_database_locked(backup_path, relaunch=relaunch)
+
+    def _restore_database_locked(self, backup_path, *, relaunch: bool = False):
         db_path = self.prepare_for_database_restore()
         if not db_path:
             raise RuntimeError("Database path is unknown")
@@ -1260,12 +1250,101 @@ class ReticulumMeshChat:
             self.storage_dir,
             "identity",
         )
+        restored_identity_hash = None
         if os.path.isfile(identity_storage_file):
-            os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
-            shutil.copy2(identity_storage_file, main_identity_file)
+            try:
+                restored_identity = RNS.Identity.from_file(identity_storage_file)
+                restored_identity_hash = restored_identity.hash.hex()
+            except Exception as exc:
+                print(
+                    "Restored identity file is invalid; keeping the current "
+                    f"identity key: {exc}",
+                )
+            else:
+                os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
+                shutil.copy2(identity_storage_file, main_identity_file)
+        final_db_path = db_path
+        if restored_identity_hash:
+            final_db_path = self._relocate_restored_identity_dir(
+                db_path,
+                restored_identity_hash,
+            )
+        self._rebaseline_integrity_after_restore(
+            final_db_path,
+            restored_identity_hash,
+        )
         if relaunch:
             self._schedule_process_restart()
         return result
+
+    def _relocate_restored_identity_dir(self, db_path, restored_identity_hash):
+        """Move a restored tree into the slot matching its identity.
+
+        Identity storage is keyed by identity hash. A backup zip carries its
+        own identity file, so restoring a different identity's backup leaves
+        the tree under the old hash while the next launch looks under
+        identities/<restored hash> and finds nothing. Relocate the restored
+        tree so the restored identity actually finds its data.
+        """
+        identity_dir = os.path.dirname(db_path)
+        db_name = os.path.basename(db_path)
+        identities_root = os.path.join(self.storage_dir, "identities")
+        if not is_path_within_dir(identity_dir, identities_root):
+            return os.path.join(identity_dir, db_name)
+        if os.path.basename(identity_dir) == restored_identity_hash:
+            return os.path.join(identity_dir, db_name)
+        target_dir = os.path.join(identities_root, restored_identity_hash)
+        try:
+            if os.path.exists(target_dir):
+                aside = f"{target_dir}.prerestore-{int(time.time())}"
+                os.rename(target_dir, aside)
+                print(f"Existing identity dir moved aside to {aside}")
+            os.rename(identity_dir, target_dir)
+            print(f"Restored tree moved to identity slot {restored_identity_hash}")
+            return os.path.join(target_dir, db_name)
+        except OSError as exc:
+            print(f"Failed to relocate restored identity dir: {exc}")
+            return os.path.join(identity_dir, db_name)
+
+    def _rebaseline_integrity_after_restore(self, db_path, restored_identity_hash):
+        """Re-baseline file integrity over the restored identity dir.
+
+        The backup's signed manifest is install-local state and is excluded
+        from restore, so the manifest on disk still describes the pre-restore
+        tree. Without a fresh baseline the next boot flags every restored
+        file. Restore is an explicit user action, so blessing the restored
+        state here matches the acknowledge flow.
+        """
+        try:
+            from meshchatx.src.backend.integrity_manager import IntegrityManager
+
+            identity_dir = os.path.dirname(db_path)
+            identity_hash = restored_identity_hash
+            if identity_hash is None:
+                current = getattr(self, "identity", None)
+                if current is not None:
+                    identity_hash = current.hash.hex()
+            app_version = None
+            with contextlib.suppress(Exception):
+                version = self.get_app_version()
+                if isinstance(version, str):
+                    app_version = version
+            manager = IntegrityManager(
+                identity_dir,
+                db_path,
+                identity_hash=identity_hash,
+                trust_dir=os.path.join(self.storage_dir, "integrity"),
+                app_version=app_version,
+            )
+            if identity_hash is None:
+                # Without an identity to bind to, a saved manifest would only
+                # raise a mismatch next boot. Drop the stale baseline so the
+                # next run rebuilds it.
+                manager.clear_baseline()
+            else:
+                manager.save_manifest(reason="acknowledge")
+        except Exception as exc:
+            print(f"Failed to refresh integrity baseline after restore: {exc}")
 
     def auto_recover_database(self, *, relaunch: bool = True) -> dict:
         from meshchatx.src.backend.database.auto_recover import (
@@ -1514,7 +1593,7 @@ class ReticulumMeshChat:
                 "listen_host": self.listen_host,
                 "listen_port": self.listen_port,
                 "https_enabled": self.use_https,
-                "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+                "is_loopback_bind": is_loopback_bind_host(self.listen_host),
                 "plugins_enabled": self.plugins_enabled,
                 **demo_fields,
                 **self._landlock_status_dict(),
@@ -1538,7 +1617,7 @@ class ReticulumMeshChat:
             "listen_host": self.listen_host,
             "listen_port": self.listen_port,
             "https_enabled": self.use_https,
-            "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+            "is_loopback_bind": is_loopback_bind_host(self.listen_host),
             "plugins_enabled": self.plugins_enabled,
             **demo_fields,
             **self._landlock_status_dict(),
@@ -1759,7 +1838,8 @@ class ReticulumMeshChat:
             return
         if not hasattr(self, "reticulum"):
             return
-        self._reticulum_secondary_started = True
+        # Mark started only after the attempts run: setting the flag first
+        # would leave a mid-run failure permanently unretried.
         try:
             self.page_node_manager.start_all()
             for node in self.page_node_manager.nodes.values():
@@ -1777,6 +1857,7 @@ class ReticulumMeshChat:
             self._ensure_sideband_telemetry_loop()
         except Exception as exc:
             print(f"Sideband plugin loader init failed: {exc}")
+        self._reticulum_secondary_started = True
 
     def _checkpoint_and_close(self):
         # delegated to database instance
@@ -2214,7 +2295,9 @@ class ReticulumMeshChat:
 
             # 2. teardown old identity if not keeping alive
             if not keep_alive:
-                self.teardown_identity()
+                # Teardown waits on setup events and sleeps; run it on a
+                # worker thread so the web loop is not frozen.
+                await asyncio.to_thread(self.teardown_identity)
                 # Give a moment for destinations to clear from transport
                 await asyncio.sleep(2)
             else:
@@ -4066,6 +4149,7 @@ class ReticulumMeshChat:
     def _landlock_status_dict(self) -> dict:
         return {
             "landlock_kernel_supported": landlock_kernel_supported(),
+            "landlock_abi": landlock_abi_version(),
             "landlock_requested": landlock_requested(),
             "landlock_auto_enabled": landlock_auto_enabled(),
             "landlock_disabled_by_env": landlock_disabled_by_env(),
@@ -4303,7 +4387,9 @@ class ReticulumMeshChat:
 
             # start memory diagnostics periodic snapshot task
             if self._mem_diag and self._mem_diag.enabled:
-                asyncio.create_task(self._memory_diag_snapshot_loop())
+                self._mem_diag_task = asyncio.create_task(
+                    self._memory_diag_snapshot_loop()
+                )
 
             try:
                 from meshchatx.src.backend.webtransport_sidecar import (
@@ -4434,13 +4520,14 @@ class ReticulumMeshChat:
         while self.running and ctx.running and ctx.session_id == session_id:
             try:
                 if not self.emergency:
-                    print(
-                        f"Performing scheduled auto-backup for {ctx.identity_hash}...",
+                    logger.info(
+                        "Performing scheduled auto-backup for %s...",
+                        ctx.identity_hash,
                     )
                     max_count = ctx.config.backup_max_count.get()
                     ctx.database.backup_database(ctx.storage_path, max_count=max_count)
-            except Exception as e:
-                print(f"Auto-backup failed: {e}")
+            except Exception:
+                logger.exception("Auto-backup failed")
 
             # Sleep for 12 hours
             await asyncio.sleep(12 * 3600)
@@ -4617,7 +4704,14 @@ class ReticulumMeshChat:
         # Kick off the LXMF request on a worker thread. Identity.recall and link
         # setup can block on multiprocessing pipes. Running inline would stall the
         # HTTP handler and race with cancel_propagation_node_requests (EOFError).
-        asyncio.create_task(self._request_propagation_node_messages(context=ctx))
+        propagation_task = asyncio.create_task(
+            self._request_propagation_node_messages(context=ctx)
+        )
+        tasks = getattr(self, "_propagation_node_request_tasks", None)
+        if tasks is None:
+            tasks = self._propagation_node_request_tasks = set()
+        tasks.add(propagation_task)
+        propagation_task.add_done_callback(tasks.discard)
 
         await self.send_config_to_websocket_clients(context=ctx)
         return True
@@ -5628,53 +5722,54 @@ class ReticulumMeshChat:
         if ctx.config.block_all_from_strangers.get():
             return
 
-        now = time.time()
-        self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
-            self._lxmf_incoming_timestamps,
-            now=now,
-        )
-        msgs_per_minute = len(
-            [t for t in self._lxmf_incoming_timestamps if now - t <= 60.0],
-        )
+        with self._lxmf_flood_lock:
+            now = time.time()
+            self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
+                self._lxmf_incoming_timestamps,
+                now=now,
+            )
+            msgs_per_minute = len(
+                [t for t in self._lxmf_incoming_timestamps if now - t <= 60.0],
+            )
 
-        threshold = ctx.config.lxmf_flood_threshold_per_minute.get()
-        max_cost = ctx.config.lxmf_flood_max_stamp_cost.get()
-        current_cost = ctx.config.lxmf_inbound_stamp_cost.get()
-        current_cost = max(current_cost, 0)
+            threshold = ctx.config.lxmf_flood_threshold_per_minute.get()
+            max_cost = ctx.config.lxmf_flood_max_stamp_cost.get()
+            current_cost = ctx.config.lxmf_inbound_stamp_cost.get()
+            current_cost = max(current_cost, 0)
 
-        # Determine base cost (the normal non-flood cost)
-        if self._flood_protection_current_cost is not None:
-            base_cost = self._flood_protection_current_cost
-        else:
-            base_cost = current_cost
+            # Determine base cost (the normal non-flood cost)
+            if self._flood_protection_current_cost is not None:
+                base_cost = self._flood_protection_current_cost
+            else:
+                base_cost = current_cost
 
-        if msgs_per_minute > threshold:
-            # Flood detected: bump stamp cost
-            new_cost = min(current_cost + 2, max_cost)
-            if new_cost != current_cost:
-                print(
-                    f"LXMF flood detected: {msgs_per_minute} msg/min "
-                    f"(threshold {threshold}). Raising stamp cost from "
-                    f"{current_cost} to {new_cost}.",
-                )
-                if self._flood_protection_current_cost is None:
-                    self._flood_protection_current_cost = base_cost
-                self._flood_protection_last_bump_time = now
-                self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
-        elif current_cost > base_cost:
-            cooldown = ctx.config.lxmf_flood_cooldown_seconds.get()
-            if now - self._flood_protection_last_bump_time > cooldown:
-                # Step down by 1 toward base cost
-                new_cost = max(current_cost - 1, base_cost)
+            if msgs_per_minute > threshold:
+                # Flood detected: bump stamp cost
+                new_cost = min(current_cost + 2, max_cost)
                 if new_cost != current_cost:
                     print(
-                        f"LXMF flood subsided: {msgs_per_minute} msg/min. "
-                        f"Lowering stamp cost from {current_cost} to {new_cost}.",
+                        f"LXMF flood detected: {msgs_per_minute} msg/min "
+                        f"(threshold {threshold}). Raising stamp cost from "
+                        f"{current_cost} to {new_cost}.",
                     )
+                    if self._flood_protection_current_cost is None:
+                        self._flood_protection_current_cost = base_cost
+                    self._flood_protection_last_bump_time = now
                     self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
-                if new_cost == base_cost:
-                    self._flood_protection_current_cost = None
-                    self._flood_protection_last_bump_time = 0
+            elif current_cost > base_cost:
+                cooldown = ctx.config.lxmf_flood_cooldown_seconds.get()
+                if now - self._flood_protection_last_bump_time > cooldown:
+                    # Step down by 1 toward base cost
+                    new_cost = max(current_cost - 1, base_cost)
+                    if new_cost != current_cost:
+                        print(
+                            f"LXMF flood subsided: {msgs_per_minute} msg/min. "
+                            f"Lowering stamp cost from {current_cost} to {new_cost}.",
+                        )
+                        self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
+                    if new_cost == base_cost:
+                        self._flood_protection_current_cost = None
+                        self._flood_protection_last_bump_time = 0
 
     async def lxmf_flood_protection_cooldown_loop(self, session_id, context=None):
         """Background loop to step down flood protection stamp cost during quiet periods."""
@@ -6785,17 +6880,100 @@ class ReticulumMeshChat:
                 return raw.decode("utf-8", errors="replace")
         return None
 
-    def _try_serve_local_page_node_file(self, destination_hash, file_path):
+    def _extract_page_file_links(self, page_content: str) -> set[str]:
+        """Return file paths referenced by a Nomad page for image grants."""
+        if not isinstance(page_content, str):
+            return set()
+        links = set()
+        # Match "hash:/media/..." and "hash:/file/..." image links.
+        pattern = re.compile(
+            r"(?:[a-f0-9]{32})?:/(?:media|file)/([^\s)`\"'\\]+\.(?:webp|png|jpe?g|bmp|gif|tiff))",
+            re.IGNORECASE,
+        )
+        for m in pattern.finditer(page_content):
+            path = m.group(1)
+            if not path or ".." in path:
+                continue
+            links.add(path)
+        return links
+
+    def _register_page_file_grant(
+        self,
+        client,
+        destination_hash: bytes,
+        page_path: str,
+        page_content: str,
+        ttl: float = 300,
+    ) -> None:
+        """Remember the files a client is allowed to fetch from a page."""
+        key = id(client)
+        now = time.time()
+        # Prune expired entries and old clients.
+        self._page_file_grants = {
+            k: v for k, v in self._page_file_grants.items() if v.get("expires", 0) > now
+        }
+        self._page_file_grants[key] = {
+            "expires": now + ttl,
+            "destinations": {
+                destination_hash.hex(): {
+                    page_path: self._extract_page_file_links(page_content)
+                }
+            },
+        }
+
+    def _check_page_file_grant(
+        self,
+        client,
+        destination_hash: bytes,
+        page_path: str,
+        file_path: str,
+    ) -> bool:
+        """Check whether a client may fetch a file from a recently loaded page."""
+        key = id(client)
+        grant = self._page_file_grants.get(key)
+        if not grant or grant.get("expires", 0) <= time.time():
+            return False
+        by_dest = grant.get("destinations", {})
+        by_page = by_dest.get(destination_hash.hex(), {}).get(page_path)
+        if not by_page:
+            return False
+        name = file_path.lstrip("/")
+        if name.startswith("media/"):
+            name = name.removeprefix("media/")
+        elif name.startswith("file/"):
+            name = name.removeprefix("file/")
+        return name in by_page
+
+    def _try_serve_local_page_node_file(
+        self,
+        destination_hash,
+        file_path,
+        *,
+        client=None,
+        page_path=None,
+        request_data=None,
+    ):
         """Serve a file from disk when the hash matches a local page node.
 
         Returns (file_name, file_bytes), or None.
         """
         from meshchatx.src.backend.page_node import _safe_mesh_file_basename
 
+        # Image downloads must be tied to a recently loaded page grant.
+        if isinstance(request_data, dict) and request_data.get("image_id") is not None:
+            if client is None or page_path is None:
+                return None
+            if not self._check_page_file_grant(
+                client, destination_hash, page_path, file_path
+            ):
+                return None
+
         for node in self.page_node_manager.nodes.values():
             if not node.running or not node.destination:
                 continue
             if node.destination.hash == destination_hash:
+                if file_path.startswith("/media/"):
+                    return node.serve_media(file_path)
                 file_name = file_path.lstrip("/")
                 file_name = file_name.removeprefix("file/")
                 try:
@@ -6964,7 +7142,7 @@ def main():
         sys.platform == "win32"
         and appcontainer_requested()
         and not is_appcontainer_child()
-        and os.environ.get("MESHCHAT_APPCONTAINER_LAUNCHER", "").strip()
+        and (env_str("MESHCHAT_APPCONTAINER_LAUNCHER") or "").strip()
         not in (
             "1",
             "true",
@@ -6975,7 +7153,7 @@ def main():
     ):
         from meshchatx.src.backend.appcontainer_launcher import run_launcher
 
-        os.environ["MESHCHAT_APPCONTAINER_LAUNCHER"] = "1"
+        os.environ.update({"MESHCHAT_APPCONTAINER_LAUNCHER": "1"})
         raise SystemExit(run_launcher(sys.argv[1:]))
 
     # Initialize crash recovery system early to catch startup errors
@@ -6985,24 +7163,27 @@ def main():
     install_rns_panic_containment()
     install_bounded_ratchet_persist()
 
+    env = MeshchatEnv.load()
+
     parser = argparse.ArgumentParser(description="MeshChatX")
     parser.add_argument(
         "--host",
         nargs="?",
-        default=os.environ.get("MESHCHAT_HOST", "127.0.0.1"),
+        default=env.host,
         type=str,
         help="The address the web server should listen on. Can also be set via MESHCHAT_HOST environment variable.",
     )
     parser.add_argument(
         "--port",
         nargs="?",
-        default=int(os.environ.get("MESHCHAT_PORT", "8000")),
+        default=env.port,
         type=int,
         help="The port the web server should listen on. Can also be set via MESHCHAT_PORT environment variable.",
     )
     # If we are running from a frozen application (AppImage, EXE, etc),
     # we should default to headless mode unless explicitly requested.
     is_frozen = getattr(sys, "frozen", False)
+    # env_bool keeps MESHCHAT_HEADLESS=0 able to override the frozen default.
     default_headless = env_bool("MESHCHAT_HEADLESS", is_frozen)
 
     parser.add_argument(
@@ -7014,19 +7195,19 @@ def main():
     parser.add_argument(
         "--identity-file",
         type=str,
-        default=os.environ.get("MESHCHAT_IDENTITY_FILE"),
+        default=env.identity_file,
         help="Path to a Reticulum Identity file to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_FILE environment variable.",
     )
     parser.add_argument(
         "--identity-base64",
         type=str,
-        default=os.environ.get("MESHCHAT_IDENTITY_BASE64"),
+        default=env.identity_base64,
         help="A base64 encoded Reticulum Identity to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_BASE64 environment variable.",
     )
     parser.add_argument(
         "--identity-base32",
         type=str,
-        default=os.environ.get("MESHCHAT_IDENTITY_BASE32"),
+        default=env.identity_base32,
         help="A base32 encoded Reticulum Identity to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_BASE32 environment variable.",
     )
     parser.add_argument(
@@ -7042,45 +7223,45 @@ def main():
     parser.add_argument(
         "--auto-recover",
         action="store_true",
-        default=env_bool("MESHCHAT_AUTO_RECOVER", False),
+        default=env.auto_recover,
         help="Attempt to automatically recover the SQLite database on startup before serving the app. Can also be set via MESHCHAT_AUTO_RECOVER environment variable.",
     )
     parser.add_argument(
         "--auth",
         action="store_true",
-        default=env_bool("MESHCHAT_AUTH", False),
+        default=env.auth,
         help="Enable basic authentication for the web interface. Can also be set via MESHCHAT_AUTH environment variable.",
     )
     parser.add_argument(
         "--demo",
         action="store_true",
-        default=env_bool("MESHCHAT_DEMO_MODE", False),
+        default=env.demo_mode,
         help="Public demo mode: read-only mesh and blocked API mutations. Can also be set via MESHCHAT_DEMO_MODE environment variable.",
     )
     parser.add_argument(
         "--no-https",
         action="store_true",
-        default=env_bool("MESHCHAT_NO_HTTPS", False),
+        default=env.no_https,
         help="Disable HTTPS and use HTTP instead. Can also be set via MESHCHAT_NO_HTTPS environment variable.",
     )
     parser.add_argument(
         "--ssl-cert",
         type=str,
-        default=os.environ.get("MESHCHAT_SSL_CERT"),
+        default=env.ssl_cert,
         metavar="PATH",
         help="Path to PEM TLS certificate. Use with --ssl-key (or MESHCHAT_SSL_KEY). Overrides the default identity storage ssl/cert.pem.",
     )
     parser.add_argument(
         "--ssl-key",
         type=str,
-        default=os.environ.get("MESHCHAT_SSL_KEY"),
+        default=env.ssl_key,
         metavar="PATH",
         help="Path to PEM TLS private key. Use with --ssl-cert (or MESHCHAT_SSL_CERT). Overrides the default identity storage ssl/key.pem.",
     )
     parser.add_argument(
         "--no-crash-recovery",
         action="store_true",
-        default=env_bool("MESHCHAT_NO_CRASH_RECOVERY", False),
+        default=env.no_crash_recovery,
         help="Disable the crash recovery and diagnostic system. Can also be set via MESHCHAT_NO_CRASH_RECOVERY environment variable.",
     )
     parser.add_argument(
@@ -7111,7 +7292,7 @@ def main():
     parser.add_argument(
         "--data-dir",
         type=str,
-        default=os.environ.get("MESHCHAT_DATA_DIR"),
+        default=env.data_dir,
         help=(
             "Portable data root: uses <dir>/storage and <dir>/.reticulum when "
             "--storage-dir and --reticulum-config-dir are not set. "
@@ -7121,25 +7302,25 @@ def main():
     parser.add_argument(
         "--reticulum-config-dir",
         type=str,
-        default=os.environ.get("MESHCHAT_RETICULUM_CONFIG_DIR"),
+        default=env.reticulum_config_dir,
         help="Path to a Reticulum config directory for the RNS stack to use (e.g: ~/.reticulum). Can also be set via MESHCHAT_RETICULUM_CONFIG_DIR environment variable.",
     )
     parser.add_argument(
         "--storage-dir",
         type=str,
-        default=os.environ.get("MESHCHAT_STORAGE_DIR"),
+        default=env.storage_dir,
         help="Path to a directory for storing databases and config files (default: ./storage). Can also be set via MESHCHAT_STORAGE_DIR environment variable.",
     )
     parser.add_argument(
         "--public-dir",
         type=str,
-        default=os.environ.get("MESHCHAT_PUBLIC_DIR"),
+        default=env.public_dir,
         help="Path to the directory containing the frontend static files (default: bundled public folder). Can also be set via MESHCHAT_PUBLIC_DIR environment variable.",
     )
     parser.add_argument(
         "--gitea-base-url",
         type=str,
-        default=os.environ.get("MESHCHAT_GITEA_BASE_URL"),
+        default=env.gitea_base_url,
         help="Base URL for Gitea instance. Can also be set via MESHCHAT_GITEA_BASE_URL environment variable.",
     )
     parser.add_argument(
@@ -7155,7 +7336,7 @@ def main():
         "--emergency",
         action="store_true",
         help="Start in emergency mode (no database, LXMF and peer announces only). Can also be set via MESHCHAT_EMERGENCY environment variable.",
-        default=env_bool("MESHCHAT_EMERGENCY", False),
+        default=env.emergency,
     )
 
     parser.add_argument(
@@ -7174,34 +7355,34 @@ def main():
         "--restore-from-snapshot",
         type=str,
         help="Restore the database from a specific snapshot name or path on startup.",
-        default=os.environ.get("MESHCHAT_RESTORE_SNAPSHOT"),
+        default=env.restore_snapshot,
     )
 
     parser.add_argument(
         "--reset-password",
         action="store_true",
-        default=env_bool("MESHCHAT_RESET_PASSWORD", False),
+        default=env.reset_password,
         help="Clear the stored password hash on startup so a new password can be set via the web UI. Can also be set via MESHCHAT_RESET_PASSWORD environment variable.",
     )
 
     parser.add_argument(
         "--memory-diag",
         action="store_true",
-        default=env_bool("MESHCHAT_MEMORY_DIAG", False),
+        default=env.memory_diag,
         help="Enable tracemalloc-based memory diagnostics. Can also be set via MESHCHAT_MEMORY_DIAG environment variable.",
     )
 
     parser.add_argument(
         "--disable-plugins",
         action="store_true",
-        default=env_bool("MESHCHAT_DISABLE_PLUGINS", False),
+        default=env.disable_plugins,
         help="Disable the plugin system entirely. Can also be set via MESHCHAT_DISABLE_PLUGINS environment variable.",
     )
 
     parser.add_argument(
         "--self-check",
         action="store_true",
-        default=env_bool("MESHCHAT_SELF_CHECK", False),
+        default=env.self_check,
         help="Run system self-check diagnostics on startup and then exit with 0 if all checks pass, or 1 if any fail. Can also be set via MESHCHAT_SELF_CHECK environment variable.",
     )
 
@@ -7329,6 +7510,9 @@ def main():
             check = results.get(key, {"status": "failed", "reason": "No result"})
             if check["status"] == "ok":
                 print(f"[OK]     {name}", flush=True)
+            elif check["status"] == "skipped":
+                reason = check.get("reason") or "unavailable"
+                print(f"[SKIP]   {name} - Reason: {reason}", flush=True)
             else:
                 all_passed = False
                 reason = check.get("reason") or "Unknown error"

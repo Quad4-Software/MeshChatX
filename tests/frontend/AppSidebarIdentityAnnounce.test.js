@@ -32,4 +32,18 @@ describe("app-shell sidebar identity label and announce control", () => {
         expect(classicFooter).toContain('href="#/profile/icon"');
         expect(classicFooter).not.toContain("#/settings/profile-icon");
     });
+
+    it("collapsing the sidebar hides expanded sections and identity labels", () => {
+        const footer = src("meshchatx/src/frontend/features/app-shell/components/AppSidebarAccountFooter.svelte");
+        const classicFooter = src(
+            "meshchatx/src/frontend/features/app-shell/components/AppSidebarClassicFooter.svelte"
+        );
+        expect(footer).toContain("{#if isExpanded && !isCollapsed}");
+        expect(footer).toContain("isCollapsed");
+        expect(footer).toContain('data-testid="sidebar-display-name"');
+        expect(classicFooter).toContain("{#if isShowingMyIdentitySection && !isCollapsed}");
+        expect(classicFooter).toContain("{#if isShowingAnnounceSection && !isCollapsed}");
+        expect(classicFooter).toContain('data-testid="sidebar-display-name"');
+        expect(classicFooter).toContain('data-testid="sidebar-last-announced"');
+    });
 });

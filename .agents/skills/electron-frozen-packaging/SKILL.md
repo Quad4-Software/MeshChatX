@@ -19,7 +19,7 @@ Package and recover the desktop shell correctly: frozen subprocess re-entry, loa
 - In frozen builds, sys.executable **is** MeshChatX.
 - Never spawn python -m … or python -c … for bots, rnsh, LXMFy, or self-check probes from the packaged app.
 - Use --meshchatx-run-module <module> so helpers re-enter the same binary without launching a second full app (storage lock collision).
-- On Windows, Electron can start the backend through --meshchatx-run-module meshchatx.src.backend.appcontainer_launcher when MESHCHAT_APPCONTAINER=1. The launcher CreateProcess-es the real backend into an LPAC AppContainer. Orphan kill must use process-tree termination (taskkill /T) so both launcher and child exit. Default is off (direct backend spawn).
+- On Windows, Electron starts the backend through --meshchatx-run-module meshchatx.src.backend.appcontainer_launcher by default. The launcher CreateProcess-es the real backend into an LPAC AppContainer and falls back to an unsandboxed child if the setup fails. Set MESHCHAT_APPCONTAINER=0 to disable. Orphan kill must use process-tree termination (taskkill /T) so both launcher and child exit.
 
 ## Loading and navigation
 
@@ -54,7 +54,7 @@ Package and recover the desktop shell correctly: frozen subprocess re-entry, loa
 
 ```bash
 uv run pytest tests/backend/test_meshchatx_run_module.py -q --tb=short
-pnpm exec vitest run --config vitest.electron.config.js tests/electron/mainHelpers.test.js tests/electron/safeExternalUrl.test.js
+pnpm exec vitest run --config vitest.electron.config.mjs tests/electron/mainHelpers.test.js tests/electron/safeExternalUrl.test.js
 ```
 
 Prefer focused Electron unit tests under tests/electron/ when present for the touched module.

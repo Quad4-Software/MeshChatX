@@ -8,10 +8,25 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.bots._names import *  # noqa: F403
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_conflict,
+    http_error_from_exception,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
+_MISSING = object()
+
 
 def register_bots_bots_routes(routes: Any, app: Any) -> None:
 
-    @routes.get("/api/v1/bots/status")
+    @routes.get(API_V1_PREFIX + "/bots/status")
     async def bots_status(request):
         try:
             bot_handler = getattr(app, "bot_handler", None)
@@ -46,25 +61,27 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/bots/start")
+    @routes.post(API_V1_PREFIX + "/bots/start")
     async def bots_start(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         template_id = data.get("template_id")
         name = data.get("name")
         bot_id = data.get("bot_id")
 
         if not template_id:
-            return web.json_response(
-                {"message": "template_id is required"},
-                status=400,
-            )
+            return http_bad_request("template_id is required")
 
         try:
+            extra = {}
+            if "icon" in data:
+                extra["icon"] = data.get("icon")
+            if "custom" in data:
+                extra["custom"] = data.get("custom")
             bot_id = await asyncio.to_thread(
                 app.bot_handler.start_bot,
                 template_id,
@@ -72,44 +89,42 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
                 bot_id,
                 None,
                 data.get("lxmf_config"),
+                data.get("rrc"),
+                **extra,
             )
             return web.json_response({"bot_id": bot_id, "success": True})
+        except ValueError as e:
+            return http_bad_request(str(e))
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/bots/stop")
+    @routes.post(API_V1_PREFIX + "/bots/stop")
     async def bots_stop(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
 
         if not bot_id:
-            return web.json_response(
-                {"message": "bot_id is required"},
-                status=400,
-            )
+            return http_bad_request("bot_id is required")
 
         try:
             success = await asyncio.to_thread(app.bot_handler.stop_bot, bot_id)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/bots/restart")
+    @routes.post(API_V1_PREFIX + "/bots/restart")
     async def bots_restart(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
 
         if not bot_id:
-            return web.json_response(
-                {"message": "bot_id is required"},
-                status=400,
-            )
+            return http_bad_request("bot_id is required")
 
         try:
             new_id = await asyncio.to_thread(
@@ -118,40 +133,31 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
             )
             return web.json_response({"bot_id": new_id, "success": True})
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/bots/delete")
+    @routes.post(API_V1_PREFIX + "/bots/delete")
     async def bots_delete(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
 
         if not bot_id:
-            return web.json_response(
-                {"message": "bot_id is required"},
-                status=400,
-            )
+            return http_bad_request("bot_id is required")
 
         try:
             success = await asyncio.to_thread(app.bot_handler.delete_bot, bot_id)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.get("/api/v1/bots/subprocess-log")
+    @routes.get(API_V1_PREFIX + "/bots/subprocess-log")
     async def bots_subprocess_log(request):
         bot_id = request.query.get("bot_id")
 
         if not bot_id:
-            return web.json_response(
-                {"message": "bot_id is required"},
-                status=400,
-            )
+            return http_bad_request("bot_id is required")
 
         try:
             result = await asyncio.to_thread(
@@ -160,28 +166,25 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
             )
             return web.json_response(result)
         except ValueError as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=404,
-            )
+            return http_not_found(str(e))
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.patch("/api/v1/bots/update")
+    @routes.patch(API_V1_PREFIX + "/bots/update")
     async def bots_update(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
         name = data.get("name")
         lxmf_config = data.get("lxmf_config")
+        rrc_config = data.get("rrc")
+        icon = data.get("icon", _MISSING)
+        custom = data.get("custom", _MISSING)
 
         if not bot_id:
-            return web.json_response(
-                {"message": "bot_id is required"},
-                status=400,
-            )
+            return http_bad_request("bot_id is required")
 
         try:
             if name is not None:
@@ -190,41 +193,56 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
                     bot_id,
                     name,
                 )
+            saved_lxmf = None
             if lxmf_config is not None:
-                saved = await asyncio.to_thread(
+                saved_lxmf = await asyncio.to_thread(
                     app.bot_handler.update_bot_lxmf_config,
                     bot_id,
                     lxmf_config,
                 )
-                return web.json_response({"success": True, "lxmf_config": saved})
-            return web.json_response({"success": True})
+            saved_rrc = None
+            if rrc_config is not None:
+                saved_rrc = await asyncio.to_thread(
+                    app.bot_handler.update_bot_rrc_config,
+                    bot_id,
+                    rrc_config,
+                )
+            response = {"success": True}
+            if saved_lxmf is not None:
+                response["lxmf_config"] = saved_lxmf
+            if saved_rrc is not None:
+                response["rrc"] = saved_rrc
+            if icon is not _MISSING:
+                response["icon"] = await asyncio.to_thread(
+                    app.bot_handler.update_bot_icon,
+                    bot_id,
+                    icon,
+                )
+            if custom is not _MISSING:
+                response["custom"] = await asyncio.to_thread(
+                    app.bot_handler.update_bot_custom,
+                    bot_id,
+                    custom,
+                )
+            return web.json_response(response)
         except ValueError as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=400,
-            )
+            return http_bad_request(str(e))
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.patch("/api/v1/bots/lxmf-config")
+    @routes.patch(API_V1_PREFIX + "/bots/lxmf-config")
     async def bots_lxmf_config(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
         lxmf_config = data.get("lxmf_config")
 
         if not bot_id:
-            return web.json_response(
-                {"message": "bot_id is required"},
-                status=400,
-            )
+            return http_bad_request("bot_id is required")
         if lxmf_config is None:
-            return web.json_response(
-                {"message": "lxmf_config is required"},
-                status=400,
-            )
+            return http_bad_request("lxmf_config is required")
 
         try:
             saved = await asyncio.to_thread(
@@ -234,71 +252,52 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
             )
             return web.json_response({"success": True, "lxmf_config": saved})
         except ValueError as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=400,
-            )
+            return http_bad_request(str(e))
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/bots/announce")
+    @routes.post(API_V1_PREFIX + "/bots/announce")
     async def bots_announce(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         bot_id = data.get("bot_id")
 
         if not bot_id:
-            return web.json_response(
-                {"message": "bot_id is required"},
-                status=400,
-            )
+            return http_bad_request("bot_id is required")
 
         try:
             await asyncio.to_thread(app.bot_handler.request_announce, bot_id)
             return web.json_response({"success": True})
         except ValueError as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=400,
-            )
+            return http_bad_request(str(e))
         except RuntimeError as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=409,
-            )
+            return http_conflict(str(e))
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/bots/export")
+    @routes.post(API_V1_PREFIX + "/bots/export")
     async def bots_export(request):
         bot_id = None
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             if isinstance(data, dict):
                 bot_id = data.get("bot_id")
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             bot_id = None
         if not bot_id:
             bot_id = request.query.get("bot_id")
 
         if not bot_id:
-            return web.json_response(
-                {"message": "bot_id is required"},
-                status=400,
-            )
+            return http_bad_request("bot_id is required")
 
         try:
             id_path = app.bot_handler.get_bot_identity_path(bot_id)
             if not id_path or not os.path.exists(id_path):
-                return web.json_response(
-                    {"message": "Identity file not found"},
-                    status=404,
-                )
+                return http_not_found("Identity file not found")
 
             return web.FileResponse(
                 id_path,
@@ -307,7 +306,4 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)

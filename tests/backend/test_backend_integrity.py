@@ -46,8 +46,8 @@ class TestBackendIntegrity(unittest.TestCase):
                 full_path = Path(root) / file
                 rel_path = str(full_path.relative_to(self.build_dir))
                 with open(full_path, "rb") as f:
-                    hash = hashlib.sha256(f.read()).hexdigest()
-                manifest["files"][rel_path] = hash
+                    digest = hashlib.sha256(f.read()).hexdigest()
+                manifest["files"][rel_path] = digest
 
         manifest_path = self.electron_dir / "backend-manifest.json"
         with open(manifest_path, "w") as f:

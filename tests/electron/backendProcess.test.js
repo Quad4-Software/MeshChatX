@@ -99,8 +99,9 @@ describe("electron/backendProcess", () => {
         expect(showCrashPage).toHaveBeenCalledWith(expect.objectContaining({ code: 1 }));
     });
 
-    it("does not use AppContainer launcher on win32 by default", async () => {
+    it("uses AppContainer launcher on win32 by default", async () => {
         const previousPlatform = process.platform;
+        const previousEnv = process.env.MESHCHAT_APPCONTAINER;
         Object.defineProperty(process, "platform", { value: "win32" });
         delete process.env.MESHCHAT_APPCONTAINER;
         try {
@@ -118,11 +119,55 @@ describe("electron/backendProcess", () => {
             await manager.spawnBackend("C:\\App\\ReticulumMeshChatX.exe", {
                 backend: { ok: true, issues: [] },
             });
+            expect(spawnMock).toHaveBeenCalledWith(
+                "C:\\App\\ReticulumMeshChatX.exe",
+                expect.arrayContaining([
+                    "--meshchatx-run-module",
+                    "meshchatx.src.backend.appcontainer_launcher",
+                    "--headless",
+                    "--port",
+                    "9337",
+                ]),
+                expect.objectContaining({ windowsHide: true })
+            );
+        } finally {
+            Object.defineProperty(process, "platform", { value: previousPlatform });
+            if (previousEnv === undefined) {
+                delete process.env.MESHCHAT_APPCONTAINER;
+            } else {
+                process.env.MESHCHAT_APPCONTAINER = previousEnv;
+            }
+        }
+    });
+
+    it("does not use AppContainer launcher on non-win32 platforms", async () => {
+        const previousPlatform = process.platform;
+        const previousEnv = process.env.MESHCHAT_APPCONTAINER;
+        Object.defineProperty(process, "platform", { value: "linux" });
+        delete process.env.MESHCHAT_APPCONTAINER;
+        try {
+            const manager = createBackendProcessManager({
+                log: vi.fn(),
+                getDefaultStorageDir: () => "/tmp/storage",
+                getDefaultReticulumConfigDir: () => "/tmp/reticulum",
+                getMainWindowPageKind: () => "loading",
+                isQuiting: () => false,
+                notifyRenderer: vi.fn(),
+                showCrashPage: vi.fn(),
+                spawn: spawnMock,
+            });
+            manager.setUserProvidedArguments([]);
+            await manager.spawnBackend("/tmp/ReticulumMeshChatX", { backend: { ok: true, issues: [] } });
             const args = spawnMock.mock.calls[0][1];
             expect(args).not.toContain("--meshchatx-run-module");
             expect(args[0]).toBe("--headless");
         } finally {
             Object.defineProperty(process, "platform", { value: previousPlatform });
+            if (previousEnv === undefined) {
+                delete process.env.MESHCHAT_APPCONTAINER;
+            } else {
+                process.env.MESHCHAT_APPCONTAINER = previousEnv;
+            }
         }
     });
 

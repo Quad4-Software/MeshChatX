@@ -227,6 +227,51 @@ async def test_request_path_resend_uses_lxmf_delivery_lookup(mock_app):
 
 
 @pytest.mark.asyncio
+async def test_identity_lxmf_address_accepts_real_identity_hash(mock_app):
+    """RNS identity hashes are 16 bytes (32 hex); the endpoint must not 400.
+
+    RRC member rows carry peer identity hashes via identity.hash.hex(), which
+    is 32 hex chars, so the members-panel DM flow depends on this.
+    """
+    identity_hex = "ab" * 16
+    delivery_hex = "cd" * 16
+
+    handler = _find_handler(
+        mock_app,
+        "/api/v1/identity/{identity_hash}/lxmf-address",
+        "GET",
+    )
+    assert handler is not None
+
+    mock_app.get_lxmf_destination_hash_for_identity_hash = MagicMock(
+        return_value=delivery_hex,
+    )
+    with patch("meshchatx.meshchat.RNS.Transport.has_path", return_value=True):
+        response = await handler(
+            _make_request(match_info={"identity_hash": identity_hex}, method="GET"),
+        )
+    assert response.status == 200
+    data = json.loads(response.body)
+    assert data["identity_hash"] == identity_hex
+    assert data["lxmf_destination_hash"] == delivery_hex
+    assert data["has_path"] is True
+
+
+@pytest.mark.asyncio
+async def test_identity_lxmf_address_rejects_malformed_hash(mock_app):
+    handler = _find_handler(
+        mock_app,
+        "/api/v1/identity/{identity_hash}/lxmf-address",
+        "GET",
+    )
+    for bad in ("", "zzzz", "ab" * 8, "ab" * 48):
+        response = await handler(
+            _make_request(match_info={"identity_hash": bad}, method="GET"),
+        )
+        assert response.status == 400, bad
+
+
+@pytest.mark.asyncio
 async def test_resend_failed_lookup_uses_lxmf_delivery_for_identity(auto_resend_db):
     import types
 

@@ -55,11 +55,20 @@ class AsyncUtils:
     @staticmethod
     def set_main_loop(loop: asyncio.AbstractEventLoop) -> None:
         """Install the process main loop and drain any buffered coroutines."""
-        AsyncUtils.main_loop = loop
-        pending = list(AsyncUtils._pending_coroutines)
-        AsyncUtils._pending_coroutines.clear()
+        # Swap the buffer under the lock so a run_async caller racing the
+        # loop install lands either in the drained list (scheduled below)
+        # or takes the live-loop path, never into a list nobody reads.
+        with AsyncUtils._futures_lock:
+            AsyncUtils.main_loop = loop
+            pending = AsyncUtils._pending_coroutines
+            AsyncUtils._pending_coroutines = []
+        # Schedule directly on the loop: it may not be running yet (the
+        # installer calls this before run_forever), but run_coroutine_
+        # threadsafe queues the coroutine for when the loop starts.
         for coro in pending:
-            AsyncUtils.run_async(coro)
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            with AsyncUtils._futures_lock:
+                AsyncUtils._pending_futures.append(future)
 
     @staticmethod
     def run_async(coroutine: Coroutine) -> Any:
@@ -68,12 +77,13 @@ class AsyncUtils:
         Finished futures are pruned so closures can be collected promptly.
         When no loop is running, coroutines are buffered up to a fixed cap.
         """
-        if AsyncUtils.main_loop and AsyncUtils.main_loop.is_running():
-            future = asyncio.run_coroutine_threadsafe(
-                coroutine,
-                AsyncUtils.main_loop,
-            )
-            with AsyncUtils._futures_lock:
+        with AsyncUtils._futures_lock:
+            loop = AsyncUtils.main_loop
+            if loop is not None and loop.is_running():
+                future = asyncio.run_coroutine_threadsafe(
+                    coroutine,
+                    loop,
+                )
                 AsyncUtils._pending_futures.append(future)
                 if (
                     len(AsyncUtils._pending_futures)
@@ -82,16 +92,20 @@ class AsyncUtils:
                     AsyncUtils._pending_futures = [
                         item for item in AsyncUtils._pending_futures if not item.done()
                     ]
-            return future
+                return future
 
-        AsyncUtils._pending_coroutines.append(coroutine)
-        if len(AsyncUtils._pending_coroutines) > AsyncUtils._COROUTINES_MAX:
-            dropped = len(AsyncUtils._pending_coroutines) - AsyncUtils._COROUTINES_MAX
-            AsyncUtils._pending_coroutines = AsyncUtils._pending_coroutines[
-                -AsyncUtils._COROUTINES_MAX :
-            ]
-            _logger.warning(
-                "Dropped %d buffered coroutine(s) because the event loop is not running",
-                dropped,
-            )
-        return None
+            # If the loop isn't available yet (or has stopped), buffer the
+            # coroutine but cap the backlog so we don't leak memory forever.
+            AsyncUtils._pending_coroutines.append(coroutine)
+            if len(AsyncUtils._pending_coroutines) > AsyncUtils._COROUTINES_MAX:
+                dropped = (
+                    len(AsyncUtils._pending_coroutines) - AsyncUtils._COROUTINES_MAX
+                )
+                AsyncUtils._pending_coroutines = AsyncUtils._pending_coroutines[
+                    -AsyncUtils._COROUTINES_MAX :
+                ]
+                _logger.warning(
+                    "Dropped %d buffered coroutine(s) because the event loop is not running",
+                    dropped,
+                )
+            return None

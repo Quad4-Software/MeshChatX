@@ -97,4 +97,20 @@ describe("LanguageSelector.svelte", () => {
         const btn = screen.getByRole("button", { name: /language/i });
         expect(btn.tabIndex).toBeGreaterThanOrEqual(-1);
     });
+
+    it("uses BCP 47 codes and native names for region-tagged packs", async () => {
+        const wrapper = mountLanguageSelector("en");
+        await wrapper.find("button").trigger("click");
+
+        const languageButtons = wrapper.findAll(".fixed button");
+        const ptOption = languageButtons.find((b) => b.text().includes("Português (Brasil)"));
+        expect(ptOption).toBeDefined();
+
+        await ptOption.trigger("click");
+        await flushPromises();
+        await nextTick();
+
+        expect(wrapper.emitted("language-change")).toBeTruthy();
+        expect(wrapper.emitted("language-change")[0]).toEqual(["pt-BR"]);
+    });
 });

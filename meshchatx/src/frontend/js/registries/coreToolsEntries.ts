@@ -171,6 +171,7 @@ export const CORE_TOOLS_ENTRIES: ToolEntry[] = [
         iconBg: "tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200",
         titleKey: "tools.translator.title",
         descriptionKey: "tools.translator.description",
+        alpha: true,
         group: "messaging",
     },
     {

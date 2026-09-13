@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/svelte";
 import MessagesSidebar from "@/features/messages/components/MessagesSidebar.svelte";
+import GlobalState from "@/js/GlobalState.js";
 
 function props(overrides = {}) {
     return {
@@ -25,6 +26,12 @@ function props(overrides = {}) {
 afterEach(cleanup);
 
 describe("MessagesSidebar.svelte", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        GlobalState.blockedDestinations = [];
+        GlobalState.config = { theme: "light", banished_effect_enabled: false, telemetry_enabled: false };
+    });
+
     it("renders conversation and announce tabs", () => {
         render(MessagesSidebar, props());
         expect(screen.getByText("Conversations")).toBeTruthy();

@@ -211,7 +211,7 @@ def test_list_command_matches_client_parser():
 
 def test_list_command_marks_keyed_rooms_without_leaking_key():
     server = make_server()
-    secret = "hunter2-not-for-list"
+    secret = "hunter2-not-for-list"  # nosec: test fixture
     server.register_room("vault", topic="ops")
     server.set_room_key("vault", secret)
     server.register_room("lobby", topic="Main")

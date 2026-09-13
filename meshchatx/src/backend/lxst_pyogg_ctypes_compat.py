@@ -112,7 +112,7 @@ class _OggCompatLoader(importlib.abc.Loader):
     def exec_module(self, module):
         source = self.origin.read_text(encoding="utf-8")
         code = compile(source, str(self.origin), "exec")
-        exec(code, module.__dict__)
+        exec(code, module.__dict__)  # noqa: S102 - module loader requires exec
         inject_ctypes_aliases(module)
 
 

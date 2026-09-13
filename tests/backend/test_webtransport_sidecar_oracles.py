@@ -74,5 +74,5 @@ def test_wt_frame_rejects_oversize_line():
 
 
 def test_wt_frame_rejects_nul():
-    objects, _buf, errors = wt_frame_feed("", '{"type":"x\x00"}\n')
+    _objects, _buf, errors = wt_frame_feed("", '{"type":"x\x00"}\n')
     assert "embedded_nul" in errors or "invalid_json" in errors

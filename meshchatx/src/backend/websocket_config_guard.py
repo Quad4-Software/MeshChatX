@@ -16,6 +16,12 @@ from __future__ import annotations
 import logging
 from urllib.parse import urlparse
 
+from meshchatx.src.backend.constants import (
+    WS_PUBLIC_TYPES,
+    WS_RUNTIME_CONTROL_TYPES,
+    WsInboundType,
+)
+
 logger = logging.getLogger(__name__)
 
 WEBSOCKET_CONFIG_DENYLIST = frozenset(
@@ -28,54 +34,39 @@ WEBSOCKET_CONFIG_DENYLIST = frozenset(
 )
 
 # Handled in websocket dispatch before WS_HANDLERS lookup.
-WEBSOCKET_RUNTIME_CONTROL_TYPES = frozenset(
-    {
-        "ws.subscribe",
-        "ws.unsubscribe",
-        "sync.subscribe",
-        "ws.caps",
-    },
-)
+WEBSOCKET_RUNTIME_CONTROL_TYPES = WS_RUNTIME_CONTROL_TYPES
 
-WEBSOCKET_PUBLIC_TYPES = frozenset(
-    {
-        "ping",
-        "ws.subscribe",
-        "ws.unsubscribe",
-        "sync.subscribe",
-        "ws.caps",
-    },
-)
+WEBSOCKET_PUBLIC_TYPES = WS_PUBLIC_TYPES
 
 WEBSOCKET_READ_TYPES = frozenset(
     {
-        "nomadnet.page.archives.get",
-        "nomadnet.page.archive.load",
-        "lxmf.forwarding.rules.get",
-        "keyboard_shortcuts.get",
+        WsInboundType.NOMADNET_PAGE_ARCHIVES_GET,
+        WsInboundType.NOMADNET_PAGE_ARCHIVE_LOAD,
+        WsInboundType.LXMF_FORWARDING_RULES_GET,
+        WsInboundType.KEYBOARD_SHORTCUTS_GET,
     },
 )
 
 WEBSOCKET_MUTATOR_TYPES = frozenset(
     {
-        "config.set",
-        "keyboard_shortcuts.delete",
-        "keyboard_shortcuts.set",
-        "lxm.generate_paper_uri",
-        "lxm.ingest_uri",
-        "lxmf.forwarding.rule.add",
-        "lxmf.forwarding.rule.delete",
-        "lxmf.forwarding.rule.toggle",
-        "nomadnet.download.cancel",
-        "nomadnet.file.download",
-        "nomadnet.page.archive.add",
-        "nomadnet.page.archive.flush",
-        "nomadnet.page.download",
-        "rns.link.close",
-        "rns.link.identify",
-        "rns.link.open",
-        "rns.link.request",
-        "rns.link.send",
+        WsInboundType.CONFIG_SET,
+        WsInboundType.KEYBOARD_SHORTCUTS_DELETE,
+        WsInboundType.KEYBOARD_SHORTCUTS_SET,
+        WsInboundType.LXM_GENERATE_PAPER_URI,
+        WsInboundType.LXM_INGEST_URI,
+        WsInboundType.LXMF_FORWARDING_RULE_ADD,
+        WsInboundType.LXMF_FORWARDING_RULE_DELETE,
+        WsInboundType.LXMF_FORWARDING_RULE_TOGGLE,
+        WsInboundType.NOMADNET_DOWNLOAD_CANCEL,
+        WsInboundType.NOMADNET_FILE_DOWNLOAD,
+        WsInboundType.NOMADNET_PAGE_ARCHIVE_ADD,
+        WsInboundType.NOMADNET_PAGE_ARCHIVE_FLUSH,
+        WsInboundType.NOMADNET_PAGE_DOWNLOAD,
+        WsInboundType.RNS_LINK_CLOSE,
+        WsInboundType.RNS_LINK_IDENTIFY,
+        WsInboundType.RNS_LINK_OPEN,
+        WsInboundType.RNS_LINK_REQUEST,
+        WsInboundType.RNS_LINK_SEND,
     },
 )
 

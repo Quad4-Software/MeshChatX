@@ -43,8 +43,8 @@ class VoicemailDAO:
         if search:
             return self.provider.fetchall(
                 """
-                SELECT * FROM voicemails 
-                WHERE remote_identity_name LIKE ? OR remote_identity_hash LIKE ? 
+                SELECT * FROM voicemails
+                WHERE remote_identity_name LIKE ? OR remote_identity_hash LIKE ?
                 ORDER BY timestamp DESC LIMIT ? OFFSET ?
                 """,
                 (f"%{search}%", f"%{search}%", limit, offset),

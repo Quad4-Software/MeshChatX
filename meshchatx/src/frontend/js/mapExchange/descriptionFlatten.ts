@@ -11,8 +11,11 @@ const ENTITY_RE = /&(#x?[0-9a-f]+|[a-z]+);/gi;
 const SCRIPT_LIKE_RE =
     /(?:^|\n)\s*function\s+\w+\s*\([^)]*\)\s*\{[\s\S]*?\n\s*\}|(?:document|window)\.\w+\s*\(|getElementById\s*\(/i;
 const MASHED_NULL_KEY_RE = /((?:&lt;Null&gt;|<Null>|null|&lt;null&gt;))\s*(?=[A-Za-z_][\w.-]{0,48}:)/gi;
+const MASHED_VALUE_KEY_RE = /([^\s:])([A-Z][A-Za-z0-9_]{1,40}:)/g;
 const FONT_FIELD_RE =
     /<(?:font|b|strong|span)\b[^>]*>\s*([^<:]{1,64}?)\s*:?\s*<\/(?:font|b|strong|span)>\s*:?\s*([^<]{0,200}?)(?=<|$)/gi;
+const SCRIPT_BLOCK_RE = /<script\b[^>]*>[\s\S]*?(?:<\/script[^>]*>|$)/gi;
+const STYLE_BLOCK_RE = /<style\b[^>]*>[\s\S]*?(?:<\/style[^>]*>|$)/gi;
 
 export type KeyValuePair = {
     key: string;
@@ -77,14 +80,20 @@ function dropScriptAndStyle(html: string): string {
     if (!s) {
         return s;
     }
-    if (typeof DOMParser === "undefined") {
-        return s;
+    if (typeof DOMParser !== "undefined") {
+        const doc = new DOMParser().parseFromString(s, "text/html");
+        for (const el of doc.querySelectorAll("script, style")) {
+            el.remove();
+        }
+        return doc.body ? doc.body.innerHTML : s;
     }
-    const doc = new DOMParser().parseFromString(s, "text/html");
-    for (const el of doc.querySelectorAll("script, style")) {
-        el.remove();
-    }
-    return doc.body ? doc.body.innerHTML : s;
+    let out = s;
+    let prev = s;
+    do {
+        prev = out;
+        out = out.replace(SCRIPT_BLOCK_RE, "").replace(STYLE_BLOCK_RE, "");
+    } while (out !== prev);
+    return out;
 }
 
 function cellPlain(cellHtml: string): string {
@@ -221,11 +230,38 @@ export function descriptionNeedsFlatten(text: string | null | undefined): boolea
 export function extractKeyedDescriptionLines(description: string | null | undefined): ExtractedKeyedLines {
     const pairs: KeyValuePair[] = [];
     const leftover: string[] = [];
-    const normalized = unmashKeyedDescription(String(description || ""));
-    for (const rawLine of normalized.split(/\n+/)) {
+    for (const rawLine of String(description || "").split(/\n+/)) {
         const line = rawLine.trim();
         if (!line) {
             continue;
+        }
+        const keyMatch = line.match(/^([^:]{1,80}):\s*(.+)$/);
+        if (keyMatch && (keyMatch[2].match(MASHED_VALUE_KEY_RE) || keyMatch[2].match(MASHED_NULL_KEY_RE))) {
+            const unmashed = unmashKeyedDescription(line);
+            if (unmashed !== line) {
+                for (const rawSub of unmashed.split(/\n+/)) {
+                    const sub = rawSub.trim();
+                    if (!sub) {
+                        continue;
+                    }
+                    const m = sub.match(/^([^:]{1,80}):\s*(.+)$/);
+                    if (m) {
+                        const key = m[1].trim();
+                        const value = decodeBasicEntities(m[2].trim());
+                        if (key && !isNullishMapValue(value) && isPlausiblePropertyKey(key, value)) {
+                            pairs.push({ key, value });
+                            continue;
+                        }
+                        if (key && isNullishMapValue(value)) {
+                            continue;
+                        }
+                    }
+                    if (!isNullishMapValue(sub) && !SCRIPT_LIKE_RE.test(sub)) {
+                        leftover.push(decodeBasicEntities(sub));
+                    }
+                }
+                continue;
+            }
         }
         const m = line.match(/^([^:]{1,80}):\s*(.+)$/);
         if (m) {

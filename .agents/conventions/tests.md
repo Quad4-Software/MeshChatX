@@ -21,7 +21,7 @@ Prefer an independent oracle (predict accept or reject from the input, then asse
 Full guidance and examples: .agents/skills/test-oracles/SKILL.md.
 Path jail filesystem features: .agents/skills/path-jail-local-fs/SKILL.md and .agents/conventions/path-jail.md.
 URL origin allowlists: .agents/skills/url-origin-allowlists/SKILL.md.
-Exploratory bug hunting: .agents/skills/exploratory-testing/SKILL.md.
+Exploratory bug hunting and patch-safety gates (confirm before fixing, re-run consumer suites, no churn inside a bugfix): .agents/skills/exploratory-testing/SKILL.md.
 
 ## Frontend mega-page ownership contracts
 

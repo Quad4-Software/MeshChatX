@@ -448,7 +448,7 @@ def test_request_resets_failures_on_success_and_recycles_on_fail():
         progress_callback=lambda _r: None,
     )
     callbacks["failed"](None)
-    count, recycled = rlm._record_failure_and_maybe_recycle(key)
+    count, _recycled = rlm._record_failure_and_maybe_recycle(key)
     # First failure already recorded by wrapped failed callback.
     assert count >= 1
 

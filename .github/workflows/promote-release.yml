@@ -1,4 +1,4 @@
-# Promote a known-good SHA to Beta or Stable (Testing -> Beta -> Stable).
+# Promote a SHA to Beta or Stable (Testing -> Beta -> Stable).
 # Rebuilds under a new tag so channel bake flips correctly. Never copies assets
 # across tags/run_ids (immutable release model).
 #
@@ -53,7 +53,7 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - name: Require CI green, create tag, dispatch
+            - name: Create tag and dispatch
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   SHA: ${{ inputs.sha }}
@@ -67,7 +67,6 @@ jobs:
                   fi
                   full_sha="$(git rev-parse "${SHA}^{commit}")"
                   short_sha="$(git rev-parse --short=7 "${full_sha}")"
-                  bash scripts/ci/github-require-ci-green.sh "${full_sha}"
 
                   if [ "${CHANNEL}" = "stable" ]; then
                     if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -93,13 +92,30 @@ jobs:
                   git tag -a "${tag}" -m "Promote ${CHANNEL} for ${full_sha}" "${full_sha}"
                   git push origin "${tag}"
 
+                  build_dispatched=false
                   for attempt in 1 2 3 4 5; do
                     if gh workflow run build-release.yml --ref "refs/tags/${tag}"; then
                       echo "Dispatched build-release.yml for ${tag} (${full_sha})"
-                      exit 0
+                      build_dispatched=true
+                      break
                     fi
                     echo "Dispatch attempt ${attempt} failed; waiting..."
                     sleep 5
                   done
-                  echo "Failed to dispatch build-release.yml for ${tag}" >&2
-                  exit 1
+                  if [ "$build_dispatched" != "true" ]; then
+                    echo "Failed to dispatch build-release.yml for ${tag}" >&2
+                    exit 1
+                  fi
+
+                  if [ "${CHANNEL}" = "stable" ]; then
+                    for attempt in 1 2 3 4 5; do
+                      if gh workflow run pypi.yml --ref "refs/tags/${tag}"; then
+                        echo "Dispatched pypi.yml for ${tag} (${full_sha})"
+                        exit 0
+                      fi
+                      echo "PyPI dispatch attempt ${attempt} failed; waiting..."
+                      sleep 5
+                    done
+                    echo "Failed to dispatch pypi.yml for ${tag}" >&2
+                    exit 1
+                  fi

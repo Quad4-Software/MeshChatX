@@ -92,13 +92,13 @@ def coerce_rnode_frequency_hz(value: Any) -> Any:
             break
     hz = float(text) * scale
     if hz <= 0:
-        return int(round(hz))
+        return round(hz)
     if hz >= 1_000_000:
-        return int(round(hz))
+        return round(hz)
     whole = abs(hz - round(hz)) < 1e-9
     if (not whole) or (whole and hz < 10_000):
         hz *= 1_000_000.0
-    return int(round(hz))
+    return round(hz)
 
 
 def normalize_rnode_txpower(value: Any) -> Any:

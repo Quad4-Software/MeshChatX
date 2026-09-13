@@ -80,8 +80,11 @@ def test_eect_favourites_layout_fuzz_never_raises(raw):
         )
 
 
-def test_eect_bug_report_redacts_secrets(tmp_path):
+def test_eect_bug_report_redacts_secrets(tmp_path, monkeypatch):
     with eect_scenario("hostile.bug_report.redacts_secrets") as (_s, _seed, _rng):
+        from meshchatx.src.backend import persistent_log_handler as plh
+
+        monkeypatch.setattr(plh, "memory_log_handler", None)
         full_hash = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
 
         class FakeLogs:
@@ -139,25 +142,6 @@ def test_eect_favourites_rejects_null_bytes():
         assert layout is not None
         assert [s["id"] for s in layout["sections"]] == ["ok"]
         assert layout["favouritesBySection"]["ok"] == ["c" * 32]
-
-
-def test_eect_rejects_decimal_hex_link_local_urls():
-    from meshchatx.src.backend.http_url_guard import (
-        UnsafeOutboundUrlError,
-        normalize_libretranslate_http_service_base,
-    )
-
-    with eect_scenario("hostile.url.decimal_link_local") as (_s, _seed, _rng):
-        for bad in (
-            "http://2852039166/",
-            "http://0xa9fea9fe/",
-            "http://169.254.169.254/",
-            "http://[::ffff:169.254.169.254]/",
-            "http://[::ffff:a9fe:a9fe]/",
-            "http://[fe80::1]/",
-        ):
-            with pytest.raises(UnsafeOutboundUrlError):
-                normalize_libretranslate_http_service_base(bad)
 
 
 def test_eect_plugin_paths_reject_escape_forms():

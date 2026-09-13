@@ -7,6 +7,7 @@ import threading
 import tomllib
 
 from meshchatx.src.backend.rrc.identity_util import parse_identity_hash
+from meshchatx.src.path_utils import atomic_write_text
 
 
 def load_hub_policy(path):
@@ -31,7 +32,6 @@ def load_hub_policy(path):
 
 
 def save_hub_policy(path, trusted, banned):
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     lines = []
     if trusted:
         items = ", ".join(
@@ -46,12 +46,7 @@ def save_hub_policy(path, trusted, banned):
     else:
         lines.append("banned_identities = []")
     text = "\n".join(lines) + "\n"
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(text)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    atomic_write_text(path, text)
 
 
 class HubPolicy:

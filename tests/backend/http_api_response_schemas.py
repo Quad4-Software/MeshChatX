@@ -607,6 +607,29 @@ RRC_MESSAGES_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+RRC_SEARCH_SCHEMA: dict = {
+    "type": "object",
+    "required": ["results"],
+    "properties": {"results": _ARRAY},
+    "additionalProperties": True,
+}
+
+RRC_SERVER_STATS_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": True,
+}
+
+IDENTITY_LXMF_ADDRESS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["identity_hash", "lxmf_destination_hash", "has_path"],
+    "properties": {
+        "identity_hash": _STRING,
+        "lxmf_destination_hash": _STRING,
+        "has_path": _BOOLEAN,
+    },
+    "additionalProperties": True,
+}
+
 RRC_MEMBERS_SCHEMA: dict = {
     "type": "object",
     "required": ["members"],
@@ -804,10 +827,27 @@ SYSTEM_NETWORK_INTERFACES_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
-TRANSLATOR_LANGUAGES_SCHEMA: dict = {
+TRANSLATION_PACKS_SCHEMA: dict = {
     "type": "object",
-    "required": ["languages"],
-    "properties": {"languages": _ARRAY},
+    "required": ["packs"],
+    "properties": {
+        "packs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["pair", "from", "to"],
+                "properties": {
+                    "pair": _STRING,
+                    "from": _STRING,
+                    "to": _STRING,
+                    "version": _STRING,
+                    "size": _INTEGER,
+                    "files": _ARRAY,
+                },
+                "additionalProperties": True,
+            },
+        },
+    },
     "additionalProperties": True,
 }
 

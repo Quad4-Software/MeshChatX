@@ -116,7 +116,7 @@ def test_resolve_path_under_dir_allows_nested_safe_path(tmp_path):
 
 def test_plugin_backend_entry_rejects_absolute_and_traversal(tmp_path):
     manager = PluginManager(str(tmp_path))
-    with pytest.raises(ValueError, match="backend.entry is invalid"):
+    with pytest.raises(ValueError, match=r"backend\.entry is invalid"):
         manager._validate_manifest(
             {
                 "id": "com.example.evil",
@@ -126,7 +126,7 @@ def test_plugin_backend_entry_rejects_absolute_and_traversal(tmp_path):
                 "backend": {"type": "python", "entry": "/tmp/evil.py"},
             },
         )
-    with pytest.raises(ValueError, match="backend.entry is invalid"):
+    with pytest.raises(ValueError, match=r"backend\.entry is invalid"):
         manager._validate_manifest(
             {
                 "id": "com.example.evil2",

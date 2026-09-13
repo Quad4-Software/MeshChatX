@@ -6,4 +6,5 @@ Icon=reticulum-meshchatx
 Terminal=false
 Type=Application
 Categories=Network;
+StartupWMClass=com.meshchatx.app
 

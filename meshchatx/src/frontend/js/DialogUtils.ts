@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
+import { EMITTER_EVENTS } from "./constants.js";
 import GlobalEmitter from "./GlobalEmitter.js";
 
 function dialogMessage(message: unknown): string {
@@ -22,12 +23,12 @@ class DialogUtils {
         if (window.electron?.alert) {
             window.electron.alert(message);
         }
-        GlobalEmitter.emit("toast", { message, type });
+        GlobalEmitter.emit(EMITTER_EVENTS.TOAST, { message, type });
     }
 
     static confirm(message: unknown, title?: string): Promise<boolean> {
         return new Promise((resolve) => {
-            if (hostListenerCount("confirm") === 0) {
+            if (hostListenerCount(EMITTER_EVENTS.CONFIRM) === 0) {
                 resolve(false);
                 return;
             }
@@ -38,7 +39,7 @@ class DialogUtils {
             if (typeof title === "string" && title.trim()) {
                 payload.title = title.trim();
             }
-            GlobalEmitter.emit("confirm", payload);
+            GlobalEmitter.emit(EMITTER_EVENTS.CONFIRM, payload);
         });
     }
 
@@ -54,11 +55,11 @@ class DialogUtils {
         const inputType =
             options && typeof options === "object" && options.inputType ? String(options.inputType) : "text";
         return new Promise((resolve) => {
-            if (hostListenerCount("prompt") === 0) {
+            if (hostListenerCount(EMITTER_EVENTS.PROMPT) === 0) {
                 resolve(null);
                 return;
             }
-            GlobalEmitter.emit("prompt", {
+            GlobalEmitter.emit(EMITTER_EVENTS.PROMPT, {
                 message: dialogMessage(message),
                 defaultValue: defaultValue == null ? "" : String(defaultValue),
                 inputType,

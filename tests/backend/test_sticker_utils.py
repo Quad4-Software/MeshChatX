@@ -220,7 +220,16 @@ def test_validate_sticker_payload_accept_reject_oracle(raw, typ):
 @given(raw=st.binary(min_size=0, max_size=4096))
 def test_detect_image_format_from_magic_closed_set(raw):
     out = sticker_utils.detect_image_format_from_magic(raw)
-    assert out is None or out in {"png", "jpeg", "gif", "webp", "bmp", "tgs", "webm"}
+    assert out is None or out in {
+        "png",
+        "jpeg",
+        "gif",
+        "webp",
+        "bmp",
+        "tiff",
+        "tgs",
+        "webm",
+    }
     if len(raw) < 4:
         assert out is None
         return

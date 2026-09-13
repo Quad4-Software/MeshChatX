@@ -148,6 +148,45 @@ function listPartials() {
     }));
 }
 
+function readImage(el) {
+    return {
+        url: el.getAttribute("data-mu-image-url") || "",
+        path: el.getAttribute("data-mu-image-path") || el.getAttribute("data-mu-image-url") || "",
+        alt: el.getAttribute("data-mu-image-alt") || "",
+        w: el.getAttribute("data-mu-image-w") || null,
+        h: el.getAttribute("data-mu-image-h") || null,
+        size: el.getAttribute("data-mu-image-s") || null,
+        key: el.getAttribute("data-mu-image-k") || "",
+        align: el.getAttribute("data-mu-image-a") || "left",
+        profile: el.getAttribute("data-mu-image-profile") || "",
+    };
+}
+
+function listImages() {
+    return [...root.querySelectorAll(".mu-image")].map((el, index) => {
+        el.setAttribute("data-mu-image-index", String(index));
+        return { index, ...readImage(el) };
+    });
+}
+
+function isAllowedImageDataUrl(url) {
+    if (typeof url !== "string" || !url) {
+        return false;
+    }
+    // Only allow base64 data URLs for recognized image types.
+    return /^data:image\/(webp|png|jpeg|jpg|gif|svg\+xml);base64,/i.test(url);
+}
+
+function sanitizeImageErrorReason(reason) {
+    return [...String(reason ?? "")]
+        .filter((ch) => {
+            const code = ch.charCodeAt(0);
+            return code >= 32 && code !== 127;
+        })
+        .slice(0, 120)
+        .join("");
+}
+
 function escapeSource(content) {
     return String(content ?? "")
         .replace(/&/g, "&amp;")
@@ -235,6 +274,23 @@ function onClick(event) {
             return;
         }
     }
+    const imageAction = t.closest(".mu-image-action");
+    if (imageAction) {
+        event.preventDefault();
+        event.stopPropagation();
+        const container = imageAction.closest(".mu-image");
+        if (container) {
+            const info = readImage(container);
+            const index = container.getAttribute("data-mu-image-index");
+            post({
+                type: "image-action",
+                action: imageAction.getAttribute("data-mu-image-action") || "load",
+                index: index != null ? Number(index) : null,
+                ...info,
+            });
+        }
+        return;
+    }
     const frag = t.closest("a[href]");
     if (frag) {
         const fh = (frag.getAttribute("href") || "").trim();
@@ -286,6 +342,8 @@ function applyChrome(msg) {
         parts.push("bg-black");
     }
     root.className = parts.join(" ");
+    root.setAttribute("role", "document");
+    root.setAttribute("tabindex", "0");
     paintShell(msg.background || "#000000", msg.color || "#dddddd");
 }
 
@@ -294,6 +352,9 @@ async function renderPage(msg, seq, api) {
     applyChrome(msg);
     const path = msg.path || "";
     const content = msg.content ?? "";
+    const renderOptions = msg.renderOptions && typeof msg.renderOptions === "object" ? msg.renderOptions : {};
+    document.title = path || "Nomad";
+    document.documentElement.lang = renderOptions.locale || "en";
     if (msg.showSource) {
         root.innerHTML = escapeSource(content);
         if (seq === renderSeq) {
@@ -303,7 +364,6 @@ async function renderPage(msg, seq, api) {
     }
     const [pagePathWithoutData] = String(path).split("`");
     const pagePartials = msg.pagePartials && typeof msg.pagePartials === "object" ? msg.pagePartials : {};
-    const renderOptions = msg.renderOptions && typeof msg.renderOptions === "object" ? msg.renderOptions : {};
     if (renderOptions.nomad_micron_wasm_use === true) {
         await api.preloadNomadMicronWasm();
     }
@@ -347,7 +407,7 @@ async function renderPage(msg, seq, api) {
         }
     }
     setupMultilineForMicron(api.MicronParser, pagePathWithoutData, opts);
-    post({ type: "render-done", partials: listPartials() });
+    post({ type: "render-done", partials: listPartials(), images: listImages() });
 }
 
 window.addEventListener("message", (ev) => {
@@ -382,6 +442,10 @@ window.addEventListener("message", (ev) => {
         applyChrome(d);
         return;
     }
+    if (d.type === "paste-text") {
+        applyPastedText(d.text);
+        return;
+    }
     if (d.type === "set-partial") {
         const id = d.id || "";
         if (!id) {
@@ -395,6 +459,51 @@ window.addEventListener("message", (ev) => {
         }
         if (target) {
             target.innerHTML = d.html || "";
+        }
+        return;
+    }
+    if (d.type === "set-image") {
+        const index = d.index;
+        if (index == null) {
+            return;
+        }
+        let el = null;
+        try {
+            el = root.querySelector(`.mu-image[data-mu-image-index="${CSS.escape(String(index))}"]`);
+        } catch {
+            el = null;
+        }
+        if (!el) {
+            return;
+        }
+        const img = el.querySelector(".mu-image-output");
+        const load = el.querySelector('.mu-image-action[data-mu-image-action="load"]');
+        if (d.state === "loading") {
+            if (load) {
+                const progress = d.progress != null ? `${Math.round(Number(d.progress) * 100)}%` : "";
+                load.textContent = progress ? `Loading... ${progress}` : "Loading...";
+            }
+        } else if (d.state === "loaded") {
+            if (img) {
+                const dataUrl = d.dataUrl || "";
+                if (isAllowedImageDataUrl(dataUrl)) {
+                    img.src = dataUrl;
+                    img.removeAttribute("hidden");
+                }
+            }
+            if (load) {
+                load.textContent = "Loaded";
+                load.setAttribute("data-mu-image-action", "view");
+            }
+            const size = el.querySelector(".mu-image-size");
+            if (size && d.actualSize != null) {
+                size.textContent = d.actualSize;
+            }
+        } else if (d.state === "error") {
+            if (load) {
+                const reason = sanitizeImageErrorReason(d.reason);
+                load.textContent = reason ? `Error: ${reason}` : "Error";
+            }
         }
         return;
     }
@@ -423,8 +532,121 @@ window.addEventListener("message", (ev) => {
     }
 });
 
+function onImageKeyDown(event) {
+    if (event.key !== "Enter" && event.key !== " ") {
+        return;
+    }
+    const imageAction = event.target && event.target.closest ? event.target.closest(".mu-image-action") : null;
+    if (!imageAction) {
+        return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const container = imageAction.closest(".mu-image");
+    if (container) {
+        const info = readImage(container);
+        const index = container.getAttribute("data-mu-image-index");
+        post({
+            type: "image-action",
+            action: imageAction.getAttribute("data-mu-image-action") || "load",
+            index: index != null ? Number(index) : null,
+            ...info,
+        });
+    }
+}
+
+/**
+ * Android WebView cannot raise the insertion/paste ActionMode for fields
+ * inside an iframe, so micron inputs on nomad pages get no long-press Paste.
+ * When running in the Android shell, intercept contextmenu on text fields and
+ * ask the parent to show an app-level Paste menu instead. Desktop browsers
+ * keep the native context menu untouched.
+ */
+let pendingFieldPasteEl = null;
+
+const NON_TEXT_INPUT_TYPES = new Set([
+    "button",
+    "checkbox",
+    "file",
+    "hidden",
+    "image",
+    "radio",
+    "range",
+    "reset",
+    "submit",
+]);
+
+function isAndroidWebViewShell() {
+    try {
+        const bridge = window.MeshChatXAndroid;
+        if (bridge && typeof bridge.getPlatform === "function" && bridge.getPlatform() === "android") {
+            return true;
+        }
+    } catch {
+        // Bridge object may be inaccessible; fall through to UA detection.
+    }
+    try {
+        const ua = navigator.userAgent || "";
+        return /Android/i.test(ua) && /;\s*wv\)/.test(ua);
+    } catch {
+        return false;
+    }
+}
+
+function fieldFromContextTarget(target) {
+    const el = target && target.closest ? target.closest("input, textarea") : null;
+    if (!el || el.disabled || el.readOnly) {
+        return null;
+    }
+    if (el.tagName === "INPUT" && NON_TEXT_INPUT_TYPES.has((el.getAttribute("type") || "text").toLowerCase())) {
+        return null;
+    }
+    return el;
+}
+
+function onFieldContextMenu(event) {
+    pendingFieldPasteEl = null;
+    if (!isAndroidWebViewShell()) {
+        return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const el = fieldFromContextTarget(event.target);
+    if (el) {
+        pendingFieldPasteEl = el;
+        post({ type: "field-contextmenu", x: event.clientX, y: event.clientY });
+        return;
+    }
+    post({ type: "page-contextmenu", x: event.clientX, y: event.clientY });
+}
+
+function applyPastedText(text) {
+    const el = pendingFieldPasteEl;
+    pendingFieldPasteEl = null;
+    if (!el || !root.contains(el)) {
+        return;
+    }
+    const value = String(text ?? "");
+    try {
+        el.focus();
+    } catch {
+        // Field may have been removed between the long-press and the tap.
+    }
+    const start = typeof el.selectionStart === "number" ? el.selectionStart : el.value.length;
+    const end = typeof el.selectionEnd === "number" ? el.selectionEnd : start;
+    if (typeof el.setRangeText === "function") {
+        el.setRangeText(value, start, end, "end");
+    } else {
+        el.value = el.value.slice(0, start) + value + el.value.slice(end);
+    }
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
 root.addEventListener("click", onClick, true);
 root.addEventListener("auxclick", onClick, true);
+root.addEventListener("keydown", onImageKeyDown, true);
+root.addEventListener("contextmenu", onFieldContextMenu, true);
 paintShell("#000000", "#dddddd");
 // Warm the parser chunk while the shell downloads the page.
 void loadRenderer();

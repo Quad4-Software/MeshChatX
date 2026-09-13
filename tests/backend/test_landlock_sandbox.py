@@ -2,6 +2,7 @@
 
 import os
 import sys
+from typing import ClassVar
 from unittest.mock import patch
 
 import pytest
@@ -160,7 +161,7 @@ def test_collect_read_roots_includes_venv_root_for_pyvenv_cfg(tmp_path, monkeypa
         executable = str(fake_python)
         prefix = str(venv)
         base_prefix = "/usr"
-        path = list(sys.path)
+        path: ClassVar = list(sys.path)
 
     monkeypatch.setattr(ll, "sys", _FakeSys)
     monkeypatch.setattr(ll.site, "getsitepackages", list)
@@ -275,38 +276,25 @@ def test_apply_landlock_preserves_storage_write_and_truncate(tmp_path):
     sys.platform != "linux" or not ll.landlock_kernel_supported(),
     reason="Landlock apply requires a supported Linux kernel",
 )
-def test_apply_landlock_allows_user_local_argospm_list(tmp_path):
-    """Pipx Argos under ~/.local must remain usable for translator language lists."""
-    import shutil
-
+def test_apply_landlock_allows_translation_pack_storage(tmp_path):
+    """Translation pack storage under the app storage root must be writable."""
     from tests.backend.landlock_integration_support import (
         assert_probe_ok,
         run_python_under_landlock,
     )
 
-    if not shutil.which("argospm"):
-        pytest.skip("argospm not on PATH")
-
     storage = tmp_path / "storage"
     storage.mkdir()
     result = run_python_under_landlock(
         """
-        import subprocess
+        import os
         import sys
 
-        proc = subprocess.run(
-            ["argospm", "list"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-        if proc.returncode != 0:
-            print("ARGOSPM_FAILED", proc.stderr or proc.stdout)
-            sys.exit(3)
-        if not (proc.stdout or "").strip():
-            print("ARGOSPM_EMPTY")
-            sys.exit(4)
+        pack_dir = os.path.join(storage, "translation-packs")
+        os.makedirs(pack_dir, exist_ok=True)
+        path = os.path.join(pack_dir, "probe.txt")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("ok")
         print("OK")
         sys.exit(0)
         """,

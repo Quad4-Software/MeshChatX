@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+from typing import ClassVar
 
 import pytest
 
@@ -73,7 +74,9 @@ def test_atomic_write_bytes(tmp_path):
 
 
 @pytest.mark.skipif(os.name == "nt", reason="symlink follow-on-open is a POSIX case")
-def test_atomic_write_bytes_refuses_symlink_tmp(tmp_path):
+def test_atomic_write_bytes_ignores_planted_tmp_symlink(tmp_path):
+    # mkstemp picks a unique sibling name, so a symlink planted at the old
+    # deterministic dest.tmp name is never opened or replaced.
     outside = tmp_path / "OUTSIDE"
     outside.mkdir()
     bait = outside / "secret.bin"
@@ -82,9 +85,10 @@ def test_atomic_write_bytes_refuses_symlink_tmp(tmp_path):
     dest.parent.mkdir()
     tmp = dest.with_name(dest.name + ".tmp")
     tmp.symlink_to(bait)
-    with pytest.raises(OSError):
-        atomic_write_bytes(str(dest), b"pwned")
+    atomic_write_bytes(str(dest), b"pwned")
+    assert dest.read_bytes() == b"pwned"
     assert bait.read_bytes() == b"keep"
+    assert tmp.is_symlink()
 
 
 @pytest.mark.asyncio
@@ -142,7 +146,7 @@ async def test_keep_last_good_on_failed_refresh(manager):
     bad = b"not-geo"
 
     class FakeDownloader:
-        payloads = [good, bad]
+        payloads: ClassVar = [good, bad]
 
         def __init__(self, **kwargs):
             self._success = kwargs["on_file_download_success"]
@@ -279,7 +283,7 @@ async def test_export_passthrough_and_transcode(manager):
     assert body == payload
     assert "geo" in ctype
     assert name.endswith(".geojson")
-    kml_body, kml_ctype, kml_name = manager.export_overlay(identity, oid, "kml")
+    kml_body, _kml_ctype, kml_name = manager.export_overlay(identity, oid, "kml")
     assert b"<kml" in kml_body
     assert kml_name.endswith(".kml")
     kmz_body, _, kmz_name = manager.export_overlay(identity, oid, "kmz")

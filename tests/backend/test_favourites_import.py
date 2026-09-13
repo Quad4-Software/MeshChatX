@@ -9,6 +9,7 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import JsonContent
 
 
 @pytest.fixture
@@ -53,23 +54,23 @@ async def test_favourites_import(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
+        payload = {
+            "favourites": [
+                {
+                    "destination_hash": "a" * 32,
+                    "display_name": "Node A",
+                    "aspect": "nomadnetwork.node",
+                },
+                {
+                    "destination_hash": "b" * 32,
+                    "display_name": "Node B",
+                    "aspect": "nomadnetwork.node",
+                },
+            ],
+        }
         request = MagicMock()
-        request.json = AsyncMock(
-            return_value={
-                "favourites": [
-                    {
-                        "destination_hash": "a" * 32,
-                        "display_name": "Node A",
-                        "aspect": "nomadnetwork.node",
-                    },
-                    {
-                        "destination_hash": "b" * 32,
-                        "display_name": "Node B",
-                        "aspect": "nomadnetwork.node",
-                    },
-                ],
-            },
-        )
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         data = json.loads(response.body)
         assert data["imported"] == 2
@@ -94,20 +95,20 @@ async def test_favourites_import_skips_invalid(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
+        payload = {
+            "favourites": [
+                {
+                    "destination_hash": "a" * 32,
+                    "display_name": "Node A",
+                    "aspect": "nomadnetwork.node",
+                },
+                {"display_name": "Missing hash"},
+                {"destination_hash": "b" * 32, "aspect": None},
+            ],
+        }
         request = MagicMock()
-        request.json = AsyncMock(
-            return_value={
-                "favourites": [
-                    {
-                        "destination_hash": "a" * 32,
-                        "display_name": "Node A",
-                        "aspect": "nomadnetwork.node",
-                    },
-                    {"display_name": "Missing hash"},
-                    {"destination_hash": "b" * 32, "aspect": None},
-                ],
-            },
-        )
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         data = json.loads(response.body)
         assert data["imported"] == 1
@@ -129,28 +130,28 @@ async def test_favourites_import_deduplicates(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
+        payload = {
+            "favourites": [
+                {
+                    "destination_hash": "a" * 32,
+                    "display_name": "First",
+                    "aspect": "nomadnetwork.node",
+                },
+                {
+                    "destination_hash": "a" * 32,
+                    "display_name": "Second",
+                    "aspect": "nomadnetwork.node",
+                },
+                {
+                    "destination_hash": "b" * 32,
+                    "display_name": "Node B",
+                    "aspect": "nomadnetwork.node",
+                },
+            ],
+        }
         request = MagicMock()
-        request.json = AsyncMock(
-            return_value={
-                "favourites": [
-                    {
-                        "destination_hash": "a" * 32,
-                        "display_name": "First",
-                        "aspect": "nomadnetwork.node",
-                    },
-                    {
-                        "destination_hash": "a" * 32,
-                        "display_name": "Second",
-                        "aspect": "nomadnetwork.node",
-                    },
-                    {
-                        "destination_hash": "b" * 32,
-                        "display_name": "Node B",
-                        "aspect": "nomadnetwork.node",
-                    },
-                ],
-            },
-        )
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         data = json.loads(response.body)
         assert data["imported"] == 2
@@ -177,7 +178,9 @@ async def test_favourites_import_rejects_non_array(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
+        payload = {"favourites": "not an array"}
         request = MagicMock()
-        request.json = AsyncMock(return_value={"favourites": "not an array"})
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         assert response.status == 400

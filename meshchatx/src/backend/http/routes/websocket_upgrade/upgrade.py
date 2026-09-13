@@ -11,6 +11,8 @@ from meshchatx.src.backend.http.routes.websocket_upgrade._names import (
     _reject_forbidden_ws_origin,
     _reject_forbidden_ws_session,
 )
+from meshchatx.src.backend.http.errors import http_unavailable  # noqa: F401
+from meshchatx.src.path_utils import is_loopback_bind_host
 
 
 def register_websocket_upgrade_upgrade_routes(routes: Any, app: Any) -> None:
@@ -26,10 +28,7 @@ def register_websocket_upgrade_upgrade_routes(routes: Any, app: Any) -> None:
             return forbidden_session
         max_clients = int(getattr(app, "max_websocket_clients", 64) or 64)
         if len(app.websocket_clients) >= max_clients:
-            return web.json_response(
-                {"error": "Too many websocket clients"},
-                status=503,
-            )
+            return http_unavailable("Too many websocket clients")
 
         # Control + chunked Nomad frames. Whole-file success under the Nomad
         # app cap still fits (10 MiB raw + base64) under 50 MiB legacy until

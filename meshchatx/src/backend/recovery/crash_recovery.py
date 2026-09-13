@@ -22,6 +22,8 @@ import traceback
 import psutil
 import RNS
 
+from meshchatx.src.env_utils import env_bool
+
 _DEFAULT_PRIORS = {
     "DB_SYNC_FAILURE": 0.05,
     "DB_CORRUPTION": 0.05,
@@ -65,8 +67,7 @@ class CrashRecovery:
         self._prev_threading_hook = None
 
         # Check environment variable to allow disabling the recovery system
-        env_val = os.environ.get("MESHCHAT_NO_CRASH_RECOVERY", "").lower()
-        if env_val in ("true", "1", "yes", "on"):
+        if env_bool("MESHCHAT_NO_CRASH_RECOVERY"):
             self.enabled = False
 
     def install(self):

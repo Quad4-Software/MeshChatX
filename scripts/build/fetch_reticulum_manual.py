@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: 0BSD
-"""Fetch the Reticulum manual at build time and stage it for bundling.
+r"""Fetch the Reticulum manual at build time and stage it for bundling.
 
 The downloaded archive is extracted into meshchatx/public/reticulum-docs-bundled/current
 so that the application ships with an offline copy of the manual. At runtime the
@@ -465,7 +465,9 @@ def _ensure_rns_tooling(*, pinned_rns: str | None) -> None:
     )
     if completed.returncode != 0:
         tail = (completed.stderr or completed.stdout or "").strip()[-500:]
-        raise ValueError(f"failed to install rns=={version}: {tail or completed.returncode}")
+        raise ValueError(
+            f"failed to install rns=={version}: {tail or completed.returncode}"
+        )
     if not _git_remote_rns_path():
         raise ValueError("git-remote-rns still missing after installing rns")
 

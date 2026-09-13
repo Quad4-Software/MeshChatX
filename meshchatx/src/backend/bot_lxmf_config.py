@@ -5,13 +5,63 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import re
 from typing import Any
 
 _LXMF_HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 _PROPAGATION_MODES = frozenset({"inherit", "manual", "autopeer", "none"})
 _SIDECAR_NAME = "meshchatx_bot_lxmf_config.json"
+_COMMAND_PREFIX_RE = re.compile(r"^\S{0,8}$")
+_MAX_ADMINS = 64
+
+# Boolean overrides that pass straight through to LXMFBot kwargs.
+_BOOL_OVERRIDES = (
+    "announce_enabled",
+    "announce_immediately",
+    "first_message_enabled",
+    "signature_verification_enabled",
+    "require_message_signatures",
+    "require_stamps",
+    "request_unknown_identities",
+    "identity_pinning_enabled",
+    "permissions_enabled",
+    "lxmf_commands_enabled",
+    "message_persistence_enabled",
+)
+
+# Integer overrides with inclusive (min, max) bounds.
+_INT_OVERRIDES = {
+    "rate_limit": (0, 1000),
+    "cooldown": (0, 86400),
+    "max_warnings": (0, 100),
+    "warning_timeout": (0, 86400),
+    "message_queue_size": (1, 10000),
+    "autopeer_maxdepth": (0, 64),
+}
+
+
+def normalize_command_prefix(value) -> str | None:
+    if value is None:
+        return None
+    prefix = str(value)
+    if not _COMMAND_PREFIX_RE.match(prefix):
+        return None
+    return prefix
+
+
+def normalize_admin_hashes(raw) -> list[str] | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, (list, tuple)):
+        return None
+    out: list[str] = []
+    for item in raw:
+        h = normalize_lxmf_destination_hash(item)
+        if h and h not in out:
+            out.append(h)
+        if len(out) >= _MAX_ADMINS:
+            break
+    return out
 
 
 def normalize_lxmf_destination_hash(value) -> str | None:
@@ -115,6 +165,30 @@ def normalize_bot_lxmf_overrides(raw) -> dict:
         if parsed is not None and parsed >= 0:
             out["stamp_cost"] = parsed
 
+    for key in _BOOL_OVERRIDES:
+        value = raw.get(key)
+        if value is not None:
+            out[key] = bool(value)
+
+    for key, (low, high) in _INT_OVERRIDES.items():
+        value = raw.get(key)
+        if value is None or value == "":
+            continue
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            continue
+        if low <= parsed <= high:
+            out[key] = parsed
+
+    prefix = normalize_command_prefix(raw.get("command_prefix"))
+    if prefix is not None:
+        out["command_prefix"] = prefix
+
+    admins = normalize_admin_hashes(raw.get("admins"))
+    if admins:
+        out["admins"] = admins
+
     if out.get("propagation_mode") == "manual" and "propagation_node" not in out:
         out.pop("propagation_mode", None)
 
@@ -155,9 +229,15 @@ def merge_bot_lxmf_overrides(stored: dict | None, patch: dict | None) -> dict:
         "opportunistic_sending",
         "announce_interval_seconds",
         "stamp_cost",
+        "command_prefix",
+        "admins",
+        *_BOOL_OVERRIDES,
+        *_INT_OVERRIDES,
     )
     for key in clear_keys:
         if key in patch and patch[key] in (None, ""):
+            base.pop(key, None)
+        elif key == "admins" and isinstance(patch.get(key), list) and not patch[key]:
             base.pop(key, None)
 
     incoming = normalize_bot_lxmf_overrides(patch)
@@ -209,6 +289,17 @@ def resolve_effective_bot_lxmf_settings(
     if "stamp_cost" in overrides:
         settings["stamp_cost"] = overrides["stamp_cost"]
 
+    for key in _BOOL_OVERRIDES:
+        if key in overrides:
+            settings[key] = overrides[key]
+    for key in _INT_OVERRIDES:
+        if key in overrides:
+            settings[key] = overrides[key]
+    if "command_prefix" in overrides:
+        settings["command_prefix"] = overrides["command_prefix"]
+    if "admins" in overrides:
+        settings["admins"] = list(overrides["admins"])
+
     return settings
 
 
@@ -227,26 +318,20 @@ def describe_bot_lxmf_config(
 
 
 def write_bot_lxmf_config_sidecar(storage_dir: str, settings: dict) -> str:
-    from meshchatx.src.path_utils import atomic_write_text
+    from meshchatx.src.json_store import save_json
 
     path = bot_lxmf_config_sidecar_path(storage_dir)
-    atomic_write_text(path, json.dumps(settings, indent=2) + "\n")
+    save_json(path, settings, indent=2)
     return path
 
 
 def load_bot_lxmf_config_sidecar(path: str | None) -> dict:
     if not path:
         return {}
-    import os
+    from meshchatx.src.json_store import load_json
 
-    if not os.path.isfile(path):
-        return {}
-    try:
-        with open(path, encoding="utf-8") as handle:
-            raw = json.load(handle)
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if not isinstance(raw, dict):
+    raw = load_json(path, expect=dict)
+    if raw is None:
         return {}
 
     settings: dict[str, Any] = {}
@@ -284,4 +369,23 @@ def load_bot_lxmf_config_sidecar(path: str | None) -> dict:
             parsed = None
         if parsed is not None and parsed >= 0:
             settings["stamp_cost"] = parsed
+
+    for key in _BOOL_OVERRIDES:
+        if key in raw:
+            settings[key] = bool(raw[key])
+    for key, (low, high) in _INT_OVERRIDES.items():
+        if key not in raw:
+            continue
+        try:
+            parsed = int(raw[key])
+        except (TypeError, ValueError):
+            continue
+        if low <= parsed <= high:
+            settings[key] = parsed
+    prefix = normalize_command_prefix(raw.get("command_prefix"))
+    if prefix is not None:
+        settings["command_prefix"] = prefix
+    admins = normalize_admin_hashes(raw.get("admins"))
+    if admins:
+        settings["admins"] = admins
     return settings

@@ -199,7 +199,7 @@ class SidebandPluginLoader:
             "SidebandTelemetryPlugin": SidebandTelemetryPlugin,
         }
         try:
-            exec(source, plugin_globals)
+            exec(source, plugin_globals)  # noqa: S102 - plugin exec is the feature
             plugin_class = plugin_globals.get("plugin_class")
             if plugin_class is None:
                 entry["error"] = "plugin_class missing"

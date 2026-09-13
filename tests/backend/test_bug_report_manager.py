@@ -7,6 +7,15 @@ import pytest
 from meshchatx.src.backend.bug_report_manager import BugReportManager
 
 
+@pytest.fixture(autouse=True)
+def _clear_memory_log_handler(monkeypatch):
+    # The manager prefers the process-global memory handler; clear it so
+    # the fake app/database path is what previews actually read.
+    from meshchatx.src.backend import persistent_log_handler as plh
+
+    monkeypatch.setattr(plh, "memory_log_handler", None)
+
+
 def _fake_app(tmp_path):
     class FakeApp:
         storage_dir = str(tmp_path)
@@ -306,7 +315,7 @@ def test_delete_report_deletes_persisted_file(tmp_path):
 
 def test_inbound_redaction_and_fingerprint_merge(tmp_path):
     manager = BugReportManager(_fake_app(tmp_path))
-    secret = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+    secret = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"  # nosec: test fixture
     payload = {
         "v": 2,
         "title": "Boom",
@@ -384,6 +393,6 @@ def test_set_issue_status(tmp_path):
 
 
 # Patch the manager to add a list helper for cross-platform robustness
-BugReportManager._storage_dir_list = lambda _self, path: [
-    name for name in __import__("os").listdir(path)
-]
+BugReportManager._storage_dir_list = lambda _self, path: list(
+    __import__("os").listdir(path)
+)

@@ -49,7 +49,7 @@ _BAD_HASHES = (
     "\x00" * 16,
     "' OR '1'='1",
     "../../identity",
-    "а" * 32,
+    "а" * 32,  # noqa: RUF001 - intentional Cyrillic homoglyph
     "all",
 )
 
@@ -449,7 +449,7 @@ def test_concurrent_acl_mutations_stable(handler):
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
 )
-@given(path=st.sampled_from(list(_TRAVERSAL_PAYLOADS) + ["ok.txt", "dir/file.bin"]))
+@given(path=st.sampled_from([*_TRAVERSAL_PAYLOADS, "ok.txt", "dir/file.bin"]))
 def test_download_path_oracle(handler, path):
     service = MagicMock()
     service.download_file.return_value = {"ok": True, "path": path}
@@ -497,7 +497,7 @@ def test_acl_hash_oracle(handler, identity_hash, perms):
     assert isinstance(result, dict)
     assert "ok" in result
     cleaned = str(identity_hash or "").strip().lower().replace(":", "")
-    valid = cleaned == "all" or (
+    valid = cleaned in ("all", "a", "everyone", "*") or (
         len(cleaned) == 32 and all(c in "0123456789abcdef" for c in cleaned)
     )
     if not valid:
@@ -619,7 +619,8 @@ def test_manager_rejects_traversal_payloads(handler, tmp_path):
     with open(secret, "w", encoding="utf-8") as handle:
         handle.write("private")
 
-    payloads = list(_TRAVERSAL_PAYLOADS) + [
+    payloads = [
+        *_TRAVERSAL_PAYLOADS,
         str(bait),
         secret,
         os.path.join(handler.storage_dir, "identity"),
@@ -739,7 +740,7 @@ def test_manager_refuses_delete_sync_root(handler):
 @given(
     path=st.one_of(
         st.sampled_from(
-            list(_TRAVERSAL_PAYLOADS) + ["ok.txt", "dir/file.bin", "nested/a/b"],
+            [*_TRAVERSAL_PAYLOADS, "ok.txt", "dir/file.bin", "nested/a/b"],
         ),
         st.text(min_size=0, max_size=40),
     ),

@@ -1761,16 +1761,16 @@
             "path": "/api/v1/telephone/voicemails/{id}/read"
         },
         {
-            "method": "POST",
-            "path": "/api/v1/translator/install-languages"
-        },
-        {
             "method": "GET",
-            "path": "/api/v1/translator/languages"
+            "path": "/api/v1/translation/packs"
         },
         {
             "method": "POST",
-            "path": "/api/v1/translator/translate"
+            "path": "/api/v1/translation/packs/import"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/translation/packs/{pair}"
         },
         {
             "method": "GET",
@@ -1783,6 +1783,10 @@
         {
             "method": "GET",
             "path": "/service-worker.js"
+        },
+        {
+            "method": "GET",
+            "path": "/translation-packs/{path:.*}"
         },
         {
             "method": "GET",

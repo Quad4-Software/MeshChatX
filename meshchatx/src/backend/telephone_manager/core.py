@@ -92,6 +92,8 @@ class TelephoneManager:
         self._path_poll_interval_s = 0.05
         self._path_retry_interval_s = 1.5
         self._status_poll_interval_s = 0.1
+        # Strong refs to fire-and-forget tasks so the loop cannot GC them.
+        self._background_tasks: set[asyncio.Task] = set()
         self.is_voicemail_session_active = False
         self.preferred_profile_id = None
         self.preferred_mode_id = None
@@ -722,7 +724,11 @@ class TelephoneManager:
                 self._update_initiation_status(None, None)
                 with contextlib.suppress(Exception):
                     # FIXME: Remove async hangup dispatch when LXST exposes cooperative cancellation.
-                    asyncio.create_task(asyncio.to_thread(self.telephone.hangup))
+                    hangup_task = asyncio.create_task(
+                        asyncio.to_thread(self.telephone.hangup)
+                    )
+                    self._background_tasks.add(hangup_task)
+                    hangup_task.add_done_callback(self._background_tasks.discard)
                 return None
 
             # If the task finished but we're still ringing or connecting,

@@ -8,11 +8,26 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.messages._names import *  # noqa: F403
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_messages_notifications_routes(routes: Any, app: Any) -> None:
-    @routes.post("/api/v1/notifications/mark-as-viewed")
+    @routes.post(API_V1_PREFIX + "/notifications/mark-as-viewed")
     async def notifications_mark_as_viewed(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hashes = data.get("destination_hashes", [])
         notification_ids = data.get("notification_ids", [])
 
@@ -43,7 +58,7 @@ def register_messages_notifications_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/notifications")
+    @routes.get(API_V1_PREFIX + "/notifications")
     async def notifications_get(request):
         not_ready = app._require_identity_context_ready()
         if not_ready is not None:
@@ -356,13 +371,9 @@ def register_messages_notifications_routes(routes: Any, app: Any) -> None:
         except Exception as e:
             RNS.log(f"Error in notifications_get: {e}", RNS.LOG_ERROR)
             status = 503 if sqlite_error_is_retryable(e) else 500
-            return web.json_response(
-                {
-                    "error": (
-                        "Database temporarily unavailable. Retry shortly."
-                        if status == 503
-                        else "Internal error"
-                    ),
-                },
-                status=status,
+            return http_error(
+                status,
+                "Database temporarily unavailable. Retry shortly."
+                if status == 503
+                else "Internal error",
             )

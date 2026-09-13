@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: 0BSD
+
+name: Documentation
+description: Report missing, incorrect, or unclear docs.
+title: "[Docs]: "
+labels:
+    - documentation
+body:
+    - type: input
+      id: page
+      attributes:
+          label: Doc page or section
+          description: Path or URL of the doc (for example docs/en/installation.md or the README).
+          placeholder: "docs/en/installation.md"
+      validations:
+          required: true
+
+    - type: textarea
+      id: issue
+      attributes:
+          label: What is wrong or missing?
+          description: Describe the error or the gap.
+      validations:
+          required: true
+
+    - type: textarea
+      id: suggestion
+      attributes:
+          label: Suggested change
+          description: What would make it clearer?

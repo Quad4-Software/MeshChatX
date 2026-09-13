@@ -6,6 +6,7 @@ import {
     camelCaseToSearchWords,
     foldForSearch,
     matchesSettingSearch,
+    matchesSettingSearchFuzzy,
     normalizeSearchString,
     tokenizeSettingsQuery,
     tokenMatchesHaystack,
@@ -101,5 +102,26 @@ describe("settingsSearchUtils", () => {
     it("buildSettingsSearchHaystack splits punctuation so index.mu tokens match", () => {
         const { haystack } = buildSettingsSearchHaystack(["=index.mu"], t);
         expect(haystack).toBe("index mu");
+    });
+
+    it("matchesSettingSearchFuzzy: tolerates single-edit typos on long tokens", () => {
+        expect(matchesSettingSearchFuzzy(["=messages"], t, "mesages")).toBe(true);
+        expect(matchesSettingSearchFuzzy(["=messages"], t, "messags")).toBe(true);
+        expect(matchesSettingSearchFuzzy(["=theme"], t, "them")).toBe(true);
+    });
+
+    it("matchesSettingSearchFuzzy: still requires every token to match", () => {
+        expect(matchesSettingSearchFuzzy(["=messages"], t, "mesages zzz")).toBe(false);
+        expect(matchesSettingSearchFuzzy(["=messages"], t, "zzz")).toBe(false);
+    });
+
+    it("matchesSettingSearchFuzzy: short tokens stay exact whole-word", () => {
+        expect(matchesSettingSearchFuzzy(["=theme dark"], t, "me")).toBe(false);
+        expect(matchesSettingSearchFuzzy(["=me myself"], t, "me")).toBe(true);
+    });
+
+    it("matchesSettingSearchFuzzy: two edits allowed for long tokens", () => {
+        expect(matchesSettingSearchFuzzy(["=notification"], t, "notfication")).toBe(true);
+        expect(matchesSettingSearchFuzzy(["=theme"], t, "thme")).toBe(true);
     });
 });

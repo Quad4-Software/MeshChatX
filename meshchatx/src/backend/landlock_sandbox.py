@@ -12,6 +12,9 @@ import site
 import sys
 import tempfile
 
+from meshchatx.src.env_utils import env_str
+from meshchatx.src.path_utils import realpath_or_none
+
 logger = logging.getLogger("meshchatx.landlock")
 
 _LANDLOCK_ACCESS_FS_EXECUTE = 1 << 0
@@ -127,7 +130,7 @@ def _kernel_version_meets_minimum(min_major: int = 5, min_minor: int = 13) -> bo
 
 
 def _landlock_env_override() -> bool | None:
-    raw = os.environ.get("MESHCHAT_LANDLOCK")
+    raw = env_str("MESHCHAT_LANDLOCK")
     if raw is None:
         return None
     val = raw.strip().lower()
@@ -323,13 +326,12 @@ def _existing_dir(path: str | None) -> str | None:
 
 
 def _collect_user_local_cli_roots() -> list[str]:
-    """User-installed CLIs (pipx Argos Translate, rnsh/rnx wrappers, git-remote-rns, etc.)."""
+    """User-installed CLIs (pipx, rnsh/rnx wrappers, git-remote-rns, etc.)."""
     home = os.path.expanduser("~")
     if not home or home == "~":
         return []
     candidates = (
         os.path.join(home, ".local", "bin"),
-        os.path.join(home, ".local", "share", "argos-translate"),
         os.path.join(home, ".local", "share", "pipx"),
     )
     paths: list[str] = []
@@ -403,7 +405,7 @@ def _collect_read_roots() -> list[str]:
     for prefix_candidate in (
         getattr(sys, "base_prefix", None),
         sys.prefix,
-        os.environ.get("VIRTUAL_ENV"),
+        env_str("VIRTUAL_ENV"),
     ):
         prefix = _existing_dir(prefix_candidate)
         if prefix:
@@ -426,7 +428,7 @@ def _collect_rw_roots(
         reticulum_config_dir,
         log_dir,
         tempfile.gettempdir(),
-        "/dev/shm",
+        "/dev/shm",  # noqa: S108 - sandbox allowlist, not a temp file
         "/run",
     ):
         existing = _existing_dir(candidate)
@@ -434,11 +436,6 @@ def _collect_rw_roots(
             paths.append(existing)
     if os.path.isdir("/dev"):
         paths.append("/dev")
-    argos_share = _existing_dir(
-        os.path.join(os.path.expanduser("~"), ".local", "share", "argos-translate"),
-    )
-    if argos_share and argos_share not in paths:
-        paths.append(argos_share)
     return paths
 
 
@@ -498,21 +495,15 @@ def _normalize_extra_landlock_read_root(path: str) -> str | None:
     """
     if not isinstance(path, str) or not path.strip():
         return None
-    try:
-        resolved = os.path.realpath(os.path.abspath(os.path.expanduser(path.strip())))
-    except OSError:
-        return None
-    if not os.path.isdir(resolved):
+    resolved = realpath_or_none(os.path.abspath(os.path.expanduser(path.strip())))
+    if not resolved or not os.path.isdir(resolved):
         return None
     fs_root = os.path.realpath(os.path.abspath(os.sep))
     if resolved == fs_root:
         return None
     home = os.path.expanduser("~")
     if home and home != "~":
-        try:
-            home_real = os.path.realpath(os.path.abspath(home))
-        except OSError:
-            home_real = ""
+        home_real = realpath_or_none(os.path.abspath(home)) or ""
         if home_real and resolved == home_real:
             return None
     return resolved

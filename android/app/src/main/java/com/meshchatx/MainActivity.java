@@ -135,6 +135,22 @@ public class MainActivity extends AppCompatActivity {
         if (uri == null) {
             return;
         }
+        // Only hand browser-safe schemes to the OS. Anything the WebView was
+        // denied (javascript:, data:, file:, intent:, ...) must not be
+        // forwarded to another app.
+        String scheme = uri.getScheme();
+        if (scheme == null) {
+            return;
+        }
+        String schemeLower = scheme.toLowerCase(Locale.ROOT);
+        if (!schemeLower.equals("http") && !schemeLower.equals("https")
+            && !schemeLower.equals("mailto")) {
+            return;
+        }
+        String userInfo = uri.getUserInfo();
+        if (userInfo != null && !userInfo.isEmpty()) {
+            return;
+        }
         try {
             startActivity(new Intent(Intent.ACTION_VIEW, uri));
         } catch (ActivityNotFoundException ignored) {
@@ -1602,6 +1618,31 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void setClearClipboardOnBackground(boolean enabled) {
             activity.runOnUiThread(() -> activity.setClearClipboardOnBackgroundEnabled(enabled));
+        }
+
+        /**
+         * Read the system clipboard for the in-app Paste menu. Android WebView
+         * cannot raise the paste ActionMode for fields inside iframes (nomad
+         * crash tab), so the frontend shows its own menu and reads through here.
+         */
+        @JavascriptInterface
+        public String getClipboardText() {
+            try {
+                ClipboardManager clipboard =
+                    (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard == null || !clipboard.hasPrimaryClip()) {
+                    return null;
+                }
+                ClipData clip = clipboard.getPrimaryClip();
+                if (clip == null || clip.getItemCount() < 1) {
+                    return null;
+                }
+                CharSequence text = clip.getItemAt(0).coerceToText(activity);
+                return text != null ? text.toString() : null;
+            } catch (Exception ignored) {
+                // Clipboard access can fail on locked devices or OEM builds.
+                return null;
+            }
         }
 
         @JavascriptInterface

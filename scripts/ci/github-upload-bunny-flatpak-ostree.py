@@ -97,7 +97,7 @@ def put_file(
     checksum = hashlib.sha256(body).hexdigest().upper()
     timeout = 600 if len(body) > 50_000_000 else 120
     for attempt in range(1, max_attempts + 1):
-        req = urllib.request.Request(
+        req = urllib.request.Request(  # noqa: S310 - CI storage endpoint
             url,
             data=body,
             method="PUT",
@@ -108,7 +108,7 @@ def put_file(
             },
         )
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec: BAN-B310
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - CI storage endpoint
                 code = resp.getcode()
         except urllib.error.HTTPError as e:
             code = e.code
@@ -133,24 +133,24 @@ def put_file(
 
 
 def get_json(url: str, access_key: str, timeout: int = 120) -> object:
-    req = urllib.request.Request(
+    req = urllib.request.Request(  # noqa: S310 - CI storage endpoint
         url,
         method="GET",
         headers={"AccessKey": access_key},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec: BAN-B310
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - CI storage endpoint
         body = resp.read()
     return json.loads(body.decode("utf-8"))
 
 
 def delete_path(url: str, access_key: str, timeout: int = 120) -> None:
-    req = urllib.request.Request(
+    req = urllib.request.Request(  # noqa: S310 - CI storage endpoint
         url,
         method="DELETE",
         headers={"AccessKey": access_key},
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec: BAN-B310
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - CI storage endpoint
             code = resp.getcode()
     except urllib.error.HTTPError as e:
         code = e.code

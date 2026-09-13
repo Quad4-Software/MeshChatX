@@ -85,6 +85,59 @@ def test_mark_stuck_messages_repairs_previously_failed_incoming(real_db):
     assert real_db.messages.get_lxmf_message_by_hash("a" * 32)["state"] == "generating"
 
 
+def test_update_state_never_regresses_terminal_to_progress(real_db):
+    # A stale in-flight poll must not flip a finished message back to sent.
+    h = "a" * 32
+    _insert_message(real_db, h, is_incoming=0, state="delivered")
+
+    real_db.messages.update_lxmf_message_state(
+        message_hash=h,
+        state="sent",
+        progress=42.0,
+        delivery_attempts=3,
+        next_delivery_attempt_at=None,
+    )
+
+    row = real_db.messages.get_lxmf_message_by_hash(h)
+    assert row["state"] == "delivered"
+    # Non-state fields still accept the fresh telemetry.
+    assert row["progress"] == 42.0
+    assert row["delivery_attempts"] == 3
+
+
+def test_update_state_progress_states_still_advance(real_db):
+    h = "b" * 32
+    _insert_message(real_db, h, is_incoming=0, state="sending")
+
+    real_db.messages.update_lxmf_message_state(
+        message_hash=h,
+        state="sent",
+        progress=90.0,
+        delivery_attempts=1,
+        next_delivery_attempt_at=None,
+    )
+    assert real_db.messages.get_lxmf_message_by_hash(h)["state"] == "sent"
+
+    real_db.messages.update_lxmf_message_state(
+        message_hash=h,
+        state="delivered",
+        progress=100.0,
+        delivery_attempts=1,
+        next_delivery_attempt_at=None,
+    )
+    assert real_db.messages.get_lxmf_message_by_hash(h)["state"] == "delivered"
+
+    # Terminal to terminal updates still apply (delivered -> failed).
+    real_db.messages.update_lxmf_message_state(
+        message_hash=h,
+        state="failed",
+        progress=0.0,
+        delivery_attempts=1,
+        next_delivery_attempt_at=None,
+    )
+    assert real_db.messages.get_lxmf_message_by_hash(h)["state"] == "failed"
+
+
 def test_normalize_lxmf_message_for_import_strips_export_metadata():
     row = {
         "id": 1,

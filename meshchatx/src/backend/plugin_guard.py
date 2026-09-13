@@ -6,6 +6,12 @@ import os
 import stat
 import zipfile
 
+from meshchatx.src.path_utils import (
+    PathJailError,
+    is_safe_archive_member,
+    normalize_relpath,
+)
+
 MAX_PLUGIN_ZIP_BYTES = 20 * 1024 * 1024
 MAX_EXTRACT_BYTES = 50 * 1024 * 1024
 MAX_EXTRACT_FILES = 256
@@ -22,13 +28,10 @@ class PluginSecurityError(ValueError):
 def normalize_asset_path(asset_name: str) -> str:
     if not isinstance(asset_name, str) or "\x00" in asset_name:
         raise PluginSecurityError("invalid asset path")
-    normalized = os.path.normpath(asset_name).replace("\\", "/")
-    if not normalized or normalized in {".", ".."}:
-        raise PluginSecurityError("invalid asset path")
-    if normalized.startswith("../") or normalized.startswith("/"):
-        raise PluginSecurityError("invalid asset path")
-    if "/../" in f"/{normalized}/":
-        raise PluginSecurityError("invalid asset path")
+    try:
+        normalized = normalize_relpath(asset_name, strict=True)
+    except PathJailError as exc:
+        raise PluginSecurityError("invalid asset path") from exc
     # Reject Windows drive-absolute forms (C:/...) that can escape on win32 joins.
     if ":" in normalized:
         raise PluginSecurityError("invalid asset path")
@@ -51,18 +54,7 @@ def validate_invoke_payload(payload: bytes) -> None:
 
 
 def _zip_entry_is_safe(name: str) -> bool:
-    if not isinstance(name, str) or "\x00" in name:
-        return False
-    normalized = os.path.normpath(name).replace("\\", "/")
-    if normalized.startswith("../") or normalized.startswith("/"):
-        return False
-    if normalized in {"", ".", ".."}:
-        return False
-    if ":" in normalized:
-        return False
-    if "/../" in f"/{normalized}/":
-        return False
-    return True
+    return is_safe_archive_member(name)
 
 
 def _zip_info_is_symlink(info: zipfile.ZipInfo) -> bool:

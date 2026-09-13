@@ -37,7 +37,7 @@ make install && make build && make run
 
 詳細は [`docs/en/installation.md`](../docs/en/installation.md)。
 
-このリポジトリの現在のバージョンは `4.8.6` です。
+このリポジトリの現在のバージョンは `4.9.0` です。
 
 ## セキュリティ・ライセンス・クレジット
 

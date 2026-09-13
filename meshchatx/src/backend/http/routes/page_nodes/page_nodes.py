@@ -8,21 +8,38 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.page_nodes._names import *  # noqa: F403
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
+    PayloadTooLargeError,
+    read_field_limited,
+    read_json_limited,
+)
+
 
 def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
 
     # --- Page Node API ---
 
-    @routes.get("/api/v1/page-nodes")
+    @routes.get(API_V1_PREFIX + "/page-nodes")
     async def page_nodes_list(request):
         return web.json_response(app.page_node_manager.list_nodes())
 
-    @routes.post("/api/v1/page-nodes")
+    @routes.post(API_V1_PREFIX + "/page-nodes")
     async def page_nodes_create(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name", "").strip()
         if not name:
-            return web.json_response({"message": "Name is required"}, status=400)
+            return http_bad_request("Name is required")
         announce_enabled = bool(data.get("announce_enabled", True))
         announce_interval_seconds = data.get("announce_interval_seconds")
         executable_pages_enabled = bool(data.get("executable_pages_enabled", False))
@@ -34,22 +51,22 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
         )
         return web.json_response(node.get_status())
 
-    @routes.get("/api/v1/page-nodes/{node_id}")
+    @routes.get(API_V1_PREFIX + "/page-nodes/{node_id}")
     async def page_nodes_get(request):
         node_id = request.match_info["node_id"]
         node = app.page_node_manager.get_node(node_id)
         if not node:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
         return web.json_response(node.get_status())
 
-    @routes.delete("/api/v1/page-nodes/{node_id}")
+    @routes.delete(API_V1_PREFIX + "/page-nodes/{node_id}")
     async def page_nodes_delete(request):
         node_id = request.match_info["node_id"]
         if app.page_node_manager.delete_node(node_id):
             return web.json_response({"message": "Node deleted"})
-        return web.json_response({"message": "Node not found"}, status=404)
+        return http_not_found("Node not found")
 
-    @routes.post("/api/v1/page-nodes/{node_id}/start")
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/start")
     async def page_nodes_start(request):
         node_id = request.match_info["node_id"]
         try:
@@ -61,56 +78,55 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
                 {"destination_hash": dest_hash, "message": "Node started"},
             )
         except KeyError:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
 
-    @routes.post("/api/v1/page-nodes/{node_id}/stop")
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/stop")
     async def page_nodes_stop(request):
         node_id = request.match_info["node_id"]
         try:
             app.page_node_manager.stop_node(node_id)
             return web.json_response({"message": "Node stopped"})
         except KeyError:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
 
-    @routes.post("/api/v1/page-nodes/{node_id}/announce")
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/announce")
     async def page_nodes_announce(request):
         node_id = request.match_info["node_id"]
         try:
             node = app.page_node_manager.get_node(node_id)
             if node is None or not node.running:
-                return web.json_response(
-                    {"message": "Node not running"},
-                    status=400,
-                )
+                return http_bad_request("Node not running")
             node.announce()
             app._register_local_page_node_announce(node)
             return web.json_response({"message": "Announced"})
         except KeyError:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
 
-    @routes.put("/api/v1/page-nodes/{node_id}/rename")
+    @routes.put(API_V1_PREFIX + "/page-nodes/{node_id}/rename")
     async def page_nodes_rename(request):
         node_id = request.match_info["node_id"]
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         new_name = data.get("name", "").strip()
         if not new_name:
-            return web.json_response({"message": "Name is required"}, status=400)
+            return http_bad_request("Name is required")
         try:
             app.page_node_manager.rename_node(node_id, new_name)
             return web.json_response({"message": "Renamed"})
         except KeyError:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
 
-    @routes.patch("/api/v1/page-nodes/{node_id}/announce-settings")
+    @routes.patch(API_V1_PREFIX + "/page-nodes/{node_id}/announce-settings")
     async def page_nodes_update_announce_settings(request):
         node_id = request.match_info["node_id"]
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid request body: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Invalid request body: {e}")
         announce_enabled = (
             data.get("announce_enabled") if "announce_enabled" in data else None
         )
@@ -127,7 +143,7 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
         try:
             node = app.page_node_manager.get_node(node_id)
             if node is None:
-                return web.json_response({"message": "Node not found"}, status=404)
+                return http_not_found("Node not found")
             node = app.page_node_manager.set_announce_settings(
                 node_id,
                 announce_enabled=announce_enabled,
@@ -140,51 +156,41 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
                 )
             return web.json_response(node.get_status())
         except KeyError:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
 
-    @routes.get("/api/v1/page-nodes/{node_id}/pages")
+    @routes.get(API_V1_PREFIX + "/page-nodes/{node_id}/pages")
     async def page_nodes_list_pages(request):
         node_id = request.match_info["node_id"]
         node = app.page_node_manager.get_node(node_id)
         if not node:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
         return web.json_response({"pages": node.list_pages()})
 
-    @routes.post("/api/v1/page-nodes/{node_id}/pages")
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/pages")
     async def page_nodes_add_page(request):
         node_id = request.match_info["node_id"]
         node = app.page_node_manager.get_node(node_id)
         if not node:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid request body: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Invalid request body: {e}")
         name = data.get("name", "")
         content = data.get("content", "")
         executable = data.get("executable") if "executable" in data else None
         if not name:
-            return web.json_response(
-                {"message": "Page name is required"},
-                status=400,
-            )
+            return http_bad_request("Page name is required")
         try:
             saved_name = node.add_page(name, content, executable=executable)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
-        except OSError as e:
-            return web.json_response(
-                {"message": f"Failed to write page: {e}"},
-                status=500,
-            )
-        except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to save page: {e}"},
-                status=500,
-            )
+            return http_bad_request(str(e))
+        except OSError:
+            return http_unexpected("Failed to write page")
+        except Exception:
+            return http_unexpected("Failed to save page")
         return web.json_response(
             {
                 "name": saved_name,
@@ -193,16 +199,16 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/page-nodes/{node_id}/pages/{page_name}")
+    @routes.get(API_V1_PREFIX + "/page-nodes/{node_id}/pages/{page_name}")
     async def page_nodes_get_page(request):
         node_id = request.match_info["node_id"]
         page_name = request.match_info["page_name"]
         node = app.page_node_manager.get_node(node_id)
         if not node:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
         content = node.get_page_content(page_name)
         if content is None:
-            return web.json_response({"message": "Page not found"}, status=404)
+            return http_not_found("Page not found")
         return web.json_response(
             {
                 "name": page_name,
@@ -211,38 +217,35 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.delete("/api/v1/page-nodes/{node_id}/pages/{page_name}")
+    @routes.delete(API_V1_PREFIX + "/page-nodes/{node_id}/pages/{page_name}")
     async def page_nodes_delete_page(request):
         node_id = request.match_info["node_id"]
         page_name = request.match_info["page_name"]
         node = app.page_node_manager.get_node(node_id)
         if not node:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
         if node.remove_page(page_name):
             return web.json_response({"message": "Page deleted"})
-        return web.json_response({"message": "Page not found"}, status=404)
+        return http_not_found("Page not found")
 
-    @routes.get("/api/v1/page-nodes/{node_id}/files")
+    @routes.get(API_V1_PREFIX + "/page-nodes/{node_id}/files")
     async def page_nodes_list_files(request):
         node_id = request.match_info["node_id"]
         node = app.page_node_manager.get_node(node_id)
         if not node:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
         return web.json_response({"files": node.list_files()})
 
-    @routes.post("/api/v1/page-nodes/{node_id}/files")
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/files")
     async def page_nodes_upload_file(request):
         node_id = request.match_info["node_id"]
         node = app.page_node_manager.get_node(node_id)
         if not node:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
         try:
             reader = await request.multipart()
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid upload request: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Invalid upload request: {e}")
         filename = None
         file_data = None
         try:
@@ -253,40 +256,39 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
                 name = field.name or ""
                 if name == "file" or field.filename:
                     filename = field.filename or "upload"
-                    file_data = await field.read()
+                    file_data = await read_field_limited(
+                        field,
+                        UPLOAD_LIMITS["page_node_file"],
+                    )
                 else:
                     with contextlib.suppress(Exception):
-                        await field.read()
+                        await read_field_limited(
+                            field,
+                            UPLOAD_LIMITS["page_node_file"],
+                        )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to read upload: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Failed to read upload: {e}")
         if file_data is None:
-            return web.json_response({"message": "No file uploaded"}, status=400)
+            return http_bad_request("No file uploaded")
         try:
             saved_name = node.add_file(filename, file_data)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
-        except OSError as e:
-            return web.json_response(
-                {"message": f"Failed to write file: {e}"},
-                status=500,
-            )
-        except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to save file: {e}"},
-                status=500,
-            )
+            return http_bad_request(str(e))
+        except OSError:
+            return http_unexpected("Failed to write file")
+        except Exception:
+            return http_unexpected("Failed to save file")
         return web.json_response({"name": saved_name, "message": "File uploaded"})
 
-    @routes.delete("/api/v1/page-nodes/{node_id}/files/{file_name}")
+    @routes.delete(API_V1_PREFIX + "/page-nodes/{node_id}/files/{file_name}")
     async def page_nodes_delete_file(request):
         node_id = request.match_info["node_id"]
         file_name = request.match_info["file_name"]
         node = app.page_node_manager.get_node(node_id)
         if not node:
-            return web.json_response({"message": "Node not found"}, status=404)
+            return http_not_found("Node not found")
         if node.remove_file(file_name):
             return web.json_response({"message": "File deleted"})
-        return web.json_response({"message": "File not found"}, status=404)
+        return http_not_found("File not found")

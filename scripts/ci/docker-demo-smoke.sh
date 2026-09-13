@@ -8,7 +8,6 @@ cd "$ROOT"
 IMAGE="${MESHCHAT_DOCKER_DEMO_IMAGE:-reticulum-meshchatx:local}"
 COMPOSE_FILE="docker/docker-compose.demo.yml"
 OVERRIDE_FILE="${TMPDIR:-/tmp}/meshchatx-demo-smoke-ports.yml"
-
 STATUS_JSON="${TMPDIR:-/tmp}/meshchatx-demo-smoke-status.json"
 cleanup() {
     MESHCHAT_IMAGE="$IMAGE" \

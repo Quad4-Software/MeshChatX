@@ -8,6 +8,8 @@ onto Chaquopy's native Java bridge so RNode USB and classic Bluetooth work.
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 JavaException = Exception
 
 try:
@@ -46,7 +48,7 @@ class PythonJavaClass:
     method implementations are visible to Java callers.
     """
 
-    __javainterfaces__: list[str] = []
+    __javainterfaces__: ClassVar[list[str]] = []
     __javacontext__ = "app"
 
     def __init__(self, *args, **kwargs):

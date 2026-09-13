@@ -1,11 +1,5 @@
 [
     {
-        "name": "able (android embed)",
-        "version": "meshchatx-chaquopy",
-        "author": "able / Chaquopy Android BLE stack",
-        "license": "MIT"
-    },
-    {
         "name": "aiohappyeyeballs",
         "version": "2.7.1",
         "author": "J. Nick Koston",
@@ -211,19 +205,13 @@
     },
     {
         "name": "reticulum-meshchatx",
-        "version": "4.8.6",
+        "version": "4.9.0",
         "author": "Quad4",
-        "license": "0BSD"
-    },
-    {
-        "name": "rnode-flasher",
-        "version": "bundled",
-        "author": "Liam Cottle",
-        "license": "MIT"
+        "license": "0BSD AND MIT"
     },
     {
         "name": "rns",
-        "version": "1.5.2",
+        "version": "1.5.3",
         "author": "Mark Qvist",
         "license": "Reticulum License"
     },
@@ -244,12 +232,6 @@
         "version": "4.16.0",
         "author": "\"Guido van Rossum, Jukka Lehtosalo, Łukasz Langa, Michael Lee\" <levkivskyi@gmail.com>",
         "license": "PSF-2.0"
-    },
-    {
-        "name": "usb4a (android embed)",
-        "version": "0.3.0-meshchatx",
-        "author": "Quan Lin / MeshChatX Chaquopy port",
-        "license": "MIT"
     },
     {
         "name": "wasmtime",

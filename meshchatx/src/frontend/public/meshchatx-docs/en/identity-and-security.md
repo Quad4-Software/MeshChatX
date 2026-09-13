@@ -86,7 +86,7 @@ See **Linux sandboxing** in Platform guides for optional Firejail and Bubblewrap
 
 ## Windows Electron AppContainer
 
-Windows desktop builds can spawn the Python backend inside an LPAC AppContainer when MESHCHAT_APPCONTAINER=1. Default installs start the backend directly without that wrapper. Check /api/v1/server/security for appcontainer_active when debugging sandbox-related SQLite or filesystem errors on Windows.
+Windows desktop builds spawn the Python backend inside an LPAC AppContainer by default when the AppContainer APIs are available. Set MESHCHAT_APPCONTAINER=0 to disable it. If AppContainer setup fails, the launcher falls back to an unsandboxed backend process. Check /api/v1/server/security for appcontainer_active when debugging sandbox-related SQLite or filesystem errors on Windows.
 
 ## Blocking and filtering
 
@@ -152,6 +152,12 @@ If you pass --storage-dir or --reticulum-config-dir, delete those directories in
 ## Integrity checks
 
 Startup integrity verification runs in packaged Electron builds and can be triggered from the backend. Failed checks surface recovery options instead of silently corrupting data.
+
+Each identity storage directory keeps a signed manifest (`integrity-manifest.json`) of SHA-256 hashes for files that should be stable at rest: the `identity` private key, `database.db`, and any unexpected top-level file. Directories the app or remote peers rewrite during normal operation (lxmf_router, docs, database-backups, filesync, map data, RRC state, media folders) are excluded, since monitoring them only produces false alarms.
+
+The baseline is refreshed at clean shutdown or when you press **Acknowledge** under About, never right after a check flagged a problem. If the previous run ended without a clean shutdown, or the app version changed, drift in non-critical files is reported once as expected change instead of an alarm. Critical findings (identity or database tampering, a missing or forged manifest, an identity hash mismatch) block startup until you acknowledge them through the recovery path or restore the files.
+
+Unacknowledged findings are stored in the manifest and resurface on every boot until acknowledged. A signing key and registry under `<storage>/integrity/` bind manifests to this install, so deleting or swapping `integrity-manifest.json` is detected rather than treated as a first run. This detects offline tampering of one identity tree, disk corruption, and restores of the wrong identity data. It cannot stop an attacker who controls the whole storage directory, since the key lives next to the data.
 
 ## Plugin signing and trust
 

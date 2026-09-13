@@ -72,7 +72,13 @@ from meshchatx.src.backend.plugin_wasm_bundle import (
     validate_embedded_bundle,
     write_wasm_bundle,
 )
-from meshchatx.src.path_utils import is_path_within_dir
+from meshchatx.src.backend.results import ok_result
+from meshchatx.src.json_store import load_json, load_json_required
+from meshchatx.src.path_utils import (
+    is_direct_child,
+    is_path_within_dir,
+    is_under_root,
+)
 from meshchatx.src.backend.plugin_manager.record import PluginRecord
 
 SUPPORTED_API_VERSION = 1
@@ -82,6 +88,9 @@ MINIMAL_PLUGIN_WAT = """
 (module
   (import "host" "log" (func (param i32 i32)))
   (memory (export "memory") 1)
+  (func (export "alloc") (param i32) (result i32)
+    i32.const 1024
+  )
   (func (export "on_hook") (param i32 i32) (result i32)
     i32.const 0
   )
@@ -188,9 +197,7 @@ class PluginManager:
             if not os.path.isfile(manifest_path):
                 continue
             try:
-                with open(manifest_path, encoding="utf-8") as handle:
-                    manifest = json.load(handle)
-                manifest = self._validate_manifest(manifest)
+                manifest = self._validate_manifest(load_json(manifest_path))
                 (
                     enabled,
                     auto_disabled_reason,
@@ -334,9 +341,9 @@ class PluginManager:
         if not self._plugins_runtime_enabled():
             return []
         with self._lock:
-            rows = []
-            for record in self._plugins.values():
-                rows.append(self._public_plugin_view(record))
+            rows = [
+                self._public_plugin_view(record) for record in self._plugins.values()
+            ]
             rows.sort(key=lambda item: item["id"])
             return rows
 
@@ -407,8 +414,9 @@ class PluginManager:
         manifest_path = os.path.join(source_dir, "plugin.json")
         if not os.path.isfile(manifest_path):
             raise ValueError("plugin.json not found")
-        with open(manifest_path, encoding="utf-8") as handle:
-            manifest = self._validate_manifest(json.load(handle))
+        manifest = self._validate_manifest(
+            load_json_required(manifest_path, expect=dict),
+        )
         declared = declared_permission_ids(manifest)
         endpoints = collect_network_endpoints(manifest, source_dir)
         network_mode = normalize_network_mode(
@@ -503,8 +511,9 @@ class PluginManager:
         manifest_path = os.path.join(source_dir, "plugin.json")
         if not os.path.isfile(manifest_path):
             raise ValueError("plugin.json not found")
-        with open(manifest_path, encoding="utf-8") as handle:
-            manifest = self._validate_manifest(json.load(handle))
+        manifest = self._validate_manifest(
+            load_json_required(manifest_path, expect=dict),
+        )
         signature = signature_override or verify_dir_signature(source_dir)
         signature = enrich_signature_with_trust(signature, self._lookup_trusted)
         require_valid_signature(signature)
@@ -710,8 +719,13 @@ class PluginManager:
             if record:
                 self._unregister_plugin_hooks(record)
             self._python_runtime.unload(plugin_id)
-            target_dir = os.path.join(self.installed_dir, plugin_id)
-            if os.path.isdir(target_dir):
+            # plugin_id arrives from the URL; never rmtree an unjailed join.
+            root = os.path.realpath(self.installed_dir)
+            target_dir = os.path.realpath(os.path.join(root, plugin_id))
+            target_ok = is_direct_child(target_dir, root) and os.path.isdir(target_dir)
+            if record is None and not target_ok:
+                raise KeyError(plugin_id)
+            if target_ok:
                 shutil.rmtree(target_dir)
             with sqlite3.connect(self.state_db_path) as conn:
                 conn.execute(
@@ -803,7 +817,7 @@ class PluginManager:
         normalized = normalize_asset_path(entry.strip())
         root = os.path.realpath(record.install_path)
         path = os.path.realpath(os.path.join(root, normalized))
-        if path != root and not path.startswith(root + os.sep):
+        if not is_under_root(path, root):
             raise PluginSecurityError("python backend entry escapes install tree")
         if not os.path.isfile(path):
             raise ValueError("python backend entry not found")
@@ -823,13 +837,21 @@ class PluginManager:
             network_fetch_allowed=lambda: self.network_fetch_allowed(record.id),
         )
 
-    def asset_path(self, plugin_id: str, asset_name: str) -> str:
+    def asset_path(
+        self,
+        plugin_id: str,
+        asset_name: str,
+        *,
+        allow_disabled: bool = False,
+    ) -> str:
         self._require_runtime_enabled()
         record = self._require_plugin(plugin_id)
+        if not record.enabled and not allow_disabled:
+            raise PluginSecurityError("plugin is disabled")
         normalized = normalize_asset_path(asset_name)
         root = os.path.realpath(record.install_path)
         path = os.path.realpath(os.path.join(root, normalized))
-        if path != root and not path.startswith(root + os.sep):
+        if not is_under_root(path, root):
             raise PluginSecurityError("invalid asset path")
         if not os.path.isfile(path):
             raise FileNotFoundError(asset_name)
@@ -856,7 +878,7 @@ class PluginManager:
             except PluginSecurityError:
                 continue
             path = os.path.realpath(os.path.join(root, normalized))
-            if path != root and not path.startswith(root + os.sep):
+            if not is_under_root(path, root):
                 continue
             if os.path.isfile(path):
                 return path
@@ -866,8 +888,7 @@ class PluginManager:
         path = self.locale_path(plugin_id, locale)
         if not path:
             return {}
-        with open(path, encoding="utf-8") as handle:
-            data = json.load(handle)
+        data = load_json(path)
         if not isinstance(data, dict):
             raise ValueError("plugin locale file must be an object")
         return data
@@ -1136,12 +1157,11 @@ class PluginManager:
                 "destination_hash": dest_hash.hex(),
                 "aspect": aspect,
             }
-        return {
-            "ok": True,
-            "identified": identified,
-            "destination_hash": dest_hash.hex(),
-            "aspect": aspect,
-        }
+        return ok_result(
+            identified=identified,
+            destination_hash=dest_hash.hex(),
+            aspect=aspect,
+        )
 
     def _rns_link_identify(self, args: dict[str, Any]) -> dict[str, Any]:
         dest_hash, aspect = self._parse_rns_link_args(args)
@@ -1397,7 +1417,7 @@ class PluginManager:
         normalized = normalize_asset_path(entry.strip())
         root = os.path.realpath(record.install_path)
         wasm_path = os.path.realpath(os.path.join(root, normalized))
-        if wasm_path != root and not wasm_path.startswith(root + os.sep):
+        if not is_under_root(wasm_path, root):
             raise PluginSecurityError("backend wasm entry escapes install tree")
         if not os.path.isfile(wasm_path):
             return self._ensure_minimal_wasm(record)
@@ -1449,20 +1469,21 @@ class PluginManager:
         exports = cast("Any", instance.exports(store))
         memory = exports["memory"]
         alloc = exports.get("alloc")
-        if alloc:
-            ptr = alloc(store, len(payload))
-        else:
-            ptr = 0
-            if memory.data_len(store) < len(payload):
-                memory.grow(
-                    store,
-                    max(1, (len(payload) - memory.data_len(store) + 65535) // 65536),
-                )
-            data = memory.data_ptr(store)
-            data[ptr : ptr + len(payload)] = payload
+        if not alloc:
+            # Writing the payload at address 0 would clobber the module's
+            # globals/stack. Without an alloc export there is no safe
+            # buffer, so refuse instead of corrupting guest memory.
+            raise PluginSecurityError("wasm module does not export alloc")
+        ptr = alloc(store, len(payload))
+        if not isinstance(ptr, int) or ptr < 0:
+            raise PluginSecurityError("wasm alloc returned an invalid pointer")
+        needed = ptr + len(payload)
+        if memory.data_len(store) < needed:
+            memory.grow(store, (needed - memory.data_len(store) + 65535) // 65536)
+        memory.write(store, payload, ptr)
         invoke = exports["invoke"]
         invoke(store, ptr, len(payload), 0)
-        return {"ok": True, "logs": logs}
+        return ok_result(logs=logs)
 
     def _ensure_minimal_wasm(self, record: PluginRecord) -> str:
         wasmtime = self._load_wasmtime()
@@ -1474,7 +1495,7 @@ class PluginManager:
         normalized = normalize_asset_path(entry.strip())
         root = os.path.realpath(record.install_path)
         wasm_path = os.path.realpath(os.path.join(root, normalized))
-        if wasm_path != root and not wasm_path.startswith(root + os.sep):
+        if not is_under_root(wasm_path, root):
             raise PluginSecurityError("backend wasm entry escapes install tree")
         parent = os.path.dirname(wasm_path)
         if parent:
@@ -1523,7 +1544,9 @@ class PluginManager:
             entry = frontend.get("entry")
             if not isinstance(entry, str) or not entry.strip():
                 raise ValueError("plugin frontend entry is missing")
-            frontend_path = self.asset_path(record.id, entry)
+            # enable() validates before the record is enabled, so internal
+            # checks bypass the request-facing disabled gate.
+            frontend_path = self.asset_path(record.id, entry, allow_disabled=True)
             if os.path.getsize(frontend_path) <= 0:
                 raise ValueError("plugin frontend entry is empty")
         backend = manifest.get("backend")

@@ -232,5 +232,5 @@ def test_parse_who_notice_roundtrip_synthetic(room, entries):
     text = f"members in {room.strip()}: {body}"
     parsed = proto.parse_who_notice(text)
     assert parsed is not None
-    parsed_room, parsed_entries = parsed
+    parsed_room, _parsed_entries = parsed
     assert parsed_room == room.strip().lower()

@@ -1,6 +1,6 @@
 [project]
 name = "reticulum-meshchatx"
-version = "4.8.6"
+version = "4.9.0"
 description = "A simple mesh network communications app powered by the Reticulum Network Stack"
 authors = [
   {name = "Quad4"}
@@ -25,7 +25,7 @@ dependencies = [
   "lxmf>=1.1.1",
   "psutil>=7.2.2",
   "pyserial>=3.5",
-  "rns>=1.5.2",
+  "rns>=1.5.3",
   "websockets>=17.1",
   "bcrypt>=5.0.0,<6.0.0",
   "aiohttp-session>=2.12.1,<3.0.0",
@@ -67,7 +67,8 @@ exclude = ["tests*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json", "src/backend/data/licenses_backend.json", "src/backend/data/THIRD_PARTY_NOTICES.txt", "src/backend/data/plugins/**/*", "src/backend/data/interfaces/**/*", "src/backend/data/map/**/*", "src/frontend/public/repository-server-index.html"]
+meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json", "src/backend/data/licenses_backend.json", "src/backend/data/THIRD_PARTY_NOTICES.txt", "src/backend/data/plugins/**/*", "src/backend/data/interfaces/**/*", "src/backend/data/map/**/*",
+"src/backend/data/map/.gitkeep", "src/frontend/public/repository-server-index.html"]
 
 [tool.setuptools.exclude-package-data]
 meshchatx = ["public/repository-server-bundled/**"]
@@ -90,7 +91,6 @@ dev = [
     "debugpy>=1.8.16",
     "mutmut>=3.7.0; python_version < '4.0'",
     "basedpyright>=1.39.10",
-    "pre-commit>=4.2.0",
     "schemathesis>=4.25.2",
 ]
 
@@ -112,24 +112,35 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-extend-select = ["D", "B", "UP"]
-extend-ignore = [
-    "D100",
-    "D101",
-    "D102",
-    "D103",
-    "D104",
-    "D105",
-    "D106",
-    "D107",
-    "D203",
-    "D213",
-    "D401",
-    "UP036",
+select = [
+    "E4",   # pycodestyle errors: indentation
+    "E7",   # pycodestyle errors: statements
+    "E9",   # pycodestyle errors: runtime
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # comprehensions
+    "RET",  # return style
+    "RUF",  # ruff rules
+    "PERF", # performance
+    "DTZ",  # timezone-aware datetimes
+    "A",    # builtins shadowing
+    "S",    # bandit security
+    "D",    # pydocstyle (partial, see ignore)
+]
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    "D203", "D213", "D401",
+    "S110",  # try-except-pass: audited defensive pattern throughout the daemon
+    "S112",  # try-except-continue: same
+    "S603",  # subprocess calls are audited; Landlock/AppContainer sandbox applies
+    "S608",  # SQL text uses bound parameters; bandit flags any non-literal
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/backend/**" = ["E402"]
+"tests/**" = ["S", "E402"]
 "cx_setup.py" = ["E402"]
 "scripts/**" = ["E402"]
 "meshchatx/src/backend/web_audio_bridge.py" = ["E731"]
@@ -151,7 +162,9 @@ also_copy = [
     "meshchatx/repository_http_standalone.py",
     "meshchatx/src/__init__.py",
     "meshchatx/src/build_meta.py",
+    "meshchatx/src/env_config.py",
     "meshchatx/src/env_utils.py",
+    "meshchatx/src/json_store.py",
     "meshchatx/src/path_utils.py",
     "meshchatx/src/ssl_self_signed.py",
     "meshchatx/src/version.py",

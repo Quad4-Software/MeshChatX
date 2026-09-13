@@ -111,6 +111,8 @@ def detect_image_format_from_magic(image_bytes: bytes) -> str | None:
         return "webp"
     if len(b) >= 2 and b[0:2] == b"BM":
         return "bmp"
+    if len(b) >= 4 and b[0:4] in (b"II\x2a\x00", b"MM\x00\x2a"):
+        return "tiff"
     if len(b) >= 4 and b[0:4] == b"\x1a\x45\xdf\xa3":
         return "webm"
     if len(b) >= 2 and b[0:2] == b"\x1f\x8b":
@@ -695,6 +697,7 @@ def mime_for_image_type(normalized_type: str) -> str:
         "gif": "image/gif",
         "webp": "image/webp",
         "bmp": "image/bmp",
+        "tiff": "image/tiff",
         "tgs": "application/x-tgsticker",
         "webm": "video/webm",
     }.get(normalized_type, "application/octet-stream")

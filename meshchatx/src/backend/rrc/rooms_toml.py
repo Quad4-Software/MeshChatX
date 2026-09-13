@@ -8,6 +8,7 @@ import time
 import tomllib
 
 from meshchatx.src.backend.rrc.identity_util import parse_identity_hash
+from meshchatx.src.path_utils import atomic_write_text
 
 INVITE_DEFAULT_TTL_S = 900.0
 
@@ -120,7 +121,6 @@ def _dump_invited_table(invited):
 
 def dump_rooms_registry(path, registry):
     """Write rooms.toml from registry dict (room -> state)."""
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     lines = []
     for room in sorted(registry.keys()):
         st = registry[room]
@@ -166,12 +166,7 @@ def dump_rooms_registry(path, registry):
             lines.append(f"last_used_ts = {time.time()}")
         lines.append("")
     text = "\n".join(lines)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(text)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    atomic_write_text(path, text)
 
 
 class RoomsTomlStore:

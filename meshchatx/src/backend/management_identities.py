@@ -14,6 +14,8 @@ from typing import Any
 
 import RNS
 
+from meshchatx.src.path_utils import is_direct_child
+
 _SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
@@ -102,20 +104,9 @@ def create_management_identity(
 
 
 def _path_under_identities_dir(path: str, directory: str) -> bool:
-    """True when path is the identities directory or a file directly inside it."""
-    try:
-        path_real = os.path.realpath(path)
-        dir_real = os.path.realpath(directory)
-    except OSError:
-        return False
-    if path_real == dir_real:
-        return False
-    prefix = dir_real + os.sep
-    if not path_real.startswith(prefix):
-        return False
+    """True when path is a file directly inside the identities directory."""
     # Management identities are single files in the identities directory, not nested.
-    rel = path_real[len(prefix) :]
-    return bool(rel) and os.sep not in rel and "/" not in rel and "\\" not in rel
+    return is_direct_child(path, directory)
 
 
 def resolve_identity_path(

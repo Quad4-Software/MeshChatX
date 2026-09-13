@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
+import { apiPath } from "../constants.js";
 import type { ApiClient } from "../apiClient.js";
 import type { PluginManifest } from "./pluginManifest.js";
 
@@ -45,7 +46,7 @@ export async function loadPluginLabelMap(
             const assetPath = `${directory}/${code}.json`;
             const version = (manifest as PluginManifest).version || "1";
             const response = await apiClient.get(
-                `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${assetPath}?v=${encodeURIComponent(version)}`,
+                apiPath(`/plugins/${encodeURIComponent(pluginId)}/asset/${assetPath}?v=${encodeURIComponent(version)}`),
                 {
                     responseType: "json",
                 }

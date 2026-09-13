@@ -3,22 +3,58 @@
 import argparse
 import contextlib
 import os
+import signal
 import threading
 import time
 import traceback
 
 from meshchatx.src.backend.bot_lxmf_config import load_bot_lxmf_config_sidecar
+from meshchatx.src.backend.bot_options import load_bot_runtime_sidecar
 from meshchatx.src.backend.bot_templates import (
+    CustomBotTemplate,
     EchoBotTemplate,
     NoteBotTemplate,
     ReminderBotTemplate,
+    RRCBotTemplate,
 )
+from meshchatx.src.env_utils import env_str
 
 TEMPLATE_MAP = {
     "echo": EchoBotTemplate,
     "note": NoteBotTemplate,
     "reminder": ReminderBotTemplate,
+    "custom": CustomBotTemplate,
+    "rrc": RRCBotTemplate,
 }
+
+
+def _parent_watchdog(parent_pid):
+    """Exit when the MeshChatX backend that spawned this bot is gone.
+
+    Bots run in their own session, so terminal Ctrl+C never reaches them.
+    They rely on the backend calling stop_all; if the backend dies without
+    cleanup (SIGKILL, os._exit, a test runner exiting) they would otherwise
+    reparent to init and run forever.
+    """
+    while True:
+        time.sleep(1.0)
+        try:
+            if os.getppid() != parent_pid:
+                break
+        except OSError:
+            break
+        try:
+            os.kill(parent_pid, 0)
+        except OSError:
+            break
+    with contextlib.suppress(Exception):
+        print("meshchatx bot exiting: parent process gone", flush=True)
+    # SIGTERM first so RNS exit handlers can flush, then a hard backstop in
+    # case no handler is installed or it hangs.
+    with contextlib.suppress(Exception):
+        os.kill(os.getpid(), signal.SIGTERM)
+    time.sleep(2.0)
+    os._exit(0)
 
 
 def _control_watcher(bot_instance, storage_dir):
@@ -47,13 +83,39 @@ def main():
     parser.add_argument("--config-path", default=None)
     parser.add_argument(
         "--reticulum-config-dir",
-        default=os.environ.get(
+        default=env_str(
             "MESHCHAT_BOT_RETICULUM_CONFIG_DIR",
             os.path.expanduser("~/.reticulum"),
         ),
     )
     parser.add_argument("--lxmf-config-file", default=None)
+    parser.add_argument("--runtime-config-file", default=None)
+    parser.add_argument("--rrc-hub", default=None)
+    parser.add_argument("--rrc-rooms", default="")
+    parser.add_argument("--rrc-nick", default=None)
+    parser.add_argument("--rrc-mention-only", type=int, choices=(0, 1), default=1)
+    parser.add_argument("--rrc-prefix", default="!")
+    parser.add_argument("--rrc-rate", type=int, default=8)
+    parser.add_argument(
+        "--parent-pid",
+        type=int,
+        default=None,
+        help="PID of the spawning MeshChatX backend; bot exits when it dies",
+    )
     args = parser.parse_args()
+
+    # A bot must never outlive the backend. The explicit --parent-pid arg beats
+    # getppid because the parent can die before this interpreter finishes
+    # starting, leaving the bot already reparented at capture time. A manual
+    # bot_process run without the flag falls back to watching its launcher.
+    parent_pid = args.parent_pid or os.getppid()
+    if parent_pid and parent_pid > 1:
+        threading.Thread(
+            target=_parent_watchdog,
+            args=(parent_pid,),
+            daemon=True,
+            name="meshchatx-bot-parent-watchdog",
+        ).start()
 
     storage_abs = os.path.abspath(args.storage)
     err_path = os.path.join(storage_abs, "meshchatx_bot_last_error.txt")
@@ -74,6 +136,24 @@ def main():
     os.makedirs(reticulum_config_dir, exist_ok=True)
 
     lxmf_settings = load_bot_lxmf_config_sidecar(args.lxmf_config_file)
+    runtime_opts = load_bot_runtime_sidecar(args.runtime_config_file)
+
+    template_kwargs = {}
+    if "icon" in runtime_opts:
+        template_kwargs["icon"] = runtime_opts["icon"]
+    if args.template == "custom":
+        template_kwargs["custom"] = runtime_opts.get("custom")
+    if args.template == "rrc":
+        template_kwargs = {
+            "rrc_hub": args.rrc_hub,
+            "rrc_rooms": [
+                r.strip() for r in (args.rrc_rooms or "").split(",") if r.strip()
+            ],
+            "rrc_nick": args.rrc_nick,
+            "rrc_mention_only": bool(args.rrc_mention_only),
+            "rrc_command_prefix": args.rrc_prefix,
+            "rrc_rate_seconds": args.rrc_rate,
+        }
 
     try:
         BotCls = TEMPLATE_MAP[args.template]
@@ -84,6 +164,7 @@ def main():
             config_path=config_path,
             reticulum_config_dir=reticulum_config_dir,
             lxmf_settings=lxmf_settings,
+            **template_kwargs,
         )
     except BaseException:
         try:

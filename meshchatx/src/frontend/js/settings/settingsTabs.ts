@@ -16,6 +16,7 @@ export const SETTINGS_TABS: SettingsTab[] = [
         descriptionKey: "settings.tabs.general_desc",
         sections: [
             "language",
+            "translation",
             "appearance",
             "battery",
             "experimentalLive",
@@ -64,6 +65,50 @@ export const SETTINGS_TABS: SettingsTab[] = [
 ];
 
 export const DEFAULT_SETTINGS_TAB = "general";
+
+/**
+ * Sections that only show in "Advanced" settings mode. These are technical or
+ * expert-level settings; everyday sections stay visible in "Simple" mode.
+ * Advanced sections always remain reachable through settings search.
+ */
+const ADVANCED_SETTINGS_SECTIONS = new Set([
+    "translation",
+    "experimentalLive",
+    "transport",
+    "interfaces",
+    "visualiser",
+    "crawler",
+    "networkSecurity",
+    "telephony",
+    "archiver",
+    "nomadRenderer",
+    "banishment",
+    "webExposure",
+    "csp",
+    "selftest",
+    "infrastructure",
+    "plugins",
+]);
+
+export function isAdvancedSettingsSection(sectionKey: string): boolean {
+    return ADVANCED_SETTINGS_SECTIONS.has(sectionKey);
+}
+
+/** Sections of a tab that should render for the given mode ("simple" | "advanced"). */
+export function visibleSectionsForTab(tab: SettingsTab | null | undefined, mode: string): string[] {
+    if (!tab) {
+        return [];
+    }
+    if (mode !== "simple") {
+        return tab.sections;
+    }
+    return tab.sections.filter((sectionKey) => !isAdvancedSettingsSection(sectionKey));
+}
+
+/** Whether a tab has any section visible for the given mode. */
+export function settingsTabHasVisibleSections(tab: SettingsTab | null | undefined, mode: string): boolean {
+    return visibleSectionsForTab(tab, mode).length > 0;
+}
 
 export const ALL_SETTINGS_SECTIONS: readonly string[] = Object.freeze(SETTINGS_TABS.flatMap((tab) => tab.sections));
 

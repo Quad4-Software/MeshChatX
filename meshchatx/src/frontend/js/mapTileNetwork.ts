@@ -22,9 +22,12 @@ export function buildNominatimSearchUrl(nominatimApiUrl, searchQuery, limit = 10
 export function lonLatToTileXY(lon, lat, zoom) {
     const z = Math.max(0, Math.floor(Number(zoom) || 0));
     const n = 2 ** z;
-    const x = Math.floor(((Number(lon) + 180) / 360) * n);
-    const latRad = (Number(lat) * Math.PI) / 180;
-    const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
+    let x = Math.floor(((Number(lon) + 180) / 360) * n);
+    x = ((x % n) + n) % n;
+    const latClamped = Math.max(-85.05112878, Math.min(85.05112878, Number(lat)));
+    const latRad = (latClamped * Math.PI) / 180;
+    let y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
+    y = Math.max(0, Math.min(n - 1, y));
     return { z, x, y, n };
 }
 
@@ -46,7 +49,12 @@ export function neighborTileCoords(lon, lat, zoom, ring = 1) {
 }
 
 export function expandTileUrl(template, z, x, y) {
-    if (typeof template !== "string" || !template.includes("{z}")) {
+    if (
+        typeof template !== "string" ||
+        !template.includes("{z}") ||
+        !template.includes("{x}") ||
+        !template.includes("{y}")
+    ) {
         return "";
     }
     return template

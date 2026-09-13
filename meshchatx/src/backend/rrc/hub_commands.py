@@ -25,8 +25,29 @@ HELP_TEXT = (
     "/kick <room> <nick|hash>, /ban <room> add|del|list [target], "
     "/invite <room> add|del|list [target], /mode <room> <flags>, "
     "/register <room>, /unregister <room>, /op|/deop|/voice|/devoice <room> <target>, "
-    "/kline add|del|list [hash], /help"
+    "/kline add|del|list [hash], /history [room] [n], /help"
 )
+
+HISTORY_DEFAULT_LIMIT = 20
+HISTORY_MAX_LIMIT = 50
+
+
+def _format_history_line(entry):
+    ts = entry.get("ts")
+    try:
+        stamp = time.strftime("%H:%M", time.gmtime(float(ts) / 1000.0))
+    except (TypeError, ValueError, OverflowError):
+        stamp = "??:??"
+    nick = entry.get("nick")
+    if not isinstance(nick, str) or not nick:
+        peer = entry.get("peer")
+        nick = peer[:12] if isinstance(peer, str) and peer else "?"
+    text = entry.get("text")
+    if not isinstance(text, str):
+        text = ""
+    if entry.get("kind") == "action":
+        return "[" + stamp + "] * " + nick + " " + text
+    return "[" + stamp + "] " + nick + ": " + text
 
 
 class HubCommandHandler:
@@ -81,6 +102,9 @@ class HubCommandHandler:
 
         if cmd == "invite":
             return self._cmd_invite(server, link, room, parts, outgoing, peer)
+
+        if cmd == "history":
+            return self._cmd_history(server, link, sess, room, parts, outgoing)
 
         return False
 
@@ -266,6 +290,8 @@ class HubCommandHandler:
             outgoing,
             error_text=f"kicked from {r}",
         )
+        server._bump("kicks")
+        server._record_event("kick", peer=tsess.peer, room=r)
         server._queue_notice(outgoing, link, room, f"kicked {parts[2]} from {r}")
         return True
 
@@ -316,6 +342,8 @@ class HubCommandHandler:
         if op == "add":
             server.policy.add_ban(target_hash)
             server.policy.save()
+            server._bump("bans")
+            server._record_event("ban", peer=target_hash)
             server._disconnect_banned(target_hash, outgoing, "banned (kline)")
             server._queue_notice(
                 outgoing,
@@ -636,6 +664,8 @@ class HubCommandHandler:
             return True
         if op == "add":
             bans.add(target_hash)
+            server._bump("bans")
+            server._record_event("room_ban", peer=target_hash, room=r)
             server.rooms.touch_room(r)
             server.rooms.persist(r)
             for member in list(server._room_members.get(r, set())):
@@ -776,4 +806,64 @@ class HubCommandHandler:
         server.rooms.touch_room(r)
         server.rooms.persist(r)
         server._queue_notice(outgoing, link, room, f"invite removed in {r}")
+        return True
+
+    def _cmd_history(self, server, link, sess, room, parts, outgoing):
+        usage = "usage: /history [room] [n]"
+        n = HISTORY_DEFAULT_LIMIT
+        target = None
+        rest = parts[1:]
+        if rest:
+            try:
+                n = int(rest[0])
+                rest = rest[1:]
+            except ValueError:
+                target = rest[0]
+                rest = rest[1:]
+        if rest:
+            try:
+                n = int(rest[0])
+                rest = rest[1:]
+            except ValueError:
+                server._queue_notice(outgoing, link, room, usage)
+                return True
+        if rest:
+            server._queue_notice(outgoing, link, room, usage)
+            return True
+        n = max(1, min(HISTORY_MAX_LIMIT, n))
+
+        target_room = target if target is not None else room
+        if not isinstance(target_room, str) or not target_room.strip():
+            server._queue_notice(outgoing, link, room, usage)
+            return True
+        try:
+            r = server._norm_room(target_room)
+        except ValueError as e:
+            server._queue_notice(outgoing, link, room, "bad room: " + str(e))
+            return True
+        if r not in sess.rooms:
+            server._queue_notice(outgoing, link, room, "not a member of " + r)
+            return True
+
+        entries = [e for e in server._message_log if e.get("room") == r]
+        entries = entries[-n:]
+        if not entries:
+            server._queue_notice(outgoing, link, room, "no history for " + r)
+            return True
+
+        server._queue_notice(
+            outgoing,
+            link,
+            r,
+            "--- history for " + r + " (" + str(len(entries)) + " messages) ---",
+        )
+        for entry in entries:
+            server._queue_notice(outgoing, link, r, _format_history_line(entry))
+        server._queue_notice(outgoing, link, r, "--- end history ---")
+        server._record_event(
+            "history",
+            peer=sess.peer,
+            room=r,
+            detail=str(n),
+        )
         return True

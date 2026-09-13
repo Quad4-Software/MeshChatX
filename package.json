@@ -1,9 +1,9 @@
 {
     "name": "reticulum-meshchatx",
-    "version": "4.8.6",
+    "version": "4.9.0",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
     "homepage": "https://github.com/Quad4-Software/MeshChatX",
-    "desktopName": "reticulum-meshchatx.desktop",
+    "desktopName": "com.meshchatx.app.desktop",
     "author": {
         "name": "Quad4"
     },
@@ -11,7 +11,7 @@
     "scripts": {
         "dev": "vite dev",
         "watch": "pnpm run build-frontend -- --watch",
-        "prebuild-frontend": "node scripts/ensure-micron-parser-package.js && node scripts/fetch-micron-wasm.mjs && node scripts/build-visualiser-wasm.mjs && node scripts/build-geo-wasm.mjs && node scripts/fetch-starter-mbtiles.mjs && node scripts/build-electron-shell-css.mjs && node scripts/sync-meshchatx-docs.js",
+        "prebuild-frontend": "node scripts/ensure-micron-parser-package.js && node scripts/fetch-micron-wasm.mjs && node scripts/build-visualiser-wasm.mjs && node scripts/build-geo-wasm.mjs && node scripts/fetch-starter-mbtiles.mjs && node scripts/copy-bergamot-wasm.mjs && node scripts/build-electron-shell-css.mjs && node scripts/sync-meshchatx-docs.js",
         "predev": "node scripts/sync-meshchatx-docs.js && node scripts/build-electron-shell-css.mjs",
         "build-frontend": "vite build",
         "build-backend": "node scripts/build-backend.js",
@@ -37,8 +37,8 @@
         "format:check": "prettier --check --cache .",
         "format:check:svelte": "prettier --check \"meshchatx/src/frontend/**/*.svelte\" \"meshchatx/src/frontend/features/**/*.{js,ts}\" \"svelte.config.mjs\"",
         "commitlint": "commitlint --edit",
-        "test": "vitest run && vitest run --config vitest.electron.config.js",
-        "test:coverage": "vitest run --coverage && vitest run --config vitest.electron.config.js --coverage",
+        "test": "vitest run && vitest run --config vitest.electron.config.mjs",
+        "test:coverage": "vitest run --coverage && vitest run --config vitest.electron.config.mjs --coverage",
         "test:fuzz": "vitest run -t fuzzing",
         "test:watch": "vitest",
         "test:i18n": "vitest run tests/frontend/i18n.test.js",
@@ -131,7 +131,7 @@
         "vitest-browser-svelte": "^3.1.0"
     },
     "build": {
-        "appId": "com.quad4.meshchatx",
+        "appId": "com.meshchatx.app",
         "productName": "Reticulum MeshChatX",
         "electronLanguages": [
             "en-US"
@@ -179,6 +179,7 @@
                     "to": "backend",
                     "filter": [
                         "**/*",
+                        "**/.gitkeep",
                         "!backend-manifest.json"
                     ]
                 }
@@ -207,7 +208,8 @@
                     "from": "build/exe/win32-${arch}",
                     "to": "backend",
                     "filter": [
-                        "**/*"
+                        "**/*",
+                        "**/.gitkeep"
                     ]
                 }
             ]
@@ -235,17 +237,13 @@
             "category": "Network",
             "synopsis": "Mesh networking chat client",
             "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
-            "desktop": {
-                "entry": {
-                    "StartupWMClass": "reticulum-meshchatx"
-                }
-            },
             "extraResources": [
                 {
                     "from": "build/exe/linux-${arch}",
                     "to": "backend",
                     "filter": [
-                        "**/*"
+                        "**/*",
+                        "**/.gitkeep"
                     ]
                 }
             ]
@@ -289,6 +287,16 @@
                     ]
                 }
             ],
+            "files": [
+                [
+                    "packaging/flatpak/com.meshchatx.app.metainfo.xml",
+                    "/share/metainfo/com.meshchatx.app.metainfo.xml"
+                ],
+                [
+                    "packaging/flatpak/com.meshchatx.app.png",
+                    "/share/icons/hicolor/512x512/apps/com.meshchatx.app.png"
+                ]
+            ],
             "finishArgs": [
                 "--share=ipc",
                 "--share=network",
@@ -300,7 +308,7 @@
                 "--talk-name=org.freedesktop.Notifications",
                 "--talk-name=org.freedesktop.DBus",
                 "--talk-name=org.freedesktop.portal.Desktop",
-                "--own-name=com.quad4.meshchatx",
+                "--own-name=com.meshchatx.app",
                 "--env=TMPDIR=/var/tmp",
                 "--socket=pulseaudio",
                 "--filesystem=xdg-run/pipewire-0"
@@ -319,6 +327,7 @@
         }
     },
     "dependencies": {
+        "@browsermt/bergamot-translator": "0.4.9",
         "@fontsource/noto-sans": "^5.3.0",
         "@mdi/js": "^7.4.47",
         "@tailwindcss/forms": "^0.5.11",
@@ -333,6 +342,8 @@
         "ol": "^10.10.0",
         "ol-mapbox-style": "^13.4.3",
         "qrcode": "^1.5.4",
+        "bits-ui": "^2.19.0",
+        "runed": "^0.37.1",
         "svelte-i18n": "^4.0.1",
         "vis-data": "^8.0.5",
         "vis-network": "^10.1.2",

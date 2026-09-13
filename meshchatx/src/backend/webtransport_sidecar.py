@@ -6,8 +6,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from typing import Any
+
+from meshchatx.src.env_utils import env_bool
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +35,7 @@ CLOSED_REASONS = frozenset(
 
 
 def env_webtransport_enabled() -> bool:
-    return os.environ.get("MESHCHAT_EXPERIMENTAL_WEBTRANSPORT", "").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return env_bool("MESHCHAT_EXPERIMENTAL_WEBTRANSPORT")
 
 
 def aioquic_available() -> bool:
@@ -220,7 +216,9 @@ async def try_start_webtransport_sidecar(app) -> WebTransportSidecarState:
     try:
         state.listen_host = host
         state.listen_port = port
-        display_host = "127.0.0.1" if host in ("0.0.0.0", "::", "[::]") else host
+        display_host = (
+            "127.0.0.1" if host in ("0.0.0.0", "::", "[::]") else host  # noqa: S104
+        )
         state.url = f"https://{display_host}:{port}{WT_PATH}"
         state.server_available = False
         state.reason = WT_REASON_LISTENER_PENDING

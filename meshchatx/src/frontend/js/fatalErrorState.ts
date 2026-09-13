@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { apiPath } from "./constants.js";
+
 export type FatalErrorKind = "frontend" | "backend";
 
 export type FatalErrorRecord = {
@@ -49,7 +51,7 @@ export async function recordFatalErrorLocally(
         return null;
     }
     try {
-        const response = await window.api.post("/api/v1/bug-reports/local", {
+        const response = await window.api.post(apiPath("/bug-reports/local"), {
             title: record.title || record.message,
             description: record.details || record.context || "",
             exception: {

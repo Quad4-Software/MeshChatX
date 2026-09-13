@@ -1,45 +1,83 @@
 // SPDX-License-Identifier: 0BSD
 
-export interface LxmfConfigDraft {
+// Tri-state select values: "inherit" clears the override, "true"/"false" set it.
+const TRI_STATE_KEYS = [
+    "propagation_fallback_enabled",
+    "opportunistic_sending",
+    "announce_enabled",
+    "announce_immediately",
+    "first_message_enabled",
+    "lxmf_commands_enabled",
+    "signature_verification_enabled",
+    "require_message_signatures",
+    "require_stamps",
+    "request_unknown_identities",
+    "identity_pinning_enabled",
+    "permissions_enabled",
+    "message_persistence_enabled",
+] as const;
+
+// Free-form numeric fields kept as strings in the draft.
+const NUMERIC_KEYS = [
+    "direct_delivery_retries",
+    "announce_interval_seconds",
+    "stamp_cost",
+    "rate_limit",
+    "cooldown",
+    "max_warnings",
+    "warning_timeout",
+    "message_queue_size",
+    "autopeer_maxdepth",
+] as const;
+
+export type LxmfTriStateKey = (typeof TRI_STATE_KEYS)[number];
+export type LxmfNumericKey = (typeof NUMERIC_KEYS)[number];
+
+export type LxmfConfigDraft = {
     propagation_mode: string;
     propagation_node: string;
-    propagation_fallback_enabled: string;
-    direct_delivery_retries: string;
-    opportunistic_sending: string;
-    announce_interval_seconds: string;
-    stamp_cost: string;
-}
+    command_prefix: string;
+    admins: string;
+} & Record<LxmfTriStateKey | LxmfNumericKey, string>;
 
-export interface BotLxmfConfig {
+/** Looser draft shape accepted by buildLxmfConfigPatch (all fields optional). */
+export type LxmfConfigDraftInput = {
     propagation_mode?: string;
     propagation_node?: string;
-    propagation_fallback_enabled?: boolean | null;
-    direct_delivery_retries?: number | null;
-    opportunistic_sending?: boolean | null;
-    announce_interval_seconds?: number | null;
-    stamp_cost?: number | null;
-}
+    command_prefix?: string;
+    admins?: string;
+} & Partial<Record<LxmfTriStateKey | LxmfNumericKey, string>>;
+
+export type BotLxmfConfig = {
+    propagation_mode?: string;
+    propagation_node?: string;
+    command_prefix?: string | null;
+    admins?: string[] | null;
+} & Partial<Record<LxmfTriStateKey, boolean | null>> &
+    Partial<Record<LxmfNumericKey, number | null>>;
 
 export type LxmfConfigPatch = {
     propagation_mode?: string;
     propagation_node?: string | null;
-    propagation_fallback_enabled?: boolean | null;
-    direct_delivery_retries?: number | null;
-    opportunistic_sending?: boolean | null;
-    announce_interval_seconds?: number | null;
-    stamp_cost?: number | null;
-};
+    command_prefix?: string | null;
+    admins?: string[] | null;
+} & Partial<Record<LxmfTriStateKey, boolean | null>> &
+    Partial<Record<LxmfNumericKey, number | null>>;
 
 export function defaultLxmfConfigDraft(): LxmfConfigDraft {
-    return {
+    const draft = {
         propagation_mode: "inherit",
         propagation_node: "",
-        propagation_fallback_enabled: "inherit",
-        direct_delivery_retries: "",
-        opportunistic_sending: "inherit",
-        announce_interval_seconds: "",
-        stamp_cost: "",
-    };
+        command_prefix: "",
+        admins: "",
+    } as LxmfConfigDraft;
+    for (const key of TRI_STATE_KEYS) {
+        draft[key] = "inherit";
+    }
+    for (const key of NUMERIC_KEYS) {
+        draft[key] = "";
+    }
+    return draft;
 }
 
 export function draftFromBotLxmfConfig(lxmfConfig: BotLxmfConfig | null | undefined): LxmfConfigDraft {
@@ -51,25 +89,36 @@ export function draftFromBotLxmfConfig(lxmfConfig: BotLxmfConfig | null | undefi
     if (cfg.propagation_node) {
         draft.propagation_node = cfg.propagation_node;
     }
-    if (cfg.propagation_fallback_enabled === true || cfg.propagation_fallback_enabled === false) {
-        draft.propagation_fallback_enabled = cfg.propagation_fallback_enabled ? "true" : "false";
+    for (const key of TRI_STATE_KEYS) {
+        if (cfg[key] === true || cfg[key] === false) {
+            draft[key] = cfg[key] ? "true" : "false";
+        }
     }
-    if (cfg.direct_delivery_retries !== undefined && cfg.direct_delivery_retries !== null) {
-        draft.direct_delivery_retries = String(cfg.direct_delivery_retries);
+    for (const key of NUMERIC_KEYS) {
+        if (cfg[key] !== undefined && cfg[key] !== null) {
+            draft[key] = String(cfg[key]);
+        }
     }
-    if (cfg.opportunistic_sending === true || cfg.opportunistic_sending === false) {
-        draft.opportunistic_sending = cfg.opportunistic_sending ? "true" : "false";
+    if (cfg.command_prefix !== undefined && cfg.command_prefix !== null) {
+        draft.command_prefix = String(cfg.command_prefix);
     }
-    if (cfg.announce_interval_seconds !== undefined && cfg.announce_interval_seconds !== null) {
-        draft.announce_interval_seconds = String(cfg.announce_interval_seconds);
-    }
-    if (cfg.stamp_cost !== undefined && cfg.stamp_cost !== null) {
-        draft.stamp_cost = String(cfg.stamp_cost);
+    if (Array.isArray(cfg.admins)) {
+        draft.admins = cfg.admins.join("\n");
     }
     return draft;
 }
 
-export function buildLxmfConfigPatch(draft: LxmfConfigDraft, options: { clearEmpty?: boolean } = {}): LxmfConfigPatch {
+export function parseAdminsDraft(raw: string | null | undefined): string[] {
+    return String(raw || "")
+        .split(/[\s,;]+/)
+        .map((h) => h.trim().toLowerCase().replace(/[<>]/g, ""))
+        .filter((h) => /^[0-9a-f]{32}$/.test(h));
+}
+
+export function buildLxmfConfigPatch(
+    draft: LxmfConfigDraftInput,
+    options: { clearEmpty?: boolean } = {}
+): LxmfConfigPatch {
     const clearEmpty = Boolean(options.clearEmpty);
     const patch: LxmfConfigPatch = {};
     const mode = (draft.propagation_mode || "inherit").trim();
@@ -86,43 +135,38 @@ export function buildLxmfConfigPatch(draft: LxmfConfigDraft, options: { clearEmp
         patch.propagation_node = null;
     }
 
-    const fallback = draft.propagation_fallback_enabled;
-    if (fallback === "true") {
-        patch.propagation_fallback_enabled = true;
-    } else if (fallback === "false") {
-        patch.propagation_fallback_enabled = false;
-    } else if (clearEmpty && fallback === "inherit") {
-        patch.propagation_fallback_enabled = null;
+    for (const key of TRI_STATE_KEYS) {
+        const value = draft[key];
+        if (value === "true") {
+            patch[key] = true;
+        } else if (value === "false") {
+            patch[key] = false;
+        } else if (clearEmpty && value === "inherit") {
+            patch[key] = null;
+        }
     }
 
-    const retries = String(draft.direct_delivery_retries ?? "").trim();
-    if (retries) {
-        patch.direct_delivery_retries = Number(retries);
+    for (const key of NUMERIC_KEYS) {
+        const value = String(draft[key] ?? "").trim();
+        if (value) {
+            patch[key] = Number(value);
+        } else if (clearEmpty) {
+            patch[key] = null;
+        }
+    }
+
+    const prefix = String(draft.command_prefix ?? "");
+    if (prefix !== "") {
+        patch.command_prefix = prefix;
     } else if (clearEmpty) {
-        patch.direct_delivery_retries = null;
+        patch.command_prefix = null;
     }
 
-    const opportunistic = draft.opportunistic_sending;
-    if (opportunistic === "true") {
-        patch.opportunistic_sending = true;
-    } else if (opportunistic === "false") {
-        patch.opportunistic_sending = false;
-    } else if (clearEmpty && opportunistic === "inherit") {
-        patch.opportunistic_sending = null;
-    }
-
-    const announce = String(draft.announce_interval_seconds ?? "").trim();
-    if (announce) {
-        patch.announce_interval_seconds = Number(announce);
+    const admins = parseAdminsDraft(draft.admins);
+    if (admins.length > 0) {
+        patch.admins = admins;
     } else if (clearEmpty) {
-        patch.announce_interval_seconds = null;
-    }
-
-    const stamp = String(draft.stamp_cost ?? "").trim();
-    if (stamp) {
-        patch.stamp_cost = Number(stamp);
-    } else if (clearEmpty) {
-        patch.stamp_cost = null;
+        patch.admins = null;
     }
 
     return patch;

@@ -393,7 +393,7 @@ class TestCrashRecovery(unittest.TestCase):
     def test_entropy_none_mem_value(self):
         """None available_mem_mb should not crash."""
         diag = {"available_mem_mb": None}
-        entropy, divergence = self.recovery._calculate_system_entropy(diag)
+        entropy, _divergence = self.recovery._calculate_system_entropy(diag)
         self.assertIsInstance(entropy, float)
 
     def test_divergence_nonnegative(self):

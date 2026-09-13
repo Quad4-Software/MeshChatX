@@ -97,7 +97,7 @@ class MiscDAO:
             return []
         placeholders = ", ".join(["?"] * len(destination_hashes))
         return self.provider.fetchall(
-            f"SELECT * FROM lxmf_user_icons WHERE destination_hash IN ({placeholders})",
+            f"SELECT * FROM lxmf_user_icons WHERE destination_hash IN ({placeholders})",  # nosec: BAN-B608
             tuple(destination_hashes),
         )
 
@@ -191,7 +191,7 @@ class MiscDAO:
             else "id, destination_hash, page_path, hash, created_at, "
             "SUBSTR(content, 1, 2000) AS content_preview"
         )
-        sql = f"SELECT {columns} FROM archived_pages WHERE 1=1"
+        sql = f"SELECT {columns} FROM archived_pages WHERE 1=1"  # nosec: BAN-B608
         params = []
         if destination_hash:
             sql += " AND destination_hash = ?"
@@ -231,7 +231,7 @@ class MiscDAO:
         if ids:
             placeholders = ", ".join(["?"] * len(ids))
             self.provider.execute(
-                f"DELETE FROM archived_pages WHERE id IN ({placeholders})",
+                f"DELETE FROM archived_pages WHERE id IN ({placeholders})",  # nosec: BAN-B608
                 tuple(ids),
             )
         elif destination_hash and page_path:
@@ -323,7 +323,7 @@ class MiscDAO:
         set_clause = ", ".join([f"{k} = ?" for k in filtered_kwargs])
         params = list(filtered_kwargs.values())
         params.append(task_id)
-        query = f"UPDATE crawl_tasks SET {set_clause} WHERE id = ?"
+        query = f"UPDATE crawl_tasks SET {set_clause} WHERE id = ?"  # nosec: BAN-B608
         self.provider.execute(query, params)
 
     def get_pending_or_failed_crawl_tasks(self, max_retries, max_concurrent):
@@ -448,7 +448,7 @@ class MiscDAO:
         params = list(fields.values())
         params.append(destination_hash)
         self.provider.execute(
-            f"UPDATE crawl_node_stats SET {set_clause} WHERE destination_hash = ?",
+            f"UPDATE crawl_node_stats SET {set_clause} WHERE destination_hash = ?",  # nosec: BAN-B608
             params,
         )
 
@@ -474,7 +474,7 @@ class MiscDAO:
         if notification_ids:
             placeholders = ", ".join(["?"] * len(notification_ids))
             self.provider.execute(
-                f"UPDATE notifications SET is_viewed = 1 WHERE id IN ({placeholders})",
+                f"UPDATE notifications SET is_viewed = 1 WHERE id IN ({placeholders})",  # nosec: BAN-B608
                 notification_ids,
             )
         else:

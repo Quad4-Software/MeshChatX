@@ -29,8 +29,8 @@ _FETCH_HEADERS = {
 
 def fetch_directory_payload(url: str, *, timeout: float = 60.0) -> object:
     resolved = validate_directory_fetch_url(url)
-    req = urllib.request.Request(resolved, headers=_FETCH_HEADERS, method="GET")
-    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec: BAN-B310
+    req = urllib.request.Request(resolved, headers=_FETCH_HEADERS, method="GET")  # noqa: S310 - scheme validated above
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - scheme validated above
         raw = resp.read(_MAX_FETCH_BYTES + 1)
     if len(raw) > _MAX_FETCH_BYTES:
         msg = f"Community directory download exceeds {_MAX_FETCH_BYTES} bytes"

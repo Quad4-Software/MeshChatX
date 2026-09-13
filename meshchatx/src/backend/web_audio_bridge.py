@@ -58,7 +58,7 @@ class HostlessAudioSource(LocalSource):
         self.should_run = False
         self.samples_per_frame = max(
             1,
-            int(round((self.target_frame_ms / 1000.0) * self.samplerate)),
+            round((self.target_frame_ms / 1000.0) * self.samplerate),
         )
 
     def start(self):

@@ -12,6 +12,7 @@ export type BrowserTabLayout = {
 export type MessagePanesLayout = {
     panes: unknown[];
     focusedIndex: number;
+    sizes?: unknown[];
     identities?: unknown[];
     [key: string]: unknown;
 };

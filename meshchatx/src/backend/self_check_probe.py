@@ -4,12 +4,21 @@
 
 from __future__ import annotations
 
-import os
+import json
 import sys
+
+from meshchatx.src.env_utils import env_str
 
 
 def main() -> None:
-    marker = os.environ.get("MESHCHATX_SELF_CHECK_PROBE_PATH")
+    argv = sys.argv[1:]
+    if argv[:1] == ["--check"] and len(argv) > 1:
+        from meshchatx.src.backend import self_check
+
+        result = self_check.run_probe(argv[1])
+        print("SELF_CHECK_JSON:" + json.dumps(result), flush=True)
+        return
+    marker = env_str("MESHCHATX_SELF_CHECK_PROBE_PATH")
     if marker:
         with open(marker, "w", encoding="utf-8") as handle:
             handle.write("ok\n")

@@ -169,8 +169,8 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             const end = handler.indexOf("async def page_nodes_delete_file", start);
             const block = handler.slice(start, end);
             expect(block).toContain("except ValueError as e:");
-            expect(block).toContain("except OSError as e:");
-            expect(block).toContain("Failed to write file:");
+            expect(block).toContain("except OSError:");
+            expect(block).toContain("Failed to write file");
         });
     });
 
@@ -301,6 +301,7 @@ describe("behavior contracts: RNS Link API", () => {
             "meshchatx/meshchat.py",
             "meshchatx/src/backend/http/ws/handlers_rns_link.py",
             "meshchatx/src/backend/lifecycle/self_test.py",
+            "meshchatx/src/backend/constants.py",
         ]);
         expect(meshchat).toContain("rns.link.open");
         expect(meshchat).toContain("rns.link.request");
@@ -321,8 +322,11 @@ describe("behavior contracts: RNS Link API", () => {
         expect(selfCheck).toContain("plugins_runtime_good");
         expect(selfCheck).toContain("check_plugins_runtime");
         const guard = readSource("meshchatx/src/backend/websocket_config_guard.py");
-        expect(guard).toContain("rns.link.open");
-        expect(guard).toContain("rns.link.close");
+        expect(guard).toContain("WsInboundType.RNS_LINK_OPEN");
+        expect(guard).toContain("WsInboundType.RNS_LINK_CLOSE");
+        const constants = readSource("meshchatx/src/backend/constants.py");
+        expect(constants).toContain('RNS_LINK_OPEN = "rns.link.open"');
+        expect(constants).toContain('RNS_LINK_CLOSE = "rns.link.close"');
     });
 });
 
@@ -333,10 +337,10 @@ describe("behavior contracts: plugin install permissions", () => {
             "meshchatx/src/backend/http/routes/plugins.py",
             "meshchatx/src/backend/http/routes/sideband.py",
         ]);
-        expect(handler).toContain("/api/v1/plugins/preview");
+        expect(handler).toContain("/plugins/preview");
         expect(handler).toContain("granted_permissions");
-        expect(handler).toContain("/api/v1/plugins/trusted-publishers");
-        expect(handler).toContain("/api/v1/sideband-plugins");
+        expect(handler).toContain("/plugins/trusted-publishers");
+        expect(handler).toContain("/sideband-plugins");
         const section = readSource(
             "meshchatx/src/frontend/features/settings/components/sections/PluginsSettingsSection.svelte"
         );
@@ -577,12 +581,20 @@ describe("behavior contracts: security gates", () => {
 
     it("WebSocket auth fails closed except explicit public control types", () => {
         const src = readSource("meshchatx/src/backend/websocket_config_guard.py");
-        const publicMatch = src.match(/WEBSOCKET_PUBLIC_TYPES = frozenset\(\s*\{([^}]+)\}/s);
-        const runtimeMatch = src.match(/WEBSOCKET_RUNTIME_CONTROL_TYPES = frozenset\(\s*\{([^}]+)\}/s);
+        const constants = readSource("meshchatx/src/backend/constants.py");
+        const enumValues = Object.fromEntries(
+            [...constants.matchAll(/^\s*(\w+)\s*=\s*"([^"]+)"\s*$/gm)].map((m) => [m[1], m[2]])
+        );
+        const resolveMembers = (block) => [...block.matchAll(/WsInboundType\.(\w+)/g)].map((m) => enumValues[m[1]]);
+        const runtimeMatch = constants.match(/WS_RUNTIME_CONTROL_TYPES = frozenset\(\s*\{([^}]+)\}/s);
+        const publicMatch = constants.match(/WS_PUBLIC_TYPES = frozenset\(\s*\{([^}]+)\}/s);
         expect(publicMatch).toBeTruthy();
         expect(runtimeMatch).toBeTruthy();
-        const publicMembers = [...publicMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-        const runtimeMembers = [...runtimeMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        const runtimeMembers = resolveMembers(runtimeMatch[1]);
+        const publicMembers = [
+            ...resolveMembers(publicMatch[1]),
+            ...(publicMatch[1].includes("*WS_RUNTIME_CONTROL_TYPES") ? runtimeMembers : []),
+        ];
         expect(publicMembers).toEqual(
             expect.arrayContaining(["ping", "ws.subscribe", "ws.unsubscribe", "sync.subscribe", "ws.caps"])
         );

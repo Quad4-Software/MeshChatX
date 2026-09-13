@@ -45,7 +45,7 @@ class ContactsDAO:
         if search:
             return self.provider.fetchall(
                 """
-                SELECT * FROM contacts 
+                SELECT * FROM contacts
                 WHERE name LIKE ? OR remote_identity_hash LIKE ? OR lxmf_address LIKE ? OR lxst_address LIKE ?
                 ORDER BY name ASC LIMIT ? OFFSET ?
                 """,

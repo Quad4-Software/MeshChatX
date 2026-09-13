@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
 import contextlib
-import json
 import logging
 import os
 import re
@@ -22,17 +21,108 @@ from meshchatx.src.backend.bot_lxmf_config import (
     validate_bot_lxmf_patch,
     write_bot_lxmf_config_sidecar,
 )
-from meshchatx.src.path_utils import atomic_write_text
+from meshchatx.src.backend.bot_options import (
+    normalize_bot_custom,
+    normalize_bot_icon,
+    write_bot_runtime_sidecar,
+)
+from meshchatx.src.env_utils import env_str
+from meshchatx.src.json_store import load_json, save_json
+from meshchatx.src.path_utils import (
+    is_path_within_dir,
+    is_under_root,
+)
 
 logger = logging.getLogger("meshchatx.bots")
 
+
+def normalize_rrc_bot_config(rrc_config):
+    """Validate and normalize the rrc block stored on a bot entry.
+
+    Returns a dict with hub, rooms, nick, mention_only, prefix and
+    rate_seconds keys, or raises ValueError on invalid input.
+    """
+    if not isinstance(rrc_config, dict):
+        msg = "rrc config must be an object"
+        raise ValueError(msg)
+
+    hub = rrc_config.get("hub")
+    if isinstance(hub, (bytes, bytearray, memoryview)):
+        hub = bytes(hub).hex()
+    hub = str(hub).strip().lower() if hub is not None else ""
+    if not _LXMF_HASH_RE.match(hub):
+        msg = "rrc hub must be a 32-char hex destination hash"
+        raise ValueError(msg)
+
+    raw_rooms = rrc_config.get("rooms")
+    if raw_rooms is None:
+        raw_rooms = []
+    if not isinstance(raw_rooms, (list, tuple)):
+        msg = "rrc rooms must be a list of room names"
+        raise ValueError(msg)
+    rooms = []
+    for raw in raw_rooms:
+        if not isinstance(raw, str):
+            msg = "rrc room names must be strings"
+            raise ValueError(msg)
+        room = raw.strip().lstrip("#").strip().lower()
+        if not room or len(room) > _RRC_MAX_ROOM_CHARS:
+            msg = "rrc room names must be 1 to 64 chars"
+            raise ValueError(msg)
+        if room not in rooms:
+            rooms.append(room)
+
+    nick = rrc_config.get("nick")
+    if nick is not None:
+        if not isinstance(nick, str):
+            msg = "rrc nick must be a string"
+            raise ValueError(msg)
+        nick = " ".join(nick.split()).strip()
+        if not nick or len(nick.encode("utf-8")) > _RRC_MAX_NICK_BYTES:
+            msg = "rrc nick must be 1 to 32 bytes"
+            raise ValueError(msg)
+
+    mention_only = bool(rrc_config.get("mention_only", True))
+
+    prefix = rrc_config.get("prefix", "!")
+    if not isinstance(prefix, str):
+        msg = "rrc prefix must be a string"
+        raise ValueError(msg)
+    prefix = prefix.strip()
+    if not prefix or len(prefix) > _RRC_MAX_PREFIX_CHARS:
+        msg = "rrc prefix must be 1 to 4 chars"
+        raise ValueError(msg)
+
+    rate = rrc_config.get("rate_seconds", _RRC_DEFAULT_RATE_SECONDS)
+    try:
+        rate = int(rate)
+    except (TypeError, ValueError):
+        rate = _RRC_DEFAULT_RATE_SECONDS
+    rate = max(0, min(_RRC_MAX_RATE_SECONDS, rate))
+
+    return {
+        "hub": hub,
+        "rooms": rooms,
+        "nick": nick,
+        "mention_only": mention_only,
+        "prefix": prefix,
+        "rate_seconds": rate,
+    }
+
+
 _LXMF_HASH_RE = re.compile(r"^[0-9a-f]{32}$")
+_RRC_MAX_ROOM_CHARS = 64
+_RRC_MAX_NICK_BYTES = 32
+_RRC_MAX_PREFIX_CHARS = 4
+_RRC_DEFAULT_RATE_SECONDS = 8
+_RRC_MAX_RATE_SECONDS = 3600
 _BOT_PROCESS_MODULE = "meshchatx.src.backend.bot_process"
 # cx_Freeze / AppImage / macOS bundles set sys.executable to MeshChatX itself.
 # meshchat.main() dispatches this flag to runpy.run_module before argparse.
 _MESHCHATX_RUN_MODULE_FLAG = "--meshchatx-run-module"
 _BOT_SUBPROCESS_LOG_MAX_BYTES = 5 * 1024 * 1024
 _BOT_SUBPROCESS_LOG_BACKUPS = 1
+_UNSET = object()
 
 
 class BotHandler:
@@ -55,10 +145,11 @@ class BotHandler:
         fallback_reticulum_dir = default_reticulum_config_dir or "~/.reticulum"
         self.bot_reticulum_config_dir = os.path.abspath(
             os.path.expanduser(
-                os.environ.get(
+                env_str(
                     "MESHCHAT_BOT_RETICULUM_CONFIG_DIR",
                     fallback_reticulum_dir,
-                ),
+                )
+                or fallback_reticulum_dir,
             ),
         )
         self.bots_dir = os.path.join(self.identity_path, "bots")
@@ -93,37 +184,37 @@ class BotHandler:
         return [sys.executable, self.runner_path]
 
     def _load_state(self):
-        try:
-            with open(self.state_file, encoding="utf-8") as f:
-                loaded = json.load(f)
-                if not isinstance(loaded, list):
-                    self.bots_state = []
-                    self._state_unreadable = True
-                    return
-                kept = []
-                for entry in loaded:
-                    if not isinstance(entry, dict):
-                        continue
-                    if "storage_dir" in entry:
-                        entry["storage_dir"] = os.path.abspath(entry["storage_dir"])
-                    if entry.get("bot_config_dir"):
-                        entry["bot_config_dir"] = os.path.abspath(
-                            os.path.expanduser(entry["bot_config_dir"]),
-                        )
-                    if entry.get("reticulum_config_dir"):
-                        entry["reticulum_config_dir"] = os.path.abspath(
-                            os.path.expanduser(entry["reticulum_config_dir"]),
-                        )
-                    if self._jailed_bot_dirs(entry) is None:
-                        logger.warning(
-                            "Dropping bot %s: storage path is outside the identity bots directory",
-                            entry.get("id"),
-                        )
-                        continue
-                    kept.append(entry)
-                self.bots_state = kept
-        except FileNotFoundError:
+        if not os.path.exists(self.state_file):
             self.bots_state = []
+            return
+        loaded = load_json(self.state_file)
+        if not isinstance(loaded, list):
+            self.bots_state = []
+            self._state_unreadable = True
+            return
+        try:
+            kept = []
+            for entry in loaded:
+                if not isinstance(entry, dict):
+                    continue
+                if "storage_dir" in entry:
+                    entry["storage_dir"] = os.path.abspath(entry["storage_dir"])
+                if entry.get("bot_config_dir"):
+                    entry["bot_config_dir"] = os.path.abspath(
+                        os.path.expanduser(entry["bot_config_dir"]),
+                    )
+                if entry.get("reticulum_config_dir"):
+                    entry["reticulum_config_dir"] = os.path.abspath(
+                        os.path.expanduser(entry["reticulum_config_dir"]),
+                    )
+                if self._jailed_bot_dirs(entry) is None:
+                    logger.warning(
+                        "Dropping bot %s: storage path is outside the identity bots directory",
+                        entry.get("id"),
+                    )
+                    continue
+                kept.append(entry)
+            self.bots_state = kept
         except Exception:
             self.bots_state = []
             self._state_unreadable = True
@@ -133,10 +224,7 @@ class BotHandler:
             logger.error("Refusing to overwrite unreadable bots state file")
             return
         try:
-            atomic_write_text(
-                self.state_file,
-                json.dumps(self.bots_state, indent=2),
-            )
+            save_json(self.state_file, self.bots_state, indent=2, newline=False)
         except Exception as exc:
             logger.error("Failed to save bots state: %s", exc)
 
@@ -146,16 +234,31 @@ class BotHandler:
                 "id": "echo",
                 "name": "Echo Bot",
                 "description": "Repeats any message it receives.",
+                "default_icon": "forum",
             },
             {
                 "id": "note",
                 "name": "Note Bot",
                 "description": "Store and retrieve notes using JSON storage.",
+                "default_icon": "note-text",
             },
             {
                 "id": "reminder",
                 "name": "Reminder Bot",
                 "description": "Set and receive reminders using SQLite storage.",
+                "default_icon": "alarm",
+            },
+            {
+                "id": "custom",
+                "name": "Custom Bot",
+                "description": "Define your own commands and canned replies.",
+                "default_icon": "robot",
+            },
+            {
+                "id": "rrc",
+                "name": "RRC Bot",
+                "description": "Answers commands in rooms on a hosted RRC hub.",
+                "default_icon": "chat",
             },
         ]
 
@@ -168,6 +271,7 @@ class BotHandler:
                         name=entry["name"],
                         bot_id=entry["id"],
                         storage_dir=entry["storage_dir"],
+                        rrc_config=entry.get("rrc"),
                     )
                 except Exception as exc:
                     logger.warning("Failed to restore bot %s: %s", entry.get("id"), exc)
@@ -379,6 +483,15 @@ class BotHandler:
                     "lxmf_config": lxmf_meta["lxmf_config"],
                     "effective_lxmf_config": lxmf_meta["effective_lxmf_config"],
                     "host_lxmf_propagation": lxmf_meta["host_lxmf_propagation"],
+                    "rrc": entry.get("rrc"),
+                    "icon": entry.get("icon"),
+                    "custom": entry.get("custom"),
+                    "last_started_at": entry.get("last_started_at"),
+                    "uptime_seconds": (
+                        max(0, int(time.time() - entry["last_started_at"]))
+                        if running and entry.get("last_started_at")
+                        else None
+                    ),
                 },
             )
 
@@ -396,6 +509,9 @@ class BotHandler:
         bot_id=None,
         storage_dir=None,
         lxmf_config=None,
+        rrc_config=None,
+        icon=_UNSET,
+        custom=_UNSET,
     ):
         # Reuse existing entry or create new
         entry = None
@@ -404,6 +520,34 @@ class BotHandler:
                 if e.get("id") == bot_id:
                     entry = e
                     break
+
+        if icon is not _UNSET:
+            icon = normalize_bot_icon(icon)
+        if custom is not _UNSET:
+            if template_id != "custom":
+                msg = "custom config is only valid for the custom template"
+                raise ValueError(msg)
+            custom = normalize_bot_custom(custom)
+            if not custom or not custom.get("commands"):
+                msg = "custom template requires at least one command"
+                raise ValueError(msg)
+        elif template_id == "custom" and not (entry or {}).get("custom"):
+            msg = "custom template requires custom config with commands"
+            raise ValueError(msg)
+
+        rrc_cfg = None
+        if rrc_config is not None:
+            if template_id != "rrc":
+                msg = "rrc config is only valid for the rrc template"
+                raise ValueError(msg)
+            rrc_cfg = normalize_rrc_bot_config(rrc_config)
+        elif template_id == "rrc":
+            stored = entry.get("rrc") if entry is not None else None
+            if not isinstance(stored, dict) or not stored.get("hub"):
+                msg = "rrc template requires rrc config with a hub"
+                raise ValueError(msg)
+            rrc_cfg = normalize_rrc_bot_config(stored)
+
         if entry is None:
             bot_id = bot_id or uuid.uuid4().hex
             bot_storage_dir = storage_dir or os.path.join(self.bots_dir, bot_id)
@@ -445,6 +589,12 @@ class BotHandler:
                 entry.get("lxmf_config"),
                 lxmf_config,
             )
+        if rrc_cfg is not None:
+            entry["rrc"] = rrc_cfg
+        if icon is not _UNSET:
+            entry["icon"] = icon
+        if custom is not _UNSET:
+            entry["custom"] = custom
 
         os.makedirs(bot_storage_dir, exist_ok=True)
 
@@ -459,6 +609,15 @@ class BotHandler:
         lxmf_sidecar = write_bot_lxmf_config_sidecar(
             bot_storage_dir,
             effective_lxmf,
+        )
+        runtime_payload = {}
+        if "icon" in entry:
+            runtime_payload["icon"] = entry["icon"]
+        if entry.get("custom"):
+            runtime_payload["custom"] = entry["custom"]
+        runtime_sidecar = write_bot_runtime_sidecar(
+            bot_storage_dir,
+            runtime_payload,
         )
 
         cmd = [
@@ -475,7 +634,26 @@ class BotHandler:
             entry["reticulum_config_dir"],
             "--lxmf-config-file",
             lxmf_sidecar,
+            "--runtime-config-file",
+            runtime_sidecar,
+            "--parent-pid",
+            str(os.getpid()),
         ]
+        if template_id == "rrc" and rrc_cfg is not None:
+            cmd += [
+                "--rrc-hub",
+                rrc_cfg["hub"],
+                "--rrc-rooms",
+                ",".join(rrc_cfg["rooms"]),
+                "--rrc-nick",
+                rrc_cfg["nick"] or entry["name"],
+                "--rrc-mention-only",
+                "1" if rrc_cfg["mention_only"] else "0",
+                "--rrc-prefix",
+                rrc_cfg["prefix"],
+                "--rrc-rate",
+                str(rrc_cfg["rate_seconds"]),
+            ]
 
         subprocess_log = os.path.join(bot_storage_dir, "meshchatx_bot_subprocess.log")
         self._rotate_subprocess_log_if_needed(subprocess_log)
@@ -502,6 +680,7 @@ class BotHandler:
             log_f.close()
 
         entry["pid"] = proc.pid
+        entry["last_started_at"] = time.time()
         self._save_state()
 
         self.running_bots[bot_id] = {
@@ -528,46 +707,65 @@ class BotHandler:
         tracked = self.running_bots.get(bot_id) or {}
         proc = tracked.get("proc")
         if pid:
-            try:
-                if sys.platform.startswith("win"):
-                    if proc is not None:
-                        with contextlib.suppress(Exception):
-                            proc.terminate()
-                        with contextlib.suppress(Exception):
-                            proc.wait(timeout=2)
-                    if self._is_pid_alive(pid):
-                        taskkill = shutil.which("taskkill") or "taskkill"
-                        # Process may already have exited, so suppress "not found" noise.
-                        subprocess.run(
-                            [taskkill, "/PID", str(pid), "/T", "/F"],
-                            check=False,
-                            timeout=5,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        )
-                else:
-                    try:
-                        os.killpg(pid, 15)
-                    except OSError:
-                        os.kill(pid, 15)
-                    # brief wait
-                    time.sleep(0.5)
-                    # optional force kill if still alive
-                    try:
-                        if self._is_pid_alive(pid):
-                            try:
-                                os.killpg(pid, 9)
-                            except OSError:
-                                os.kill(pid, 9)
-                    except OSError:
-                        pass
-            except Exception as exc:
+            # A pid from bots_state.json can survive a backend restart and be
+            # recycled by a foreign process group. Only skip verification when
+            # proc is the live child we spawned this session.
+            spawned_here = proc is not None and proc.pid == pid and proc.poll() is None
+            if (
+                not spawned_here
+                and self._pid_matches_bot(
+                    pid,
+                    entry.get("storage_dir"),
+                )
+                is False
+            ):
                 logger.warning(
-                    "Failed to terminate bot %s pid %s: %s",
+                    "Bot %s pid %s is not a bot_process for its storage dir; "
+                    "refusing to signal a foreign process",
                     bot_id,
                     pid,
-                    exc,
                 )
+            else:
+                try:
+                    if sys.platform.startswith("win"):
+                        if proc is not None:
+                            with contextlib.suppress(Exception):
+                                proc.terminate()
+                            with contextlib.suppress(Exception):
+                                proc.wait(timeout=2)
+                        if self._is_pid_alive(pid):
+                            taskkill = shutil.which("taskkill") or "taskkill"
+                            # Process may already have exited, so suppress "not found" noise.
+                            subprocess.run(
+                                [taskkill, "/PID", str(pid), "/T", "/F"],
+                                check=False,
+                                timeout=5,
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                            )
+                    else:
+                        try:
+                            os.killpg(pid, 15)
+                        except OSError:
+                            os.kill(pid, 15)
+                        # brief wait
+                        time.sleep(0.5)
+                        # optional force kill if still alive
+                        try:
+                            if self._is_pid_alive(pid):
+                                try:
+                                    os.killpg(pid, 9)
+                                except OSError:
+                                    os.kill(pid, 9)
+                        except OSError:
+                            pass
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to terminate bot %s pid %s: %s",
+                        bot_id,
+                        pid,
+                        exc,
+                    )
             self._reap_process(bot_id, pid)
 
         entry["pid"] = None
@@ -592,6 +790,7 @@ class BotHandler:
             name=entry["name"],
             bot_id=bot_id,
             storage_dir=entry["storage_dir"],
+            rrc_config=entry.get("rrc"),
         )
 
     def update_bot_lxmf_config(self, bot_id, lxmf_config):
@@ -611,6 +810,52 @@ class BotHandler:
         )
         self._save_state()
         return normalize_bot_lxmf_overrides(entry["lxmf_config"])
+
+    def update_bot_rrc_config(self, bot_id, rrc_config):
+        """Store a new rrc block for an rrc bot. Applied on the next start."""
+        entry = None
+        for e in self.bots_state:
+            if e.get("id") == bot_id:
+                entry = e
+                break
+        if entry is None:
+            raise ValueError(f"Unknown bot: {bot_id}")
+        if entry.get("template_id") != "rrc":
+            raise ValueError("rrc config only applies to rrc bots")
+        entry["rrc"] = normalize_rrc_bot_config(rrc_config)
+        self._save_state()
+        return dict(entry["rrc"])
+
+    def update_bot_icon(self, bot_id, icon):
+        """Store or clear the icon appearance. Applied on the next start."""
+        entry = None
+        for e in self.bots_state:
+            if e.get("id") == bot_id:
+                entry = e
+                break
+        if entry is None:
+            raise ValueError(f"Unknown bot: {bot_id}")
+        entry["icon"] = normalize_bot_icon(icon)
+        self._save_state()
+        return entry["icon"]
+
+    def update_bot_custom(self, bot_id, custom):
+        """Store a new custom command set for a custom bot."""
+        entry = None
+        for e in self.bots_state:
+            if e.get("id") == bot_id:
+                entry = e
+                break
+        if entry is None:
+            raise ValueError(f"Unknown bot: {bot_id}")
+        if entry.get("template_id") != "custom":
+            raise ValueError("custom config only applies to custom bots")
+        normalized = normalize_bot_custom(custom)
+        if not normalized or not normalized.get("commands"):
+            raise ValueError("custom config requires at least one command")
+        entry["custom"] = normalized
+        self._save_state()
+        return dict(entry["custom"])
 
     def update_bot_name(self, bot_id, name):
         raw = (name or "").strip()
@@ -666,13 +911,9 @@ class BotHandler:
 
     def _jailed_bot_storage_dir(self, storage_dir):
         """Return realpath only when storage_dir is under this identity's bots dir."""
-        if not storage_dir:
+        if not storage_dir or not is_path_within_dir(storage_dir, self.bots_dir):
             return None
-        bots_root = os.path.realpath(self.bots_dir)
-        real = os.path.realpath(storage_dir)
-        if real != bots_root and not real.startswith(bots_root + os.sep):
-            return None
-        return real
+        return os.path.realpath(storage_dir)
 
     def _jailed_bot_dirs(self, entry):
         """Return jailed (storage_dir, bot_config_dir) or None if either path escapes."""
@@ -698,7 +939,7 @@ class BotHandler:
             return None
         real = os.path.realpath(candidate)
         root_real = os.path.realpath(root)
-        if real != root_real and not real.startswith(root_real + os.sep):
+        if not is_under_root(real, root_real):
             return None
         return real
 
@@ -784,6 +1025,28 @@ class BotHandler:
             return RNS.Identity.from_file(identity_path)
         except Exception:
             return None
+
+    @staticmethod
+    def _pid_matches_bot(pid, storage_dir):
+        """True or False when /proc proves the pid is or is not this bot.
+
+        Returns None when the check cannot decide: no /proc (macOS, Windows),
+        the process is already gone, or its cmdline is unreadable. Bots spawned
+        by the frozen binary run the bot_process module so the marker matches
+        both launch styles.
+        """
+        if not pid or sys.platform.startswith("win"):
+            return None
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                cmdline = f.read().decode("utf-8", errors="replace")
+        except OSError:
+            return None
+        if "bot_process" not in cmdline:
+            return False
+        if storage_dir and os.path.abspath(storage_dir) not in cmdline:
+            return False
+        return True
 
     @staticmethod
     def _is_pid_alive(pid):

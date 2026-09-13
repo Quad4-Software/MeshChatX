@@ -3,11 +3,13 @@
 """Robustness tests for REST handlers (archives, bundled docs, lxmf send) and related WS paths."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
+
+from tests.backend.http_request_stubs import json_request
 
 
 def _handler(app, method: str, path: str):
@@ -78,8 +80,7 @@ async def test_delete_archives_requires_nonempty_ids(mock_app):
     handler = _handler(mock_app, "DELETE", "/api/v1/nomadnet/archives")
     assert handler is not None
 
-    request = MagicMock()
-    request.json = AsyncMock(return_value={"ids": []})
+    request = json_request({"ids": []})
     response = await handler(request)
     assert response.status == 400
 
@@ -140,8 +141,7 @@ async def test_meshchatx_docs_content_path_fuzz(mock_app, path):
 async def test_lxmf_messages_send_requires_lxmf_message(mock_app):
     handler = _handler(mock_app, "POST", "/api/v1/lxmf-messages/send")
     assert handler is not None
-    request = MagicMock()
-    request.json = AsyncMock(return_value={})
+    request = json_request({})
     response = await handler(request)
     assert response.status == 400
 
@@ -150,10 +150,7 @@ async def test_lxmf_messages_send_requires_lxmf_message(mock_app):
 async def test_lxmf_messages_send_requires_destination_and_content(mock_app):
     handler = _handler(mock_app, "POST", "/api/v1/lxmf-messages/send")
     assert handler is not None
-    request = MagicMock()
-    request.json = AsyncMock(
-        return_value={"lxmf_message": {"fields": {}}},
-    )
+    request = json_request({"lxmf_message": {"fields": {}}})
     response = await handler(request)
     assert response.status == 400
 
@@ -162,9 +159,8 @@ async def test_lxmf_messages_send_requires_destination_and_content(mock_app):
 async def test_lxmf_messages_send_rejects_bad_image_field(mock_app):
     handler = _handler(mock_app, "POST", "/api/v1/lxmf-messages/send")
     assert handler is not None
-    request = MagicMock()
-    request.json = AsyncMock(
-        return_value={
+    request = json_request(
+        {
             "lxmf_message": {
                 "destination_hash": "aa",
                 "content": "x",
@@ -204,3 +200,66 @@ async def test_nomadnet_page_download_invalid_hex_does_not_raise(mock_app):
             },
         },
     )
+
+
+@pytest.mark.asyncio
+async def test_export_archives_returns_zip_with_manifest(mock_app):
+    import io
+    import zipfile
+
+    handler = _handler(mock_app, "GET", "/api/v1/nomadnet/archives/export")
+    assert handler is not None
+
+    misc = mock_app.database.misc
+    misc.archive_page("aa" * 16, "/page/index.mu", "# Hello", "a" * 64)
+    misc.archive_page("aa" * 16, "/page/index.mu", "# Hello v2", "b" * 64)
+    misc.archive_page("bb" * 16, "/notes.txt", "note body", "c" * 64)
+
+    request = MagicMock()
+    request.query = {}
+    response = await handler(request)
+    assert response.status == 200
+    assert response.content_type == "application/zip"
+    assert "attachment" in response.headers["Content-Disposition"]
+
+    zf = zipfile.ZipFile(io.BytesIO(response.body))
+    names = set(zf.namelist())
+    assert "manifest.json" in names
+    manifest = json.loads(zf.read("manifest.json"))
+    assert manifest["format"] == "meshchatx-archives"
+    assert len(manifest["archives"]) == 3
+    files = [m["file"] for m in manifest["archives"]]
+    assert len(files) == len(set(files))
+    bodies = {
+        m["file"]: zf.read(m["file"]).decode("utf-8") for m in manifest["archives"]
+    }
+    assert "# Hello" in bodies.values()
+    assert "note body" in bodies.values()
+
+
+@pytest.mark.asyncio
+async def test_export_archives_respects_filters(mock_app):
+    import io
+    import zipfile
+
+    handler = _handler(mock_app, "GET", "/api/v1/nomadnet/archives/export")
+    misc = mock_app.database.misc
+    misc.archive_page("aa" * 16, "/page/index.mu", "# Hello", "a" * 64)
+    misc.archive_page("bb" * 16, "/notes.txt", "note body", "c" * 64)
+
+    request = MagicMock()
+    request.query = {"destination_hash": "bb" * 16}
+    response = await handler(request)
+    assert response.status == 200
+    zf = zipfile.ZipFile(io.BytesIO(response.body))
+    manifest = json.loads(zf.read("manifest.json"))
+    assert len(manifest["archives"]) == 1
+    assert manifest["archives"][0]["destination_hash"] == "bb" * 16
+
+    request = MagicMock()
+    request.query = {"q": "note body"}
+    response = await handler(request)
+    zf = zipfile.ZipFile(io.BytesIO(response.body))
+    manifest = json.loads(zf.read("manifest.json"))
+    assert len(manifest["archives"]) == 1
+    assert manifest["archives"][0]["page_path"] == "/notes.txt"

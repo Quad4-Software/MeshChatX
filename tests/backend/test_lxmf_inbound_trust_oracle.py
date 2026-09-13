@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import math
 import os
+import threading
 import time
 from unittest.mock import MagicMock
 
@@ -42,7 +43,6 @@ from meshchatx.src.backend.meshchat_utils import (
     parse_lxmf_stamp_cost,
 )
 from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
-
 
 # ---------------------------------------------------------------------------
 # Pure parser oracles (zenith + siblings)
@@ -297,6 +297,8 @@ def _bind_delivery(app):
 @pytest.fixture
 def delivery_app():
     app = MagicMock(spec=ReticulumMeshChat)
+    # Instance-only attribute: spec'd mocks do not synthesize it.
+    app._lxmf_flood_lock = threading.RLock()
     app.database = MagicMock()
     app.current_context = MagicMock()
     app.current_context.local_lxmf_destination = MagicMock()

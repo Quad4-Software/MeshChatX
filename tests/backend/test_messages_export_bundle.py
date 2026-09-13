@@ -14,6 +14,7 @@ from meshchatx.src.backend.message_export_bundle import (
     build_messages_export_bundle,
     import_messages_export_bundle,
 )
+from tests.backend.http_request_stubs import JsonContent
 
 
 def _make_json_request(body):
@@ -23,6 +24,7 @@ def _make_json_request(body):
         return body
 
     request.json = _json
+    request.content = JsonContent(body)
     return request
 
 

@@ -7,9 +7,10 @@ from __future__ import annotations
 import ctypes
 import importlib
 import logging
-import os
 import sys
 from pathlib import Path
+
+from meshchatx.src.env_utils import env_str
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ def _libcodec2_candidates() -> list[Path]:
         seen.add(key)
         candidates.append(path)
 
-    explicit = Path(os.environ.get("MESHCHAT_LIBCODEC2_PATH", "") or "")
+    explicit = Path(env_str("MESHCHAT_LIBCODEC2_PATH") or "")
     if explicit.is_file():
         add(explicit)
 
@@ -69,7 +70,7 @@ def _libcodec2_candidates() -> list[Path]:
 
     # Extracted APK native lib dirs (ABI-specific jniLibs sync target).
     for env_key in ("MESHCHAT_NATIVE_LIB_DIR", "ANDROID_NATIVE_LIBRARY_DIR"):
-        native_dir = Path(os.environ.get(env_key, "") or "")
+        native_dir = Path(env_str(env_key) or "")
         if native_dir.is_dir():
             add(native_dir / "libcodec2.so")
 

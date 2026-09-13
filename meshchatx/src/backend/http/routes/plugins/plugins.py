@@ -8,12 +8,29 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.plugins._names import *  # noqa: F403
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_forbidden,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_body_limited,
+    read_field_limited,
+    read_field_text_limited,
+    read_json_limited,
+)
+from meshchatx.src.backend.plugin_guard import MAX_PLUGIN_ZIP_BYTES, PluginSecurityError
+
 
 def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
 
     # --- Plugin API ---
 
-    @routes.get("/api/v1/plugins")
+    @routes.get(API_V1_PREFIX + "/plugins")
     async def plugins_list(request):
         return web.json_response(
             {
@@ -22,39 +39,32 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.post("/api/v1/plugins/preview")
+    @routes.post(API_V1_PREFIX + "/plugins/preview")
     async def plugins_preview(request):
         if not app.plugins_enabled:
-            return web.json_response(
-                {"message": "Plugins are disabled"},
-                status=403,
-            )
+            return http_forbidden("Plugins are disabled")
         try:
             if request.content_type and "multipart" in request.content_type:
                 reader = await request.multipart()
                 field = await reader.next()
                 if field is None:
-                    return web.json_response(
-                        {"message": "No plugin archive provided"},
-                        status=400,
-                    )
-                payload = await field.read()
+                    return http_bad_request("No plugin archive provided")
+                payload = await read_field_limited(field, MAX_PLUGIN_ZIP_BYTES)
             else:
-                payload = await request.read()
+                payload = await read_body_limited(request, MAX_PLUGIN_ZIP_BYTES)
             if not payload:
-                return web.json_response(
-                    {"message": "No plugin archive provided"},
-                    status=400,
-                )
+                return http_bad_request("No plugin archive provided")
             preview = await asyncio.to_thread(
                 app.plugin_manager.preview_from_zip_bytes,
                 payload,
             )
             return web.json_response(preview)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
-    @routes.get("/api/v1/plugins/trusted-publishers")
+    @routes.get(API_V1_PREFIX + "/plugins/trusted-publishers")
     async def plugins_trusted_publishers_list(request):
         tampered, reason = app.plugin_manager.trusted_publishers_tampered()
         return web.json_response(
@@ -65,10 +75,12 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.post("/api/v1/plugins/trusted-publishers")
+    @routes.post(API_V1_PREFIX + "/plugins/trusted-publishers")
     async def plugins_trusted_publishers_add(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         identity = data.get("identity") or ""
@@ -81,9 +93,9 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
             )
             return web.json_response({"publishers": publishers})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
-    @routes.delete("/api/v1/plugins/trusted-publishers/{identity}")
+    @routes.delete(API_V1_PREFIX + "/plugins/trusted-publishers/{identity}")
     async def plugins_trusted_publishers_remove(request):
         identity = request.match_info["identity"]
         try:
@@ -93,15 +105,12 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
             )
             return web.json_response({"publishers": publishers})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
-    @routes.post("/api/v1/plugins/install")
+    @routes.post(API_V1_PREFIX + "/plugins/install")
     async def plugins_install(request):
         if not app.plugins_enabled:
-            return web.json_response(
-                {"message": "Plugins are disabled"},
-                status=403,
-            )
+            return http_forbidden("Plugins are disabled")
         try:
             granted_permissions = None
             payload = b""
@@ -113,9 +122,12 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
                         break
                     name = field.name or ""
                     if name in ("archive", "file", "plugin"):
-                        payload = await field.read()
+                        payload = await read_field_limited(
+                            field,
+                            MAX_PLUGIN_ZIP_BYTES,
+                        )
                     elif name == "granted_permissions":
-                        raw = await field.text()
+                        raw = await read_field_text_limited(field, 8 * 1024)
                         try:
                             parsed = json.loads(raw)
                         except Exception:
@@ -127,13 +139,10 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
             else:
                 content_type = request.content_type or ""
                 if "application/json" in content_type:
-                    body = await request.json()
+                    body = await read_json_limited(request, MAX_PLUGIN_ZIP_BYTES * 2)
                     archive_b64 = body.get("archive_b64") or body.get("zip_b64")
                     if not archive_b64:
-                        return web.json_response(
-                            {"message": "No plugin archive provided"},
-                            status=400,
-                        )
+                        return http_bad_request("No plugin archive provided")
                     import base64
 
                     payload = base64.b64decode(archive_b64, validate=True)
@@ -143,62 +152,60 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
                             item for item in granted if isinstance(item, str)
                         ]
                 else:
-                    payload = await request.read()
+                    payload = await read_body_limited(request, MAX_PLUGIN_ZIP_BYTES)
             if not payload:
-                return web.json_response(
-                    {"message": "No plugin archive provided"},
-                    status=400,
-                )
+                return http_bad_request("No plugin archive provided")
             plugin = await asyncio.to_thread(
                 app.plugin_manager.install_from_zip_bytes,
                 payload,
                 granted_permissions,
             )
             return web.json_response(plugin)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
-    @routes.post("/api/v1/plugins/{plugin_id}/enable")
+    @routes.post(API_V1_PREFIX + "/plugins/{plugin_id}/enable")
     async def plugins_enable(request):
         if not app.plugins_enabled:
-            return web.json_response(
-                {"message": "Plugins are disabled"},
-                status=403,
-            )
+            return http_forbidden("Plugins are disabled")
         plugin_id = request.match_info["plugin_id"]
         try:
             plugin = await asyncio.to_thread(app.plugin_manager.enable, plugin_id)
             return web.json_response(plugin)
         except KeyError:
-            return web.json_response({"message": "Plugin not found"}, status=404)
+            return http_not_found("Plugin not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
-    @routes.post("/api/v1/plugins/{plugin_id}/disable")
+    @routes.post(API_V1_PREFIX + "/plugins/{plugin_id}/disable")
     async def plugins_disable(request):
         plugin_id = request.match_info["plugin_id"]
         try:
             plugin = await asyncio.to_thread(app.plugin_manager.disable, plugin_id)
             return web.json_response(plugin)
         except KeyError:
-            return web.json_response({"message": "Plugin not found"}, status=404)
+            return http_not_found("Plugin not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
-    @routes.delete("/api/v1/plugins/{plugin_id}")
+    @routes.delete(API_V1_PREFIX + "/plugins/{plugin_id}")
     async def plugins_remove(request):
         plugin_id = request.match_info["plugin_id"]
         try:
             await asyncio.to_thread(app.plugin_manager.remove, plugin_id)
             return web.json_response({"message": "Plugin removed"})
         except KeyError:
-            return web.json_response({"message": "Plugin not found"}, status=404)
+            return http_not_found("Plugin not found")
 
-    @routes.post("/api/v1/plugins/{plugin_id}/report-failure")
+    @routes.post(API_V1_PREFIX + "/plugins/{plugin_id}/report-failure")
     async def plugins_report_failure(request):
         plugin_id = request.match_info["plugin_id"]
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         reason = data.get("reason") or "Unknown plugin failure"
@@ -211,30 +218,26 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
                 source,
             )
             if plugin is None:
-                return web.json_response(
-                    {"message": "Plugin not found"},
-                    status=404,
-                )
+                return http_not_found("Plugin not found")
             return web.json_response(plugin)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
-    @routes.post("/api/v1/plugins/{plugin_id}/invoke")
+    @routes.post(API_V1_PREFIX + "/plugins/{plugin_id}/invoke")
     async def plugins_invoke(request):
         if not app.plugins_enabled:
-            return web.json_response(
-                {"message": "Plugins are disabled"},
-                status=403,
-            )
+            return http_forbidden("Plugins are disabled")
         plugin_id = request.match_info["plugin_id"]
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         method = data.get("method")
         args = data.get("args") or {}
         if not method:
-            return web.json_response({"message": "method is required"}, status=400)
+            return http_bad_request("method is required")
         try:
             result = await asyncio.to_thread(
                 app.plugin_manager.invoke,
@@ -244,31 +247,28 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
             )
             return web.json_response({"result": result})
         except KeyError:
-            return web.json_response({"message": "Plugin not found"}, status=404)
+            return http_not_found("Plugin not found")
         except PermissionError as e:
-            return web.json_response({"message": str(e)}, status=403)
+            return http_forbidden(str(e))
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
-    @routes.get("/api/v1/plugins/{plugin_id}/asset/{asset_path:.*}")
+    @routes.get(API_V1_PREFIX + "/plugins/{plugin_id}/asset/{asset_path:.*}")
     async def plugins_asset(request):
         if not app.plugins_enabled:
-            return web.json_response(
-                {"message": "Plugins are disabled"},
-                status=403,
-            )
+            return http_forbidden("Plugins are disabled")
         plugin_id = request.match_info["plugin_id"]
         asset_path = request.match_info["asset_path"]
         try:
             path = app.plugin_manager.asset_path(plugin_id, asset_path)
         except KeyError:
-            return web.json_response({"message": "Plugin not found"}, status=404)
+            return http_not_found("Plugin not found")
         except FileNotFoundError:
-            return web.json_response({"message": "Asset not found"}, status=404)
+            return http_not_found("Asset not found")
         except PluginSecurityError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.FileResponse(
             path,
             headers={
