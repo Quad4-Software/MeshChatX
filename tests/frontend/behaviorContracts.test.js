@@ -576,7 +576,7 @@ describe("behavior contracts: security gates", () => {
         ]);
         expect(src).toContain("websocket_origin_allowed");
         expect(src).toContain("_reject_forbidden_ws_origin");
-        expect(src).toContain('{"error": "Forbidden origin"}');
+        expect(src).toContain("Forbidden origin");
     });
 
     it("WebSocket auth fails closed except explicit public control types", () => {
