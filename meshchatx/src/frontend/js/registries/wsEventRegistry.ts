@@ -21,7 +21,13 @@ export async function dispatchWsEvent(type: string, payload: Record<string, unkn
         return;
     }
     for (const handler of handlers) {
-        await (handler as WsEventHandler)(payload);
+        // One faulty handler must not starve the rest of the listeners for
+        // this event type.
+        try {
+            await (handler as WsEventHandler)(payload);
+        } catch (e) {
+            console.error(`wsEventRegistry handler for "${type}" failed`, e);
+        }
     }
 }
 

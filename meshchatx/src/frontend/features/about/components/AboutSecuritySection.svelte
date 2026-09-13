@@ -135,6 +135,11 @@
                                 <div class="text-sm font-bold text-sem-fg">
                                     {t(card.titleKey)}
                                 </div>
+                                {#if card.abi}
+                                    <div class="text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted">
+                                        {t("about.sandbox_abi", { abi: card.abi })}
+                                    </div>
+                                {/if}
                             </div>
                             <span
                                 class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider shrink-0 {sandboxBadgeClass(
