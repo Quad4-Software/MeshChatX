@@ -521,6 +521,12 @@ async def apply_config_update(app: Any, data):
                 ):
                     app.config.nomad_default_page_path.set(s)
 
+    if "nomad_image_loading_policy" in data:
+        raw = str(data["nomad_image_loading_policy"] or "").strip().lower()
+        allowed = ("never", "manual", "auto", "always")
+        if raw in allowed:
+            app.config.nomad_image_loading_policy.set(raw)
+
     if "local_message_auto_delete_enabled" in data:
         app.config.local_message_auto_delete_enabled.set(
             app._parse_bool(data["local_message_auto_delete_enabled"]),

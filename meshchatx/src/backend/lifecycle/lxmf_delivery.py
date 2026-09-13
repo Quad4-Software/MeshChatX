@@ -89,10 +89,11 @@ def handle_lxmf_delivery(app: Any, lxmf_message: LXMF.LXMessage, context=None):
             return
 
         # track incoming message timestamps for flood protection
-        app._lxmf_incoming_timestamps.append(time.time())
-        app._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
-            app._lxmf_incoming_timestamps,
-        )
+        with app._lxmf_flood_lock:
+            app._lxmf_incoming_timestamps.append(time.time())
+            app._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
+                app._lxmf_incoming_timestamps,
+            )
         app._check_lxmf_flood_protection(context=ctx)
 
         if ctx.config.block_all_from_strangers.get() and not app._is_contact(
