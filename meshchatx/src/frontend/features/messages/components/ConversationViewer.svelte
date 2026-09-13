@@ -17,7 +17,13 @@
     import ConversationViewerListPane from "./ConversationViewerListPane.svelte";
     import ConversationViewerComposerHost from "./ConversationViewerComposerHost.svelte";
     import ConversationViewerModalsBridge from "./ConversationViewerModalsBridge.svelte";
-    import { loadTranslatorLanguages, translateText, type LangOption } from "../lib/conversationTranslate.js";
+    import {
+        defaultTranslateTarget,
+        loadTranslatorLanguages,
+        persistTranslateTarget,
+        translateText,
+        type LangOption,
+    } from "../lib/conversationTranslate.js";
     import {
         deleteWsMessage,
         fetchConversationPage,
@@ -148,7 +154,7 @@
     let hasTranslator = $state(false);
     let bubbleTranslate = $state({
         open: false,
-        targetLang: "en",
+        targetLang: "",
         chatItem: null as ViewerChatItem | null,
         working: false,
     });
@@ -885,9 +891,10 @@
         if (!item) return;
         bubbleTranslate.working = true;
         try {
-            const result = await translateText(window.api, {
+            persistTranslateTarget(bubbleTranslate.targetLang);
+            const result = await translateText({
                 text: String(item.lxmf_message.content || ""),
-                targetLang: bubbleTranslate.targetLang,
+                targetPair: bubbleTranslate.targetLang,
             });
             const hash = String(item.lxmf_message.hash || "");
             if (hash && result.translatedText) {
@@ -905,17 +912,19 @@
             }
             bubbleTranslate.open = false;
         } catch {
-            ToastUtils.error(t("translator.failed_translate"));
+            ToastUtils.error(t("translator.translation_failed"));
         } finally {
             bubbleTranslate.working = false;
         }
     }
 
     async function loadTranslateOptions() {
-        const cfg = (GlobalState.config || {}) as Record<string, unknown>;
-        const loaded = await loadTranslatorLanguages(window.api, cfg.libretranslate_url as string | undefined);
+        const loaded = await loadTranslatorLanguages();
         translateOptions = loaded.languages;
         hasTranslator = loaded.hasTranslator;
+        if (loaded.languages.length && !loaded.languages.some((opt) => opt.value === bubbleTranslate.targetLang)) {
+            bubbleTranslate = { ...bubbleTranslate, targetLang: defaultTranslateTarget(loaded.languages) };
+        }
     }
 
     function generatePaperMessage() {

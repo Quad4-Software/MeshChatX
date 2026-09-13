@@ -3,7 +3,7 @@
 import { registerFeature } from "../../js/registries/featureRegistry.js";
 
 /**
- * Text translation UI using Argos Translate or LibreTranslate.
+ * Offline text translation UI backed by locally imported Bergamot packs.
  */
 export function registerTranslatorFeature(): void {
     registerFeature({

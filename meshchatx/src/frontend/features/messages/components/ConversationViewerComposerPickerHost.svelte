@@ -17,7 +17,12 @@
         uploadGifFile,
         uploadStickerFile,
     } from "../lib/conversationStickersGifs.js";
-    import { translateText, type LangOption } from "../lib/conversationTranslate.js";
+    import {
+        defaultTranslateTarget,
+        persistTranslateTarget,
+        translateText,
+        type LangOption,
+    } from "../lib/conversationTranslate.js";
     import { EMOJI_PICKER_DATA_URL, emojiPickerThemeClass, unicodeFromEmojiClickEvent } from "../lib/emojiPicker.js";
 
     let {
@@ -47,7 +52,7 @@
     let isGifUploading = $state(false);
     let stickerDropActive = $state(false);
     let gifDropActive = $state(false);
-    let composeTranslateTargetLang = $state("en");
+    let composeTranslateTargetLang = $state("");
 
     export function toggleEmojiPicker() {
         isEmojiPickerOpen = !isEmojiPickerOpen;
@@ -59,6 +64,9 @@
 
     export function toggleTranslate() {
         isComposeTranslateOpen = !isComposeTranslateOpen;
+        if (isComposeTranslateOpen && !translateOptions.some((opt) => opt.value === composeTranslateTargetLang)) {
+            composeTranslateTargetLang = defaultTranslateTarget(translateOptions);
+        }
     }
 
     export function closeEmojiPicker() {
@@ -158,9 +166,10 @@
         if (!text.trim() || isTranslatingMessage) return;
         isTranslatingMessage = true;
         try {
-            const result = await translateText(window.api, {
+            persistTranslateTarget(composeTranslateTargetLang);
+            const result = await translateText({
                 text,
-                targetLang: composeTranslateTargetLang,
+                targetPair: composeTranslateTargetLang,
             });
             if (result.translatedText) {
                 text = result.translatedText;
@@ -168,7 +177,7 @@
                 ToastUtils.success(t("translator.translate"));
             }
         } catch {
-            ToastUtils.error(t("translator.failed_translate"));
+            ToastUtils.error(t("translator.translation_failed"));
         } finally {
             isTranslatingMessage = false;
         }

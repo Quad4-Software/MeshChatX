@@ -5,12 +5,13 @@ import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/sv
 import TranslatorPage from "@/features/translator/TranslatorPage.svelte";
 import ToastUtils from "@/js/ToastUtils.js";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import * as TranslationService from "@/js/TranslationService.js";
 import {
     canTranslate,
-    computeSwappedLanguages,
-    computeSyncedMode,
-    filterLanguagesByMode,
-    hasArgosLanguages,
+    guessDefaultLanguages,
+    installedPairs,
+    languageOptions,
+    packLabel,
 } from "@/features/translator/lib/translatorEngine.ts";
 import { registerTranslatorFeature } from "@/features/translator/index.ts";
 import { clearRoutes, listRoutes } from "@/js/registries/routeRegistry.js";
@@ -27,85 +28,52 @@ vi.mock("@/js/ToastUtils", () => ({
     },
 }));
 
+vi.mock("@/js/TranslationService.js", () => ({
+    listPacks: vi.fn(),
+    importPack: vi.fn(),
+    removePack: vi.fn(),
+    refreshPacks: vi.fn(),
+    translate: vi.fn(),
+}));
+
+const PACKS = [
+    { pair: "enes", from: "en", to: "es", size: 1024 * 2048 },
+    { pair: "deen", from: "de", to: "en", size: 1024 * 1024 },
+];
+
 describe("translator lib helpers", () => {
-    it("filters languages by translation mode", () => {
-        const list = [
-            { code: "en", name: "English", source: "argos" },
-            { code: "de", name: "German", source: "libretranslate" },
-        ];
-        expect(filterLanguagesByMode(list, "argos")).toHaveLength(1);
-        expect(filterLanguagesByMode(list, "argos")[0].code).toBe("en");
-        expect(filterLanguagesByMode(list, "libretranslate")).toHaveLength(1);
-        expect(filterLanguagesByMode(list, "libretranslate")[0].code).toBe("de");
+    it("normalizes packs into from/to pairs", () => {
+        expect(installedPairs(PACKS)).toEqual([
+            { pair: "enes", from: "en", to: "es" },
+            { pair: "deen", from: "de", to: "en" },
+        ]);
+        expect(installedPairs([{ pair: "fren" }])).toEqual([{ pair: "fren", from: "fr", to: "en" }]);
     });
 
-    it("checks for argos language packages", () => {
-        expect(hasArgosLanguages([{ code: "en", name: "English", source: "argos" }])).toBe(true);
-        expect(hasArgosLanguages([{ code: "de", name: "German", source: "libretranslate" }])).toBe(false);
+    it("builds sorted unique language options from packs", () => {
+        const options = languageOptions(PACKS, "en");
+        const values = options.map((o) => o.value);
+        expect(new Set(values)).toEqual(new Set(["en", "es", "de"]));
+        expect(values).toHaveLength(3);
+        expect(options.every((o) => typeof o.label === "string" && o.label.length > 0)).toBe(true);
+    });
+
+    it("guesses default languages from the first usable pack", () => {
+        expect(guessDefaultLanguages(PACKS)).toEqual({ source: "en", target: "es" });
+        expect(guessDefaultLanguages([])).toEqual({ source: "", target: "" });
+    });
+
+    it("renders a readable pack label", () => {
+        const label = packLabel({ pair: "enes", from: "en", to: "es", size: 1 }, "en");
+        expect(label).toContain("English");
+        expect(label).toContain("Spanish");
     });
 
     it("evaluates canTranslate conditions", () => {
-        const cfg = { translator_argos_enabled: true, translator_libretranslate_enabled: false };
-        expect(
-            canTranslate({
-                config: cfg,
-                mode: "argos",
-                inputText: "hello",
-                sourceLang: "en",
-                targetLang: "de",
-            })
-        ).toBe(true);
-
-        expect(
-            canTranslate({
-                config: cfg,
-                mode: "argos",
-                inputText: "",
-                sourceLang: "en",
-                targetLang: "de",
-            })
-        ).toBe(false);
-
-        expect(
-            canTranslate({
-                config: cfg,
-                mode: "argos",
-                inputText: "hello",
-                sourceLang: "en",
-                targetLang: "en",
-            })
-        ).toBe(false);
-    });
-
-    it("computes synced mode according to installed backends", () => {
-        expect(
-            computeSyncedMode({
-                currentMode: "argos",
-                hasArgos: false,
-                libreClientAvailable: true,
-            })
-        ).toBe("libretranslate");
-
-        expect(
-            computeSyncedMode({
-                currentMode: "libretranslate",
-                hasArgos: true,
-                libreClientAvailable: false,
-            })
-        ).toBe("argos");
-    });
-
-    it("swaps languages and input text", () => {
-        const res = computeSwappedLanguages({
-            mode: "argos",
-            currentSource: "en",
-            currentTarget: "de",
-            resultSource: "en",
-            resultText: "Hallo Welt",
-        });
-        expect(res.newSource).toBe("de");
-        expect(res.newTarget).toBe("en");
-        expect(res.newInputText).toBe("Hallo Welt");
+        expect(canTranslate("hello", "en", "es")).toBe(true);
+        expect(canTranslate("", "en", "es")).toBe(false);
+        expect(canTranslate("hello", "en", "en")).toBe(false);
+        expect(canTranslate("hello", "", "es")).toBe(false);
     });
 });
 
@@ -131,235 +99,160 @@ describe("registerTranslatorFeature", () => {
 });
 
 describe("TranslatorPage.svelte", () => {
-    let axiosMock;
-
     beforeEach(() => {
         vi.clearAllMocks();
-        axiosMock = {
-            get: vi.fn(),
-            post: vi.fn(),
-            patch: vi.fn(),
-        };
-        window.api = axiosMock;
+
+        TranslationService.listPacks.mockResolvedValue(PACKS);
+        TranslationService.importPack.mockResolvedValue({ pairs: ["enes"] });
+        TranslationService.removePack.mockResolvedValue({ removed: "enes" });
+        TranslationService.translate.mockResolvedValue({ target: { text: "Hola mundo" } });
 
         registerTranslator(null);
         registerFallbackMessages({
-            app: { tools: "Tools" },
             tools: {
-                back_to_tools: "Back",
                 translator: {
                     title: "Translator",
-                    description: "Translate text between languages",
+                    description: "Translate text offline with locally imported language packs.",
                 },
+            },
+            translator: {
+                pack_library: "Pack Library",
+                pack_library_description: "Import and manage local translation packs.",
+                import_pack: "Import pack",
+                importing: "Importing...",
+                remove: "Remove",
+                no_packs: "No packs installed. Import a pack archive to translate offline.",
+                pair_code: "Pair {pair}",
+                size_kb: "{size} KB",
+                source_language: "Source language",
+                target_language: "Target language",
+                swap_languages: "Swap languages",
+                input_text: "Text to translate",
+                input_placeholder: "Enter text to translate...",
+                output_text: "Translation",
+                translate: "Translate",
+                translating: "Translating...",
+                clear: "Clear",
+                copy: "Copy",
+                translation_failed: "Translation failed.",
+                load_packs_failed: "Failed to load installed packs.",
             },
             common: {
                 copied: "Copied",
-            },
-            translator: {
-                source_language: "Source Language",
-                target_language: "Target Language",
-                auto_detect: "Auto Detect",
-                select_target_language: "Select Target",
-                text_to_translate: "Text to translate",
-                enter_text_placeholder: "Enter text...",
-                translate: "Translate",
-                swap: "Swap",
-                clear: "Clear",
-                translation: "Translation",
-                source: "Source",
-                detected: "Detected",
-                select_languages_warning: "Select languages",
-                auto_detect_not_supported: "Auto detect not supported in Argos",
-                failed_translate: "Failed to translate",
-                failed_load_languages: "Failed to load languages",
-                installed_languages: "Installed Languages",
-                argos_translate: "Argos Translate",
-                libretranslate: "LibreTranslate",
-                api_server: "LibreTranslate API Server",
-                api_server_description: "Base URL of LibreTranslate instance",
-                api_key_optional: "API Key (Optional)",
-                api_key_placeholder: "Leave empty if not required",
-                api_key_description: "Only needed if required by server",
-                backend_libretranslate: "LibreTranslate",
-                backend_argos: "Argos Translate",
-                backend_status: "Backend Status",
-                libretranslate_url: "API URL",
-                libretranslate_api_key: "API Key",
-                privacy_mode_active: "Privacy Mode Active",
-                privacy_mode_desc: "Outbound requests restricted",
-            },
-        });
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config") {
-                return Promise.resolve({
-                    data: {
-                        config: {
-                            translator_argos_enabled: true,
-                            translator_libretranslate_enabled: true,
-                            libretranslate_url: "http://localhost:5000",
-                            libretranslate_api_key: null,
-                        },
-                    },
-                });
-            }
-            if (url === "/api/v1/translator/languages") {
-                return Promise.resolve({
-                    data: {
-                        languages: [
-                            { code: "en", name: "English", source: "argos" },
-                            { code: "de", name: "German", source: "argos" },
-                            { code: "en", name: "English", source: "libretranslate" },
-                            { code: "de", name: "German", source: "libretranslate" },
-                        ],
-                        has_argos: true,
-                        libre_client_available: true,
-                        libretranslate_reachable: true,
-                    },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        axiosMock.post.mockResolvedValue({
-            data: {
-                translated_text: "Hallo Welt",
-                source_lang: "en",
-                target_lang: "de",
-                source: "argos",
             },
         });
     });
 
     afterEach(() => {
         cleanup();
-        delete window.api;
     });
 
-    it("renders the translator page and loads configuration", async () => {
+    it("renders the pack library and lists installed packs", async () => {
         render(TranslatorPage);
         expect(screen.getByText("Translator")).toBeTruthy();
+        expect(screen.getByText("Pack Library")).toBeTruthy();
 
         await waitFor(() => {
-            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
-            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/translator/languages", expect.any(Object));
+            expect(TranslationService.listPacks).toHaveBeenCalledTimes(1);
         });
 
-        expect(await screen.findByText("Source Language")).toBeTruthy();
+        expect((await screen.findAllByText(/Pair ENES/)).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Pair DEEN/).length).toBeGreaterThan(0);
     });
 
-    it("shows Libre tab when HTTP client is available even if server not reachable yet", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config") {
-                return Promise.resolve({
-                    data: {
-                        config: {
-                            translator_argos_enabled: false,
-                            translator_libretranslate_enabled: false,
-                            libretranslate_url: "http://127.0.0.1:5000",
-                            libretranslate_api_key: null,
-                        },
-                    },
-                });
-            }
-            if (url === "/api/v1/translator/languages") {
-                return Promise.resolve({
-                    data: {
-                        languages: [],
-                        has_argos: false,
-                        libre_client_available: true,
-                        libretranslate_reachable: false,
-                    },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
+    it("shows the empty state when no packs are installed", async () => {
+        TranslationService.listPacks.mockResolvedValue([]);
         render(TranslatorPage);
 
-        await waitFor(() => {
-            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
-        });
-
-        expect(await screen.findByText("LibreTranslate API Server")).toBeTruthy();
+        expect(await screen.findByText("No packs installed. Import a pack archive to translate offline.")).toBeTruthy();
     });
 
-    it("switches translation modes", async () => {
-        render(TranslatorPage);
-
+    it("imports a pack through the hidden file input", async () => {
+        const { container } = render(TranslatorPage);
         await waitFor(() => {
-            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
+            expect(TranslationService.listPacks).toHaveBeenCalledTimes(1);
         });
 
-        const libreBtn = await screen.findByRole("button", { name: "LibreTranslate" });
-        await fireEvent.click(libreBtn);
-
-        expect(screen.getByText("LibreTranslate API Server")).toBeTruthy();
-
-        const argosBtn = screen.getByRole("button", { name: "Argos Translate" });
-        await fireEvent.click(argosBtn);
-
-        expect(screen.queryByText("LibreTranslate API Server")).toBeNull();
-    });
-
-    it("calls translate API and displays result", async () => {
-        render(TranslatorPage);
+        const fileInput = container.querySelector('input[type="file"]');
+        expect(fileInput).toBeTruthy();
+        const file = new File(["archive"], "enes.zip", { type: "application/zip" });
+        Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+        await fireEvent.change(fileInput);
 
         await waitFor(() => {
-            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
+            expect(TranslationService.importPack).toHaveBeenCalledWith(file);
+        });
+        await waitFor(() => {
+            expect(TranslationService.listPacks).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    it("removes a pack via its remove button", async () => {
+        render(TranslatorPage);
+        await waitFor(() => {
+            expect(TranslationService.listPacks).toHaveBeenCalledTimes(1);
+        });
+
+        const removeButtons = await screen.findAllByRole("button", { name: "Remove" });
+        await fireEvent.click(removeButtons[0]);
+
+        await waitFor(() => {
+            expect(TranslationService.removePack).toHaveBeenCalledWith("enes");
+        });
+        await waitFor(() => {
+            expect(TranslationService.listPacks).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    it("translates text with the selected pack languages", async () => {
+        render(TranslatorPage);
+        await waitFor(() => {
+            expect(TranslationService.listPacks).toHaveBeenCalledTimes(1);
         });
 
         const sourceSelect = document.getElementById("translator-source-lang");
         const targetSelect = document.getElementById("translator-target-lang");
-        const textarea = screen.getByPlaceholderText("Enter text...");
+        const textarea = screen.getByPlaceholderText("Enter text to translate...");
 
-        if (sourceSelect) {
-            await fireEvent.change(sourceSelect, { target: { value: "en" } });
-        }
-        if (targetSelect) {
-            await fireEvent.change(targetSelect, { target: { value: "de" } });
-        }
-        await fireEvent.input(textarea, { target: { value: "Hello World" } });
+        await fireEvent.change(sourceSelect, { target: { value: "en" } });
+        await fireEvent.change(targetSelect, { target: { value: "es" } });
+        await fireEvent.input(textarea, { target: { value: "Hello world" } });
 
-        const translateBtn = screen.getByText("Translate");
-        await fireEvent.click(translateBtn);
+        await fireEvent.click(screen.getByRole("button", { name: "Translate" }));
 
         await waitFor(() => {
-            expect(axiosMock.post).toHaveBeenCalledWith(
-                "/api/v1/translator/translate",
-                expect.objectContaining({
-                    text: "Hello World",
-                    source_lang: "en",
-                    target_lang: "de",
-                    use_argos: true,
-                })
-            );
+            expect(TranslationService.translate).toHaveBeenCalledWith({
+                from: "en",
+                to: "es",
+                text: "Hello world",
+            });
         });
 
-        expect(await screen.findByText("Hallo Welt")).toBeTruthy();
+        expect(await screen.findByText("Hola mundo")).toBeTruthy();
     });
 
-    it("swaps languages when swap button is clicked", async () => {
+    it("swaps source and target languages", async () => {
         render(TranslatorPage);
-
         await waitFor(() => {
-            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
+            expect(TranslationService.listPacks).toHaveBeenCalledTimes(1);
         });
 
         const sourceSelect = document.getElementById("translator-source-lang");
         const targetSelect = document.getElementById("translator-target-lang");
 
-        if (sourceSelect) {
-            await fireEvent.change(sourceSelect, { target: { value: "en" } });
-        }
-        if (targetSelect) {
-            await fireEvent.change(targetSelect, { target: { value: "de" } });
-        }
+        await fireEvent.change(sourceSelect, { target: { value: "en" } });
+        await fireEvent.change(targetSelect, { target: { value: "es" } });
 
-        const swapBtn = screen.getByText("Swap");
-        await fireEvent.click(swapBtn);
+        await fireEvent.click(screen.getByRole("button", { name: "Swap languages" }));
 
-        expect(sourceSelect?.value).toBe("de");
-        expect(targetSelect?.value).toBe("en");
+        expect(sourceSelect.value).toBe("es");
+        expect(targetSelect.value).toBe("en");
+    });
+
+    it("surfaces a pack list failure as an error message", async () => {
+        TranslationService.listPacks.mockRejectedValue(new Error("boom"));
+        render(TranslatorPage);
+
+        expect(await screen.findByText("Failed to load installed packs.")).toBeTruthy();
     });
 });

@@ -6,7 +6,7 @@
     import { LXMF_REACTION_EMOJIS } from "../../../js/lxmfReactions.js";
     import { lxmfContactResolvedIcon, lxmfDeliveryDestinationHexFromContact } from "../lib/lxmf/contactDisplay.js";
     import type { LxmfMessage, ViewerChatItem } from "../lib/conversationViewerCtx.js";
-    import type { LangOption } from "../lib/conversationTranslate.js";
+    import { defaultTranslateTarget, type LangOption } from "../lib/conversationTranslate.js";
     import type { Conversation } from "../lib/types.js";
     import type { ImageLightboxState, LightboxContextMenuState } from "../lib/conversationViewerLightbox.js";
 
@@ -149,7 +149,7 @@
     ontranslatecontextmenu={() => {
         bubbleTranslate = {
             open: true,
-            targetLang: bubbleTranslate.targetLang || "en",
+            targetLang: bubbleTranslate.targetLang || defaultTranslateTarget(translateOptions),
             chatItem: contextMenu.chatItem,
             working: false,
         };

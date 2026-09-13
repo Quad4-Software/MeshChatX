@@ -1,100 +1,74 @@
 // SPDX-License-Identifier: 0BSD
 
-import type { TranslationMode, TranslatorConfig, TranslatorLanguage } from "./types.js";
+import type { InstalledPair, LanguageOption, TranslationPack } from "./types.js";
 
 /**
- * Filter language pairs matching active translation backend
+ * Display names for ISO language codes in the user locale, with a safe
+ * fallback for environments without Intl.DisplayNames.
  */
-export function filterLanguagesByMode(languages: TranslatorLanguage[], mode: TranslationMode): TranslatorLanguage[] {
-    if (mode === "argos") {
-        return languages.filter((lang) => lang.source === "argos");
+export function languageDisplayNames(locale?: string): { of: (code: string) => string | undefined } {
+    const userLocale = String(locale || "en").slice(0, 2);
+    try {
+        return new Intl.DisplayNames([userLocale], { type: "language" });
+    } catch {
+        return { of: (code: string) => code };
     }
-    return languages.filter((lang) => lang.source === "libretranslate");
+}
+
+/** Normalize a pack record into a from/to pair. */
+export function installedPairs(packs: TranslationPack[]): InstalledPair[] {
+    return packs.map((pack) => ({
+        pair: pack.pair,
+        from: pack.from || pack.pair.slice(0, 2),
+        to: pack.to || pack.pair.slice(2, 4),
+    }));
+}
+
+/** Sorted unique language options across all installed packs. */
+export function languageOptions(packs: TranslationPack[], locale?: string): LanguageOption[] {
+    const displayNames = languageDisplayNames(locale);
+    const codes = new Set<string>();
+    for (const pair of installedPairs(packs)) {
+        codes.add(pair.from);
+        codes.add(pair.to);
+    }
+    const options = Array.from(codes).map((code) => ({
+        value: code,
+        label: displayNames.of(code) || code,
+    }));
+    return options.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
 }
 
 /**
- * Check whether any Argos language packages are installed
+ * Pick a sensible default source/target from the installed packs.
+ * Prefers a pair whose endpoints differ.
  */
-export function hasArgosLanguages(languages: TranslatorLanguage[]): boolean {
-    return languages.some((lang) => lang.source === "argos");
+export function guessDefaultLanguages(packs: TranslationPack[]): { source: string; target: string } {
+    if (!packs.length) {
+        return { source: "", target: "" };
+    }
+    const first = packs[0];
+    let source = first.from || first.pair.slice(0, 2);
+    let target = first.to || first.pair.slice(2, 4);
+    if (source === target) {
+        const diff = packs.find((pack) => (pack.from || pack.pair.slice(0, 2)) !== (pack.to || pack.pair.slice(2, 4)));
+        if (diff) {
+            source = diff.from || diff.pair.slice(0, 2);
+            target = diff.to || diff.pair.slice(2, 4);
+        }
+    }
+    return { source, target };
 }
 
-/**
- * Check if translation can be initiated with current configuration
- */
-export function canTranslate(params: {
-    config: TranslatorConfig | null;
-    mode: TranslationMode;
-    inputText: string;
-    sourceLang: string;
-    targetLang: string;
-}): boolean {
-    const { config, mode, inputText, sourceLang, targetLang } = params;
-    const argosEnabled = Boolean(config?.translator_argos_enabled);
-    const libreEnabled = Boolean(config?.translator_libretranslate_enabled);
-    const backendReady = (mode === "argos" && argosEnabled) || (mode === "libretranslate" && libreEnabled);
-
-    return backendReady && inputText.trim().length > 0 && Boolean(targetLang) && targetLang !== sourceLang;
+/** Human readable "English → Spanish" style label for a pack. */
+export function packLabel(pack: TranslationPack, locale?: string): string {
+    const displayNames = languageDisplayNames(locale);
+    const from = pack.from || pack.pair.slice(0, 2);
+    const to = pack.to || pack.pair.slice(2, 4);
+    return `${displayNames.of(from) || from} → ${displayNames.of(to) || to}`;
 }
 
-/**
- * Sync translation mode based on available installed backends
- */
-export function computeSyncedMode(params: {
-    currentMode: TranslationMode;
-    hasArgos: boolean;
-    libreClientAvailable: boolean;
-}): TranslationMode {
-    const { currentMode, hasArgos, libreClientAvailable } = params;
-
-    if (currentMode === "argos" && !hasArgos && libreClientAvailable) {
-        return "libretranslate";
-    }
-    if (currentMode === "libretranslate" && !libreClientAvailable && hasArgos) {
-        return "argos";
-    }
-    if (hasArgos && !libreClientAvailable) {
-        return "argos";
-    }
-    if (!hasArgos && libreClientAvailable) {
-        return "libretranslate";
-    }
-    return currentMode;
-}
-
-/**
- * Calculate swapped source and target languages and optional updated text
- */
-export function computeSwappedLanguages(params: {
-    mode: TranslationMode;
-    currentSource: string;
-    currentTarget: string;
-    resultSource?: string;
-    resultText?: string;
-}): {
-    newSource: string;
-    newTarget: string;
-    newInputText?: string;
-} {
-    const { mode, currentSource, currentTarget, resultSource, resultText } = params;
-
-    if (resultSource && resultSource !== "auto") {
-        return {
-            newSource: currentTarget,
-            newTarget: currentSource,
-            newInputText: resultText || undefined,
-        };
-    }
-
-    if (mode === "argos") {
-        return {
-            newSource: currentTarget,
-            newTarget: currentSource && currentSource !== "auto" ? currentSource : "",
-        };
-    }
-
-    return {
-        newSource: currentTarget || "auto",
-        newTarget: currentSource && currentSource !== "auto" ? currentSource : "",
-    };
+/** Whether a translation can run with the current selection. */
+export function canTranslate(inputText: string, sourceLang: string, targetLang: string): boolean {
+    return Boolean(inputText.trim()) && Boolean(sourceLang) && Boolean(targetLang) && sourceLang !== targetLang;
 }
