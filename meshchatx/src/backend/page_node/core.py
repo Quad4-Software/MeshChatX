@@ -63,6 +63,8 @@ SUPPORTED_IMAGE_EXTENSIONS = frozenset(
 )
 
 MEDIA_QUALITY = 85
+MEDIA_MIN_QUALITY = 1
+MEDIA_MAX_QUALITY = 100
 MEDIA_MAX_DIMENSION = 1920
 MEDIA_CONVERT_TIMEOUT_SECONDS = 10
 
@@ -952,6 +954,17 @@ class PageNode:
         """Return the cached WebP path for a media source, converting if needed."""
         if source_path is None:
             return None
+        try:
+            quality = int(quality)
+        except (TypeError, ValueError):
+            quality = MEDIA_QUALITY
+        quality = max(MEDIA_MIN_QUALITY, min(MEDIA_MAX_QUALITY, quality))
+        if max_dimension:
+            try:
+                max_dimension = int(max_dimension)
+            except (TypeError, ValueError):
+                max_dimension = MEDIA_MAX_DIMENSION
+            max_dimension = max(1, min(MEDIA_MAX_DIMENSION, max_dimension))
         lower_name = os.path.basename(source_path).lower()
         is_webp = lower_name.endswith(".webp")
         if is_webp:
@@ -1031,7 +1044,10 @@ class PageNode:
             quality = MEDIA_QUALITY
             max_dimension = MEDIA_MAX_DIMENSION
             if isinstance(data, dict):
-                quality = int(data.get("quality", quality))
+                try:
+                    quality = int(data.get("quality", quality))
+                except (TypeError, ValueError):
+                    quality = MEDIA_QUALITY
                 max_dimension_raw = data.get("max_dimension")
                 if max_dimension_raw is not None:
                     try:

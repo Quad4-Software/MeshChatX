@@ -364,7 +364,7 @@ def mock_app(db, tmp_path, temp_db):
         if app.rrc_server_manager is None:
             app.rrc_server_manager = RRCServerManager(
                 storage_dir=app.current_context.storage_path,
-                owner_identity=app.current_context.identity,
+                owner_identity=app.current_context.identity.hash,
             )
         if app.rrc_manager is not None:
             app.rrc_manager.set_database(app.database)
