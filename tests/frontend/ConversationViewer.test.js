@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { cleanup, render, waitFor } from "@testing-library/svelte";
+import ConversationViewer from "@/features/messages/components/ConversationViewer.svelte";
+import { stashConversationFirstPage, takeConversationPrefetch } from "@/js/conversationPrefetch.js";
 import {
     applyWsMessage,
     deleteWsMessage,
@@ -195,5 +198,109 @@ describe("ConversationViewer message contracts", () => {
             setContextMenu: () => {},
         };
         expect(() => showRawMessage(bag, {})).not.toThrow();
+    });
+});
+
+describe("ConversationViewer cached first page resync", () => {
+    function installApi(conversationData) {
+        const api = {
+            get: vi.fn((url) => {
+                const target = String(url);
+                if (target.includes("/lxmf-messages/conversation/")) {
+                    return Promise.resolve({ data: conversationData });
+                }
+                if (target.includes("/path")) return Promise.resolve({ data: { path: [] } });
+                if (target.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+                if (target.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+                return Promise.resolve({ data: {} });
+            }),
+            post: vi.fn().mockResolvedValue({ data: {} }),
+        };
+        window.api = api;
+        return api;
+    }
+
+    afterEach(() => {
+        cleanup();
+        delete window.api;
+    });
+
+    it("merges newer messages after painting a stashed first page", async () => {
+        // Reproduces: send message, navigate away, reopen inside the stash
+        // TTL. The viewer must not stay on the cached page forever.
+        const peer = "cd".repeat(16);
+        stashConversationFirstPage(peer, {
+            lxmf_messages: [
+                {
+                    hash: "m-old",
+                    content: "old",
+                    source_hash: peer,
+                    destination_hash: "my-hash",
+                    timestamp: 1000,
+                },
+            ],
+        });
+        installApi({
+            lxmf_messages: [
+                {
+                    hash: "m-new",
+                    content: "new",
+                    source_hash: peer,
+                    destination_hash: "my-hash",
+                    timestamp: 2000,
+                },
+                {
+                    hash: "m-old",
+                    content: "old",
+                    source_hash: peer,
+                    destination_hash: "my-hash",
+                    timestamp: 1000,
+                },
+            ],
+        });
+
+        const { findByText } = render(ConversationViewer, {
+            selectedPeer: { destination_hash: peer, display_name: "Test Peer" },
+            myLxmfAddressHash: "my-hash",
+            conversations: [],
+        });
+
+        expect(await findByText("new")).toBeTruthy();
+        expect(await findByText("old")).toBeTruthy();
+    });
+
+    it("restashes the resynced first page, not the consumed stale snapshot", async () => {
+        const peer = "ef".repeat(16);
+        const stale = {
+            hash: "m-stale",
+            content: "stale",
+            source_hash: peer,
+            destination_hash: "my-hash",
+            timestamp: 1,
+        };
+        const fresh = {
+            hash: "m-fresh",
+            content: "fresh",
+            source_hash: peer,
+            destination_hash: "my-hash",
+            timestamp: 2,
+        };
+        stashConversationFirstPage(peer, { lxmf_messages: [stale] });
+        installApi({ lxmf_messages: [fresh, stale] });
+
+        render(ConversationViewer, {
+            selectedPeer: { destination_hash: peer, display_name: "Test Peer" },
+            myLxmfAddressHash: "my-hash",
+            conversations: [],
+        });
+
+        await waitFor(async () => {
+            // The stale stash was consumed on paint; the soft resync must
+            // have restashed the fresh response by now.
+            const entry = takeConversationPrefetch(peer);
+            expect(entry).not.toBeNull();
+            const res = await entry;
+            expect(res.data.lxmf_messages.map((m) => m.hash)).toEqual(["m-fresh", "m-stale"]);
+        });
     });
 });

@@ -31,6 +31,7 @@
         updateWsMessage,
         visibleConversationItems,
     } from "../lib/conversationViewerMessages.js";
+    import { stashConversationFirstPage } from "../../../js/conversationPrefetch.js";
     import { loadPeerNetworkInfo, runPeerPathAction } from "../lib/conversationViewerPath.js";
     import {
         banishPeerDestination,
@@ -196,6 +197,7 @@
     let openedPeerHash = "";
     let openedIdentityKey = "";
     let loadPreviousPromise: Promise<void> | null = null;
+    let paintedFirstPageFromCache = false;
     let audioAttachmentCache = $state.raw<Record<string, string>>({});
     let audioAttachmentOrder: string[] = [];
     let audioDownloadInFlight = new Set<string>();
@@ -362,7 +364,17 @@
         if (!peerHash) return;
         void refreshPeerNetwork(true);
         void markConversationAsRead(selectedPeer || { destination_hash: peerHash }, { force: true });
+        paintedFirstPageFromCache = false;
         await loadPrevious();
+
+        // A stashed or hover-prefetched first page can be older than the
+        // server state (messages sent or received while the pane was closed
+        // never reached this viewer). Merge anything newer now.
+        if (paintedFirstPageFromCache) {
+            paintedFirstPageFromCache = false;
+            void softResync();
+        }
+
         await tick();
         scrollMessagesToBottom();
         messagesViewportReady = true;
@@ -413,6 +425,9 @@
                 if (!result || seq !== requestSequence) return;
                 chatItems = result.items;
                 hasMorePrevious = result.hasMorePrevious;
+                if (result.paintedFromCache) {
+                    paintedFirstPageFromCache = true;
+                }
             } finally {
                 if (loadPreviousPromise === pending) {
                     isLoadingPrevious = false;
@@ -436,17 +451,31 @@
     }
 
     async function softResync() {
-        if (!selectedHash) return;
+        const peerHash = selectedHash;
+        if (!peerHash) return;
         try {
-            const page = await fetchConversationPage(window.api, selectedHash, myLxmfAddressHash, null);
+            const seq = ++requestSequence;
+            const page = await fetchConversationPage(window.api, peerHash, myLxmfAddressHash, null);
+            if (seq !== requestSequence) return;
+            if (!sameHash(selectedHash, peerHash)) return;
+            // Refresh the warm-start stash so the next open paints the
+            // page we just merged rather than an older snapshot.
+            stashConversationFirstPage(peerHash, page.data);
+            let added = false;
             let next = chatItems;
+            // Page items are chronological; apply in order so append order
+            // stays chronological.
             for (const item of page.items) {
-                next = applyWsMessage(next, item.lxmf_message, selectedHash, myLxmfAddressHash).items;
+                if (!item.lxmf_message.hash) continue;
+                const result = applyWsMessage(next, item.lxmf_message, peerHash, myLxmfAddressHash);
+                if (result.items.length > next.length) added = true;
+                next = result.items;
             }
             chatItems = next;
+            if (added && autoScrollOnNewMessage) void scrollMessagesToBottom();
             await refreshPeerNetwork(false);
         } catch {
-            /* ignore soft resync errors */
+            // Soft resync is best effort; the next WS event catches up.
         }
     }
 

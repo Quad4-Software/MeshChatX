@@ -69,6 +69,13 @@ export function stashConversationFirstPage(peerHash: unknown, data: unknown) {
     evictExpired();
 }
 
+export function dropConversationPrefetch(peerHash: unknown) {
+    if (!peerHash) {
+        return;
+    }
+    cache.delete(String(peerHash).toLowerCase());
+}
+
 export function clearConversationPrefetchCache() {
     cache.clear();
 }

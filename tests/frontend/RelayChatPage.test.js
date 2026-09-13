@@ -107,6 +107,13 @@ describe("RelayChatPage.svelte", () => {
         };
         window.api = axiosMock;
         vi.clearAllMocks();
+        if (typeof globalThis.ResizeObserver !== "function") {
+            globalThis.ResizeObserver = class {
+                observe() {}
+                unobserve() {}
+                disconnect() {}
+            };
+        }
     });
 
     afterEach(() => {
@@ -158,6 +165,77 @@ describe("RelayChatPage.svelte", () => {
 
         await waitFor(() => {
             expect(getByText("My Hub")).toBeTruthy();
+        });
+    });
+
+    it("collapses host, bots and search tabs into the mobile overflow menu", async () => {
+        const { getByText, getAllByRole } = render(RelayChatPage);
+
+        await waitFor(() => {
+            expect(getByText("Test Hub")).toBeTruthy();
+        });
+
+        // Below md these tabs live in the overflow dropdown so the tab bar
+        // never scrolls horizontally on phones.
+        for (const key of ["tab_host", "tab_bots", "tab_search"]) {
+            const tab = getByText(t(`relay_chat.${key}`)).closest("button");
+            expect(tab.className).toContain("hidden");
+            expect(tab.className).toContain("md:inline-flex");
+        }
+
+        // The overflow menu button is only for small screens and flags the
+        // active view when an overflow tab is selected.
+        const overflowBtn = getAllByRole("tab").find(
+            (el) => el.getAttribute("aria-label") === t("messages.more_actions")
+        );
+        expect(overflowBtn).toBeTruthy();
+        const searchTab = getByText(t("relay_chat.tab_search")).closest("button");
+        await fireEvent.click(searchTab);
+        await waitFor(() => {
+            expect(overflowBtn.getAttribute("aria-selected")).toBe("true");
+        });
+    });
+
+    it("back from a room opened via search returns to the search view", async () => {
+        const { getByText, component } = render(RelayChatPage);
+
+        await waitFor(() => {
+            expect(getByText("Test Hub")).toBeTruthy();
+        });
+
+        const searchTab = getByText(t("relay_chat.tab_search")).closest("button");
+        const chatTab = getByText(t("relay_chat.tab_chat")).closest("button");
+        await fireEvent.click(searchTab);
+        expect(searchTab.getAttribute("aria-selected")).toBe("true");
+
+        component.openSearchResult({ hubHash: HUB_HASH, room: "lobby" });
+        await waitFor(() => {
+            expect(chatTab.getAttribute("aria-selected")).toBe("true");
+        });
+
+        component.onBackFromRoom();
+        await waitFor(() => {
+            expect(searchTab.getAttribute("aria-selected")).toBe("true");
+        });
+    });
+
+    it("back from a room opened via chat stays on the chat view", async () => {
+        const { getByText, component } = render(RelayChatPage);
+
+        await waitFor(() => {
+            expect(getByText("Test Hub")).toBeTruthy();
+        });
+
+        const chatTab = getByText(t("relay_chat.tab_chat")).closest("button");
+        component.selectRoom({ hub_hash: HUB_HASH }, { name: "lobby" });
+        await waitFor(() => {
+            expect(chatTab.getAttribute("aria-selected")).toBe("true");
+        });
+
+        component.onBackFromRoom();
+        await waitFor(() => {
+            expect(chatTab.getAttribute("aria-selected")).toBe("true");
+            expect(getByText(t("relay_chat.no_room_selected"))).toBeTruthy();
         });
     });
 });
