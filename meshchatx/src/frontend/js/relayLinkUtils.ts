@@ -9,6 +9,8 @@
 import { apiPath } from "./constants.js";
 import { isDestinationHash } from "./meshValidate.js";
 
+export const RRC_HUB_ASPECT = "rrc.hub";
+
 const RELAY_URI_IN_TEXT_RE = /(?:meshchatx|meshchat):\/\/relay\?[^\s<>]*/gi;
 
 export function findRelayUriInContent(text) {
@@ -44,7 +46,7 @@ export function parseMeshchatRelayUri(uri) {
             hub,
             room: room || "",
             name: name || "",
-            aspect: aspect || "rrc.hub",
+            aspect: aspect || RRC_HUB_ASPECT,
             raw: s,
         };
     } catch {
@@ -69,7 +71,7 @@ export function buildMeshchatRelayUri({ hub, room = "", name = "", aspect = "" }
         parts.push(`name=${encodeURIComponent(n)}`);
     }
     const a = String(aspect || "").trim();
-    if (a && a !== "rrc.hub") {
+    if (a && a !== RRC_HUB_ASPECT) {
         parts.push(`aspect=${encodeURIComponent(a)}`);
     }
     return `meshchatx://relay?${parts.join("&")}`;
@@ -110,7 +112,7 @@ export async function applyRelayShareLink(
         await api.post(apiPath("/rrc/hubs"), {
             hub_hash: hubHash,
             name: parsed.name || undefined,
-            dest_name: parsed.aspect || "rrc.hub",
+            dest_name: parsed.aspect || RRC_HUB_ASPECT,
             connect: true,
         });
     } else if (!existing.connected) {

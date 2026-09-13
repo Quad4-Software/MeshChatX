@@ -1,26 +1,35 @@
 import Utils from "./Utils";
 import LinkUtils from "./LinkUtils";
 import { linkifyGeoRefs } from "./geoLinkify.js";
+import { subscribeGlobalState } from "./GlobalState.js";
 
 // Chat lists re-render the same message bodies on every reactive pass, so the
 // regex pipeline is memoized on the raw text. Output is a pure function of the
-// input, so a bounded LRU is safe.
+// input, so a bounded LRU is safe. The key is prefixed per pipeline so render
+// and renderBasic never return each other's cached output.
 const RENDER_CACHE_MAX = 800;
 const RENDER_CACHE_TEXT_LIMIT = 20000;
 const renderCache = new Map();
 
-function cachedRender(text, fn) {
+// Link rendering reads live GlobalState config (for example the default nomad
+// page path), so cached output must be dropped when GlobalState mutates.
+subscribeGlobalState(() => {
+    renderCache.clear();
+});
+
+function cachedRender(pipeline, text, fn) {
     if (typeof text !== "string" || text.length > RENDER_CACHE_TEXT_LIMIT) {
         return fn(text);
     }
-    const hit = renderCache.get(text);
+    const key = `${pipeline}${text}`;
+    const hit = renderCache.get(key);
     if (hit !== undefined) {
-        renderCache.delete(text);
-        renderCache.set(text, hit);
+        renderCache.delete(key);
+        renderCache.set(key, hit);
         return hit;
     }
     const out = fn(text);
-    renderCache.set(text, out);
+    renderCache.set(key, out);
     if (renderCache.size > RENDER_CACHE_MAX) {
         renderCache.delete(renderCache.keys().next().value);
     }
@@ -33,7 +42,7 @@ export default class MarkdownRenderer {
      * Ported and simplified from meshchatx/src/backend/markdown_renderer.py
      */
     static render(text) {
-        return cachedRender(text, MarkdownRenderer._renderUncached);
+        return cachedRender("f:", text, MarkdownRenderer._renderUncached);
     }
 
     static _renderUncached(text) {
@@ -120,7 +129,7 @@ export default class MarkdownRenderer {
      * Links run before inline code so Nomad field data after a single backtick stays intact.
      */
     static renderBasic(text) {
-        return cachedRender(text, MarkdownRenderer._renderBasicUncached);
+        return cachedRender("b:", text, MarkdownRenderer._renderBasicUncached);
     }
 
     static _renderBasicUncached(text) {

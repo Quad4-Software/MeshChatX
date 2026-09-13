@@ -211,15 +211,43 @@ export function defaultPublishFilename(tab: MicronTab, index: number): string {
 }
 
 /**
+ * Make filenames unique within one publish batch. Sanitizing can collapse
+ * distinct tab names onto the same filename ("My: Page" and "My Page" both
+ * become "My_Page"), so collisions get a -2, -3, ... suffix before the
+ * extension.
+ */
+export function dedupePublishFilenames(names: Array<string | null | undefined>): string[] {
+    const used = new Set<string>();
+    return (names || []).map((raw) => {
+        const name = String(raw || "");
+        if (!name || !used.has(name)) {
+            used.add(name);
+            return name;
+        }
+        const dot = name.lastIndexOf(".");
+        const stem = dot > 0 ? name.slice(0, dot) : name;
+        const ext = dot > 0 ? name.slice(dot) : "";
+        for (let i = 2; ; i++) {
+            const candidate = `${stem}-${i}${ext}`;
+            if (!used.has(candidate)) {
+                used.add(candidate);
+                return candidate;
+            }
+        }
+    });
+}
+
+/**
  * Build initial publish-site entries from editor tabs.
  */
 export function buildPublishSiteEntries(tabs: MicronTab[]): PublishSiteEntry[] {
+    const filenames = dedupePublishFilenames((tabs || []).map((tab, index) => defaultPublishFilename(tab, index)));
     return (tabs || []).map((tab, index) => ({
         tabId: tab.id,
         tabName: tab.name || "",
         content: tab.content,
         include: true,
-        filename: defaultPublishFilename(tab, index),
+        filename: filenames[index],
     }));
 }
 

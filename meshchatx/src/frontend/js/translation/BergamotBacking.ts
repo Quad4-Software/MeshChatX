@@ -110,7 +110,25 @@ export class BergamotBacking extends TranslatorBacking {
             }
         });
 
-        worker.addEventListener("error", (err) => this.onerror(err as unknown as Error));
+        // A dead or garbled worker never answers pending calls, so reject them
+        // all instead of leaving callers like initialize hanging forever.
+        const failPending = (err: unknown) => {
+            const error =
+                err instanceof Error
+                    ? err
+                    : new Error(
+                          (err as ErrorEvent)?.message ||
+                              "Bergamot translation worker failed or sent an unreadable message"
+                      );
+            const entries = [...pending.values()];
+            pending.clear();
+            for (const entry of entries) {
+                entry.reject(error);
+            }
+            this.onerror(error);
+        };
+        worker.addEventListener("error", (err) => failPending(err));
+        worker.addEventListener("messageerror", () => failPending(null));
 
         await call("initialize", this.options);
 

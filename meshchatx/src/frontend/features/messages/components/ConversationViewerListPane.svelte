@@ -10,6 +10,7 @@
     let {
         messagesScroll = $bindable(undefined as HTMLDivElement | undefined),
         groups = [] as MessageDisplayEntry[],
+        conversationKey = "",
         useVirtualMessageList = false,
         hasMorePrevious = false,
         isLoadingPrevious = false,
@@ -22,6 +23,7 @@
     }: {
         messagesScroll?: HTMLDivElement;
         groups?: MessageDisplayEntry[];
+        conversationKey?: string;
         useVirtualMessageList?: boolean;
         hasMorePrevious?: boolean;
         isLoadingPrevious?: boolean;
@@ -75,6 +77,7 @@
                 <ConversationMessageListVirtual
                     bind:this={messageListVirtual}
                     {groups}
+                    {conversationKey}
                     getScrollElement={() => messagesScroll}
                     {actions}
                 />

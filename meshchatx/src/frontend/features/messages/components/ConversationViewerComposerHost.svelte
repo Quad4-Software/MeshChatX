@@ -68,9 +68,15 @@
     let isRecordingAudioAttachment = $state(false);
     let audioAttachmentRecordingDuration = $state("0:00");
     let audioRecordingTimer: ReturnType<typeof setInterval> | null = null;
+    let destroyed = false;
 
     onDestroy(() => {
-        if (isRecordingAudioAttachment) {
+        destroyed = true;
+        if (audioRecordingTimer) {
+            clearInterval(audioRecordingTimer);
+            audioRecordingTimer = null;
+        }
+        if (activeRecording) {
             void stopAudioRecording();
         }
     });
@@ -162,6 +168,11 @@
             hasExistingAudio: Boolean(audio),
         });
         if (!session) return;
+        if (destroyed) {
+            // Unmounted while getUserMedia was still resolving; release the mic.
+            void stopAudioRecordingSession(session);
+            return;
+        }
         activeRecording = session;
         isRecordingAudioAttachment = true;
         audioAttachmentRecordingDuration = "0:00";
@@ -179,7 +190,11 @@
         isRecordingAudioAttachment = false;
         const result = await stopAudioRecordingSession(activeRecording);
         if (result) {
-            audio = result;
+            if (destroyed) {
+                URL.revokeObjectURL(result.audio_preview_url);
+            } else {
+                audio = result;
+            }
         }
         activeRecording = null;
     }
