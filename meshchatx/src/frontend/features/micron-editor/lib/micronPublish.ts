@@ -6,6 +6,30 @@ import { t } from "../../../js/i18n.js";
 import { NOMAD_DESTINATION_HASH, PAGE_EXTENSIONS } from "./constants.js";
 import type { MicronTab, PageNodeItem } from "./types.js";
 
+/** Page extensions allowed when publishing site files. */
+export const ALLOWED_PAGE_EXTENSIONS = [".mu", ".md", ".txt", ".html"];
+
+export interface PublishSiteEntry {
+    tabId: number;
+    tabName: string;
+    content: string;
+    include: boolean;
+    filename: string;
+}
+
+export interface PublishSitePage {
+    name: string;
+    content: string;
+    label: string;
+}
+
+export interface PublishSitePayload {
+    nodeId: string | null;
+    newServerName: string;
+    pages: PublishSitePage[];
+    generateIndex: boolean;
+}
+
 /**
  * Extract simple page name strings from API page list.
  */
@@ -155,6 +179,67 @@ export async function fetchNodePagesList(nodeId: string): Promise<unknown[]> {
     const response = await window.api.get(`/api/v1/page-nodes/${nodeId}/pages`);
     const data = response.data as { pages?: unknown[] } | undefined;
     return data?.pages ?? [];
+}
+
+/**
+ * Sanitize a publish page filename: underscores for whitespace, word/dot/dash
+ * chars only, no dot runs, no leading dots.
+ */
+export function sanitizePublishFilename(value: unknown): string {
+    return String(value || "")
+        .replace(/\s+/g, "_")
+        .replace(/[^\w.-]/g, "")
+        .replace(/\.{2,}/g, ".")
+        .replace(/^\.+/, "");
+}
+
+/**
+ * Default publish filename for a tab: sanitized tab name, keeping an existing
+ * allowed extension or appending .mu.
+ */
+export function defaultPublishFilename(tab: MicronTab, index: number): string {
+    const raw = String(tab?.name || "").trim();
+    const cleaned = sanitizePublishFilename(raw.replace(/\s+/g, "_"));
+    const lower = cleaned.toLowerCase();
+    for (const ext of ALLOWED_PAGE_EXTENSIONS) {
+        if (lower.endsWith(ext)) {
+            return cleaned;
+        }
+    }
+    const base = cleaned || `page_${index + 1}`;
+    return `${base}.mu`;
+}
+
+/**
+ * Build initial publish-site entries from editor tabs.
+ */
+export function buildPublishSiteEntries(tabs: MicronTab[]): PublishSiteEntry[] {
+    return (tabs || []).map((tab, index) => ({
+        tabId: tab.id,
+        tabName: tab.name || "",
+        content: tab.content,
+        include: true,
+        filename: defaultPublishFilename(tab, index),
+    }));
+}
+
+/**
+ * Build a micron index page linking each published page on the node.
+ */
+export function buildSiteIndexPage(destinationHash: string, pages: PublishSitePage[]): string {
+    const lines = [`>Links`, ""];
+    for (const page of pages || []) {
+        const label = String(page.label || page.name || "")
+            .replace(/[`[\]]/g, "")
+            .trim();
+        const pageName = String(page.name || "").trim();
+        if (!pageName) {
+            continue;
+        }
+        lines.push(`[${label || pageName}\`${destinationHash}:/page/${pageName}]`);
+    }
+    lines.push("");
+    return lines.join("\n");
 }
 
 /**
