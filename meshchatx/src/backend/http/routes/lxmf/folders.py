@@ -6,6 +6,16 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.lxmf._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_lxmf_folders_routes(routes, app):
 
@@ -22,23 +32,29 @@ def register_lxmf_folders_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/folders")
     async def lxmf_folders_post(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         if not name:
-            return web.json_response({"message": "Name is required"}, status=400)
+            return http_bad_request("Name is required")
         try:
             app.database.messages.create_folder(name)
             return web.json_response({"message": "Folder created"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.patch("/api/v1/lxmf/folders/{id}")
     async def lxmf_folders_patch(request):
         folder_id = int(request.match_info["id"])
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         if not name:
-            return web.json_response({"message": "Name is required"}, status=400)
+            return http_bad_request("Name is required")
         app.database.messages.rename_folder(folder_id, name)
         return web.json_response({"message": "Folder renamed"})
 
@@ -59,22 +75,19 @@ def register_lxmf_folders_routes(routes, app):
 
     @routes.put("/api/v1/lxmf/sieve-filters")
     async def lxmf_sieve_filters_put(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         filters = data.get("filters")
         if not isinstance(filters, list):
-            return web.json_response(
-                {"message": "filters must be a list"},
-                status=400,
-            )
+            return http_bad_request("filters must be a list")
         normalized = normalize_lxmf_sieve_filters(filters)
         folder_rows = app.database.messages.get_all_folders()
         valid_folder_ids = {f["id"] for f in folder_rows}
         for r in normalized:
             if r["action"] == "folder" and r["folder_id"] not in valid_folder_ids:
-                return web.json_response(
-                    {"message": f"Unknown folder_id {r['folder_id']}"},
-                    status=400,
-                )
+                return http_bad_request(f"Unknown folder_id {r['folder_id']}")
         app.config.lxmf_sieve_filters_json.set(json.dumps(normalized))
         return web.json_response({"filters": normalized})
 
@@ -88,7 +101,10 @@ def register_lxmf_folders_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/folders/import")
     async def lxmf_folders_import(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         folders = data.get("folders", [])
         mappings = data.get("mappings", [])
 

@@ -21,7 +21,29 @@ def _request_id_fields(data: dict) -> dict:
     rid = data.get("request_id")
     if rid is None:
         return {}
-    return {"request_id": rid}
+    if isinstance(rid, str):
+        rid = rid.strip()
+        if len(rid) > 64 or not rid:
+            return {}
+        return {"request_id": rid}
+    if isinstance(rid, (int, float)) and 0 <= rid < 2**63:
+        return {"request_id": rid}
+    return {}
+
+
+def _is_nomad_image_request(extra: dict | None) -> bool:
+    if not isinstance(extra, dict):
+        return False
+    return extra.get("image_id") is not None
+
+
+_SUPPORTED_NOMAD_IMAGE_TYPES = frozenset({"webp", "png", "jpeg", "bmp", "gif", "tiff"})
+
+
+def _validate_nomad_image_bytes(file_bytes: bytes | None) -> bool:
+    if not file_bytes:
+        return False
+    return detect_image_format_from_magic(file_bytes) in _SUPPORTED_NOMAD_IMAGE_TYPES
 
 
 async def _send_nomad_file_bytes(
@@ -34,13 +56,14 @@ async def _send_nomad_file_bytes(
     file_bytes: bytes,
     private: bool,
     request_id_fields: dict,
+    extra: dict | None = None,
 ):
-    """Single-frame for small files and chunked frames for large ones."""
+    """Single-frame for small files; chunked frames for large ones."""
     if len(file_bytes) > WS_NOMAD_FILE_MAX_BYTES:
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.file.download",
+                    "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_file_download": {
@@ -57,7 +80,7 @@ async def _send_nomad_file_bytes(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.file.download",
+                    "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_file_download": {
@@ -67,6 +90,7 @@ async def _send_nomad_file_bytes(
                         "file_name": file_name,
                         "file_bytes": base64.b64encode(file_bytes).decode("utf-8"),
                         "private": private,
+                        **({"data": extra} if extra is not None else {}),
                     },
                 },
             ),
@@ -80,7 +104,7 @@ async def _send_nomad_file_bytes(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.file.download",
+                    "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_file_download": {
@@ -93,18 +117,20 @@ async def _send_nomad_file_bytes(
                         "chunk_index": chunk_index,
                         "chunk_b64": base64.b64encode(chunk).decode("utf-8"),
                         "private": private,
+                        **({"data": extra} if extra is not None else {}),
                     },
                 },
             ),
         )
         offset += len(chunk)
         chunk_index += 1
+    import hashlib
 
     digest = hashlib.sha256(file_bytes).hexdigest()
     await client.send_str(
         json.dumps(
             {
-                "type": "nomadnet.file.download",
+                "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
                 "download_id": download_id,
                 **request_id_fields,
                 "nomadnet_file_download": {
@@ -116,6 +142,7 @@ async def _send_nomad_file_bytes(
                     "total": total,
                     "sha256": digest,
                     "private": private,
+                    **({"data": extra} if extra is not None else {}),
                 },
             },
         ),
@@ -139,7 +166,7 @@ async def _send_nomad_page_content(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.page.download",
+                    "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_page_download": {
@@ -165,7 +192,7 @@ async def _send_nomad_page_content(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.page.download",
+                    "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_page_download": body,
@@ -182,7 +209,7 @@ async def _send_nomad_page_content(
         await client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.page.download",
+                    "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                     "download_id": download_id,
                     **request_id_fields,
                     "nomadnet_page_download": {
@@ -200,6 +227,7 @@ async def _send_nomad_page_content(
         )
         offset += len(chunk)
         chunk_index += 1
+    import hashlib
 
     digest = hashlib.sha256(raw).hexdigest()
     body = {
@@ -216,10 +244,12 @@ async def _send_nomad_page_content(
     await client.send_str(
         json.dumps(
             {
-                "type": "nomadnet.page.download",
+                "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                 "download_id": download_id,
                 **request_id_fields,
                 "nomadnet_page_download": body,
             },
         ),
     )
+
+

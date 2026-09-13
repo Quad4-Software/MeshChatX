@@ -5,6 +5,19 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_payload_too_large,
+    http_unavailable,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    UPLOAD_LIMITS,
+    read_json_limited,
+    write_field_to_path,
+)
+
 
 
 def register_telephone_notification_sounds_routes(routes, app):
@@ -100,34 +113,25 @@ def register_telephone_notification_sounds_routes(routes, app):
     @routes.post("/api/v1/notification-sounds/upload")
     async def notification_sound_upload(request):
         if not app.notification_sound_manager:
-            return web.json_response(
-                {"message": "Notification sound manager unavailable"},
-                status=503,
-            )
+            return http_unavailable("Notification sound manager unavailable")
         try:
             reader = await request.multipart()
             field = await first_multipart_file_field(reader)
             if field is None:
-                return web.json_response(
-                    {"message": "File field required"},
-                    status=400,
-                )
+                return http_bad_request("File field required")
 
             filename = field.filename or "upload"
             extension = os.path.splitext(filename)[1].lower()
             if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
-                return web.json_response(
-                    {"message": f"Unsupported file type: {extension}"},
-                    status=400,
-                )
+                return http_bad_request(f"Unsupported file type: {extension}")
 
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    f.write(chunk)
+            await write_field_to_path(
+                field,
+                temp_path,
+                UPLOAD_LIMITS["audio_upload"],
+            )
 
             try:
                 storage_filename = await asyncio.to_thread(
@@ -152,14 +156,16 @@ def register_telephone_notification_sounds_routes(routes, app):
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
 
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.patch("/api/v1/notification-sounds/{id}")
     async def notification_sound_patch(request):
         try:
             sound_id = int(request.match_info["id"])
-            data = await request.json()
+            data = await read_json_limited(request)
 
             display_name = data.get("display_name")
             is_primary = 1 if data.get("is_primary") else None
@@ -171,8 +177,10 @@ def register_telephone_notification_sounds_routes(routes, app):
             )
 
             return web.json_response({"message": "Notification sound updated"})
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.delete("/api/v1/notification-sounds/{id}")
     async def notification_sound_delete(request):
@@ -187,6 +195,6 @@ def register_telephone_notification_sounds_routes(routes, app):
                 app.database.notification_sounds.delete(sound_id)
             return web.json_response({"message": "Notification sound deleted"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # contacts routes

@@ -135,6 +135,11 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.path_utils import path_response_window
+from meshchatx.src.path_utils import is_loopback_bind_host
+from meshchatx.src.backend.http.errors import (  # noqa: F401
+    http_forbidden,
+    http_unauthorized,
+)
 
 from meshchatx.src.backend.websocket_config_guard import websocket_origin_allowed
 from meshchatx.src.backend.websocket_runtime import (
@@ -157,7 +162,7 @@ async def _reject_forbidden_ws_session(app, request):
     try:
         session = await get_session(request)
     except Exception:
-        return web.json_response({"error": "Authentication required"}, status=401)
+        return http_unauthorized("Authentication required")
     identity_hash = None
     identity = getattr(app, "identity", None)
     if identity is not None and getattr(identity, "hash", None) is not None:
@@ -167,7 +172,7 @@ async def _reject_forbidden_ws_session(app, request):
         and identity_hash
         and session.get("identity_hash") == identity_hash
     ):
-        return web.json_response({"error": "Authentication required"}, status=401)
+        return http_unauthorized("Authentication required")
     return None
 
 
@@ -180,10 +185,10 @@ def _reject_forbidden_ws_origin(app, request):
         auth_enabled=auth_enabled,
         trusted_proxy_cidrs=get_trusted_proxy_cidrs(app.storage_dir),
         origin_allowed_fn=websocket_origin_allowed,
-        is_loopback_fn=_is_loopback_bind_host,
+        is_loopback_fn=is_loopback_bind_host,
     ):
         return None
-    return web.json_response({"error": "Forbidden origin"}, status=403)
+    return http_forbidden("Forbidden origin")
 
 
 # Same ceiling as RNProbeHandler.MAX_TIMEOUT_S

@@ -131,3 +131,9 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.sticker_utils import (  # noqa: F401
+    MAX_STICKER_BYTES,
+    MAX_STICKERS_PER_PACK,
+)
+
+_STICKER_DOC_MAX_BYTES = MAX_STICKER_BYTES * MAX_STICKERS_PER_PACK * 2

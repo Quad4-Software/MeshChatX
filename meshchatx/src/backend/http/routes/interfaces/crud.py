@@ -6,6 +6,18 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.interfaces._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_interfaces_crud_routes(routes, app):
 
@@ -77,18 +89,17 @@ def register_interfaces_crud_routes(routes, app):
     async def reticulum_interfaces_bitrates(request):
         """Set forced bitrate (bps) on named interfaces and optionally reload RNS."""
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
-            return web.json_response({"message": "Invalid JSON"}, status=400)
+            return http_bad_request("Invalid JSON")
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON object"}, status=400)
+            return http_bad_request("Invalid JSON object")
 
         bitrates = data.get("bitrates")
         if not isinstance(bitrates, dict) or not bitrates:
-            return web.json_response(
-                {"message": "bitrates object is required"},
-                status=422,
-            )
+            return http_error(422, "bitrates object is required")
 
         reload_stack = bool(data.get("reload", False))
         interfaces = app._get_interfaces_section()
@@ -107,46 +118,31 @@ def register_interfaces_crud_routes(routes, app):
                 try:
                     bps = int(raw_bps)
                 except (TypeError, ValueError):
-                    return web.json_response(
-                        {"message": f"Invalid bitrate for {name}"},
-                        status=422,
-                    )
+                    return http_error(422, f"Invalid bitrate for {name}")
                 if bps < 0:
-                    return web.json_response(
-                        {"message": f"Bitrate must be >= 0 for {name}"},
-                        status=422,
-                    )
+                    return http_error(422, f"Bitrate must be >= 0 for {name}")
                 details["bitrate"] = str(bps)
             updated.append(name)
 
         if not updated and missing:
-            return web.json_response(
-                {"message": "No matching interfaces", "missing": missing},
-                status=404,
-            )
+            return http_not_found("No matching interfaces", missing=missing)
 
         if updated and not app._write_reticulum_config(
             rollback_interfaces=interfaces_before_write,
         ):
-            return web.json_response(
-                {"message": "Failed to write Reticulum config"},
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         reloaded = False
         if reload_stack and updated:
             try:
                 await app.reload_reticulum()
                 reloaded = True
-            except Exception as e:
-                return web.json_response(
-                    {
-                        "message": f"Bitrates saved but RNS reload failed: {e}",
-                        "updated": updated,
-                        "missing": missing,
-                        "reloaded": False,
-                    },
-                    status=500,
+            except Exception:
+                return http_unexpected(
+                    "Bitrates saved but RNS reload failed",
+                    updated=updated,
+                    missing=missing,
+                    reloaded=False,
                 )
 
         return web.json_response(
@@ -164,28 +160,21 @@ def register_interfaces_crud_routes(routes, app):
     @routes.post("/api/v1/reticulum/interfaces/enable")
     async def reticulum_interfaces_enable(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         interface_name = data.get("name")
 
         if interface_name is None or interface_name == "":
-            return web.json_response(
-                {
-                    "message": "Interface name is required",
-                },
-                status=422,
-            )
+            return http_error(422, "Interface name is required")
 
         # enable interface
         app._sync_interfaces_from_disk()
         interfaces_before_write = app._get_interfaces_snapshot()
         interfaces = app._get_interfaces_section()
         if interface_name not in interfaces:
-            return web.json_response(
-                {
-                    "message": "Interface not found",
-                },
-                status=404,
-            )
+            return http_not_found("Interface not found")
         interface = interfaces[interface_name]
         i2p_error = i2p_support.validate_i2p_enable(
             interfaces,
@@ -193,7 +182,7 @@ def register_interfaces_crud_routes(routes, app):
             interface_name=interface_name,
         )
         if i2p_error is not None:
-            return web.json_response({"message": i2p_error}, status=422)
+            return http_error(422, i2p_error)
 
         apply_interface_enabled_flag(interface, enabled=True)
 
@@ -208,12 +197,7 @@ def register_interfaces_crud_routes(routes, app):
         if not app._write_reticulum_config(
             rollback_interfaces=interfaces_before_write,
         ):
-            return web.json_response(
-                {
-                    "message": "Failed to write Reticulum config",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         return web.json_response(
             {
@@ -227,28 +211,21 @@ def register_interfaces_crud_routes(routes, app):
     @routes.post("/api/v1/reticulum/interfaces/disable")
     async def reticulum_interfaces_disable(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         interface_name = data.get("name")
 
         if interface_name is None or interface_name == "":
-            return web.json_response(
-                {
-                    "message": "Interface name is required",
-                },
-                status=422,
-            )
+            return http_error(422, "Interface name is required")
 
         # disable interface
         app._sync_interfaces_from_disk()
         interfaces_before_write = app._get_interfaces_snapshot()
         interfaces = app._get_interfaces_section()
         if interface_name not in interfaces:
-            return web.json_response(
-                {
-                    "message": "Interface not found",
-                },
-                status=404,
-            )
+            return http_not_found("Interface not found")
         interface = interfaces[interface_name]
         apply_interface_enabled_flag(interface, enabled=False)
 
@@ -263,12 +240,7 @@ def register_interfaces_crud_routes(routes, app):
         if not app._write_reticulum_config(
             rollback_interfaces=interfaces_before_write,
         ):
-            return web.json_response(
-                {
-                    "message": "Failed to write Reticulum config",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         return web.json_response(
             {
@@ -282,27 +254,20 @@ def register_interfaces_crud_routes(routes, app):
     @routes.post("/api/v1/reticulum/interfaces/delete")
     async def reticulum_interfaces_delete(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         interface_name = data.get("name")
 
         if interface_name is None or interface_name == "":
-            return web.json_response(
-                {
-                    "message": "Interface name is required",
-                },
-                status=422,
-            )
+            return http_error(422, "Interface name is required")
 
         app._sync_interfaces_from_disk()
         interfaces_before_write = app._get_interfaces_snapshot()
         interfaces = app._get_interfaces_section()
         if interface_name not in interfaces:
-            return web.json_response(
-                {
-                    "message": "Interface not found",
-                },
-                status=404,
-            )
+            return http_not_found("Interface not found")
 
         # delete interface
         del interfaces[interface_name]
@@ -311,12 +276,7 @@ def register_interfaces_crud_routes(routes, app):
         if not app._write_reticulum_config(
             rollback_interfaces=interfaces_before_write,
         ):
-            return web.json_response(
-                {
-                    "message": "Failed to write Reticulum config",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         return web.json_response(
             {

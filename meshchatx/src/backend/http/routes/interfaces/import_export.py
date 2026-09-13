@@ -6,6 +6,16 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.interfaces._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_error,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_interfaces_import_export_routes(routes, app):
 
@@ -18,8 +28,10 @@ def register_interfaces_import_export_routes(routes, app):
             # get request data
             selected_interface_names = None
             try:
-                data = await request.json()
+                data = await read_json_limited(request)
                 selected_interface_names = data.get("selected_interface_names")
+            except PayloadTooLargeError:
+                return http_payload_too_large()
             except Exception as e:
                 # request data was not json, but we don't care
                 print(f"Request data was not JSON: {e}")
@@ -62,19 +74,14 @@ def register_interfaces_import_export_routes(routes, app):
                 },
             )
 
-        except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to export interfaces: {e!s}",
-                },
-                status=500,
-            )
+        except Exception:
+            return http_unexpected("Failed to export interfaces")
 
     @routes.post("/api/v1/reticulum/interfaces/import-preview")
     async def import_interfaces_preview(request):
         try:
             # get request data
-            data = await request.json()
+            data = await read_json_limited(request)
             config = data.get("config")
 
             # parse interfaces from config
@@ -92,13 +99,10 @@ def register_interfaces_import_export_routes(routes, app):
                 },
             )
 
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to parse config file: {e!s}",
-                },
-                status=500,
-            )
+            return http_unexpected(f"Failed to parse config file: {e!s}")
 
     # import interfaces from config
 
@@ -107,7 +111,7 @@ def register_interfaces_import_export_routes(routes, app):
     async def import_interfaces(request):
         try:
             # get request data
-            data = await request.json()
+            data = await read_json_limited(request)
             config = data.get("config")
             selected_interface_names = data.get("selected_interface_names")
 
@@ -129,12 +133,7 @@ def register_interfaces_import_export_routes(routes, app):
                     interface.get("name"),
                 )
                 if not interface_name:
-                    return web.json_response(
-                        {
-                            "message": "Imported interface is missing a valid name",
-                        },
-                        status=422,
-                    )
+                    return http_error(422, "Imported interface is missing a valid name")
                 interface_config[interface_name] = {}
                 for key, value in interface.items():
                     interface_config[interface_name][key] = value
@@ -154,22 +153,12 @@ def register_interfaces_import_export_routes(routes, app):
                 if iface_type == "I2PInterface" or i2p_support.is_i2p_interface(
                     iface_body,
                 ):
-                    return web.json_response(
-                        {
-                            "message": i2p_support.MSG_IMPORT_FORBIDDEN,
-                        },
-                        status=422,
-                    )
+                    return http_error(422, i2p_support.MSG_IMPORT_FORBIDDEN)
                 import_option_error = InterfaceEditor.sanitize_imported_rns_options(
                     iface_body,
                 )
                 if import_option_error is not None:
-                    return web.json_response(
-                        {
-                            "message": import_option_error,
-                        },
-                        status=422,
-                    )
+                    return http_error(422, import_option_error)
                 if iface_type in ("RNodeInterface", "RNodeIPInterface"):
                     freq = iface_body.get("frequency")
                     if freq is not None and freq != "":
@@ -182,13 +171,8 @@ def register_interfaces_import_export_routes(routes, app):
                             txpower,
                         )
                         if txpower_error is not None:
-                            return web.json_response(
-                                {
-                                    "message": (
-                                        f'Interface "{interface_name}": {txpower_error}'
-                                    ),
-                                },
-                                status=422,
+                            return http_error(
+                                422, f'Interface "{interface_name}": {txpower_error}'
                             )
                         iface_body["txpower"] = InterfaceEditor.normalize_rnode_txpower(
                             txpower,
@@ -207,15 +191,11 @@ def register_interfaces_import_export_routes(routes, app):
                                     txpower,
                                 )
                                 if txpower_error is not None:
-                                    return web.json_response(
-                                        {
-                                            "message": (
-                                                f'Interface "{interface_name}" '
-                                                f'sub-interface "{sub_key}": '
-                                                f"{txpower_error}"
-                                            ),
-                                        },
-                                        status=422,
+                                    return http_error(
+                                        422,
+                                        f'Interface "{interface_name}" '
+                                        f'sub-interface "{sub_key}": '
+                                        f"{txpower_error}",
                                     )
                                 sub["txpower"] = (
                                     InterfaceEditor.normalize_rnode_txpower(
@@ -231,15 +211,10 @@ def register_interfaces_import_export_routes(routes, app):
             if not app._write_reticulum_config(
                 rollback_interfaces=interfaces_before_write,
             ):
-                return web.json_response(
-                    {
-                        "message": (
-                            "Failed to write Reticulum config. "
-                            "Interface names must not contain '[' or ']' "
-                            "(ConfigObj section syntax)."
-                        ),
-                    },
-                    status=500,
+                return http_unexpected(
+                    "Failed to write Reticulum config. "
+                    "Interface names must not contain '[' or ']' "
+                    "(ConfigObj section syntax)."
                 )
 
             return web.json_response(
@@ -248,10 +223,7 @@ def register_interfaces_import_export_routes(routes, app):
                 },
             )
 
-        except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to import interfaces: {e!s}",
-                },
-                status=500,
-            )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            return http_unexpected("Failed to import interfaces")

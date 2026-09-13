@@ -276,7 +276,7 @@ async def test_discovered_interfaces_respect_whitelist_and_blacklist(temp_dir):
         patch("RNS.Transport"),
         patch("LXMF.LXMRouter"),
         patch(
-            "meshchatx.src.backend.http.routes.reticulum_instance.InterfaceDiscovery"
+            "meshchatx.meshchat.InterfaceDiscovery"
         ) as mock_discovery_cls,
     ):
         mock_reticulum = mock_rns.return_value

@@ -6,6 +6,18 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.reticulum_instance._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_error_from_exception,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_reticulum_instance_config_routes(routes, app):
@@ -22,10 +34,7 @@ def register_reticulum_instance_config_routes(routes, app):
             app._ensure_reticulum_config(materialize=False)
             config_path = app._reticulum_config_file_path()
             if not os.path.exists(config_path):
-                return web.json_response(
-                    {"error": f"Reticulum config not found at {config_path}"},
-                    status=404,
-                )
+                return http_not_found(f"Reticulum config not found at {config_path}")
             with open(config_path) as f:
                 content = f.read()
             return web.json_response(
@@ -35,7 +44,7 @@ def register_reticulum_instance_config_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.put("/api/v1/reticulum/config/raw")
     async def reticulum_config_raw_put(request):
@@ -47,26 +56,19 @@ def register_reticulum_instance_config_routes(routes, app):
         next reload.
         """
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"error": "Invalid JSON body"},
-                status=400,
-            )
+            return http_bad_request("Invalid JSON body")
 
         content = data.get("content")
         if not isinstance(content, str):
-            return web.json_response(
-                {"error": "Missing or invalid 'content' field"},
-                status=400,
-            )
+            return http_bad_request("Missing or invalid 'content' field")
 
         if "[reticulum]" not in content or "[interfaces]" not in content:
-            return web.json_response(
-                {
-                    "error": "Config must include [reticulum] and [interfaces] sections",
-                },
-                status=400,
+            return http_bad_request(
+                "Config must include [reticulum] and [interfaces] sections"
             )
 
         try:
@@ -81,7 +83,9 @@ def register_reticulum_instance_config_routes(routes, app):
                 try:
                     from RNS.vendor.configobj import ConfigObj
 
-                    previous_interfaces = ConfigObj(config_path).get("interfaces") or {}
+                    raw_interfaces = ConfigObj(config_path).get("interfaces")
+                    if isinstance(raw_interfaces, dict):
+                        previous_interfaces = raw_interfaces
                 except Exception:
                     previous_interfaces = {}
             i2p_raw_error = i2p_support.validate_raw_config_i2p_policy(
@@ -89,10 +93,7 @@ def register_reticulum_instance_config_routes(routes, app):
                 previous_interfaces=previous_interfaces,
             )
             if i2p_raw_error is not None:
-                return web.json_response(
-                    {"error": i2p_raw_error},
-                    status=422,
-                )
+                return http_error(422, i2p_raw_error)
             with open(config_path, "w") as f:
                 f.write(content)
             i2p_support.guard_i2p_interfaces_in_config(config_path)
@@ -104,7 +105,7 @@ def register_reticulum_instance_config_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     @routes.post("/api/v1/reticulum/config/reset")
     async def reticulum_config_reset(request):
@@ -126,4 +127,4 @@ def register_reticulum_instance_config_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)

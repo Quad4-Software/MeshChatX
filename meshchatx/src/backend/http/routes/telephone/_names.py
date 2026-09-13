@@ -133,6 +133,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.http.uploads import (  # noqa: F401
+    UPLOAD_LIMITS,
+    read_field_limited,
+)
 
 
 async def first_multipart_file_field(reader, field_name="file"):
@@ -145,4 +149,4 @@ async def first_multipart_file_field(reader, field_name="file"):
         if name == field_name or field.filename:
             return field
         with contextlib.suppress(Exception):
-            await field.read()
+            await read_field_limited(field, UPLOAD_LIMITS["audio_upload"])

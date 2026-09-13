@@ -377,3 +377,4 @@ def register_messages_notifications_routes(routes: Any, app: Any) -> None:
                 if status == 503
                 else "Internal error",
             )
+

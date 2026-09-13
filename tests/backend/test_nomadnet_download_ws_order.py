@@ -192,7 +192,7 @@ async def test_private_page_download_skips_archive_on_remote_success(
             return None
 
     monkeypatch.setattr(
-        "meshchatx.src.backend.http.ws.handlers_nomad.NomadnetPageDownloader",
+        "meshchatx.meshchat.NomadnetPageDownloader",
         FakeDownloader,
     )
 

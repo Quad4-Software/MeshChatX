@@ -6,6 +6,12 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.rn_tools._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_error_from_exception,
+)
+
 from meshchatx.src.backend.http.routes.rn_tools._helpers import make_rn_tools_helpers
 
 
@@ -41,7 +47,7 @@ def register_rn_tools_rnstatus_routes(routes, app):
         try:
             timeout = float(timeout_raw) if timeout_raw not in (None, "") else None
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid timeout"}, status=400)
+            return http_bad_request("Invalid timeout")
 
         try:
             if remote:
@@ -50,11 +56,8 @@ def register_rn_tools_rnstatus_routes(routes, app):
                 )
 
                 if not identity_path and not identity_name:
-                    return web.json_response(
-                        {
-                            "message": "identity_path or identity_name is required for remote queries",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "identity_path or identity_name is required for remote queries"
                     )
                 stats, link_count = await asyncio.to_thread(
                     fetch_remote_status,
@@ -84,11 +87,9 @@ def register_rn_tools_rnstatus_routes(routes, app):
                 )
             return web.json_response(status)
         except (ValueError, FileNotFoundError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except TimeoutError as e:
-            return web.json_response({"message": str(e)}, status=504)
+            return http_error(504, str(e))
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
+

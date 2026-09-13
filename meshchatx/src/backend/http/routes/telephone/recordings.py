@@ -5,6 +5,11 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+)
+
 
 
 def register_telephone_recordings_routes(routes, app):
@@ -45,25 +50,16 @@ def register_telephone_recordings_routes(routes, app):
         try:
             recording_id = int(recording_id)
         except (ValueError, TypeError):
-            return web.json_response(
-                {"message": "Invalid recording ID"},
-                status=400,
-            )
+            return http_bad_request("Invalid recording ID")
 
         side = request.match_info.get("side")
         if side not in ("rx", "tx"):
-            return web.json_response(
-                {"message": "Invalid recording side"},
-                status=400,
-            )
+            return http_bad_request("Invalid recording side")
         recording = app.database.telephone.get_call_recording(recording_id)
         if recording:
             filename = recording[f"filename_{side}"]
             if not filename:
-                return web.json_response(
-                    {"message": f"No {side} recording found"},
-                    status=404,
-                )
+                return http_not_found(f"No {side} recording found")
 
             filepath = safe_path_under_dir(
                 app.telephone_manager.recordings_dir,
@@ -75,7 +71,7 @@ def register_telephone_recordings_routes(routes, app):
                     headers={"Content-Type": "audio/opus"},
                 )
 
-        return web.json_response({"message": "Recording not found"}, status=404)
+        return http_not_found("Recording not found")
 
     # delete call recording
 

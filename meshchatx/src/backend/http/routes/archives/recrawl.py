@@ -6,6 +6,17 @@ from __future__ import annotations
 from typing import Any
 
 # ruff: noqa: F401, F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_forbidden,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 from meshchatx.src.backend.http.routes.archives._helpers import resolve_node_name
 from meshchatx.src.backend.http.routes.archives._names import *  # noqa: F403
 
@@ -14,13 +25,15 @@ def register_archives_recrawl_routes(routes: Any, app: Any) -> None:
     @routes.post("/api/v1/nomadnet/archives/recrawl")
     async def recrawl_archived_page(request):
         """Fetch a Nomad page now and store a fresh archive snapshot."""
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = (data.get("destination_hash") or "").strip().lower()
         page_path = (data.get("page_path") or "").strip()
         if len(destination_hash) != 32:
-            return web.json_response(
-                {"message": "destination_hash must be 32 hex characters"},
-                status=400,
+            return http_bad_request(
+                "destination_hash must be 32 hex characters",
             )
         if not page_path:
             page_path = (
@@ -33,10 +46,7 @@ def register_archives_recrawl_routes(routes: Any, app: Any) -> None:
             else None
         )
         if crawler and crawler.is_opted_out(destination_hash):
-            return web.json_response(
-                {"message": "Node is on the crawl opt-out list"},
-                status=403,
-            )
+            return http_forbidden("Node is on the crawl opt-out list")
 
         done_event = asyncio.Event()
         success = [False]
@@ -76,17 +86,11 @@ def register_archives_recrawl_routes(routes: Any, app: Any) -> None:
                 failure_reason[0] = "timeout"
                 downloader.cancel()
             await download_task
-        except Exception as exc:
-            return web.json_response(
-                {"message": f"Recrawl failed: {exc}"},
-                status=502,
-            )
+        except Exception:
+            return http_error(502, "Recrawl failed")
 
         if not success[0]:
-            return web.json_response(
-                {"message": f"Recrawl failed: {failure_reason[0]}"},
-                status=502,
-            )
+            return http_error(502, f"Recrawl failed: {failure_reason[0]}")
 
         app.archive_page(
             destination_hash,
@@ -108,9 +112,8 @@ def register_archives_recrawl_routes(routes: Any, app: Any) -> None:
         )
         latest = versions[0] if versions else None
         if not latest:
-            return web.json_response(
-                {"message": "Page fetched but archive was not stored"},
-                status=500,
+            return http_unexpected(
+                "Page fetched but archive was not stored",
             )
         return web.json_response(
             {

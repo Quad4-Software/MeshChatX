@@ -8,6 +8,15 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.favourites._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_body_limited,
+)
+
 
 def register_favourites_layout_routes(routes: Any, app: Any) -> None:
     @routes.get("/api/v1/favourites/layout")
@@ -24,38 +33,31 @@ def register_favourites_layout_routes(routes: Any, app: Any) -> None:
 
     @routes.put("/api/v1/favourites/layout")
     async def favourites_layout_put(request):
-        from meshchatx.src.backend.favourites_layout import layout_payload_too_large
+        from meshchatx.src.backend.favourites_layout import (
+            MAX_LAYOUT_JSON_BYTES,
+            layout_payload_too_large,
+        )
 
         content_length = request.content_length
         if content_length is not None and layout_payload_too_large(
             content_length,
         ):
-            return web.json_response(
-                {"message": "favourites layout exceeds size limit"},
-                status=413,
-            )
+            return http_payload_too_large("favourites layout exceeds size limit")
         try:
-            raw = await request.read()
+            raw = await read_body_limited(request, MAX_LAYOUT_JSON_BYTES + 1)
+        except PayloadTooLargeError:
+            return http_payload_too_large("favourites layout exceeds size limit")
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         if layout_payload_too_large(len(raw)):
-            return web.json_response(
-                {"message": "favourites layout exceeds size limit"},
-                status=413,
-            )
+            return http_payload_too_large("favourites layout exceeds size limit")
         try:
             data = json.loads(raw.decode("utf-8"))
         except Exception:
-            return web.json_response(
-                {"message": "Invalid JSON body"},
-                status=400,
-            )
+            return http_bad_request("Invalid JSON body")
         layout = data.get("layout") if isinstance(data, dict) else None
         try:
             saved = app.database.announces.set_favourites_layout(layout)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"layout": saved})

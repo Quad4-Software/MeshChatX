@@ -7,6 +7,15 @@ from typing import Any
 
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.messages._names import *  # noqa: F403
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_messages_destination_routes(routes: Any, app: Any) -> None:
@@ -34,7 +43,10 @@ def register_messages_destination_routes(routes: Any, app: Any) -> None:
         destination_hash = request.match_info.get("destination_hash", "")
 
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         raw_name = data.get("display_name")
         if raw_name is None:
             display_name = ""
@@ -72,10 +84,7 @@ def register_messages_destination_routes(routes: Any, app: Any) -> None:
         try:
             destination_hash_bytes = bytes.fromhex(destination_hash)
         except (TypeError, ValueError):
-            return web.json_response(
-                {"message": "invalid destination_hash"},
-                status=400,
-            )
+            return http_bad_request("invalid destination_hash")
 
         # get lxmf stamp cost from announce in database
         lxmf_stamp_cost = None
@@ -108,10 +117,8 @@ def register_messages_destination_routes(routes: Any, app: Any) -> None:
     async def destination_delivery_diagnostics(request):
         destination_hash = request.match_info.get("destination_hash", "")
         if not destination_hash:
-            return web.json_response(
-                {"message": "destination_hash is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash is required")
         return web.json_response(
             build_delivery_diagnostics(app, destination_hash),
         )
+

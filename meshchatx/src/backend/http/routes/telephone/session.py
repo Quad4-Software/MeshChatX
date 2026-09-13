@@ -5,6 +5,20 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_forbidden,
+    http_not_found,
+    http_payload_too_large,
+    http_unavailable,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
+_BACKGROUND_TASKS = set()
 
 
 def register_telephone_session_routes(routes, app):
@@ -275,22 +289,16 @@ def register_telephone_session_routes(routes, app):
         # get incoming caller identity
         active_call = app.telephone_manager.telephone.active_call
         if not active_call:
-            return web.json_response({"message": "No active call"}, status=404)
+            return http_not_found("No active call")
 
         caller_identity = active_call.get_remote_identity()
         if not caller_identity:
-            return web.json_response(
-                {"message": "Caller identity not found"},
-                status=404,
-            )
+            return http_not_found("Caller identity not found")
 
         caller_hash = caller_identity.hash.hex()
         if app.is_destination_blocked(caller_hash):
             app.telephone_manager.request_hangup()
-            return web.json_response(
-                {"message": "Caller is banished"},
-                status=403,
-            )
+            return http_forbidden("Caller is banished")
 
         # answer call
         await asyncio.to_thread(
@@ -324,18 +332,15 @@ def register_telephone_session_routes(routes, app):
     async def telephone_send_to_voicemail(request):
         active_call = app.telephone_manager.telephone.active_call
         if not active_call:
-            return web.json_response({"message": "No active call"}, status=404)
+            return http_not_found("No active call")
 
         caller_identity = active_call.get_remote_identity()
         if not caller_identity:
-            return web.json_response({"message": "No remote identity"}, status=400)
+            return http_bad_request("No remote identity")
 
         if app.is_destination_blocked(caller_identity.hash.hex()):
             app.telephone_manager.request_hangup()
-            return web.json_response(
-                {"message": "Caller is banished"},
-                status=403,
-            )
+            return http_forbidden("Caller is banished")
 
         # trigger voicemail session
         await asyncio.to_thread(
@@ -401,10 +406,7 @@ def register_telephone_session_routes(routes, app):
         mode_id = request.match_info.get("mode_id")
         try:
             if app.telephone_manager.telephone is None:
-                return web.json_response(
-                    {"message": "Telephone not initialized"},
-                    status=400,
-                )
+                return http_bad_request("Telephone not initialized")
             resolved = await asyncio.to_thread(
                 app.telephone_manager.apply_preferred_mode,
                 int(mode_id),
@@ -422,29 +424,25 @@ def register_telephone_session_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/telephone/ptt")
     async def telephone_ptt(request):
         if app.telephone_manager.telephone is None:
-            return web.json_response(
-                {"message": "Telephone not initialized"},
-                status=400,
-            )
+            return http_bad_request("Telephone not initialized")
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         active = bool(data.get("active", False)) if isinstance(data, dict) else False
         ok = await asyncio.to_thread(app.telephone_manager.set_ptt_active, active)
         if not ok and active:
-            return web.json_response(
-                {
-                    "message": "PTT requires an established half-duplex call",
-                    "is_ptt_active": bool(app.telephone_manager.ptt_active),
-                    "is_half_duplex": app.telephone_manager.is_half_duplex(),
-                },
-                status=400,
+            return http_bad_request(
+                "PTT requires an established half-duplex call",
+                is_ptt_active=bool(app.telephone_manager.ptt_active),
+                is_half_duplex=app.telephone_manager.is_half_duplex(),
             )
         return web.json_response(
             {
@@ -463,10 +461,7 @@ def register_telephone_session_routes(routes, app):
         profile_id = request.match_info.get("profile_id")
         try:
             if app.telephone_manager.telephone is None:
-                return web.json_response(
-                    {"message": "Telephone not initialized"},
-                    status=400,
-                )
+                return http_bad_request("Telephone not initialized")
 
             resolved = await asyncio.to_thread(
                 app.telephone_manager.apply_preferred_profile,
@@ -483,7 +478,7 @@ def register_telephone_session_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # Codec2 / audio backend readiness (Android packaging + LXST)
 
@@ -519,12 +514,7 @@ def register_telephone_session_routes(routes, app):
     async def telephone_call(request):
         # make sure telephone enabled
         if app.telephone_manager.telephone is None:
-            return web.json_response(
-                {
-                    "message": "Telephone has been disabled.",
-                },
-                status=503,
-            )
+            return http_unavailable("Telephone has been disabled.")
 
         # check if busy, but ignore stale busy when no active call
         is_busy = app.telephone_manager.telephone.busy
@@ -535,12 +525,7 @@ def register_telephone_session_routes(routes, app):
                 is_busy = False
 
         if is_busy or app.telephone_manager.initiation_status:
-            return web.json_response(
-                {
-                    "message": "Telephone is busy",
-                },
-                status=400,
-            )
+            return http_bad_request("Telephone is busy")
 
         # get path params
         identity_hash_hex = request.match_info.get("identity_hash", "")
@@ -554,20 +539,10 @@ def register_telephone_session_routes(routes, app):
             # convert hash to bytes
             identity_hash_bytes = bytes.fromhex(identity_hash_hex)
         except Exception:
-            return web.json_response(
-                {
-                    "message": "Invalid identity hash",
-                },
-                status=400,
-            )
+            return http_bad_request("Invalid identity hash")
 
         if app.is_destination_blocked(identity_hash_hex):
-            return web.json_response(
-                {
-                    "message": "Cannot call a banished identity",
-                },
-                status=403,
-            )
+            return http_forbidden("Cannot call a banished identity")
 
         # initiate call in background to be non-blocking for the UI
         async def _initiate():
@@ -579,7 +554,9 @@ def register_telephone_session_routes(routes, app):
             except Exception as e:
                 print(f"Failed to initiate call to {identity_hash_hex}: {e}")
 
-        asyncio.create_task(_initiate())
+        initiate_task = asyncio.create_task(_initiate())
+        _BACKGROUND_TASKS.add(initiate_task)
+        initiate_task.add_done_callback(_BACKGROUND_TASKS.discard)
 
         return web.json_response(
             {

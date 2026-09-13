@@ -8,6 +8,16 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.config._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_config_config_routes(routes: Any, app: Any) -> None:
 
@@ -25,7 +35,7 @@ def register_config_config_routes(routes: Any, app: Any) -> None:
     async def config_update(request):
         # get request body as json
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             await app.update_config(data)
             try:
                 AsyncUtils.run_async(app.send_config_to_websocket_clients())
@@ -37,10 +47,12 @@ def register_config_config_routes(routes: Any, app: Any) -> None:
                     "config": app.get_config_dict(),
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except Exception:
             import traceback
 
             print("config_update failed:\n" + traceback.format_exc())
-            return web.json_response({"error": "config_update_failed"}, status=500)
+            return http_unexpected("config_update_failed")

@@ -10,6 +10,15 @@ from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 from meshchatx.src.backend.http.routes.archives._helpers import resolve_node_name
 from meshchatx.src.backend.http.routes.archives._names import *  # noqa: F403
 
@@ -119,11 +128,11 @@ def register_archives_pages_routes(routes: Any, app: Any) -> None:
         try:
             archive_id = int(request.match_info["archive_id"])
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid archive id"}, status=400)
+            return http_bad_request("Invalid archive id")
         try:
             archive = app.database.misc.get_archived_page_by_id(archive_id)
             if not archive:
-                return web.json_response({"message": "Archive not found"}, status=404)
+                return http_not_found("Archive not found")
             return web.json_response(
                 {
                     "archive": {
@@ -150,16 +159,14 @@ def register_archives_pages_routes(routes: Any, app: Any) -> None:
         unavailable = require_database(app)
         if unavailable is not None:
             return unavailable
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         ids = data.get("ids", [])
 
         if not ids:
-            return web.json_response(
-                {
-                    "message": "No archive IDs provided!",
-                },
-                status=400,
-            )
+            return http_bad_request("No archive IDs provided!")
 
         try:
             app.database.misc.delete_archived_pages(ids=ids)

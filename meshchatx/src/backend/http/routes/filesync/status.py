@@ -9,6 +9,16 @@ from typing import Any
 from meshchatx.src.backend.http.routes.filesync._helpers import make_filesync_helpers
 from meshchatx.src.backend.http.routes.filesync._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_filesync_status_routes(routes: Any, app: Any) -> None:
     (_filesync_require_handler,) = make_filesync_helpers(app)
@@ -26,8 +36,12 @@ def register_filesync_status_routes(routes: Any, app: Any) -> None:
         if not_ready is not None:
             return not_ready
         data = {}
-        with contextlib.suppress(Exception):
-            data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            data = {}
         if not isinstance(data, dict):
             data = {}
         try:
@@ -38,12 +52,9 @@ def register_filesync_status_routes(routes: Any, app: Any) -> None:
                 announce_interval=data.get("announce_interval"),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "failed to start")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "failed to start"))
         return web.json_response(result)
 
     @routes.post("/api/v1/filesync/stop")
@@ -54,7 +65,7 @@ def register_filesync_status_routes(routes: Any, app: Any) -> None:
         try:
             result = await asyncio.to_thread(app.rns_filesync_handler.stop)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response(result)
 
     @routes.post("/api/v1/filesync/announce")
@@ -65,12 +76,9 @@ def register_filesync_status_routes(routes: Any, app: Any) -> None:
         try:
             result = await asyncio.to_thread(app.rns_filesync_handler.announce_now)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "announce failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "announce failed"))
         return web.json_response(result)
 
     @routes.patch("/api/v1/filesync/settings")
@@ -78,9 +86,12 @@ def register_filesync_status_routes(routes: Any, app: Any) -> None:
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON body"}, status=400)
+            return http_bad_request("Invalid JSON body")
         try:
             result = await asyncio.to_thread(
                 app.rns_filesync_handler.update_settings,
@@ -89,10 +100,7 @@ def register_filesync_status_routes(routes: Any, app: Any) -> None:
                 announce_interval=data.get("announce_interval"),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "settings update failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "settings update failed"))
         return web.json_response(result)

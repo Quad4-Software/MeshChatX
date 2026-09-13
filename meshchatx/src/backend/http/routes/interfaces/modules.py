@@ -6,6 +6,20 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.interfaces._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
+    read_field_text_limited,
+    read_json_limited,
+)
+
 
 def register_interfaces_modules_routes(routes, app):
 
@@ -18,17 +32,15 @@ def register_interfaces_modules_routes(routes, app):
         try:
             payload = list_interface_modules(app.reticulum_config_dir)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
-        except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to list interface modules: {e!s}"},
-                status=500,
-            )
+            return http_bad_request(str(e))
+        except Exception:
+            return http_unexpected("Failed to list interface modules")
         return web.json_response(payload)
 
     @routes.post("/api/v1/reticulum/interface-modules")
     async def reticulum_interface_modules_install(request):
         from meshchatx.src.backend.interface_module_store import (
+            _MAX_MODULE_BYTES,
             install_interface_module,
         )
 
@@ -43,25 +55,23 @@ def register_interfaces_modules_routes(routes, app):
                 while field is not None:
                     if field.name == "file":
                         filename = field.filename or filename
-                        chunks = []
-                        while True:
-                            chunk = await field.read_chunk()
-                            if not chunk:
-                                break
-                            chunks.append(chunk)
-                        data = b"".join(chunks)
+                        data = await read_field_limited(field, _MAX_MODULE_BYTES)
                     elif field.name == "overwrite":
-                        overwrite = (await field.text()).strip().lower() in (
+                        overwrite = (
+                            await read_field_text_limited(field)
+                        ).strip().lower() in (
                             "1",
                             "true",
                             "yes",
                             "on",
                         )
                     elif field.name == "filename":
-                        filename = (await field.text()).strip() or filename
+                        filename = (
+                            await read_field_text_limited(field)
+                        ).strip() or filename
                     field = await reader.next()
             else:
-                body = await request.json()
+                body = await read_json_limited(request, _MAX_MODULE_BYTES * 2)
                 filename = body.get("filename") or body.get("type")
                 raw = body.get("content") or body.get("data") or ""
                 if isinstance(raw, str):
@@ -73,10 +83,7 @@ def register_interfaces_modules_routes(routes, app):
                     data = bytes(raw)
                 overwrite = bool(body.get("overwrite", False))
             if not data:
-                return web.json_response(
-                    {"message": "Interface module file is required"},
-                    status=400,
-                )
+                return http_bad_request("Interface module file is required")
             result = install_interface_module(
                 app.reticulum_config_dir,
                 filename=filename,
@@ -92,13 +99,12 @@ def register_interfaces_modules_routes(routes, app):
                     **result,
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=422)
-        except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to install interface module: {e!s}"},
-                status=500,
-            )
+            return http_error(422, str(e))
+        except Exception:
+            return http_unexpected("Failed to install interface module")
 
     @routes.delete("/api/v1/reticulum/interface-modules/{type_name}")
     async def reticulum_interface_modules_delete(request):
@@ -110,14 +116,11 @@ def register_interfaces_modules_routes(routes, app):
         try:
             result = delete_interface_module(app.reticulum_config_dir, type_name)
         except FileNotFoundError as e:
-            return web.json_response({"message": str(e)}, status=404)
+            return http_not_found(str(e))
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=422)
-        except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to delete interface module: {e!s}"},
-                status=500,
-            )
+            return http_error(422, str(e))
+        except Exception:
+            return http_unexpected("Failed to delete interface module")
         return web.json_response(
             {
                 "message": f"Deleted {result['filename']}",

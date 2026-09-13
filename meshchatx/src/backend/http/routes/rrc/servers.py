@@ -6,6 +6,15 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.rrc._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 from meshchatx.src.backend.http.routes.rrc._helpers import (
     make_rrc_helpers,
 )
@@ -33,7 +42,10 @@ def register_rrc_servers_routes(routes, app):
         manager, error = _rrc_server_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = (data.get("name") or "").strip() or None
         greeting = (data.get("greeting") or "").strip() or None
         announce = bool(data.get("announce", True))
@@ -68,7 +80,10 @@ def register_rrc_servers_routes(routes, app):
         )
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         manager.update_hub(
             hub.hub_id,
             name=(data.get("name") if "name" in data else None),
@@ -125,13 +140,13 @@ def register_rrc_servers_routes(routes, app):
         )
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = (data.get("name") or "").strip()
         if not name:
-            return web.json_response(
-                {"message": "A room name is required"},
-                status=400,
-            )
+            return http_bad_request("A room name is required")
         topic = (data.get("topic") or "").strip() or None
         private = bool(data.get("private", False))
         moderated = bool(data.get("moderated", False))
@@ -152,7 +167,7 @@ def register_rrc_servers_routes(routes, app):
                 key=key,
             )
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"hub": hub.to_dict()})
 
     @routes.delete("/api/v1/rrc/servers/{hub_id}/rooms/{room}")
@@ -173,22 +188,22 @@ def register_rrc_servers_routes(routes, app):
         if error is not None:
             return error
         room = request.match_info.get("room", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         raw_key = data.get("key")
         if raw_key is None or raw_key == "":
             key = None
         elif isinstance(raw_key, str):
             key = raw_key.strip() or None
         else:
-            return web.json_response(
-                {"message": "Room key must be a string or null"},
-                status=400,
-            )
+            return http_bad_request("Room key must be a string or null")
         try:
             hub.set_room_key(room, key)
             manager.save()
         except (TypeError, ValueError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"hub": hub.to_dict()})
 
     @routes.get("/api/v1/rrc/servers/{hub_id}/members")
@@ -203,7 +218,7 @@ def register_rrc_servers_routes(routes, app):
         try:
             members = hub.members_dict(room_arg)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"members": members})
 
     @routes.get("/api/v1/rrc/servers/{hub_id}/activity")
@@ -215,6 +230,15 @@ def register_rrc_servers_routes(routes, app):
             return error
         return web.json_response(hub.rooms_activity())
 
+    @routes.get("/api/v1/rrc/servers/{hub_id}/stats")
+    async def rrc_server_stats(request):
+        _, hub, error = _rrc_server_require_hub(
+            request.match_info.get("hub_id", ""),
+        )
+        if error is not None:
+            return error
+        return web.json_response(hub.stats_dict())
+
     @routes.get("/api/v1/rrc/servers/{hub_id}/messages")
     async def rrc_server_messages(request):
         _, hub, error = _rrc_server_require_hub(
@@ -224,10 +248,7 @@ def register_rrc_servers_routes(routes, app):
             return error
         peer = request.rel_url.query.get("peer")
         if not isinstance(peer, str) or not peer.strip():
-            return web.json_response(
-                {"message": "peer query parameter is required"},
-                status=400,
-            )
+            return http_bad_request("peer query parameter is required")
         room = request.rel_url.query.get("room")
         room_arg = room.strip() if isinstance(room, str) and room.strip() else None
         limit = request.rel_url.query.get("limit")
@@ -238,7 +259,7 @@ def register_rrc_servers_routes(routes, app):
                 limit=limit,
             )
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"messages": messages})
 
     @routes.post("/api/v1/rrc/servers/{hub_id}/moderate")
@@ -248,39 +269,30 @@ def register_rrc_servers_routes(routes, app):
         )
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         action = (data.get("action") or "").strip().lower()
         peer = (data.get("peer") or "").strip()
         room = (data.get("room") or "").strip() or None
         if action not in ("kick", "ban", "room_ban"):
-            return web.json_response(
-                {"message": "action must be kick, ban, or room_ban"},
-                status=400,
-            )
+            return http_bad_request("action must be kick, ban, or room_ban")
         if not peer:
-            return web.json_response(
-                {"message": "peer is required"},
-                status=400,
-            )
+            return http_bad_request("peer is required")
         try:
             if action == "kick":
                 if not room:
-                    return web.json_response(
-                        {"message": "room is required for kick"},
-                        status=400,
-                    )
+                    return http_bad_request("room is required for kick")
                 hub.admin_kick_from_room(peer, room)
             elif action == "ban":
                 hub.admin_hub_ban(peer)
             else:
                 if not room:
-                    return web.json_response(
-                        {"message": "room is required for room_ban"},
-                        status=400,
-                    )
+                    return http_bad_request("room is required for room_ban")
                 hub.admin_room_ban(peer, room)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"message": "ok", "hub": hub.to_dict()})
 
     # serve telephone status

@@ -6,6 +6,24 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.lxmf._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
+# Attachment bytes are content-addressed by message hash and never change, so
+# clients may keep them forever. "private" because they sit behind auth.
+LXMF_ATTACHMENT_CACHE_HEADERS = {
+    "Cache-Control": "private, max-age=31536000, immutable",
+}
+
 
 def register_lxmf_messages_routes(routes, app):
 
@@ -18,19 +36,19 @@ def register_lxmf_messages_routes(routes, app):
         if blocked is not None:
             return blocked
         # get request body as json
-        data = await request.json()
+        try:
+            data = await read_json_limited(
+                request,
+                UPLOAD_LIMITS["audio_upload"],
+            )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
 
         if not isinstance(data, dict) or "lxmf_message" not in data:
-            return web.json_response(
-                {"message": "lxmf_message is required"},
-                status=400,
-            )
+            return http_bad_request("lxmf_message is required")
         lm = data["lxmf_message"]
         if not isinstance(lm, dict):
-            return web.json_response(
-                {"message": "lxmf_message must be an object"},
-                status=400,
-            )
+            return http_bad_request("lxmf_message must be an object")
 
         # get delivery method
         delivery_method = None
@@ -41,10 +59,7 @@ def register_lxmf_messages_routes(routes, app):
             destination_hash = lm["destination_hash"]
             content = lm["content"]
         except (KeyError, TypeError):
-            return web.json_response(
-                {"message": "destination_hash and content are required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash and content are required")
 
         raw_fields = lm.get("fields")
         fields = dict(raw_fields) if isinstance(raw_fields, dict) else {}
@@ -64,10 +79,7 @@ def register_lxmf_messages_routes(routes, app):
                 image_bytes = base64.b64decode(fields["image"]["image_bytes"])
                 detected = detect_image_format_from_magic(image_bytes)
                 if detected is None or detected in {"webm", "tgs"}:
-                    return web.json_response(
-                        {"message": "Invalid image attachment"},
-                        status=400,
-                    )
+                    return http_bad_request("Invalid image attachment")
                 image_type = "jpg" if detected == "jpeg" else detected
                 image_field = LxmfImageField(image_type, image_bytes)
 
@@ -115,10 +127,7 @@ def register_lxmf_messages_routes(routes, app):
                             new_cmd[k] = v
                     commands.append(new_cmd)
         except (KeyError, TypeError, ValueError, binascii.Error):
-            return web.json_response(
-                {"message": "Invalid lxmf_message.fields"},
-                status=400,
-            )
+            return http_bad_request("Invalid lxmf_message.fields")
 
         reply_to_hash = None
         if "reply_to_hash" in lm:
@@ -158,14 +167,22 @@ def register_lxmf_messages_routes(routes, app):
             )
 
         except Exception as e:
-            detail = str(e).strip() or "Sending failed"
+            internal = str(e).strip()
             status = 503
             if isinstance(e, (ValueError, LookupError)):
                 status = 400
             elif isinstance(e, TimeoutError):
                 status = 503
+            # Only validation-style errors are safe to echo; OS/RNS errors
+            # can carry paths and internals, so clients get a generic line.
+            if isinstance(e, (ValueError, LookupError)):
+                detail = internal or "Invalid request"
+            elif isinstance(e, TimeoutError):
+                detail = "Sending timed out"
+            else:
+                detail = "Sending failed"
             body: dict[str, object] = {"message": detail}
-            lower = detail.lower()
+            lower = internal.lower()
             failure_hint = None
             if "could not recall" in lower:
                 failure_hint = "recall"
@@ -199,16 +216,16 @@ def register_lxmf_messages_routes(routes, app):
 
     @routes.post("/api/v1/lxmf-messages/reactions")
     async def lxmf_messages_reactions(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash")
         target_message_hash = data.get("target_message_hash")
         emoji = data.get("emoji", "")
         if not destination_hash or not target_message_hash or not emoji:
-            return web.json_response(
-                {
-                    "message": "destination_hash, target_message_hash, and emoji are required",
-                },
-                status=422,
+            return http_error(
+                422, "destination_hash, target_message_hash, and emoji are required"
             )
         try:
             lxmf_message = await app.send_reaction(
@@ -229,18 +246,18 @@ def register_lxmf_messages_routes(routes, app):
                 },
             )
         except Exception as e:
-            detail = str(e).strip() or "Reaction failed"
             status = 503
             if isinstance(e, (ValueError, LookupError)):
                 status = 400
             elif isinstance(e, TimeoutError):
                 status = 503
-            return web.json_response(
-                {
-                    "message": detail,
-                },
-                status=status,
-            )
+            if isinstance(e, (ValueError, LookupError)):
+                detail = str(e).strip() or "Invalid request"
+            elif isinstance(e, TimeoutError):
+                detail = "Reaction timed out"
+            else:
+                detail = "Reaction failed"
+            return http_error(status, detail)
 
     # cancel sending lxmf message
 
@@ -281,12 +298,7 @@ def register_lxmf_messages_routes(routes, app):
 
         # hash is required
         if message_hash is None:
-            return web.json_response(
-                {
-                    "message": "hash is required",
-                },
-                status=422,
-            )
+            return http_error(422, "hash is required")
 
         # delete lxmf messages from db where hash matches
         app.database.messages.delete_lxmf_message_by_hash(message_hash)
@@ -322,15 +334,11 @@ def register_lxmf_messages_routes(routes, app):
         except Exception as e:
             RNS.log(f"Error in lxmf_messages_conversation: {e}", RNS.LOG_ERROR)
             status = 503 if sqlite_error_is_retryable(e) else 500
-            return web.json_response(
-                {
-                    "message": (
-                        "Database temporarily unavailable. Retry shortly."
-                        if status == 503
-                        else "Failed to load conversation"
-                    ),
-                },
-                status=status,
+            return http_error(
+                status,
+                "Database temporarily unavailable. Retry shortly."
+                if status == 503
+                else "Failed to load conversation",
             )
 
         # convert to response json
@@ -359,73 +367,54 @@ def register_lxmf_messages_routes(routes, app):
             message_hash,
         )
         if db_lxmf_message is None:
-            return web.json_response({"message": "Message not found"}, status=404)
+            return http_not_found("Message not found")
 
         from meshchatx.src.backend.lxmf_utils import parse_stored_lxmf_fields
 
         fields = parse_stored_lxmf_fields(db_lxmf_message["fields"])
         if fields is None:
-            return web.json_response(
-                {"message": "Invalid attachment data"},
-                status=400,
-            )
+            return http_bad_request("Invalid attachment data")
 
         # handle image
         if attachment_type == "image" and "image" in fields:
             image_field = fields["image"]
             if not isinstance(image_field, dict):
-                return web.json_response(
-                    {"message": "Invalid image attachment"},
-                    status=400,
-                )
+                return http_bad_request("Invalid image attachment")
             image_bytes_b64 = image_field.get("image_bytes")
             if not isinstance(image_bytes_b64, str) or not image_bytes_b64:
-                return web.json_response(
-                    {"message": "Missing image data"},
-                    status=400,
-                )
+                return http_bad_request("Missing image data")
             try:
                 image_data = base64.b64decode(image_bytes_b64)
             except Exception:
-                return web.json_response(
-                    {"message": "Invalid image data"},
-                    status=400,
-                )
+                return http_bad_request("Invalid image data")
             allowed_image_types = {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
             detected = detect_image_format_from_magic(image_data)
             if detected is None or detected not in allowed_image_types:
-                return web.json_response(
-                    {"message": "Invalid image attachment"},
-                    status=400,
-                )
+                return http_bad_request("Invalid image attachment")
             # Serve Content-Type from magic bytes, not the peer-declared type.
             image_type = "jpeg" if detected == "jpeg" else detected
-            return web.Response(body=image_data, content_type=f"image/{image_type}")
+            return web.Response(
+                body=image_data,
+                content_type=f"image/{image_type}",
+                headers=LXMF_ATTACHMENT_CACHE_HEADERS,
+            )
 
         # handle audio
         if attachment_type == "audio" and "audio" in fields:
             audio_field = fields["audio"]
             if not isinstance(audio_field, dict):
-                return web.json_response(
-                    {"message": "Invalid audio attachment"},
-                    status=400,
-                )
+                return http_bad_request("Invalid audio attachment")
             audio_bytes_b64 = audio_field.get("audio_bytes")
             if not isinstance(audio_bytes_b64, str) or not audio_bytes_b64:
-                return web.json_response(
-                    {"message": "Missing audio data"},
-                    status=400,
-                )
+                return http_bad_request("Missing audio data")
             try:
                 audio_data = base64.b64decode(audio_bytes_b64)
             except Exception:
-                return web.json_response(
-                    {"message": "Invalid audio data"},
-                    status=400,
-                )
+                return http_bad_request("Invalid audio data")
             return web.Response(
                 body=audio_data,
                 content_type="application/octet-stream",
+                headers=LXMF_ATTACHMENT_CACHE_HEADERS,
             )
 
         # handle file attachments
@@ -434,37 +423,22 @@ def register_lxmf_messages_routes(routes, app):
                 try:
                     index = int(file_index)
                     if index < 0:
-                        return web.json_response(
-                            {"message": "Invalid file index"},
-                            status=400,
-                        )
+                        return http_bad_request("Invalid file index")
                     file_attachments = fields["file_attachments"]
                     if not isinstance(file_attachments, list) or index >= len(
                         file_attachments,
                     ):
-                        return web.json_response(
-                            {"message": "Invalid file index"},
-                            status=400,
-                        )
+                        return http_bad_request("Invalid file index")
                     file_attachment = file_attachments[index]
                     if not isinstance(file_attachment, dict):
-                        return web.json_response(
-                            {"message": "Invalid file attachment"},
-                            status=400,
-                        )
+                        return http_bad_request("Invalid file attachment")
                     file_bytes_b64 = file_attachment.get("file_bytes")
                     if not isinstance(file_bytes_b64, str) or not file_bytes_b64:
-                        return web.json_response(
-                            {"message": "Missing file data"},
-                            status=400,
-                        )
+                        return http_bad_request("Missing file data")
                     try:
                         file_data = base64.b64decode(file_bytes_b64)
                     except Exception:
-                        return web.json_response(
-                            {"message": "Invalid file data"},
-                            status=400,
-                        )
+                        return http_bad_request("Invalid file data")
                     raw_name = file_attachment.get("file_name") or "download"
                     if not isinstance(raw_name, str):
                         raw_name = "download"
@@ -479,13 +453,14 @@ def register_lxmf_messages_routes(routes, app):
                         body=file_data,
                         content_type="application/octet-stream",
                         headers={
+                            **LXMF_ATTACHMENT_CACHE_HEADERS,
                             "Content-Disposition": f'attachment; filename="{safe_name}"',
                         },
                     )
                 except (ValueError, IndexError):
                     pass
 
-        return web.json_response({"message": "Attachment not found"}, status=404)
+        return http_not_found("Attachment not found")
 
     @routes.get("/api/v1/lxmf-messages/{message_hash}/uri")
     async def lxmf_message_uri(request):
@@ -500,25 +475,16 @@ def register_lxmf_messages_routes(routes, app):
         raw_hash = request.match_info.get("message_hash")
         nh = normalized_meshchat_lxmf_message_hash_hex(raw_hash)
         if not nh:
-            return web.json_response(
-                {"message": "Invalid message hash"},
-                status=400,
-            )
+            return http_bad_request("Invalid message hash")
         hb = hex_identifier_to_bytes(nh)
         if hb is None:
-            return web.json_response(
-                {"message": "Invalid message hash"},
-                status=400,
-            )
+            return http_bad_request("Invalid message hash")
 
         lxm = find_lxm_by_content_hash_for_paper_uri(app.message_router, hb)
 
         if not lxm:
-            return web.json_response(
-                {
-                    "message": "Original message bytes not available for URI generation",
-                },
-                status=404,
+            return http_not_found(
+                "Original message bytes not available for URI generation"
             )
 
         uri, err_detail = lxmf_message_try_paper_uri_string(lxm)

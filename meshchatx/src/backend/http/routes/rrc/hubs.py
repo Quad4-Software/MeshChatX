@@ -6,11 +6,22 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.rrc._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+    http_unavailable,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 from meshchatx.src.backend.http.routes.rrc._helpers import (
     RRC_ROOM_MESSAGES_DEFAULT_LIMIT,
     RRC_ROOM_MESSAGES_MAX_LIMIT,
     make_rrc_helpers,
 )
+from meshchatx.src.backend.rrc import search as rrc_search
 
 
 def register_rrc_hubs_routes(routes, app):
@@ -33,20 +44,17 @@ def register_rrc_hubs_routes(routes, app):
         manager, error = _rrc_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         hub_hash_hex = (data.get("hub_hash") or "").strip()
         try:
             hub_hash = bytes.fromhex(hub_hash_hex)
         except (ValueError, TypeError):
-            return web.json_response(
-                {"message": "A valid hub hash is required"},
-                status=400,
-            )
+            return http_bad_request("A valid hub hash is required")
         if len(hub_hash) != rrc_protocol.HUB_HASH_BYTES:
-            return web.json_response(
-                {"message": "Hub hash has an invalid length"},
-                status=400,
-            )
+            return http_bad_request("Hub hash has an invalid length")
         dest_name = data.get("dest_name") or None
         name = data.get("name") or None
         hub = manager.add_hub(hub_hash, dest_name=dest_name, name=name)
@@ -69,7 +77,10 @@ def register_rrc_hubs_routes(routes, app):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if "auto_reconnect" in data:
             hub.set_auto_reconnect(bool(data["auto_reconnect"]))
         if "auto_list" in data:
@@ -86,7 +97,7 @@ def register_rrc_hubs_routes(routes, app):
             try:
                 hub.set_hub_icon(data.get("hub_icon"))
             except ValueError as e:
-                return web.json_response({"message": str(e)}, status=400)
+                return http_bad_request(str(e))
         if data.get("revert_hub_icon"):
             hub.set_hub_icon(None)
         return web.json_response({"hub": hub.to_dict()})
@@ -96,18 +107,15 @@ def register_rrc_hubs_routes(routes, app):
         manager, error = _rrc_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         hub_hashes = data.get("hub_hashes")
         if not isinstance(hub_hashes, list):
-            return web.json_response(
-                {"message": "hub_hashes must be a list"},
-                status=400,
-            )
+            return http_bad_request("hub_hashes must be a list")
         if not manager.reorder_hubs(hub_hashes):
-            return web.json_response(
-                {"message": "Invalid hub order"},
-                status=400,
-            )
+            return http_bad_request("Invalid hub order")
         return web.json_response(manager.to_dict())
 
     @routes.put("/api/v1/rrc/hubs/{hub_hash}/rooms/order")
@@ -115,18 +123,15 @@ def register_rrc_hubs_routes(routes, app):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         room_names = data.get("room_names")
         if not isinstance(room_names, list):
-            return web.json_response(
-                {"message": "room_names must be a list"},
-                status=400,
-            )
+            return http_bad_request("room_names must be a list")
         if not hub.reorder_rooms(room_names):
-            return web.json_response(
-                {"message": "Invalid room order"},
-                status=400,
-            )
+            return http_bad_request("Invalid room order")
         return web.json_response({"hub": hub.to_dict()})
 
     @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/list")
@@ -137,7 +142,7 @@ def register_rrc_hubs_routes(routes, app):
         try:
             hub.request_room_list()
         except (ValueError, RuntimeError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response(
             {"message": "Room list requested", "hub": hub.to_dict()},
         )
@@ -163,13 +168,13 @@ def register_rrc_hubs_routes(routes, app):
         manager, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         room = (data.get("room") or "").strip()
         if not room:
-            return web.json_response(
-                {"message": "A room name is required"},
-                status=400,
-            )
+            return http_bad_request("A room name is required")
         key = data.get("key")
         if isinstance(key, str):
             key = key.strip() or None
@@ -189,7 +194,7 @@ def register_rrc_hubs_routes(routes, app):
                 with contextlib.suppress(Exception):
                     manager.remember_room_key(hub, room, key)
         except (ValueError, RuntimeError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response(
             {
                 "hub": hub.to_dict(),
@@ -210,17 +215,17 @@ def register_rrc_hubs_routes(routes, app):
         if error is not None:
             return error
         room = request.match_info.get("room", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         key = data.get("key")
         if not isinstance(key, str) or not key.strip():
-            return web.json_response(
-                {"message": "A room key is required"},
-                status=400,
-            )
+            return http_bad_request("A room key is required")
         try:
             manager.remember_room_key(hub, room, key.strip())
         except (TypeError, ValueError, RuntimeError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response(
             {
                 "message": "Room key saved",
@@ -237,7 +242,7 @@ def register_rrc_hubs_routes(routes, app):
         try:
             deleted = manager.forget_room_key(hub, room)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response(
             {
                 "message": "Room key removed" if deleted else "No stored room key",
@@ -257,7 +262,7 @@ def register_rrc_hubs_routes(routes, app):
             else:
                 hub.remove_room(room)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"hub": hub.to_dict()})
 
     @routes.delete("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
@@ -268,7 +273,7 @@ def register_rrc_hubs_routes(routes, app):
         try:
             hub.clear_messages(request.match_info.get("room", ""))
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"message": "Messages cleared"})
 
     @routes.get("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
@@ -299,7 +304,7 @@ def register_rrc_hubs_routes(routes, app):
             )
             members = hub.members_dict(room)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         manager.set_active(hub, room)
         app._mark_rrc_mention_notifications_viewed(
             request.match_info.get("hub_hash", ""),
@@ -309,13 +314,35 @@ def register_rrc_hubs_routes(routes, app):
             {"messages": messages, "members": members, "has_more": has_more},
         )
 
+    @routes.get("/api/v1/rrc/search")
+    async def rrc_search_messages(request):
+        manager, error = _rrc_require_manager()
+        if error is not None:
+            return error
+        query = request.query.get("q", "")
+        if not isinstance(query, str) or not query.strip():
+            return web.json_response({"results": []})
+        try:
+            limit = int(request.query.get("limit", rrc_search.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            limit = rrc_search.DEFAULT_LIMIT
+        limit = max(1, min(limit, rrc_search.MAX_LIMIT))
+        with manager._lock:
+            hubs = list(manager.hubs)
+        return web.json_response(
+            {"results": rrc_search.search_hubs(hubs, query, limit=limit)},
+        )
+
     @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
     async def rrc_hub_send_message(request):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
         room = request.match_info.get("room", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         text = data.get("text")
         is_action = bool(data.get("action"))
         try:
@@ -326,7 +353,7 @@ def register_rrc_hubs_routes(routes, app):
             else:
                 hub.send_message(room, text)
         except (ValueError, RuntimeError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"message": "Sent"})
 
     @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/read")
@@ -340,7 +367,7 @@ def register_rrc_hubs_routes(routes, app):
         try:
             manager.set_active(hub, room)
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         app._mark_rrc_mention_notifications_viewed(
             request.match_info.get("hub_hash", ""),
             room,
@@ -351,10 +378,7 @@ def register_rrc_hubs_routes(routes, app):
     async def rrc_clear_active(request):
         manager = app.rrc_manager
         if manager is None:
-            return web.json_response(
-                {"message": "Relay chat is not available"},
-                status=503,
-            )
+            return http_unavailable("Relay chat is not available")
         manager.set_active(None, None)
         return web.json_response({"message": "Active room cleared"})
 
@@ -363,13 +387,16 @@ def register_rrc_hubs_routes(routes, app):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         text = data.get("text")
         room = data.get("room") or None
         try:
             hub.send_command(text, room=room)
         except (ValueError, RuntimeError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         return web.json_response({"message": "Sent"})
 
     # Reticulum Relay Chat hosting (local hubs)

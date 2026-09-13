@@ -6,6 +6,10 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.path_probe._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_unavailable,
+)
 
 
 def register_path_probe_ping_routes(routes, app):
@@ -26,19 +30,13 @@ def register_path_probe_ping_routes(routes, app):
                 destination_hash_str,
             )
         except ValueError:
-            return web.json_response(
-                {"message": "Ping failed. Invalid destination hash."},
-                status=400,
-            )
+            return http_bad_request("Ping failed. Invalid destination hash.")
         destination_hash_str = destination_hash.hex()
 
         timeout_raw = await read_path_probe_timeout_raw(request)
         timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)
         if timeout_error:
-            return web.json_response(
-                {"message": f"Ping failed. {timeout_error}"},
-                status=400,
-            )
+            return http_bad_request(f"Ping failed. {timeout_error}")
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
             timeout_seconds = int(
@@ -61,21 +59,13 @@ def register_path_probe_ping_routes(routes, app):
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):
-            return web.json_response(
-                {
-                    "message": "Ping failed. Could not find path to destination.",
-                },
-                status=503,
-            )
+            return http_unavailable("Ping failed. Could not find path to destination.")
 
         # find destination identity (pass string hash, not bytes)
         destination_identity = app.recall_identity(destination_hash_str)
         if destination_identity is None:
-            return web.json_response(
-                {
-                    "message": "Ping failed. Could not recall destination identity.",
-                },
-                status=503,
+            return http_unavailable(
+                "Ping failed. Could not recall destination identity."
             )
 
         # create outbound destination
@@ -101,11 +91,8 @@ def register_path_probe_ping_routes(routes, app):
 
         # ping failed if not delivered
         if receipt.status != RNS.PacketReceipt.DELIVERED:
-            return web.json_response(
-                {
-                    "message": f"Ping failed. Timed out after {timeout_seconds} seconds.",
-                },
-                status=503,
+            return http_unavailable(
+                f"Ping failed. Timed out after {timeout_seconds} seconds."
             )
 
         # get number of hops to destination and back from destination

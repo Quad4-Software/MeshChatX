@@ -6,6 +6,10 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.reticulum_instance._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_unexpected,
+)
+
 
 
 def register_reticulum_instance_transport_routes(routes, app):
@@ -17,19 +21,11 @@ def register_reticulum_instance_transport_routes(routes, app):
         reticulum_config = app._get_reticulum_section()
         reticulum_config["enable_transport"] = True
         if not app._write_reticulum_config():
-            return web.json_response(
-                {
-                    "message": "Failed to write Reticulum config",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         if not await app.reload_reticulum():
-            return web.json_response(
-                {
-                    "message": "Transport mode was enabled in config, but RNS reload failed.",
-                },
-                status=500,
+            return http_unexpected(
+                "Transport mode was enabled in config, but RNS reload failed."
             )
 
         return web.json_response(
@@ -51,19 +47,11 @@ def register_reticulum_instance_transport_routes(routes, app):
             reticulum_config,
         )
         if not app._write_reticulum_config():
-            return web.json_response(
-                {
-                    "message": "Failed to write Reticulum config",
-                },
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         if not await app.reload_reticulum():
-            return web.json_response(
-                {
-                    "message": "Transport mode was disabled in config, but RNS reload failed.",
-                },
-                status=500,
+            return http_unexpected(
+                "Transport mode was disabled in config, but RNS reload failed."
             )
 
         return web.json_response(
@@ -71,3 +59,4 @@ def register_reticulum_instance_transport_routes(routes, app):
                 "message": "Transport mode disabled and RNS restarted successfully.",
             },
         )
+

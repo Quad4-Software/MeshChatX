@@ -6,6 +6,17 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.reticulum_instance._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_reticulum_instance_discovery_routes(routes, app):
@@ -55,14 +66,14 @@ def register_reticulum_instance_discovery_routes(routes, app):
     @routes.patch("/api/v1/reticulum/discovery")
     async def reticulum_discovery_patch(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
 
         reticulum_config = app._get_reticulum_section()
+
 
         def update_config_value(key):
             if key not in data:
@@ -108,15 +119,11 @@ def register_reticulum_instance_discovery_routes(routes, app):
             else:
                 mode = InterfaceEditor.normalize_interface_mode(mode_raw)
                 if mode is None:
-                    return web.json_response(
-                        {
-                            "message": (
-                                "autoconnect_interface_mode must be one of: "
-                                "full, gateway, access_point, pointtopoint, "
-                                "roaming, boundary, internal"
-                            ),
-                        },
-                        status=422,
+                    return http_error(
+                        422,
+                        "autoconnect_interface_mode must be one of: "
+                        "full, gateway, access_point, pointtopoint, "
+                        "roaming, boundary, internal",
                     )
                 reticulum_config["autoconnect_interface_mode"] = mode
 
@@ -129,14 +136,10 @@ def register_reticulum_instance_discovery_routes(routes, app):
                 if raw is None or raw == "":
                     reticulum_config.pop("autoconnect_announces_to_internal", None)
                 else:
-                    return web.json_response(
-                        {
-                            "message": (
-                                "autoconnect_announces_to_internal must be "
-                                "a boolean or yes/no value"
-                            ),
-                        },
-                        status=422,
+                    return http_error(
+                        422,
+                        "autoconnect_announces_to_internal must be "
+                        "a boolean or yes/no value",
                     )
             else:
                 reticulum_config["autoconnect_announces_to_internal"] = yn
@@ -151,14 +154,10 @@ def register_reticulum_instance_discovery_routes(routes, app):
             try:
                 gravity = int(value)
             except (TypeError, ValueError):
-                return web.json_response(
-                    {"message": f"{gravity_key} must be an integer"},
-                    status=422,
-                )
+                return http_error(422, f"{gravity_key} must be an integer")
             if gravity < -10_000 or gravity > 10_000:
-                return web.json_response(
-                    {"message": f"{gravity_key} must be between -10000 and 10000"},
-                    status=422,
+                return http_error(
+                    422, f"{gravity_key} must be between -10000 and 10000"
                 )
             reticulum_config[gravity_key] = gravity
 
@@ -183,29 +182,18 @@ def register_reticulum_instance_discovery_routes(routes, app):
             )
 
         if not app._write_reticulum_config():
-            return web.json_response(
-                {"message": "Failed to write Reticulum config"},
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         try:
             reloaded = await app.reload_reticulum()
             if reloaded is False:
-                return web.json_response(
-                    {
-                        "message": "Discovery settings saved but RNS reload failed",
-                        "reloaded": False,
-                    },
-                    status=500,
+                return http_unexpected(
+                    "Discovery settings saved but RNS reload failed", reloaded=False
                 )
         except Exception as e:
             logger.debug(f"Failed to reload RNS after discovery config update: {e}")
-            return web.json_response(
-                {
-                    "message": f"Discovery settings saved but RNS reload failed: {e}",
-                    "reloaded": False,
-                },
-                status=500,
+            return http_unexpected(
+                "Discovery settings saved but RNS reload failed", reloaded=False
             )
 
         discovery_config = {
@@ -247,8 +235,11 @@ def register_reticulum_instance_discovery_routes(routes, app):
 
         return web.json_response({"discovery": discovery_config})
 
-    @routes.get("/api/v1/reticulum/discovered-interfaces")
-    async def reticulum_discovered_interfaces(request):
+    def _collect_discovered_interfaces():
+        now = time.time()
+        cache = getattr(app, "_discovered_interfaces_cache", None)
+        if cache and now - cache["ts"] < 3.0:
+            return cache["payload"]
         try:
             discovery = InterfaceDiscovery(discover_interfaces=False)
             interfaces = discovery.list_discovered_interfaces()
@@ -356,16 +347,21 @@ def register_reticulum_instance_discovery_routes(routes, app):
                     else False
                 )
 
-            return web.json_response(
-                {
-                    "interfaces": normalized_interfaces,
-                    "active": to_jsonable(active),
-                },
-            )
+            payload = {
+                "interfaces": normalized_interfaces,
+                "active": to_jsonable(active),
+            }
+            app._discovered_interfaces_cache = {"ts": now, "payload": payload}
+            return payload
         except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to load discovered interfaces: {e!s}"},
-                status=500,
-            )
+            raise RuntimeError(f"Failed to load discovered interfaces: {e!s}") from e
+
+    @routes.get("/api/v1/reticulum/discovered-interfaces")
+    async def reticulum_discovered_interfaces(request):
+        try:
+            payload = await asyncio.to_thread(_collect_discovered_interfaces)
+            return web.json_response(payload)
+        except Exception:
+            return http_unexpected("Failed to load discovered interfaces")
 
     # enable transport mode

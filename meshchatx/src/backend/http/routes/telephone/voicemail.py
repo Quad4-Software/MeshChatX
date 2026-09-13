@@ -5,6 +5,19 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_not_found,
+    http_payload_too_large,
+    http_unavailable,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    UPLOAD_LIMITS,
+    write_field_to_path,
+)
+
 
 
 def register_telephone_voicemail_routes(routes, app):
@@ -107,7 +120,7 @@ def register_telephone_voicemail_routes(routes, app):
                 os.remove(filepath)
             app.database.voicemails.delete_voicemail(voicemail_id)
             return web.json_response({"message": "Voicemail deleted"})
-        return web.json_response({"message": "Voicemail not found"}, status=404)
+        return http_not_found("Voicemail not found")
 
     # serve greeting audio
 
@@ -123,10 +136,7 @@ def register_telephone_voicemail_routes(routes, app):
                 filepath,
                 headers={"Content-Type": "audio/opus"},
             )
-        return web.json_response(
-            {"message": "Greeting audio not found"},
-            status=404,
-        )
+        return http_not_found("Greeting audio not found")
 
     # serve voicemail audio
 
@@ -137,16 +147,10 @@ def register_telephone_voicemail_routes(routes, app):
         try:
             voicemail_id = int(voicemail_id)
         except (ValueError, TypeError):
-            return web.json_response(
-                {"message": "Invalid voicemail ID"},
-                status=400,
-            )
+            return http_bad_request("Invalid voicemail ID")
 
         if not app.voicemail_manager:
-            return web.json_response(
-                {"message": "Voicemail manager not available"},
-                status=503,
-            )
+            return http_unavailable("Voicemail manager not available")
 
         voicemail = app.database.voicemails.get_voicemail(voicemail_id)
         if voicemail:
@@ -164,10 +168,7 @@ def register_telephone_voicemail_routes(routes, app):
                 f"Voicemail: Recording file missing for ID {voicemail_id}: {filepath}",
                 RNS.LOG_ERROR,
             )
-        return web.json_response(
-            {"message": "Voicemail audio not found"},
-            status=404,
-        )
+        return http_not_found("Voicemail audio not found")
 
     # list call recordings
 
@@ -184,7 +185,7 @@ def register_telephone_voicemail_routes(routes, app):
                 {"message": "Greeting generated", "path": path},
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # upload greeting
 
@@ -195,27 +196,21 @@ def register_telephone_voicemail_routes(routes, app):
             reader = await request.multipart()
             field = await first_multipart_file_field(reader)
             if field is None:
-                return web.json_response(
-                    {"message": "File field required"},
-                    status=400,
-                )
+                return http_bad_request("File field required")
 
             filename = field.filename or "upload"
             extension = os.path.splitext(filename)[1].lower()
             if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
-                return web.json_response(
-                    {"message": f"Unsupported file type: {extension}"},
-                    status=400,
-                )
+                return http_bad_request(f"Unsupported file type: {extension}")
 
             # Save temp file
             with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
                 temp_path = f.name
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    f.write(chunk)
+            await write_field_to_path(
+                field,
+                temp_path,
+                UPLOAD_LIMITS["audio_upload"],
+            )
 
             try:
                 # Convert to greeting
@@ -230,8 +225,10 @@ def register_telephone_voicemail_routes(routes, app):
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
 
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # delete greeting
 
@@ -242,6 +239,6 @@ def register_telephone_voicemail_routes(routes, app):
             app.voicemail_manager.remove_greeting()
             return web.json_response({"message": "Greeting deleted"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     # ringtone routes

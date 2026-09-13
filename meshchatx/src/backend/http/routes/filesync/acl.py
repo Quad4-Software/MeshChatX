@@ -9,6 +9,16 @@ from typing import Any
 from meshchatx.src.backend.http.routes.filesync._helpers import make_filesync_helpers
 from meshchatx.src.backend.http.routes.filesync._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_filesync_acl_routes(routes: Any, app: Any) -> None:
     (_filesync_require_handler,) = make_filesync_helpers(app)
@@ -25,15 +35,15 @@ def register_filesync_acl_routes(routes: Any, app: Any) -> None:
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON body"}, status=400)
+            return http_bad_request("Invalid JSON body")
         perms = data.get("perms")
         if perms is not None and not isinstance(perms, list):
-            return web.json_response(
-                {"message": "perms must be a list"},
-                status=400,
-            )
+            return http_bad_request("perms must be a list")
         try:
             result = await asyncio.to_thread(
                 app.rns_filesync_handler.update_acl,
@@ -44,10 +54,7 @@ def register_filesync_acl_routes(routes: Any, app: Any) -> None:
                 replace=bool(data.get("replace", False)),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "acl update failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "acl update failed"))
         return web.json_response(result)
