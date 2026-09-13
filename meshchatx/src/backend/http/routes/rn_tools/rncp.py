@@ -6,6 +6,17 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.rn_tools._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 from meshchatx.src.backend.http.routes.rn_tools._helpers import make_rn_tools_helpers
 
 
@@ -17,7 +28,10 @@ def register_rn_tools_rncp_routes(routes, app):
 
     @routes.post("/api/v1/rncp/send")
     async def rncp_send(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash_str = data.get("destination_hash", "")
         file_path = data.get("file_path", "")
         timeout_raw = data.get("timeout")
@@ -30,10 +44,7 @@ def register_rn_tools_rncp_routes(routes, app):
         try:
             destination_hash = bytes.fromhex(destination_hash_str)
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid destination hash: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Invalid destination hash: {e}")
 
         transfer_id = None
 
@@ -74,14 +85,14 @@ def register_rn_tools_rncp_routes(routes, app):
             )
             return web.json_response(result)
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rncp/fetch")
     async def rncp_fetch(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash_str = data.get("destination_hash", "")
         file_path = data.get("file_path", "")
         timeout_raw = data.get("timeout")
@@ -95,10 +106,7 @@ def register_rn_tools_rncp_routes(routes, app):
         try:
             destination_hash = bytes.fromhex(destination_hash_str)
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid destination hash: {e}"},
-                status=400,
-            )
+            return http_bad_request(f"Invalid destination hash: {e}")
 
         transfer_id = None
 
@@ -139,10 +147,7 @@ def register_rn_tools_rncp_routes(routes, app):
             )
             return web.json_response(result)
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rncp/transfer/{transfer_id}")
     async def rncp_transfer_status(request):
@@ -150,14 +155,14 @@ def register_rn_tools_rncp_routes(routes, app):
         status = app.rncp_handler.get_transfer_status(transfer_id)
         if status:
             return web.json_response(status)
-        return web.json_response(
-            {"message": "Transfer not found"},
-            status=404,
-        )
+        return http_not_found("Transfer not found")
 
     @routes.post("/api/v1/rncp/listen")
     async def rncp_listen(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         allowed_hashes = data.get("allowed_hashes", [])
         fetch_allowed = bool(data.get("fetch_allowed", False))
         fetch_jail = data.get("fetch_jail")
@@ -177,10 +182,7 @@ def register_rn_tools_rncp_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"message": str(e)},
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rncp/status")
     async def rncp_status(_request):
@@ -192,13 +194,17 @@ def register_rn_tools_rncp_routes(routes, app):
             app.rncp_handler.teardown_receive_destination()
             return web.json_response({"message": "RNCP listener stopped"})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rncp/cancel")
     async def rncp_cancel(request):
         data = {}
-        with contextlib.suppress(Exception):
-            data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            pass
         transfer_id = None
         if isinstance(data, dict):
             raw = data.get("transfer_id")
@@ -208,4 +214,5 @@ def register_rn_tools_rncp_routes(routes, app):
             result = app.rncp_handler.cancel_transfer(transfer_id)
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
+

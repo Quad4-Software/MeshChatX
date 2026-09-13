@@ -6,6 +6,18 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.reticulum_instance._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_conflict,
+    http_error_from_exception,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_reticulum_instance_instance_routes(routes, app):
@@ -21,17 +33,13 @@ def register_reticulum_instance_instance_routes(routes, app):
     async def reticulum_instance_patch(request):
         """Update [reticulum] shared-instance / hop-obfuscation options and reload."""
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         if not isinstance(data, dict):
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
 
         reticulum_config = app._get_reticulum_section()
         changed = False
@@ -57,11 +65,8 @@ def register_reticulum_instance_instance_routes(routes, app):
             else:
                 cleaned = str(name).strip()
                 if len(cleaned) > 64 or any(c.isspace() for c in cleaned):
-                    return web.json_response(
-                        {
-                            "message": "instance_name must be 1-64 characters without whitespace",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "instance_name must be 1-64 characters without whitespace"
                     )
                 reticulum_config["instance_name"] = cleaned
             changed = True
@@ -73,11 +78,8 @@ def register_reticulum_instance_instance_routes(routes, app):
             else:
                 cleaned_type = str(raw_type).strip().lower()
                 if cleaned_type not in ("tcp", "unix"):
-                    return web.json_response(
-                        {
-                            "message": "shared_instance_type must be 'tcp' or 'unix'",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "shared_instance_type must be 'tcp' or 'unix'"
                     )
                 reticulum_config["shared_instance_type"] = cleaned_type
             changed = True
@@ -88,7 +90,7 @@ def register_reticulum_instance_instance_routes(routes, app):
                     data.get("remote_management_allowed"),
                 )
             except ValueError as e:
-                return web.json_response({"message": str(e)}, status=400)
+                return http_bad_request(str(e))
             if allowed:
                 reticulum_config["remote_management_allowed"] = allowed
             else:
@@ -101,18 +103,12 @@ def register_reticulum_instance_instance_routes(routes, app):
             )
 
         if not app._write_reticulum_config():
-            return web.json_response(
-                {"message": "Failed to write Reticulum config"},
-                status=500,
-            )
+            return http_unexpected("Failed to write Reticulum config")
 
         if not await app.reload_reticulum():
-            return web.json_response(
-                {
-                    "message": "Instance settings were saved, but RNS reload failed.",
-                    "instance": app._build_reticulum_instance_settings(),
-                },
-                status=500,
+            return http_unexpected(
+                "Instance settings were saved, but RNS reload failed.",
+                instance=app._build_reticulum_instance_settings(),
             )
 
         return web.json_response(
@@ -140,12 +136,11 @@ def register_reticulum_instance_instance_routes(routes, app):
         )
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         name = (data or {}).get("name")
         force = bool((data or {}).get("force", False))
         try:
@@ -155,11 +150,11 @@ def register_reticulum_instance_instance_routes(routes, app):
                 force=force,
             )
         except FileExistsError as e:
-            return web.json_response({"message": str(e)}, status=409)
+            return http_conflict(str(e))
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response({"identity": identity})
 
     @routes.post("/api/v1/reticulum/reload")
@@ -167,7 +162,5 @@ def register_reticulum_instance_instance_routes(routes, app):
         success = await app.reload_reticulum()
         if success:
             return web.json_response({"message": "Reticulum reloaded successfully"})
-        return web.json_response(
-            {"error": "Failed to reload Reticulum"},
-            status=500,
-        )
+        return http_unexpected("Failed to reload Reticulum")
+

@@ -6,6 +6,17 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.rn_tools._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 from meshchatx.src.backend.http.routes.rn_tools._helpers import make_rn_tools_helpers
 
 
@@ -27,11 +38,14 @@ def register_rn_tools_rnsh_routes(routes, app):
         manager, error = _rnsh_require_manager()
         if error is not None:
             return error
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         try:
             session = manager.create_session(data or {})
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         autostart = bool((data or {}).get("autostart", True))
         if autostart:
             try:
@@ -39,7 +53,7 @@ def register_rn_tools_rnsh_routes(routes, app):
             except Exception as e:
                 with contextlib.suppress(Exception):
                     manager.remove_session(session.session_id)
-                return web.json_response({"message": str(e)}, status=400)
+                return http_error_from_exception(e, key="message")
         return web.json_response(
             {"session": session.to_dict(include_output_tail=True)},
         )
@@ -53,9 +67,9 @@ def register_rn_tools_rnsh_routes(routes, app):
         try:
             manager.remove_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         return web.json_response({"message": "Session removed"})
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/start")
@@ -67,9 +81,9 @@ def register_rn_tools_rnsh_routes(routes, app):
         try:
             session = manager.start_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/stop")
@@ -81,9 +95,9 @@ def register_rn_tools_rnsh_routes(routes, app):
         try:
             session = manager.stop_session(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/input")
@@ -92,22 +106,22 @@ def register_rn_tools_rnsh_routes(routes, app):
         if error is not None:
             return error
         session_id = request.match_info.get("session_id", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         text = data.get("text")
         if not isinstance(text, str):
-            return web.json_response(
-                {"message": "Input text is required"},
-                status=400,
-            )
+            return http_bad_request("Input text is required")
         add_newline = bool(data.get("newline", False))
         if add_newline and not text.endswith("\n"):
             text += "\n"
         try:
             session = manager.send_input(session_id, text)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/resize")
@@ -116,15 +130,18 @@ def register_rn_tools_rnsh_routes(routes, app):
         if error is not None:
             return error
         session_id = request.match_info.get("session_id", "")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         rows = (data or {}).get("rows")
         cols = (data or {}).get("cols")
         try:
             session = manager.resize_session(session_id, rows, cols)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
 
     @routes.get("/api/v1/rnsh/sessions/{session_id}/output")
@@ -137,9 +154,9 @@ def register_rn_tools_rnsh_routes(routes, app):
         try:
             payload = manager.output_since(session_id, cursor)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response(payload)
 
     @routes.post("/api/v1/rnsh/sessions/{session_id}/clear")
@@ -151,7 +168,8 @@ def register_rn_tools_rnsh_routes(routes, app):
         try:
             session = manager.clear_output(session_id)
         except KeyError:
-            return web.json_response({"message": "Session not found"}, status=404)
+            return http_not_found("Session not found")
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
+

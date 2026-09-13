@@ -7,6 +7,17 @@ from typing import Any
 
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.stickers._names import *  # noqa: F403
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_conflict,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_stickers_items_routes(routes: Any, app: Any) -> None:
@@ -20,16 +31,18 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
     async def stickers_create(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         image_b64 = data.get("image_bytes")
         if not isinstance(image_b64, str) or not image_b64.strip():
-            return web.json_response({"error": "missing_image_bytes"}, status=400)
+            return http_bad_request("missing_image_bytes")
         try:
             raw = base64.b64decode(image_b64.strip(), validate=True)
         except (ValueError, TypeError):
-            return web.json_response({"error": "invalid_base64"}, status=400)
+            return http_bad_request("invalid_base64")
         name = sanitize_sticker_name(data.get("name"))
         image_type = data.get("image_type")
         src = data.get("source_message_hash")
@@ -42,10 +55,10 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
             try:
                 pack_id = int(pack_id_raw)
             except (TypeError, ValueError):
-                return web.json_response({"error": "invalid_pack_id"}, status=400)
+                return http_bad_request("invalid_pack_id")
             pack_row = app.database.sticker_packs.get_row(pack_id, identity_hash)
             if pack_row is None:
-                return web.json_response({"error": "pack_not_found"}, status=404)
+                return http_not_found("pack_not_found")
         try:
             row = app.database.stickers.insert(
                 identity_hash,
@@ -58,9 +71,9 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
                 strict=strict,
             )
         except ValueError as e:
-            return web.json_response({"error": str(e)}, status=400)
+            return http_bad_request(str(e))
         if row is None:
-            return web.json_response({"error": "duplicate_sticker"}, status=409)
+            return http_conflict("duplicate_sticker")
         return web.json_response({"sticker": row})
 
     @routes.delete("/api/v1/stickers/{sticker_id}")
@@ -69,7 +82,7 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
         sticker_id = int(request.match_info.get("sticker_id", "0"))
         ok = app.database.stickers.delete(sticker_id, identity_hash)
         if not ok:
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         return web.json_response({"message": "deleted"})
 
     @routes.patch("/api/v1/stickers/{sticker_id}")
@@ -77,9 +90,11 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
         identity_hash = app.identity.hash.hex()
         sticker_id = int(request.match_info.get("sticker_id", "0"))
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         applied = False
         if "name" in data:
             name = sanitize_sticker_name(data.get("name"))
@@ -88,7 +103,7 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
                 identity_hash,
                 name,
             ):
-                return web.json_response({"error": "not_found"}, status=404)
+                return http_not_found("not_found")
             applied = True
         if "emoji" in data:
             emoji = sanitize_sticker_emoji(data.get("emoji"))
@@ -97,7 +112,7 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
                 identity_hash,
                 emoji,
             ):
-                return web.json_response({"error": "not_found"}, status=404)
+                return http_not_found("not_found")
             applied = True
         if "pack_id" in data:
             pid_raw = data.get("pack_id")
@@ -106,24 +121,18 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
                 try:
                     pid = int(pid_raw)
                 except (TypeError, ValueError):
-                    return web.json_response(
-                        {"error": "invalid_pack_id"},
-                        status=400,
-                    )
+                    return http_bad_request("invalid_pack_id")
                 if app.database.sticker_packs.get_row(pid, identity_hash) is None:
-                    return web.json_response(
-                        {"error": "pack_not_found"},
-                        status=404,
-                    )
+                    return http_not_found("pack_not_found")
             if not app.database.stickers.assign_to_pack(
                 sticker_id,
                 identity_hash,
                 pid,
             ):
-                return web.json_response({"error": "not_found"}, status=404)
+                return http_not_found("not_found")
             applied = True
         if not applied:
-            return web.json_response({"error": "nothing_to_update"}, status=400)
+            return http_bad_request("nothing_to_update")
         return web.json_response({"message": "updated"})
 
     @routes.get("/api/v1/stickers/{sticker_id}/image")
@@ -132,6 +141,7 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
         sticker_id = int(request.match_info.get("sticker_id", "0"))
         row = app.database.stickers.get_row(sticker_id, identity_hash)
         if row is None:
-            return web.json_response({"error": "not_found"}, status=404)
+            return http_not_found("not_found")
         ct = mime_for_image_type(row["image_type"])
         return web.Response(body=row["image_blob"], content_type=ct)
+

@@ -6,6 +6,17 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.lxmf._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_payload_too_large,
+    http_unavailable,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_lxmf_propagation_routes(routes, app):
 
@@ -89,11 +100,8 @@ def register_lxmf_propagation_routes(routes, app):
         # ensure propagation node is configured before attempting to sync
         outbound_node = app.message_router.get_outbound_propagation_node()
         if outbound_node is None:
-            return web.json_response(
-                {
-                    "message": "A propagation node must be configured to sync messages.",
-                },
-                status=400,
+            return http_bad_request(
+                "A propagation node must be configured to sync messages."
             )
 
         # proactively request path, but do not block/fail here.
@@ -133,23 +141,25 @@ def register_lxmf_propagation_routes(routes, app):
     async def propagation_node_cancel_inbound(request):
         router = app.message_router
         data = {}
-        with contextlib.suppress(Exception):
-            data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            pass
         if not isinstance(data, dict):
             data = {}
         resource_hash = data.get("resource_hash")
         result = cancel_inbound_deliveries(router, resource_hash=resource_hash)
         if not result.get("ok"):
             status = 503 if "unavailable" in str(result.get("error") or "") else 400
-            return web.json_response(
-                {
-                    "message": result.get(
-                        "error",
-                        "Failed to cancel inbound deliveries",
-                    ),
-                    "cancelled": result.get("cancelled", 0),
-                },
-                status=status,
+            return http_error(
+                status,
+                result.get(
+                    "error",
+                    "Failed to cancel inbound deliveries",
+                ),
+                cancelled=result.get("cancelled", 0),
             )
         cancelled = int(result.get("cancelled") or 0)
         if resource_hash:
@@ -201,12 +211,7 @@ def register_lxmf_propagation_routes(routes, app):
     async def propagation_nodes_get(request):
         ctx = app.current_context
         if not ctx or not getattr(ctx, "running", False) or ctx.database is None:
-            return web.json_response(
-                {
-                    "message": "Application is initializing or switching identity",
-                },
-                status=503,
-            )
+            return http_unavailable("Application is initializing or switching identity")
         database = ctx.database
         # get query params
         limit = request.query.get("limit", None)
@@ -367,10 +372,12 @@ def register_lxmf_propagation_routes(routes, app):
         destination_hashes = None
         if request.method == "POST":
             try:
-                body = await request.json()
+                body = await read_json_limited(request)
                 destination_hashes = body.get("destination_hashes")
                 if destination_hashes and not isinstance(destination_hashes, list):
                     destination_hashes = None
+            except PayloadTooLargeError:
+                return http_payload_too_large()
             except Exception:
                 pass
 

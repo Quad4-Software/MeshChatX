@@ -6,6 +6,20 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.map._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    UPLOAD_LIMITS,
+    read_json_limited,
+    write_field_to_path,
+)
+
 
 
 def register_map_tiles_routes(routes, app):
@@ -25,9 +39,7 @@ def register_map_tiles_routes(routes, app):
     async def restore_starter_mbtiles(request):
         path = app.map_manager.ensure_starter_mbtiles(force_restore=True)
         if not path:
-            return web.json_response(
-                {"error": "Could not restore starter tiles"}, status=500
-            )
+            return http_unexpected("Could not restore starter tiles")
         return web.json_response(
             {
                 "message": "Starter tiles restored",
@@ -74,15 +86,22 @@ def register_map_tiles_routes(routes, app):
         filename = request.match_info.get("filename")
         if app.map_manager.delete_mbtiles(filename):
             return web.json_response({"message": "File deleted"})
-        return web.json_response({"error": "File not found"}, status=404)
+        return http_not_found("File not found")
 
     # set active MBTiles file
 
     # set active MBTiles file
     @routes.post("/api/v1/map/mbtiles/active")
     async def set_active_mbtiles(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         filename = data.get("filename")
+        if filename is not None and (
+            not isinstance(filename, str) or "\x00" in filename
+        ):
+            return http_bad_request("Invalid filename")
         if not filename:
             app.config.map_offline_path.set(None)
             app.config.map_offline_enabled.set(False)
@@ -92,7 +111,7 @@ def register_map_tiles_routes(routes, app):
         safe_name = os.path.basename(filename)
         file_path = os.path.join(mbtiles_dir, safe_name)
         if not is_path_within_dir(file_path, mbtiles_dir):
-            return web.json_response({"error": "Invalid filename"}, status=400)
+            return http_bad_request("Invalid filename")
         if os.path.exists(file_path):
             app.map_manager.close()
             app.config.map_offline_path.set(file_path)
@@ -103,7 +122,7 @@ def register_map_tiles_routes(routes, app):
                     "metadata": app.map_manager.get_metadata(),
                 },
             )
-        return web.json_response({"error": "File not found"}, status=404)
+        return http_not_found("File not found")
 
     # map drawings
 
@@ -114,14 +133,11 @@ def register_map_tiles_routes(routes, app):
             reader = await request.multipart()
             field = await reader.next()
             if field.name != "file":
-                return web.json_response({"error": "No file field"}, status=400)
+                return http_bad_request("No file field")
 
             filename = os.path.basename(field.filename or "")
             if not is_mbtiles_filename(filename):
-                return web.json_response(
-                    {"error": "Invalid file format, must be .mbtiles"},
-                    status=400,
-                )
+                return http_bad_request("Invalid file format, must be .mbtiles")
 
             mbtiles_dir = app.map_manager.get_mbtiles_dir()
             if not os.path.exists(mbtiles_dir):
@@ -129,19 +145,13 @@ def register_map_tiles_routes(routes, app):
 
             dest_path = os.path.join(mbtiles_dir, filename)
             if not is_path_within_dir(dest_path, mbtiles_dir):
-                return web.json_response(
-                    {"error": "Invalid filename"},
-                    status=400,
-                )
+                return http_bad_request("Invalid filename")
 
-            size = 0
-            with open(dest_path, "wb") as f:
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    f.write(chunk)
+            await write_field_to_path(
+                field,
+                dest_path,
+                UPLOAD_LIMITS["map_offline_mbtiles"],
+            )
 
             # close old connection and clear cache before update
             app.map_manager.close()
@@ -158,11 +168,8 @@ def register_map_tiles_routes(routes, app):
                     os.remove(dest_path)
                 app.config.map_offline_path.set(None)
                 app.config.map_offline_enabled.set(False)
-                return web.json_response(
-                    {
-                        "error": "Invalid MBTiles file or unsupported format (vector maps not supported)",
-                    },
-                    status=400,
+                return http_bad_request(
+                    "Invalid MBTiles file or unsupported format (vector maps not supported)"
                 )
 
             return web.json_response(
@@ -171,8 +178,10 @@ def register_map_tiles_routes(routes, app):
                     "metadata": metadata,
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             RNS.log(f"Error uploading map: {e}", RNS.LOG_ERROR)
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # start map export

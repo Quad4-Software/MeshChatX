@@ -6,6 +6,10 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.path_probe._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+)
+
 
 
 def register_path_probe_destination_routes(routes, app):
@@ -85,18 +89,12 @@ def register_path_probe_destination_routes(routes, app):
         try:
             destination_hash = lxmf_delivery_hash_bytes_for_path(app, destination_hash)
         except ValueError:
-            return web.json_response(
-                {"message": "invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("invalid destination hash")
         destination_hash_hex = destination_hash.hex()
 
         request_query_param = request.query.get("request", "false")
         if request_query_param in ("true", "1"):
-            return web.json_response(
-                {"message": PATH_WAIT_REQUIRES_POST_MESSAGE},
-                status=400,
-            )
+            return http_bad_request(PATH_WAIT_REQUIRES_POST_MESSAGE)
 
         if destination_hash_hex in local_destination_hashes(app):
             return local_path_response(destination_hash_hex)
@@ -112,16 +110,13 @@ def register_path_probe_destination_routes(routes, app):
                 destination_hash,
             )
         except ValueError:
-            return web.json_response(
-                {"message": "invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("invalid destination hash")
         destination_hash_hex = destination_hash_bytes.hex()
 
         timeout_raw = await read_path_probe_timeout_raw(request)
         timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)
         if timeout_error:
-            return web.json_response({"message": timeout_error}, status=400)
+            return http_bad_request(timeout_error)
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
             timeout_seconds = path_response_window(
@@ -146,7 +141,10 @@ def register_path_probe_destination_routes(routes, app):
             await asyncio.sleep(0.1)
 
         if RNS.Transport.has_path(destination_hash_bytes):
-            maybe_resend_failed_for_current(app, destination_hash)
+            maybe_resend_failed_for_current(
+                app,
+                lxmf_delivery_hash_hex_for_path(app, destination_hash),
+            )
 
         return destination_path_snapshot(destination_hash_bytes)
 
@@ -164,10 +162,7 @@ def register_path_probe_destination_routes(routes, app):
                 destination_hash,
             )
         except ValueError:
-            return web.json_response(
-                {"message": "invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("invalid destination hash")
 
         # drop path
         if hasattr(app, "reticulum") and app.reticulum:
@@ -191,12 +186,7 @@ def register_path_probe_destination_routes(routes, app):
                 destination_hash,
             )
         except ValueError:
-            return web.json_response(
-                {
-                    "message": "invalid destination hash",
-                },
-                status=400,
-            )
+            return http_bad_request("invalid destination hash")
         reticulum = app.reticulum if hasattr(app, "reticulum") else None
         reticulum_pathfinding.prepare_fresh_path_request(
             reticulum,

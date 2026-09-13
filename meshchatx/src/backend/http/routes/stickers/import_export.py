@@ -7,6 +7,15 @@ from typing import Any
 
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.stickers._names import *  # noqa: F403
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_stickers_import_export_routes(routes: Any, app: Any) -> None:
@@ -26,17 +35,20 @@ def register_stickers_import_export_routes(routes: Any, app: Any) -> None:
     async def stickers_import(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await request.json()
+            data = await read_json_limited(request, _STICKER_DOC_MAX_BYTES)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):
-            return web.json_response({"error": "invalid_json"}, status=400)
+            return http_bad_request("invalid_json")
         replace = bool(data.get("replace_duplicates", False))
         try:
             items = validate_export_document(data)
         except ValueError as e:
-            return web.json_response({"error": str(e)}, status=400)
+            return http_bad_request(str(e))
         result = app.database.stickers.import_payloads(
             identity_hash,
             items,
             replace_duplicates=replace,
         )
         return web.json_response(result)
+

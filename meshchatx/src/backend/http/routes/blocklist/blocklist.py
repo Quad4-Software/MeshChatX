@@ -8,6 +8,16 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.blocklist._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_blocklist_blocklist_routes(routes: Any, app: Any) -> None:
     @routes.get("/api/v1/blocked-destinations")
@@ -35,21 +45,18 @@ def register_blocklist_blocklist_routes(routes: Any, app: Any) -> None:
 
     @routes.post("/api/v1/blocked-destinations")
     async def blocked_destinations_add(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash", "")
         if not destination_hash or len(destination_hash) != 32:
-            return web.json_response(
-                {"error": "Invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("Invalid destination hash")
 
         try:
             app.banish_lxmf_peer(destination_hash)
         except Exception:
-            return web.json_response(
-                {"error": "Failed to banish destination"},
-                status=400,
-            )
+            return http_bad_request("Failed to banish destination")
 
         return web.json_response({"message": "ok"})
 
@@ -57,13 +64,10 @@ def register_blocklist_blocklist_routes(routes: Any, app: Any) -> None:
     async def blocked_destinations_delete(request):
         destination_hash = request.match_info.get("destination_hash", "")
         if not destination_hash or len(destination_hash) != 32:
-            return web.json_response(
-                {"error": "Invalid destination hash"},
-                status=400,
-            )
+            return http_bad_request("Invalid destination hash")
 
         try:
             app.lift_lxmf_peer_banishment(destination_hash)
             return web.json_response({"message": "ok"})
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)

@@ -8,6 +8,18 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.favourites._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_favourites_favourites_crud_routes(routes: Any, app: Any) -> None:
     # serve favourites
@@ -39,37 +51,25 @@ def register_favourites_favourites_crud_routes(routes: Any, app: Any) -> None:
     @routes.post("/api/v1/favourites/add")
     async def favourites_add(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash", None)
         display_name = data.get("display_name", None)
         aspect = data.get("aspect", None)
 
         # destination hash is required
         if destination_hash is None:
-            return web.json_response(
-                {
-                    "message": "destination_hash is required",
-                },
-                status=422,
-            )
+            return http_error(422, "destination_hash is required")
 
         # display name is required
         if display_name is None:
-            return web.json_response(
-                {
-                    "message": "display_name is required",
-                },
-                status=422,
-            )
+            return http_error(422, "display_name is required")
 
         # aspect is required
         if aspect is None:
-            return web.json_response(
-                {
-                    "message": "aspect is required",
-                },
-                status=422,
-            )
+            return http_error(422, "aspect is required")
 
         # upsert favourite
         app.database.announces.upsert_favourite(
@@ -92,7 +92,10 @@ def register_favourites_favourites_crud_routes(routes: Any, app: Any) -> None:
         destination_hash = request.match_info.get("destination_hash", "")
 
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         raw_name = data.get("display_name")
         if raw_name is None:
             display_name = ""
@@ -105,10 +108,7 @@ def register_favourites_favourites_crud_routes(routes: Any, app: Any) -> None:
             destination_hash,
         )
         if favourite is None:
-            return web.json_response(
-                {"message": "Favourite not found"},
-                status=404,
-            )
+            return http_not_found("Favourite not found")
 
         # update display name if provided
         if len(display_name) > 0:
@@ -132,17 +132,13 @@ def register_favourites_favourites_crud_routes(routes: Any, app: Any) -> None:
     async def favourites_identify_on_connect(request):
         destination_hash = request.match_info.get("destination_hash", "")
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         if not isinstance(data, dict):
-            return web.json_response(
-                {"message": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
 
         enabled = bool(data.get("enabled"))
         aspect = data.get("aspect") or "nomadnetwork.node"
@@ -239,14 +235,11 @@ def register_favourites_favourites_crud_routes(routes: Any, app: Any) -> None:
     @routes.post("/api/v1/favourites/import")
     async def favourites_import(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             entries = data.get("favourites", [])
             if not isinstance(entries, list):
-                return web.json_response(
-                    {
-                        "message": "Invalid import format: favourites must be an array",
-                    },
-                    status=400,
+                return http_bad_request(
+                    "Invalid import format: favourites must be an array",
                 )
             seen = {}
             no_hash = []
@@ -287,8 +280,7 @@ def register_favourites_favourites_crud_routes(routes: Any, app: Any) -> None:
                     "skipped": skipped,
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response(
-                {"message": f"Failed to import favourites: {e!s}"},
-                status=500,
-            )
+            return http_unexpected(f"Failed to import favourites: {e!s}")

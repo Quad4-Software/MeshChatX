@@ -8,6 +8,17 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.identities._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_text_limited,
+    read_json_limited,
+)
+
 
 def register_identities_active_routes(routes: Any, app: Any) -> None:
     @routes.post("/api/v1/identity/backup/download")
@@ -23,13 +34,8 @@ def register_identities_active_routes(routes: Any, app: Any) -> None:
                     "Content-Disposition": 'attachment; filename="identity.bin"',
                 },
             )
-        except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to create identity backup: {e!s}",
-                },
-                status=500,
-            )
+        except Exception:
+            return http_unexpected("Failed to create identity backup")
 
     @routes.post("/api/v1/identity/backup/base32")
     async def identity_backup_base32(request):
@@ -39,13 +45,8 @@ def register_identities_active_routes(routes: Any, app: Any) -> None:
                     "identity_base32": app.backup_identity_base32(),
                 },
             )
-        except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to export identity: {e!s}",
-                },
-                status=500,
-            )
+        except Exception:
+            return http_unexpected("Failed to export identity")
 
     @routes.post("/api/v1/identity/restore")
     async def identity_restore(request):
@@ -67,25 +68,21 @@ def register_identities_active_routes(routes: Any, app: Any) -> None:
                             field.read_chunk,
                         )
                     elif field.name == "display_name":
-                        display_name = (await field.text()).strip() or None
+                        display_name = (
+                            await read_field_text_limited(field)
+                        ).strip() or None
                     field = await reader.next()
                 if identity_bytes is None:
-                    return web.json_response(
-                        {"message": "Identity file is required"},
-                        status=400,
-                    )
+                    return http_bad_request("Identity file is required")
                 result = app.restore_identity_from_bytes(
                     identity_bytes,
                     display_name=display_name,
                 )
             else:
-                data = await request.json()
+                data = await read_json_limited(request)
                 base32_value = data.get("base32")
                 if not base32_value:
-                    return web.json_response(
-                        {"message": "base32 value is required"},
-                        status=400,
-                    )
+                    return http_bad_request("base32 value is required")
                 result = app.restore_identity_from_base32(
                     base32_value,
                     display_name=data.get("display_name"),
@@ -97,17 +94,9 @@ def register_identities_active_routes(routes: Any, app: Any) -> None:
                     "identity": result,
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except ValueError as e:
-            return web.json_response(
-                {
-                    "message": str(e),
-                },
-                status=400,
-            )
-        except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to restore identity: {e!s}",
-                },
-                status=500,
-            )
+            return http_bad_request(str(e))
+        except Exception:
+            return http_unexpected("Failed to restore identity")

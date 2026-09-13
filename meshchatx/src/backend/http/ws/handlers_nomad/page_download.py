@@ -26,17 +26,18 @@ async def handle_nomadnet_page_download(app, client, data):
     rid = _request_id_fields(data)
 
     # generate download id early so the client can always clear Loading page
-    app.download_id_counter += 1
-    download_id = app.download_id_counter
+    async with app.download_id_lock:
+        app.download_id_counter += 1
+        download_id = app.download_id_counter
 
     async def send_failure(reason: str, dest_hex: str = "", path: str = "") -> None:
-        # Match other Nomad WS callbacks: fire and forget so MagicMock clients
+        # Match other Nomad WS callbacks: fire-and-forget so MagicMock clients
         # in unit tests do not need to be awaitable.
         AsyncUtils.run_async(
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_page_download": {
@@ -91,6 +92,7 @@ async def handle_nomadnet_page_download(app, client, data):
     if local_page is not None:
         if not private:
             app.archive_page(destination_hash.hex(), page_path, local_page)
+        app._register_page_file_grant(client, destination_hash, page_path, local_page)
         AsyncUtils.run_async(
             _send_nomad_page_content(
                 client,
@@ -106,13 +108,14 @@ async def handle_nomadnet_page_download(app, client, data):
 
     # handle successful page download
     def on_page_download_success(page_content):
-        # remove from active downloads
-        if download_id in app.active_downloads:
-            del app.active_downloads[download_id]
+        # remove from active downloads (callback thread races cancel)
+        app.active_downloads.pop(download_id, None)
 
         # archive the page if enabled (never for private browse)
         if not private:
             app.archive_page(destination_hash.hex(), page_path, page_content)
+
+        app._register_page_file_grant(client, destination_hash, page_path, page_content)
 
         AsyncUtils.run_async(
             _send_nomad_page_content(
@@ -128,9 +131,8 @@ async def handle_nomadnet_page_download(app, client, data):
 
     # handle page download failure
     def on_page_download_failure(failure_reason):
-        # remove from active downloads
-        if download_id in app.active_downloads:
-            del app.active_downloads[download_id]
+        # remove from active downloads (callback thread races cancel)
+        app.active_downloads.pop(download_id, None)
 
         # check if there are any archived versions (not offered in private browse)
         has_archives = False
@@ -149,7 +151,7 @@ async def handle_nomadnet_page_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_page_download": {
@@ -170,7 +172,7 @@ async def handle_nomadnet_page_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_page_download": {
@@ -189,7 +191,7 @@ async def handle_nomadnet_page_download(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         **rid,
                         "nomadnet_page_download": {
@@ -222,7 +224,7 @@ async def handle_nomadnet_page_download(app, client, data):
     await client.send_str(
         json.dumps(
             {
-                "type": "nomadnet.page.download",
+                "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                 "download_id": download_id,
                 **rid,
                 "nomadnet_page_download": {
@@ -235,6 +237,8 @@ async def handle_nomadnet_page_download(app, client, data):
     )
 
     AsyncUtils.run_async(downloader.download())
+
+    # handle lxmf forwarding rules
 
 
 HANDLERS = {

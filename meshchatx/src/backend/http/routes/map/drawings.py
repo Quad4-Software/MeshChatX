@@ -6,6 +6,15 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.map._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_map_drawings_routes(routes, app):
@@ -21,7 +30,10 @@ def register_map_drawings_routes(routes, app):
     @routes.post("/api/v1/map/drawings")
     async def save_map_drawing(request):
         identity_hash = app.identity.hash.hex()
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         drawing_data = data.get("data")
         app.database.map_drawings.upsert_drawing(identity_hash, name, drawing_data)
@@ -36,14 +48,17 @@ def register_map_drawings_routes(routes, app):
             identity_hash,
         )
         if not deleted:
-            return web.json_response({"error": "Drawing not found"}, status=404)
+            return http_not_found("Drawing not found")
         return web.json_response({"message": "Drawing deleted successfully"})
 
     @routes.patch("/api/v1/map/drawings/{drawing_id}")
     async def update_map_drawing(request):
         identity_hash = app.identity.hash.hex()
         drawing_id = request.match_info.get("drawing_id")
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         name = data.get("name")
         drawing_data = data.get("data")
         updated = app.database.map_drawings.update_drawing(
@@ -53,5 +68,6 @@ def register_map_drawings_routes(routes, app):
             drawing_data,
         )
         if not updated:
-            return web.json_response({"error": "Drawing not found"}, status=404)
+            return http_not_found("Drawing not found")
         return web.json_response({"message": "Drawing updated successfully"})
+

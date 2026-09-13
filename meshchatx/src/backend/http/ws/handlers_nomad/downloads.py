@@ -17,11 +17,12 @@ async def handle_nomadnet_download_cancel(app, client, data):
     if download_id is None:
         return
 
-    # cancel the download
-    if download_id in app.active_downloads:
-        downloader = app.active_downloads[download_id]
+    # cancel the download. The RNS request callbacks run on another thread
+    # and can pop the same key, so remove atomically rather than
+    # check-then-delete.
+    downloader = app.active_downloads.pop(download_id, None)
+    if downloader is not None:
         downloader.cancel()
-        del app.active_downloads[download_id]
 
         # notify client
         AsyncUtils.run_async(
@@ -35,6 +36,8 @@ async def handle_nomadnet_download_cancel(app, client, data):
                 ),
             ),
         )
+
+    # handle getting page archives
 
 
 HANDLERS = {

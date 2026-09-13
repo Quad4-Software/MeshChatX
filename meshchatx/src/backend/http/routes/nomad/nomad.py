@@ -7,6 +7,10 @@ from typing import Any
 
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.nomad._names import *  # noqa: F403
+from meshchatx.src.backend.http.errors import (
+    http_unexpected,
+)
+
 
 
 def register_nomad_nomad_routes(routes: Any, app: Any) -> None:
@@ -32,9 +36,5 @@ def register_nomad_nomad_routes(routes: Any, app: Any) -> None:
             )
 
         # failed to identify
-        return web.json_response(
-            {
-                "message": "Failed to identify. No active link to destination.",
-            },
-            status=500,
-        )
+        return http_unexpected("Failed to identify. No active link to destination.")
+

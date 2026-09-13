@@ -9,6 +9,16 @@ from typing import Any
 from meshchatx.src.backend.http.routes.filesync._helpers import make_filesync_helpers
 from meshchatx.src.backend.http.routes.filesync._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_filesync_peers_routes(routes: Any, app: Any) -> None:
     (_filesync_require_handler,) = make_filesync_helpers(app)
@@ -25,9 +35,12 @@ def register_filesync_peers_routes(routes: Any, app: Any) -> None:
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON body"}, status=400)
+            return http_bad_request("Invalid JSON body")
         identity_hash = data.get("identity_hash", "")
         try:
             result = await asyncio.to_thread(
@@ -35,12 +48,9 @@ def register_filesync_peers_routes(routes: Any, app: Any) -> None:
                 identity_hash,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "connect failed"), **result},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "connect failed"), **result)
         return web.json_response(result)
 
     @routes.post("/api/v1/filesync/disconnect")
@@ -48,9 +58,12 @@ def register_filesync_peers_routes(routes: Any, app: Any) -> None:
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON body"}, status=400)
+            return http_bad_request("Invalid JSON body")
         peer_id = data.get("peer_id", "")
         try:
             result = await asyncio.to_thread(
@@ -58,12 +71,9 @@ def register_filesync_peers_routes(routes: Any, app: Any) -> None:
                 peer_id,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "disconnect failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "disconnect failed"))
         return web.json_response(result)
 
     @routes.post("/api/v1/filesync/browse")
@@ -71,9 +81,12 @@ def register_filesync_peers_routes(routes: Any, app: Any) -> None:
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON body"}, status=400)
+            return http_bad_request("Invalid JSON body")
         peer_id = data.get("peer_id", "")
         timeout = data.get("timeout", 10.0)
         try:
@@ -83,14 +96,10 @@ def register_filesync_peers_routes(routes: Any, app: Any) -> None:
                 timeout,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {
-                    "message": result.get("error", "browse failed"),
-                    "files": result.get("files", []),
-                },
-                status=400,
+            return http_bad_request(
+                result.get("error", "browse failed"), files=result.get("files", [])
             )
         return web.json_response(result)
 
@@ -99,9 +108,12 @@ def register_filesync_peers_routes(routes: Any, app: Any) -> None:
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON body"}, status=400)
+            return http_bad_request("Invalid JSON body")
         peer_id = data.get("peer_id", "")
         path = data.get("path", "")
         try:
@@ -111,10 +123,7 @@ def register_filesync_peers_routes(routes: Any, app: Any) -> None:
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "download failed"), **result},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "download failed"), **result)
         return web.json_response(result)

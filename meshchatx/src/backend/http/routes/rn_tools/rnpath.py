@@ -6,6 +6,19 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.rn_tools._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_error_from_exception,
+    http_payload_too_large,
+    http_unavailable,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 from meshchatx.src.backend.http.routes.rn_tools._helpers import make_rn_tools_helpers
 
 
@@ -31,7 +44,7 @@ def register_rn_tools_rnpath_routes(routes, app):
             page = int(request.query.get("page", 1))
             limit = int(request.query.get("limit", 50))
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
 
         search = request.query.get("search")
         interface = request.query.get("interface")
@@ -47,7 +60,7 @@ def register_rn_tools_rnpath_routes(routes, app):
         try:
             timeout = float(timeout_raw) if timeout_raw not in (None, "") else None
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid timeout"}, status=400)
+            return http_bad_request("Invalid timeout")
 
         try:
             raw_table = None
@@ -57,11 +70,8 @@ def register_rn_tools_rnpath_routes(routes, app):
                 )
 
                 if not identity_path and not identity_name:
-                    return web.json_response(
-                        {
-                            "message": "identity_path or identity_name is required for remote queries",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "identity_path or identity_name is required for remote queries"
                     )
                 raw_table = await asyncio.to_thread(
                     fetch_remote_path_table,
@@ -85,11 +95,11 @@ def register_rn_tools_rnpath_routes(routes, app):
                 result["remote"] = remote
             return web.json_response(result)
         except (ValueError, FileNotFoundError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except TimeoutError as e:
-            return web.json_response({"message": str(e)}, status=504)
+            return http_error(504, str(e))
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rnpath/rates")
     async def rnpath_rates(request):
@@ -105,7 +115,7 @@ def register_rn_tools_rnpath_routes(routes, app):
         try:
             timeout = float(timeout_raw) if timeout_raw not in (None, "") else None
         except (TypeError, ValueError):
-            return web.json_response({"message": "Invalid timeout"}, status=400)
+            return http_bad_request("Invalid timeout")
 
         try:
             raw_table = None
@@ -115,11 +125,8 @@ def register_rn_tools_rnpath_routes(routes, app):
                 )
 
                 if not identity_path and not identity_name:
-                    return web.json_response(
-                        {
-                            "message": "identity_path or identity_name is required for remote queries",
-                        },
-                        status=400,
+                    return http_bad_request(
+                        "identity_path or identity_name is required for remote queries"
                     )
                 raw_table = await asyncio.to_thread(
                     fetch_remote_rate_table,
@@ -135,21 +142,21 @@ def register_rn_tools_rnpath_routes(routes, app):
                 payload["remote"] = remote
             return web.json_response(payload)
         except (ValueError, FileNotFoundError) as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         except TimeoutError as e:
-            return web.json_response({"message": str(e)}, status=504)
+            return http_error(504, str(e))
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rnpath/drop")
     async def rnpath_drop(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash")
         if not destination_hash:
-            return web.json_response(
-                {"message": "destination_hash is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash is required")
         not_ready = app._require_rns_tool_handler(app.rnpath_handler, "RNPath")
         if not_ready is not None:
             return not_ready
@@ -157,17 +164,17 @@ def register_rn_tools_rnpath_routes(routes, app):
             success = app.rnpath_handler.drop_path(destination_hash)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rnpath/drop-via")
     async def rnpath_drop_via(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         transport_instance_hash = data.get("transport_instance_hash")
         if not transport_instance_hash:
-            return web.json_response(
-                {"message": "transport_instance_hash is required"},
-                status=400,
-            )
+            return http_bad_request("transport_instance_hash is required")
         not_ready = app._require_rns_tool_handler(app.rnpath_handler, "RNPath")
         if not_ready is not None:
             return not_ready
@@ -175,7 +182,7 @@ def register_rn_tools_rnpath_routes(routes, app):
             success = app.rnpath_handler.drop_all_via(transport_instance_hash)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rnpath/drop-queues")
     async def rnpath_drop_queues(request):
@@ -186,17 +193,17 @@ def register_rn_tools_rnpath_routes(routes, app):
             app.rnpath_handler.drop_announce_queues()
             return web.json_response({"success": True})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/rnpath/request")
     async def rnpath_request(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = data.get("destination_hash")
         if not destination_hash:
-            return web.json_response(
-                {"message": "destination_hash is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash is required")
         not_ready = app._require_rns_tool_handler(app.rnpath_handler, "RNPath")
         if not_ready is not None:
             return not_ready
@@ -204,26 +211,21 @@ def register_rn_tools_rnpath_routes(routes, app):
             success = app.rnpath_handler.request_path(destination_hash)
             return web.json_response({"success": success})
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.get("/api/v1/rnpath/trace/{destination_hash}")
     async def rnpath_trace(request):
         destination_hash = request.match_info.get("destination_hash")
         if not destination_hash:
-            return web.json_response(
-                {"error": "destination_hash is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hash is required")
         try:
             if not app.rnpath_trace_handler:
-                return web.json_response(
-                    {
-                        "error": "RNPathTraceHandler not initialized for current context",
-                    },
-                    status=503,
+                return http_unavailable(
+                    "RNPathTraceHandler not initialized for current context"
                 )
             result = await app.rnpath_trace_handler.trace_path(destination_hash)
             return web.json_response(result)
         except Exception:
             logger.exception("RN path trace route failed")
-            return web.json_response({"error": "Trace failed"}, status=500)
+            return http_unexpected("Trace failed")
+

@@ -7,6 +7,10 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.rrc._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_not_found,
+    http_unavailable,
+)
 
 
 RRC_ROOM_MESSAGES_DEFAULT_LIMIT = 200
@@ -17,10 +21,7 @@ def make_rrc_helpers(app):
     def _rrc_require_manager():
         manager = app.rrc_manager
         if manager is None:
-            return None, web.json_response(
-                {"message": "Relay chat is not available"},
-                status=503,
-            )
+            return None, http_unavailable("Relay chat is not available")
         return manager, None
 
     def _rrc_require_hub(hub_hash_hex):
@@ -32,20 +33,14 @@ def make_rrc_helpers(app):
             return (
                 manager,
                 None,
-                web.json_response(
-                    {"message": "Hub not found"},
-                    status=404,
-                ),
+                http_not_found("Hub not found"),
             )
         return manager, hub, None
 
     def _rrc_server_require_manager():
         manager = app.rrc_server_manager
         if manager is None:
-            return None, web.json_response(
-                {"message": "Relay chat hosting is not available"},
-                status=503,
-            )
+            return None, http_unavailable("Relay chat hosting is not available")
         return manager, None
 
     def _rrc_server_require_hub(hub_id):
@@ -57,10 +52,7 @@ def make_rrc_helpers(app):
             return (
                 manager,
                 None,
-                web.json_response(
-                    {"message": "Hub not found"},
-                    status=404,
-                ),
+                http_not_found("Hub not found"),
             )
         return manager, hub, None
 

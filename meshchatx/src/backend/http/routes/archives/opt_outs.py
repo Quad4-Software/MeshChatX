@@ -6,6 +6,14 @@ from __future__ import annotations
 from typing import Any
 
 # ruff: noqa: F401, F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
 from meshchatx.src.backend.http.routes.archives._helpers import resolve_node_name
 from meshchatx.src.backend.http.routes.archives._names import *  # noqa: F403
 
@@ -31,12 +39,14 @@ def register_archives_opt_outs_routes(routes: Any, app: Any) -> None:
 
     @routes.post("/api/v1/nomadnet/crawl/opt-outs")
     async def add_crawl_opt_out(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hash = (data.get("destination_hash") or "").strip().lower()
         if len(destination_hash) != 32:
-            return web.json_response(
-                {"message": "destination_hash must be 32 hex characters"},
-                status=400,
+            return http_bad_request(
+                "destination_hash must be 32 hex characters",
             )
         reason = (data.get("reason") or "user").strip()[:200] or "user"
         crawler = (
@@ -63,9 +73,8 @@ def register_archives_opt_outs_routes(routes: Any, app: Any) -> None:
             (request.match_info.get("destination_hash") or "").strip().lower()
         )
         if len(destination_hash) != 32:
-            return web.json_response(
-                {"message": "destination_hash must be 32 hex characters"},
-                status=400,
+            return http_bad_request(
+                "destination_hash must be 32 hex characters",
             )
         crawler = (
             getattr(app.current_context, "crawler_manager", None)

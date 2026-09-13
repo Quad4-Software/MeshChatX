@@ -7,6 +7,15 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.app_info._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_app_info_seen_routes(routes, app):
 
@@ -19,8 +28,9 @@ def register_app_info_seen_routes(routes, app):
     # acknowledge and reset integrity issues
     @routes.post("/api/v1/app/integrity/acknowledge")
     async def app_integrity_acknowledge(request):
-        if app.current_context:
-            app.current_context.integrity_manager.save_manifest()
+        manager = getattr(app.current_context, "integrity_manager", None)
+        if manager:
+            manager.save_manifest(reason="acknowledge")
         app.integrity_issues = []
         return web.json_response(
             {"message": "Integrity issues acknowledged and manifest reset"},
@@ -31,10 +41,13 @@ def register_app_info_seen_routes(routes, app):
     # mark changelog as seen
     @routes.post("/api/v1/app/changelog/seen")
     async def app_changelog_seen(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         version = data.get("version")
         if not version:
-            return web.json_response({"error": "Version required"}, status=400)
+            return http_bad_request("Version required")
 
         app.config.set("changelog_seen_version", version)
         return web.json_response(
@@ -44,15 +57,17 @@ def register_app_info_seen_routes(routes, app):
     @routes.post("/api/v1/app/channel-prompt/seen")
     async def app_channel_prompt_seen(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
-            return web.json_response({"error": "Invalid JSON"}, status=400)
+            return http_bad_request("Invalid JSON")
         key = data.get("key") if isinstance(data, dict) else None
         if not key or not isinstance(key, str) or not key.strip():
-            return web.json_response({"error": "key required"}, status=400)
+            return http_bad_request("key required")
         seen_key = key.strip()
         if len(seen_key) > 200:
-            return web.json_response({"error": "key too long"}, status=400)
+            return http_bad_request("key too long")
         app.config.set("channel_prompt_seen", seen_key)
         return web.json_response({"message": "Channel prompt marked as seen"})
 

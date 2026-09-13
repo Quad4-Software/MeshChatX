@@ -19,7 +19,7 @@ def register_app_info_shutdown_routes(routes, app):
             await app.shutdown(None)
             app.exit_app(0)
 
-        asyncio.create_task(do_shutdown())
+        app._shutdown_task = asyncio.create_task(do_shutdown())
         return web.json_response({"message": "Shutting down..."})
 
     # get docs status

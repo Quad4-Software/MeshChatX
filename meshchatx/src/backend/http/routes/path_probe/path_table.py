@@ -6,6 +6,16 @@ from __future__ import annotations
 # ruff: noqa: F405
 
 from meshchatx.src.backend.http.routes.path_probe._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_path_probe_path_table_routes(routes, app):
@@ -19,10 +29,12 @@ def register_path_probe_path_table_routes(routes, app):
         destination_hashes = None
         if request.method == "POST":
             try:
-                body = await request.json()
+                body = await read_json_limited(request)
                 destination_hashes = body.get("destination_hashes")
                 if destination_hashes and not isinstance(destination_hashes, list):
                     destination_hashes = None
+            except PayloadTooLargeError:
+                return http_payload_too_large()
             except Exception:
                 pass
 
@@ -60,6 +72,38 @@ def register_path_probe_path_table_routes(routes, app):
             {
                 "path_table": path_table,
                 "total_count": total_count,
+            },
+        )
+
+    # derive lxmf delivery address from an identity hash
+
+    @routes.get("/api/v1/identity/{identity_hash}/lxmf-address")
+    async def identity_lxmf_address(request):
+        raw = request.match_info.get("identity_hash", "")
+        norm = normalize_hex_identifier(raw)
+        # Identity hashes are 16 bytes (32 hex); 32-byte (64 hex) forms are
+        # tolerated to match parse_identity_hash.
+        if len(norm) not in (32, 64):
+            return http_bad_request("invalid identity hash")
+
+        lxmf_hex = await asyncio.to_thread(
+            app.get_lxmf_destination_hash_for_identity_hash,
+            norm,
+        )
+        if not lxmf_hex:
+            return http_not_found("no LXMF address could be derived for this identity")
+
+        has_path = False
+        try:
+            has_path = RNS.Transport.has_path(bytes.fromhex(lxmf_hex))
+        except Exception:
+            pass
+
+        return web.json_response(
+            {
+                "identity_hash": norm,
+                "lxmf_destination_hash": lxmf_hex,
+                "has_path": has_path,
             },
         )
 

@@ -6,6 +6,16 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.lxmf._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_lxmf_conversations_routes(routes, app):
 
@@ -17,17 +27,16 @@ def register_lxmf_conversations_routes(routes, app):
     @routes.post("/api/v1/lxmf/conversation-pins/toggle")
     async def lxmf_conversation_pins_toggle(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
-            return web.json_response({"message": "invalid json"}, status=400)
+            return http_bad_request("invalid json")
         destination_hash = (
             data.get("destination_hash") if isinstance(data, dict) else None
         )
         if not destination_hash:
-            return web.json_response(
-                {"message": "missing destination_hash"},
-                status=400,
-            )
+            return http_bad_request("missing destination_hash")
         pinned = app.database.messages.toggle_peer_pin(destination_hash)
         return web.json_response(
             {
@@ -213,33 +222,32 @@ def register_lxmf_conversations_routes(routes, app):
         except Exception as e:
             RNS.log(f"Error in lxmf_conversations_get: {e}", RNS.LOG_ERROR)
             status = 503 if sqlite_error_is_retryable(e) else 500
-            return web.json_response(
-                {
-                    "message": (
-                        "Database temporarily unavailable. Retry shortly."
-                        if status == 503
-                        else "Failed to load conversations"
-                    ),
-                },
-                status=status,
+            return http_error(
+                status,
+                "Database temporarily unavailable. Retry shortly."
+                if status == 503
+                else "Failed to load conversations",
             )
 
     @routes.post("/api/v1/lxmf/conversations/move-to-folder")
     async def lxmf_conversations_move_to_folder(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         peer_hashes = data.get("peer_hashes", [])
         folder_id = data.get("folder_id")  # Can be None to remove from folder
         if not peer_hashes:
-            return web.json_response(
-                {"message": "peer_hashes is required"},
-                status=400,
-            )
+            return http_bad_request("peer_hashes is required")
         app.database.messages.move_conversations_to_folder(peer_hashes, folder_id)
         return web.json_response({"message": "Conversations moved"})
 
     @routes.post("/api/v1/lxmf/conversations/bulk-mark-as-read")
     async def lxmf_conversations_bulk_mark_read(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         mark_all = bool(data.get("mark_all"))
         destination_hashes = data.get("destination_hashes", [])
         if mark_all:
@@ -249,10 +257,7 @@ def register_lxmf_conversations_routes(routes, app):
                 {"message": "All conversations marked as read"},
             )
         if not destination_hashes:
-            return web.json_response(
-                {"message": "destination_hashes is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hashes is required")
         app.database.messages.mark_conversations_as_read(destination_hashes)
         # Keep notification viewed state in sync so the bell never
         # disagrees with the conversation list.
@@ -261,13 +266,13 @@ def register_lxmf_conversations_routes(routes, app):
 
     @routes.post("/api/v1/lxmf/conversations/bulk-delete")
     async def lxmf_conversations_bulk_delete(request):
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         destination_hashes = data.get("destination_hashes", [])
         if not destination_hashes:
-            return web.json_response(
-                {"message": "destination_hashes is required"},
-                status=400,
-            )
+            return http_bad_request("destination_hashes is required")
         local_hash = app.local_lxmf_destination.hexhash
         for dest_hash in destination_hashes:
             for message_hash in app.database.messages.list_message_hashes_for_peer(

@@ -19,7 +19,7 @@ async def handle_nomadnet_page_archives_get(app, client, data):
     # Try relative path first
     archives = app.get_archived_page_versions(destination_hash, page_path)
 
-    # If nothing found and path does not look like it is already absolute,
+    # If nothing found and path doesn't look like it's already absolute,
     # try searching with the destination hash prefix (support for old buggy archives)
     if not archives and not page_path.startswith(destination_hash):
         buggy_path = f"{destination_hash}:{page_path}"
@@ -49,6 +49,8 @@ async def handle_nomadnet_page_archives_get(app, client, data):
         ),
     )
 
+    # handle loading a specific archived page version
+
 
 async def handle_nomadnet_page_archive_load(app, client, data):
     archive_id = data.get("archive_id")
@@ -58,7 +60,7 @@ async def handle_nomadnet_page_archive_load(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         "nomadnet_page_download": {
                             "status": "failure",
@@ -79,7 +81,7 @@ async def handle_nomadnet_page_archive_load(app, client, data):
             client.send_str(
                 json.dumps(
                     {
-                        "type": "nomadnet.page.download",
+                        "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                         "download_id": download_id,
                         "nomadnet_page_download": {
                             "status": "success",
@@ -99,7 +101,7 @@ async def handle_nomadnet_page_archive_load(app, client, data):
         client.send_str(
             json.dumps(
                 {
-                    "type": "nomadnet.page.download",
+                    "type": WsInboundType.NOMADNET_PAGE_DOWNLOAD,
                     "download_id": download_id,
                     "nomadnet_page_download": {
                         "status": "failure",
@@ -112,11 +114,15 @@ async def handle_nomadnet_page_archive_load(app, client, data):
         ),
     )
 
+    # handle flushing all archived pages
+
 
 async def handle_nomadnet_page_archive_flush(app, client, data):
     app.flush_all_archived_pages()
     # notify config updated
     AsyncUtils.run_async(app.send_config_to_websocket_clients())
+
+    # handle manual page archiving
 
 
 async def handle_nomadnet_page_archive_add(app, client, data):
@@ -141,6 +147,8 @@ async def handle_nomadnet_page_archive_add(app, client, data):
             ),
         ),
     )
+
+    # handle downloading a file from a nomadnet node
 
 
 HANDLERS = {

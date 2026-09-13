@@ -7,6 +7,15 @@ from typing import Any
 
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.sideband._names import *  # noqa: F403
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 
 def register_sideband_sideband_routes(routes: Any, app: Any) -> None:
@@ -18,7 +27,9 @@ def register_sideband_sideband_routes(routes: Any, app: Any) -> None:
     @routes.post("/api/v1/sideband-plugins/config")
     async def sideband_plugins_config_set(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         try:
@@ -31,7 +42,7 @@ def register_sideband_sideband_routes(routes: Any, app: Any) -> None:
             app._ensure_sideband_telemetry_loop()
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")
 
     @routes.get("/api/v1/sideband-plugins")
     async def sideband_plugins_list(request):
@@ -49,4 +60,4 @@ def register_sideband_sideband_routes(routes: Any, app: Any) -> None:
             app._ensure_sideband_telemetry_loop()
             return web.json_response(result)
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_error_from_exception(e, key="message")

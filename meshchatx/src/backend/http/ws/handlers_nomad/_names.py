@@ -133,3 +133,4 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.constants import WsInboundType  # noqa: F401

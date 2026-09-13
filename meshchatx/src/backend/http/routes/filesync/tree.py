@@ -9,6 +9,21 @@ from typing import Any
 from meshchatx.src.backend.http.routes.filesync._helpers import make_filesync_helpers
 from meshchatx.src.backend.http.routes.filesync._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_field_limited,
+    read_field_text_limited,
+    read_json_limited,
+    write_field_to_path,
+)
+from meshchatx.src.backend.rns_filesync_handler import MANAGER_UPLOAD_MAX_BYTES
+
 
 def register_filesync_tree_routes(routes: Any, app: Any) -> None:
     (_filesync_require_handler,) = make_filesync_helpers(app)
@@ -32,12 +47,9 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "list tree failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "list tree failed"))
         return web.json_response(result)
 
     @routes.post("/api/v1/filesync/mkdir")
@@ -45,21 +57,21 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON body"}, status=400)
+            return http_bad_request("Invalid JSON body")
         try:
             result = await asyncio.to_thread(
                 app.rns_filesync_handler.manager_mkdir,
                 data.get("path", ""),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "mkdir failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "mkdir failed"))
         return web.json_response(result)
 
     @routes.post("/api/v1/filesync/upload")
@@ -69,7 +81,7 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
             return not_ready
         subdir = None
         filename = None
-        file_data = None
+        tmp_path = None
         try:
             reader = await request.multipart()
             while True:
@@ -78,34 +90,50 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
                     break
                 name = field.name or ""
                 if name == "path":
-                    subdir = (await field.text()).strip() or None
+                    subdir = (await read_field_text_limited(field)).strip() or None
                 elif name == "file":
                     filename = field.filename or "upload"
-                    file_data = await field.read()
+                    if tmp_path is not None:
+                        with contextlib.suppress(OSError):
+                            os.unlink(tmp_path)
+                    tmp_path = await asyncio.to_thread(
+                        app.rns_filesync_handler.manager_upload_staging_path,
+                    )
+                    await write_field_to_path(
+                        field,
+                        tmp_path,
+                        MANAGER_UPLOAD_MAX_BYTES,
+                    )
                 else:
                     with contextlib.suppress(Exception):
-                        await field.read()
+                        await read_field_limited(field, MANAGER_UPLOAD_MAX_BYTES)
+        except PayloadTooLargeError:
+            if tmp_path is not None:
+                with contextlib.suppress(OSError):
+                    os.unlink(tmp_path)
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response(
-                {"message": f"Invalid upload request: {e}"},
-                status=400,
-            )
-        if file_data is None:
-            return web.json_response({"message": "No file uploaded"}, status=400)
+            if tmp_path is not None:
+                with contextlib.suppress(OSError):
+                    os.unlink(tmp_path)
+            return http_bad_request(f"Invalid upload request: {e}")
+        if tmp_path is None:
+            return http_bad_request("No file uploaded")
         try:
             result = await asyncio.to_thread(
-                app.rns_filesync_handler.manager_upload,
+                app.rns_filesync_handler.manager_upload_file,
                 filename=filename,
-                data=file_data,
+                src_path=tmp_path,
                 subdir=subdir,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "upload failed")},
-                status=400,
-            )
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
+            return http_bad_request(result.get("error", "upload failed"))
         return web.json_response(result)
 
     @routes.delete("/api/v1/filesync/entry")
@@ -114,8 +142,12 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
         if not_ready is not None:
             return not_ready
         data = {}
-        with contextlib.suppress(Exception):
-            data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            data = {}
         if not isinstance(data, dict):
             data = {}
         path = data.get("path", "")
@@ -125,12 +157,9 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "delete failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "delete failed"))
         return web.json_response(result)
 
     @routes.get("/api/v1/filesync/content")
@@ -145,16 +174,13 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "content failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "content failed"))
         abspath = result.get("abspath")
         filename = result.get("filename") or "download"
         if not abspath or not os.path.isfile(abspath):
-            return web.json_response({"message": "file not found"}, status=404)
+            return http_not_found("file not found")
         safe_name = (
             os.path.basename(str(filename))
             .replace('"', "_")
@@ -181,12 +207,9 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
                 path,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "list directories failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "list directories failed"))
         return web.json_response(result)
 
     @routes.get("/api/v1/filesync/shared-directory-suggestion")
@@ -199,12 +222,9 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
                 app.rns_filesync_handler.suggest_shared_sync_directory,
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "suggestion failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "suggestion failed"))
         return web.json_response(result)
 
     @routes.post("/api/v1/filesync/directories")
@@ -212,9 +232,12 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
         not_ready = _filesync_require_handler()
         if not_ready is not None:
             return not_ready
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         if not isinstance(data, dict):
-            return web.json_response({"message": "Invalid JSON body"}, status=400)
+            return http_bad_request("Invalid JSON body")
         try:
             result = await asyncio.to_thread(
                 app.rns_filesync_handler.create_directory,
@@ -222,10 +245,7 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
                 data.get("name", ""),
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
         if not result.get("ok"):
-            return web.json_response(
-                {"message": result.get("error", "create directory failed")},
-                status=400,
-            )
+            return http_bad_request(result.get("error", "create directory failed"))
         return web.json_response(result)

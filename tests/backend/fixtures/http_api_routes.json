@@ -494,6 +494,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/identity/{identity_hash}/lxmf-address"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/interface-stats"
         },
         {
@@ -855,6 +859,10 @@
         {
             "method": "GET",
             "path": "/api/v1/nomadnet/archives"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/nomadnet/archives/export"
         },
         {
             "method": "POST",
@@ -1390,6 +1398,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/rrc/search"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/rrc/servers"
         },
         {
@@ -1439,6 +1451,10 @@
         {
             "method": "POST",
             "path": "/api/v1/rrc/servers/{hub_id}/start"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rrc/servers/{hub_id}/stats"
         },
         {
             "method": "POST",
