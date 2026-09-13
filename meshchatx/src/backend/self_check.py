@@ -379,6 +379,12 @@ def check_appcontainer_launch() -> dict[str, str]:
         }
 
     exe = sys.executable
+    if not _is_frozen_executable():
+        # In a venv, sys.executable is the redirector shim. Inside the
+        # container it would have to spawn the real interpreter again and
+        # that nested CreateProcess fails with access denied, so run the
+        # real base interpreter directly.
+        exe = getattr(sys, "_base_executable", None) or exe
     if not exe:
         return _status(False, "sys.executable is unset")
 
