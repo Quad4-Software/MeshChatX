@@ -21,7 +21,7 @@ on:
                     - beta
                     - stable
             version:
-                description: Stable semver without v prefix (required for stable, e.g. 4.9.0)
+                description: Stable semver without v prefix (required for stable, e.g. 1.2.3)
                 required: false
                 default: ""
             beta_suffix:
@@ -70,7 +70,7 @@ jobs:
 
                   if [ "${CHANNEL}" = "stable" ]; then
                     if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                      echo "Stable promote requires version like 4.9.0 (got '${VERSION}')" >&2
+                      echo "Stable promote requires version like 1.2.3 (got '${VERSION}')" >&2
                       exit 1
                     fi
                     tag="v${VERSION}"

@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.9.1] - [unreleased]
+
 ## [4.9.0] - 2026-09-12 [released]
 
 ### Added
