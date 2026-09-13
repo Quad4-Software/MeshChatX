@@ -69,6 +69,9 @@ def normalize_rrc_bot_config(rrc_config):
         if not room or len(room) > _RRC_MAX_ROOM_CHARS:
             msg = "rrc room names must be 1 to 64 chars"
             raise ValueError(msg)
+        if "," in room:
+            msg = "rrc room names must not contain commas"
+            raise ValueError(msg)
         if room not in rooms:
             rooms.append(room)
 
