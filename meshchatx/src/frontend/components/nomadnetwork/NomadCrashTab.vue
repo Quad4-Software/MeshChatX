@@ -90,6 +90,15 @@ const WATCHDOG_STALL_MS = 20000;
 /** Wall-clock cap for one paint. Ping liveness alone cannot clear a hung import. */
 const RENDER_DEADLINE_MS = 20000;
 const RENDER_DEADLINE_MIN_RESUME_MS = 1000;
+/**
+ * Transition or animation property names that can move or resize the host
+ * slot without producing a resize or scroll event. Filtered so paint-only
+ * transitions (color, opacity) never start the rect poll.
+ */
+const GEOMETRY_TRANSITION_RE =
+    /transform|translate|scale|rotate|inset|^top$|^left$|^right$|^bottom$|width|height|margin|padding|gap|flex|grid/;
+/** How long the rect poll keeps running after the last geometry transition. */
+const RECT_POLL_TAIL_MS = 700;
 
 export default {
     name: "NomadCrashTab",
@@ -309,6 +318,11 @@ export default {
         if (this.content && this.status === "loading") {
             this.armRenderDeadline();
         }
+    },
+    updated() {
+        // Reactive siblings (banners, state blocks) can shift the slot without
+        // firing resize or scroll. A rect read per patch is cheap insurance.
+        this.updateFrameRect();
     },
     beforeUnmount() {
         window.removeEventListener("message", this.onWindowMessage);
@@ -787,17 +801,22 @@ export default {
         },
         updateFrameRect() {
             const host = this.$refs.hostEl;
-            if (!host || typeof host.getBoundingClientRect !== "function") {
-                this.frameRect = { left: 0, top: 0, width: 0, height: 0 };
+            const rect = host && typeof host.getBoundingClientRect === "function" ? host.getBoundingClientRect() : null;
+            const next = rect
+                ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+                : { left: 0, top: 0, width: 0, height: 0 };
+            const prev = this.frameRect;
+            // Skip the write when nothing moved. Assigning a fresh object in
+            // updated() would re-render and loop forever on identical rects.
+            if (
+                next.left === prev.left &&
+                next.top === prev.top &&
+                next.width === prev.width &&
+                next.height === prev.height
+            ) {
                 return;
             }
-            const rect = host.getBoundingClientRect();
-            this.frameRect = {
-                left: rect.left,
-                top: rect.top,
-                width: rect.width,
-                height: rect.height,
-            };
+            this.frameRect = next;
         },
         setupFrameRectTracking() {
             const host = this.$refs.hostEl;
@@ -811,18 +830,46 @@ export default {
             }
             window.addEventListener("resize", this.updateFrameRect);
             document.addEventListener("scroll", this.updateFrameRect, true);
+            document.addEventListener("transitionrun", this.onGeometryTransition, true);
+            document.addEventListener("animationstart", this.onGeometryTransition, true);
         },
         teardownFrameRectTracking() {
             if (this._rectObserver) {
                 this._rectObserver.disconnect();
                 this._rectObserver = null;
             }
+            this._rectPollUntil = 0;
+            if (this._rectPollRaf != null && typeof cancelAnimationFrame === "function") {
+                cancelAnimationFrame(this._rectPollRaf);
+                this._rectPollRaf = null;
+            }
             if (typeof window !== "undefined") {
                 window.removeEventListener("resize", this.updateFrameRect);
             }
             if (typeof document !== "undefined") {
                 document.removeEventListener("scroll", this.updateFrameRect, true);
+                document.removeEventListener("transitionrun", this.onGeometryTransition, true);
+                document.removeEventListener("animationstart", this.onGeometryTransition, true);
             }
+        },
+        onGeometryTransition(event) {
+            const prop = event ? event.propertyName : null;
+            if (prop != null && !GEOMETRY_TRANSITION_RE.test(prop)) {
+                return;
+            }
+            this._rectPollUntil = Date.now() + RECT_POLL_TAIL_MS;
+            if (this._rectPollRaf != null) {
+                return;
+            }
+            const step = () => {
+                this._rectPollRaf = null;
+                if (Date.now() >= (this._rectPollUntil || 0)) {
+                    return;
+                }
+                this.updateFrameRect();
+                this._rectPollRaf = requestAnimationFrame(step);
+            };
+            this._rectPollRaf = requestAnimationFrame(step);
         },
         reloadFrame() {
             this.clearRenderDeadline();
