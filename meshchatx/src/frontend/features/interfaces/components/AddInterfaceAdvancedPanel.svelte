@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import ExpandingSection from "./ExpandingSection.svelte";
-    import Toggle from "./Toggle.svelte";
+    import Toggle from "../../../ui/svelte/Toggle.svelte";
     import BundledDocsHint from "./BundledDocsHint.svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";

@@ -7,7 +7,7 @@ describe("Toggle UI", () => {
 
     it("renders with id", () => {
         const { container } = render(Toggle, { id: "my-toggle" });
-        expect(container.querySelector("input").id).toBe("my-toggle");
+        expect(container.querySelector("[role=switch]").id).toBe("my-toggle");
     });
 
     it("renders label when provided", () => {
@@ -17,24 +17,24 @@ describe("Toggle UI", () => {
 
     it("does not render label when not provided", () => {
         const { container } = render(Toggle, { id: "t" });
-        expect(container.querySelector("span")).toBeNull();
+        expect(container.textContent.trim()).toBe("");
     });
 
     it("calls onchange when toggled", async () => {
         const onchange = vi.fn();
         const { container } = render(Toggle, { id: "t", checked: false, onchange });
-        await fireEvent.click(container.querySelector("input"));
+        await fireEvent.click(container.querySelector("[role=switch]"));
         expect(onchange).toHaveBeenCalledWith(true);
     });
 
-    it("checkbox is checked when checked true", () => {
+    it("switch is checked when checked true", () => {
         const { container } = render(Toggle, { id: "t", checked: true });
-        expect(container.querySelector("input").checked).toBe(true);
+        expect(container.querySelector("[role=switch]").getAttribute("aria-checked")).toBe("true");
     });
 
-    it("checkbox is disabled when disabled true", () => {
+    it("switch is disabled when disabled true", () => {
         const { container } = render(Toggle, { id: "t", disabled: true });
-        expect(container.querySelector("input").disabled).toBe(true);
+        expect(container.querySelector("[role=switch]").disabled).toBe(true);
     });
 
     it("label has cursor-not-allowed when disabled", () => {

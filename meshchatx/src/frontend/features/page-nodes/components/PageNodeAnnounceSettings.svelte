@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import { t } from "../../../js/i18n.js";
-    import PageNodeToggle from "./PageNodeToggle.svelte";
+    import PageNodeToggle from "../../../ui/svelte/Toggle.svelte";
 
     interface Props {
         announceEnabled: boolean;

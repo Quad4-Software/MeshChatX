@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
-    import Toggle from "./Toggle.svelte";
+    import Toggle from "../../../ui/svelte/Toggle.svelte";
     import type { InterfaceModule } from "../lib/types.js";
 
     interface Props {

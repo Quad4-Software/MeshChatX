@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import SettingsSectionBlock from "../SettingsSectionBlock.svelte";
-    import Toggle from "../Toggle.svelte";
+    import Toggle from "../../../../ui/svelte/Toggle.svelte";
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../../js/i18n.js";
 

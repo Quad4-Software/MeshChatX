@@ -5,7 +5,7 @@
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import EmptyState from "../../../ui/svelte/EmptyState.svelte";
     import type { PageNodePageItem } from "../lib/types.js";
-    import PageNodeToggle from "./PageNodeToggle.svelte";
+    import PageNodeToggle from "../../../ui/svelte/Toggle.svelte";
 
     interface Props {
         pages: PageNodePageItem[];

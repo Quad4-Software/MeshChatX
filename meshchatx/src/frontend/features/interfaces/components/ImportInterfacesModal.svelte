@@ -6,7 +6,7 @@
     import { formatFrequency } from "../lib/interfacesFormat.js";
     import { importPreviewInterfacesApi, importInterfacesApi } from "../lib/interfacesApi.js";
     import type { ConfiguredInterface } from "../lib/types.js";
-    import Toggle from "./Toggle.svelte";
+    import Toggle from "../../../ui/svelte/Toggle.svelte";
 
     interface Props {
         isShowing?: boolean;

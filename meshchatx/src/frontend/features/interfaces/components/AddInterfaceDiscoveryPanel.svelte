@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import ExpandingSection from "./ExpandingSection.svelte";
-    import Toggle from "./Toggle.svelte";
+    import Toggle from "../../../ui/svelte/Toggle.svelte";
     import { t } from "../../../js/i18n.js";
     import type { DiscoveryFields } from "../lib/types.js";
 

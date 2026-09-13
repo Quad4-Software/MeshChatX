@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import Toggle from "../Toggle.svelte";
+    import Toggle from "../../../../ui/svelte/Toggle.svelte";
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
     import ManagementIdentityPicker from "../../../rnpath/components/ManagementIdentityPicker.svelte";
     import ToastUtils from "../../../../js/ToastUtils.js";

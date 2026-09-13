@@ -3,7 +3,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
-    import Toggle from "./Toggle.svelte";
+    import Toggle from "../../../ui/svelte/Toggle.svelte";
     import ToastUtils from "../../../js/ToastUtils.js";
     import DialogUtils from "../../../js/DialogUtils.js";
     import NotificationSoundUtils from "../../../js/NotificationSoundUtils.js";

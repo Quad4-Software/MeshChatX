@@ -120,7 +120,6 @@ const FEATURE_MODULE_OWNERS = [
             "meshchatx/src/frontend/features/interfaces/lib/interfacesApi.ts",
             "meshchatx/src/frontend/features/interfaces/lib/interfacesFormat.ts",
             "meshchatx/src/frontend/features/interfaces/lib/addInterfaceState.ts",
-            "meshchatx/src/frontend/features/interfaces/components/Toggle.svelte",
             "meshchatx/src/frontend/features/interfaces/components/ExpandingSection.svelte",
             "meshchatx/src/frontend/features/interfaces/components/BundledDocsHint.svelte",
             "meshchatx/src/frontend/features/interfaces/components/ImportInterfacesModal.svelte",

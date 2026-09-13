@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import type { Snippet } from "svelte";
-    import Toggle from "./Toggle.svelte";
+    import Toggle from "../../../ui/svelte/Toggle.svelte";
 
     interface Props {
         id: string;
