@@ -417,18 +417,30 @@ def check_appcontainer_launch() -> dict[str, str]:
                 else source_root
             )
             extra_roots = [package_root]
+        results = []
         try:
-            result = ac.launch_backend_sandboxed(
-                exe,
-                args,
-                storage_dir=marker_dir,
-                reticulum_config_dir=marker_dir,
-                log_dir=marker_dir,
-                forced=True,
-                env=child_env,
-                extra_ro_roots=extra_roots,
-                child_log_path=child_log,
-            )
+            for use_lpac in (True, False):
+                result = ac.launch_backend_sandboxed(
+                    exe,
+                    args,
+                    storage_dir=marker_dir,
+                    reticulum_config_dir=marker_dir,
+                    log_dir=marker_dir,
+                    forced=True,
+                    use_lpac=use_lpac,
+                    env=child_env,
+                    extra_ro_roots=extra_roots,
+                    child_log_path=child_log,
+                )
+                results.append((use_lpac, result))
+                # Production treats LPAC loader-init exits (0xC0000142 and
+                # friends) as fallback-worthy, so retry once as a plain
+                # AppContainer child. Any other outcome is final.
+                if (
+                    not result.ok
+                    or result.exit_code not in ac._SANDBOX_INIT_FAILURE_CODES
+                ):
+                    break
         except Exception as exc:
             return _status(False, f"sandboxed spawn raised: {exc}")
     finally:
@@ -439,16 +451,18 @@ def check_appcontainer_launch() -> dict[str, str]:
             os.environ[env_flag] = previous
 
     try:
-        if not result.ok:
-            return _status(False, f"sandboxed spawn failed: {result.error}")
-        if result.fell_back or not result.used_appcontainer:
-            return _status(False, "probe did not run inside the AppContainer")
-        marker_ok = False
-        if os.path.isfile(marker):
-            with open(marker, encoding="utf-8") as handle:
-                marker_ok = "ok" in handle.read()
-        if marker_ok:
-            return _status(True)
+        for use_lpac, result in results:
+            if not result.ok:
+                return _status(False, f"sandboxed spawn failed: {result.error}")
+            if result.fell_back or not result.used_appcontainer:
+                return _status(False, "probe did not run inside the AppContainer")
+            marker_ok = False
+            if os.path.isfile(marker):
+                with open(marker, encoding="utf-8") as handle:
+                    marker_ok = "ok" in handle.read()
+            if marker_ok:
+                mode = "lpac" if use_lpac else "plain"
+                return _status(True, f"child ran inside AppContainer ({mode})")
         detail = ""
         if os.path.isfile(child_log):
             with open(child_log, encoding="utf-8", errors="replace") as handle:
