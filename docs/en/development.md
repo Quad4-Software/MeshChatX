@@ -66,6 +66,8 @@ pnpm run version:sync also runs scripts/bake_build_meta.js, which writes gitigno
 
 Changelog entries are still written by hand when you cut a release. meshchatx.**version** is read from meshchatx/src/version.py without importing meshchatx.src, so import meshchatx stays lightweight.
 
+For rngit releases, scripts/rngit_release.py builds the wheel and pyz into python-dist/, signs and uploads them to the release remote, and verifies the manifest afterwards. Run python3 scripts/rngit_release.py --help for the commands (list, view, fetch, verify, create, delete, release) and the environment overrides.
+
 ## Release channels
 
 | Channel | Tags                       | How to cut                                                           |
