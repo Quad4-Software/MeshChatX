@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-09-10T22:09:48.993903Z
+Generated at: 2026-09-13T00:45:13.976625Z
 Frontend source: pnpm
 
 Python dependencies
@@ -70,7 +70,7 @@ lxmf 1.1.1
 lxmfy 2.0.1
   License: BSD-0-Clause
   Author: Quad4 <team@quad4.io>
-lxst 0.5.2
+lxst 0.5.3
   License: Other/Proprietary License
   Author: Mark Qvist
 miniaudio 1.71
@@ -109,7 +109,7 @@ pyserial 3.5
 reticulum-meshchatx 4.9.1
   License: 0BSD AND MIT
   Author: Quad4
-rns 1.5.3
+rns 1.5.4
   License: Reticulum License
   Author: Mark Qvist
 rns-filesync 1.0.0
@@ -1954,6 +1954,9 @@ nopt 9.0.0
 normalize-url 8.1.1
   License: MIT
   Author: Sindre Sorhus
+nostics 1.2.0
+  License: MIT
+  Author: Anthony Fu
 nth-check 2.1.1
   License: BSD-2-Clause
   Author: Felix Boehm
@@ -2080,6 +2083,9 @@ picocolors 1.1.1
 picomatch 4.0.4
   License: MIT
   Author: Jon Schlinkert
+pinia 4.0.3
+  License: MIT
+  Author: Eduardo San Martin Morote
 pkijs 3.4.0
   License: BSD-3-Clause
   Author: Yury Strozhevsky
