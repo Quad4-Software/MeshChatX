@@ -15,6 +15,7 @@
         onCreateMeshServerAndPublish: () => void;
         onPublishToNode: (node: PageNodeItem) => void;
         onPublishAllToNode: () => void;
+        onPublishSite: () => void;
         onOpenPublishedInNomadNet: () => void;
         onCloseMenu: () => void;
     }
@@ -28,6 +29,7 @@
         onCreateMeshServerAndPublish,
         onPublishToNode,
         onPublishAllToNode,
+        onPublishSite,
         onOpenPublishedInNomadNet,
         onCloseMenu,
     }: Props = $props();
@@ -111,6 +113,14 @@
                         onclick={onPublishAllToNode}
                     >
                         {t("tools.micron_editor.publish_all_tabs")}
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-gray-100 dark:hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                        disabled={publishBusy}
+                        onclick={onPublishSite}
+                    >
+                        {t("tools.micron_editor.publish_site")}
                     </button>
                 </div>
             {/if}

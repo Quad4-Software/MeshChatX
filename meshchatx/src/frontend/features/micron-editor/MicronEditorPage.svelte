@@ -15,6 +15,7 @@
     import { createDefaultTab, createGuideTab } from "./lib/defaultContent.js";
     import { downloadMicronFile } from "./lib/micronDownload.js";
     import {
+        buildSiteIndexPage,
         ensureNodeRunning,
         fetchNodePagesList,
         fetchPageNodesList,
@@ -23,11 +24,13 @@
         pageBaseWithExtension,
         pageNamesFromList,
         resolvePublishPageBase,
+        type PublishSitePayload,
     } from "./lib/micronPublish.js";
     import type { LastPublishedInfo, MicronTab, PageNodeItem } from "./lib/types.js";
     import MicronEditorTabBar from "./components/MicronEditorTabBar.svelte";
     import MicronPublishDropdown from "./components/MicronPublishDropdown.svelte";
     import MicronPreviewPane from "./components/MicronPreviewPane.svelte";
+    import PublishSiteModal from "./components/PublishSiteModal.svelte";
 
     let tabs = $state<MicronTab[]>([]);
     let activeTabIndex = $state(0);
@@ -36,6 +39,7 @@
     let isMobileView = $state(false);
 
     let showPublishMenu = $state(false);
+    let showPublishSiteModal = $state(false);
     let pageNodes = $state<PageNodeItem[]>([]);
     let publishBusy = $state(false);
     let lastPublished = $state<LastPublishedInfo | null>(null);
@@ -331,6 +335,95 @@
         }
     }
 
+    export async function openPublishSite(): Promise<void> {
+        showPublishMenu = false;
+        showPublishSiteModal = true;
+        try {
+            pageNodes = await fetchPageNodesList();
+        } catch {
+            pageNodes = [];
+        }
+    }
+
+    export async function publishSite(payload: PublishSitePayload): Promise<void> {
+        if (publishBusy) return;
+        const pages = payload?.pages || [];
+        if (pages.length === 0) return;
+        publishBusy = true;
+        try {
+            let node = payload.nodeId ? pageNodes.find((n) => n.node_id === payload.nodeId) : null;
+            if (!node) {
+                if (!payload.newServerName) {
+                    DialogUtils.alert(t("tools.micron_editor.publish_site_no_server"));
+                    return;
+                }
+                const createRes = await window.api.post("/api/v1/page-nodes", { name: payload.newServerName });
+                node = (createRes.data || {}) as PageNodeItem;
+                if (!node.node_id) {
+                    throw new Error("create_failed");
+                }
+            }
+            const running = await ensureNodeRunning(node);
+            pageNodes = [...pageNodes.filter((n) => n.node_id !== running.node_id), running];
+            let published = 0;
+            let lastSavedName: string | null = null;
+            for (const page of pages) {
+                try {
+                    const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
+                        name: page.name,
+                        content: page.content,
+                    });
+                    lastSavedName = (response.data as { name?: string })?.name || page.name;
+                    published++;
+                } catch {
+                    console.error(`Failed to publish page: ${page.name}`);
+                }
+            }
+            if (payload.generateIndex && running.destination_hash && published > 0) {
+                try {
+                    const indexContent = buildSiteIndexPage(running.destination_hash, pages);
+                    const indexRes = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
+                        name: "index.mu",
+                        content: indexContent,
+                    });
+                    lastSavedName = (indexRes.data as { name?: string })?.name || "index.mu";
+                } catch {
+                    console.error("Failed to publish generated index page");
+                }
+            }
+            showPublishSiteModal = false;
+            if (lastSavedName) {
+                rememberPublished(running, lastSavedName);
+            }
+            if (published === 0) {
+                DialogUtils.alert(t("tools.micron_editor.publish_failed"));
+                return;
+            }
+            ToastUtils.success(
+                t("tools.micron_editor.publish_site_done", {
+                    published,
+                    total: pages.length,
+                    server: running.name,
+                })
+            );
+            if (lastPublished?.destinationHash) {
+                const open = await DialogUtils.confirm(
+                    t("tools.micron_editor.publish_open_nomadnet_confirm", {
+                        page: lastSavedName,
+                        server: running.name,
+                    })
+                );
+                if (open) {
+                    openPublishedInNomadNet();
+                }
+            }
+        } catch (e: any) {
+            DialogUtils.alert(e.response?.data?.message || t("tools.micron_editor.publish_failed"));
+        } finally {
+            publishBusy = false;
+        }
+    }
+
     export async function publishAllToNode(): Promise<void> {
         if (pageNodes.length === 0 || publishBusy) return;
 
@@ -449,6 +542,7 @@
             onCreateMeshServerAndPublish={createMeshServerAndPublish}
             onPublishToNode={publishToNode}
             onPublishAllToNode={publishAllToNode}
+            onPublishSite={openPublishSite}
             onOpenPublishedInNomadNet={openPublishedInNomadNet}
             onCloseMenu={() => (showPublishMenu = false)}
         />
@@ -509,4 +603,13 @@
 
         <MicronPreviewPane {renderedContent} {isMobileView} {showEditor} onNomadDestination={openNomadDestination} />
     </div>
+
+    <PublishSiteModal
+        show={showPublishSiteModal}
+        {tabs}
+        {pageNodes}
+        busy={publishBusy}
+        onclose={() => (showPublishSiteModal = false)}
+        onpublish={publishSite}
+    />
 </div>
