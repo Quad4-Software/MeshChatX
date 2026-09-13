@@ -128,10 +128,12 @@ describe("NomadCrashTab.vue", () => {
     it("parks the frame over the host rect and hides it while inactive", async () => {
         const wrapper = mountCrashTab();
         const frame = wrapper.vm.$refs.frame;
+        const host = wrapper.vm.$refs.hostEl;
         // jsdom reports a zero rect, so the frame starts hidden.
         expect(frame.style.visibility).toBe("hidden");
 
-        wrapper.vm.frameRect = { left: 10, top: 20, width: 300, height: 200 };
+        host.getBoundingClientRect = () => ({ left: 10, top: 20, width: 300, height: 200 });
+        wrapper.vm.updateFrameRect();
         await wrapper.vm.$nextTick();
         expect(frame.style.visibility).toBe("visible");
         expect(frame.style.left).toBe("10px");
@@ -142,6 +144,26 @@ describe("NomadCrashTab.vue", () => {
         await wrapper.setProps({ active: false });
         expect(frame.style.visibility).toBe("hidden");
         expect(frame.style.pointerEvents).toBe("none");
+    });
+
+    it("polls the host rect during geometry transitions", async () => {
+        const wrapper = mountCrashTab();
+        const host = wrapper.vm.$refs.hostEl;
+        host.getBoundingClientRect = () => ({ left: 50, top: 5, width: 100, height: 50 });
+
+        wrapper.vm.onGeometryTransition({ propertyName: "transform" });
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        expect(wrapper.vm.frameRect.left).toBe(50);
+        expect(wrapper.vm.$refs.frame.style.visibility).toBe("visible");
+    });
+
+    it("ignores paint-only transitions", async () => {
+        const wrapper = mountCrashTab();
+        const spy = vi.spyOn(wrapper.vm, "updateFrameRect");
+        wrapper.vm.onGeometryTransition({ propertyName: "background-color" });
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        expect(spy).not.toHaveBeenCalled();
     });
 
     it("exposes an accessible iframe name and title", () => {
