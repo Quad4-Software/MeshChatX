@@ -83,7 +83,9 @@ async def reload_reticulum_instance(app: Any):
             "stopping-services",
             "Stopping bots and mesh services across identities...",
         )
-        app._teardown_all_contexts_for_reload()
+        # Context teardown blocks on Event.wait and sleeps; keep the web
+        # loop responsive while it runs.
+        await asyncio.to_thread(app._teardown_all_contexts_for_reload)
 
         # Give loops a moment to finish
         await asyncio.sleep(2)

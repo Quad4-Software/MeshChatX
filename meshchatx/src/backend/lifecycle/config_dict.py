@@ -145,10 +145,9 @@ def build_config_dict(app: Any, context=None):
         "message_inbound_bubble_color": ctx.config.message_inbound_bubble_color.get(),
         "message_failed_bubble_color": ctx.config.message_failed_bubble_color.get(),
         "message_waiting_bubble_color": ctx.config.message_waiting_bubble_color.get(),
-        "translator_argos_enabled": ctx.config.translator_argos_enabled.get(),
-        "translator_libretranslate_enabled": ctx.config.translator_libretranslate_enabled.get(),
-        "libretranslate_url": ctx.config.libretranslate_url.get(),
-        "libretranslate_api_key": ctx.config.libretranslate_api_key.get(),
+        "translation_enabled": ctx.config.translation_enabled.get(),
+        "translation_default_source_lang": ctx.config.translation_default_source_lang.get(),
+        "translation_default_target_lang": ctx.config.translation_default_target_lang.get(),
         "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
         "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
         "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),
@@ -186,6 +185,8 @@ def build_config_dict(app: Any, context=None):
         "nomad_micron_default_engine": ctx.config.nomad_micron_default_engine.get()
         or "js",
         "nomad_default_page_path": ctx.config.nomad_default_page_path.get(),
+        "nomad_image_loading_policy": ctx.config.nomad_image_loading_policy.get()
+        or "manual",
         "local_message_auto_delete_enabled": ctx.config.local_message_auto_delete_enabled.get(),
         "local_message_auto_delete_value": ctx.config.local_message_auto_delete_value.get(),
         "local_message_auto_delete_unit": ctx.config.local_message_auto_delete_unit.get()
