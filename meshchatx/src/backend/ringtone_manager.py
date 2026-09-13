@@ -2,6 +2,12 @@
 
 import os
 
+from meshchatx.src.path_utils import (
+    PathJailError,
+    resolve_under_root,
+    safe_basename,
+)
+
 from .audio_codec import encode_audio_to_ogg_opus
 
 
@@ -57,16 +63,10 @@ class RingtoneManager:
         safe = self._safe_storage_filename(filename)
         if safe is None:
             return None
-        path = os.path.realpath(os.path.join(self.storage_dir, safe))
-        root = os.path.realpath(self.storage_dir)
-        if path != root and not path.startswith(root + os.sep):
+        try:
+            return resolve_under_root(self.storage_dir, safe)
+        except PathJailError:
             return None
-        return path
 
     def _safe_storage_filename(self, filename):
-        if not isinstance(filename, str) or not filename or "\x00" in filename:
-            return None
-        base = os.path.basename(filename.replace("\\", "/"))
-        if not base or base in {".", ".."} or ":" in base:
-            return None
-        return base
+        return safe_basename(filename, forbidden=lambda n: ":" in n)

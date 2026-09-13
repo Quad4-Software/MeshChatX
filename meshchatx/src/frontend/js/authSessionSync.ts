@@ -1,3 +1,4 @@
+import { apiPath } from "./constants.js";
 import type { ApiClient } from "./apiClient.js";
 import GlobalState from "./GlobalState.js";
 
@@ -41,7 +42,7 @@ export async function fetchAuthStatus(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-        const response = await api.get<AuthStatusPayload>("/api/v1/auth/status", {
+        const response = await api.get<AuthStatusPayload>(apiPath("/auth/status"), {
             signal: controller.signal,
         });
         return response.data ?? {};

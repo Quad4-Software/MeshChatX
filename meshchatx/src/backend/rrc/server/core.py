@@ -17,6 +17,7 @@ from collections import deque
 
 import RNS
 
+from meshchatx.src.backend import constants
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.hub_commands import HubCommandHandler
 from meshchatx.src.backend.rrc.hub_policy import HubPolicy
@@ -27,15 +28,21 @@ from meshchatx.src.backend.rrc.room_key_crypto import (
 )
 from meshchatx.src.backend.rrc.room_registry import RoomRegistry
 from meshchatx.src.backend.rrc.rooms_toml import INVITE_DEFAULT_TTL_S, RoomsTomlStore
+from meshchatx.src.path_utils import atomic_write_bytes
 
 SERVER_DIR_NAME = "rrc_server"
 MESSAGE_LOG_CAP = 5000
+EVENT_LOG_CAP = 200
+RATE_EVENT_MIN_INTERVAL_S = 30.0
+DEFAULT_MAX_SESSIONS = 512
+DEFAULT_MAX_SESSIONS_PER_PEER = 3
+MIN_SESSIONS_PER_PEER = 2
 STORE_FILENAME = "hubs"
 HUB_CONFIG_FILENAME = "hub.toml"
 ROOMS_FILENAME = "rooms.toml"
-DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
-MIN_ANNOUNCE_INTERVAL_SECONDS = 60
-MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
+DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
+MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
 
 
 def normalize_announce_interval_seconds(
@@ -104,6 +111,11 @@ class _Session:
         self.rooms = set()
         self.tokens = float(proto.DEFAULT_RATE_PER_MINUTE)
         self.last_refill = time.monotonic()
+        # Lazily filled from the hosting hub control rate on first use so
+        # tests and per-hub overrides take effect.
+        self.ctrl_tokens = None
+        self.ctrl_last_refill = time.monotonic()
+        self.last_rate_event_ts = 0.0
 
 
 class RRCHubServer:
@@ -135,6 +147,9 @@ class RRCHubServer:
         self.max_msg_body_bytes = proto.DEFAULT_MAX_MSG_BYTES
         self.max_rooms_per_session = proto.DEFAULT_MAX_ROOMS
         self.rate_limit_msgs_per_minute = proto.DEFAULT_RATE_PER_MINUTE
+        self.control_rate_per_minute = proto.DEFAULT_CONTROL_RATE_PER_MINUTE
+        self.max_sessions = DEFAULT_MAX_SESSIONS
+        self.max_sessions_per_peer = DEFAULT_MAX_SESSIONS_PER_PEER
 
         self.destination = None
         self.running = False
@@ -149,6 +164,19 @@ class RRCHubServer:
         self.rooms = RoomRegistry(self, None)
         self._commands = HubCommandHandler()
         self._message_log = deque(maxlen=MESSAGE_LOG_CAP)
+        self._events = deque(maxlen=EVENT_LOG_CAP)
+        self._stats = {
+            "links_total": 0,
+            "links_closed": 0,
+            "messages_relayed": 0,
+            "rate_limited_drops": 0,
+            "control_drops": 0,
+            "session_cap_drops": 0,
+            "peer_cap_drops": 0,
+            "banned_disconnects": 0,
+            "kicks": 0,
+            "bans": 0,
+        }
 
     @property
     def dest_hash(self):
@@ -256,7 +284,18 @@ class RRCHubServer:
 
     def _on_link(self, link):
         with self._lock:
-            self._sessions[link] = _Session()
+            self._stats["links_total"] += 1
+            over_cap = len(self._sessions) >= max(1, int(self.max_sessions))
+            if over_cap:
+                self._stats["session_cap_drops"] += 1
+                self._record_event("session_cap_drop")
+            else:
+                self._sessions[link] = _Session()
+        if over_cap:
+            with contextlib.suppress(Exception):
+                if hasattr(link, "teardown"):
+                    link.teardown()
+            return
         link.set_packet_callback(lambda data, pkt: self._on_packet(link, data))
         link.set_link_closed_callback(self._on_close)
         link.set_remote_identified_callback(self._on_remote_identified)
@@ -284,19 +323,55 @@ class RRCHubServer:
                 if isinstance(sess.peer, (bytes, bytearray))
                 and bytes(sess.peer) == bytes(peer_hash)
             ]
+            if targets:
+                self._bump("banned_disconnects", len(targets))
+                self._record_event(
+                    "banned_disconnect",
+                    peer=peer_hash,
+                    detail=message,
+                )
         for lnk, _sess in targets:
             self._queue_error(outgoing, lnk, message)
             with contextlib.suppress(Exception):
                 if hasattr(lnk, "teardown"):
                     lnk.teardown()
 
+    def _peer_cap_extras(self, peer_hash):
+        """Return newest excess links for peer_hash. Caller must hold _lock."""
+        if not isinstance(peer_hash, (bytes, bytearray)):
+            return []
+        peer_b = bytes(peer_hash)
+        links = [
+            lnk
+            for lnk, s in self._sessions.items()
+            if not isinstance(lnk, _LoopbackEndpoint)
+            and isinstance(s.peer, (bytes, bytearray))
+            and bytes(s.peer) == peer_b
+        ]
+        cap = max(MIN_SESSIONS_PER_PEER, int(self.max_sessions_per_peer))
+        over = len(links) - cap
+        if over <= 0:
+            return []
+        extras = links[-over:]
+        self._bump("peer_cap_drops", len(extras))
+        self._record_event(
+            "peer_cap_drop",
+            peer=peer_b,
+            detail="dropped " + str(len(extras)) + " over cap " + str(cap),
+        )
+        return extras
+
     def _on_remote_identified(self, link, identity):
         if identity is None:
             return
         with self._lock:
             sess = self._sessions.get(link)
+            extras = []
             if sess is not None:
                 sess.peer = identity.hash
+                # Only enforce the cap for links that are live sessions: a
+                # stale identify on a cap-dropped link must not evict others.
+                extras = self._peer_cap_extras(identity.hash)
         if identity is not None and self.policy.is_banned(identity.hash):
             self._log(
                 "Disconnecting banned peer " + identity.hash.hex()[:12],
@@ -308,6 +383,10 @@ class RRCHubServer:
                 self._send_payload(out_link, payload)
             with contextlib.suppress(Exception):
                 link.teardown()
+        for lnk in extras:
+            with contextlib.suppress(Exception):
+                if hasattr(lnk, "teardown"):
+                    lnk.teardown()
 
     def _on_close(self, link):
         parted = []
@@ -316,6 +395,7 @@ class RRCHubServer:
             sess = self._sessions.pop(link, None)
             if sess is None:
                 return
+            self._bump("links_closed")
             peer = sess.peer
             for room in list(sess.rooms):
                 members = self._room_members.get(room)
@@ -367,6 +447,45 @@ class RRCHubServer:
         sess.tokens -= cost
         return True
 
+    def _refill_ctrl_and_take(self, sess, cost=1.0):
+        now = time.monotonic()
+        per_min = float(max(1, int(self.control_rate_per_minute)))
+        if sess.ctrl_tokens is None:
+            sess.ctrl_tokens = per_min
+            sess.ctrl_last_refill = now
+        elapsed = max(0.0, now - sess.ctrl_last_refill)
+        sess.ctrl_tokens = min(
+            per_min,
+            sess.ctrl_tokens + elapsed * (per_min / 60.0),
+        )
+        sess.ctrl_last_refill = now
+        if sess.ctrl_tokens < cost:
+            return False
+        sess.ctrl_tokens -= cost
+        return True
+
+    def _bump(self, key, n=1):
+        self._stats[key] = self._stats.get(key, 0) + n
+
+    def _record_event(self, ev_type, peer=None, room=None, detail=None):
+        peer_hex = bytes(peer).hex() if isinstance(peer, (bytes, bytearray)) else None
+        self._events.append(
+            {
+                "ts": time.time(),
+                "type": ev_type,
+                "peer": peer_hex,
+                "room": room,
+                "detail": detail,
+            },
+        )
+
+    def _note_rate_limited(self, sess):
+        # Throttle the event log so a flood cannot flush useful history.
+        now = time.monotonic()
+        if now - sess.last_rate_event_ts >= RATE_EVENT_MIN_INTERVAL_S:
+            sess.last_rate_event_ts = now
+            self._record_event("rate_limited", peer=sess.peer)
+
     def _send_payload(self, link, payload):
         if isinstance(link, _LoopbackEndpoint):
             link.from_server(payload)
@@ -379,6 +498,12 @@ class RRCHubServer:
             sess = _Session()
             sess.peer = client_identity.hash if client_identity is not None else None
             self._sessions[link] = sess
+            self._bump("links_total")
+            extras = self._peer_cap_extras(sess.peer)
+        for lnk in extras:
+            with contextlib.suppress(Exception):
+                if hasattr(lnk, "teardown"):
+                    lnk.teardown()
         self.manager._notify_change(self)
 
     def _detach_loopback(self, link):
@@ -395,13 +520,22 @@ class RRCHubServer:
             sess = self._sessions.get(link)
             if sess is None:
                 return
+            extras = []
             if sess.peer is None:
                 ri = link.get_remote_identity()
                 if ri is None:
                     return
                 sess.peer = ri.hash
+                # The identified callback may never fire for this link, so
+                # enforce the per-peer session cap on first packet too.
+                extras = self._peer_cap_extras(ri.hash)
             outgoing = []
-            self._route(link, sess, env, outgoing)
+            if link not in extras:
+                self._route(link, sess, env, outgoing)
+        for lnk in extras:
+            with contextlib.suppress(Exception):
+                if hasattr(lnk, "teardown"):
+                    lnk.teardown()
         for out_link, payload in outgoing:
             self._send_payload(out_link, payload)
 
@@ -423,24 +557,23 @@ class RRCHubServer:
                 ),
             )
             return
+        if t not in (proto.T_MSG, proto.T_ACTION, proto.T_NOTICE):
+            # HELLO/JOIN/PART and unknown types share a slower control bucket
+            # so join/part churn cannot flood the hub for free.
+            if not self._refill_ctrl_and_take(sess):
+                self._bump("control_drops")
+                self._note_rate_limited(sess)
+                self._queue_error(outgoing, link, "rate limited")
+                return
         if not sess.welcomed:
             if t == proto.T_HELLO:
                 self._handle_hello(link, sess, env, outgoing)
             return
         if t in (proto.T_MSG, proto.T_ACTION, proto.T_NOTICE):
             if not self._refill_and_take(sess):
-                outgoing.append(
-                    (
-                        link,
-                        proto.encode(
-                            proto.make_envelope(
-                                proto.T_ERROR,
-                                src=self.identity.hash,
-                                body="rate limited",
-                            ),
-                        ),
-                    ),
-                )
+                self._bump("rate_limited_drops")
+                self._note_rate_limited(sess)
+                self._queue_error(outgoing, link, "rate limited")
                 return
         if t == proto.T_HELLO:
             self._handle_hello(link, sess, env, outgoing)
@@ -565,6 +698,8 @@ class RRCHubServer:
             self.rooms.persist(r)
         members.add(link)
         sess.rooms.add(r)
+        if not already:
+            self._record_event("join", peer=sess.peer, room=r)
 
         if existing and not already:
             fanout = proto.encode(
@@ -635,6 +770,7 @@ class RRCHubServer:
             outgoing,
             ack_parted=True,
         )
+        self._record_event("part", peer=sess.peer, room=r)
 
     def _force_leave_room(
         self,
@@ -757,6 +893,7 @@ class RRCHubServer:
         self._record_message_log(r, sess, env)
         for member in list(members):
             outgoing.append((member, payload))
+        self._bump("messages_relayed")
 
     def _record_message_log(self, room, sess, env):
         t = env.get(proto.K_T)
@@ -956,6 +1093,18 @@ class RRCHubServer:
             rooms = [rooms_cfg[n] for n in sorted(rooms_cfg.keys())]
             return {"rooms": rooms, "recent": list(reversed(recent))}
 
+    def stats_dict(self):
+        """Return counters and a newest-first event log for observability."""
+        with self._lock:
+            stats = dict(self._stats)
+            stats["sessions"] = len(self._sessions)
+            stats["welcomed"] = sum(1 for s in self._sessions.values() if s.welcomed)
+            stats["uptime_s"] = (
+                int(time.time() - self._started_at) if self._started_at else 0
+            )
+            events = [dict(e) for e in reversed(self._events)]
+        return {"stats": stats, "events": events}
+
     def messages_for_peer(self, peer_hex, room=None, limit=200):
         peer = parse_identity_hash(peer_hex)
         if peer is None:
@@ -987,6 +1136,7 @@ class RRCHubServer:
         r = self._norm_room(room)
         outgoing = []
         target_link = None
+        tsess = None
         with self._lock:
             for link, sess in self._sessions.items():
                 if (
@@ -995,11 +1145,11 @@ class RRCHubServer:
                     and r in sess.rooms
                 ):
                     target_link = link
+                    tsess = sess
                     break
         if target_link is None:
             msg = "peer not in room"
             raise ValueError(msg)
-        tsess = self._sessions[target_link]
         self._force_leave_room(
             target_link,
             tsess,
@@ -1007,6 +1157,9 @@ class RRCHubServer:
             outgoing,
             error_text="kicked from " + r,
         )
+        with self._lock:
+            self._bump("kicks")
+            self._record_event("kick", peer=peer, room=r)
         self._flush_outgoing(outgoing)
         return True
 
@@ -1018,6 +1171,9 @@ class RRCHubServer:
         outgoing = []
         self.policy.add_ban(peer)
         self.policy.save()
+        with self._lock:
+            self._bump("bans")
+            self._record_event("ban", peer=peer)
         self._disconnect_banned(peer, outgoing, "banned (kline)")
         self._flush_outgoing(outgoing)
         return True
@@ -1033,6 +1189,8 @@ class RRCHubServer:
             st = self.rooms.ensure_state(r)
             bans = st.setdefault("bans", set())
             bans.add(peer)
+            self._bump("bans")
+            self._record_event("room_ban", peer=peer, room=r)
             self.rooms.touch_room(r)
             self.rooms.persist(r)
             for member in list(self._room_members.get(r, set())):
@@ -1383,13 +1541,7 @@ class RRCServerManager:
             try:
                 with self._lock:
                     entries = [hub.config_entry() for hub in self.hubs]
-                os.makedirs(self._server_dir(), exist_ok=True)
-                with open(tmp_path, "wb") as f:
-                    f.write(proto.encode({"hubs": entries}))
-                    f.flush()
-                    with contextlib.suppress(Exception):
-                        os.fsync(f.fileno())
-                os.replace(tmp_path, path)
+                atomic_write_bytes(path, proto.encode({"hubs": entries}))
             except Exception:
                 with contextlib.suppress(Exception):
                     os.unlink(tmp_path)

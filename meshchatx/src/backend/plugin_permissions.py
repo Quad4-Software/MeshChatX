@@ -52,10 +52,6 @@ KNOWN_NETWORK = frozenset({"none", "fetch"})
 KNOWN_UI = frozenset({"none", "sandboxed-html"})
 
 _URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)]+""")
-_SCHEME_HOST_RE = re.compile(
-    r"https?://([a-z0-9][-a-z0-9.]*(?:\.[a-z0-9][-a-z0-9.]*)+)",
-    re.IGNORECASE,
-)
 _SCAN_EXTENSIONS = frozenset(
     {".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".wat", ".html", ".htm"}
 )
@@ -105,11 +101,7 @@ def normalize_ui_modes(value: Any) -> list[str]:
     if value == "sandboxed-html":
         return ["sandboxed-html"]
     if isinstance(value, list):
-        modes: list[str] = []
-        for item in value:
-            if item == "sandboxed-html":
-                modes.append("sandboxed-html")
-        return modes
+        return ["sandboxed-html" for item in value if item == "sandboxed-html"]
     return []
 
 
@@ -118,20 +110,26 @@ def declared_permission_ids(manifest: dict[str, Any]) -> list[str]:
     if not isinstance(permissions, dict):
         return []
     ids: list[str] = []
-    for hook in permissions.get("hooks") or []:
-        if isinstance(hook, str) and hook.strip():
-            ids.append(permission_id_for_hook(hook.strip()))
-    for manager in permissions.get("managers") or []:
-        if isinstance(manager, str) and manager.strip():
-            ids.append(permission_id_for_manager(manager.strip()))
+    ids.extend(
+        permission_id_for_hook(hook.strip())
+        for hook in permissions.get("hooks") or []
+        if isinstance(hook, str) and hook.strip()
+    )
+    ids.extend(
+        permission_id_for_manager(manager.strip())
+        for manager in permissions.get("managers") or []
+        if isinstance(manager, str) and manager.strip()
+    )
     storage = permissions.get("storage") or "none"
     if isinstance(storage, str) and storage not in ("", "none"):
         ids.append(permission_id_for_storage(storage.strip()))
     network = normalize_network_mode(permissions.get("network"))
     if network != "none":
         ids.append(permission_id_for_network(network))
-    for ui_mode in normalize_ui_modes(permissions.get("ui")):
-        ids.append(permission_id_for_ui(ui_mode))
+    ids.extend(
+        permission_id_for_ui(ui_mode)
+        for ui_mode in normalize_ui_modes(permissions.get("ui"))
+    )
     # Deduplicate while preserving order.
     seen: set[str] = set()
     ordered: list[str] = []
@@ -273,10 +271,23 @@ def extract_urls_from_text(text: str) -> list[str]:
 
 
 def _host_root(endpoint: str) -> str | None:
-    match = _SCHEME_HOST_RE.search(endpoint)
-    if not match:
+    """Derive scheme://host/ for an endpoint using a real URL parse.
+
+    A regex search would read 127.0.0.1 out of
+    http://127.0.0.1:8000@example.com/x even though the actual host is
+    example.com. urlparse resolves userinfo correctly, so the emitted root
+    always names the host a request would really reach.
+    """
+    try:
+        parsed = urlparse(endpoint)
+        hostname = parsed.hostname
+    except (ValueError, UnicodeError):
         return None
-    return f"https://{match.group(1).lower()}/"
+    if parsed.scheme.lower() not in ("http", "https"):
+        return None
+    if not hostname or "." not in hostname:
+        return None
+    return f"https://{hostname.lower()}/"
 
 
 def collect_network_endpoints(manifest: dict[str, Any], plugin_dir: str) -> list[str]:

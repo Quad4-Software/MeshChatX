@@ -86,6 +86,9 @@ def require_loopback_tcp(loopback_available):
         )
 
 
+# Route and WS handler modules reach AsyncUtils through LiveMeshchatName
+# proxies that resolve meshchatx.meshchat at call time, so patching the
+# meshchat attribute below covers every consumer.
 @pytest.fixture(autouse=True)
 def global_mocks():
     with (
@@ -95,7 +98,9 @@ def global_mocks():
             return_value=None,
         ),
         patch("meshchatx.meshchat.generate_ssl_certificate", return_value=None),
+        ExitStack() as stack,
     ):
+
         # Mock run_async to properly close coroutines
         def mock_run_async(coro):
             if asyncio.iscoroutine(coro):
@@ -243,9 +248,6 @@ def mock_app(db, tmp_path, temp_db):
         )
         stack.enter_context(
             patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
-        )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
         )
         stack.enter_context(
             patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),

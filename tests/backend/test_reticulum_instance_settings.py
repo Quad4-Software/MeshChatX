@@ -3,6 +3,7 @@
 import json
 import shutil
 import tempfile
+from typing import ClassVar
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -11,6 +12,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import JsonContent as _JsonContent
 
 
 class ConfigDict(dict):
@@ -158,19 +160,22 @@ async def test_reticulum_instance_get_and_patch(temp_dir):
         assert "rpc_key =" in get_data["instance"]["rpc_config_snippet"]
 
         class PatchRequest:
+            _payload: ClassVar[dict] = {
+                "share_instance": True,
+                "local_hops_delta": True,
+                "respond_to_probes": True,
+                "shared_instance_type": "unix",
+                "instance_name": "meshchatx",
+                "remote_management_allowed": [
+                    "00112233445566778899aabbccddeeff",
+                ],
+                "enable_remote_management": True,
+            }
+            content = _JsonContent(_payload)
+
             @staticmethod
             async def json():
-                return {
-                    "share_instance": True,
-                    "local_hops_delta": True,
-                    "respond_to_probes": True,
-                    "shared_instance_type": "unix",
-                    "instance_name": "meshchatx",
-                    "remote_management_allowed": [
-                        "00112233445566778899aabbccddeeff",
-                    ],
-                    "enable_remote_management": True,
-                }
+                return PatchRequest._payload
 
         patch_response = await patch_handler(PatchRequest())
         patch_data = json.loads(patch_response.body)
@@ -224,9 +229,12 @@ async def test_reticulum_instance_rejects_bad_type(temp_dir):
         )
 
         class PatchRequest:
+            _payload: ClassVar[dict] = {"shared_instance_type": "udp"}
+            content = _JsonContent(_payload)
+
             @staticmethod
             async def json():
-                return {"shared_instance_type": "udp"}
+                return PatchRequest._payload
 
         response = await patch_handler(PatchRequest())
         assert response.status == 400
@@ -262,9 +270,12 @@ async def test_reticulum_instance_rejects_bad_instance_name(temp_dir):
         )
 
         class PatchRequest:
+            _payload: ClassVar[dict] = {"instance_name": "bad name"}
+            content = _JsonContent(_payload)
+
             @staticmethod
             async def json():
-                return {"instance_name": "bad name"}
+                return PatchRequest._payload
 
         response = await patch_handler(PatchRequest())
         assert response.status == 400
@@ -309,9 +320,12 @@ async def test_reticulum_instance_empty_patch_noop(temp_dir):
         )
 
         class PatchRequest:
+            _payload: ClassVar[dict] = {}
+            content = _JsonContent(_payload)
+
             @staticmethod
             async def json():
-                return {}
+                return PatchRequest._payload
 
         response = await patch_handler(PatchRequest())
         assert response.status == 200
@@ -358,9 +372,12 @@ async def test_reticulum_instance_clears_optional_fields(temp_dir):
         )
 
         class PatchRequest:
+            _payload: ClassVar[dict] = {"shared_instance_type": "", "instance_name": ""}
+            content = _JsonContent(_payload)
+
             @staticmethod
             async def json():
-                return {"shared_instance_type": "", "instance_name": ""}
+                return PatchRequest._payload
 
         response = await patch_handler(PatchRequest())
         assert response.status == 200
@@ -439,6 +456,8 @@ async def test_reticulum_instance_patch_fuzz_never_500(payload, temp_dir):
         )
 
         class PatchRequest:
+            content = _JsonContent(payload)
+
             @staticmethod
             async def json():
                 return payload

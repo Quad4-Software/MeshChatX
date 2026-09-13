@@ -91,8 +91,8 @@ Before a Testing or Beta cut, edit release/channel_prompt.json (focus_areas, not
 4. Review the Stable **draft** GitHub release (assets, SLSA, cosign), then publish. Immutable releases cannot gain assets after publish.
 5. Rollback: publish a new Stable from a known-good prior SHA. Do not rewrite a published release.
 6. Users see the channel badge in the sidebar and About. Testing/Beta also get a one-time prompt.
-7. Flatpak: the tag's `flatpak-ostree` job publishes to `https://cdn.meshchatx.com/flatpak/` on branch `testing`, `beta`, or `stable`. Keep that OSTree tree under `flatpak/` only. After the first good CDN publish, disable GitHub Pages if it still hosts the old Flatpak tree.
-8. Bunny pull zone (`cdn.meshchatx.com`): long cache on `/flatpak/repo/objects/*` and `/deltas/*`. No cache or must-revalidate on `summary*`, `refs`, `config`, and `*.flatpakref` / `*.flatpakrepo`.
+7. Flatpak: the tag's `flatpak-ostree` job publishes to `https://cdn.quad4.io/flatpak/` on branch `testing`, `beta`, or `stable`. Keep that OSTree tree under `flatpak/` only. After the first good CDN publish, disable GitHub Pages if it still hosts the old Flatpak tree.
+8. Bunny pull zone (`cdn.quad4.io`): long cache on `/flatpak/repo/objects/*` and `/deltas/*`. No cache or must-revalidate on `summary*`, `refs`, `config`, and `*.flatpakref` / `*.flatpakrepo`.
 
 Hard rule for CI speed: cache toolchains and downloads only. Tagged release binaries must be built inside that tag's single build-release run_id. Never attach artifacts from another run.
 
@@ -102,14 +102,7 @@ Prerelease retention: keep about 7 Testing and 5 Beta GitHub prereleases (script
 
 Locale discovery is automatic. Add a file under meshchatx/src/frontend/locales/ (for example xx.json) with the same keys as en.json and a top-level _languageName string for the selector label. Copy en.json and translate the values. Machine-assisted generation is optional.
 
-For a machine-generated first draft from en.json, use scripts/argos_translate.py. It keeps interpolation variables such as `{count}` intact.
-
-```bash
-pipx install argostranslate
-python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Your Language Name"
-```
-
-After a machine pass, have an LLM or a human check grammar, context, and tone.
+For a machine-generated first draft from en.json, use any offline-capable tool you prefer and keep interpolation variables such as `{count}` intact. After a machine pass, have an LLM or a human check grammar, context, and tone.
 
 ```bash
 pnpm test -- tests/frontend/i18n.test.js --run

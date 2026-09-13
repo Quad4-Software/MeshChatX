@@ -73,7 +73,7 @@ def test_oracle_normalize_caps_terms_and_term_len():
     long_term = "z" * (MAX_TERM_LEN + 40)
     extra = [f"t{i}" for i in range(MAX_TERMS_PER_RULE + 5)]
     out = normalize_lxmf_sieve_filters(
-        [{"action": "hide", "terms": extra + [long_term]}],
+        [{"action": "hide", "terms": [*extra, long_term]}],
     )
     assert len(out) == 1
     assert len(out[0]["terms"]) == MAX_TERMS_PER_RULE

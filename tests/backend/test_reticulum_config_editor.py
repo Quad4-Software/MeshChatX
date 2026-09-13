@@ -12,6 +12,7 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import JsonContent, RawContent
 
 
 def _rns_default_config_text_at(path: str) -> str:
@@ -72,6 +73,9 @@ def _make_request(json_body=None):
         return json_body
 
     request.json = _json
+    request.content = (
+        JsonContent(json_body) if json_body is not None else RawContent([])
+    )
     return request
 
 

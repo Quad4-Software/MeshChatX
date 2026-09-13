@@ -137,6 +137,29 @@ describe("ConversationMessageEntry.svelte", () => {
         expect(actions.cancelSendingMessage).toHaveBeenCalledWith(chatItem);
     });
 
+    it("keeps every cancel affordance inside the message bubble", async () => {
+        const chatItem = makeChatItem({
+            is_outbound: true,
+            is_actions_expanded: true,
+            lxmf_message: {
+                hash: "ac".repeat(16),
+                state: "sending",
+                content: "expanded sending",
+                fields: {},
+            },
+        });
+        const actions = makeActions();
+        renderEntry(chatItem, actions);
+
+        // every cancel affordance must live inside the message bubble, never as
+        // a separate floating bubble above the message
+        const cancelButtons = screen.getAllByRole("button", { name: "Cancel send" });
+        expect(cancelButtons.length).toBeGreaterThan(0);
+        for (const btn of cancelButtons) {
+            expect(btn.closest("[data-message-bubble]")).not.toBeNull();
+        }
+    });
+
     it("downloads a file attachment through the viewer action", async () => {
         const chatItem = makeChatItem({
             lxmf_message: {

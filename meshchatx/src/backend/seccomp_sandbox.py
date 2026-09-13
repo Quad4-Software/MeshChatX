@@ -14,8 +14,9 @@ import ctypes
 import ctypes.util
 import errno
 import logging
-import os
 import sys
+
+from meshchatx.src.env_utils import env_str
 
 logger = logging.getLogger("meshchatx.seccomp")
 
@@ -76,7 +77,7 @@ _DENIED_SYSCALLS = (
 
 
 def _seccomp_env_override() -> bool | None:
-    raw = os.environ.get("MESHCHAT_SECCOMP")
+    raw = env_str("MESHCHAT_SECCOMP")
     if raw is None:
         return None
     val = raw.strip().lower()

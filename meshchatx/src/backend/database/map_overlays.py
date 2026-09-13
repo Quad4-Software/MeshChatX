@@ -118,7 +118,7 @@ class MapOverlaysDAO:
         fields = dict(fields)
         fields["updated_at"] = datetime.now(UTC)
         cols = ", ".join(f"{k} = ?" for k in fields)
-        values = list(fields.values()) + [overlay_id]
+        values = [*fields.values(), overlay_id]
         self.provider.execute(
             f"UPDATE map_overlay_sources SET {cols} WHERE id = ?",  # nosec: BAN-B608
             tuple(values),

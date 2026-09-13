@@ -21,4 +21,10 @@ describe("CommandPalette.svelte wiring", () => {
         expect(palette).toContain("navigate");
         expect(palette).not.toContain("`#/${result.route.name");
     });
+
+    it("exposes dialog ARIA attributes", () => {
+        const palette = src("meshchatx/src/frontend/features/app-shell/components/CommandPalette.svelte");
+        expect(palette).toContain('role="dialog"');
+        expect(palette).toContain('aria-modal="true"');
+    });
 });

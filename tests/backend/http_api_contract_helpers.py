@@ -9,7 +9,12 @@ import re
 from pathlib import Path
 
 _ROUTE_DECORATOR = re.compile(
-    r'@routes\.(get|post|patch|delete|put)\(\s*(?:\n\s*)?["\']([^"\']+)["\']',
+    r"@routes\.(get|post|patch|delete|put)\(\s*(?:\n\s*)?"
+    r"(?:"
+    r"['\"]([^'\"]+)['\"]"
+    r"|API_V1_PREFIX\s*\+\s*f?['\"]([^'\"]+)['\"]"
+    r"|f['\"]\{API_V1_PREFIX\}([^'\"]*)['\"]"
+    r")",
     re.MULTILINE,
 )
 
@@ -44,7 +49,14 @@ def extract_meshchat_http_routes(meshchat_py: Path) -> list[dict[str, str]]:
     for path in http_route_source_paths(repo_root):
         text = path.read_text(encoding="utf-8")
         for m in _ROUTE_DECORATOR.finditer(text):
-            key = (m.group(1).upper(), m.group(2))
+            literal, prefixed, fstring = m.group(2), m.group(3), m.group(4)
+            if literal is not None:
+                path = literal
+            elif prefixed is not None:
+                path = "/api/v1" + prefixed
+            else:
+                path = "/api/v1" + fstring
+            key = (m.group(1).upper(), path)
             if key in seen:
                 continue
             seen.add(key)
@@ -117,6 +129,25 @@ def extract_frontend_api_paths(frontend_root: Path) -> set[str]:
                 out.add(normalized)
         for m in re.finditer(r'["\'](/api/v1[^"\']+)["\']', text):
             normalized = _normalize_extracted_api_path(m.group(1))
+            if normalized:
+                out.add(normalized)
+        # apiPath("...") / apiPath(`...`) from js/constants.js
+        for m in re.finditer(r"apiPath\(\s*[`\"']([^`\"']+)[`\"']", text):
+            normalized = _normalize_extracted_api_path("/api/v1" + m.group(1))
+            if normalized:
+                out.add(normalized)
+        # API_V1_PREFIX + "..." string concatenation
+        for m in re.finditer(r"API_V1_PREFIX\s*\+\s*[\"']([^\"']+)[\"']", text):
+            normalized = _normalize_extracted_api_path("/api/v1" + m.group(1))
+            if normalized:
+                out.add(normalized)
+        # `${API_V1_PREFIX}...` template literals. Skip pure passthroughs
+        # like `${API_V1_PREFIX}${path}` inside the apiPath helper itself.
+        for m in re.finditer(r"`\$\{API_V1_PREFIX\}([^`]+)`", text):
+            tail = m.group(1)
+            if re.fullmatch(r"\$\{[^}]+\}", tail):
+                continue
+            normalized = _normalize_extracted_api_path("/api/v1" + tail)
             if normalized:
                 out.add(normalized)
     return out

@@ -65,9 +65,6 @@ tree-rsm-verify:
 tree-rsm-sign:
 	sh scripts/ci/sign-tree-rsm.sh
 
-hooks-install:
-	sh scripts/ci/install-git-hooks.sh
-
 help:
 	@echo "Makefile targets (most delegate to Task, see: task --list)."
 	@echo "  make tree-rsm-verify  Verify meshchatx.rsm (no Task required)"

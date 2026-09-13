@@ -59,6 +59,20 @@ def test_cancel_inbound_rejects_bad_hash():
     router.cancel_inbound.assert_not_called()
 
 
+def test_cancel_inbound_accepts_uuid_style_hash():
+    router = MagicMock()
+    router.cancel_inbound.return_value = True
+    result = cancel_inbound_deliveries(
+        router,
+        resource_hash="ab:cd:ef:12-34-56-78-9a-bc-de-f0",
+    )
+    assert result["ok"] is True
+    assert result["cancelled"] == 1
+    expected = bytes.fromhex("abcdef123456789abcdef0")
+    router.cancel_inbound.assert_called_once_with(expected)
+    assert result["resource_hash"] == expected.hex()
+
+
 def test_cancel_inbound_unavailable_without_api():
     router = SimpleNamespace()
     result = cancel_inbound_deliveries(router)

@@ -182,7 +182,7 @@ def normalize_rnode_tcp_host_in_config(config_path: str) -> bool:
     interfaces = cfg.get("interfaces")
     if not isinstance(interfaces, dict):
         return False
-    for _iface_name, iface in interfaces.items():
+    for iface in interfaces.values():
         if not isinstance(iface, dict):
             continue
         if not _is_rnode_tcp_config_type(iface.get("type")):
@@ -236,7 +236,7 @@ def disable_rnode_interfaces_in_config(
     interfaces = cfg.get("interfaces")
     if not isinstance(interfaces, dict):
         return False
-    for _iface_name, iface in interfaces.items():
+    for iface in interfaces.values():
         if not isinstance(iface, dict):
             continue
         iface_type = iface.get("type", "")

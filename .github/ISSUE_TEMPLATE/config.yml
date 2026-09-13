@@ -1,8 +1,17 @@
 blank_issues_enabled: false
 contact_links:
+    - name: Security issue
+      url: https://github.com/Quad4-Software/MeshChatX/blob/master/SECURITY.md
+      about: Report vulnerabilities privately. Do not open a public issue for unfixed security bugs.
+
+    - name: Documentation
+      url: https://github.com/Quad4-Software/MeshChatX/tree/master/docs/en
+      about: Suggest a docs change or report an error in the user guides.
+
+    - name: Ask a question or share an idea
+      url: https://github.com/Quad4-Software/MeshChatX/discussions
+      about: Use Discussions for questions, ideas, and configuration help.
+
     - name: Contributing guide
       url: https://github.com/Quad4-Software/MeshChatX/blob/master/CONTRIBUTING.md
-      about: Code is submitted as patches over Reticulum, not pull requests
-    - name: Discussions
-      url: https://github.com/Quad4-Software/MeshChatX/discussions
-      about: Ask questions or share ideas with the community
+      about: Read how to submit a GitHub pull request or an LXMF patch over Reticulum.

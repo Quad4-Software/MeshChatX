@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: 0BSD
 
-import json
 from pathlib import Path
 from typing import Any
+
+from meshchatx.src.json_store import load_json
 
 _BUNDLED = Path(__file__).resolve().parent / "data" / "community_interfaces.json"
 
@@ -25,10 +26,7 @@ class CommunityInterfacesManager:
         for path in self._candidate_paths():
             if not path.is_file():
                 continue
-            try:
-                doc = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, UnicodeError, json.JSONDecodeError):
-                continue
+            doc = load_json(path)
             raw = doc.get("interfaces", doc) if isinstance(doc, dict) else doc
             if not isinstance(raw, list):
                 continue

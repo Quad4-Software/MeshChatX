@@ -8,12 +8,25 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.auth._names import *  # noqa: F403
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_forbidden,
+    http_payload_too_large,
+    http_unauthorized,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+from meshchatx.src.path_utils import request_client_ip
+
 
 def register_auth_session_routes(routes: Any, app: Any) -> None:
     # auth status
 
     # auth status
-    @routes.get("/api/v1/auth/status")
+    @routes.get(API_V1_PREFIX + "/auth/status")
     async def auth_status(request):
         if not app.current_context or not app.current_context.running:
             return web.json_response(
@@ -48,7 +61,7 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "auth_page_hint": app.auth_page_hint,
                 },
             )
-        except Exception as e:
+        except Exception:
             # Handle decryption failure gracefully by reporting as unauthenticated
             return web.json_response(
                 {
@@ -64,19 +77,19 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     ),
                     "demo_mode": app.demo_mode,
                     "auth_page_hint": app.auth_page_hint,
-                    "error": str(e),
+                    "error": "Status unavailable",
                 },
             )
 
     # auth setup
 
     # auth setup
-    @routes.post("/api/v1/auth/setup")
+    @routes.post(API_V1_PREFIX + "/auth/setup")
     async def auth_setup(request):
         blocked = app._enforce_login_access(request, SETUP_PATH)
         if blocked is not None:
             return blocked
-        ip = _request_client_ip(request, get_trusted_proxy_cidrs(app.storage_dir))
+        ip = request_client_ip(request, get_trusted_proxy_cidrs(app.storage_dir))
         ua = request.headers.get("User-Agent", "") or ""
         ua_h = user_agent_hash(ua)
         id_hash = app.identity.hash.hex()
@@ -93,13 +106,12 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "setup_already_done",
                     "",
                 )
-            return web.json_response(
-                {"error": "Initial setup already completed"},
-                status=403,
-            )
+            return http_forbidden("Initial setup already completed")
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             if dao:
                 dao.insert(
@@ -111,15 +123,9 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "invalid_json",
                     "",
                 )
-            return web.json_response(
-                {"error": "Invalid JSON body"},
-                status=400,
-            )
+            return http_bad_request("Invalid JSON body")
         if not isinstance(data, dict):
-            return web.json_response(
-                {"error": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         password = data.get("password")
 
         if not password or len(password) < 8:
@@ -133,10 +139,7 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "weak_password",
                     "",
                 )
-            return web.json_response(
-                {"error": "Password must be at least 8 characters long"},
-                status=400,
-            )
+            return http_bad_request("Password must be at least 8 characters long")
 
         password_hash = bcrypt.hashpw(
             password.encode("utf-8"),
@@ -169,19 +172,21 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
     # auth login
 
     # auth login
-    @routes.post("/api/v1/auth/login")
+    @routes.post(API_V1_PREFIX + "/auth/login")
     async def auth_login(request):
         blocked = app._enforce_login_access(request, LOGIN_PATH)
         if blocked is not None:
             return blocked
-        ip = _request_client_ip(request, get_trusted_proxy_cidrs(app.storage_dir))
+        ip = request_client_ip(request, get_trusted_proxy_cidrs(app.storage_dir))
         ua = request.headers.get("User-Agent", "") or ""
         ua_h = user_agent_hash(ua)
         id_hash = app.identity.hash.hex()
         dao = app.database.access_attempts if app.database else None
 
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             if dao:
                 dao.insert(
@@ -193,15 +198,9 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "invalid_json",
                     "",
                 )
-            return web.json_response(
-                {"error": "Invalid JSON body"},
-                status=400,
-            )
+            return http_bad_request("Invalid JSON body")
         if not isinstance(data, dict):
-            return web.json_response(
-                {"error": "Invalid request body"},
-                status=400,
-            )
+            return http_bad_request("Invalid request body")
         password = data.get("password")
 
         password_hash = app.config.auth_password_hash.get()
@@ -216,10 +215,7 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "auth_not_setup",
                     "",
                 )
-            return web.json_response(
-                {"error": "Auth not setup"},
-                status=403,
-            )
+            return http_forbidden("Auth not setup")
 
         if not password:
             if dao:
@@ -232,10 +228,7 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "password_required",
                     "",
                 )
-            return web.json_response(
-                {"error": "Password required"},
-                status=400,
-            )
+            return http_bad_request("Password required")
 
         if bcrypt.checkpw(
             password.encode("utf-8"),
@@ -270,15 +263,12 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                 "failed_password",
                 "",
             )
-        return web.json_response(
-            {"error": "Invalid password"},
-            status=401,
-        )
+        return http_unauthorized("Invalid password")
 
     # auth logout
 
     # auth logout
-    @routes.post("/api/v1/auth/logout")
+    @routes.post(API_V1_PREFIX + "/auth/logout")
     async def auth_logout(request):
         session = await get_session(request)
         session.invalidate()

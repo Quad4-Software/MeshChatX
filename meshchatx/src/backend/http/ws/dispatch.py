@@ -3,18 +3,23 @@
 
 from __future__ import annotations
 
+import json
+import logging
+
+from meshchatx.src.backend.constants import (
+    WS_RUNTIME_CONTROL_TYPES,
+    WsInboundType,
+)
 from meshchatx.src.backend.demo_mode import demo_mode_blocks_ws_type
 from meshchatx.src.backend.http.live_names import inject_meshchat_names
-from meshchatx.src.backend.http.meshchat_names import (
-    json,
-    logger,
-    websocket_type_requires_auth,
-)
 from meshchatx.src.backend.http.ws.handlers_core import HANDLERS as _CORE_HANDLERS
 from meshchatx.src.backend.http.ws.handlers_lxmf import HANDLERS as _LXMF_HANDLERS
 from meshchatx.src.backend.http.ws.handlers_nomad import HANDLERS as _NOMAD_HANDLERS
 from meshchatx.src.backend.http.ws.handlers_rns_link import (
     HANDLERS as _RNS_LINK_HANDLERS,
+)
+from meshchatx.src.backend.websocket_config_guard import (
+    websocket_type_requires_auth,
 )
 from meshchatx.src.backend.websocket_runtime import (
     apply_subscribe,
@@ -22,6 +27,8 @@ from meshchatx.src.backend.websocket_runtime import (
     touch_client_activity,
     validate_ws_envelope,
 )
+
+logger = logging.getLogger(__name__)
 
 _NS_READY = False
 
@@ -38,14 +45,7 @@ _HANDLER_MODULES = (
     "meshchatx.src.backend.http.ws.handlers_rns_link",
 )
 
-_KNOWN_TYPES = frozenset(WS_HANDLERS.keys()) | frozenset(
-    {
-        "ws.subscribe",
-        "ws.unsubscribe",
-        "sync.subscribe",
-        "ws.caps",
-    },
-)
+_KNOWN_TYPES = frozenset(WS_HANDLERS.keys()) | WS_RUNTIME_CONTROL_TYPES
 
 
 def _ensure_meshchat_namespace() -> None:
@@ -68,12 +68,12 @@ def _ensure_meshchat_namespace() -> None:
 
 async def _handle_runtime_control(app, client, data, msg_type: str) -> bool:
     """Handle subscribe / caps / sync. Returns True if handled."""
-    if msg_type == "ws.subscribe":
+    if msg_type == WsInboundType.WS_SUBSCRIBE:
         changed = apply_subscribe(client, data.get("topics"), subscribe=True)
         await client.send_str(
             json.dumps(
                 {
-                    "type": "ws.subscribe",
+                    "type": WsInboundType.WS_SUBSCRIBE,
                     "status": "success",
                     "topics": sorted(
                         getattr(client, "_meshchatx_ws_topics", []) or [],
@@ -84,12 +84,12 @@ async def _handle_runtime_control(app, client, data, msg_type: str) -> bool:
             ),
         )
         return True
-    if msg_type == "ws.unsubscribe":
+    if msg_type == WsInboundType.WS_UNSUBSCRIBE:
         changed = apply_subscribe(client, data.get("topics"), subscribe=False)
         await client.send_str(
             json.dumps(
                 {
-                    "type": "ws.unsubscribe",
+                    "type": WsInboundType.WS_UNSUBSCRIBE,
                     "status": "success",
                     "topics": sorted(
                         getattr(client, "_meshchatx_ws_topics", []) or [],
@@ -100,7 +100,7 @@ async def _handle_runtime_control(app, client, data, msg_type: str) -> bool:
             ),
         )
         return True
-    if msg_type == "sync.subscribe":
+    if msg_type == WsInboundType.SYNC_SUBSCRIBE:
         since = data.get("since_seq")
         seq_state = getattr(app, "ws_seq_state", None)
         if seq_state is None:
@@ -110,20 +110,20 @@ async def _handle_runtime_control(app, client, data, msg_type: str) -> bool:
         await client.send_str(
             json.dumps(
                 {
-                    "type": "sync.subscribe",
+                    "type": WsInboundType.SYNC_SUBSCRIBE,
                     "request_id": data.get("request_id"),
                     **hint,
                 },
             ),
         )
         return True
-    if msg_type == "ws.caps":
+    if msg_type == WsInboundType.WS_CAPS:
         if data.get("binary_rns_link") is True:
             client._meshchatx_binary_rns_link = True
         await client.send_str(
             json.dumps(
                 {
-                    "type": "ws.caps",
+                    "type": WsInboundType.WS_CAPS,
                     "status": "success",
                     "binary_rns_link": bool(
                         getattr(client, "_meshchatx_binary_rns_link", False),

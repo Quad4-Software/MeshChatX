@@ -177,4 +177,74 @@ describe("BotsPage.svelte", () => {
             bot_id: "bot1",
         });
     });
+
+    it("navigates to messages when chat is clicked", async () => {
+        render(BotsPage);
+        await waitFor(() => expect(screen.getByText("Test Bot")).toBeTruthy());
+
+        const chatButton = screen.getByTitle("bots.chat_with_bot");
+        await fireEvent.click(chatButton);
+
+        expect(window.location.hash).toBe(`#/messages/${"a".repeat(32)}`);
+    });
+
+    it("exports bot identity through window.api and DownloadUtils", async () => {
+        axiosMock.post.mockResolvedValue({
+            data: new ArrayBuffer(4),
+            headers: { "content-disposition": 'attachment; filename="bot_bot1_identity"' },
+        });
+        render(BotsPage);
+        await waitFor(() => expect(screen.getByText("Test Bot")).toBeTruthy());
+
+        const exportButton = screen.getByTitle("bots.export_identity");
+        await fireEvent.click(exportButton);
+
+        await waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/bots/export",
+                { bot_id: "bot1" },
+                { responseType: "arraybuffer" }
+            );
+            expect(DownloadUtils.downloadFromApiResponse).toHaveBeenCalled();
+        });
+    });
+
+    it("toasts when bot identity export fails", async () => {
+        axiosMock.post.mockRejectedValue({ response: { data: { message: "nope" } } });
+        render(BotsPage);
+        await waitFor(() => expect(screen.getByText("Test Bot")).toBeTruthy());
+
+        const exportButton = screen.getByTitle("bots.export_identity");
+        await fireEvent.click(exportButton);
+
+        await waitFor(() => {
+            expect(ToastUtils.error).toHaveBeenCalledWith("nope");
+        });
+    });
+
+    it("opens lxmf config modal and saves patch", async () => {
+        axiosMock.patch.mockResolvedValue({ data: { success: true, lxmf_config: {} } });
+        render(BotsPage);
+        await waitFor(() => expect(screen.getByText("Test Bot")).toBeTruthy());
+
+        const configButton = screen.getByTitle("bots.edit_lxmf_config");
+        await fireEvent.click(configButton);
+
+        const modal = screen.getByText("bots.lxmf_config_title").closest(".fixed");
+        const saveButton = Array.from(modal.querySelectorAll("button")).find((b) =>
+            b.className.includes("hover:text-emerald-600")
+        );
+        await fireEvent.click(saveButton);
+
+        await waitFor(() => {
+            expect(axiosMock.patch).toHaveBeenCalledWith(
+                "/api/v1/bots/lxmf-config",
+                expect.objectContaining({
+                    bot_id: "bot1",
+                    lxmf_config: expect.any(Object),
+                })
+            );
+            expect(ToastUtils.success).toHaveBeenCalledWith("LXMF config updated");
+        });
+    });
 });

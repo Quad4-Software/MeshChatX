@@ -26,6 +26,7 @@ import {
     openImageLightbox,
     openLightboxContextMenu,
 } from "@/features/messages/lib/conversationViewerLightbox.ts";
+import { showRawMessage } from "@/features/messages/lib/conversationViewerShellHandlers.ts";
 
 const peerHash = "aa".repeat(16);
 const myHash = "bb".repeat(16);
@@ -184,5 +185,15 @@ describe("ConversationViewer message contracts", () => {
 
     it("renders a bubble for ordinary content", () => {
         expect(hasMessageBubble(item({ content: "hello" }))).toBe(true);
+    });
+
+    it("showRawMessage does not throw for items without lxmf_message", () => {
+        const bag = {
+            contextMenu: { show: true },
+            setRawMessageData: () => {},
+            setIsRawMessageModalOpen: () => {},
+            setContextMenu: () => {},
+        };
+        expect(() => showRawMessage(bag, {})).not.toThrow();
     });
 });

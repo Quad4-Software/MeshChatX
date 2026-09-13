@@ -19,7 +19,7 @@
         "SettingsSectionBlock",
         "SettingToggleRow",
         "settingsConfigService",
-        "/api/v1/config",
+        "apiPath(\"/config\")",
         "app.appearance",
         "settings.battery.enabled",
         "visualiser.title",

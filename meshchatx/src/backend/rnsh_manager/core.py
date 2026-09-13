@@ -23,7 +23,12 @@ import time
 import uuid
 from collections import deque
 
-from meshchatx.src.path_utils import is_path_within_dir
+from meshchatx.src.json_store import load_json_required
+from meshchatx.src.path_utils import (
+    PathJailError,
+    atomic_write_text,
+    resolve_user_path,
+)
 
 try:
     import fcntl
@@ -484,7 +489,8 @@ class RNSHSession:
         if notify_failure:
             self.manager._on_session_change(self)
             self.manager.save()
-            assert failure is not None
+            if failure is None:
+                raise RuntimeError("session start failed")
             raise failure
 
         self.manager._on_session_change(self)
@@ -574,8 +580,8 @@ class RNSHSession:
         try:
             rows = max(1, int(rows))
             cols = max(1, int(cols))
-        except (TypeError, ValueError) as err:
-            raise ValueError("rows and cols must be integers") from err
+        except (TypeError, ValueError):
+            raise ValueError("rows and cols must be integers") from None
         with self._lock:
             self._rows = rows
             self._cols = cols
@@ -712,30 +718,16 @@ class RNSHManager:
 
         Returns the realpath on success, or None when the path escapes the jail.
         """
-        if (
-            not isinstance(user_path, str)
-            or not user_path.strip()
-            or "\x00" in user_path
-        ):
+        try:
+            return resolve_user_path(
+                user_path,
+                default_root=self.storage_dir,
+                allowed_roots=(self.storage_dir, self.reticulum_config_dir),
+                expanduser=True,
+                forbidden_names=frozenset({".ssh", ".gnupg"}),
+            )
+        except PathJailError:
             return None
-        expanded = os.path.expanduser(user_path.strip())
-        if not os.path.isabs(expanded):
-            if not self.storage_dir:
-                return None
-            expanded = os.path.join(self.storage_dir, expanded)
-        real = os.path.realpath(expanded)
-        parts = {part for part in real.split(os.sep) if part}
-        if parts & {".ssh", ".gnupg"}:
-            return None
-        allowed_roots = []
-        if self.storage_dir:
-            allowed_roots.append(self.storage_dir)
-        if self.reticulum_config_dir:
-            allowed_roots.append(self.reticulum_config_dir)
-        for root in allowed_roots:
-            if is_path_within_dir(real, root):
-                return real
-        return None
 
     def sanitize_session_config(self, config):
         """Fail closed on path overrides and reject free-form extra_args."""
@@ -772,8 +764,7 @@ class RNSHManager:
         path = self._store_path()
         if not os.path.exists(path):
             return
-        with open(path, encoding="utf-8") as handle:
-            data = json.load(handle)
+        data = load_json_required(path, expect=dict)
         sessions = data.get("sessions")
         if not isinstance(sessions, list):
             return
@@ -834,14 +825,7 @@ class RNSHManager:
                 "sessions": [session.to_store() for session in self._sessions.values()],
             }
         path = self._store_path()
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        tmp_path = f"{path}.tmp"
-        with open(tmp_path, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, ensure_ascii=False, indent=2)
-            handle.flush()
-            with contextlib.suppress(OSError):
-                os.fsync(handle.fileno())
-        os.replace(tmp_path, path)
+        atomic_write_text(path, json.dumps(payload, ensure_ascii=False, indent=2))
 
     def list_sessions(self):
         with self._lock:

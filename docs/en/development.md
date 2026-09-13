@@ -13,7 +13,6 @@ Contributor workflow: install, format, lint, test, version bumps, and adding loc
 
 ```bash
 task install
-task hooks:install   # pre-commit format/lint + commitlint (once per clone)
 task format
 task lint
 task test
@@ -22,22 +21,21 @@ task build
 
 Makefile targets call the same Taskfile commands:
 
-| Command      | Delegates to | Description                                                         |
-| ------------ | ------------ | ------------------------------------------------------------------- |
-| make install | task install | Install pnpm and UV dependencies                                    |
-| make run     | task run     | Run MeshChatX via UV                                                |
-| make build   | task build   | Build frontend and backend artifacts                                |
-| make format  | task format  | Format frontend and backend                                         |
-| make lint    | task lint    | oxlint, ESLint, svelte-check, knip, dpdm cycles, Ruff, basedpyright |
+| Command              | Delegates to | Description                                                         |
+| -------------------- | ------------ | ------------------------------------------------------------------- |
+| make install         | task install | Install pnpm and UV dependencies                                    |
+| make run             | task run     | Run MeshChatX via UV                                                |
+| make build           | task build   | Build frontend and backend artifacts                                |
+| make format          | task format  | Format frontend and backend                                         |
+| make lint            | task lint    | oxlint, ESLint, svelte-check, knip, dpdm cycles, Ruff, basedpyright |
+| make test            | task test    | Frontend and backend tests                                          |
+| make clean           | task clean   | Remove build artifacts and node_modules                             |
+| make tree-rsm-verify | (shell)      | Verify meshchatx.rsm signature and hashes                           |
+| make tree-rsm-sign   | (shell)      | Sign tree inventory (needs RNS_ID_PATH)                             |
 
 `task lint:frontend` also runs oxlint (JS/TS), then ESLint (incl. Svelte), `typecheck:features` (strict Svelte/features), full Prettier `format:check`, and circular-dep analysis via dpdm. After `pnpm run build-frontend`, run `task check:frontend-bundle` (or `pnpm run check:bundle-budgets`) to enforce Vite chunk size budgets.
 
 OpenAPI core contract for high-risk UI routes lives in `openapi/meshchatx-ui-core.yaml` (`task test:openapi`). Optional live Schemathesis needs `MESHCHAT_OPENAPI_LIVE=1`. Electron shell smoke is `task test:e2e:electron`. Browser-mode Svelte smoke is `task test:browser`.
-| make test | task test | Frontend and backend tests |
-| make clean | task clean | Remove build artifacts and node_modules |
-| make tree-rsm-verify | (shell) | Verify meshchatx.rsm signature and hashes |
-| make tree-rsm-sign | (shell) | Sign tree inventory (needs RNS_ID_PATH) |
-| make hooks-install | task hooks:install | Git hooks: format/lint staged files, commitlint, RSM resign |
 
 For a Vite HMR loop, use task dev as described in **Installation and setup**.
 
@@ -91,8 +89,8 @@ Before a Testing or Beta cut, edit release/channel_prompt.json (focus_areas, not
 4. Review the Stable **draft** GitHub release (assets, SLSA, cosign), then publish. Immutable releases cannot gain assets after publish.
 5. Rollback: publish a new Stable from a known-good prior SHA. Do not rewrite a published release.
 6. Users see the channel badge in the sidebar and About. Testing/Beta also get a one-time prompt.
-7. Flatpak: the tag's `flatpak-ostree` job publishes to `https://cdn.meshchatx.com/flatpak/` on branch `testing`, `beta`, or `stable`. Keep that OSTree tree under `flatpak/` only. After the first good CDN publish, disable GitHub Pages if it still hosts the old Flatpak tree.
-8. Bunny pull zone (`cdn.meshchatx.com`): long cache on `/flatpak/repo/objects/*` and `/deltas/*`. No cache or must-revalidate on `summary*`, `refs`, `config`, and `*.flatpakref` / `*.flatpakrepo`.
+7. Flatpak: the tag's `flatpak-ostree` job publishes to `https://cdn.quad4.io/flatpak/` on branch `testing`, `beta`, or `stable`. Keep that OSTree tree under `flatpak/` only. After the first good CDN publish, disable GitHub Pages if it still hosts the old Flatpak tree.
+8. Bunny pull zone (`cdn.quad4.io`): long cache on `/flatpak/repo/objects/*` and `/deltas/*`. No cache or must-revalidate on `summary*`, `refs`, `config`, and `*.flatpakref` / `*.flatpakrepo`.
 
 Hard rule for CI speed: cache toolchains and downloads only. Tagged release binaries must be built inside that tag's single build-release run_id. Never attach artifacts from another run.
 
@@ -102,14 +100,7 @@ Prerelease retention: keep about 7 Testing and 5 Beta GitHub prereleases (script
 
 Locale discovery is automatic. Add a file under meshchatx/src/frontend/locales/ (for example xx.json) with the same keys as en.json and a top-level _languageName string for the selector label. Copy en.json and translate the values. Machine-assisted generation is optional.
 
-For a machine-generated first draft from en.json, use scripts/argos_translate.py. It keeps interpolation variables such as `{count}` intact.
-
-```bash
-pipx install argostranslate
-python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Your Language Name"
-```
-
-After a machine pass, have an LLM or a human check grammar, context, and tone.
+For a machine-generated first draft from en.json, use any offline-capable tool you prefer and keep interpolation variables such as `{count}` intact. After a machine pass, have an LLM or a human check grammar, context, and tone.
 
 ```bash
 pnpm test -- tests/frontend/i18n.test.js --run

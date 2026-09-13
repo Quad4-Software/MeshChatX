@@ -9,6 +9,7 @@ import sqlite3
 import threading
 from dataclasses import dataclass
 
+from meshchatx.src.json_store import load_json
 from meshchatx.src.path_utils import atomic_write_text
 
 TRUSTED_PUBLISHERS_DIGEST_KEY = "plugins.trusted_publishers_digest"
@@ -33,13 +34,7 @@ def user_trusted_publishers_path(plugins_root: str) -> str:
 
 
 def _load_json_publishers(path: str) -> list[TrustedPublisher]:
-    if not os.path.isfile(path):
-        return []
-    try:
-        with open(path, encoding="utf-8") as handle:
-            data = json.load(handle)
-    except Exception:
-        return []
+    data = load_json(path)
     publishers = data.get("publishers") if isinstance(data, dict) else None
     if not isinstance(publishers, list):
         return []
@@ -187,11 +182,7 @@ def add_user_trusted_publisher(
     path = user_trusted_publishers_path(plugins_root)
     publishers: list[dict[str, str]] = []
     if os.path.isfile(path):
-        try:
-            with open(path, encoding="utf-8") as handle:
-                data = json.load(handle)
-        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
-            raise ValueError("trusted publishers file is unreadable") from exc
+        data = load_json(path)
         if not isinstance(data, dict) or not isinstance(data.get("publishers"), list):
             raise ValueError("trusted publishers file is unreadable")
         publishers = [item for item in data["publishers"] if isinstance(item, dict)]
@@ -219,8 +210,7 @@ def remove_user_trusted_publisher(
     path = user_trusted_publishers_path(plugins_root)
     if not os.path.isfile(path):
         return False
-    with open(path, encoding="utf-8") as handle:
-        data = json.load(handle)
+    data = load_json(path)
     publishers = data.get("publishers") if isinstance(data, dict) else []
     if not isinstance(publishers, list):
         return False

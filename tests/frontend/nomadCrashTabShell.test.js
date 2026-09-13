@@ -34,4 +34,8 @@ describe("nomadCrashTabShell", () => {
         expect(crashTabHtml).toContain("color-scheme: dark");
         expect(crashTabHtml).toContain("background: #000000");
     });
+
+    it("has a neutral document title for screen readers before the page loads", () => {
+        expect(crashTabHtml).toContain("<title>Nomad</title>");
+    });
 });

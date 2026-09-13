@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from meshchatx.src.backend.map_data_manager import MapDataError
+from tests.backend.http_request_stubs import JsonContent as _JsonContent
 
 HASH = "c" * 32
 
@@ -60,14 +61,14 @@ async def test_map_data_routes_with_mock_manager(mock_app):
     heard = await _find_handler(app, "GET", "/api/v1/map/data/heard")(heard_req)
     assert heard.status == 200
 
+    pub_payload = {
+        "name": "Camp",
+        "format": "geojson",
+        "data_b64": "eyJ0eXBlIjoiUG9pbnQifQ==",
+    }
     pub_req = MagicMock()
-    pub_req.json = AsyncMock(
-        return_value={
-            "name": "Camp",
-            "format": "geojson",
-            "data_b64": "eyJ0eXBlIjoiUG9pbnQifQ==",
-        },
-    )
+    pub_req.json = AsyncMock(return_value=pub_payload)
+    pub_req.content = _JsonContent(pub_payload)
     pub = await _find_handler(app, "POST", "/api/v1/map/data/publish")(pub_req)
     assert pub.status == 200
     mgr.publish_bytes.assert_called_once()
@@ -86,29 +87,31 @@ async def test_map_data_routes_with_mock_manager(mock_app):
     )
     assert announced.status == 200
 
+    cfg_payload = {"display_name": "Camp maps", "announce_enabled": True}
     cfg_req = MagicMock()
-    cfg_req.json = AsyncMock(
-        return_value={"display_name": "Camp maps", "announce_enabled": True},
-    )
+    cfg_req.json = AsyncMock(return_value=cfg_payload)
+    cfg_req.content = _JsonContent(cfg_payload)
     patched = await _find_handler(app, "PATCH", "/api/v1/map/data/config")(cfg_req)
     assert patched.status == 200
 
+    cat_payload = {"destination_hash": HASH}
     cat_req = MagicMock()
-    cat_req.json = AsyncMock(return_value={"destination_hash": HASH})
+    cat_req.json = AsyncMock(return_value=cat_payload)
+    cat_req.content = _JsonContent(cat_payload)
     catalog = await _find_handler(app, "POST", "/api/v1/map/data/catalog")(cat_req)
     assert catalog.status == 200
 
+    fetch_payload = {"destination_hash": HASH, "map_id": "aaaaaaaaaaaaaaaa"}
     fetch_req = MagicMock()
-    fetch_req.json = AsyncMock(
-        return_value={"destination_hash": HASH, "map_id": "aaaaaaaaaaaaaaaa"},
-    )
+    fetch_req.json = AsyncMock(return_value=fetch_payload)
+    fetch_req.content = _JsonContent(fetch_payload)
     fetched = await _find_handler(app, "POST", "/api/v1/map/data/fetch")(fetch_req)
     assert fetched.status == 200
 
+    add_payload = {"destination_hash": HASH, "map_id": "aaaaaaaaaaaaaaaa"}
     add_req = MagicMock()
-    add_req.json = AsyncMock(
-        return_value={"destination_hash": HASH, "map_id": "aaaaaaaaaaaaaaaa"},
-    )
+    add_req.json = AsyncMock(return_value=add_payload)
+    add_req.content = _JsonContent(add_payload)
     added = await _find_handler(app, "POST", "/api/v1/map/data/add-overlay")(add_req)
     assert added.status == 200
     mgr.add_as_overlay.assert_awaited()
@@ -119,8 +122,10 @@ async def test_map_data_catalog_missing_path_is_recoverable(mock_app):
     mgr = MagicMock()
     mgr.fetch_catalog = AsyncMock(side_effect=MapDataError("missing_path"))
     mock_app.map_data_manager = mgr
+    payload = {"destination_hash": HASH}
     req = MagicMock()
-    req.json = AsyncMock(return_value={"destination_hash": HASH})
+    req.json = AsyncMock(return_value=payload)
+    req.content = _JsonContent(payload)
     resp = await _find_handler(mock_app, "POST", "/api/v1/map/data/catalog")(req)
     assert resp.status == 503
     body = json.loads(resp.text)

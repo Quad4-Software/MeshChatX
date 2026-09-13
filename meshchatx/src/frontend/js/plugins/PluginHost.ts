@@ -12,6 +12,7 @@ import type { ToolEntry } from "../registries/coreToolsEntries.js";
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry.js";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
+import { apiPath, WS_EVENTS } from "../constants.js";
 import ToastUtils from "../ToastUtils.js";
 import { getThemeSnapshot } from "../../theme/themeEngine.js";
 import GlobalState from "../GlobalState.js";
@@ -105,7 +106,7 @@ export class PluginHost {
 
     async loadEnabledPlugins(apiClient: ApiClient, locale = "en"): Promise<void> {
         this.ensureThemeBridge();
-        const response = await apiClient.get<{ plugins?: PluginListEntry[] }>("/api/v1/plugins");
+        const response = await apiClient.get<{ plugins?: PluginListEntry[] }>(apiPath("/plugins"));
         const plugins = response.data?.plugins || [];
         for (const plugin of plugins) {
             if (!plugin.enabled) {
@@ -129,7 +130,9 @@ export class PluginHost {
         }
         const labels = await loadPluginLabelMap(apiClient, pluginId, locale, manifest);
         setPluginUiLabels(pluginId, labels);
-        const assetUrl = `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}?v=${encodeURIComponent(manifest.version || "1")}`;
+        const assetUrl = apiPath(
+            `/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}?v=${encodeURIComponent(manifest.version || "1")}`
+        );
         const sourceResponse = await apiClient.get(assetUrl, { responseType: "text" });
         const source =
             typeof sourceResponse.data === "string" ? sourceResponse.data : String(sourceResponse.data ?? "");
@@ -187,8 +190,8 @@ export class PluginHost {
                     payload: payload?.payload,
                 });
             };
-            onWsEvent("plugin.event", eventHandler);
-            cleanup.push(() => offWsEvent("plugin.event", eventHandler));
+            onWsEvent(WS_EVENTS.PLUGIN_EVENT, eventHandler);
+            cleanup.push(() => offWsEvent(WS_EVENTS.PLUGIN_EVENT, eventHandler));
         }
 
         const requestHandler = async (message: WorkerRequestMessage | WorkerOutboundMessage) => {
@@ -198,13 +201,13 @@ export class PluginHost {
             try {
                 let result: unknown;
                 if (message.kind === "invoke") {
-                    const response = await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/invoke`, {
+                    const response = await apiClient.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/invoke`), {
                         method: message.payload?.method,
                         args: message.payload?.args,
                     });
                     result = (response.data as { result?: unknown })?.result;
                 } else if (message.kind === "manager") {
-                    const response = await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/invoke`, {
+                    const response = await apiClient.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/invoke`), {
                         method: "callManager",
                         args: message.payload,
                     });
@@ -294,7 +297,7 @@ export class PluginHost {
         }
         lastFailureReportAt.set(pluginId, now);
         try {
-            await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/report-failure`, {
+            await apiClient.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/report-failure`), {
                 reason,
                 source,
             });

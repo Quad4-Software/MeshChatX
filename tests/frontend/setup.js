@@ -1,12 +1,17 @@
 import "fake-indexeddb/auto";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { beforeEach, vi } from "vitest";
+import { beforeEach, afterEach, vi } from "vitest";
 import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import { registerFallbackMessages } from "../../meshchatx/src/frontend/js/i18n.ts";
+
+// CI and slower local machines can need more than the default 1000ms for async
+// conditions. Extend vitest's waitFor default while still allowing overrides.
+const _originalWaitFor = vi.waitFor;
+vi.waitFor = (callback, options) => _originalWaitFor(callback, { timeout: 5000, ...options });
 
 injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
 registerFallbackMessages(en);
@@ -17,6 +22,12 @@ beforeEach(() => {
     GlobalState.authEnabled = false;
     GlobalState.authenticated = false;
     GlobalState.demoMode = false;
+});
+
+// Some tests enable fake timers and may throw before calling useRealTimers().
+// Reset them after each test so later suites that rely on real timers do not hang.
+afterEach(() => {
+    vi.useRealTimers();
 });
 
 if (typeof window !== "undefined" && typeof window.PointerEvent === "undefined") {

@@ -9,6 +9,7 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import JsonContent
 
 
 @pytest.fixture
@@ -126,19 +127,19 @@ async def test_contacts_import_valid(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
+        payload = {
+            "contacts": [
+                {"name": "Imported1", "remote_identity_hash": "d" * 32},
+                {
+                    "name": "Imported2",
+                    "remote_identity_hash": "e" * 32,
+                    "lxmf_address": "f" * 32,
+                },
+            ],
+        }
         request = MagicMock()
-        request.json = AsyncMock(
-            return_value={
-                "contacts": [
-                    {"name": "Imported1", "remote_identity_hash": "d" * 32},
-                    {
-                        "name": "Imported2",
-                        "remote_identity_hash": "e" * 32,
-                        "lxmf_address": "f" * 32,
-                    },
-                ],
-            },
-        )
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         data = json.loads(response.body)
         assert data["added"] == 2
@@ -166,16 +167,16 @@ async def test_contacts_import_skips_invalid(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
+        payload = {
+            "contacts": [
+                {"name": "Valid", "remote_identity_hash": "a" * 32},
+                {"name": ""},
+                {"remote_identity_hash": "b" * 32},
+            ],
+        }
         request = MagicMock()
-        request.json = AsyncMock(
-            return_value={
-                "contacts": [
-                    {"name": "Valid", "remote_identity_hash": "a" * 32},
-                    {"name": ""},
-                    {"remote_identity_hash": "b" * 32},
-                ],
-            },
-        )
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         data = json.loads(response.body)
         assert data["added"] == 1
@@ -200,8 +201,10 @@ async def test_contacts_import_rejects_non_array(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
+        payload = {"contacts": "not an array"}
         request = MagicMock()
-        request.json = AsyncMock(return_value={"contacts": "not an array"})
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         assert response.status == 400
 
@@ -224,16 +227,16 @@ async def test_contacts_import_deduplicates(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
+        payload = {
+            "contacts": [
+                {"name": "First", "remote_identity_hash": "a" * 32},
+                {"name": "Second", "remote_identity_hash": "a" * 32},
+                {"name": "Third", "remote_identity_hash": "b" * 32},
+            ],
+        }
         request = MagicMock()
-        request.json = AsyncMock(
-            return_value={
-                "contacts": [
-                    {"name": "First", "remote_identity_hash": "a" * 32},
-                    {"name": "Second", "remote_identity_hash": "a" * 32},
-                    {"name": "Third", "remote_identity_hash": "b" * 32},
-                ],
-            },
-        )
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         data = json.loads(response.body)
         assert data["added"] == 2
@@ -265,23 +268,23 @@ async def test_contacts_import_roundtrips_icon_and_skips_short_hash(
                 break
         assert handler is not None
 
-        request = MagicMock()
-        request.json = AsyncMock(
-            return_value={
-                "contacts": [
-                    {
-                        "name": "Alice",
-                        "remote_identity_hash": "a" * 32,
-                        "lxmf_icon": {
-                            "icon_name": "account",
-                            "foreground_colour": "#FFFFFF",
-                            "background_colour": "#000000",
-                        },
+        payload = {
+            "contacts": [
+                {
+                    "name": "Alice",
+                    "remote_identity_hash": "a" * 32,
+                    "lxmf_icon": {
+                        "icon_name": "account",
+                        "foreground_colour": "#FFFFFF",
+                        "background_colour": "#000000",
                     },
-                    {"name": "Nope", "remote_identity_hash": "aa"},
-                ],
-            },
-        )
+                },
+                {"name": "Nope", "remote_identity_hash": "aa"},
+            ],
+        }
+        request = MagicMock()
+        request.json = AsyncMock(return_value=payload)
+        request.content = JsonContent(payload)
         response = await handler(request)
         data = json.loads(response.body)
         assert data["added"] == 1

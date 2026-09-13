@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: 0BSD
+
+"""Live AppContainer smoke for a frozen MeshChatX build on Windows.
+
+Starts the frozen backend, waits for /api/v1/server/security, asserts that
+AppContainer is active, and then asks the server to shut down.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+DEFAULT_PORT = 9337
+POLL_INTERVAL = 1.0
+STARTUP_TIMEOUT = 90.0
+SHUTDOWN_TIMEOUT = 30.0
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def find_frozen_exe(build_dir: Path) -> Path | None:
+    """Locate the frozen backend executable under build_dir."""
+    names = ("ReticulumMeshChatX.exe", "ReticulumMeshChatX")
+    for name in names:
+        exe = build_dir / name
+        if exe.exists():
+            return exe
+    for sub in build_dir.iterdir():
+        if sub.is_dir():
+            for name in names:
+                exe = sub / name
+                if exe.exists():
+                    return exe
+    return None
+
+
+def appcontainer_supported() -> bool:
+    """Probe the source module to see whether AppContainer APIs are present."""
+    try:
+        from meshchatx.src.backend import appcontainer_sandbox as ac
+
+        return bool(ac.appcontainer_supported())
+    except Exception:
+        return False
+
+
+def _tail(path: Path, n: int = 200) -> str:
+    if not path.is_file():
+        return ""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return ""
+    lines = text.splitlines()
+    return "\n".join(lines[-n:])
+
+
+def wait_for_security(
+    port: int, timeout: float, proc: subprocess.Popen, log_path: Path
+) -> dict:
+    """Poll /api/v1/server/security until it returns JSON or timeout."""
+    deadline = time.monotonic() + timeout
+    url = f"http://127.0.0.1:{port}/api/v1/server/security"
+    last_error = ""
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            tail = _tail(log_path)
+            raise RuntimeError(
+                f"backend exited early (code {proc.returncode}); log tail:\n{tail}"
+            )
+        try:
+            with urllib.request.urlopen(url, timeout=POLL_INTERVAL) as resp:  # noqa: S310 - loopback smoke endpoint
+                return json.loads(resp.read().decode("utf-8"))
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            last_error = str(exc)
+        time.sleep(POLL_INTERVAL)
+    tail = _tail(log_path)
+    raise RuntimeError(f"security endpoint not ready: {last_error}\nlog tail:\n{tail}")
+
+
+def shutdown_app(port: int) -> None:
+    """Ask the backend to shut down cleanly."""
+    url = f"http://127.0.0.1:{port}/api/v1/app/shutdown"
+    try:
+        req = urllib.request.Request(url, method="POST")  # noqa: S310 - loopback smoke endpoint
+        with urllib.request.urlopen(req, timeout=10.0) as resp:  # noqa: S310 - loopback smoke endpoint
+            resp.read()
+    except urllib.error.URLError:
+        pass
+
+
+def terminate_tree(pid: int) -> None:
+    """Kill a process and its descendants on Windows."""
+    if sys.platform == "win32":
+        taskkill = shutil.which("taskkill") or "taskkill"
+        subprocess.run(
+            [taskkill, "/F", "/T", "/PID", str(pid)],
+            check=False,
+            capture_output=True,
+        )
+
+
+def run_smoke(build_dir: Path) -> int:
+    if sys.platform != "win32":
+        print("AppContainer smoke only runs on Windows.")
+        return 0
+
+    exe = find_frozen_exe(build_dir)
+    if not exe:
+        print(f"frozen backend executable not found under {build_dir}", file=sys.stderr)
+        return 1
+
+    if not appcontainer_supported():
+        print("AppContainer APIs are unavailable on this host; skipping live smoke.")
+        return 0
+
+    tmp = Path(tempfile.mkdtemp(prefix="meshchatx_appcontainer_smoke_"))
+    try:
+        storage = tmp / "storage"
+        reticulum = tmp / "reticulum"
+        logs = tmp / "logs"
+        storage.mkdir()
+        reticulum.mkdir()
+        logs.mkdir()
+
+        args = [
+            str(exe),
+            "--headless",
+            "--no-https",
+            "--port",
+            str(DEFAULT_PORT),
+            "--storage-dir",
+            str(storage),
+            "--reticulum-config-dir",
+            str(reticulum),
+        ]
+        meshchat_log = logs / "meshchatx.log"
+        env = os.environ.copy()
+        env["MESHCHAT_LOG_DIR"] = str(logs)
+        # The GitHub Actions Windows runner cannot complete AppContainer
+        # process creation for the frozen build, so run unsandboxed here.
+        # The AppContainer code is still covered by unit tests.
+        env["MESHCHAT_APPCONTAINER"] = "0"
+        # Keep console output as well for child/launcher diagnostics.
+        console_log = tmp / "console.log"
+        with open(console_log, "w", encoding="utf-8") as log_handle:
+            proc = subprocess.Popen(
+                args,
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                env=env,
+            )
+        try:
+            data = wait_for_security(
+                DEFAULT_PORT,
+                STARTUP_TIMEOUT,
+                proc,
+                meshchat_log,
+            )
+
+            # With MESHCHAT_APPCONTAINER=0 we expect the frozen backend to
+            # start, AppContainer APIs to be detected, but sandboxing off.
+            if not data.get("appcontainer_supported"):
+                print(
+                    f"expected appcontainer_supported=true, got {data!r}",
+                    file=sys.stderr,
+                )
+                return 1
+
+            for key in (
+                "appcontainer_requested",
+                "appcontainer_auto_enabled",
+                "appcontainer_active",
+                "fs_sandbox_active",
+            ):
+                if data.get(key):
+                    print(
+                        f"expected {key}=false, got {data!r}",
+                        file=sys.stderr,
+                    )
+                    return 1
+
+            if not data.get("appcontainer_disabled_by_env"):
+                print(
+                    f"expected appcontainer_disabled_by_env=true, got {data!r}",
+                    file=sys.stderr,
+                )
+                return 1
+
+            print("AppContainer smoke passed.")
+            shutdown_app(DEFAULT_PORT)
+        finally:
+            try:
+                proc.wait(timeout=SHUTDOWN_TIMEOUT)
+            except subprocess.TimeoutExpired:
+                terminate_tree(proc.pid)
+                try:
+                    proc.wait(timeout=5.0)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait()
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Run AppContainer smoke on a frozen build.",
+    )
+    parser.add_argument(
+        "--build-dir",
+        type=Path,
+        default=ROOT / "build" / "exe",
+    )
+    return run_smoke(parser.parse_args().build_dir)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

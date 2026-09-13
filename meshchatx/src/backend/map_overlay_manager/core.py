@@ -152,6 +152,7 @@ class MapOverlayManager:
         self._source_locks: dict[int, asyncio.Lock] = {}
         self._active_fetchers: dict[str, Any] = {}
         self._job_semaphore: asyncio.Semaphore | None = None
+        self._job_tasks: set[asyncio.Task] = set()
         self._scheduler_task: asyncio.Task | None = None
         self._stopped = False
 
@@ -526,7 +527,9 @@ class MapOverlayManager:
 
         try:
             loop = asyncio.get_running_loop()
-            loop.create_task(runner())
+            task = loop.create_task(runner())
+            self._job_tasks.add(task)
+            task.add_done_callback(self._job_tasks.discard)
         except RuntimeError:
             await runner()
         return job_id
@@ -697,7 +700,7 @@ class MapOverlayManager:
             if attempt >= max_retries:
                 break
             delay = min(120.0, base_delay * (2**attempt))
-            delay *= 0.5 + random.random()
+            delay *= 0.5 + random.random()  # noqa: S311 - retry jitter
             self._set_phase(job_id, "retry_wait", progress=0.0)
             await asyncio.sleep(delay)
         if last_exc:

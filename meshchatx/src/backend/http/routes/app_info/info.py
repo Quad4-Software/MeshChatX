@@ -7,17 +7,29 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.app_info._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_conflict,
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_app_info_info_routes(routes, app):
 
-    @routes.get("/api/v1/app/sessions")
+    @routes.get(API_V1_PREFIX + "/app/sessions")
     async def app_sessions(_request):
         return web.json_response(app.get_active_sessions_payload())
 
     # get app info
 
     # get app info
-    @routes.get("/api/v1/app/info")
+    @routes.get(API_V1_PREFIX + "/app/info")
     async def app_info(request):
         process = getattr(app, "_host_process", None)
         if process is None:
@@ -405,7 +417,7 @@ def register_app_info_info_routes(routes, app):
     # get changelog
 
     # get changelog
-    @routes.get("/api/v1/app/changelog")
+    @routes.get(API_V1_PREFIX + "/app/changelog")
     async def app_changelog(request):
         changelog_path = get_file_path("CHANGELOG.md")
         if not os.path.exists(changelog_path):
@@ -449,12 +461,12 @@ def register_app_info_info_routes(routes, app):
                 },
             )
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # third-party dependency licenses (Python + Node)
 
     # third-party dependency licenses (Python + Node)
-    @routes.get("/api/v1/licenses")
+    @routes.get(API_V1_PREFIX + "/licenses")
     async def licenses_list(_request):
         from meshchatx.src.backend.licenses_collector import build_licenses_payload
 
@@ -462,6 +474,6 @@ def register_app_info_info_routes(routes, app):
             payload = await asyncio.to_thread(build_licenses_payload)
             return web.json_response(payload)
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
+            return http_error_from_exception(e, fallback_status=500)
 
     # mark tutorial as seen

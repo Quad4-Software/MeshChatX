@@ -20,6 +20,7 @@ from meshchatx.src.backend.nomadnet_downloader import (
     nomad_link_identity_kwargs,
     nomadnet_cached_links,
 )
+from tests.backend.http_request_stubs import JsonContent
 
 
 @pytest.fixture
@@ -236,6 +237,13 @@ async def test_favourites_identify_on_connect_api(mock_rns_minimal, temp_dir):
             "aspect": "nomadnetwork.node",
         },
     )
+    request.content = JsonContent(
+        {
+            "enabled": True,
+            "display_name": "Node C",
+            "aspect": "nomadnetwork.node",
+        },
+    )
     response = await handler(request)
     data = json.loads(response.body)
     assert data["identify_on_connect"] is True
@@ -247,6 +255,7 @@ async def test_favourites_identify_on_connect_api(mock_rns_minimal, temp_dir):
         nomadnet_cached_links[bytes.fromhex(dest)] = mock_link
 
     request.json = AsyncMock(return_value={"enabled": False})
+    request.content = JsonContent({"enabled": False})
     response = await handler(request)
     data = json.loads(response.body)
     assert data["identify_on_connect"] is False
@@ -275,6 +284,18 @@ async def test_favourites_import_persists_identify_on_connect(
     request = MagicMock()
     request.json = AsyncMock(
         return_value={
+            "favourites": [
+                {
+                    "destination_hash": dest,
+                    "display_name": "Node D",
+                    "aspect": "nomadnetwork.node",
+                    "identify_on_connect": True,
+                },
+            ],
+        },
+    )
+    request.content = JsonContent(
+        {
             "favourites": [
                 {
                     "destination_hash": dest,

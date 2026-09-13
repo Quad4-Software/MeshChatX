@@ -112,7 +112,7 @@ def test_validate_export_document_sticker_xss_fields_parse():
 
 
 def test_validate_gif_payload_rejects_wrong_magic():
-    with pytest.raises(ValueError, match="signature|mismatch"):
+    with pytest.raises(ValueError, match=r"signature|mismatch"):
         gif_utils.validate_gif_payload(_TINY_PNG, "gif")
 
 

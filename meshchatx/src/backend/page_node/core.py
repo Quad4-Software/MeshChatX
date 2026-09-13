@@ -15,6 +15,7 @@ Supported page filename extensions are .mu, .md, .txt, and .html.
 """
 
 import contextlib
+import hashlib
 import json
 import os
 import shlex
@@ -22,10 +23,26 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
 import RNS
+
+from meshchatx.src.backend import constants
+from meshchatx.src.env_utils import env_snapshot, env_str
+from meshchatx.src.json_store import load_json, save_json
+from meshchatx.src.path_utils import (
+    PathJailError,
+    is_under_root,
+    resolve_under_root,
+    safe_basename,
+)
+
+try:
+    from RNS.Utilities.rngit.media import convert_file_to_webp
+except Exception:
+    convert_file_to_webp = None
 
 APP_NAME = "nomadnetwork"
 ASPECT = "node"
@@ -33,9 +50,25 @@ DEFAULT_INDEX = "index.mu"
 
 ALLOWED_PAGE_EXTENSIONS = frozenset({".mu", ".md", ".txt", ".html"})
 
-DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
-MIN_ANNOUNCE_INTERVAL_SECONDS = 60
-MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
+SUPPORTED_IMAGE_EXTENSIONS = frozenset(
+    {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".bmp",
+        ".gif",
+        ".tiff",
+        ".webp",
+    }
+)
+
+MEDIA_QUALITY = 85
+MEDIA_MAX_DIMENSION = 1920
+MEDIA_CONVERT_TIMEOUT_SECONDS = 10
+
+DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
+MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
 EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
 MAX_UNIQUE_REMOTE_HASHES = 4096
 
@@ -109,16 +142,14 @@ def is_allowed_page_filename(name: str) -> bool:
 
 def _safe_mesh_file_basename(name: str) -> str:
     """Reject empty, dot, or parent-segment names after basename (path traversal)."""
-    base = os.path.basename((name or "").strip())
-    if not base or base in (".", ".."):
-        raise ValueError("invalid file name")
-    if "/" in base or "\\" in base:
+    base = safe_basename(name)
+    if base is None:
         raise ValueError("invalid file name")
     return base
 
 
 def _path_is_under_root(resolved: str, root: str) -> bool:
-    return resolved == root or resolved.startswith(root + os.sep)
+    return is_under_root(resolved, root)
 
 
 def _is_windows_platform() -> bool:
@@ -240,8 +271,9 @@ def _build_executable_page_env(
 ) -> dict[str, str]:
     env_map: dict[str, str] = {}
     for key in _EXECUTABLE_PAGE_HOST_ENV_KEYS:
-        if key in os.environ:
-            env_map[key] = os.environ[key]
+        value = env_str(key)
+        if value is not None:
+            env_map[key] = value
     if link_id is not None:
         with contextlib.suppress(Exception):
             env_map["link_id"] = RNS.hexrep(link_id, delimit=False)
@@ -293,6 +325,7 @@ class PageNode:
         self.base_dir = base_dir
         self.pages_dir = os.path.join(base_dir, "pages")
         self.files_dir = os.path.join(base_dir, "files")
+        self.media_cache_dir = os.path.join(base_dir, "media_cache")
 
         self.identity = identity
         self.identity_path = identity_path or os.path.join(base_dir, "identity")
@@ -301,9 +334,14 @@ class PageNode:
         self.running = False
         self._registered_page_paths = set()
         self._registered_file_paths = set()
+        self._registered_media_handler = False
         self._stats = {"pages_served": 0, "files_served": 0, "links_established": 0}
         self._serve_started_at = None
         self._unique_remote_hashes = set()
+        self._file_access_grants = {}
+        self._file_access_grants_by_identity = {}
+        self._file_access_grant_ttl = 300
+        self._media_cache_lock = threading.Lock()
 
         self.announce_enabled = bool(announce_enabled)
         self.announce_interval_seconds = normalize_announce_interval_seconds(
@@ -321,6 +359,7 @@ class PageNode:
         """Create directories, load or create identity, set up RNS destination."""
         os.makedirs(self.pages_dir, exist_ok=True)
         os.makedirs(self.files_dir, exist_ok=True)
+        os.makedirs(self.media_cache_dir, exist_ok=True)
 
         if self.identity is None:
             if os.path.isfile(self.identity_path):
@@ -341,6 +380,7 @@ class PageNode:
 
         self._register_existing_pages()
         self._register_existing_files()
+        self._register_media_handler()
         self._ensure_local_path()
 
         self.running = True
@@ -426,6 +466,7 @@ class PageNode:
                 self.destination.deregister_request_handler(rpath)
             for rpath in list(self._registered_file_paths):
                 self.destination.deregister_request_handler(rpath)
+            self._deregister_media_handler()
             self._registered_page_paths.clear()
             self._registered_file_paths.clear()
 
@@ -565,14 +606,14 @@ class PageNode:
             return None
         if not os.path.isdir(self.pages_dir):
             return None
-        root = os.path.realpath(self.pages_dir)
-        raw = os.path.join(root, safe_name)
-        resolved = os.path.realpath(raw)
-        if not _path_is_under_root(resolved, root):
+        try:
+            return resolve_under_root(
+                self.pages_dir,
+                safe_name,
+                must_be_file=must_exist,
+            )
+        except PathJailError:
             return None
-        if must_exist and not os.path.isfile(resolved):
-            return None
-        return resolved
 
     def _resolve_page_path(self, name):
         return self._jail_page_path(name, must_exist=True)
@@ -602,7 +643,10 @@ class PageNode:
             self._executable_page_names.add(name)
             if not _is_windows_platform():
                 mode = os.stat(page_path).st_mode
-                os.chmod(page_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+                os.chmod(
+                    page_path,
+                    mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH,  # noqa: S103 - exec bit is the feature
+                )
         else:
             self._executable_page_names.discard(name)
             if not _is_windows_platform():
@@ -656,10 +700,12 @@ class PageNode:
             return generated.stdout
         except subprocess.TimeoutExpired:
             return _page_generation_error_bytes("The page script timed out.")
-        except OSError as e:
-            return _page_generation_error_bytes(str(e))
         except Exception as e:
-            return _page_generation_error_bytes(str(e))
+            # These bytes are served to the remote requester; internal
+            # exception text can carry local paths, so keep it generic
+            # and log the real error server-side.
+            RNS.trace_exception(e)
+            return _page_generation_error_bytes("The page script failed to run.")
 
     def serve_page_content(
         self,
@@ -687,17 +733,65 @@ class PageNode:
         except Exception:
             return None
 
+    def _cleanup_file_access_grants(self):
+        now = time.time()
+        expired_links = [
+            lid
+            for lid, (_, expires) in self._file_access_grants.items()
+            if expires <= now
+        ]
+        for lid in expired_links:
+            del self._file_access_grants[lid]
+        expired_identities = [
+            rid
+            for rid, expires in self._file_access_grants_by_identity.items()
+            if expires <= now
+        ]
+        for rid in expired_identities:
+            del self._file_access_grants_by_identity[rid]
+
+    def _grant_file_access(self, link_id, remote_identity, ttl=None):
+        if not link_id:
+            return
+        if ttl is None:
+            ttl = self._file_access_grant_ttl
+        expires = time.time() + max(0, ttl)
+        self._file_access_grants[link_id] = (remote_identity, expires)
+        if remote_identity is not None:
+            try:
+                rid = RNS.hexrep(remote_identity.hash, delimit=False)
+            except Exception:
+                rid = str(remote_identity)
+            if rid:
+                self._file_access_grants_by_identity[rid] = expires
+
+    def _check_file_access(self, link_id, remote_identity):
+        self._cleanup_file_access_grants()
+        if link_id and link_id in self._file_access_grants:
+            return True
+        if remote_identity is not None:
+            try:
+                rid = RNS.hexrep(remote_identity.hash, delimit=False)
+            except Exception:
+                rid = str(remote_identity)
+            if rid and rid in self._file_access_grants_by_identity:
+                return True
+        return False
+
     def _make_page_responder(self, page_name):
         """Return a closure that serves a specific page."""
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
             self._note_remote_identity(remote_identity)
-            return self.serve_page_content(
+            content = self.serve_page_content(
                 page_name,
                 data=data,
                 link_id=link_id,
                 remote_identity=remote_identity,
             )
+            if content is not None:
+                self._grant_file_access(link_id, remote_identity)
+            return content
 
         return responder
 
@@ -714,14 +808,14 @@ class PageNode:
             return None
         if not os.path.isdir(self.files_dir):
             return None
-        root = os.path.realpath(self.files_dir)
-        raw = os.path.join(root, safe_name)
-        resolved = os.path.realpath(raw)
-        if not _path_is_under_root(resolved, root):
+        try:
+            return resolve_under_root(
+                self.files_dir,
+                safe_name,
+                must_be_file=must_exist,
+            )
+        except PathJailError:
             return None
-        if must_exist and not os.path.isfile(resolved):
-            return None
-        return resolved
 
     def read_hosted_file(self, name):
         """Read a hosted file from the files jail.
@@ -744,6 +838,8 @@ class PageNode:
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
             self._note_remote_identity(remote_identity)
+            if not self._check_file_access(link_id, remote_identity):
+                return None
             file_path = self._jail_file_path(file_name, must_exist=True)
             if file_path is None:
                 return None
@@ -756,6 +852,227 @@ class PageNode:
                 return None
 
         return responder
+
+    def _jail_media_path(self, name, *, must_exist=False):
+        """Resolve a media request path under files_dir or pages_dir.
+
+        Media paths are supplied by a remote peer and must be jailed under
+        the node content roots. Subdirectories are allowed, but each component
+        is checked for traversal and the final resolved path must still lie
+        beneath the chosen root.
+        """
+        if not name or not isinstance(name, str):
+            return None
+        name = name.strip()
+        if name.startswith("/"):
+            name = name[1:]
+        if name.startswith("media/"):
+            name = name[6:]
+        if not name or name.startswith("/") or ".." in name.split("/"):
+            return None
+        for part in name.split("/"):
+            if not part or part in (".", ".."):
+                return None
+            if part.startswith(".") and not part.startswith(".."):
+                return None
+            if "/" in part or "\\" in part or "\x00" in part:
+                return None
+        lower_name = name.lower()
+        if not any(lower_name.endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS):
+            return None
+
+        for root_dir in (self.files_dir, self.pages_dir):
+            if not os.path.isdir(root_dir):
+                continue
+            try:
+                return resolve_under_root(
+                    root_dir,
+                    name,
+                    must_be_file=must_exist,
+                )
+            except PathJailError:
+                continue
+        return None
+
+    def _media_cache_key(self, source_path, quality, max_dimension):
+        try:
+            with open(source_path, "rb") as f:
+                source_hash = hashlib.sha256(f.read()).hexdigest()
+        except OSError:
+            return None
+        dim = int(max_dimension) if max_dimension else "none"
+        return f"{source_hash}.q{quality}.d{dim}.webp"
+
+    def _convert_media_to_webp(self, source_path, cache_path, quality, max_dimension):
+        """Convert a media file to WebP and cache the result.
+
+        Returns the path to a WebP file, or None on failure.
+        """
+        if convert_file_to_webp is None:
+            return None
+        os.makedirs(self.media_cache_dir, exist_ok=True)
+
+        env_keys = ("TMPDIR", "TMP", "TEMP", "MAGICK_TMPDIR", "MAGICK_TEMPORARY_PATH")
+        old_env = env_snapshot(env_keys)
+        old_tmpdir = tempfile.tempdir
+        tempfile.tempdir = self.media_cache_dir
+        for key in env_keys:
+            os.environ[key] = self.media_cache_dir
+        try:
+            tmp_path = convert_file_to_webp(
+                source_path,
+                quality=quality,
+                max_dimension=max_dimension,
+                timeout=MEDIA_CONVERT_TIMEOUT_SECONDS,
+            )
+        finally:
+            tempfile.tempdir = old_tmpdir
+            for key in env_keys:
+                old_value = old_env[key]
+                if old_value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = old_value
+
+        if not tmp_path or not os.path.isfile(tmp_path):
+            return None
+        try:
+            os.replace(tmp_path, cache_path)
+        except OSError:
+            try:
+                shutil.move(tmp_path, cache_path)
+            except OSError:
+                os.unlink(tmp_path)
+                return None
+        return cache_path
+
+    def _get_converted_media_path(
+        self, source_path, quality=MEDIA_QUALITY, max_dimension=MEDIA_MAX_DIMENSION
+    ):
+        """Return the cached WebP path for a media source, converting if needed."""
+        if source_path is None:
+            return None
+        lower_name = os.path.basename(source_path).lower()
+        is_webp = lower_name.endswith(".webp")
+        if is_webp:
+            return source_path
+
+        cache_key = self._media_cache_key(source_path, quality, max_dimension)
+        if cache_key is None:
+            return None
+        cache_path = os.path.join(self.media_cache_dir, cache_key)
+        if os.path.isfile(cache_path):
+            return cache_path
+
+        with self._media_cache_lock:
+            if os.path.isfile(cache_path):
+                return cache_path
+            return self._convert_media_to_webp(
+                source_path,
+                cache_path,
+                quality,
+                max_dimension,
+            )
+
+    def serve_media(
+        self, name, quality=MEDIA_QUALITY, max_dimension=MEDIA_MAX_DIMENSION
+    ):
+        """Serve a media image, converting non-WebP formats to WebP.
+
+        Returns (file_name, file_bytes), or None.
+        """
+        source_path = self._jail_media_path(name, must_exist=True)
+        if source_path is None:
+            return None
+        converted_path = self._get_converted_media_path(
+            source_path,
+            quality=quality,
+            max_dimension=max_dimension,
+        )
+        if converted_path is None:
+            return None
+        try:
+            with open(converted_path, "rb") as f:
+                file_bytes = f.read()
+        except OSError:
+            return None
+        self._stats["files_served"] += 1
+        return (os.path.basename(converted_path), file_bytes)
+
+    def _make_media_responder(self):
+        """Return a closure that serves and converts /media requests."""
+
+        def responder(path, data, request_id, link_id, remote_identity, requested_at):
+            self._note_remote_identity(remote_identity)
+            if not self._check_file_access(link_id, remote_identity):
+                return None
+
+            media_name = ""
+            if isinstance(data, dict):
+                raw_path = data.get("path") or ""
+                if isinstance(raw_path, (bytes, bytearray)):
+                    raw_path = raw_path.decode("utf-8", errors="replace")
+                media_name = str(raw_path).strip()
+            elif isinstance(data, (bytes, bytearray)):
+                with contextlib.suppress(Exception):
+                    parsed = json.loads(data.decode("utf-8", errors="replace"))
+                    if isinstance(parsed, dict):
+                        raw_path = parsed.get("path") or ""
+                        if isinstance(raw_path, (bytes, bytearray)):
+                            raw_path = raw_path.decode("utf-8", errors="replace")
+                        media_name = str(raw_path).strip()
+            if not media_name:
+                return None
+
+            source_path = self._jail_media_path(media_name, must_exist=True)
+            if source_path is None:
+                return None
+
+            quality = MEDIA_QUALITY
+            max_dimension = MEDIA_MAX_DIMENSION
+            if isinstance(data, dict):
+                quality = int(data.get("quality", quality))
+                max_dimension_raw = data.get("max_dimension")
+                if max_dimension_raw is not None:
+                    try:
+                        max_dimension = int(max_dimension_raw)
+                    except (TypeError, ValueError):
+                        max_dimension = MEDIA_MAX_DIMENSION
+
+            converted_path = self._get_converted_media_path(
+                source_path,
+                quality=quality,
+                max_dimension=max_dimension,
+            )
+            if converted_path is None:
+                return None
+            try:
+                fh = open(converted_path, "rb")
+                metadata = {"name": b"image.webp"}
+                self._stats["files_served"] += 1
+                return [fh, metadata]
+            except OSError:
+                return None
+
+        return responder
+
+    def _register_media_handler(self):
+        """Register the single /media request handler."""
+        if not self.destination or self._registered_media_handler:
+            return
+        self.destination.register_request_handler(
+            "/media",
+            response_generator=self._make_media_responder(),
+            allow=RNS.Destination.ALLOW_ALL,
+        )
+        self._registered_media_handler = True
+
+    def _deregister_media_handler(self):
+        """Deregister the /media request handler."""
+        if not self.destination or not self._registered_media_handler:
+            return
+        self.destination.deregister_request_handler("/media")
+        self._registered_media_handler = False
 
     def add_page(self, name, content, executable=None):
         """Write a page file and register its request handler."""
@@ -902,14 +1219,10 @@ class PageNode:
             "executable_page_names": sorted(self._executable_page_names),
         }
         config_path = os.path.join(self.base_dir, "config.json")
-        with open(config_path, "w") as f:
-            json.dump(config, f, indent=2)
+        save_json(config_path, config, indent=2, newline=False)
 
     @staticmethod
     def load_config(base_dir):
         """Load node configuration from disk. Returns dict or None."""
         config_path = os.path.join(base_dir, "config.json")
-        if not os.path.isfile(config_path):
-            return None
-        with open(config_path) as f:
-            return json.load(f)
+        return load_json(config_path)

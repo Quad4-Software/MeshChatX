@@ -5,6 +5,8 @@ import errno
 import os
 import sys
 
+from meshchatx.src.env_utils import env_str
+
 
 class StorageLockError(OSError):
     pass
@@ -37,7 +39,7 @@ def _soft_lock_contested(other_pid: int | None) -> bool:
         return False
     if other_pid == os.getpid():
         return True
-    if sys.platform == "android" or "ANDROID_ROOT" in os.environ:
+    if sys.platform == "android" or env_str("ANDROID_ROOT") is not None:
         return False
     return _pid_alive(other_pid)
 
@@ -97,7 +99,8 @@ class StorageLock:
         atexit.register(self.release)
 
     def _acquire_soft(self) -> None:
-        assert self._handle is not None
+        if self._handle is None:
+            raise StorageLockError("lock file is not open")
         self._handle.seek(0)
         raw = self._handle.read().strip()
         other_pid = None
@@ -116,7 +119,8 @@ class StorageLock:
         self._write_pid()
 
     def _write_pid(self) -> None:
-        assert self._handle is not None
+        if self._handle is None:
+            raise StorageLockError("lock file is not open")
         self._handle.seek(0)
         self._handle.truncate()
         self._handle.write(str(os.getpid()).encode())

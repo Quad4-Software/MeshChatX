@@ -93,7 +93,7 @@ def test_kline_bans_and_persists(tmp_path):
     assert notice
     assert "kline added" in notice[-1][proto.K_BODY]
 
-    trusted, banned = load_hub_policy(os.path.join(str(tmp_path / "hub"), "hub.toml"))
+    _trusted, banned = load_hub_policy(os.path.join(str(tmp_path / "hub"), "hub.toml"))
     assert BOB in banned
 
     bob_link = FakeLink(FakeIdentity(BOB))

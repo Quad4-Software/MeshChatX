@@ -77,9 +77,6 @@ async def test_app_status_endpoints(mock_rns_minimal, temp_dir):
             patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
-        )
-        stack.enter_context(
             patch(
                 "meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"
             ),

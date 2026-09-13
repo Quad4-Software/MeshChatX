@@ -413,6 +413,16 @@ class MessageDAO:
             (hops, interface_name, now, message_hash),
         )
 
+    # Outbound lifecycle is monotonic: generating -> outbound -> sending ->
+    # sent -> delivered. Terminal states must not regress to in-flight ones;
+    # a stale progress poll could otherwise flip delivered back to sent.
+    _LXMF_TERMINAL_STATES = frozenset(
+        {"delivered", "rejected", "cancelled", "failed"},
+    )
+    _LXMF_PROGRESS_STATES = frozenset(
+        {"generating", "outbound", "sending", "sent"},
+    )
+
     def update_lxmf_message_state(
         self,
         message_hash,
@@ -431,6 +441,18 @@ class MessageDAO:
         data) which the heavy upsert_lxmf_message path does.
         """
         now = datetime.now(UTC).isoformat()
+        existing = self.provider.fetchone(
+            "SELECT state FROM lxmf_messages WHERE hash = ?",
+            (message_hash,),
+        )
+        if (
+            existing
+            and existing.get("state") in self._LXMF_TERMINAL_STATES
+            and state in self._LXMF_PROGRESS_STATES
+        ):
+            # Keep the terminal state but still accept fresh progress,
+            # delivery-attempt, and radio telemetry fields.
+            state = existing["state"]
         if method is None:
             self.provider.execute(
                 "UPDATE lxmf_messages SET state = ?, progress = ?, "
@@ -518,11 +540,14 @@ class MessageDAO:
             )
 
     def toggle_peer_pin(self, peer_hash):
-        if self.is_peer_pinned(peer_hash):
-            self.set_peer_pinned(peer_hash, False)
-            return False
-        self.set_peer_pinned(peer_hash, True)
-        return True
+        # Wrap read+write in one IMMEDIATE transaction so concurrent toggles
+        # serialize on the SQLite write lock instead of racing the check.
+        with self.provider:
+            if self.is_peer_pinned(peer_hash):
+                self.set_peer_pinned(peer_hash, False)
+                return False
+            self.set_peer_pinned(peer_hash, True)
+            return True
 
     def list_message_hashes_with_timestamp_before(self, cutoff_ts: float) -> list[str]:
         rows = self.provider.fetchall(
@@ -905,9 +930,7 @@ class MessageDAO:
                 (group["peer_hash"], group["is_incoming"], group["content"]),
             )
             # Keep the first (oldest); delete the rest.
-            for row in rows[1:]:
-                if row.get("hash"):
-                    to_delete.append(row["hash"])
+            to_delete.extend(row["hash"] for row in rows[1:] if row.get("hash"))
         return to_delete
 
     def count_duplicate_lxmf_messages_by_content(self) -> int:
@@ -1051,7 +1074,7 @@ class MessageDAO:
             return {}
         placeholders = ", ".join(["?"] * len(destination_hashes))
         rows = self.provider.fetchall(
-            f"SELECT peer_hash, COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash IN ({placeholders}) GROUP BY peer_hash",
+            f"SELECT peer_hash, COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash IN ({placeholders}) GROUP BY peer_hash",  # nosec: BAN-B608
             tuple(destination_hashes),
         )
         return {row["peer_hash"]: row["count"] for row in rows}
@@ -1105,7 +1128,7 @@ class MessageDAO:
         ]
         columns = ", ".join(fields)
         placeholders = ", ".join(["?"] * len(fields))
-        query = f"INSERT INTO lxmf_forwarding_mappings ({columns}, created_at) VALUES ({placeholders}, ?)"
+        query = f"INSERT INTO lxmf_forwarding_mappings ({columns}, created_at) VALUES ({placeholders}, ?)"  # nosec: BAN-B608
         params = [data.get(f) for f in fields]
         params.append(datetime.now(UTC).isoformat())
         self.provider.execute(query, params)
@@ -1216,7 +1239,18 @@ class MessageDAO:
         )
 
     def delete_folder(self, folder_id):
-        self.provider.execute("DELETE FROM lxmf_folders WHERE id = ?", (folder_id,))
+        # PRAGMA foreign_keys is off on these connections, so the declared
+        # ON DELETE CASCADE never runs. Delete the child rows explicitly in
+        # the same transaction instead of leaving orphan assignments.
+        with self.provider:
+            self.provider.execute(
+                "DELETE FROM lxmf_conversation_folders WHERE folder_id = ?",
+                (folder_id,),
+            )
+            self.provider.execute(
+                "DELETE FROM lxmf_folders WHERE id = ?",
+                (folder_id,),
+            )
 
     def get_conversation_folder(self, peer_hash):
         return self.provider.fetchone(
@@ -1251,7 +1285,7 @@ class MessageDAO:
             if folder_id is None:
                 placeholders = ", ".join(["?"] * len(peer_hashes))
                 self.provider.execute(
-                    f"DELETE FROM lxmf_conversation_folders WHERE peer_hash IN ({placeholders})",
+                    f"DELETE FROM lxmf_conversation_folders WHERE peer_hash IN ({placeholders})",  # nosec: BAN-B608
                     tuple(peer_hashes),
                 )
             else:

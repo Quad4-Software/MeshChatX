@@ -45,6 +45,8 @@ stage/
 /meshchatx/public/
 /electron/build/exe/
 python-dist/
+release-assets/
+release-body.md
 .local/
 maven/
 *.o
@@ -153,6 +155,9 @@ meshchatx/src/frontend/public/vendor/micron-parser-go/wasm_exec.js
 # visualiser-wasm (built via scripts/build-visualiser-wasm.mjs / task build:visualiser-wasm)
 meshchatx/src/frontend/public/vendor/visualiser-wasm/visualiser.wasm
 meshchatx/src/frontend/public/vendor/visualiser-wasm/wasm_exec.js
+
+# bergamot-translator WASM (copied from node_modules via scripts/copy-bergamot-wasm.mjs)
+meshchatx/src/frontend/public/vendor/bergamot/
 meshchatx/src/frontend/public/vendor/geo-wasm/geo.wasm
 meshchatx/src/frontend/public/vendor/geo-wasm/wasm_exec.js
 
@@ -177,6 +182,11 @@ out/
 /packaging/arch/*.pkg.tar.zst
 /packaging/arch/MeshChatX/
 /packaging/arch/reticulum-meshchatx/
+
+# Flatpak local builder outputs
+/packaging/flatpak/build-dir/
+/packaging/flatpak/repo/
+/packaging/flatpak/.flatpak-builder/
 
 electron/backend-manifest.json
 

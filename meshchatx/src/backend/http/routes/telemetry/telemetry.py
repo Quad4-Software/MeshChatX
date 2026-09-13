@@ -8,12 +8,22 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.telemetry._names import *  # noqa: F403
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+from meshchatx.src.backend.telemetry_utils import Telemeter
+
 
 def register_telemetry_telemetry_routes(routes: Any, app: Any) -> None:
 
     # get latest telemetry for all peers
-
-    @routes.get("/api/v1/telemetry/peers")
+    @routes.get(API_V1_PREFIX + "/telemetry/peers")
     async def get_all_latest_telemetry(request):
         results = app.database.telemetry.get_all_latest_telemetry()
         telemetry_list = []
@@ -35,7 +45,7 @@ def register_telemetry_telemetry_routes(routes: Any, app: Any) -> None:
             )
         return web.json_response({"telemetry": telemetry_list})
 
-    @routes.get("/api/v1/telemetry/trusted-peers")
+    @routes.get(API_V1_PREFIX + "/telemetry/trusted-peers")
     async def telemetry_trusted_peers_get(request):
         # get all contacts that are telemetry trusted
         contacts = app.database.provider.fetchall(
@@ -43,10 +53,16 @@ def register_telemetry_telemetry_routes(routes: Any, app: Any) -> None:
         )
         return web.json_response({"trusted_peers": [dict(c) for c in contacts]})
 
-    @routes.post("/api/v1/telemetry/tracking/{destination_hash}/toggle")
+    # toggle telemetry tracking for a destination
+
+    # toggle telemetry tracking for a destination
+    @routes.post(API_V1_PREFIX + "/telemetry/tracking/{destination_hash}/toggle")
     async def toggle_telemetry_tracking(request):
         destination_hash = request.match_info["destination_hash"]
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         is_tracking = data.get("is_tracking")
 
         new_status = app.database.telemetry.toggle_tracking(
@@ -55,12 +71,18 @@ def register_telemetry_telemetry_routes(routes: Any, app: Any) -> None:
         )
         return web.json_response({"status": "ok", "is_tracking": new_status})
 
-    @routes.get("/api/v1/telemetry/tracking")
+    # get all tracked peers
+
+    # get all tracked peers
+    @routes.get(API_V1_PREFIX + "/telemetry/tracking")
     async def get_tracked_peers(request):
         results = app.database.telemetry.get_tracked_peers()
         return web.json_response({"tracked_peers": results})
 
-    @routes.get("/api/v1/telemetry/history/{destination_hash}")
+    # get telemetry history for a destination
+
+    # get telemetry history for a destination
+    @routes.get(API_V1_PREFIX + "/telemetry/history/{destination_hash}")
     async def get_telemetry_history(request):
         destination_hash = request.match_info.get("destination_hash")
         limit = int(request.query.get("limit", 100))
@@ -87,12 +109,15 @@ def register_telemetry_telemetry_routes(routes: Any, app: Any) -> None:
             )
         return web.json_response({"telemetry": telemetry_list})
 
-    @routes.get("/api/v1/telemetry/latest/{destination_hash}")
+    # get latest telemetry for a destination
+
+    # get latest telemetry for a destination
+    @routes.get(API_V1_PREFIX + "/telemetry/latest/{destination_hash}")
     async def get_latest_telemetry(request):
         destination_hash = request.match_info.get("destination_hash")
         r = app.database.telemetry.get_latest_telemetry(destination_hash)
         if not r:
-            return web.json_response({"error": "No telemetry found"}, status=404)
+            return http_not_found("No telemetry found")
 
         unpacked = Telemeter.from_packed(r["data"])
         return web.json_response(

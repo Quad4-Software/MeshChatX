@@ -348,6 +348,7 @@ tasks:
                 tests/backend/test_interface_stats_endpoint.py
                 tests/backend/test_http_auth_security.py
                 tests/backend/test_meshchat_coverage.py
+                tests/backend/test_meshchat_image_file_grant.py
                 tests/backend/test_nomadnet_downloader.py
                 tests/backend/test_rns_link_manager.py
                 tests/backend/test_rns_link_fuzzing.py
@@ -471,8 +472,8 @@ tasks:
         aliases: [test:fe]
         desc: Run frontend + Electron shell unit tests (vitest with coverage, excludes i18n, see test:lang)
         cmds:
-            - "{{.NPM}} exec vitest run --coverage --exclude tests/frontend/i18n.test.js"
-            - "{{.NPM}} exec vitest run --config vitest.electron.config.js --coverage"
+            - "{{.NPM}} exec vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
+            - "{{.NPM}} exec vitest run --config vitest.electron.config.mjs --coverage"
 
     test:fe:ui:
         desc: Vitest UI runner for frontend unit tests
@@ -504,8 +505,6 @@ tasks:
         desc: Run localization tests
         cmds:
             - "{{.NPM}} exec vitest run tests/frontend/i18n.test.js"
-            # Keep temp-tests so a parallel task test:backend xdist run is not wiped.
-            - "MESHCHAT_TEST_KEEP_TEMP=1 uv run pytest --basetemp=temp-tests/pytest-lang tests/backend/test_translator_handler.py"
 
     test:integrity:
         desc: Run data integrity tests
@@ -513,10 +512,10 @@ tasks:
             - uv run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
 
     test:cov:
-        desc: Run all tests with coverage (Python + frontend JS + translator pytest)
+        desc: Run all tests with coverage (Python + frontend JS + translation pytest)
         deps: [test:be:cov, test:fe:cov]
         cmds:
-            - "uv run pytest tests/backend/test_translator_handler.py"
+            - "uv run pytest tests/backend/test_translation_http.py tests/backend/test_translation_pack_manager.py"
 
     bench:
         desc: Default benchmark run (backend comprehensive suite, same as bench:be)
@@ -662,6 +661,12 @@ tasks:
         cmds:
             - uv build --wheel
             - "{{.PYTHON}} scripts/move_wheels.py"
+
+    build:pyz:
+        desc: Build single-file Python zipapp (PYZ)
+        deps: [install]
+        cmds:
+            - bash scripts/build-pyz.sh
 
     # --- Electron Distribution ---
 
@@ -910,20 +915,10 @@ tasks:
         cmds:
             - sh scripts/ci/verify-tree-rsm.sh
 
-    hooks:install:
-        desc: Enable tracked git hooks (pre-commit format/lint, commitlint, meshchatx.rsm resign)
-        cmds:
-            - sh scripts/ci/install-git-hooks.sh
-
-    hooks:run:
-        desc: Run pre-commit on all staged files (same as the pre-commit hook)
-        cmds:
-            - uv run pre-commit run --hook-stage pre-commit
-
     check:commits:
         desc: Validate commit messages (COMMITLINT_FROM defaults to origin/master)
         cmds:
-            - ./node_modules/.bin/commitlint --from ${COMMITLINT_FROM:-origin/master} --to HEAD
+            - ./node_modules/.bin/commitlint --from ${COMMITLINT_FROM:-origin/master} --to ${COMMITLINT_TO:-HEAD}
 
     tree-workspace-clean:
         desc: Recheck inventory (warn by default, RNS_TREE_VERIFY_STRICT=1 to fail)

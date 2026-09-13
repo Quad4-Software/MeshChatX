@@ -100,7 +100,6 @@ def test_run_https_logic(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
     ):
         mock_config = mock_config_class.return_value
@@ -114,9 +113,9 @@ def test_run_https_logic(mock_rns, temp_dir):
         mock_config.lxmf_inbound_stamp_cost.get.return_value = 0
         mock_config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
         mock_config.lxmf_local_propagation_node_enabled.get.return_value = False
-        mock_config.libretranslate_url.get.return_value = "http://localhost:5000"
-        mock_config.translator_argos_enabled.get.return_value = False
-        mock_config.translator_libretranslate_enabled.get.return_value = False
+        mock_config.translation_enabled.get.return_value = False
+        mock_config.translation_default_source_lang.get.return_value = "auto"
+        mock_config.translation_default_target_lang.get.return_value = None
 
         app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
@@ -129,14 +128,14 @@ def test_run_https_logic(mock_rns, temp_dir):
         mock_gen_cert.assert_called()
         mock_ssl_context.assert_called()
         # Verify run_app was called with ssl_context
-        args, kwargs = mock_run_app.call_args
+        _args, kwargs = mock_run_app.call_args
         assert "ssl_context" in kwargs
         assert kwargs["ssl_context"] is not None
 
         # Test HTTPS disabled
         mock_run_app.reset_mock()
         app.run(host="127.0.0.1", port=8000, launch_browser=False, enable_https=False)
-        args, kwargs = mock_run_app.call_args
+        _args, kwargs = mock_run_app.call_args
         assert kwargs.get("ssl_context") is None
         app.teardown_identity()
 
@@ -160,7 +159,6 @@ def test_database_integrity_recovery(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
         patch(
             "meshchatx.src.backend.identity_context.core.IntegrityManager",
@@ -265,7 +263,6 @@ def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
         patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
         patch(
             "meshchatx.src.backend.identity_context.core.IntegrityManager",
@@ -287,9 +284,9 @@ def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
         mock_config.lxmf_inbound_stamp_cost.get.return_value = 0
         mock_config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
         mock_config.lxmf_local_propagation_node_enabled.get.return_value = False
-        mock_config.libretranslate_url.get.return_value = "http://localhost:5000"
-        mock_config.translator_argos_enabled.get.return_value = False
-        mock_config.translator_libretranslate_enabled.get.return_value = False
+        mock_config.translation_enabled.get.return_value = False
+        mock_config.translation_default_source_lang.get.return_value = "auto"
+        mock_config.translation_default_target_lang.get.return_value = None
 
         app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
@@ -321,7 +318,7 @@ def test_cli_flags_and_envs(mock_rns, temp_dir):
             main()
 
             # Verify ReticulumMeshChat was called with values from ENV
-            args, kwargs = mock_app_class.call_args
+            _args, kwargs = mock_app_class.call_args
             assert kwargs["auto_recover"] is True
             assert kwargs["auth_enabled"] is True
 

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { apiPath } from "./constants.js";
+
 export const STARTUP_STAGE_LABELS: Record<string, string> = {
     http: "Getting things ready…",
     starting: "Getting RNS ready…",
@@ -98,7 +100,7 @@ export async function waitForNetworkReady(options: NetworkStartupWaitOptions = {
     const onLine = options.onLine || (() => {});
     const onErrorState = options.onErrorState || (() => {});
     const onDegraded = options.onDegraded || (() => {});
-    const statusUrl = options.statusUrl || "/api/v1/status";
+    const statusUrl = options.statusUrl || apiPath("/status");
     const mountOnUiReady = options.mountOnUiReady !== false;
 
     const deadline = now() + timeoutMs;

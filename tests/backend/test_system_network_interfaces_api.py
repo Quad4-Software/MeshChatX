@@ -50,7 +50,7 @@ async def test_system_network_interfaces_returns_json(mock_rns_minimal, temp_dir
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),
         patch(
-            "meshchatx.meshchat.list_host_network_interfaces",
+            "meshchatx.src.backend.http.routes.interfaces.list_host_network_interfaces",
             return_value=fake_ifaces,
         ),
     ):
@@ -87,7 +87,7 @@ async def test_system_network_interfaces_surfaces_psutil_error(
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),
         patch(
-            "meshchatx.meshchat.list_host_network_interfaces",
+            "meshchatx.src.backend.http.routes.interfaces.list_host_network_interfaces",
             return_value=fake_ifaces,
         ),
     ):

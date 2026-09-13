@@ -64,5 +64,4 @@ def redact_diagnostic_text(text: str) -> str:
     out = _IPV4_RE.sub(REDACTED, out)
     out = _BEARER_RE.sub(f"Bearer {REDACTED}", out)
     out = _BASIC_AUTH_RE.sub(f"Basic {REDACTED}", out)
-    out = _SECRET_ASSIGN_RE.sub(REDACTED, out)
-    return out
+    return _SECRET_ASSIGN_RE.sub(REDACTED, out)

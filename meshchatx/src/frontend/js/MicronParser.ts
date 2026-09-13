@@ -5,6 +5,118 @@ import { inlineStyleHasNetworkPaint, scrubNetworkCss as scrubNetworkCssBody } fr
 const ALLOWED_URI_REGEXP =
     /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z.+-]+(?:[^a-z.+:-]|$))/i;
 
+const MICRON_IMAGE_FORMATTED_SIZE = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 1,
+});
+
+const MICRON_IMAGE_MAX_WIDTH = 8192;
+const MICRON_IMAGE_MAX_HEIGHT = 8192;
+const MICRON_IMAGE_MAX_SIZE_HINT = 100 * 1024 * 1024; // 100 MiB
+const MICRON_IMAGE_MAX_ALT_LEN = 240;
+const MICRON_IMAGE_MAX_KEY_LEN = 64;
+const MICRON_IMAGE_MAX_PROFILE_LEN = 32;
+const MICRON_IMAGE_KEY_REGEXP = /^[a-zA-Z0-9_.-]*$/;
+const MICRON_IMAGE_PROFILE_REGEXP = /^[a-zA-Z0-9_-]*$/;
+
+function clampMicronImageNumber(value, max) {
+    const n = Number(value);
+    if (Number.isNaN(n)) {
+        return null;
+    }
+    if (!Number.isFinite(n) || n <= 0) {
+        return null;
+    }
+    return Math.min(Math.floor(n), max);
+}
+
+function sanitizeMicronImageString(value, maxLen, pattern = null) {
+    if (typeof value !== "string") {
+        return "";
+    }
+    const trimmed = value.trim();
+    const limited = [...trimmed].slice(0, maxLen).join("");
+    if (pattern && !pattern.test(limited)) {
+        return "";
+    }
+    return limited;
+}
+
+function truncateMicronImageAlt(value) {
+    if (typeof value !== "string") {
+        return "";
+    }
+    return [...value.trim()].slice(0, MICRON_IMAGE_MAX_ALT_LEN).join("");
+}
+
+function parseMicronImageOptions(fields) {
+    const options = {
+        img: false,
+        w: null,
+        h: null,
+        size: null,
+        key: "",
+        align: "left",
+        profile: "",
+    };
+    if (!Array.isArray(fields)) {
+        return options;
+    }
+    for (const raw of fields) {
+        if (!raw || typeof raw !== "string") {
+            continue;
+        }
+        const parts = raw.split(";");
+        for (const part of parts) {
+            const idx = part.indexOf("=");
+            if (idx <= 0) {
+                continue;
+            }
+            const k = part.slice(0, idx).trim().toLowerCase();
+            const v = part.slice(idx + 1).trim();
+            if (k === "img") {
+                options.img = ["1", "true", "yes"].includes(v.toLowerCase());
+            } else if (k === "w") {
+                options.w = clampMicronImageNumber(v, MICRON_IMAGE_MAX_WIDTH);
+            } else if (k === "h") {
+                options.h = clampMicronImageNumber(v, MICRON_IMAGE_MAX_HEIGHT);
+            } else if (k === "s") {
+                options.size = clampMicronImageNumber(v, MICRON_IMAGE_MAX_SIZE_HINT);
+            } else if (k === "k") {
+                options.key = sanitizeMicronImageString(v, MICRON_IMAGE_MAX_KEY_LEN, MICRON_IMAGE_KEY_REGEXP);
+            } else if (k === "a") {
+                const av = v.toLowerCase();
+                if (["left", "l"].includes(av)) {
+                    options.align = "left";
+                } else if (["center", "c"].includes(av)) {
+                    options.align = "center";
+                } else if (["right", "r"].includes(av)) {
+                    options.align = "right";
+                }
+            } else if (k === "profile") {
+                options.profile = sanitizeMicronImageString(
+                    v,
+                    MICRON_IMAGE_MAX_PROFILE_LEN,
+                    MICRON_IMAGE_PROFILE_REGEXP
+                );
+            }
+        }
+    }
+    return options;
+}
+
+function formatMicronImageSize(bytes) {
+    if (bytes == null || bytes < 0) {
+        return "";
+    }
+    if (bytes < 1024) {
+        return String(bytes) + " B";
+    }
+    if (bytes < 1024 * 1024) {
+        return MICRON_IMAGE_FORMATTED_SIZE.format(bytes / 1024) + " kB";
+    }
+    return MICRON_IMAGE_FORMATTED_SIZE.format(bytes / (1024 * 1024)) + " MB";
+}
+
 function escapeHtmlForFallback(text) {
     if (text == null) return "";
     return String(text)
@@ -255,9 +367,7 @@ export default class MicronParser extends BaseMicronParser {
             .Mu-mnt {
                 display: inline-block;
                 box-sizing: border-box;
-                min-width: 1ch;
                 width: 1ch;
-                max-width: 1ch;
                 text-align: center;
                 white-space: pre;
                 text-decoration: inherit;
@@ -267,9 +377,7 @@ export default class MicronParser extends BaseMicronParser {
             .Mu-mnt-full {
                 display: inline-block;
                 box-sizing: border-box;
-                min-width: 2ch;
                 width: 2ch;
-                max-width: 2ch;
                 text-align: center;
                 white-space: pre;
                 text-decoration: inherit;
@@ -278,12 +386,8 @@ export default class MicronParser extends BaseMicronParser {
             }
             .Mu-mws {
                 text-decoration: inherit;
-                display: inline-flex;
-                flex-wrap: wrap;
-                align-items: baseline;
-                column-gap: 0;
-                row-gap: 0;
-                gap: 0;
+                display: inline-block;
+                white-space: pre-wrap;
             }
             .Mu-mnt-group {
                 display: inline;
@@ -354,7 +458,7 @@ export default class MicronParser extends BaseMicronParser {
         });
     }
 
-    convertMicronToHtmlWasmHybrid(markup, partialContents: any = {}) {
+    convertMicronToHtmlWasmHybrid(markup, partialContents: any = {}, options: any = {}) {
         const mc = globalThis.micronConvert;
         const segments = MicronParser.splitMicronMarkupWasmSegments(markup);
         let html = "";
@@ -364,10 +468,10 @@ export default class MicronParser extends BaseMicronParser {
                     mc(seg.text, this.darkTheme, this.enableForceMonospace)
                 );
             } else {
-                html += this._convertMicronToHtmlJs(seg.line + "\n", partialContents);
+                html += this._convertMicronToHtmlJs(seg.line + "\n", partialContents, options);
             }
         }
-        return this._wrapMicronPageShell(markup, html);
+        return this._wrapMicronPageShell(markup, html, options);
     }
 
     /**
@@ -375,7 +479,7 @@ export default class MicronParser extends BaseMicronParser {
      * the page so the background fills the host (NomadNet full-page paint).
      * Also wraps with default theme fg (e.g. #ddd) like upstream.
      */
-    _wrapMicronPageShell(markup, innerHtml) {
+    _wrapMicronPageShell(markup, innerHtml, options: any = {}) {
         let headerColors: any = { fg: null, bg: null };
         try {
             headerColors = this.parseHeaderTags(markup);
@@ -387,22 +491,22 @@ export default class MicronParser extends BaseMicronParser {
         const defaultBg = headerColors.bg || plainStyle.bg;
         const hasFg = defaultFg && defaultFg !== "default";
         const hasBg = defaultBg && defaultBg !== "default";
-        if (!hasFg && !hasBg) {
-            return innerHtml;
-        }
         const wrap = document.createElement("div");
-        wrap.className = "mu-page";
-        if (hasFg) {
-            wrap.style.color = this.colorToCss(defaultFg);
-        }
-        if (hasBg) {
-            wrap.style.backgroundColor = this.colorToCss(defaultBg);
+        if (hasFg || hasBg) {
+            wrap.className = "mu-page";
+            if (hasFg) {
+                wrap.style.color = this.colorToCss(defaultFg);
+            }
+            if (hasBg) {
+                wrap.style.backgroundColor = this.colorToCss(defaultBg);
+            }
         }
         wrap.innerHTML = innerHtml || "";
+        MicronParser.enhanceA11y(wrap, options);
         return MicronParser.sanitizeRenderedMicronHtml(wrap.outerHTML);
     }
 
-    _convertMicronToHtmlJs(markup, partialContents: any = {}) {
+    _convertMicronToHtmlJs(markup, partialContents: any = {}, options: any = {}) {
         const build = () => {
             let headerColors: any = { fg: null, bg: null };
             try {
@@ -469,7 +573,9 @@ export default class MicronParser extends BaseMicronParser {
                                 const id = el.getAttribute("data-partial-id");
                                 if (id && partialContents[id]) {
                                     const holder = document.createElement("div");
-                                    holder.innerHTML = partialContents[id];
+                                    // Partials should arrive pre-sanitized, but do not
+                                    // rely on every caller: sanitize at the sink too.
+                                    holder.innerHTML = MicronParser.sanitizeRenderedMicronHtml(partialContents[id]);
                                     while (holder.firstChild) {
                                         tempContainer.appendChild(holder.firstChild);
                                     }
@@ -505,8 +611,8 @@ export default class MicronParser extends BaseMicronParser {
                 console.warn("MicronParser: resolveEmptyAnchors failed", e);
             }
 
-            const hasContainerStyle = hasFg || hasBg;
-            const html = hasContainerStyle ? tempContainer.outerHTML : tempContainer.innerHTML;
+            MicronParser.enhanceA11y(tempContainer, options);
+            const html = tempContainer.outerHTML;
             return MicronParser.sanitizeRenderedMicronHtml(html);
         };
 
@@ -536,16 +642,16 @@ export default class MicronParser extends BaseMicronParser {
         const wantWasm = options.useWasm === true && typeof globalThis.micronConvert === "function";
         if (wantWasm) {
             try {
-                return this.convertMicronToHtmlWasmHybrid(markup, partialContents);
+                return this.convertMicronToHtmlWasmHybrid(markup, partialContents, options);
             } catch (e) {
                 console.warn("MicronParser: WASM Micron conversion failed, using JS parser", e);
             }
         }
 
-        return this._convertMicronToHtmlJs(markup, partialContents);
+        return this._convertMicronToHtmlJs(markup, partialContents, options);
     }
 
-    convertMicronToFragment(markup) {
+    convertMicronToFragment(markup, options = {}) {
         if (markup == null) {
             return document.createDocumentFragment();
         }
@@ -631,17 +737,221 @@ export default class MicronParser extends BaseMicronParser {
                 }
             }
 
-            return fragment;
+            const tempDiv = document.createElement("div");
+            tempDiv.appendChild(fragment);
+            MicronParser.enhanceA11y(tempDiv, options);
+            const outFragment = document.createDocumentFragment();
+            const muPage = tempDiv.querySelector(".mu-page");
+            if (muPage) {
+                outFragment.appendChild(muPage);
+            } else {
+                outFragment.appendChild(tempDiv);
+            }
+            return outFragment;
         } catch (e) {
             console.warn("MicronParser: convertMicronToFragment failed", e);
             const fragment = document.createDocumentFragment();
             const pre = document.createElement("pre");
             pre.className = "mu-parse-fallback";
+            pre.setAttribute("role", "document");
+            pre.setAttribute("tabindex", "0");
             pre.style.whiteSpace = "pre-wrap";
             pre.textContent = markup;
             fragment.appendChild(pre);
             return fragment;
         }
+    }
+
+    static parseImageOptions(fields) {
+        return parseMicronImageOptions(fields);
+    }
+
+    static extractMicronImageFilePath(rawUrl) {
+        // Strip the Nomad data-suffix backtick, query string or fragment before
+        // checking the extension. Image links must point into the node file tree.
+        if (typeof rawUrl !== "string" || !rawUrl) {
+            return null;
+        }
+        let url = rawUrl.replace(/^nomadnetwork:\/\//i, "");
+        url = url.split("`")[0].split("?")[0].split("#")[0].trim();
+        // Accept "hash:/media/...", "hash:/file/..." and relative ":/media/...",
+        // ":/file/..." URLs.
+        let path = url;
+        let hash = "";
+        if (url.includes(":/")) {
+            const parts = url.split(":/");
+            hash = parts[0];
+            path = parts.slice(1).join(":/");
+            if (hash && !/^[a-f0-9]{32}$/i.test(hash)) {
+                return null;
+            }
+        } else if (url.startsWith(":")) {
+            path = url.slice(1);
+        }
+        if (path.startsWith("media/")) {
+            if (!/\.(webp|png|jpe?g|bmp|gif|tiff)$/i.test(path)) {
+                return null;
+            }
+        } else if (path.startsWith("file/")) {
+            if (!/\.webp$/i.test(path)) {
+                return null;
+            }
+        } else {
+            return null;
+        }
+        // Reject anything that looks like traversal.
+        if (path.includes("..") || [...path].some((ch) => ch.charCodeAt(0) < 32 || '<>"|?*'.includes(ch))) {
+            return null;
+        }
+        if (hash) {
+            return `${hash}:/${path}`;
+        }
+        return `:/${path}`;
+    }
+
+    parseLink(line, startIndex, state) {
+        const linkData = super.parseLink(line, startIndex, state);
+        if (!linkData || !linkData.obj) {
+            return linkData;
+        }
+        const obj = linkData.obj;
+        if (obj.type === "link" && Array.isArray(obj.fields) && obj.fields.length > 0) {
+            const imgOptions = parseMicronImageOptions(obj.fields);
+            const rawUrl = String(obj.url || "").replace(/^nomadnetwork:\/\//, "");
+            const imagePath = MicronParser.extractMicronImageFilePath(rawUrl);
+            let imagePathWithoutHash = imagePath;
+            if (imagePath && imagePath.includes(":/")) {
+                imagePathWithoutHash = imagePath.split(":/", 2)[1];
+            }
+            const isMediaImage =
+                imagePathWithoutHash &&
+                (imagePathWithoutHash.startsWith("/media/") || imagePathWithoutHash.startsWith("media/"));
+            if (imgOptions.img || isMediaImage) {
+                const endpos = line.indexOf("]", startIndex);
+                let originalAlt = "";
+                if (endpos >= 0) {
+                    const linkDataRaw = line.substring(startIndex + 1, endpos);
+                    const linkComponents = linkDataRaw.split("`");
+                    if (linkComponents.length >= 2) {
+                        originalAlt = linkComponents[0];
+                    }
+                }
+                if (imagePath && originalAlt.trim()) {
+                    obj.type = "image";
+                    obj.alt = truncateMicronImageAlt(originalAlt.trim());
+                    obj.rawUrl = rawUrl;
+                    obj.imagePath = imagePath;
+                    obj.imageOptions = imgOptions;
+                }
+            }
+        }
+        return linkData;
+    }
+
+    appendOutput(container, parts, state) {
+        if (!Array.isArray(parts) || parts.length === 0) {
+            return;
+        }
+        const flushNonImage = (chunk) => {
+            if (chunk.length > 0) {
+                super.appendOutput(container, chunk, state);
+            }
+        };
+        let chunk = [];
+        for (const p of parts) {
+            if (p && p.type === "image") {
+                flushNonImage(chunk);
+                chunk = [];
+                const el = this.createImagePlaceholder(p);
+                if (el) {
+                    container.appendChild(el);
+                }
+            } else {
+                chunk.push(p);
+            }
+        }
+        flushNonImage(chunk);
+    }
+
+    createImagePlaceholder(p) {
+        if (!document) {
+            return null;
+        }
+        const opts = p.imageOptions || {};
+        const alt = truncateMicronImageAlt(p.alt || "");
+        const url = p.rawUrl || "";
+        const imagePath = p.imagePath || url;
+
+        const div = document.createElement("div");
+        div.className = "mu-image";
+        div.setAttribute("data-mu-image-url", url);
+        div.setAttribute("data-mu-image-path", imagePath);
+        div.setAttribute("data-mu-image-alt", alt);
+        if (opts.w != null) {
+            div.setAttribute("data-mu-image-w", String(opts.w));
+        }
+        if (opts.h != null) {
+            div.setAttribute("data-mu-image-h", String(opts.h));
+        }
+        if (opts.size != null) {
+            div.setAttribute("data-mu-image-s", String(opts.size));
+        }
+        if (opts.key) {
+            div.setAttribute("data-mu-image-k", opts.key);
+        }
+        if (opts.align) {
+            div.setAttribute("data-mu-image-a", opts.align);
+        }
+        if (opts.profile) {
+            div.setAttribute("data-mu-image-profile", opts.profile);
+        }
+        div.setAttribute("role", "img");
+        div.setAttribute("aria-label", alt);
+
+        if (opts.w != null) {
+            div.style.width = String(opts.w) + "px";
+        }
+        if (opts.h != null) {
+            div.style.minHeight = String(opts.h) + "px";
+        }
+
+        const meta = document.createElement("span");
+        meta.className = "mu-image-meta";
+
+        const altSpan = document.createElement("span");
+        altSpan.className = "mu-image-alt";
+        altSpan.textContent = alt;
+        meta.appendChild(altSpan);
+
+        if (opts.size != null && opts.size > 0) {
+            meta.appendChild(document.createTextNode(" "));
+            const sizeSpan = document.createElement("span");
+            sizeSpan.className = "mu-image-size";
+            sizeSpan.textContent = formatMicronImageSize(opts.size);
+            meta.appendChild(sizeSpan);
+        }
+
+        const actions = document.createElement("span");
+        actions.className = "mu-image-actions";
+
+        const load = document.createElement("a");
+        load.className = "mu-image-action";
+        load.setAttribute("data-mu-image-action", "load");
+        load.setAttribute("role", "button");
+        load.setAttribute("tabindex", "0");
+        load.textContent = "Load image";
+        actions.appendChild(load);
+
+        const img = document.createElement("img");
+        img.className = "mu-image-output";
+        img.setAttribute("alt", alt);
+        img.setAttribute("hidden", "");
+
+        div.appendChild(meta);
+        div.appendChild(actions);
+        div.appendChild(img);
+
+        return div;
     }
 
     parseLine(line, state) {
@@ -668,7 +978,26 @@ export default class MicronParser extends BaseMicronParser {
                 return [div];
             }
         }
-        return super.parseLine(line, state);
+        const out = super.parseLine(line, state);
+        if (Array.isArray(out) && out.length > 0) {
+            for (const el of out) {
+                if (el && el.nodeType === Node.ELEMENT_NODE) {
+                    const inner = el.firstElementChild;
+                    if (inner && inner.tagName === "DIV") {
+                        const anchor = inner.firstElementChild;
+                        if (
+                            anchor &&
+                            anchor.tagName === "A" &&
+                            /\bmicron-header-anchor\b/.test(anchor.className || "")
+                        ) {
+                            const level = Math.min(Math.max(1, state.depth || 1), 6);
+                            el.setAttribute("data-micron-heading-level", String(level));
+                        }
+                    }
+                }
+            }
+        }
+        return out;
     }
 
     wrapWord(word) {
@@ -726,5 +1055,124 @@ export default class MicronParser extends BaseMicronParser {
             out += "<span class='" + cellClass + "'>" + escapeHtmlForFallback(char) + "</span>";
         }
         return out;
+    }
+
+    static enhanceA11y(root, options = {}) {
+        if (!root || root.nodeType !== Node.ELEMENT_NODE) {
+            return;
+        }
+
+        const isPartial = options.isPartial === true;
+        let foundMain = false;
+
+        const muPageRe = /(?:^|\s)mu-page(?:\s|$)/;
+        const muPartialRe = /(?:^|\s)mu-partial(?:\s|$)/;
+        const muNlRe = /(?:^|\s)Mu-nl(?:\s|$)/;
+        const nomadnetLinkRe = /(?:^|\s)nomadnet-link(?:\s|$)/;
+        const lxmfLinkRe = /(?:^|\s)lxmf-link(?:\s|$)/;
+
+        const stack = [root];
+        while (stack.length > 0) {
+            const el = stack.pop();
+            if (!el || el.nodeType !== Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            const tag = el.tagName;
+            const className =
+                tag === "DIV" || tag === "A" ? (typeof el.className === "string" ? el.className : "") : "";
+
+            if (tag === "DIV") {
+                if (!isPartial && !el.getAttribute("role")) {
+                    if (muPageRe.test(className)) {
+                        el.setAttribute("role", "main");
+                        foundMain = true;
+                    }
+                }
+
+                const headingLevel = el.getAttribute("data-micron-heading-level");
+                if (headingLevel) {
+                    const level = Math.min(Math.max(1, Number(headingLevel) || 1), 6);
+                    el.setAttribute("role", "heading");
+                    el.setAttribute("aria-level", String(level));
+                }
+
+                if (muPartialRe.test(className)) {
+                    if (!el.getAttribute("role")) {
+                        el.setAttribute("role", "status");
+                    }
+                    if (!el.getAttribute("aria-live")) {
+                        el.setAttribute("aria-live", "polite");
+                    }
+                }
+            } else if (tag === "A" && !el.getAttribute("role")) {
+                const isLink =
+                    muNlRe.test(className) ||
+                    nomadnetLinkRe.test(className) ||
+                    lxmfLinkRe.test(className) ||
+                    el.getAttribute("data-action") === "openNode";
+                if (isLink) {
+                    el.setAttribute("role", "link");
+                    if (el.getAttribute("tabindex") == null) {
+                        el.setAttribute("tabindex", "0");
+                    }
+                    const text = (el.textContent || "").trim();
+                    if (!text) {
+                        const dest =
+                            el.getAttribute("data-destination") ||
+                            el.getAttribute("data-nomadnet-url") ||
+                            el.getAttribute("title") ||
+                            el.getAttribute("href") ||
+                            "";
+                        if (dest && dest !== "#") {
+                            el.setAttribute("aria-label", dest);
+                        }
+                    }
+                }
+            } else if (tag === "INPUT" && (el.type === "text" || el.type === "password")) {
+                if (
+                    !el.getAttribute("aria-label") &&
+                    !el.getAttribute("aria-labelledby") &&
+                    !el.getAttribute("title") &&
+                    !el.getAttribute("placeholder")
+                ) {
+                    let label = "";
+                    let prev = el.previousSibling;
+                    while (prev) {
+                        if (prev.nodeType === Node.TEXT_NODE) {
+                            label = (prev.textContent || "") + label;
+                        } else if (prev.nodeType === Node.ELEMENT_NODE && prev.tagName !== "BR") {
+                            label = (prev.textContent || "") + label;
+                        }
+                        prev = prev.previousSibling;
+                    }
+                    label = label.trim();
+                    if (!label && el.name) {
+                        label = el.name;
+                    }
+                    if (label) {
+                        el.setAttribute("aria-label", label);
+                    }
+                }
+            } else if (tag === "TH" && !el.getAttribute("scope")) {
+                const section = el.parentElement?.parentElement?.tagName;
+                if (section === "THEAD") {
+                    el.setAttribute("scope", "col");
+                } else if (section === "TBODY") {
+                    el.setAttribute("scope", "row");
+                }
+            }
+
+            if (el.firstElementChild) {
+                const children = el.children;
+                for (let i = children.length - 1; i >= 0; i--) {
+                    stack.push(children[i]);
+                }
+            }
+        }
+
+        if (!isPartial && !foundMain && !root.getAttribute("role")) {
+            root.setAttribute("role", "main");
+        }
     }
 }

@@ -20,6 +20,7 @@ from meshchatx.src.backend.rrc.room_key_crypto import (
     room_keys_equal,
 )
 from meshchatx.src.backend.rrc.server import RRCHubServer, _Session
+from tests.backend.http_request_stubs import JsonContent
 
 HUB_HASH_HEX = "00112233445566778899aabbccddeeff"
 HUB_HASH = bytes.fromhex(HUB_HASH_HEX)
@@ -58,6 +59,7 @@ def _make_request(json_body=None, match_info=None):
         return json_body if json_body is not None else {}
 
     request.json = _json
+    request.content = JsonContent(json_body if json_body is not None else {})
     request.match_info = match_info or {}
     request.query = {}
     return request

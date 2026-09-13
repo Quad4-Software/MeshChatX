@@ -9,6 +9,7 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import JsonContent
 
 
 def _make_json_request(body):
@@ -18,6 +19,7 @@ def _make_json_request(body):
         return body
 
     request.json = _json
+    request.content = JsonContent(body)
     return request
 
 

@@ -1,8 +1,31 @@
 // SPDX-License-Identifier: 0BSD
 
 export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
-    telephony: ["Telephony", "Telephone", "LXST", "Enable Telephone", "voice", "calling", "call", "mesh network"],
+    translation: [
+        "Offline translation",
+        "app.translation_title",
+        "app.translation_description",
+        "translate",
+        "translator",
+        "bergamot",
+        "language model",
+    ],
+    telephony: [
+        "phone",
+        "audio",
+        "voicemail",
+        "Telephony",
+        "Telephone",
+        "LXST",
+        "Enable Telephone",
+        "voice",
+        "calling",
+        "call",
+        "mesh network",
+    ],
     strangerProtection: [
+        "spam",
+        "safety",
         "Security",
         "app.stranger_protection",
         "app.stranger_protection_description",
@@ -52,6 +75,7 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "app.banished_color_description",
     ],
     stickers: [
+        "sticker",
         "Stickers",
         "stickers.settings_title",
         "stickers.settings_description",
@@ -64,6 +88,7 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "sticker_packs.open_editor",
     ],
     gifs: [
+        "gif",
         "GIFs",
         "gifs.settings_title",
         "gifs.settings_description",
@@ -72,6 +97,9 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "gifs.replace_duplicates",
     ],
     maintenance: [
+        "backup",
+        "cleanup",
+        "vacuum",
         "Maintenance",
         "maintenance.title",
         "maintenance.description",
@@ -109,6 +137,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "Import Folders",
     ],
     selftest: [
+        "health",
+        "test",
         "Self-Test",
         "System Self-Test",
         "diagnostic",
@@ -125,6 +155,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "lxmf",
     ],
     desktop: [
+        "window",
+        "minimize",
         "Desktop",
         "App Behaviour",
         "app.desktop_open_calls_in_separate_window",
@@ -147,6 +179,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "GPU",
     ],
     android: [
+        "mobile",
+        "phone",
         "Android",
         "APK",
         "Bluetooth",
@@ -169,8 +203,9 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "settings.share_apk",
         "settings.share_apk_short_hint",
     ],
-    archiver: ["Browsing", "Page Archiver", "archiver", "archive", "versions", "storage", "flush"],
+    archiver: ["saved pages", "Browsing", "Page Archiver", "archiver", "archive", "versions", "storage", "flush"],
     nomadRenderer: [
+        "parser",
         "NomadNet",
         "NomadNet browser renderer",
         "micron-parser-go",
@@ -192,6 +227,7 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "micron",
     ],
     crawler: [
+        "discover nodes",
         "Discovery",
         "Smart Crawler",
         "crawler",
@@ -218,6 +254,10 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "Content Security Policy",
     ],
     appearance: [
+        "color",
+        "font",
+        "size",
+        "zoom",
         "Personalise",
         "app.appearance",
         "app.appearance_description",
@@ -272,6 +312,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "light mode",
     ],
     battery: [
+        "power saving",
+        "energy",
         "Battery",
         "Battery saver",
         "power",
@@ -291,6 +333,7 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "settings.battery.apply_bitrates_reload",
     ],
     experimentalLive: [
+        "experimental features",
         "experimental",
         "webtransport",
         "websocket",
@@ -300,6 +343,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "settings.experimental.webtransport_sidecar",
     ],
     language: [
+        "translate ui",
+        "tongue",
         "i18n",
         "app.language",
         "app.select_language",
@@ -324,6 +369,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "locale",
     ],
     networkSecurity: [
+        "firewall",
+        "rate limit",
         "RNS Security",
         "Network Security",
         "app.blackhole_integration_enabled",
@@ -345,6 +392,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "app.discovered_interfaces_max_return",
     ],
     transport: [
+        "relay",
+        "reticulum network",
         "Reticulum",
         "app.transport_mode",
         "app.transport_description",
@@ -368,6 +417,9 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "obfuscate",
     ],
     interfaces: [
+        "adapter",
+        "radio",
+        "network",
         "Adapters",
         "app.interfaces",
         "app.show_community_interfaces",
@@ -381,9 +433,20 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "community",
         "I2P",
     ],
-    blocked: ["Privacy", "Banished", "blocked", "ban", "Manage Banished users and nodes"],
-    auth: ["Security", "Authentication", "password", "login", "Protect your instance with a password"],
+    blocked: ["unblock", "blocklist", "Privacy", "Banished", "blocked", "ban", "Manage Banished users and nodes"],
+    auth: [
+        "passcode",
+        "protect",
+        "Security",
+        "Authentication",
+        "password",
+        "login",
+        "Protect your instance with a password",
+    ],
     webExposure: [
+        "exposure",
+        "port",
+        "lan",
         "Security",
         "Network exposure",
         "app.web_exposure_title",
@@ -400,6 +463,9 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
     ],
     infrastructure: ["Infrastructure", "Sources & Mirroring", "gitea", "documentation", "download", "urls"],
     messages: [
+        "delivery",
+        "stamp",
+        "resend",
         "app.lxmf_settings_eyebrow",
         "app.messages",
         "app.messages_description",
@@ -423,6 +489,9 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "app.flood_cooldown",
     ],
     notificationSounds: [
+        "alert",
+        "sound",
+        "volume",
         "app.notifications",
         "app.notification_sound_settings",
         "app.notification_sound_settings_description",
@@ -434,6 +503,9 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "app.notification_sound_upload",
     ],
     propagation: [
+        "sync",
+        "deliver",
+        "mailbox",
         "LXMF",
         "app.incoming_message_size",
         "app.incoming_message_size_description",
@@ -458,6 +530,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "app.propagation_max_inbound_syncs_description",
     ],
     location: [
+        "coordinates",
+        "position",
         "app.location",
         "app.location_manage_desc",
         "app.location_source",
@@ -491,6 +565,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "app.map_overlay_limits_heading",
     ],
     privacyData: [
+        "auto delete",
+        "wipe",
         "app.privacy_data_title",
         "app.privacy_data_description",
         "app.privacy_mode_enabled",
@@ -515,8 +591,10 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "retention",
         "Privacy",
     ],
-    shortcuts: ["Keyboard Shortcuts", "actions", "workflow", "hotkey", "keybind", "keyboard"],
+    shortcuts: ["hotkeys", "Keyboard Shortcuts", "actions", "workflow", "hotkey", "keybind", "keyboard"],
     plugins: [
+        "addon",
+        "module",
         "Plugins",
         "plugins.settings.title",
         "plugins.settings.description",

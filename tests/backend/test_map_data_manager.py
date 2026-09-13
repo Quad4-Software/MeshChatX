@@ -3,6 +3,7 @@
 import base64
 import json
 import os
+from typing import ClassVar
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -377,7 +378,7 @@ async def test_link_request_accepts_list_wrapped_bytes(manager):
             timeout=None,
         ):
             class Receipt:
-                response = [body, {"name": b"catalog.json"}]
+                response: ClassVar = [body, {"name": b"catalog.json"}]
 
             on_response(Receipt())
 

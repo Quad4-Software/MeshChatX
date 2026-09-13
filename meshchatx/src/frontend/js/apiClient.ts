@@ -2,6 +2,7 @@
  * Axios-shaped HTTP helpers backed by fetch (same-origin API calls).
  */
 
+import { apiPath } from "./constants.js";
 import { fetchCsrfToken, getCsrfToken } from "./csrfToken.js";
 import {
     isDemoReadonlyRejection,
@@ -9,8 +10,8 @@ import {
     mergeConfigWithDemoUiPrefs,
     partialHasDemoUiPrefs,
 } from "./demoUiPrefs.js";
-import GlobalState from "./GlobalState.js";
 import { withRetryableHttp } from "./httpRetry.js";
+import GlobalState from "./GlobalState.js";
 
 export type ApiRequestConfig = {
     params?: Record<string, unknown>;
@@ -151,7 +152,8 @@ function tryDemoConfigPatch(data: unknown): DemoConfigPatchResponse | null {
         return null;
     }
     const saved = mergeAndSaveDemoUiPrefs(data);
-    const base = GlobalState.config && typeof GlobalState.config === "object" ? { ...GlobalState.config } : {};
+    const configState = GlobalState.config;
+    const base = configState && typeof configState === "object" ? { ...configState } : {};
     return {
         data: { config: { ...base, ...saved } },
         status: 200,
@@ -171,7 +173,7 @@ export function createApiClient(options: CreateApiClientOptions = {}): ApiClient
         const { params, data, signal, headers = {}, responseType } = config;
         const pathname = apiPathname(path);
 
-        if (method === "PATCH" && pathname === "/api/v1/config") {
+        if (method === "PATCH" && pathname === apiPath("/config")) {
             const demoResponse = tryDemoConfigPatch(data);
             if (demoResponse) {
                 return demoResponse as unknown as ApiResponse<T>;
@@ -247,7 +249,7 @@ export function createApiClient(options: CreateApiClientOptions = {}): ApiClient
         }
 
         let dataOut = await readSuccessBody(response, responseType);
-        if (method === "GET" && pathname === "/api/v1/config") {
+        if (method === "GET" && pathname === apiPath("/config")) {
             dataOut = applyDemoConfigGetOverlay(dataOut);
         }
         return { data: dataOut as T, status: response.status, headers: response.headers };

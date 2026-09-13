@@ -17,6 +17,8 @@ import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from meshchatx.src.env_utils import env_bool, env_str
+
 logger = logging.getLogger("meshchatx.appcontainer")
 
 APPCONTAINER_PROFILE_NAME = "MeshChatX.Backend"
@@ -57,13 +59,13 @@ _CREATE_NO_WINDOW = 0x08000000
 
 # ProcThreadAttributeList numbers (Windows 8+)
 _PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = 0x00020009
-_PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = 0x0002000E
+_PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = 0x0002000F
 _PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT = 1
 
 # WELL_KNOWN_SID_TYPE for AppContainer network capabilities
 _WinCapabilityInternetClientSid = 85
 _WinCapabilityInternetClientServerSid = 86
-_WinCapabilityPrivateNetworkClientServerSid = 84
+_WinCapabilityPrivateNetworkClientServerSid = 87
 
 _INFINITE = 0xFFFFFFFF
 _WAIT_OBJECT_0 = 0
@@ -174,7 +176,7 @@ _appcontainer_support_cached: bool | None = None
 
 
 def _env_override() -> bool | None:
-    raw = os.environ.get(ENV_VAR)
+    raw = env_str(ENV_VAR)
     if raw is None:
         return None
     val = raw.strip().lower()
@@ -187,8 +189,7 @@ def _env_override() -> bool | None:
 
 def is_appcontainer_child() -> bool:
     """Return True when this process was launched inside the AppContainer."""
-    raw = os.environ.get(CHILD_ENV_FLAG, "")
-    return raw.strip().lower() in ("1", "true", "yes", "on")
+    return env_bool(CHILD_ENV_FLAG)
 
 
 def _windows_version_supported() -> bool:
@@ -248,7 +249,7 @@ def appcontainer_requested() -> bool:
         return False
     if override is True:
         return True
-    return False
+    return appcontainer_supported()
 
 
 def appcontainer_auto_enabled() -> bool:
@@ -341,7 +342,7 @@ def _windows_known_folder(folder_id: str) -> str | None:
 def _user_profile_dir() -> str | None:
     if sys.platform == "win32":
         for key in ("USERPROFILE", "HOME"):
-            raw = os.environ.get(key)
+            raw = env_str(key)
             if raw:
                 return os.path.abspath(raw)
     home = os.path.expanduser("~")
@@ -402,9 +403,9 @@ def collect_rw_roots(
         reticulum_config_dir,
         log_dir,
         tempfile.gettempdir(),
-        os.environ.get("TMP"),
-        os.environ.get("TEMP"),
-        os.environ.get("TMPDIR"),
+        env_str("TMP"),
+        env_str("TEMP"),
+        env_str("TMPDIR"),
     ):
         existing = _existing_dir(candidate)
         if existing and existing not in paths:
@@ -604,6 +605,11 @@ def grant_path_access(sid: ctypes.c_void_p, path: str, *, write: bool) -> None:
     _set_path_access(path, sid, mask, _GRANT_ACCESS)
 
 
+def grant_execute_access(sid: ctypes.c_void_p, path: str) -> None:
+    # Traverse-only: sufficient for parent directories on the way to the exe.
+    _set_path_access(path, sid, _GENERIC_EXECUTE, _GRANT_ACCESS)
+
+
 def revoke_path_access(sid: ctypes.c_void_p, path: str) -> None:
     try:
         _set_path_access(
@@ -654,6 +660,40 @@ def create_process_in_appcontainer(
     Returns (hProcess, hThread, pid). Caller must CloseHandle both handles.
     """
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    # Pin argument/return types so x64 pointer-sized arguments are not
+    # truncated or sign-widened by default ctypes conversion.
+    kernel32.InitializeProcThreadAttributeList.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_ulong,
+        ctypes.c_ulong,
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    kernel32.InitializeProcThreadAttributeList.restype = ctypes.c_bool
+    kernel32.UpdateProcThreadAttribute.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_ulong,
+        ctypes.c_size_t,
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    kernel32.UpdateProcThreadAttribute.restype = ctypes.c_bool
+    kernel32.DeleteProcThreadAttributeList.argtypes = [ctypes.c_void_p]
+    kernel32.DeleteProcThreadAttributeList.restype = None
+    kernel32.CreateProcessW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_wchar_p,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.c_bool,
+        ctypes.c_ulong,
+        ctypes.c_void_p,
+        ctypes.c_wchar_p,
+        ctypes.POINTER(_STARTUPINFOEX),
+        ctypes.POINTER(_PROCESS_INFORMATION),
+    ]
+    kernel32.CreateProcessW.restype = ctypes.c_bool
     sid = ensure_appcontainer_profile()
 
     capability_types = (
@@ -693,7 +733,11 @@ def create_process_in_appcontainer(
             ctypes.get_last_error(),
             "InitializeProcThreadAttributeList size failed",
         )
-    attr_buf = (ctypes.c_ubyte * size.value)()
+    # ProcThreadAttributeList must be at least pointer-aligned (8 bytes on x64).
+    aligned_slots = (size.value + ctypes.sizeof(ctypes.c_void_p) - 1) // ctypes.sizeof(
+        ctypes.c_void_p,
+    )
+    attr_buf = (ctypes.c_void_p * aligned_slots)()
     attr_list = ctypes.cast(attr_buf, ctypes.c_void_p)
     if not kernel32.InitializeProcThreadAttributeList(
         attr_list,
@@ -758,12 +802,12 @@ def create_process_in_appcontainer(
         )
         ok = kernel32.CreateProcessW(
             ctypes.c_wchar_p(exe),
-            cmdline,
+            ctypes.cast(cmdline, ctypes.c_wchar_p),
             None,
             None,
-            True,
+            False,
             creation_flags,
-            env_buf,
+            ctypes.cast(env_buf, ctypes.c_void_p),
             ctypes.c_wchar_p(cwd) if cwd else None,
             ctypes.byref(siex),
             ctypes.byref(pi),
@@ -795,7 +839,6 @@ def create_process_unsandboxed(
     cmdline = ctypes.create_unicode_buffer(_build_command_line(exe, args))
     child_env = dict(os.environ if env is None else env)
     child_env.pop(CHILD_ENV_FLAG, None)
-    child_env.pop("MESHCHAT_APPCONTAINER_LAUNCHER", None)
     env_block = "\0".join(f"{k}={v}" for k, v in child_env.items()) + "\0\0"
     env_buf = ctypes.create_unicode_buffer(env_block)
     ok = kernel32.CreateProcessW(
@@ -824,6 +867,41 @@ def close_handle(handle: ctypes.c_void_p | int | None) -> None:
         pass
 
 
+def _run_unsandboxed_child(exe: str, args: list[str]) -> LaunchResult:
+    """Run the real backend without a sandbox and mark it launcher-handled.
+
+    The MESHCHAT_APPCONTAINER_LAUNCHER marker prevents meshchat.py from
+    re-entering the launcher when this fallback child starts.
+    """
+    child_env = dict(os.environ)
+    child_env.pop(CHILD_ENV_FLAG, None)
+    child_env["MESHCHAT_APPCONTAINER_LAUNCHER"] = "1"
+    try:
+        h_process, h_thread, _pid = create_process_unsandboxed(
+            exe,
+            args,
+            env=child_env,
+        )
+        try:
+            close_handle(h_thread)
+            exit_code = _wait_process(h_process)
+        finally:
+            close_handle(h_process)
+        return LaunchResult(
+            ok=True,
+            exit_code=exit_code,
+            used_appcontainer=False,
+            fell_back=True,
+        )
+    except OSError as fallback_exc:
+        return LaunchResult(
+            ok=False,
+            error=str(fallback_exc),
+            used_appcontainer=False,
+            fell_back=True,
+        )
+
+
 def launch_backend_sandboxed(
     exe: str,
     args: list[str],
@@ -836,33 +914,118 @@ def launch_backend_sandboxed(
 ) -> LaunchResult:
     """Grant ACLs, launch into AppContainer, wait, revoke ACLs.
 
-    Auto mode (forced=False): on AppContainer failure, fall back to unsandboxed.
+    Auto mode (forced=False): use AppContainer when it is supported and fall back
+    to unsandboxed when setup fails.
     Forced mode: return error without fallback.
     """
     if forced is None:
         forced = appcontainer_forced()
 
+    if not forced and not appcontainer_requested():
+        logger.info(
+            "AppContainer disabled by %s; running backend unsandboxed",
+            ENV_VAR,
+        )
+        return _run_unsandboxed_child(exe, args)
+
+    if not forced and not appcontainer_supported():
+        logger.warning(
+            "AppContainer APIs are unavailable; running backend unsandboxed",
+        )
+        return _run_unsandboxed_child(exe, args)
+
     rw_roots = collect_rw_roots(storage_dir, reticulum_config_dir, log_dir)
     ro_roots = collect_ro_roots(exe_dir=os.path.dirname(exe) if exe else None)
     sid: ctypes.c_void_p | None = None
     granted: list[tuple[str, bool]] = []
+    granted_set: set[str] = set()
+
+    def _record_grant(path: str, write: bool) -> None:
+        granted.append((path, write))
+        granted_set.add(path)
 
     try:
         sid = ensure_appcontainer_profile()
         for path in rw_roots:
             grant_path_access(sid, path, write=True)
-            granted.append((path, True))
+            _record_grant(path, True)
         for path in ro_roots:
-            if path in rw_roots:
+            if path in granted_set:
                 continue
             grant_path_access(sid, path, write=False)
-            granted.append((path, False))
+            _record_grant(path, False)
 
-        h_process, h_thread, _pid = create_process_in_appcontainer(
-            exe,
-            args,
-            use_lpac=use_lpac,
-        )
+        # Existing files under the exe directory were created before the
+        # inheritable directory ACE was set, so grant each one explicitly.
+        # Also grant traverse-only access to every parent directory so the
+        # AppContainer token can reach the executable.
+        if exe and sys.platform == "win32":
+            exe_dir = os.path.dirname(exe)
+            if exe_dir and os.path.isdir(exe_dir):
+                file_count = 0
+                for root, dirs, files in os.walk(exe_dir):
+                    for name in dirs + files:
+                        file_path = os.path.join(root, name)
+                        if file_path in granted_set:
+                            continue
+                        try:
+                            grant_path_access(sid, file_path, write=False)
+                            _record_grant(file_path, False)
+                            file_count += 1
+                        except OSError as grant_exc:
+                            logger.debug(
+                                "grant_path_access(%s) failed: %s",
+                                file_path,
+                                grant_exc,
+                            )
+                logger.info(
+                    "Granted read/execute on %d files under %s",
+                    file_count,
+                    exe_dir,
+                )
+                parent = os.path.dirname(exe_dir)
+                while parent and parent != os.path.dirname(parent):
+                    if parent not in granted_set:
+                        try:
+                            grant_execute_access(sid, parent)
+                            _record_grant(parent, False)
+                        except OSError as grant_exc:
+                            logger.debug(
+                                "grant_execute_access(%s) failed: %s",
+                                parent,
+                                grant_exc,
+                            )
+                    parent = os.path.dirname(parent)
+
+        try:
+            child_cwd = (
+                storage_dir or log_dir or reticulum_config_dir or os.path.dirname(exe)
+            )
+            h_process, h_thread, _pid = create_process_in_appcontainer(
+                exe,
+                args,
+                use_lpac=use_lpac,
+                cwd=child_cwd,
+            )
+        except OSError as exc:
+            # LPAC is best-effort: some Windows builds reject the policy
+            # attribute with ERROR_INVALID_PARAMETER (87). Retry without
+            # LPAC before falling back to an unsandboxed child.
+            winerror = getattr(exc, "winerror", None)
+            err = winerror if winerror is not None else (exc.errno or 0)
+            if use_lpac and err == 87:
+                logger.warning(
+                    "AppContainer LPAC launch failed with error %s; retrying without LPAC",
+                    err,
+                )
+                h_process, h_thread, _pid = create_process_in_appcontainer(
+                    exe,
+                    args,
+                    use_lpac=False,
+                    cwd=child_cwd,
+                )
+            else:
+                raise
         try:
             close_handle(h_thread)
             exit_code = _wait_process(h_process)
@@ -884,26 +1047,7 @@ def launch_backend_sandboxed(
                 fell_back=False,
             )
         logger.warning("Falling back to unsandboxed backend launch")
-        try:
-            h_process, h_thread, _pid = create_process_unsandboxed(exe, args)
-            try:
-                close_handle(h_thread)
-                exit_code = _wait_process(h_process)
-            finally:
-                close_handle(h_process)
-            return LaunchResult(
-                ok=True,
-                exit_code=exit_code,
-                used_appcontainer=False,
-                fell_back=True,
-            )
-        except OSError as fallback_exc:
-            return LaunchResult(
-                ok=False,
-                error=str(fallback_exc),
-                used_appcontainer=False,
-                fell_back=True,
-            )
+        return _run_unsandboxed_child(exe, args)
     finally:
         if sid is not None:
             for path, _write in reversed(granted):

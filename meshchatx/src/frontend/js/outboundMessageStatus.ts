@@ -13,6 +13,21 @@ export type OutboundLxmfStatusFields = {
 
 const SENT_LIKE_STATES = new Set(["sent", "propagated", "unknown"]);
 
+const TERMINAL_STATES = new Set(["delivered", "rejected", "cancelled", "failed"]);
+const PROGRESS_STATES = new Set(["generating", "outbound", "sending", "sent"]);
+
+/**
+ * True when applying nextState over prevState would move a finished outbound
+ * message back to an in-flight state. Mirrors the backend guard that blocks
+ * delivered -> sent regressions from stale or out-of-order updates.
+ */
+export function lxmfStateWouldRegress(
+    prevState: string | null | undefined,
+    nextState: string | null | undefined
+): boolean {
+    return TERMINAL_STATES.has(prevState as string) && PROGRESS_STATES.has(nextState as string);
+}
+
 /** MDI kebab icon name for an outbound bubble status. */
 export function outboundBubbleStatusIconName(lxmfMessage: OutboundLxmfStatusFields | null | undefined): string {
     if (!lxmfMessage) {

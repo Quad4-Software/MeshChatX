@@ -4,6 +4,7 @@
  * Pure helpers and HTTP-backed config load/patch for settings UI.
  */
 
+import { apiPath, EMITTER_EVENTS } from "../constants.js";
 import type { ApiClient } from "../apiClient.js";
 import { mergeGlobalConfig } from "../GlobalState.js";
 import GlobalEmitter from "../GlobalEmitter.js";
@@ -48,7 +49,7 @@ export async function fetchMergedConfig(
     api: Pick<ApiClient, "get">,
     baseConfig: Record<string, unknown>
 ): Promise<Record<string, unknown> | null> {
-    const response = await api.get<{ config?: Record<string, unknown> }>("/api/v1/config");
+    const response = await api.get<{ config?: Record<string, unknown> }>(apiPath("/config"));
     if (response?.data?.config) {
         return { ...baseConfig, ...response.data.config };
     }
@@ -59,7 +60,7 @@ export async function patchServerConfig(
     partial: Record<string, unknown>,
     api: Pick<ApiClient, "patch">
 ): Promise<Record<string, unknown>> {
-    const response = await api.patch<{ config: Record<string, unknown> }>("/api/v1/config", partial);
+    const response = await api.patch<{ config: Record<string, unknown> }>(apiPath("/config"), partial);
     return response.data.config;
 }
 
@@ -69,5 +70,5 @@ export function publishPatchedConfig(newConfig: Record<string, unknown> | null |
         return;
     }
     mergeGlobalConfig(newConfig);
-    GlobalEmitter.emit("config-updated", newConfig);
+    GlobalEmitter.emit(EMITTER_EVENTS.CONFIG_UPDATED, newConfig);
 }

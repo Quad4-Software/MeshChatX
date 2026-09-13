@@ -76,6 +76,7 @@ describe("AboutPage.svelte", () => {
             landlock_requested: true,
             landlock_active: true,
             landlock_auto_enabled: true,
+            landlock_abi: 5,
             appcontainer_requested: false,
             appcontainer_active: false,
             appcontainer_supported: false,
@@ -127,6 +128,7 @@ describe("AboutPage.svelte", () => {
         expect(screen.getByText("LXST")).toBeTruthy();
         expect(screen.getByText("RNS")).toBeTruthy();
         expect(screen.getByText("Process sandboxing")).toBeTruthy();
+        expect(screen.getByText("Kernel ABI v5")).toBeTruthy();
         expect(screen.getByText("Python packages")).toBeTruthy();
         expect(screen.getByText("aiohttp")).toBeTruthy();
     });

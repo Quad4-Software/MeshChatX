@@ -194,22 +194,23 @@ function createBackendProcessManager(deps) {
         };
     }
 
+    function _isAppContainerExplicitlyDisabled() {
+        const raw = process.env.MESHCHAT_APPCONTAINER;
+        if (raw === undefined || raw === null) {
+            return false;
+        }
+        const val = String(raw).trim().toLowerCase();
+        if (!val) {
+            return false;
+        }
+        return ["false", "0", "no", "off"].includes(val);
+    }
+
     function shouldUseAppContainerLauncher() {
         if (process.platform !== "win32") {
             return false;
         }
-        const raw = process.env.MESHCHAT_APPCONTAINER;
-        if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
-            const val = String(raw).trim().toLowerCase();
-            if (["false", "0", "no", "off"].includes(val)) {
-                return false;
-            }
-            if (["true", "1", "yes", "on"].includes(val)) {
-                return true;
-            }
-        }
-        // Opt-in only: set MESHCHAT_APPCONTAINER=1 to use the AppContainer launcher.
-        return false;
+        return !_isAppContainerExplicitlyDisabled();
     }
 
     function buildSpawnArgs(extraArgs = []) {

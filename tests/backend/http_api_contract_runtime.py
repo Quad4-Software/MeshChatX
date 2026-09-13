@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import JsonContent
 
 
 @dataclass(frozen=True)
@@ -104,6 +105,7 @@ async def invoke_json_contract(
     )
     if contract.method in {"POST", "PATCH", "PUT", "DELETE"}:
         request.json = AsyncMock(return_value={})
+        request.content = JsonContent({})
     response = await handler(request)
     status = response.status
     body = json.loads(response.body)

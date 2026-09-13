@@ -75,7 +75,6 @@ def mock_rns():
             patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
             patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
             patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
-            patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
             patch(
                 "meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"
             ),

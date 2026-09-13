@@ -6,6 +6,7 @@
  * (meshchat://relay is accepted as an alias.)
  */
 
+import { apiPath } from "./constants.js";
 import { isDestinationHash } from "./meshValidate.js";
 
 const RELAY_URI_IN_TEXT_RE = /(?:meshchatx|meshchat):\/\/relay\?[^\s<>]*/gi;
@@ -99,25 +100,25 @@ export async function applyRelayShareLink(
     const hubHash = parsed.hub;
     let hubs: any[] = [];
     try {
-        const list = await api.get("/api/v1/rrc/hubs");
+        const list = await api.get(apiPath("/rrc/hubs"));
         hubs = (list.data as any)?.hubs || [];
     } catch {
         hubs = [];
     }
     const existing = hubs.find((h) => String(h.hub_hash || "").toLowerCase() === hubHash);
     if (!existing) {
-        await api.post("/api/v1/rrc/hubs", {
+        await api.post(apiPath("/rrc/hubs"), {
             hub_hash: hubHash,
             name: parsed.name || undefined,
             dest_name: parsed.aspect || "rrc.hub",
             connect: true,
         });
     } else if (!existing.connected) {
-        await api.post(`/api/v1/rrc/hubs/${hubHash}/connect`);
+        await api.post(apiPath(`/rrc/hubs/${hubHash}/connect`));
     }
     const room = String(parsed.room || "").trim();
     if (room) {
-        await api.post(`/api/v1/rrc/hubs/${hubHash}/rooms`, { room });
+        await api.post(apiPath(`/rrc/hubs/${hubHash}/rooms`), { room });
     }
     return { hub_hash: hubHash, room };
 }

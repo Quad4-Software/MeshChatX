@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: 0BSD
+import { readFileSync } from "fs";
+import { join } from "path";
 import { render, cleanup, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import NomadCrashTab from "@/features/nomadnetwork/components/NomadCrashTab.svelte";
@@ -108,5 +110,40 @@ describe("NomadCrashTab.svelte", () => {
         await waitFor(() => {
             expect(onnavigate).toHaveBeenCalledWith(expect.objectContaining({ url: "aabb:/page/other.mu" }));
         });
+    });
+});
+
+describe("nomadCrashTabMain entry contract", () => {
+    function readEntrySource() {
+        return readFileSync(
+            join(process.cwd(), "meshchatx/src/frontend/js/nomadCrashTabMain.ts"),
+            "utf8"
+        );
+    }
+
+    it("crash-tab entry boots dark and lazy-loads the Micron renderer", () => {
+        const src = readEntrySource();
+        expect(src).toContain('import "../css/nomad-page-chrome.css"');
+        expect(src).toContain('parts = ["nodeContainer"]');
+        expect(src).toContain("paintShell");
+        expect(src).toContain("loadRenderer");
+        expect(src).toContain('import("./MicronParser.js")');
+        expect(src).toContain('import("dompurify")');
+        expect(src).toContain("globalThis.DOMPurify = DOMPurify");
+        expect(src).toContain('import("../fonts/RobotoMonoNerdFont/font.css")');
+        expect(src).toContain('parent.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, "*")');
+        expect(src).not.toContain("parentTargetOrigin");
+        expect(src).toContain('d.type === "chrome"');
+        expect(src).not.toMatch(/^import MicronParser from/m);
+        expect(src).toMatch(/try \{\s*id = decodeURIComponent\(id\)/);
+        expect(src).not.toContain('replace(/"/g, "")');
+    });
+
+    it("crash-tab entry routes field long-press to the parent paste flow", () => {
+        const src = readEntrySource();
+        expect(src).toContain('post({ type: "field-contextmenu"');
+        expect(src).toContain('d.type === "paste-text"');
+        expect(src).toContain('root.addEventListener("contextmenu", onFieldContextMenu, true)');
+        expect(src).toContain('el.setRangeText(value, start, end, "end")');
     });
 });

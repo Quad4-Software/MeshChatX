@@ -52,18 +52,97 @@ def test_cancel_sets_flag_and_cancels_resource():
     d.request_receipt.resource.cancel.assert_called_once()
 
 
-def test_cancel_removes_link_from_cache():
-    mock_link = MagicMock()
-    mock_link.status = RNS.Link.ACTIVE
+def test_cancel_is_idempotent():
+    on_failure = MagicMock()
+    d = NomadnetDownloader(b"123", "/test", None, MagicMock(), on_failure, MagicMock())
+    d.request_receipt = MagicMock()
+    d.request_receipt.resource = MagicMock()
+    d.link = MagicMock()
+    link = d.link
+    d.cancel()
+    assert on_failure.call_count == 1
+    first_teardown_count = link.teardown.call_count
+    d.cancel()
+    assert on_failure.call_count == 1
+    assert link.teardown.call_count == first_teardown_count
+
+
+def test_cancel_prevents_late_success_callback():
+    on_success = MagicMock()
+    on_failure = MagicMock()
+    d = NomadnetDownloader(b"ab" * 8, "/p", None, on_success, on_failure, MagicMock())
+    d.link = MagicMock()
+    d.request_receipt = MagicMock()
+    d.request_receipt.resource = None
+    d.cancel()
+    assert on_failure.call_count == 1
+    assert on_success.call_count == 0
+
+    rr = MagicMock()
+    rr.response = b"late body"
+    d.on_response(rr)
+    assert on_success.call_count == 0
+    assert on_failure.call_count == 1
+
+
+def test_cancel_prevents_late_failure_callback():
+    on_success = MagicMock()
+    on_failure = MagicMock()
+    d = NomadnetDownloader(b"ab" * 8, "/p", None, on_success, on_failure, MagicMock())
+    d.link = MagicMock()
+    d.request_receipt = MagicMock()
+    d.request_receipt.resource = None
+    d.cancel()
+    assert on_failure.call_count == 1
+
+    d.on_failed(MagicMock())
+    assert on_failure.call_count == 1
+    assert on_success.call_count == 0
+
+
+def test_public_cancel_preserves_shared_cached_link():
+    shared = MagicMock()
+    shared.status = RNS.Link.ACTIVE
     with _nomadnet_links_lock:
-        nomadnet_cached_links[b"x"] = mock_link
+        nomadnet_cached_links[b"shared"] = shared
 
     on_failure = MagicMock()
-    d = NomadnetDownloader(b"x", "/p", None, MagicMock(), on_failure, MagicMock())
+    d = NomadnetDownloader(
+        b"shared",
+        "/p",
+        None,
+        MagicMock(),
+        on_failure,
+        MagicMock(),
+        private=False,
+    )
+    d.link = shared
+    d.request_receipt = MagicMock()
+    d.request_receipt.resource = None
+    d.cancel()
+
+    assert get_cached_active_link(b"shared") is shared
+    shared.teardown.assert_not_called()
+
+
+def test_private_cancel_teardowns_link():
+    mock_link = MagicMock()
+    mock_link.status = RNS.Link.ACTIVE
+
+    on_failure = MagicMock()
+    d = NomadnetDownloader(
+        b"x",
+        "/p",
+        None,
+        MagicMock(),
+        on_failure,
+        MagicMock(),
+        private=True,
+    )
     d.link = mock_link
     d.cancel()
 
-    assert get_cached_active_link(b"x") is None
+    assert on_failure.call_count == 1
     mock_link.teardown.assert_called_once()
 
 
@@ -243,11 +322,37 @@ def test_nomad_link_cache_evicts_over_cap():
             dest = bytes([i]) * 16
             nd._cache_link_if_active(dest, link)
             links.append((dest, link))
-        assert nd.cached_link_count() == 2
-        assert get_cached_active_link(links[0][0]) is None
-        links[0][1].teardown.assert_called()
-        assert get_cached_active_link(links[1][0]) is links[1][1]
-        assert get_cached_active_link(links[2][0]) is links[2][1]
+        # Active links are retained, so the cap is treated as a soft limit.
+        assert nd.cached_link_count() == 3
+        for dest, link in links:
+            assert get_cached_active_link(dest) is link
+    finally:
+        nd.MAX_CACHED_LINKS = original_max
+
+
+def test_nomad_link_cache_evicts_stale_over_cap():
+    from meshchatx.src.backend import nomadnet_downloader as nd
+
+    original_max = nd.MAX_CACHED_LINKS
+    nd.MAX_CACHED_LINKS = 2
+    try:
+        stale = MagicMock()
+        stale.status = None
+        with nd._nomadnet_links_lock:
+            nd.nomadnet_cached_links[b"\x00" * 16] = stale
+            nd._nomadnet_link_last_used[b"\x00" * 16] = 0.0
+
+        links = []
+        for i in range(3):
+            link = MagicMock()
+            link.status = RNS.Link.ACTIVE
+            dest = bytes([i + 1]) * 16
+            nd._cache_link_if_active(dest, link)
+            links.append((dest, link))
+
+        assert nd.cached_link_count() == 3
+        assert get_cached_active_link(b"\x00" * 16) is None
+        stale.teardown.assert_called()
     finally:
         nd.MAX_CACHED_LINKS = original_max
 
@@ -281,6 +386,21 @@ def test_file_downloader_sanitizes_fallback_name():
     fd.on_download_success(rr)
     on_ok.assert_called_once_with("passwd", b"ok")
     on_fail.assert_not_called()
+
+
+def test_file_downloader_safe_name_rejects_dotdot_and_null():
+    fd = NomadnetFileDownloader(
+        b"ab" * 8,
+        "/f.bin",
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+    )
+    assert fd._safe_file_name("..") == "downloaded_file"
+    assert fd._safe_file_name(".") == "downloaded_file"
+    assert fd._safe_file_name("../..") == "downloaded_file"
+    assert fd._safe_file_name("a\x00b") == "ab"
+    assert fd._safe_file_name("/etc/passwd") == "passwd"
 
 
 def test_file_downloader_caps_payload_bytes():

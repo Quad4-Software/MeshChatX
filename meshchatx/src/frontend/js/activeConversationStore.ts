@@ -4,7 +4,9 @@
  * Tracks destination hashes open in Messages panes for notification suppress/clear.
  */
 
+import { EMITTER_EVENTS } from "./constants.js";
 import { normalizeDestinationHash } from "./notificationPolicy.js";
+import GlobalEmitter from "./GlobalEmitter";
 
 const openHashes = new Set<string>();
 
@@ -93,3 +95,13 @@ export function clearOpenDestinationHashesForTests(): void {
     openHashes.clear();
     listeners.clear();
 }
+
+// Open panes belong to the active identity. After an identity switch the old
+// destination hashes must not keep suppressing notifications for the new one.
+GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, () => {
+    if (openHashes.size === 0) {
+        return;
+    }
+    openHashes.clear();
+    notifyListeners();
+});

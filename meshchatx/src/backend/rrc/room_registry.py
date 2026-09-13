@@ -19,7 +19,7 @@ def default_room_state(*, founder=None, registered=False, topic=None, private=Fa
         "no_outside_msgs": False,
         "private": bool(private),
         "key": None,
-        "ops": set([founder]) if founder is not None else set(),
+        "ops": {founder} if founder is not None else set(),
         "voiced": set(),
         "bans": set(),
         "invited": {},

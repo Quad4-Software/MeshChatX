@@ -61,6 +61,7 @@ from tests.backend.http_api_response_schemas import (
     GIFS_LIST_SCHEMA,
     IDENTITIES_LIST_SCHEMA,
     IDENTITY_BACKUP_BASE32_SCHEMA,
+    IDENTITY_LXMF_ADDRESS_SCHEMA,
     INTERFACE_STATS_SCHEMA,
     INTERFACES_LIST_SCHEMA,
     LICENSES_ENVELOPE_SCHEMA,
@@ -115,6 +116,8 @@ from tests.backend.http_api_response_schemas import (
     RRC_MEMBERS_SCHEMA,
     RRC_MESSAGES_SCHEMA,
     RRC_ROOM_KEYS_SCHEMA,
+    RRC_SEARCH_SCHEMA,
+    RRC_SERVER_STATS_SCHEMA,
     RRC_SERVERS_SCHEMA,
     SERVER_SECURITY_SCHEMA,
     SPAM_KEYWORDS_SCHEMA,
@@ -133,7 +136,7 @@ from tests.backend.http_api_response_schemas import (
     TELEPHONE_HISTORY_SCHEMA,
     TELEPHONE_RECORDINGS_SCHEMA,
     TELEPHONE_STATUS_SCHEMA,
-    TRANSLATOR_LANGUAGES_SCHEMA,
+    TRANSLATION_PACKS_SCHEMA,
 )
 
 _HEX32 = "a" * 32
@@ -297,6 +300,14 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "POST",
         "/api/v1/identity/backup/base32",
         IDENTITY_BACKUP_BASE32_SCHEMA,
+    ),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/identity/{identity_hash}/lxmf-address",
+        IDENTITY_LXMF_ADDRESS_SCHEMA,
+        match_info={"identity_hash": _HEX32},
+        allow_statuses=(200, 400, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract(
         "GET",
@@ -483,6 +494,14 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         match_info={"destination_hash": _HEX32},
     ),
     HttpJsonContract("GET", "/api/v1/rrc/hubs", RRC_HUBS_SCHEMA),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/rrc/search",
+        RRC_SEARCH_SCHEMA,
+        query={"q": "test"},
+        allow_statuses=(200, 503),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
+    ),
     HttpJsonContract("GET", "/api/v1/rrc/servers", RRC_SERVERS_SCHEMA),
     HttpJsonContract(
         "GET",
@@ -514,6 +533,14 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         RRC_ACTIVITY_SCHEMA,
         match_info={"hub_id": _HUB_ID},
         allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
+    ),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/rrc/servers/{hub_id}/stats",
+        RRC_SERVER_STATS_SCHEMA,
+        match_info={"hub_id": _HUB_ID},
+        allow_statuses=(200, 404, 503),
         alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract(
@@ -622,8 +649,8 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/spam-keywords", SPAM_KEYWORDS_SCHEMA),
     HttpJsonContract(
         "GET",
-        "/api/v1/translator/languages",
-        TRANSLATOR_LANGUAGES_SCHEMA,
+        "/api/v1/translation/packs",
+        TRANSLATION_PACKS_SCHEMA,
     ),
     HttpJsonContract("GET", "/api/v1/telephone/status", TELEPHONE_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/telephone/history", TELEPHONE_HISTORY_SCHEMA),

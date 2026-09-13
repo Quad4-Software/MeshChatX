@@ -31,11 +31,10 @@ class HDLC:
             bytes([HDLC.ESC]),
             bytes([HDLC.ESC, HDLC.ESC ^ HDLC.ESC_MASK]),
         )
-        data = data.replace(
+        return data.replace(
             bytes([HDLC.FLAG]),
             bytes([HDLC.ESC, HDLC.FLAG ^ HDLC.ESC_MASK]),
         )
-        return data
 
     @staticmethod
     def frame(packet):

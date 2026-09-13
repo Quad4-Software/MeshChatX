@@ -82,6 +82,7 @@ DEFAULT_MAX_ROOM_BYTES = 64
 DEFAULT_MAX_MSG_BYTES = 350
 DEFAULT_MAX_ROOMS = 32
 DEFAULT_RATE_PER_MINUTE = 240
+DEFAULT_CONTROL_RATE_PER_MINUTE = 30
 
 HELLO_CLIENT_NAME = "meshchatx"
 HELLO_CLIENT_VERSION = "1"
@@ -280,12 +281,12 @@ def parse_room_list_notice_details(text):
             continue
         topic = None
         strip_hash = True
-        if s.endswith(" -"):
-            name_part = s[:-2]
-        elif " - " in s:
+        if " - " in s:
             name_part, topic_part = s.split(" - ", 1)
             topic = topic_part.strip() or None
             strip_hash = False
+        elif s.endswith(" -"):
+            name_part = s[:-2]
         else:
             name_part = s
         name, has_key = _split_list_room_name(name_part, strip_hash=strip_hash)

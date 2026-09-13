@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from tests.backend.http_request_stubs import JsonContent as _JsonContent
+
 HASH = "c" * 32
 
 
@@ -62,10 +64,10 @@ async def test_map_overlay_routes_with_mock_manager(mock_app):
     assert resp.status == 200
 
     create_handler = _find_handler(app, "POST", "/api/v1/map/overlays")
+    payload = {"kind": "nomadnet_file", "url": f"{HASH}:/file/a.geojson"}
     req = MagicMock()
-    req.json = AsyncMock(
-        return_value={"kind": "nomadnet_file", "url": f"{HASH}:/file/a.geojson"},
-    )
+    req.json = AsyncMock(return_value=payload)
+    req.content = _JsonContent(payload)
     resp = await create_handler(req)
     assert resp.status == 200
     mgr.create_overlays.assert_awaited()
@@ -100,7 +102,9 @@ async def test_map_overlay_routes_with_mock_manager(mock_app):
     assert resp.status == 200
 
     multi_handler = _find_handler(app, "POST", "/api/v1/map/overlays/export")
+    payload = {"format": "geojson", "ids": [1]}
     req = MagicMock()
-    req.json = AsyncMock(return_value={"format": "geojson", "ids": [1]})
+    req.json = AsyncMock(return_value=payload)
+    req.content = _JsonContent(payload)
     resp = await multi_handler(req)
     assert resp.status == 200

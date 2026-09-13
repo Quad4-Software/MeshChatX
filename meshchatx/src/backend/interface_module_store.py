@@ -7,7 +7,8 @@ from __future__ import annotations
 import contextlib
 import os
 import re
-import tempfile
+
+from meshchatx.src.path_utils import atomic_write_bytes
 
 _MODULE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _MAX_MODULE_BYTES = 512 * 1024
@@ -187,17 +188,7 @@ def install_interface_module(
             f"{target_name} already exists. Re-upload with overwrite enabled "
             "to replace it.",
         )
-    fd, tmp_path = tempfile.mkstemp(prefix=".iface_", suffix=".py", dir=target_dir)
-    try:
-        with os.fdopen(fd, "wb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp_path, target_path)
-    except Exception:
-        with contextlib.suppress(OSError):
-            os.remove(tmp_path)
-        raise
+    atomic_write_bytes(target_path, data, mode=0o600)
     with contextlib.suppress(OSError):
         os.chmod(target_path, 0o600)
     return {

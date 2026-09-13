@@ -397,7 +397,7 @@ async def test_auth_middleware_allows_csrf_while_starting(mock_identity, temp_di
     aio_app.add_routes(routes)
 
     with patch(
-        "meshchatx.meshchat.get_session",
+        "meshchatx.src.backend.http.routes.auth.get_session",
         new_callable=AsyncMock,
     ) as mock_session:
         mock_session.return_value = {}

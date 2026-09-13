@@ -18,7 +18,7 @@ class TestMessageHandler(unittest.TestCase):
 
         self.assertEqual(len(messages), 1)
         self.db.provider.fetchall.assert_called()
-        args, kwargs = self.db.provider.fetchall.call_args
+        args, _kwargs = self.db.provider.fetchall.call_args
         self.assertIn("peer_hash = ?", args[0])
         self.assertIn("dest", args[1])
 

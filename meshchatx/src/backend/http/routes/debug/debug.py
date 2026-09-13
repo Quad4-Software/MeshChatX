@@ -8,11 +8,23 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.debug._names import *  # noqa: F403
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+from meshchatx.src.backend.meshchat_utils import parse_bool_query_param
+from meshchatx.src.backend.persistent_log_handler import memory_log_handler
+
 
 def register_debug_debug_routes(routes: Any, app: Any) -> None:
     # serve debug logs
-
-    @routes.get("/api/v1/debug/logs")
+    @routes.get(API_V1_PREFIX + "/debug/logs")
     async def get_debug_logs(request):
         search = request.query.get("search")
         level = request.query.get("level")
@@ -58,7 +70,7 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/debug/websocket")
+    @routes.get(API_V1_PREFIX + "/debug/websocket")
     async def get_websocket_debug(request):
         counters = getattr(app, "ws_counters", None)
         clients = getattr(app, "websocket_clients", None) or []
@@ -78,7 +90,7 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
             snap["webtransport"] = wt.status_dict()
         return web.json_response({"websocket": snap})
 
-    @routes.get("/api/v1/debug/access-attempts")
+    @routes.get(API_V1_PREFIX + "/debug/access-attempts")
     async def get_access_attempts(request):
         search = request.query.get("search")
         outcome = request.query.get("outcome") or None
@@ -105,7 +117,9 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/diagnostics/memory")
+    # -- Memory diagnostics (only when --memory-diag is active) ----------
+
+    @routes.get(API_V1_PREFIX + "/diagnostics/memory")
     async def get_memory_diagnostics(request):
         if app._mem_diag is None:
             return web.json_response(
@@ -116,13 +130,10 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
         report = await asyncio.to_thread(app._mem_diag.report)
         return web.json_response(report)
 
-    @routes.post("/api/v1/diagnostics/memory/snapshot")
+    @routes.post(API_V1_PREFIX + "/diagnostics/memory/snapshot")
     async def take_memory_snapshot(request):
         if app._mem_diag is None or not app._mem_diag.enabled:
-            return web.json_response(
-                {"error": "Memory diagnostics not enabled"},
-                status=400,
-            )
+            return http_bad_request("Memory diagnostics not enabled")
         await asyncio.to_thread(app._mem_diag.snapshot)
         gc_result = await asyncio.to_thread(app._mem_diag.find_cyclic_garbage)
         stats = await asyncio.to_thread(app._mem_diag.gc_stats)
@@ -135,13 +146,10 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/diagnostics/memory/heap")
+    @routes.get(API_V1_PREFIX + "/diagnostics/memory/heap")
     async def get_heap_analysis(request):
         if app._mem_diag is None or not app._mem_diag.enabled:
-            return web.json_response(
-                {"error": "Memory diagnostics not enabled"},
-                status=400,
-            )
+            return http_bad_request("Memory diagnostics not enabled")
         top_n = int(request.query.get("top_n", 40))
         by_type = await asyncio.to_thread(app._mem_diag.heap_by_type, top_n=top_n)
         by_cat = await asyncio.to_thread(app._mem_diag.heap_by_category)
@@ -156,7 +164,7 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/diagnostics/memory/gc")
+    @routes.get(API_V1_PREFIX + "/diagnostics/memory/gc")
     async def get_gc_stats(request):
         if app._mem_diag is None or not app._mem_diag.enabled:
             return web.json_response(
@@ -165,13 +173,10 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
         stats = await asyncio.to_thread(app._mem_diag.gc_stats)
         return web.json_response(stats)
 
-    @routes.post("/api/v1/diagnostics/memory/gc/collect")
+    @routes.post(API_V1_PREFIX + "/diagnostics/memory/gc/collect")
     async def force_gc_collect(request):
         if app._mem_diag is None or not app._mem_diag.enabled:
-            return web.json_response(
-                {"error": "Memory diagnostics not enabled"},
-                status=400,
-            )
+            return http_bad_request("Memory diagnostics not enabled")
         result = await asyncio.to_thread(app._mem_diag.find_cyclic_garbage)
         if app._mem_diag.enabled:
             await asyncio.to_thread(app._mem_diag.snapshot)
@@ -185,32 +190,23 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/diagnostics/memory/referrers")
+    @routes.get(API_V1_PREFIX + "/diagnostics/memory/referrers")
     async def get_referrers(request):
         if app._mem_diag is None or not app._mem_diag.enabled:
-            return web.json_response(
-                {"error": "Memory diagnostics not enabled"},
-                status=400,
-            )
+            return http_bad_request("Memory diagnostics not enabled")
         type_name = request.query.get("type", "")
         if not type_name:
-            return web.json_response(
-                {"error": "Specify ?type=<TypeName>"},
-                status=400,
-            )
+            return http_bad_request("Specify ?type=<TypeName>")
         result = await asyncio.to_thread(
             app._mem_diag.find_referrers,
             type_name,
         )
         return web.json_response(result)
 
-    @routes.post("/api/v1/diagnostics/memory/reset")
+    @routes.post(API_V1_PREFIX + "/diagnostics/memory/reset")
     async def reset_memory_diagnostics(request):
         if app._mem_diag is None:
-            return web.json_response(
-                {"error": "Memory diagnostics not enabled"},
-                status=400,
-            )
+            return http_bad_request("Memory diagnostics not enabled")
         await asyncio.to_thread(app._mem_diag.reset)
         await asyncio.to_thread(app._mem_diag.start)
         return web.json_response({"status": "ok", "message": "Diagnostics reset"})
@@ -224,26 +220,28 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
             app.bug_report_manager = manager
         return manager
 
-    @routes.get("/api/v1/bug-reports/issues")
+    @routes.get(API_V1_PREFIX + "/bug-reports/issues")
     async def list_bug_issues(request):
         manager = _bug_manager()
         limit = int(request.query.get("limit", 50))
         status = request.query.get("status") or None
         return web.json_response(manager.list_issues(limit=limit, status=status))
 
-    @routes.get("/api/v1/bug-reports/issues/{fingerprint}")
+    @routes.get(API_V1_PREFIX + "/bug-reports/issues/{fingerprint}")
     async def get_bug_issue(request):
         manager = _bug_manager()
         fingerprint = request.match_info.get("fingerprint") or ""
         try:
             return web.json_response(manager.get_issue(fingerprint))
         except LookupError:
-            return web.json_response({"error": "issue not found"}, status=404)
+            return http_not_found("issue not found")
 
-    @routes.post("/api/v1/bug-reports/local")
+    @routes.post(API_V1_PREFIX + "/bug-reports/local")
     async def record_local_bug(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         if not isinstance(data, dict):
@@ -252,10 +250,12 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
         result = await asyncio.to_thread(manager.record_local, data)
         return web.json_response(result)
 
-    @routes.post("/api/v1/bug-reports/issues/{fingerprint}/status")
+    @routes.post(API_V1_PREFIX + "/bug-reports/issues/{fingerprint}/status")
     async def set_bug_issue_status(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             data = {}
         manager = _bug_manager()
@@ -265,6 +265,6 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
             result = manager.set_issue_status(fingerprint, status)
             return web.json_response(result)
         except LookupError:
-            return web.json_response({"error": "issue not found"}, status=404)
+            return http_not_found("issue not found")
         except ValueError as exc:
-            return web.json_response({"error": str(exc)}, status=400)
+            return http_bad_request(str(exc))

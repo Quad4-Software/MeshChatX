@@ -6,14 +6,29 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.interfaces._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_conflict,
+    http_error,
+    http_payload_too_large,
+    http_unexpected,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_interfaces_add_routes(routes, app):
 
     # add reticulum interface
-    @routes.post("/api/v1/reticulum/interfaces/add")
+    @routes.post(API_V1_PREFIX + "/reticulum/interfaces/add")
     async def reticulum_interfaces_add(request):
         # get request data
-        data = await request.json()
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         interface_name = InterfaceEditor.sanitize_interface_section_name(
             data.get("name"),
         )
@@ -22,21 +37,11 @@ def register_interfaces_add_routes(routes, app):
 
         # ensure name is provided
         if interface_name is None or interface_name == "":
-            return web.json_response(
-                {
-                    "message": "Name is required",
-                },
-                status=422,
-            )
+            return http_error(422, "Name is required")
 
         # ensure type name provided
         if interface_type is None or interface_type == "":
-            return web.json_response(
-                {
-                    "message": "Type is required",
-                },
-                status=422,
-            )
+            return http_error(422, "Type is required")
 
         # get existing interfaces
         app._sync_interfaces_from_disk()
@@ -44,12 +49,7 @@ def register_interfaces_add_routes(routes, app):
 
         # ensure name is not for an existing interface, to prevent overwriting
         if allow_overwriting_interface is False and interface_name in interfaces:
-            return web.json_response(
-                {
-                    "message": "Name is already in use by another interface",
-                },
-                status=422,
-            )
+            return http_error(422, "Name is already in use by another interface")
 
         i2p_error = i2p_support.validate_i2p_add_or_update(
             interfaces,
@@ -59,7 +59,7 @@ def register_interfaces_add_routes(routes, app):
             updating_existing=bool(allow_overwriting_interface),
         )
         if i2p_error is not None:
-            return web.json_response({"message": i2p_error}, status=422)
+            return http_error(422, i2p_error)
 
         # get existing interface details if available
         interface_details = {}
@@ -73,14 +73,10 @@ def register_interfaces_add_routes(routes, app):
             # RNS has no Android-specific implementation of RNodeMultiInterface,
             # so it always crashes on Android regardless of transport.
             if _is_chaquopy_android():
-                return web.json_response(
-                    {
-                        "message": (
-                            "RNodeMultiInterface is not supported on Android "
-                            "(Reticulum has no Android-specific implementation of it)."
-                        ),
-                    },
-                    status=422,
+                return http_error(
+                    422,
+                    "RNodeMultiInterface is not supported on Android "
+                    "(Reticulum has no Android-specific implementation of it).",
                 )
 
         elif interface_type == "RNodeInterface":
@@ -111,10 +107,7 @@ def register_interfaces_add_routes(routes, app):
                         "USB serial and classic Bluetooth need pyserial; BLE needs bleak. "
                         "RNode over IP (TCP) is unaffected."
                     )
-                return web.json_response(
-                    {"message": message},
-                    status=422,
-                )
+                return http_error(422, message)
 
         # if interface doesn't have enabled or interface_enabled setting already, enable it by default
         if (
@@ -135,27 +128,19 @@ def register_interfaces_add_routes(routes, app):
                     "organisation",
                     "global",
                 }:
-                    return web.json_response(
-                        {
-                            "message": (
-                                "Discovery scope must be one of: link, admin, "
-                                "site, organisation, global"
-                            ),
-                        },
-                        status=422,
+                    return http_error(
+                        422,
+                        "Discovery scope must be one of: link, admin, "
+                        "site, organisation, global",
                     )
 
             multicast_address_type_value = data.get("multicast_address_type")
             if multicast_address_type_value not in (None, "") and str(
                 multicast_address_type_value,
             ).lower() not in {"temporary", "permanent"}:
-                return web.json_response(
-                    {
-                        "message": (
-                            "Multicast address type must be either 'temporary' or 'permanent'"
-                        ),
-                    },
-                    status=422,
+                return http_error(
+                    422,
+                    "Multicast address type must be either 'temporary' or 'permanent'",
                 )
 
             # validate ports if provided and ensure they are not in use
@@ -165,16 +150,13 @@ def register_interfaces_add_routes(routes, app):
                 discovery_port_value,
                 kind="udp",
             ):
-                return web.json_response(
-                    {
-                        "message": describe_port_conflict(
-                            None,
-                            discovery_port_value,
-                            kind="udp",
-                            interface_name=interface_name,
-                        ),
-                    },
-                    status=409,
+                return http_conflict(
+                    describe_port_conflict(
+                        None,
+                        discovery_port_value,
+                        kind="udp",
+                        interface_name=interface_name,
+                    )
                 )
             data_port_value = data.get("data_port")
             if data_port_value not in (None, "") and is_port_in_use(
@@ -182,16 +164,13 @@ def register_interfaces_add_routes(routes, app):
                 data_port_value,
                 kind="udp",
             ):
-                return web.json_response(
-                    {
-                        "message": describe_port_conflict(
-                            None,
-                            data_port_value,
-                            kind="udp",
-                            interface_name=interface_name,
-                        ),
-                    },
-                    status=409,
+                return http_conflict(
+                    describe_port_conflict(
+                        None,
+                        data_port_value,
+                        kind="udp",
+                        interface_name=interface_name,
+                    )
                 )
 
             # set optional AutoInterface options
@@ -217,22 +196,12 @@ def register_interfaces_add_routes(routes, app):
             # ensure target host provided
             interface_target_host = data.get("target_host")
             if interface_target_host is None or interface_target_host == "":
-                return web.json_response(
-                    {
-                        "message": "Target Host is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Target Host is required")
 
             # ensure target port provided
             interface_target_port = data.get("target_port")
             if interface_target_port is None or interface_target_port == "":
-                return web.json_response(
-                    {
-                        "message": "Target Port is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Target Port is required")
 
             # set required TCPClientInterface options
             interface_details["target_host"] = interface_target_host
@@ -256,10 +225,7 @@ def register_interfaces_add_routes(routes, app):
                 data,
             )
             if fixed_mtu_error is not None:
-                return web.json_response(
-                    {"message": fixed_mtu_error},
-                    status=422,
-                )
+                return http_error(422, fixed_mtu_error)
 
         if interface_type == "BackboneInterface":
             # BackboneInterface supports two distinct configurations:
@@ -277,16 +243,13 @@ def register_interfaces_add_routes(routes, app):
                     listen_port_value,
                     kind="tcp",
                 ):
-                    return web.json_response(
-                        {
-                            "message": describe_port_conflict(
-                                listen_ip_value,
-                                listen_port_value,
-                                kind="tcp",
-                                interface_name=interface_name,
-                            ),
-                        },
-                        status=409,
+                    return http_conflict(
+                        describe_port_conflict(
+                            listen_ip_value,
+                            listen_port_value,
+                            kind="tcp",
+                            interface_name=interface_name,
+                        )
                     )
                 interface_details["listen_port"] = listen_port_value
                 if listen_ip_value not in (None, ""):
@@ -302,29 +265,14 @@ def register_interfaces_add_routes(routes, app):
                     data,
                 )
                 if flap_error is not None:
-                    return web.json_response(
-                        {
-                            "message": flap_error,
-                        },
-                        status=422,
-                    )
+                    return http_error(422, flap_error)
             else:
                 remote = data.get("remote") or data.get("target_host")
                 if remote is None or str(remote).strip() == "":
-                    return web.json_response(
-                        {
-                            "message": "Remote host is required",
-                        },
-                        status=422,
-                    )
+                    return http_error(422, "Remote host is required")
                 interface_target_port = data.get("target_port")
                 if interface_target_port is None or interface_target_port == "":
-                    return web.json_response(
-                        {
-                            "message": "Target Port is required",
-                        },
-                        status=422,
-                    )
+                    return http_error(422, "Target Port is required")
                 interface_details["remote"] = str(remote).strip()
                 interface_details["target_port"] = interface_target_port
                 InterfaceEditor.update_value(
@@ -353,12 +301,7 @@ def register_interfaces_add_routes(routes, app):
                     s.strip() for s in str(peers).replace(",", " ").split() if s.strip()
                 ]
             if not cleaned_peers:
-                return web.json_response(
-                    {
-                        "message": "At least one I2P peer is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "At least one I2P peer is required")
             interface_details["peers"] = cleaned_peers
 
         # handle tcp server interface
@@ -373,22 +316,12 @@ def register_interfaces_add_routes(routes, app):
             else:
                 interface_listen_ip = ""
             if interface_listen_ip == "":
-                return web.json_response(
-                    {
-                        "message": "Listen IP is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Listen IP is required")
 
             # ensure listen port provided
             interface_listen_port = data.get("listen_port")
             if interface_listen_port is None or interface_listen_port == "":
-                return web.json_response(
-                    {
-                        "message": "Listen Port is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Listen Port is required")
 
             # ensure listen port is not currently in use by another process
             if is_port_in_use(
@@ -396,16 +329,13 @@ def register_interfaces_add_routes(routes, app):
                 interface_listen_port,
                 kind="tcp",
             ):
-                return web.json_response(
-                    {
-                        "message": describe_port_conflict(
-                            interface_listen_ip,
-                            interface_listen_port,
-                            kind="tcp",
-                            interface_name=interface_name,
-                        ),
-                    },
-                    status=409,
+                return http_conflict(
+                    describe_port_conflict(
+                        interface_listen_ip,
+                        interface_listen_port,
+                        kind="tcp",
+                        interface_name=interface_name,
+                    )
                 )
 
             # set required TCPServerInterface options
@@ -429,42 +359,22 @@ def register_interfaces_add_routes(routes, app):
             else:
                 interface_listen_ip = ""
             if interface_listen_ip == "":
-                return web.json_response(
-                    {
-                        "message": "Listen IP is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Listen IP is required")
 
             # ensure listen port provided
             interface_listen_port = data.get("listen_port")
             if interface_listen_port is None or interface_listen_port == "":
-                return web.json_response(
-                    {
-                        "message": "Listen Port is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Listen Port is required")
 
             # ensure forward ip provided
             interface_forward_ip = data.get("forward_ip")
             if interface_forward_ip is None or interface_forward_ip == "":
-                return web.json_response(
-                    {
-                        "message": "Forward IP is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Forward IP is required")
 
             # ensure forward port provided
             interface_forward_port = data.get("forward_port")
             if interface_forward_port is None or interface_forward_port == "":
-                return web.json_response(
-                    {
-                        "message": "Forward Port is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Forward Port is required")
 
             # ensure listen port is not currently in use by another process
             if is_port_in_use(
@@ -472,16 +382,13 @@ def register_interfaces_add_routes(routes, app):
                 interface_listen_port,
                 kind="udp",
             ):
-                return web.json_response(
-                    {
-                        "message": describe_port_conflict(
-                            interface_listen_ip,
-                            interface_listen_port,
-                            kind="udp",
-                            interface_name=interface_name,
-                        ),
-                    },
-                    status=409,
+                return http_conflict(
+                    describe_port_conflict(
+                        interface_listen_ip,
+                        interface_listen_port,
+                        kind="udp",
+                        interface_name=interface_name,
+                    )
                 )
 
             # set required UDPInterface options
@@ -501,12 +408,7 @@ def register_interfaces_add_routes(routes, app):
             # ensure port provided
             interface_port = data.get("port")
             if interface_port is None or interface_port == "":
-                return web.json_response(
-                    {
-                        "message": "Port is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Port is required")
 
             interface_tcp_host = None
             if str(interface_port).strip().lower().startswith("tcp://"):
@@ -515,33 +417,18 @@ def register_interfaces_add_routes(routes, app):
                 )
                 host_part = str(interface_port)[len("tcp://") :].strip().strip(":")
                 if not host_part:
-                    return web.json_response(
-                        {
-                            "message": "TCP host is required for RNode over IP",
-                        },
-                        status=422,
-                    )
+                    return http_error(422, "TCP host is required for RNode over IP")
                 interface_tcp_host = host_part
 
             # ensure frequency provided
             interface_frequency = data.get("frequency")
             if interface_frequency is None or interface_frequency == "":
-                return web.json_response(
-                    {
-                        "message": "Frequency is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Frequency is required")
 
             # ensure bandwidth provided
             interface_bandwidth = data.get("bandwidth")
             if interface_bandwidth is None or interface_bandwidth == "":
-                return web.json_response(
-                    {
-                        "message": "Bandwidth is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Bandwidth is required")
 
             # ensure txpower provided and within Reticulum limits
             interface_txpower = data.get("txpower")
@@ -549,32 +436,17 @@ def register_interfaces_add_routes(routes, app):
                 interface_txpower,
             )
             if txpower_error is not None:
-                return web.json_response(
-                    {
-                        "message": txpower_error,
-                    },
-                    status=422,
-                )
+                return http_error(422, txpower_error)
 
             # ensure spreading factor provided
             interface_spreadingfactor = data.get("spreadingfactor")
             if interface_spreadingfactor is None or interface_spreadingfactor == "":
-                return web.json_response(
-                    {
-                        "message": "Spreading Factor is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Spreading Factor is required")
 
             # ensure coding rate provided
             interface_codingrate = data.get("codingrate")
             if interface_codingrate is None or interface_codingrate == "":
-                return web.json_response(
-                    {
-                        "message": "Coding Rate is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Coding Rate is required")
 
             # set required RNodeInterface options
             interface_details["port"] = interface_port
@@ -620,21 +492,11 @@ def register_interfaces_add_routes(routes, app):
 
             # ensure port provided
             if interface_port is None or interface_port == "":
-                return web.json_response(
-                    {
-                        "message": "Port is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Port is required")
 
             # ensure sub interfaces provided
             if not isinstance(sub_interfaces, list) or not sub_interfaces:
-                return web.json_response(
-                    {
-                        "message": "At least one sub-interface is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "At least one sub-interface is required")
 
             # set required RNodeMultiInterface options
             interface_details["port"] = interface_port
@@ -669,22 +531,17 @@ def register_interfaces_add_routes(routes, app):
                     )
                 ]
                 if missing_fields:
-                    return web.json_response(
-                        {
-                            "message": f"Sub-interface {idx + 1} is missing required field(s): {', '.join(missing_fields)}",
-                        },
-                        status=422,
+                    return http_error(
+                        422,
+                        f"Sub-interface {idx + 1} is missing required field(s): {', '.join(missing_fields)}",
                     )
 
                 sub_txpower_error = InterfaceEditor.validate_rnode_txpower(
                     sub_interface.get("txpower"),
                 )
                 if sub_txpower_error is not None:
-                    return web.json_response(
-                        {
-                            "message": f"Sub-interface {idx + 1}: {sub_txpower_error}",
-                        },
-                        status=422,
+                    return http_error(
+                        422, f"Sub-interface {idx + 1}: {sub_txpower_error}"
                     )
 
                 sub_interface_name = sub_interface.get("name")
@@ -713,12 +570,7 @@ def register_interfaces_add_routes(routes, app):
             # ensure port provided
             interface_port = data.get("port")
             if interface_port is None or interface_port == "":
-                return web.json_response(
-                    {
-                        "message": "Port is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Port is required")
 
             # set required options
             interface_details["port"] = interface_port
@@ -761,22 +613,12 @@ def register_interfaces_add_routes(routes, app):
             # ensure command provided
             interface_command = data.get("command")
             if interface_command is None or interface_command == "":
-                return web.json_response(
-                    {
-                        "message": "Command is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Command is required")
 
             # ensure command provided
             interface_respawn_delay = data.get("respawn_delay")
             if interface_respawn_delay is None or interface_respawn_delay == "":
-                return web.json_response(
-                    {
-                        "message": "Respawn delay is required",
-                    },
-                    status=422,
-                )
+                return http_error(422, "Respawn delay is required")
 
             # set required options
             interface_details["command"] = interface_command
@@ -787,12 +629,7 @@ def register_interfaces_add_routes(routes, app):
         if interface_type == "HTTPInterface":
             tunnel_mode = str(data.get("mode") or "").strip().lower()
             if tunnel_mode not in {"client", "server"}:
-                return web.json_response(
-                    {
-                        "message": "HTTPInterface mode must be client or server",
-                    },
-                    status=422,
-                )
+                return http_error(422, "HTTPInterface mode must be client or server")
             interface_details["mode"] = tunnel_mode
 
             http_version_raw = data.get("http_version")
@@ -800,15 +637,9 @@ def register_interfaces_add_routes(routes, app):
                 try:
                     http_version = int(http_version_raw)
                 except (TypeError, ValueError):
-                    return web.json_response(
-                        {"message": "http_version must be 1, 2, or 3"},
-                        status=422,
-                    )
+                    return http_error(422, "http_version must be 1, 2, or 3")
                 if http_version not in (1, 2, 3):
-                    return web.json_response(
-                        {"message": "http_version must be 1, 2, or 3"},
-                        status=422,
-                    )
+                    return http_error(422, "http_version must be 1, 2, or 3")
                 interface_details["http_version"] = http_version
             else:
                 interface_details.pop("http_version", None)
@@ -816,11 +647,8 @@ def register_interfaces_add_routes(routes, app):
             if tunnel_mode == "client":
                 server_url = data.get("server_url")
                 if server_url is None or str(server_url).strip() == "":
-                    return web.json_response(
-                        {
-                            "message": "server_url is required for HTTPInterface client mode",
-                        },
-                        status=422,
+                    return http_error(
+                        422, "server_url is required for HTTPInterface client mode"
                     )
                 interface_details["server_url"] = str(server_url).strip()
                 InterfaceEditor.update_value(interface_details, data, "poll_interval")
@@ -840,11 +668,8 @@ def register_interfaces_add_routes(routes, app):
                     listen_host = "127.0.0.1"
                 listen_port = data.get("listen_port")
                 if listen_port is None or listen_port == "":
-                    return web.json_response(
-                        {
-                            "message": "listen_port is required for HTTPInterface server mode",
-                        },
-                        status=422,
+                    return http_error(
+                        422, "listen_port is required for HTTPInterface server mode"
                     )
                 interface_details["listen_host"] = str(listen_host).strip()
                 interface_details["listen_port"] = listen_port
@@ -891,12 +716,7 @@ def register_interfaces_add_routes(routes, app):
             if extra is None:
                 extra = {}
             if not isinstance(extra, dict):
-                return web.json_response(
-                    {
-                        "message": "extra_config must be a JSON object",
-                    },
-                    status=422,
-                )
+                return http_error(422, "extra_config must be a JSON object")
             for key, value in extra.items():
                 if key in {"name", "type", "allow_overwriting_interface"}:
                     continue
@@ -928,12 +748,7 @@ def register_interfaces_add_routes(routes, app):
             data,
         )
         if location_cmd_error is not None:
-            return web.json_response(
-                {
-                    "message": location_cmd_error,
-                },
-                status=422,
-            )
+            return http_error(422, location_cmd_error)
 
         if interface_type == "TCPClientInterface" or (
             interface_type == "BackboneInterface"
@@ -944,6 +759,11 @@ def register_interfaces_add_routes(routes, app):
                 if app.current_context and app.current_context.config
                 else False,
             )
+            # Lazy: ReticulumMeshChat lives in meshchatx.meshchat, which
+            # imports the route table. Resolving here also keeps
+            # patch("meshchatx.meshchat.ReticulumMeshChat") effective.
+            from meshchatx.meshchat import ReticulumMeshChat
+
             ReticulumMeshChat.apply_bootstrap_only_to_interface(
                 interface_details,
                 data,
@@ -956,48 +776,28 @@ def register_interfaces_add_routes(routes, app):
         if interface_type != "HTTPInterface":
             mode_error = InterfaceEditor.apply_interface_mode(interface_details, data)
             if mode_error is not None:
-                return web.json_response(
-                    {
-                        "message": mode_error,
-                    },
-                    status=422,
-                )
+                return http_error(422, mode_error)
         recursive_prs_error = InterfaceEditor.apply_yes_no_option(
             interface_details,
             data,
             "recursive_prs",
         )
         if recursive_prs_error is not None:
-            return web.json_response(
-                {
-                    "message": recursive_prs_error,
-                },
-                status=422,
-            )
+            return http_error(422, recursive_prs_error)
         announces_error = InterfaceEditor.apply_yes_no_option(
             interface_details,
             data,
             "announces_from_internal",
         )
         if announces_error is not None:
-            return web.json_response(
-                {
-                    "message": announces_error,
-                },
-                status=422,
-            )
+            return http_error(422, announces_error)
         announces_to_error = InterfaceEditor.apply_yes_no_option(
             interface_details,
             data,
             "announces_to_internal",
         )
         if announces_to_error is not None:
-            return web.json_response(
-                {
-                    "message": announces_to_error,
-                },
-                status=422,
-            )
+            return http_error(422, announces_to_error)
         gravity_error = InterfaceEditor.apply_positive_number(
             interface_details,
             data,
@@ -1007,12 +807,7 @@ def register_interfaces_add_routes(routes, app):
             maximum=10_000,
         )
         if gravity_error is not None:
-            return web.json_response(
-                {
-                    "message": gravity_error,
-                },
-                status=422,
-            )
+            return http_error(422, gravity_error)
         InterfaceEditor.update_value(interface_details, data, "network_name")
         InterfaceEditor.update_value(interface_details, data, "passphrase")
         InterfaceEditor.update_value(interface_details, data, "ifac_size")
@@ -1029,15 +824,10 @@ def register_interfaces_add_routes(routes, app):
         if not app._write_reticulum_config(
             rollback_interfaces=interfaces_before_write,
         ):
-            return web.json_response(
-                {
-                    "message": (
-                        "Failed to write Reticulum config. "
-                        "Interface names must not contain '[' or ']' "
-                        "(ConfigObj section syntax)."
-                    ),
-                },
-                status=500,
+            return http_unexpected(
+                "Failed to write Reticulum config. "
+                "Interface names must not contain '[' or ']' "
+                "(ConfigObj section syntax)."
             )
 
         if allow_overwriting_interface:

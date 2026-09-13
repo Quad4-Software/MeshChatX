@@ -7,6 +7,7 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from tests.backend.http_request_stubs import JsonContent
 
 
 @pytest.fixture
@@ -96,6 +97,7 @@ async def test_rnpath_request_endpoint(mock_rns_minimal, temp_dir):
         target_hash = "a" * 32
         request = MagicMock()
         request.json = AsyncMock(return_value={"destination_hash": target_hash})
+        request.content = JsonContent({"destination_hash": target_hash})
 
         handler = next(
             r.handler
@@ -120,6 +122,7 @@ async def test_rnpath_drop_endpoint(mock_rns_minimal, temp_dir):
         target_hash = "b" * 32
         request = MagicMock()
         request.json = AsyncMock(return_value={"destination_hash": target_hash})
+        request.content = JsonContent({"destination_hash": target_hash})
 
         handler = next(
             r.handler

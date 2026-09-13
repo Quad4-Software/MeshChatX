@@ -8,29 +8,41 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.maintenance._names import *  # noqa: F403
 
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
+    PayloadTooLargeError,
+    read_field_limited,
+    read_json_limited,
+)
+from meshchatx.src.backend.local_message_retention import (
+    purge_messages_before_cutoff,
+    resolve_message_age_cutoff,
+)
+from meshchatx.src.backend.message_export_bundle import (
+    build_messages_export_bundle,
+    import_messages_export_bundle,
+)
+
 
 def _message_import_response(result: dict) -> Any:
     if not result.get("ok", True) and result.get("error"):
-        return web.json_response(
-            {
-                "error": result["error"],
-                "imported": result.get("imported", 0),
-                "skipped": result.get("skipped", 0),
-            },
-            status=400,
+        return http_bad_request(
+            result["error"],
+            imported=result.get("imported", 0),
+            skipped=result.get("skipped", 0),
         )
     imported = result["imported"]
     skipped = result["skipped"]
     errors = result.get("errors") or []
     if imported == 0 and errors:
-        return web.json_response(
-            {
-                "error": errors[0]["error"],
-                "imported": imported,
-                "skipped": skipped,
-                "errors": errors,
-            },
-            status=400,
+        return http_bad_request(
+            errors[0]["error"], imported=imported, skipped=skipped, errors=errors
         )
     response = {
         "message": f"Successfully imported {imported} messages",
@@ -48,8 +60,7 @@ def _message_import_response(result: dict) -> Any:
 
 def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
     # maintenance - clear messages (all, or older than days / before date)
-
-    @routes.delete("/api/v1/maintenance/messages")
+    @routes.delete(API_V1_PREFIX + "/maintenance/messages")
     async def maintenance_clear_messages(request):
         try:
             cutoff = resolve_message_age_cutoff(
@@ -57,9 +68,11 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
                 before=request.query.get("before"),
             )
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         if cutoff is None:
-            app.database.messages.delete_all_lxmf_messages()
+            await asyncio.to_thread(
+                app.database.messages.delete_all_lxmf_messages,
+            )
             return web.json_response(
                 {"message": "All messages cleared", "deleted": None},
             )
@@ -85,14 +98,14 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/maintenance/messages/duplicates")
+    @routes.get(API_V1_PREFIX + "/maintenance/messages/duplicates")
     async def maintenance_messages_duplicates_preview(request):
         count = await asyncio.to_thread(
             app.database.messages.count_duplicate_lxmf_messages_by_content,
         )
         return web.json_response({"count": count})
 
-    @routes.delete("/api/v1/maintenance/messages/duplicates")
+    @routes.delete(API_V1_PREFIX + "/maintenance/messages/duplicates")
     async def maintenance_messages_duplicates_clear(request):
         def _clear():
             hashes = (
@@ -120,7 +133,7 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.get("/api/v1/maintenance/messages/purge-preview")
+    @routes.get(API_V1_PREFIX + "/maintenance/messages/purge-preview")
     async def maintenance_messages_purge_preview(request):
         try:
             cutoff = resolve_message_age_cutoff(
@@ -128,18 +141,18 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
                 before=request.query.get("before"),
             )
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
+            return http_bad_request(str(e))
         if cutoff is None:
-            return web.json_response(
-                {"message": "older_than_days or before is required"},
-                status=400,
-            )
+            return http_bad_request("older_than_days or before is required")
         count = app.database.messages.count_lxmf_messages_with_timestamp_before(
             cutoff,
         )
         return web.json_response({"count": count, "cutoff": cutoff})
 
-    @routes.delete("/api/v1/maintenance/announces")
+    # maintenance - clear announces
+
+    # maintenance - clear announces
+    @routes.delete(API_V1_PREFIX + "/maintenance/announces")
     async def maintenance_clear_announces(request):
         aspect = request.query.get("aspect")
         app.database.announces.delete_all_announces(aspect=aspect)
@@ -149,7 +162,10 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.delete("/api/v1/maintenance/favourites")
+    # maintenance - clear favorites
+
+    # maintenance - clear favorites
+    @routes.delete(API_V1_PREFIX + "/maintenance/favourites")
     async def maintenance_clear_favourites(request):
         aspect = request.query.get("aspect")
         app.database.announces.delete_all_favourites(aspect=aspect)
@@ -159,29 +175,35 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
             },
         )
 
-    @routes.delete("/api/v1/maintenance/archives")
+    # maintenance - clear archives
+
+    # maintenance - clear archives
+    @routes.delete(API_V1_PREFIX + "/maintenance/archives")
     async def maintenance_clear_archives(request):
         app.database.misc.delete_archived_pages()
         return web.json_response({"message": "All archived pages cleared"})
 
-    @routes.delete("/api/v1/maintenance/lxmf-icons")
+    # maintenance - clear LXMF icons
+
+    # maintenance - clear LXMF icons
+    @routes.delete(API_V1_PREFIX + "/maintenance/lxmf-icons")
     async def maintenance_clear_lxmf_icons(request):
         app.database.misc.delete_all_user_icons()
         return web.json_response({"message": "All LXMF icons cleared"})
 
-    @routes.delete("/api/v1/maintenance/stickers")
+    @routes.delete(API_V1_PREFIX + "/maintenance/stickers")
     async def maintenance_clear_stickers(request):
         identity_hash = app.identity.hash.hex()
         n = app.database.stickers.delete_all_for_identity(identity_hash)
         return web.json_response({"message": "Stickers cleared", "deleted": n})
 
-    @routes.delete("/api/v1/maintenance/gifs")
+    @routes.delete(API_V1_PREFIX + "/maintenance/gifs")
     async def maintenance_clear_gifs(request):
         identity_hash = app.identity.hash.hex()
         n = app.database.gifs.delete_all_for_identity(identity_hash)
         return web.json_response({"message": "GIFs cleared", "deleted": n})
 
-    @routes.delete("/api/v1/maintenance/path-table")
+    @routes.delete(API_V1_PREFIX + "/maintenance/path-table")
     async def maintenance_clear_path_table(request):
         try:
             dropped = app.rnpath_handler.drop_all_paths()
@@ -189,12 +211,17 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
                 {"message": "Path table cleared", "dropped": dropped},
             )
         except Exception as e:
-            return web.json_response({"message": str(e)}, status=500)
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
-    @routes.post("/api/v1/maintenance/messages/export")
+    # maintenance - export messages (optional age filter for archive-before-purge)
+
+    # maintenance - export messages (optional age filter for archive-before-purge)
+    @routes.post(API_V1_PREFIX + "/maintenance/messages/export")
     async def maintenance_export_messages(request):
         try:
-            body = await request.json() if request.can_read_body else {}
+            body = await read_json_limited(request) if request.can_read_body else {}
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception:
             body = {}
         if not isinstance(body, dict):
@@ -207,42 +234,44 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
                 before=body.get("before", request.query.get("before")),
             )
         except ValueError as e:
-            return web.json_response({"message": str(e)}, status=400)
-        messages_list = []
-        page_size = 5000
-        offset = 0
-        while True:
-            if cutoff is None:
-                page = app.database.messages.get_all_lxmf_messages(
-                    limit=page_size,
-                    offset=offset,
-                )
-            else:
-                page = app.database.messages.get_lxmf_messages_with_timestamp_before(
-                    cutoff,
-                    limit=page_size,
-                    offset=offset,
-                )
-            messages_list.extend(dict(m) for m in page)
-            if len(page) < page_size:
-                break
-            offset += page_size
-        bundle = await asyncio.to_thread(
-            build_messages_export_bundle,
-            app.database,
-            messages_list,
-        )
+            return http_bad_request(str(e))
+
+        def _collect_and_build():
+            # Paged SQLite reads must not run on the event loop: a large
+            # inbox would stall every other request while pages are fetched.
+            messages_list = []
+            page_size = 5000
+            offset = 0
+            while True:
+                if cutoff is None:
+                    page = app.database.messages.get_all_lxmf_messages(
+                        limit=page_size,
+                        offset=offset,
+                    )
+                else:
+                    page = (
+                        app.database.messages.get_lxmf_messages_with_timestamp_before(
+                            cutoff,
+                            limit=page_size,
+                            offset=offset,
+                        )
+                    )
+                messages_list.extend(dict(m) for m in page)
+                if len(page) < page_size:
+                    break
+                offset += page_size
+            return build_messages_export_bundle(app.database, messages_list)
+
+        bundle = await asyncio.to_thread(_collect_and_build)
         return web.json_response(bundle)
 
-    @routes.post("/api/v1/maintenance/messages/import")
+    # maintenance - import messages
+    @routes.post(API_V1_PREFIX + "/maintenance/messages/import")
     async def maintenance_import_messages(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request, UPLOAD_LIMITS["message_import"])
             if app.database is None:
-                return web.json_response(
-                    {"error": "No active identity database"},
-                    status=400,
-                )
+                return http_bad_request("No active identity database")
 
             result = await asyncio.to_thread(
                 import_messages_export_bundle,
@@ -250,41 +279,32 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
                 data,
             )
             return _message_import_response(result)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=400)
+            return http_error_from_exception(e)
 
-    @routes.post("/api/v1/maintenance/messages/import-file")
+    @routes.post(API_V1_PREFIX + "/maintenance/messages/import-file")
     async def maintenance_import_messages_file(request):
         try:
             if app.database is None:
-                return web.json_response(
-                    {"error": "No active identity database"},
-                    status=400,
-                )
+                return http_bad_request("No active identity database")
 
             reader = await request.multipart()
             field = await reader.next()
             if field is None or field.name != "file":
-                return web.json_response(
-                    {"error": "Import file is required"},
-                    status=400,
-                )
+                return http_bad_request("Import file is required")
 
-            chunks = []
-            while True:
-                chunk = await field.read_chunk(size=1024 * 1024)
-                if not chunk:
-                    break
-                chunks.append(chunk)
-            raw = b"".join(chunks)
+            raw = await read_field_limited(
+                field,
+                UPLOAD_LIMITS["message_import"],
+                chunk_size=1024 * 1024,
+            )
 
             try:
                 payload = json.loads(raw)
             except json.JSONDecodeError as exc:
-                return web.json_response(
-                    {"error": f"Invalid JSON: {exc}"},
-                    status=400,
-                )
+                return http_bad_request(f"Invalid JSON: {exc}")
 
             result = await asyncio.to_thread(
                 import_messages_export_bundle,
@@ -292,5 +312,7 @@ def register_maintenance_ops_routes(routes: Any, app: Any) -> None:
                 payload,
             )
             return _message_import_response(result)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
-            return web.json_response({"error": str(e)}, status=400)
+            return http_error_from_exception(e)

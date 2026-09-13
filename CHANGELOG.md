@@ -16,6 +16,171 @@ All notable changes to this project will be documented in this file.
 
 - **Nomad crash tab**: Calls onrenderdone when the render finishes and is posted.
 
+## [4.9.0] - 2026-09-12 [released]
+
+### Added
+
+- Bergamot WASM offline translation replaces Argos Translate and LibreTranslate. Packs are user-imported from local files and served same-origin; the app never downloads packs.
+- Conversation, Relay chat and the standalone Translator page use the local translation layer with quiet, opt-in message actions, original/translation toggles, remembered target languages and per-message/session caching.
+- Translation pack manager validates imported archives, rejects path traversal, and stores multiple packs under application storage.
+- Relay chat messages can be translated from the message context menu; translated text is shown inline with a toggle.
+- Backend Landlock test probes cover translation-pack read/write under storage and the old Argos Translate CLI root has been removed.
+
+- Built-in geo-wasm converts WGS84, UTM, MGRS and Plus Code locally, so the map works offline without a network round trip.
+- The bundled `starter_world.mbtiles` is now a 30-degree world graticule covering z0-z4 instead of a solid placeholder, so the map is usable offline immediately.
+- Delivery failure tips throttle per peer, order by severity, cap the detail count and deduplicate diagnostic fetches so they do not get noisy.
+- DatabaseProvider closes idle live-thread SQLite handles after 120 seconds and dead-thread handles, preventing unbounded file-descriptor growth in containers.
+- Opt-in image support for Mesh Server and Micron pages. The parser recognizes `img=1` image links and `/media/` URLs, renders placeholders with alt text and size metadata, and loads the image only after an explicit click or when the policy is set to auto or always.
+- Page nodes serve `/media/` images in webp, png, jpg, jpeg, bmp, gif and tiff, converting non-webp formats to webp and caching the result. `/file/` stays webp-only, matching NomadNet 1.4.2.
+- Nomad page images download over the Reticulum page socket, report progress, reassemble chunked transfers and are cached per node and page path.
+- Page nodes grant file access only after a page request, so direct links to hosted files fail without first visiting the page.
+- Image loading on Micron pages is controlled by a global policy in Settings: never, manual, auto or always.
+- New tests cover the database file-descriptor oracle, delivery help tips, message cancel-send, raw message view, map bounds/provider handling and Micron image parsing.
+- Micron page output now exposes ARIA landmarks and semantic heading levels for screen readers. Rendered pages are wrapped in a main landmark, section headings receive heading role and level, links and inputs get focus and label hints, and the crash tab iframe document is marked as a document, receives the page path as its title, and advertises the current application locale.
+- New frontend tests cover the Micron accessibility attributes, crash tab iframe title, and crash tab document title.
+- The app shell now exposes a header landmark, a main content landmark, and a skip link so screen-reader and keyboard users can jump to the page body.
+- Primary side navigation is wrapped in a nav landmark, and each link receives an accessible name and aria-current when active.
+- AppModal now traps focus and restores it on close, and toast and loading states are announced with live regions.
+- The command palette is exposed as a dialog with role, aria-modal, and a combobox/listbox pattern for screen-reader users, and the Ctrl/Cmd+K shortcut is now routed through the configurable KeyboardShortcuts system.
+- The default keyboard shortcuts for opening the palette and toggling the sidebar are discoverable in the command palette, and navigation shortcuts are suppressed while a modal is open.
+- New frontend tests cover the command palette ARIA, command palette toggle-sidebar action, keyboard shortcut modal guard, and AppModal focusable-element discovery.
+- Settings sidebar gains a Simple and Advanced mode toggle. Simple mode hides technical sections (interfaces, transport, plugins and friends) while Advanced shows everything; search always finds advanced settings.
+- The map restores proper tile attribution with a collapsible chip for OpenStreetMap, CARTO and OpenFreeMap sources, and the zoom control and scale line are themed to match the app.
+- Map tabs on wide screens gain a right-click context menu with rename, new tab, close, close others, close tabs to the right and close all.
+- The discovered-nodes toolbar button shows a spinner while nodes are being fetched.
+- Fixed pasting into nomad page input fields on Android. The WebView cannot show its own Paste menu for fields inside the rendered page frame, so long-press now opens an app Paste action that reads the system clipboard and inserts the text at the cursor.
+- Long-press on nomad page content on Android now opens the page/tab context menu, matching desktop right-click.
+- Fixed map tab right-click menu rendering behind the map toolbar: context menus now sit above page chrome.
+- The map scale now sits in a row with the credits chip at bottom-right, and map overlays are capped and stacked so toolbars, search, and info cards no longer overlap each other on narrow screens.
+- Relay chat gains a global Search tab that scans message history across every connected hub and room. Queries support quoted phrases, OR groups, NOT/-exclusion, field filters (from:, room:, hub:, kind:, date:) and fuzzy matching with result ranking. Results jump straight to the room.
+- Chat text now auto-links geographic references: Maidenhead grid locators (6+ characters, or any locator after a geo:/grid: prefix), lat/lon pairs, and other coordinate formats resolve locally and open the map with a marker.
+
+- Archives can be exported in bulk: an Export all (.zip) action below the search box downloads a zip bundle of the filtered set with a manifest, and each archive card gains an Export action that downloads the snapshot as a .mu file.
+- Relay chat member lists show avatar initials with presence dots, sticky online/offline headers, and a mention hint on hover; right-clicking a member copies their identity hash.
+- Relay chat room headers now show the hub MOTD inline next to the room and hub name instead of a separate banner row.
+- Discovered interfaces fetch faster: the endpoint runs its filesystem scan and interface stats collection off the event loop and caches results briefly, and the map builds marker features in chunks so large sets stay responsive.
+- Tools page search icon no longer overlaps the placeholder text, and tool groups are now collapsible with count badges and persisted state.
+- The About page sandbox section shows the kernel Landlock ABI version when available.
+- The network visualiser adapts its batch size to measured apply time and pauses physics during silent refreshes when the frame rate is low, avoiding the 1-2 fps freeze on large graphs.
+- The messages split-view drop strip now only appears while dragging a conversation, freeing the space it occupied at rest; a conversation can also be opened in split view from its right-click menu.
+- Relay chat member rows gain a hover/tap direct-message action that lazily derives the member's LXMF address from their identity, waits for a path, then opens the conversation.
+- RRC hub hosts get anti-spam protections: per-peer session caps, a total session cap, and a rate limit on join/part/control traffic, plus a new Status tab in hub moderation showing relayed-message counts, drop counters, and a recent-events log.
+- All search inputs across the app now share a SearchInput component with consistent icon, clear button, loading spinner, and escape-to-clear; the icon-over-placeholder bug class is gone.
+- Offline mode with no basemap now shows a friendly in-map card with restore starter tiles, upload MBTiles and switch-to-online actions instead of a blank placeholder map.
+- Settings search tolerates typos: when strict matching finds nothing, queries like "mesages" still surface the messages settings.
+- Hosted relay hubs answer /history [room] [n] by replaying recent room messages to the requester only. Membership in the room is required, the count clamps to 50, and each request is logged in the host status events.
+- Relay chat gains a Bots tab for running LXMFy bots that join hubs as normal clients. Pick a hub and room list, set a nickname, mention-only mode, command prefix and reply cooldown, and the bot answers commands like uptime, ping, help and status in the rooms it joins.
+- The Bots page gains a custom command template with user-defined canned replies and a welcome message, a per-bot icon picker, and an expanded per-bot LXMF options form covering announce, signature verification, permissions, rate limits and admin hashes.
+- New tests cover the history command privacy and edge cases, RRC bot reply logic and validation, bot option normalizers, and restore hardening.
+
+### Fixed
+
+- The offline MBTiles source is capped to its metadata min/max zoom so OpenLayers stops requesting missing tiles.
+- OpenFreeMap is no longer treated as a raster fallback and Carto providers are now in the failover list.
+- The tile cache clear waits for pending access writes and counts replacement entries before eviction.
+- Successful tile blob application sets the tile state to LOADED, object URLs revoke on image load or error and dark placeholders are 256x256.
+- Cancel-send is shown inline, failed and rejected labels are localized and the raw message modal opens immediately with the paper URI loaded in the background.
+- All debounced save timeouts are cleared on unmount so config saves do not fire after the page is closed.
+- Crash tab render deadlines pause when the tab is inactive and the Network page cancels active page downloads on unmount.
+- Hop filter and announce chunk fetches catch errors instead of rejecting the whole render.
+- Unkeyed toasts with the same message and type replace the existing one instead of stacking.
+- Crash-tab hung toasts clear when the tab recovers, and the warning is skipped when the page is no longer active.
+- UIComponents SettingsPage mocks config patch responses and unmounts wrappers to prevent EnvironmentTeardownError.
+- Live name bindings in the split HTTP/WS modules support comparison, hashing and string conversion, so constants like `MAX_EXPORT_ZOOM` can be used in chained comparisons and map lookups.
+- AppImage packages now ship the backend `data/map/.gitkeep` marker, so the integrity check passes and onboarding no longer stalls on Connect to Mesh. A packaging test walks the real source tree and package.json filters so a missing file fails CI instead of the AppImage.
+- Direct links to nomadnet page addresses work when no node is selected yet; the destination hash and page path are parsed up front.
+- Restoring a backup now serializes concurrent restores, validates the restored identity key before replacing the current one, moves the restored tree into the slot matching its own identity hash, and rebaselines integrity state after the restore.
+- The RRC identity LXMF address endpoint now accepts real 16-byte identity hashes instead of only the 32-byte form, so the member direct-message action actually resolves.
+- RRC per-peer session caps no longer evict the host's own loopback client, can no longer be bypassed by links whose identify callback never fired, and cannot evict live sessions through a stale identify on an already-dropped link.
+- The split-view drop strip no longer stays visible if a conversation row unmounts mid-drag; window-level drop and dragend handlers settle the state.
+- RRC room lists delivered over link resources (oversized /list and /who responses from hubs that negotiate resource envelopes) now populate the available-room list and member lists instead of being recorded as plain text.
+- Markers imported from KML or KMZ files, such as GhostMaps exports, can be selected, moved and edited again. Icon anchors were stored in image pixels but rebuilt as fractions, which pushed icons more than a thousand pixels off their coordinates once the icon image was cached or the drawing was reloaded; the restore and saved-drawing paths also skipped icon styles entirely, so reloaded markers collapsed to plain red dots at wide zooms. Both paths now use the same GeoJSON reader as imports.
+
+### Changed
+
+- The Flatpak Application ID is now `com.meshchatx.app`, with a matching desktop file, icon and metainfo bundled.
+- The Linux app name and userData path use the new `com.meshchatx.app` scheme while keeping the existing `reticulum-meshchatx` data directory.
+- Debug logs, RNode panels and flasher, message entry, conversation viewer and plugin settings now use semantic sem-* tokens instead of raw Tailwind colors. A behavior contract test enforces this for future changes.
+- Calls to print in `meshchatx.py`, `nomadnet_downloader.py` and other backend paths now use the application logger.
+- Windows desktop builds spawn the Python backend inside an LPAC AppContainer by default when the APIs are available. Set MESHCHAT_APPCONTAINER=0 to disable. If AppContainer setup fails, the launcher falls back to an unsandboxed backend process.
+- Geo-wasm and the starter MBTiles have been rebuilt and regenerated.
+- Full Ruff, Prettier, ESLint and typecheck pass across the backend and frontend. The ruff ruleset now covers pyupgrade, bugbear, bandit security, comprehensions, performance and ruff rules.
+- Tool pages (Translator, Ping, RNCP, RNProbe, Forwarder, RNS Filesync, Debug Logs) render as one continuous fused panel instead of stacked cards.
+
+
+## [4.8.9] - 2026-09-09 [released]
+
+### Fixed
+
+- Re-releases the LXMF inbound attachment rejection fix from 4.8.8 with corrected test lint. The delivery resource policy no longer treats the local `lxmf.delivery` identity as the sender, so large messages transfer before the backchannel identifies the remote peer. Closes #94.
+
+## [4.8.8] - 2026-09-09 [released]
+
+### Fixed
+
+- Fixed LXMF inbound attachment rejection. The delivery resource policy no longer treats the local `lxmf.delivery` identity as the sender, so large messages transfer before the backchannel identifies the remote peer. Closes #94.
+
+## [4.8.7] - 2026-09-09 [released]
+
+### Security
+
+- Hardened Electron shell, Android navigation, map export, plugin endpoint host checks, identity switch copy, docs ZIP extraction, and local file handling.
+
+### Fixed
+
+- Moved blocking identity teardown and maintenance DB work off the async event loop.
+- Fixed WebSocket coalescing, broadcast ordering, stale cursor recovery, delivery state regression, conversation failed count, active-conversation reset, handler isolation, nomad download race, and map export locking.
+
+## [4.8.6] - 2026-09-06 [released]
+
+### Added
+
+- **Bug Reports Extension (off by default)**: Capture crashes and issues locally, group duplicates, and send a redacted report over the RNS when you choose. Crash screens can open or save into Bug Reports.
+- **Release channels**: Testing, Beta, and Stable. The sidebar shows which channel you are on. Testing and Beta ask once how to file useful bug reports.
+- **Install options**: Flatpak channels at https://cdn.meshchatx.com/flatpak/ (testing, beta, stable). Docker images with testing and beta tags.
+- **Plugins**: Richer plugin pages (tabs, tables, images, and more). Enabled plugins appear as their own destinations in the app. Plugin pages follow the theme and accent colors.
+- **Archives**: Search shows short previews. Open Micron, Markdown, or HTML previews from a card. Recrawl a page from the viewer. Layout stacks on phones.
+- **Smart Crawler**: Crawls less aggressively (about one request per node per day). Sites can opt out with # nocrawl or Archives settings.
+- **Nomad private tabs**: Ctrl+Shift+P opens a purple private tab that is not archived, favourited, or saved in history.
+- **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step. Publish site uploads several tabs as pages with editable filenames, drag or arrow reordering, and an optional index page linking them all. Editor tabs can be dragged to reorder.
+- **Nomad identify-on-connect** (schema 58): Sticky per-favourite Identify when connecting, matching NomadNet. Auto-identifies on link before page requests. Fingerprint toggle and favourites import/export carry the identify flag.
+
+### Security
+
+- **DeepSource security pass**: Fixed or suppressed the first three batches of DeepSource security findings, including front-end rel attributes, Android TLS validation, stricter file permissions, and Python binding and subprocess audit rules.
+
+### Fixed
+
+- **Micron WASM**: ASCII-art whitespace is preserved again. Consecutive spaces in Micron markup were being collapsed by the WASM renderer, breaking ASCII art. Bumped micron-parser-go to v1.1.5.
+- **Micron WASM**: PUA/Nerd Font icon glyphs now render with `Roboto Mono Nerd Font` by wrapping them in a span. Bumped `micron-parser-go` to v1.1.2.
+- **Reticulum config**: MeshChatX no longer overwrites an existing .reticulum/config on startup. Existing parseable configs are preserved and only missing [reticulum] or [interfaces] sections are added.
+- **Messages**: Coming back to an open chat marks it read and clears badges and desktop notifications.
+- **Messages (propagated)**: Propagated send waits for a path to the preferred propagation node. Missing node or path gets a clear error and delivery help tip. Failed pending bubbles stay visible with the error.
+- **NomadNet**: Opening a node while the app is still connecting no longer sticks on Loading. A stuck page no longer freezes the whole Nomad UI. Switching away and back no longer falsely claims the page renderer stopped.
+- **Desktop app**: Startup and crash screens respect dark mode instead of flashing white.
+- **Map**: Interface and telemetry markers update again.
+- **UI**: Dropdown menus match the theme.
+- **Permissions-Policy**: Only microphone, camera, and autoplay are listed. Hardware and speaker-selection tokens are left to browser defaults so Brave and Chrome stop logging unrecognized feature warnings.
+- **Header buttons**: Navbar icons, sync, and compose share one size and hover circle. The language menu icon matches the rest.
+- **Stranger banner**: The not-in-contacts warning is a slim single row instead of a large box.
+
+### Removed
+
+- **ALTCHA**: The proof-of-work login challenge is gone from login, setup, the demo stack, and all builds. Password and session auth still apply.
+
+### Changed
+
+- **Theme consistency pass**: Shared primitives, conversation viewer, message entry, messages, about, settings, tutorial, call, and add-interface pages now use semantic color tokens instead of raw Tailwind classes. The audit script and fixtures track the remaining raw token inventory. The raw Tailwind color count in frontend components dropped from about 4990 to about 3758.
+- **Docker files**: Dockerfiles and compose files moved under docker/. Update commands to docker/Dockerfile and docker/docker-compose.yml.
+- **Dependencies**: Electron 44, jsdom 30, vis-network 10, vis-data 8, and assorted patch bumps. Dependency audit reports no known vulnerabilities.
+- **Vite and Vitest configs**: Renamed to .mjs so the ESM config warning is gone.
+- **Dev script**: task dev output is colored and single-prefixed.
+- **Smart Crawler**: Finished crawls stay finished until you refresh. Fewer crawls run at once.
+- **Reticulum**: RNS 1.5.3.
+- **WebTransport**: aioquic 1.3.0 is a normal dependency. Android builds ship aioquic and pylsqpack Chaquopy wheels.
+- **Micron**: Micron-Parser-Go WASM v1.2.0.
+- **Docs**: Short READMEs at the repo root. Full install and contributor guides under docs/en/.
+
 ## [4.8.5] - 2026-08-21 [released]
 
 ### Changed

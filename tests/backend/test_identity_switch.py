@@ -37,6 +37,12 @@ def mock_rns():
             patch("RNS.Transport"),
             patch("RNS.Identity", MockIdentityClass),
             patch("threading.Thread"),
+            # threading.Thread is mocked, so asyncio.to_thread can never
+            # spawn an executor thread; run those calls synchronously.
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda fn, *args, **kwargs: fn(*args, **kwargs),
+            ),
             patch("meshchatx.src.backend.identity_context.core.Database"),
             patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
             patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
@@ -51,7 +57,6 @@ def mock_rns():
             patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
             patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
             patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
-            patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
             patch(
                 "meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"
             ),
@@ -128,7 +133,7 @@ async def test_hotswap_identity_success(mock_rns, temp_dir):
     # Mock methods
     app.teardown_identity = MagicMock()
     app.setup_identity = MagicMock(
-        side_effect=lambda id: setattr(app, "current_context", mock_context),
+        side_effect=lambda _id: setattr(app, "current_context", mock_context),
     )
     app.websocket_broadcast = AsyncMock()
 
@@ -179,7 +184,7 @@ async def test_hotswap_identity_keep_alive(mock_rns, temp_dir):
     app.teardown_identity = MagicMock()
     app._clear_mesh_link_caches = MagicMock()
     app.setup_identity = MagicMock(
-        side_effect=lambda id: setattr(app, "current_context", mock_context),
+        side_effect=lambda _id: setattr(app, "current_context", mock_context),
     )
     app.websocket_broadcast = AsyncMock()
 

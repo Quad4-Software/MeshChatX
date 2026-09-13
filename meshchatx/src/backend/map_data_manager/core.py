@@ -219,8 +219,9 @@ class MapDataManager:
         return self._announce_enabled() and self._published_count() > 0
 
     def _is_local_hash(self, dest: bytes) -> bool:
-        current = self._destination
-        return current is not None and current.hash == dest
+        with self._lock:
+            current = self._destination
+            return current is not None and current.hash == dest
 
     def _announce_interval(self) -> int:
         raw = getattr(self.config, "map_data_announce_interval", None)
@@ -325,20 +326,21 @@ class MapDataManager:
         self._registered_map_paths.discard(path)
 
     def _catalog_payload(self) -> dict[str, Any]:
-        maps = []
-        for row in self.database.map_published.list_for_identity(self.identity_hash()):
-            maps.append(
-                {
-                    "id": row["map_id"],
-                    "name": row["name"],
-                    "format": row["format"],
-                    "size": int(row["size"] or 0),
-                    "sha256": row["sha256"],
-                    "bbox": _parse_bbox(row["bbox"]),
-                    "feature_count": int(row["feature_count"] or 0),
-                    "updated_at": row["updated_at"],
-                },
+        maps = [
+            {
+                "id": row["map_id"],
+                "name": row["name"],
+                "format": row["format"],
+                "size": int(row["size"] or 0),
+                "sha256": row["sha256"],
+                "bbox": _parse_bbox(row["bbox"]),
+                "feature_count": int(row["feature_count"] or 0),
+                "updated_at": row["updated_at"],
+            }
+            for row in self.database.map_published.list_for_identity(
+                self.identity_hash()
             )
+        ]
         return {"maps": maps}
 
     def _catalog_responder(
@@ -350,10 +352,9 @@ class MapDataManager:
         remote_identity,
         requested_at,
     ):
-        body = json.dumps(self._catalog_payload(), separators=(",", ":")).encode(
+        return json.dumps(self._catalog_payload(), separators=(",", ":")).encode(
             "utf-8",
         )
-        return body
 
     def _make_map_responder(self, map_id: str):
         def responder(path, data, request_id, link_id, remote_identity, requested_at):

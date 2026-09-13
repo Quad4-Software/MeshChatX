@@ -23,6 +23,7 @@ COPY scripts/vite-dx.mjs scripts/vite-dx.mjs
 COPY scripts/build-visualiser-wasm.mjs scripts/build-visualiser-wasm.mjs
 COPY scripts/build-geo-wasm.mjs scripts/build-geo-wasm.mjs
 COPY scripts/fetch-starter-mbtiles.mjs scripts/fetch-starter-mbtiles.mjs
+COPY scripts/copy-bergamot-wasm.mjs scripts/copy-bergamot-wasm.mjs
 COPY scripts/build-electron-shell-css.mjs scripts/build-electron-shell-css.mjs
 COPY scripts/ensure-micron-parser-package.js scripts/ensure-micron-parser-package.js
 COPY scripts/sync-meshchatx-docs.js scripts/sync-meshchatx-docs.js

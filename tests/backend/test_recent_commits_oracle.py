@@ -289,8 +289,8 @@ def test_traffic_totals_data_share_fuzz_oracle(rxs, txs, prxs, arxs, ptxs, atxs)
     }
     totals = _format_traffic_totals(stats)
     assert totals is not None
-    rx_part = max(0.0, rxs - stats["prxs"] - stats["arxs"])
-    tx_part = max(0.0, txs - stats["ptxs"] - stats["atxs"])
+    rx_part = max(0.0, rxs - (stats["prxs"] + stats["arxs"]))
+    tx_part = max(0.0, txs - (stats["ptxs"] + stats["atxs"]))
     if not (rxs and txs):
         assert "data_rx_pct" not in totals
         assert "data_tx_pct" not in totals
