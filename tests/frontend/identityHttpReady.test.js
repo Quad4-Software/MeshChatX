@@ -1,51 +1,51 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isIdentityHttpReady, runWhenIdentityHttpReady } from "@/js/identityHttpReady.js";
-import { useNetworkStore } from "@/js/stores/networkStore.js";
+import GlobalState from "@/js/GlobalState.js";
 
 describe("identityHttpReady", () => {
     const snapshot = {
-        networkReady: useNetworkStore().networkReady,
-        networkDegraded: useNetworkStore().networkDegraded,
-        networkStarting: useNetworkStore().networkStarting,
+        networkReady: GlobalState.networkReady,
+        networkDegraded: GlobalState.networkDegraded,
+        networkStarting: GlobalState.networkStarting,
     };
 
     afterEach(() => {
-        useNetworkStore().networkReady = snapshot.networkReady;
-        useNetworkStore().networkDegraded = snapshot.networkDegraded;
-        useNetworkStore().networkStarting = snapshot.networkStarting;
+        GlobalState.networkReady = snapshot.networkReady;
+        GlobalState.networkDegraded = snapshot.networkDegraded;
+        GlobalState.networkStarting = snapshot.networkStarting;
     });
 
     it("is not ready while networkStarting without ready/degraded", () => {
-        useNetworkStore().networkReady = false;
-        useNetworkStore().networkDegraded = false;
-        useNetworkStore().networkStarting = true;
+        GlobalState.networkReady = false;
+        GlobalState.networkDegraded = false;
+        GlobalState.networkStarting = true;
         expect(isIdentityHttpReady()).toBe(false);
     });
 
     it("is ready when networkReady", () => {
-        useNetworkStore().networkReady = true;
-        useNetworkStore().networkDegraded = false;
-        useNetworkStore().networkStarting = true;
+        GlobalState.networkReady = true;
+        GlobalState.networkDegraded = false;
+        GlobalState.networkStarting = true;
         expect(isIdentityHttpReady()).toBe(true);
     });
 
     it("is ready when degraded", () => {
-        useNetworkStore().networkReady = false;
-        useNetworkStore().networkDegraded = true;
-        useNetworkStore().networkStarting = true;
+        GlobalState.networkReady = false;
+        GlobalState.networkDegraded = true;
+        GlobalState.networkStarting = true;
         expect(isIdentityHttpReady()).toBe(true);
     });
 
     it("is ready when startup finished without ready flag", () => {
-        useNetworkStore().networkReady = false;
-        useNetworkStore().networkDegraded = false;
-        useNetworkStore().networkStarting = false;
+        GlobalState.networkReady = false;
+        GlobalState.networkDegraded = false;
+        GlobalState.networkStarting = false;
         expect(isIdentityHttpReady()).toBe(true);
     });
 
     it("runs callback immediately when already ready", () => {
-        useNetworkStore().networkReady = true;
-        useNetworkStore().networkStarting = false;
+        GlobalState.networkReady = true;
+        GlobalState.networkStarting = false;
         const cb = vi.fn();
         const stop = runWhenIdentityHttpReady(cb);
         expect(cb).toHaveBeenCalledTimes(1);
@@ -53,15 +53,15 @@ describe("identityHttpReady", () => {
     });
 
     it("defers callback until networkReady", async () => {
-        useNetworkStore().networkReady = false;
-        useNetworkStore().networkDegraded = false;
-        useNetworkStore().networkStarting = true;
+        GlobalState.networkReady = false;
+        GlobalState.networkDegraded = false;
+        GlobalState.networkStarting = true;
         const cb = vi.fn();
         const stop = runWhenIdentityHttpReady(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(typeof stop).toBe("function");
-        useNetworkStore().networkReady = true;
-        useNetworkStore().networkStarting = false;
+        GlobalState.networkReady = true;
+        GlobalState.networkStarting = false;
         await Promise.resolve();
         expect(cb).toHaveBeenCalledTimes(1);
         stop?.();

@@ -29,8 +29,9 @@ describe("SettingToggleRow", () => {
         expect(container.textContent).toContain("Probe title");
         expect(container.textContent).toContain("Probe description");
         expect(container.textContent).toContain("Probe hint");
-        const input = container.querySelector("input[type='checkbox']");
-        await fireEvent.click(input);
+        const toggle = container.querySelector("[role='switch']");
+        expect(toggle.getAttribute("aria-checked")).toBe("false");
+        await fireEvent.click(toggle);
         expect(onchange).toHaveBeenCalledWith(true);
     });
 });
@@ -56,7 +57,7 @@ describe("StrangerProtectionSettingsSection", () => {
                 onwarnlinkschange,
             },
         });
-        const inputs = container.querySelectorAll("input[type='checkbox']");
+        const inputs = container.querySelectorAll("[role='switch']");
         expect(inputs).toHaveLength(4);
         await fireEvent.click(inputs[0]);
         await fireEvent.click(inputs[1]);
@@ -109,8 +110,9 @@ describe("TelephonySettingsSection", () => {
                 onenabledchange,
             },
         });
-        const input = container.querySelector("input[type='checkbox']");
-        await fireEvent.click(input);
+        const toggle = container.querySelector("[role='switch']");
+        expect(toggle.getAttribute("aria-checked")).toBe("true");
+        await fireEvent.click(toggle);
         expect(onenabledchange).toHaveBeenCalledWith(false);
     });
 });
@@ -315,7 +317,9 @@ describe("ArchiverSettingsSection", () => {
         const numberInputs = container.querySelectorAll('input[type="number"]');
         await fireEvent.input(numberInputs[0], { target: { value: "8" } });
         expect(onconfigchange).toHaveBeenCalledWith({ page_archiver_max_versions: 8 });
-        const flushBtn = container.querySelector("button");
+        const flushBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
+            btn.textContent.includes("Flush")
+        );
         await fireEvent.click(flushBtn);
         expect(onflush).toHaveBeenCalledTimes(1);
     });

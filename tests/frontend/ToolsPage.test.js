@@ -133,23 +133,22 @@ describe("ToolsPage.svelte", () => {
     });
 
     it("collapses and expands a tool group, persisting state", async () => {
-        const wrapper = mountToolsPage();
-        const section = wrapper.vm.groupedToolSections[0];
-        const rowsBefore = wrapper.findAll(".tool-row").length;
+        const { container } = render(ToolsPage);
+        const rowsBefore = container.querySelectorAll(".tool-row").length;
         expect(rowsBefore).toBeGreaterThan(0);
 
-        wrapper.vm.toggleGroup(section.id);
-        await wrapper.vm.$nextTick();
+        const toggle = screen.getByRole("button", { name: /Diagnostics/i });
+        const sectionId = toggle.getAttribute("aria-controls").replace("tools-section-", "");
+        expect(toggle.getAttribute("aria-expanded")).toBe("true");
 
-        expect(wrapper.vm.isGroupCollapsed(section.id)).toBe(true);
-        const stored = JSON.parse(localStorage.getItem("meshchatx.tools.collapsedGroups"));
-        expect(stored).toContain(section.id);
-        const collapsedSection = wrapper.findAll("button").find((b) => b.attributes("aria-expanded") === "false");
-        expect(collapsedSection).toBeTruthy();
+        await fireEvent.click(toggle);
+        expect(toggle.getAttribute("aria-expanded")).toBe("false");
+        const stored = JSON.parse(localStorage.getItem("meshchatx.tools.collapsedSections"));
+        expect(stored[sectionId]).toBe(true);
 
-        wrapper.vm.toggleGroup(section.id);
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.isGroupCollapsed(section.id)).toBe(false);
+        await fireEvent.click(toggle);
+        expect(toggle.getAttribute("aria-expanded")).toBe("true");
+        expect(loadCollapsedSections()[sectionId]).toBe(false);
     });
 
     it("clears search query when close button is clicked", async () => {
