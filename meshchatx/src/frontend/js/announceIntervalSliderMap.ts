@@ -21,3 +21,67 @@ export function announceMinutesToSliderPos(minutes: number): number {
     const m = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, Math.round(Number(minutes) || MIN_MINUTES)));
     return Math.round(((m - MIN_MINUTES) / (MAX_MINUTES - MIN_MINUTES)) * ANNOUNCE_SLIDER_POS_MAX);
 }
+
+const MINUTES_PER_HOUR = 60;
+const MINUTES_PER_DAY = 1440;
+
+/**
+ * Human readable interval, e.g. "45 min", "6 h", "1 h 30 min", "1 d".
+ */
+export function formatAnnounceIntervalMinutes(minutes: number): string {
+    const m = Math.max(0, Math.round(Number(minutes) || 0));
+    if (m === 0) {
+        return "0 min";
+    }
+    const days = Math.floor(m / MINUTES_PER_DAY);
+    const hours = Math.floor((m % MINUTES_PER_DAY) / MINUTES_PER_HOUR);
+    const mins = m % MINUTES_PER_HOUR;
+    const parts: string[] = [];
+    if (days) {
+        parts.push(`${days} d`);
+    }
+    if (hours) {
+        parts.push(`${hours} h`);
+    }
+    if (mins) {
+        parts.push(`${mins} min`);
+    }
+    return parts.join(" ");
+}
+
+/**
+ * Parse a typed interval back to minutes. Accepts a bare number (minutes)
+ * or unit-suffixed parts like "6h", "1h 30m", "45min", "1d".
+ * Returns minutes, or null when the input is not parseable.
+ */
+export function parseAnnounceIntervalMinutes(text: string | null | undefined): number | null {
+    const s = String(text ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(",", ".");
+    if (!s) {
+        return null;
+    }
+    if (/^\d+(?:\.\d+)?$/.test(s)) {
+        return Math.round(Number(s));
+    }
+    const re = /(\d+(?:\.\d+)?)\s*(d|h|m(?:in)?)/g;
+    let matched = "";
+    let total = 0;
+    for (const part of s.matchAll(re)) {
+        matched += part[0];
+        const value = Number(part[1]);
+        const unit = part[2];
+        if (unit === "d") {
+            total += value * MINUTES_PER_DAY;
+        } else if (unit === "h") {
+            total += value * MINUTES_PER_HOUR;
+        } else {
+            total += value;
+        }
+    }
+    if (!matched || matched.replace(/\s+/g, "") !== s.replace(/\s+/g, "")) {
+        return null;
+    }
+    return Math.round(total);
+}

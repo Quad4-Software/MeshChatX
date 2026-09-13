@@ -11,6 +11,10 @@ import { messageKey, sameHash } from "./conversationViewerCtx.js";
 export type ConversationPage = {
     items: ViewerChatItem[];
     hasMore: boolean;
+    /** Raw response data, kept so callers can restash the first page. */
+    data: unknown;
+    /** True when the page was painted from the prefetch/stash cache. */
+    paintedFromCache: boolean;
 };
 
 function asMessages(value: unknown): LxmfMessage[] {
@@ -30,21 +34,28 @@ export async function fetchConversationPage(
     api: ApiClient,
     peerHash: string,
     myHash: string,
-    afterId: number | null
+    afterId: number | null,
+    prefetchedData?: unknown
 ): Promise<ConversationPage> {
-    const response = await api.get(`/api/v1/lxmf-messages/conversation/${peerHash}`, {
-        params: {
-            count: CONVERSATION_MESSAGES_PAGE_SIZE,
-            order: "desc",
-            after_id: afterId,
-        },
-    });
-    const data = response.data as { lxmf_messages?: unknown } | undefined;
-    const raw = asMessages(data?.lxmf_messages);
+    const paintedFromCache = prefetchedData !== undefined && prefetchedData !== null;
+    const data = paintedFromCache
+        ? prefetchedData
+        : (
+              (await api.get(`/api/v1/lxmf-messages/conversation/${peerHash}`, {
+                  params: {
+                      count: CONVERSATION_MESSAGES_PAGE_SIZE,
+                      order: "desc",
+                      after_id: afterId,
+                  },
+              })) as { data?: unknown }
+          ).data;
+    const raw = asMessages((data as { lxmf_messages?: unknown } | undefined)?.lxmf_messages);
     const merged = mergeLxmfReactionRowsIntoMessages(raw) as LxmfMessage[];
     return {
         items: merged.map((message) => toChatItem(message, myHash)).reverse(),
         hasMore: raw.length >= CONVERSATION_MESSAGES_PAGE_SIZE,
+        data,
+        paintedFromCache,
     };
 }
 

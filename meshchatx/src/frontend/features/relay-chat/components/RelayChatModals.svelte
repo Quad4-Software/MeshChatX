@@ -5,6 +5,10 @@
     import RelayAddHubModal from "./RelayAddHubModal.svelte";
     import RelayHubSettingsModal from "./RelayHubSettingsModal.svelte";
     import { t } from "../../../js/i18n.js";
+    import {
+        formatAnnounceIntervalMinutes,
+        parseAnnounceIntervalMinutes,
+    } from "../../../js/announceIntervalSliderMap.js";
     import { BTN_PRIMARY, BTN_SECONDARY } from "../lib/constants.js";
     import { isHubConnected } from "../lib/relayFormatters.js";
     import type { RrcHub, RrcMessage } from "../lib/types.js";
@@ -69,7 +73,42 @@
 
     let createHostName = $state("");
     let createHostAnnounceMinutes = $state(15);
+    let createHostAnnounceDraft = $state<string | null>(null);
     let roomKeyInput = $state("");
+
+    const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
+    const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
+
+    const createHostAnnounceShown = $derived(
+        createHostAnnounceDraft ?? formatAnnounceIntervalMinutes(createHostAnnounceMinutes)
+    );
+    const createHostAnnounceLabel = $derived(formatAnnounceIntervalMinutes(createHostAnnounceMinutes));
+
+    function clampAnnounceIntervalMinutes(value: number): number {
+        return Math.max(ANNOUNCE_INTERVAL_MIN_MINUTES, Math.min(ANNOUNCE_INTERVAL_MAX_MINUTES, Math.round(value)));
+    }
+
+    function onCreateHostAnnounceFocus() {
+        createHostAnnounceDraft = formatAnnounceIntervalMinutes(createHostAnnounceMinutes);
+    }
+
+    function onCreateHostAnnounceInput(event: Event) {
+        const raw = String((event?.target as HTMLInputElement | null)?.value ?? "");
+        createHostAnnounceDraft = raw;
+        if (raw.trim() === "") {
+            return;
+        }
+        const minutes = parseAnnounceIntervalMinutes(raw);
+        if (minutes != null) {
+            createHostAnnounceMinutes = clampAnnounceIntervalMinutes(minutes);
+        }
+    }
+
+    function onCreateHostAnnounceBlur() {
+        const parsed = parseAnnounceIntervalMinutes(createHostAnnounceDraft);
+        createHostAnnounceMinutes = clampAnnounceIntervalMinutes(parsed ?? createHostAnnounceMinutes);
+        createHostAnnounceDraft = null;
+    }
 </script>
 
 <svelte:window
@@ -114,15 +153,23 @@
                         class="block text-xs font-semibold text-sem-fg-muted uppercase tracking-wider mb-1"
                         for="create-host-announce-input"
                     >
-                        {t("relay_chat.announce_interval_minutes")}
+                        {t("relay_chat.host_announce_interval")}
                     </label>
                     <input
                         id="create-host-announce-input"
-                        type="number"
-                        min="1"
-                        bind:value={createHostAnnounceMinutes}
+                        type="text"
+                        inputmode="text"
+                        autocomplete="off"
+                        maxlength="12"
+                        value={createHostAnnounceShown}
+                        onfocus={onCreateHostAnnounceFocus}
+                        oninput={onCreateHostAnnounceInput}
+                        onblur={onCreateHostAnnounceBlur}
                         class="w-full px-3 py-2 text-sm bg-sem-canvas border border-sem-border rounded-xl text-sem-fg focus:outline-hidden focus:border-sem-accent"
                     />
+                    <p class="mt-1 text-xs text-sem-fg-muted">
+                        {t("relay_chat.host_announce_interval_hint", { interval: createHostAnnounceLabel })}
+                    </p>
                 </div>
             </div>
             <div class="mt-6 flex justify-end gap-3">

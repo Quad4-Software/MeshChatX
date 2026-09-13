@@ -22,6 +22,7 @@
     import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
     import { isRetryableHttpError } from "../../js/httpRetry.js";
     import { runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
+    import { dropConversationPrefetch } from "../../js/conversationPrefetch.js";
     import { t } from "../../js/i18n.js";
     import { isDestinationHash } from "../../js/meshValidate.js";
     import {
@@ -297,11 +298,24 @@
         }, 250);
     }
 
-    function onLxmfDeliveryEvent() {
+    function dropCachedConversationFirstPage(msg: Record<string, unknown> | undefined) {
+        // A stashed first page painted on re-open would be older than the
+        // sidebar, which already reflects this event. Both directions are
+        // dropped because is_incoming is not reliable on event payloads.
+        if (!msg || typeof msg !== "object") {
+            return;
+        }
+        dropConversationPrefetch(msg.source_hash);
+        dropConversationPrefetch(msg.destination_hash);
+    }
+
+    function onLxmfDeliveryEvent(json: { lxmf_message?: Record<string, unknown> }) {
+        dropCachedConversationFirstPage(json?.lxmf_message);
         requestConversationsRefresh();
     }
 
     function onLxmfMessageCreatedEvent(json: { lxmf_message?: Record<string, unknown> }) {
+        dropCachedConversationFirstPage(json?.lxmf_message);
         if (json.lxmf_message) {
             applyOutboundMessageCreated(conversations, json.lxmf_message, {
                 peers,
@@ -320,6 +334,7 @@
     }
 
     function onLxmfMessageStateUpdatedEvent(json: { lxmf_message?: Record<string, unknown> }) {
+        dropCachedConversationFirstPage(json?.lxmf_message);
         if (json.lxmf_message) {
             applyOutboundMessageStateUpdated(conversations, json.lxmf_message);
             conversations = [...conversations];

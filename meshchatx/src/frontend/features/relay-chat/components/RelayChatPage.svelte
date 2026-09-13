@@ -51,7 +51,10 @@
 
     let { hubHash = null, room = null, isPopout = false }: Props = $props();
 
-    let view = $state<"chat" | "discovery" | "host" | "moderation" | "bots" | "search">("chat");
+    type RelayView = "chat" | "discovery" | "host" | "moderation" | "bots" | "search";
+
+    let view = $state<RelayView>("chat");
+    let viewBeforeRoomOpen = $state<RelayView | null>(null);
     let sidebarCollapsed = $state(false);
     let hubs = $state<RrcHub[]>([]);
     let selectedHubHash = $state<string | null>(null);
@@ -95,6 +98,15 @@
         { id: "bots", label: "relay_chat.tab_bots", icon: "robot" },
         { id: "search", label: "relay_chat.tab_search", icon: "magnify" },
     ] as const;
+
+    // Below md these collapse into the overflow menu so the tab bar never
+    // scrolls horizontally on phones. Chat and Discovery stay pinned.
+    const OVERFLOW_TAB_IDS = new Set<string>(["host", "bots", "search"]);
+    const overflowTabs = tabs.filter((tab) => OVERFLOW_TAB_IDS.has(tab.id));
+    const overflowViewTab = $derived(overflowTabs.find((tab) => tab.id === view) || null);
+    const isOverflowView = $derived(overflowViewTab !== null);
+    const overflowViewIcon = $derived(overflowViewTab?.icon || "dots-horizontal");
+    let overflowMenuOpen = $state(false);
 
     const selectedHub = $derived.by(() => {
         return hubs.find((h) => h.hub_hash === selectedHubHash) || null;
@@ -230,10 +242,12 @@
         }
     }
 
-    function openSearchResult(target: { hubHash: string; room: string }) {
+    export function openSearchResult(target: { hubHash: string; room: string }) {
         if (!target?.hubHash || !target?.room) {
             return;
         }
+        // Capture before the switch so backing out returns to Search.
+        viewBeforeRoomOpen = view;
         view = "chat";
         const hubObj = hubs.find((h) => h.hub_hash === target.hubHash);
         if (hubObj) {
@@ -248,7 +262,22 @@
         persistLayout();
     }
 
-    function selectRoom(hubObj: RrcHub, roomObj: RrcRoom) {
+    export function onBackFromRoom() {
+        selectedRoomName = null;
+        restoreViewAfterRoomClose();
+    }
+
+    function restoreViewAfterRoomClose() {
+        if (viewBeforeRoomOpen && viewBeforeRoomOpen !== view) {
+            view = viewBeforeRoomOpen;
+        }
+        viewBeforeRoomOpen = null;
+    }
+
+    export function selectRoom(hubObj: RrcHub, roomObj: RrcRoom) {
+        if (selectedRoomName === null && viewBeforeRoomOpen == null) {
+            viewBeforeRoomOpen = view;
+        }
         selectedHubHash = hubObj.hub_hash;
         selectedRoomName = roomObj.name;
         expandedHubs[hubObj.hub_hash] = true;
@@ -347,6 +376,7 @@
         hubs = [];
         selectedHubHash = null;
         selectedRoomName = null;
+        viewBeforeRoomOpen = null;
         messagesMap = {};
         membersMap = {};
         fetchHubs();
@@ -446,6 +476,7 @@
             await window.api.delete(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(room)}`);
             if (selectedHubHash === hubH && selectedRoomName === room) {
                 selectedRoomName = null;
+                restoreViewAfterRoomClose();
             }
             delete messagesMap[`${hubH}:${room}`];
             delete membersMap[`${hubH}:${room}`];
@@ -531,7 +562,9 @@
                         class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-xs sm:text-sm transition-colors shrink-0 cursor-pointer {view ===
                         tabItem.id
                             ? 'bg-sem-canvas text-sem-fg font-semibold'
-                            : 'text-sem-fg-muted hover:bg-sem-surface/80'}"
+                            : 'text-sem-fg-muted hover:bg-sem-surface/80'} {OVERFLOW_TAB_IDS.has(tabItem.id)
+                            ? 'hidden md:inline-flex'
+                            : ''}"
                         onclick={() => {
                             view = tabItem.id as any;
                         }}
@@ -540,6 +573,49 @@
                         <span>{t(tabItem.label)}</span>
                     </button>
                 {/each}
+
+                <!-- mobile overflow: host, bots and search move here so the bar never scrolls -->
+                {#if overflowTabs.length > 0}
+                    <div class="relative md:hidden shrink-0">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={isOverflowView}
+                            aria-label={t("messages.more_actions")}
+                            title={t("messages.more_actions")}
+                            class="inline-flex h-full items-center gap-1.5 px-3 border-r border-sem-border text-xs transition-colors {isOverflowView
+                                ? 'bg-sem-canvas text-sem-fg font-semibold'
+                                : 'text-sem-fg-muted hover:bg-sem-surface/80'}"
+                            onclick={() => {
+                                overflowMenuOpen = !overflowMenuOpen;
+                            }}
+                        >
+                            <MaterialDesignIcon iconName={overflowViewIcon} class="size-4 shrink-0 opacity-70" />
+                            {#if overflowViewTab}
+                                <span>{t(overflowViewTab.label)}</span>
+                            {/if}
+                        </button>
+                        {#if overflowMenuOpen}
+                            <div
+                                class="absolute right-0 top-full mt-1 z-50 min-w-44 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
+                            >
+                                {#each overflowTabs as tabItem (tabItem.id)}
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                                        onclick={() => {
+                                            overflowMenuOpen = false;
+                                            view = tabItem.id;
+                                        }}
+                                    >
+                                        <MaterialDesignIcon iconName={tabItem.icon} class="size-5" />
+                                        <span>{t(tabItem.label)}</span>
+                                    </button>
+                                {/each}
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
             </div>
         {/if}
 
@@ -601,9 +677,7 @@
                             {showMembersPanel}
                             {showSearchPanel}
                             memberCount={currentMembers.length}
-                            onback={() => {
-                                selectedRoomName = null;
-                            }}
+                            onback={onBackFromRoom}
                             ontogglemembers={() => {
                                 showMembersPanel = !showMembersPanel;
                             }}

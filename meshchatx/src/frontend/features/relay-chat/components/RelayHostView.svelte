@@ -4,6 +4,7 @@
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";
     import { formatUptime } from "../lib/relayFormatters.js";
+    import { formatAnnounceIntervalMinutes } from "../../../js/announceIntervalSliderMap.js";
     import type { RrcHostedHub } from "../lib/types.js";
 
     interface Props {
@@ -135,7 +136,7 @@
                     <div class="p-3 rounded-xl bg-sem-canvas border border-sem-border/60">
                         <div class="text-xs text-sem-fg-muted">{t("relay_chat.host_announce_interval")}</div>
                         <div class="text-lg font-bold mt-0.5">
-                            {Math.round((hostedHub.announce_interval || 900) / 60)}m
+                            {formatAnnounceIntervalMinutes(Math.round((hostedHub.announce_interval || 900) / 60))}
                         </div>
                     </div>
                 </div>

@@ -3,6 +3,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/svelte";
 import MessagesPage from "@/features/messages/MessagesPage.svelte";
+import { dispatchWsEvent } from "@/js/registries/wsEventRegistry.js";
+import { stashConversationFirstPage, takeConversationPrefetch } from "@/js/conversationPrefetch.js";
 import {
     applyOutboundMessageCreated,
     applyOutboundMessageStateUpdated,
@@ -134,5 +136,40 @@ describe("MessagesPage.svelte", () => {
         expect(applyOptimisticUnreadClear(conversation)).toBe(true);
         expect(conversation.is_unread).toBe(false);
         expect(nextUnreadConversationsCount(3, true)).toBe(2);
+    });
+
+    it("drops the stashed first page when an outbound message is created", async () => {
+        render(MessagesPage, { destinationHash: "" });
+        const peerHash = "ab".repeat(16);
+        stashConversationFirstPage(peerHash, { lxmf_messages: [{ hash: "old" }] });
+
+        await dispatchWsEvent("lxmf_message_created", {
+            lxmf_message: {
+                source_hash: "my-hash",
+                destination_hash: peerHash,
+                is_incoming: false,
+                content: "hello",
+                timestamp: 1700000000,
+            },
+        });
+
+        expect(takeConversationPrefetch(peerHash)).toBeNull();
+    });
+
+    it("drops the stashed first page when an inbound message is delivered", async () => {
+        render(MessagesPage, { destinationHash: "" });
+        const peerHash = "cd".repeat(16);
+        stashConversationFirstPage(peerHash, { lxmf_messages: [{ hash: "old" }] });
+
+        await dispatchWsEvent("lxmf.delivery", {
+            lxmf_message: {
+                source_hash: peerHash,
+                destination_hash: "my-hash",
+                is_incoming: true,
+                content: "hi",
+            },
+        });
+
+        expect(takeConversationPrefetch(peerHash)).toBeNull();
     });
 });

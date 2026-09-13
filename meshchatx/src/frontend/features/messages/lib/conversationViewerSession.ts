@@ -6,6 +6,7 @@ import NotificationUtils from "../../../js/NotificationUtils.js";
 import { fromNow } from "../../../libs/datetime.js";
 import { isTelemetryOnly } from "./conversationMessageHelpers.js";
 import { fetchConversationPage, oldestMessageId, prependConversationPage } from "./conversationViewerMessages.js";
+import { stashConversationFirstPage, takeConversationPrefetch } from "../../../js/conversationPrefetch.js";
 import type { ViewerChatItem } from "./conversationViewerCtx.js";
 import { sameHash } from "./conversationViewerCtx.js";
 import type { ApiClient } from "../../../js/apiClient.js";
@@ -187,19 +188,32 @@ export async function runLoadPreviousPage(opts: {
     currentSelectedHash: string;
     messagesScroll: HTMLElement | null | undefined;
     tick: () => Promise<void>;
-}): Promise<{ items: ViewerChatItem[]; hasMorePrevious: boolean } | null> {
+}): Promise<{ items: ViewerChatItem[]; hasMorePrevious: boolean; paintedFromCache: boolean } | null> {
     const { api, peerHash, myLxmfAddressHash, chatItems, currentSelectedHash, messagesScroll, tick } = opts;
     const anchorHeight = messagesScroll?.scrollHeight || 0;
     const anchorTop = messagesScroll?.scrollTop || 0;
     try {
+        const afterId = oldestMessageId(chatItems, peerHash);
+        // First page may have been warmed by a sidebar hover/focus prefetch
+        // or stashed by the last open of this peer.
+        const prefetched = afterId == null ? takeConversationPrefetch(peerHash) : null;
+        const prefetchedData = prefetched ? ((await prefetched) as { data?: unknown } | null)?.data : null;
         const page = await fetchConversationPage(
             api,
             peerHash,
             myLxmfAddressHash,
-            oldestMessageId(chatItems, peerHash)
+            afterId,
+            prefetchedData ?? undefined
         );
         if (!sameHash(peerHash, currentSelectedHash)) {
             return null;
+        }
+        // Keep the newest page warm so re-opening this peer paints
+        // instantly; live resync merges anything newer afterwards.
+        // Cached pages are not restashed here: that would renew the stale
+        // TTL. The soft resync stashes the fresh page instead.
+        if (afterId == null && !page.paintedFromCache) {
+            stashConversationFirstPage(peerHash, page.data);
         }
         const merged = prependConversationPage(chatItems, page.items);
         await tick();
@@ -209,8 +223,9 @@ export async function runLoadPreviousPage(opts: {
         return {
             items: merged.items,
             hasMorePrevious: page.hasMore && merged.added > 0,
+            paintedFromCache: page.paintedFromCache,
         };
     } catch {
-        return { items: chatItems, hasMorePrevious: false };
+        return { items: chatItems, hasMorePrevious: false, paintedFromCache: false };
     }
 }
