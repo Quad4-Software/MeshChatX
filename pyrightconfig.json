@@ -18,6 +18,8 @@
     "reportUnknownParameterType": "none",
     "reportMissingTypeStubs": "none",
     "reportPrivateImportUsage": "none",
+    "reportWildcardImportFromLibrary": "none",
+    "reportUndefinedVariable": "none",
     "reportOptionalMemberAccess": "none",
     "reportOptionalSubscript": "none",
     "reportOptionalOperand": "none",

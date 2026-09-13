@@ -1,31 +1,38 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: 0BSD
+
+"""Package init for meshchatx.src.
+
+Wraps process stdout and stderr so each write is flushed. Electron and other
+host processes that read child stdout via data events need this so log lines
+arrive before process exit.
+"""
+
+from __future__ import annotations
 
 import sys
-
-# NOTE: this class is required to be able to use print/log commands and have them flush to stdout and stderr immediately
-# without wrapper stdout and stderr, when using childProcess.stdout.on(data) in NodeJS script, we never get
-# any events fired until the process exits. However, force flushing the streams does fire the callbacks in NodeJS.
+from typing import Any, TextIO
 
 
-# this class forces stream writes to be flushed immediately
-class ImmediateFlushingStreamWrapper:
-    def __init__(self, stream):
-        self.stream = stream
+class _LineFlushStream:
+    """Proxy that flushes the underlying TextIO after every write."""
 
-    # force write to flush immediately
-    def write(self, data):
-        self.stream.write(data)
-        self.stream.flush()
+    __slots__ = ("_inner",)
 
-    # force writelines to flush immediately
-    def writelines(self, lines):
-        self.stream.writelines(lines)
-        self.stream.flush()
+    def __init__(self, inner: TextIO) -> None:
+        self._inner = inner
 
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
+    def write(self, data: str) -> int:
+        written = self._inner.write(data)
+        self._inner.flush()
+        return written
+
+    def writelines(self, lines: list[str]) -> None:
+        self._inner.writelines(lines)
+        self._inner.flush()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
 
 
-# wrap stdout and stderr with our custom wrapper
-sys.stdout = ImmediateFlushingStreamWrapper(sys.stdout)
-sys.stderr = ImmediateFlushingStreamWrapper(sys.stderr)
+sys.stdout = _LineFlushStream(sys.stdout)  # type: ignore[assignment]
+sys.stderr = _LineFlushStream(sys.stderr)  # type: ignore[assignment]

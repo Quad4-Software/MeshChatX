@@ -89,7 +89,7 @@ def _pypi_project_json(canonical_name: str) -> dict[str, Any] | None:
     url = f"https://pypi.org/pypi/{safe}/json"
     req = urllib.request.Request(url, headers={"User-Agent": _PYPI_USER_AGENT})  # noqa: S310 - pinned https PyPI endpoint
     try:
-        with urllib.request.urlopen(req, timeout=90) as resp:  # noqa: S310 - pinned https PyPI endpoint
+        with urllib.request.urlopen(req, timeout=90) as resp:  # nosec: BAN-B310 - pinned https PyPI endpoint
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -142,7 +142,7 @@ def _download_http_to_file(url: str, dest_path: Path, timeout: float = 900.0) ->
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     part = dest_path.with_name(dest_path.name + ".part")
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - PyPI artifact URL
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec: BAN-B310 - PyPI artifact URL
             data = resp.read()
         part.write_bytes(data)
         part.replace(dest_path)

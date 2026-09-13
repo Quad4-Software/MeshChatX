@@ -2,6 +2,8 @@
 
 import { describe, it, expect } from "vitest";
 import JSZip from "jszip";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
 import {
     isAllowedDataImageHref,
     isRemoteHref,
@@ -158,6 +160,22 @@ describe("kmlSanitize oracle", () => {
         const payload = getDrawFeatureMetadataPayload(features[0]);
         expect(payload.extended.some((r) => r.key === "AttackType" && r.value === "Vandalism")).toBe(true);
         expect(payload.extended.some((r) => /null/i.test(r.value))).toBe(false);
+    });
+
+    it("repairs mashed entity descriptions already stored on features", () => {
+        const f = new Feature({
+            geometry: new Point([0, 0]),
+            name: "HumanTrafficking",
+            description:
+                "AttackType:&lt;Null&gt;Date:&lt;Null&gt;Notes:Memorial defaced function changeImage(attElement, nameElement) { document.getElementById('imageAttachment').src = attElement; }",
+        });
+        const payload = getDrawFeatureMetadataPayload(f);
+        expect(payload.name).toBe("HumanTrafficking");
+        expect(payload.descriptionIsHtml).toBe(false);
+        expect(payload.extended.some((r) => r.key === "Notes" && r.value === "Memorial defaced")).toBe(true);
+        expect(payload.extended.some((r) => /null/i.test(r.value))).toBe(false);
+        expect(String(payload.description || "").toLowerCase()).not.toContain("changeimage");
+        expect(String(payload.description || "")).not.toContain("&lt;");
     });
 
     it("skips unreferenced svg kmz entry and keeps placemarks", async () => {

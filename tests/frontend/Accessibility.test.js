@@ -1,20 +1,9 @@
-import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 import "../../meshchatx/src/frontend/js/KeyboardShortcuts";
 
-// Mock Vuetify components that might be used
-const VBtn = {
-    template: '<button class="v-btn"><slot /></button>',
-};
-
-const VTextField = {
-    template: '<div class="v-text-field"><input class="v-field__input" /></div>',
-};
-
 describe("UI Accessibility and Keyboard Navigation", () => {
     beforeEach(() => {
-        // Reset document state
         document.body.innerHTML = "";
         vi.clearAllMocks();
     });
@@ -27,7 +16,6 @@ describe("UI Accessibility and Keyboard Navigation", () => {
             { key: "1", altKey: true, action: "nav_messages" },
             { key: "s", altKey: true, action: "nav_settings" },
         ];
-
         for (const shortcut of shortcuts) {
             const event = new KeyboardEvent("keydown", {
                 key: shortcut.key,
@@ -39,7 +27,6 @@ describe("UI Accessibility and Keyboard Navigation", () => {
             window.dispatchEvent(event);
             expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", shortcut.action);
         }
-
         const ctrlK = new KeyboardEvent("keydown", {
             key: "k",
             ctrlKey: true,
@@ -53,14 +40,9 @@ describe("UI Accessibility and Keyboard Navigation", () => {
 
     it("ensures shortcuts are ignored in inputs without modifiers", async () => {
         const emitSpy = vi.spyOn(GlobalEmitter, "emit");
-
-        // Create an input and focus it
         const input = document.createElement("input");
         document.body.appendChild(input);
         input.focus();
-
-        // Trigger a key that matches a shortcut action name or similar (if any existed without modifiers)
-        // For now, let's just verify that Alt+1 still works in an input
         const navEvent = new KeyboardEvent("keydown", {
             key: "1",
             altKey: true,
@@ -69,24 +51,15 @@ describe("UI Accessibility and Keyboard Navigation", () => {
         });
         window.dispatchEvent(navEvent);
         expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "nav_messages");
-
-        // Verify a plain key doesn't trigger anything (though none of our defaults are plain keys)
     });
 
-    it("checks for ARIA labels on critical buttons", async () => {
-        // We can mount a component and check for accessibility attributes
-        const TestComponent = {
-            template: `
+    it("checks for ARIA labels on critical buttons", () => {
+        document.body.innerHTML = `
         <div>
           <button aria-label="Send Message" class="send-btn">Icon Only</button>
           <button class="named-btn">Delete</button>
-        </div>
-      `,
-        };
-
-        const wrapper = mount(TestComponent);
-        const sendBtn = wrapper.find(".send-btn");
-
-        expect(sendBtn.attributes("aria-label")).toBe("Send Message");
+        </div>`;
+        const sendBtn = document.querySelector(".send-btn");
+        expect(sendBtn.getAttribute("aria-label")).toBe("Send Message");
     });
 });

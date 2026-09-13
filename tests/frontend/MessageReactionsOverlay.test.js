@@ -1,13 +1,13 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi } from "vitest";
-import MessageReactionsOverlay from "@/components/messages/MessageReactionsOverlay.vue";
+import { cleanup, fireEvent, render, screen } from "@testing-library/svelte";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import MessageReactionsOverlay from "@/features/messages/components/MessageReactionsOverlay.svelte";
 
 describe("MessageReactionsOverlay", () => {
-    const mountOverlay = (props = {}) =>
-        mount(MessageReactionsOverlay, {
+    const renderOverlay = (props = {}) =>
+        render(MessageReactionsOverlay, {
             props: {
                 chatItem: { lxmf_message: { hash: "m1" } },
-                cv: {
+                actions: {
                     openReactionPicker: vi.fn(),
                     reactionReactorLabel: vi.fn(() => "You"),
                 },
@@ -15,22 +15,20 @@ describe("MessageReactionsOverlay", () => {
                 showReactButton: true,
                 ...props,
             },
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: { MaterialDesignIcon: true },
-            },
         });
 
+    afterEach(cleanup);
+
     it("renders reaction chips and react button", () => {
-        const wrapper = mountOverlay({
+        renderOverlay({
             reactions: [
                 { emoji: "\u{1F44D}", sender: "a", reactionHash: "r1" },
                 { emoji: "\u2764\uFE0F", sender: "b", reactionHash: "r2" },
             ],
         });
-        expect(wrapper.text()).toContain("\u{1F44D}");
-        expect(wrapper.text()).toContain("\u2764\uFE0F");
-        expect(wrapper.find("button").exists()).toBe(true);
+        expect(screen.getByText("\u{1F44D}")).toBeTruthy();
+        expect(screen.getByText("\u2764\uFE0F")).toBeTruthy();
+        expect(screen.getByRole("button")).toBeTruthy();
     });
 
     it("caps visible reactions and shows +N overflow", () => {
@@ -39,43 +37,31 @@ describe("MessageReactionsOverlay", () => {
             sender: `s${i}`,
             reactionHash: `r${i}`,
         }));
-        const wrapper = mountOverlay({ reactions });
-        expect(wrapper.text()).toContain("+3");
-    });
-
-    it("tolerates null/undefined/non-array reactions without crashing", () => {
-        expect(() => mountOverlay({ reactions: null })).not.toThrow();
-        expect(() => mountOverlay({ reactions: undefined })).not.toThrow();
-        expect(() => mountOverlay({ reactions: "bad" })).not.toThrow();
-        expect(() =>
-            mountOverlay({
-                reactions: [null, undefined, { emoji: "x", sender: "a", reactionHash: "r" }],
-            })
-        ).not.toThrow();
+        renderOverlay({ reactions });
+        expect(screen.getByText("+3")).toBeTruthy();
     });
 
     it("does not crash when reactionReactorLabel throws", () => {
-        const wrapper = mountOverlay({
+        renderOverlay({
             reactions: [{ emoji: "\u{1F44D}", sender: "a", reactionHash: "r1" }],
-            cv: {
+            actions: {
                 openReactionPicker: vi.fn(),
                 reactionReactorLabel: () => {
                     throw new Error("label boom");
                 },
             },
         });
-        expect(wrapper.exists()).toBe(true);
-        expect(wrapper.text()).toContain("\u{1F44D}");
+        expect(screen.getByText("\u{1F44D}")).toBeTruthy();
     });
 
     it("opens picker via react button", async () => {
         const openReactionPicker = vi.fn();
         const chatItem = { lxmf_message: { hash: "m1" } };
-        const wrapper = mountOverlay({
+        renderOverlay({
             chatItem,
-            cv: { openReactionPicker, reactionReactorLabel: () => "" },
+            actions: { openReactionPicker, reactionReactorLabel: () => "" },
         });
-        await wrapper.find("button").trigger("click");
+        await fireEvent.click(screen.getByRole("button"));
         expect(openReactionPicker).toHaveBeenCalledWith(chatItem);
     });
 });

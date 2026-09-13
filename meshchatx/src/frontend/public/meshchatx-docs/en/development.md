@@ -13,7 +13,6 @@ Contributor workflow: install, format, lint, test, version bumps, and adding loc
 
 ```bash
 task install
-task hooks:install   # pre-commit format/lint + commitlint (once per clone)
 task format
 task lint
 task test
@@ -22,18 +21,21 @@ task build
 
 Makefile targets call the same Taskfile commands:
 
-| Command              | Delegates to       | Description                                                 |
-| -------------------- | ------------------ | ----------------------------------------------------------- |
-| make install         | task install       | Install pnpm and UV dependencies                            |
-| make run             | task run           | Run MeshChatX via UV                                        |
-| make build           | task build         | Build frontend and backend artifacts                        |
-| make format          | task format        | Format frontend and backend                                 |
-| make lint            | task lint          | ESLint, vue-tsc, knip, Ruff, basedpyright                   |
-| make test            | task test          | Frontend and backend tests                                  |
-| make clean           | task clean         | Remove build artifacts and node_modules                     |
-| make tree-rsm-verify | (shell)            | Verify meshchatx.rsm signature and hashes                   |
-| make tree-rsm-sign   | (shell)            | Sign tree inventory (needs RNS_ID_PATH)                     |
-| make hooks-install   | task hooks:install | Git hooks: format/lint staged files, commitlint, RSM resign |
+| Command      | Delegates to | Description                                                         |
+| ------------ | ------------ | ------------------------------------------------------------------- |
+| make install | task install | Install pnpm and UV dependencies                                    |
+| make run     | task run     | Run MeshChatX via UV                                                |
+| make build   | task build   | Build frontend and backend artifacts                                |
+| make format  | task format  | Format frontend and backend                                         |
+| make lint    | task lint    | oxlint, ESLint, svelte-check, knip, dpdm cycles, Ruff, basedpyright |
+
+`task lint:frontend` also runs oxlint (JS/TS), then ESLint (incl. Svelte), `typecheck:features` (strict Svelte/features), full Prettier `format:check`, and circular-dep analysis via dpdm. After `pnpm run build-frontend`, run `task check:frontend-bundle` (or `pnpm run check:bundle-budgets`) to enforce Vite chunk size budgets.
+
+OpenAPI core contract for high-risk UI routes lives in `openapi/meshchatx-ui-core.yaml` (`task test:openapi`). Optional live Schemathesis needs `MESHCHAT_OPENAPI_LIVE=1`. Electron shell smoke is `task test:e2e:electron`. Browser-mode Svelte smoke is `task test:browser`.
+| make test | task test | Frontend and backend tests |
+| make clean | task clean | Remove build artifacts and node_modules |
+| make tree-rsm-verify | (shell) | Verify meshchatx.rsm signature and hashes |
+| make tree-rsm-sign | (shell) | Sign tree inventory (needs RNS_ID_PATH) |
 
 For a Vite HMR loop, use task dev as described in **Installation and setup**.
 
@@ -62,11 +64,13 @@ To update dependencies on purpose, run pnpm update or uv lock in its own commit 
 
 ## Versioning
 
-Edit the version field in package.json, then run pnpm run version:sync (also the first step of pnpm run build). That copies the number into pyproject.toml, the Python version modules, Android Gradle, electron/app-version.json, the README and translated READMEs, the Raspberry Pi pipx example, Arch PKGBUILD helpers, third-party notices, and GitHub issue-template placeholders.
+Edit the version field in package.json, then run pnpm run version:sync (also the first step of pnpm run build). That copies the number into pyproject.toml, the Python version modules, Android Gradle, electron/app-version.json, Arch PKGBUILD helpers, and third-party notices. Docs, READMEs and issue templates do not carry the version.
 
 pnpm run version:sync also runs scripts/bake_build_meta.js, which writes gitignored _build_meta_baked.py with commit, product channel (testing / beta / stable / local), and release/channel_prompt.json. Override channel with MESHCHATX_BUILD_CHANNEL.
 
 Changelog entries are still written by hand when you cut a release. meshchatx.**version** is read from meshchatx/src/version.py without importing meshchatx.src, so import meshchatx stays lightweight.
+
+For rngit releases, scripts/rngit_release.py builds the wheel and pyz into python-dist/, signs and uploads them to the release remote, and verifies the manifest afterwards. Run python3 scripts/rngit_release.py --help for the commands (list, view, fetch, verify, create, delete, release) and the environment overrides.
 
 ## Release channels
 

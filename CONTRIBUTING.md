@@ -28,10 +28,10 @@ Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches
 
 ### Code style
 
-| Surface  | Tool                            | Task                                     |
-| -------- | ------------------------------- | ---------------------------------------- |
-| Python   | Ruff                            | task format:backend, task lint:backend   |
-| Frontend | Prettier, ESLint, vue-tsc, knip | task format:frontend, task lint:frontend |
+| Surface  | Tool                                                                | Task                                                                                            |
+| -------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Python   | Ruff                                                                | task format:backend, task lint:backend                                                          |
+| Frontend | Prettier (incl. Svelte), oxlint (JS/TS), ESLint, svelte-check, knip | task format:frontend, task lint:frontend (`task check:svelte` / `pnpm run format:check:svelte`) |
 
 Editor baseline: .editorconfig. Agent conventions: .agents/conventions/.
 
@@ -87,8 +87,8 @@ Lastly, be patient.
 By submitting a patch, you agree that your contribution is licensed under the same terms as the file or files it modifies, as recorded by the per-file SPDX headers and the repository LICENSE:
 
 - Contributions to project-owned files (SPDX 0BSD) are licensed under 0BSD.
-- Contributions to upstream-derived files (SPDX MIT or 0BSD AND MIT) are licensed under MIT, so the upstream license obligations are preserved.
 - New files you author and add to the project are licensed under 0BSD unless you explicitly mark them otherwise in the patch.
+- Do not strip or relicense third-party embeds (for example able, usb4a, rnode-flasher) that retain their own SPDX or LICENSE files.
 
 You also confirm that you have the right to submit the contribution under these terms (for example, it is your own work, or you have permission from the copyright holder), and that you are not knowingly introducing code under an incompatible license.
 

@@ -44,11 +44,11 @@ describe("boot and load smoothness", () => {
     });
 
     it("main.js defers splash removal and preloads critical routes", () => {
-        const main = readFileSync(resolve(ROOT, "meshchatx/src/frontend/main.js"), "utf8");
+        const main = readFileSync(resolve(ROOT, "meshchatx/src/frontend/main.ts"), "utf8");
         expect(main).toContain("removeBootSplash");
         expect(main).toContain("requestAnimationFrame");
         expect(main).toContain("preloadCriticalRouteChunks");
-        expect(main).toContain('import("./components/messages/MessagesPage.vue")');
+        expect(main).toContain('import("./features/messages/MessagesPage.svelte")');
         expect(main).toContain("ElectronUtils.isElectron()");
         expect(main).toContain("serviceWorkerRegisterOptions");
         expect(main).toContain("decideControllerChangeReload");
@@ -56,11 +56,30 @@ describe("boot and load smoothness", () => {
         expect(main).toContain("import.meta.env.DEV");
     });
 
-    it("App.vue fades non-keepAlive route swaps on canvas background", () => {
-        const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/components/App.vue"), "utf8");
-        const themeEngine = readFileSync(resolve(ROOT, "meshchatx/src/frontend/theme/themeEngine.js"), "utf8");
-        expect(app).toContain('name="route-view-fade"');
+    it("App.svelte shell uses canvas background for route content", () => {
+        const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/features/app-shell/App.svelte"), "utf8");
+        const themeEngine = readFileSync(resolve(ROOT, "meshchatx/src/frontend/theme/themeEngine.ts"), "utf8");
+        const derived = readFileSync(
+            resolve(ROOT, "meshchatx/src/frontend/features/app-shell/lib/appShellDerived.ts"),
+            "utf8"
+        );
+        const outlet = readFileSync(resolve(ROOT, "meshchatx/src/frontend/shell/PageOutlet.svelte"), "utf8");
+        expect(app).toContain("shellCanvasStyle");
         expect(app).toContain("bg-sem-canvas");
+        expect(app).not.toContain("transition-colors");
+        expect(app.match(/<PageOutlet/g)?.length).toBe(2);
+        expect(derived).toContain("state.config || {}");
+        expect(outlet).toContain("pageOutletMountKey");
+        expect(outlet).toContain("visibility");
+        expect(outlet).toContain("untrack");
+        expect(outlet).toContain("effect_update_depth_exceeded");
+        expect(
+            readFileSync(
+                resolve(ROOT, "meshchatx/src/frontend/features/app-shell/components/AppShellHeaderBar.svelte"),
+                "utf8"
+            )
+        ).toContain("bg-sem-canvas");
+        expect(app).toContain("PageOutlet");
         expect(themeEngine).toContain("setUiTheme");
         expect(themeEngine).toContain("meshchatx_ui_theme");
     });

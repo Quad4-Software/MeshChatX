@@ -195,7 +195,7 @@ def create_auth_middleware(app):
             return await handler(request)
 
         # Allow CSRF bootstrap and auth status while the network stack starts so the
-        # Vue shell can load and show an in-app waiting state.
+        # Svelte shell can load and show an in-app waiting state.
         if path in (
             API_V1_PREFIX + "/auth/csrf",
             API_V1_PREFIX + "/auth/status",

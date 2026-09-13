@@ -1,6 +1,6 @@
 /**
  * UI page catalog for smoke + Lighthouse audits.
- * Paths are Vue hash routes (without the leading #).
+ * Paths are hash routes (without the leading #).
  * Lighthouse always runs against production-built assets (playwright.lighthouse.config.js).
  */
 

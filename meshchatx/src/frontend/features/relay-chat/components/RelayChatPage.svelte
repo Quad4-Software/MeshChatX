@@ -1,0 +1,991 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
+<script lang="ts">
+    import { onMount, onDestroy, tick } from "svelte";
+    import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import GlobalState from "../../../js/GlobalState.js";
+    import GlobalEmitter from "../../../js/GlobalEmitter.js";
+    import WebSocketConnection from "../../../js/WebSocketConnection.js";
+    import DialogUtils from "../../../js/DialogUtils.js";
+    import ToastUtils from "../../../js/ToastUtils.js";
+    import MarkdownRenderer from "../../../js/MarkdownRenderer.js";
+    import { t } from "../../../js/i18n.js";
+    import {
+        buildRelayMessageTimeline,
+        mergeRelayMessages,
+        relayMessageKey,
+    } from "../../../js/relayMessageTimeline.js";
+    import { loadRelayLayout, saveRelayLayout } from "../../../js/relayLayoutStore.js";
+    import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../../js/browserLayoutStore.js";
+    import { buildRelayShareMessage, RRC_HUB_ASPECT } from "../../../js/relayLinkUtils.js";
+    import RelayChatHeader from "./RelayChatHeader.svelte";
+    import RelayHubSidebar from "./RelayHubSidebar.svelte";
+    import RelayMembersPanel from "./RelayMembersPanel.svelte";
+    import RelaySearchPanel from "./RelaySearchPanel.svelte";
+    import RelayMessageComposer from "./RelayMessageComposer.svelte";
+    import RelayMessageListVirtual from "./RelayMessageListVirtual.svelte";
+    import RelayDiscoveryView from "./RelayDiscoveryView.svelte";
+    import RelayHostView from "./RelayHostView.svelte";
+    import RelayHostModerationPage from "./RelayHostModerationPage.svelte";
+    import RelayBotsPage from "./RelayBotsPage.svelte";
+    import RelaySearchPage from "./RelaySearchPage.svelte";
+    import RelayChatModals from "./RelayChatModals.svelte";
+    import { MIN_VIRTUAL_RELAY_ENTRIES } from "../lib/constants.js";
+    import { orderedKnownRoomNames, roomUnreadCount } from "../lib/relayFormatters.js";
+    import type {
+        RrcDiscoveredHub,
+        RrcHostedHub,
+        RrcHub,
+        RrcKnownHub,
+        RrcMember,
+        RrcMessage,
+        RrcRoom,
+        RrcTimelineEntry,
+    } from "../lib/types.js";
+
+    interface Props {
+        hubHash?: string | null;
+        room?: string | null;
+        isPopout?: boolean;
+    }
+
+    let { hubHash = null, room = null, isPopout = false }: Props = $props();
+
+    type RelayView = "chat" | "discovery" | "host" | "moderation" | "bots" | "search";
+
+    let view = $state<RelayView>("chat");
+    let viewBeforeRoomOpen = $state<RelayView | null>(null);
+    let sidebarCollapsed = $state(false);
+    let hubs = $state<RrcHub[]>([]);
+    let selectedHubHash = $state<string | null>(null);
+    let selectedRoomName = $state<string | null>(null);
+    let expandedHubs = $state<Record<string, boolean>>({});
+    let messagesMap = $state<Record<string, RrcMessage[]>>({});
+    let membersMap = $state<Record<string, RrcMember[]>>({});
+    let discoveredHubs = $state<RrcDiscoveredHub[]>([]);
+    let hostedHub = $state<RrcHostedHub | null>(null);
+    let showMembersPanel = $state(false);
+    let showSearchPanel = $state(false);
+    let expandedPresenceGroups = $state<Record<string, boolean>>({});
+
+    // Modals
+    let showAddHubModal = $state(false);
+    let showCreateHostModal = $state(false);
+    let showHubSettingsModal = $state(false);
+    let showRoomKeyModal = $state(false);
+    let editingHub = $state<RrcHub | null>(null);
+    let pendingKeyRoom = $state<{ hub: RrcHub; room: string } | null>(null);
+    let sidebarMenu = $state<{ show: boolean; x: number; y: number; hub?: RrcHub | null; room?: string | null }>({
+        show: false,
+        x: 0,
+        y: 0,
+    });
+    let messageMenu = $state<{ show: boolean; x: number; y: number; msg?: RrcMessage | null }>({
+        show: false,
+        x: 0,
+        y: 0,
+    });
+
+    let scrollContainerEl = $state<HTMLDivElement | null>(null);
+    let virtualListEl = $state<RelayMessageListVirtual | null>(null);
+
+    const rrcEnabled = $derived(GlobalState.config?.rrc_enabled ?? true);
+
+    const tabs = [
+        { id: "chat", label: "relay_chat.tab_chat", icon: "forum" },
+        { id: "discovery", label: "relay_chat.tab_discovery", icon: "compass" },
+        { id: "host", label: "relay_chat.tab_host", icon: "server" },
+        { id: "bots", label: "relay_chat.tab_bots", icon: "robot" },
+        { id: "search", label: "relay_chat.tab_search", icon: "magnify" },
+    ] as const;
+
+    // Below md these collapse into the overflow menu so the tab bar never
+    // scrolls horizontally on phones. Chat and Discovery stay pinned.
+    const OVERFLOW_TAB_IDS = new Set<string>(["host", "bots", "search"]);
+    const overflowTabs = tabs.filter((tab) => OVERFLOW_TAB_IDS.has(tab.id));
+    const overflowViewTab = $derived(overflowTabs.find((tab) => tab.id === view) || null);
+    const isOverflowView = $derived(overflowViewTab !== null);
+    const overflowViewIcon = $derived(overflowViewTab?.icon || "dots-horizontal");
+    let overflowMenuOpen = $state(false);
+
+    const selectedHub = $derived.by(() => {
+        return hubs.find((h) => h.hub_hash === selectedHubHash) || null;
+    });
+
+    const selectedRoom = $derived.by((): RrcRoom | null => {
+        if (!selectedHub || !selectedRoomName) return null;
+        const stored = Array.isArray(selectedHub.stored_key_rooms) ? selectedHub.stored_key_rooms : [];
+        return {
+            name: selectedRoomName,
+            unread: roomUnreadCount(selectedHub, selectedRoomName),
+            has_key: stored.includes(selectedRoomName),
+        };
+    });
+
+    const currentRoomKey = $derived.by(() => {
+        if (!selectedHubHash || !selectedRoomName) return "";
+        return `${selectedHubHash}:${selectedRoomName}`;
+    });
+
+    const currentMessages = $derived.by(() => {
+        return messagesMap[currentRoomKey] || [];
+    });
+
+    const currentMembers = $derived.by(() => {
+        return membersMap[currentRoomKey] || [];
+    });
+
+    const timelineEntries = $derived.by((): RrcTimelineEntry[] => {
+        return buildRelayMessageTimeline(currentMessages as any) as unknown as RrcTimelineEntry[];
+    });
+
+    const useVirtualMessageList = $derived(timelineEntries.length >= MIN_VIRTUAL_RELAY_ENTRIES);
+
+    const canModerateSelectedHub = $derived(!!(selectedHub?.is_operator || selectedHub?.is_founder));
+
+    const botsKnownHubs = $derived.by((): RrcKnownHub[] => {
+        const seen = new Set<string>();
+        const out: RrcKnownHub[] = [];
+        if (hostedHub?.hub_hash && !seen.has(hostedHub.hub_hash)) {
+            seen.add(hostedHub.hub_hash);
+            out.push({ hash: hostedHub.hub_hash, name: hostedHub.name || "" });
+        }
+        for (const h of hubs) {
+            const hash = h.hub_hash;
+            if (hash && !seen.has(hash)) {
+                seen.add(hash);
+                out.push({
+                    hash,
+                    name: String(h.display_name || h.custom_display_name || h.name || ""),
+                });
+            }
+        }
+        return out;
+    });
+
+    function formatDateDividerLabel(dayKey?: string): string {
+        return dayKey || "";
+    }
+
+    function isPresenceGroupExpanded(id?: string): boolean {
+        return !!(id && expandedPresenceGroups[id]);
+    }
+
+    function togglePresenceGroup(id?: string) {
+        if (id) expandedPresenceGroups[id] = !expandedPresenceGroups[id];
+    }
+
+    function formatPresenceGroupSummary(entry: RrcTimelineEntry): string {
+        const count = entry.messages?.length || 0;
+        return `${count} presence events`;
+    }
+
+    function renderMessageHtml(text: string): string {
+        return MarkdownRenderer.renderBasic(text || "");
+    }
+
+    async function fetchHubs() {
+        const api = (window as any).api;
+        if (!api) return;
+        try {
+            const res = await api.get("/api/v1/rrc/hubs");
+            hubs = res.data?.hubs || [];
+        } catch {
+            hubs = [];
+        }
+    }
+
+    async function fetchHostedHub() {
+        const api = (window as any).api;
+        if (!api) return;
+        try {
+            const res = await api.get("/api/v1/rrc/servers/active");
+            hostedHub = res.data?.server || null;
+        } catch {
+            hostedHub = null;
+        }
+    }
+
+    async function fetchDiscoveredHubs() {
+        const api = (window as any).api;
+        if (!api) return;
+        try {
+            const res = await api.get("/api/v1/announces", {
+                params: { aspect: RRC_HUB_ASPECT },
+            });
+            discoveredHubs = res.data?.announces || [];
+        } catch {
+            discoveredHubs = [];
+        }
+    }
+
+    async function loadRoomMessages(hubH: string, rName: string) {
+        const api = (window as any).api;
+        if (!api) return;
+        try {
+            const res = await api.get(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(rName)}/messages`);
+            const msgs = res.data?.messages || [];
+            messagesMap[`${hubH}:${rName}`] = msgs;
+            await tick();
+            scrollToBottom();
+        } catch {
+            // failed
+        }
+    }
+
+    async function loadRoomMembers(hubH: string, rName: string) {
+        const api = (window as any).api;
+        if (!api) return;
+        try {
+            const res = await api.get(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(rName)}/messages`);
+            membersMap[`${hubH}:${rName}`] = res.data?.members || [];
+        } catch {
+            // failed
+        }
+    }
+
+    export function openSearchResult(target: { hubHash: string; room: string }) {
+        if (!target?.hubHash || !target?.room) {
+            return;
+        }
+        const hubObj = hubs.find((h) => h.hub_hash === target.hubHash);
+        if (!hubObj) {
+            // The hub is not in the local list (never added or disconnected),
+            // so selecting it would leave the pane blank with no feedback.
+            ToastUtils.warning(t("relay_chat.hub_not_added"));
+            return;
+        }
+        // Capture before the switch so backing out returns to Search.
+        viewBeforeRoomOpen = view;
+        view = "chat";
+        selectRoom(hubObj, { name: target.room });
+        persistLayout();
+    }
+
+    export function onBackFromRoom() {
+        selectedRoomName = null;
+        restoreViewAfterRoomClose();
+    }
+
+    function restoreViewAfterRoomClose() {
+        if (viewBeforeRoomOpen && viewBeforeRoomOpen !== view) {
+            view = viewBeforeRoomOpen;
+        }
+        viewBeforeRoomOpen = null;
+    }
+
+    export function selectRoom(hubObj: RrcHub, roomObj: RrcRoom) {
+        if (selectedRoomName === null && viewBeforeRoomOpen == null) {
+            viewBeforeRoomOpen = view;
+        }
+        selectedHubHash = hubObj.hub_hash;
+        selectedRoomName = roomObj.name;
+        expandedHubs[hubObj.hub_hash] = true;
+        loadRoomMessages(hubObj.hub_hash, roomObj.name);
+        loadRoomMembers(hubObj.hub_hash, roomObj.name);
+        persistLayout();
+    }
+
+    function scrollToBottom() {
+        if (useVirtualMessageList) {
+            virtualListEl?.scrollToBottom();
+        } else if (scrollContainerEl) {
+            scrollContainerEl.scrollTop = scrollContainerEl.scrollHeight;
+        }
+    }
+
+    function handleSendMessage(text: string) {
+        if (!selectedHubHash || !selectedRoomName) return;
+        WebSocketConnection.send({
+            type: "rrc.send_message",
+            hub_hash: selectedHubHash,
+            room: selectedRoomName,
+            text,
+        });
+    }
+
+    async function handleAddHub(hubH: string, name: string, autoReconnect: boolean, icon: string) {
+        showAddHubModal = false;
+        const api = (window as any).api;
+        if (!api) return;
+        try {
+            await api.post("/api/v1/rrc/hubs", {
+                hub_hash: hubH,
+                display_name: name || null,
+                auto_reconnect: autoReconnect,
+                icon,
+            });
+            ToastUtils.success(t("relay_chat.hub_added"));
+            fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
+
+    async function handleRemoveHub(hubObj: RrcHub) {
+        sidebarMenu.show = false;
+        if (
+            await DialogUtils.confirm(
+                t("relay_chat.remove_hub_confirm", { name: hubObj.display_name || hubObj.hub_hash })
+            )
+        ) {
+            const api = (window as any).api;
+            if (!api) return;
+            try {
+                await api.delete(`/api/v1/rrc/hubs/${hubObj.hub_hash}`);
+                ToastUtils.success(t("relay_chat.hub_removed"));
+                if (selectedHubHash === hubObj.hub_hash) {
+                    selectedHubHash = null;
+                    selectedRoomName = null;
+                }
+                fetchHubs();
+            } catch (e: any) {
+                ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+            }
+        }
+    }
+
+    function handleWsMessage(event: CustomEvent) {
+        const data = event.detail;
+        if (!data) return;
+
+        if (data.type === "rrc.room_message" && data.hub_hash && data.room && data.message) {
+            const key = `${data.hub_hash}:${data.room}`;
+            const existing = messagesMap[key] || [];
+            messagesMap[key] = mergeRelayMessages(existing, [data.message]) as any;
+            if (key === currentRoomKey) {
+                tick().then(scrollToBottom);
+            }
+        } else if (data.type === "rrc.hubs_updated" || data.type === "rrc.hub_status_changed") {
+            fetchHubs();
+        } else if (data.type === "rrc.room_members_updated" && data.hub_hash && data.room) {
+            membersMap[`${data.hub_hash}:${data.room}`] = data.members || [];
+        }
+    }
+
+    function persistLayout() {
+        saveRelayLayout({
+            selectedHubHash,
+            selectedRoomName,
+            expandedHubs,
+            view: view === "moderation" ? "host" : view,
+        });
+    }
+
+    function onIdentitySwitched() {
+        hubs = [];
+        selectedHubHash = null;
+        selectedRoomName = null;
+        viewBeforeRoomOpen = null;
+        messagesMap = {};
+        membersMap = {};
+        fetchHubs();
+        fetchHostedHub();
+        fetchDiscoveredHubs();
+    }
+
+    onMount(() => {
+        sidebarCollapsed = loadFeatureSidebarCollapsed("relayChat") ?? false;
+        fetchHubs();
+        fetchHostedHub();
+        fetchDiscoveredHubs();
+        GlobalEmitter.on("ws-message", handleWsMessage);
+        GlobalEmitter.on("identity-switched", onIdentitySwitched);
+
+        const saved = loadRelayLayout();
+        if (saved) {
+            if (saved.selectedHubHash) selectedHubHash = saved.selectedHubHash;
+            if (saved.selectedRoomName) selectedRoomName = saved.selectedRoomName;
+            if (saved.expandedHubs) expandedHubs = saved.expandedHubs;
+        }
+
+        if (hubHash) {
+            selectedHubHash = hubHash;
+            if (room) selectedRoomName = room;
+            expandedHubs[hubHash] = true;
+        }
+    });
+
+    onDestroy(() => {
+        GlobalEmitter.off("ws-message", handleWsMessage);
+        GlobalEmitter.off("identity-switched", onIdentitySwitched);
+        persistLayout();
+        window.api.post("/api/v1/rrc/active/clear").catch(() => {});
+    });
+
+    async function onReorderHubs(fromIdx: number, toIdx: number) {
+        if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= hubs.length || toIdx >= hubs.length) {
+            return;
+        }
+        const next = [...hubs];
+        const [moved] = next.splice(fromIdx, 1);
+        next.splice(toIdx, 0, moved);
+        hubs = next;
+        try {
+            await window.api.put("/api/v1/rrc/hubs/order", {
+                hub_hashes: hubs.map((h) => h.hub_hash),
+            });
+        } catch (e: any) {
+            ToastUtils.error(e?.response?.data?.message || t("relay_chat.action_failed"));
+            await fetchHubs();
+        }
+    }
+
+    function onReorderRooms(hub: RrcHub, fromIdx: number, toIdx: number) {
+        if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) {
+            return;
+        }
+        const current = hubs.find((h) => h.hub_hash === hub.hub_hash);
+        if (!current) {
+            return;
+        }
+        const rooms = orderedKnownRoomNames(current);
+        if (fromIdx >= rooms.length || toIdx >= rooms.length) {
+            return;
+        }
+        const nextRooms = [...rooms];
+        const [moved] = nextRooms.splice(fromIdx, 1);
+        nextRooms.splice(toIdx, 0, moved);
+        hubs = hubs.map((h) => (h.hub_hash === hub.hub_hash ? { ...h, known_rooms: nextRooms } : h));
+    }
+
+    async function onPersistRoomOrder(hub: RrcHub) {
+        const current = hubs.find((h) => h.hub_hash === hub.hub_hash) || hub;
+        try {
+            await window.api.put(`/api/v1/rrc/hubs/${current.hub_hash}/rooms/order`, {
+                room_names: orderedKnownRoomNames(current),
+            });
+            await fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+            await fetchHubs();
+        }
+    }
+
+    async function leaveRoom(hubObj: RrcHub | null = selectedHub, roomName: string | null = selectedRoomName) {
+        const hubH = hubObj?.hub_hash || null;
+        const room = roomName || null;
+        if (!hubH || !room) {
+            return;
+        }
+        const confirmed = await DialogUtils.confirm(t("relay_chat.leave_room_confirm", { room }));
+        if (!confirmed) {
+            return;
+        }
+        try {
+            await window.api.delete(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(room)}`);
+            if (selectedHubHash === hubH && selectedRoomName === room) {
+                selectedRoomName = null;
+                restoreViewAfterRoomClose();
+            }
+            delete messagesMap[`${hubH}:${room}`];
+            delete membersMap[`${hubH}:${room}`];
+            messagesMap = { ...messagesMap };
+            membersMap = { ...membersMap };
+            ToastUtils.success(t("relay_chat.left_room"));
+            await fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
+
+    async function clearMessages() {
+        if (!selectedHubHash || !selectedRoomName) {
+            return;
+        }
+        const confirmed = await DialogUtils.confirm(t("relay_chat.clear_messages_confirm"));
+        if (!confirmed) {
+            return;
+        }
+        const room = selectedRoomName;
+        const hubH = selectedHubHash;
+        try {
+            await window.api.delete(`/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(room)}/messages`);
+            messagesMap[`${hubH}:${room}`] = [];
+            messagesMap = { ...messagesMap };
+            ToastUtils.success(t("relay_chat.messages_cleared"));
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
+
+    async function connectHub(hubObj: RrcHub | null = selectedHub) {
+        if (!hubObj?.hub_hash) {
+            return;
+        }
+        try {
+            await window.api.post(`/api/v1/rrc/hubs/${hubObj.hub_hash}/connect`);
+            await fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
+
+    async function disconnectHub(hubObj: RrcHub | null = selectedHub) {
+        if (!hubObj?.hub_hash) {
+            return;
+        }
+        try {
+            await window.api.post(`/api/v1/rrc/hubs/${hubObj.hub_hash}/disconnect`);
+            await fetchHubs();
+        } catch (e: any) {
+            ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+        }
+    }
+</script>
+
+<div class="flex flex-col flex-1 min-w-0 h-full bg-sem-canvas text-sem-fg">
+    {#if !rrcEnabled}
+        <div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-sem-fg-muted">
+            <MaterialDesignIcon iconName="forum-off-outline" class="size-12 opacity-40" />
+            <p class="max-w-md text-sm">{t("relay_chat.disabled_message")}</p>
+        </div>
+    {:else if view === "moderation"}
+        <RelayHostModerationPage
+            hub={hostedHub}
+            onback={() => {
+                view = "host";
+            }}
+            onrefresh={fetchHostedHub}
+        />
+    {:else}
+        {#if !isPopout}
+            <div
+                class="flex items-stretch h-9 shrink-0 border-b border-sem-border bg-sem-surface-muted overflow-x-auto"
+                role="tablist"
+            >
+                {#each tabs as tabItem (tabItem.id)}
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={view === tabItem.id}
+                        class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-xs sm:text-sm transition-colors shrink-0 cursor-pointer {view ===
+                        tabItem.id
+                            ? 'bg-sem-canvas text-sem-fg font-semibold'
+                            : 'text-sem-fg-muted hover:bg-sem-surface/80'} {OVERFLOW_TAB_IDS.has(tabItem.id)
+                            ? 'hidden md:inline-flex'
+                            : ''}"
+                        onclick={() => {
+                            view = tabItem.id as any;
+                        }}
+                    >
+                        <MaterialDesignIcon iconName={tabItem.icon} class="size-4 shrink-0 opacity-70" />
+                        <span>{t(tabItem.label)}</span>
+                    </button>
+                {/each}
+
+                <!-- mobile overflow: host, bots and search move here so the bar never scrolls -->
+                {#if overflowTabs.length > 0}
+                    <div class="relative md:hidden shrink-0">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={isOverflowView}
+                            aria-label={t("messages.more_actions")}
+                            title={t("messages.more_actions")}
+                            class="inline-flex h-full items-center gap-1.5 px-3 border-r border-sem-border text-xs transition-colors {isOverflowView
+                                ? 'bg-sem-canvas text-sem-fg font-semibold'
+                                : 'text-sem-fg-muted hover:bg-sem-surface/80'}"
+                            onclick={() => {
+                                overflowMenuOpen = !overflowMenuOpen;
+                            }}
+                        >
+                            <MaterialDesignIcon iconName={overflowViewIcon} class="size-4 shrink-0 opacity-70" />
+                            {#if overflowViewTab}
+                                <span>{t(overflowViewTab.label)}</span>
+                            {/if}
+                        </button>
+                        {#if overflowMenuOpen}
+                            <div
+                                class="absolute right-0 top-full mt-1 z-50 min-w-44 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
+                            >
+                                {#each overflowTabs as tabItem (tabItem.id)}
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                                        onclick={() => {
+                                            overflowMenuOpen = false;
+                                            view = tabItem.id;
+                                        }}
+                                    >
+                                        <MaterialDesignIcon iconName={tabItem.icon} class="size-5" />
+                                        <span>{t(tabItem.label)}</span>
+                                    </button>
+                                {/each}
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
+            </div>
+        {/if}
+
+        {#if view === "chat"}
+            <div class="flex flex-1 min-h-0 overflow-hidden">
+                {#if !isPopout}
+                    <RelayHubSidebar
+                        {hubs}
+                        {selectedHubHash}
+                        {selectedRoomName}
+                        collapsed={sidebarCollapsed}
+                        {expandedHubs}
+                        onaddhub={() => {
+                            showAddHubModal = true;
+                        }}
+                        ontogglecollapse={() => {
+                            sidebarCollapsed = !sidebarCollapsed;
+                            saveFeatureSidebarCollapsed("relayChat", sidebarCollapsed);
+                        }}
+                        onselecthub={(h) => {
+                            selectedHubHash = h.hub_hash;
+                        }}
+                        onselectroom={selectRoom}
+                        onjoinroom={(h) => {
+                            pendingKeyRoom = { hub: h, room: "" };
+                            showRoomKeyModal = true;
+                        }}
+                        onhubcontextmenu={(e, h) => {
+                            sidebarMenu = { show: true, x: e.clientX, y: e.clientY, hub: h, room: null };
+                        }}
+                        onroomcontextmenu={(e, h, roomObj) => {
+                            sidebarMenu = {
+                                show: true,
+                                x: e.clientX,
+                                y: e.clientY,
+                                hub: h,
+                                room: roomObj.name,
+                            };
+                        }}
+                        ontogglehubexpanded={(hHash) => {
+                            expandedHubs[hHash] = !expandedHubs[hHash];
+                        }}
+                        onreorderhubs={onReorderHubs}
+                        onreorderrooms={onReorderRooms}
+                        onpersistroomorder={(h) => void onPersistRoomOrder(h)}
+                    />
+                {/if}
+
+                <div
+                    class="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden bg-sem-canvas {selectedRoom
+                        ? ''
+                        : 'max-md:hidden'}"
+                >
+                    {#if selectedRoom}
+                        <RelayChatHeader
+                            {selectedHub}
+                            {selectedRoom}
+                            isPopoutMode={isPopout}
+                            {showMembersPanel}
+                            {showSearchPanel}
+                            memberCount={currentMembers.length}
+                            onback={onBackFromRoom}
+                            ontogglemembers={() => {
+                                showMembersPanel = !showMembersPanel;
+                            }}
+                            ontogglesearch={() => {
+                                showSearchPanel = !showSearchPanel;
+                            }}
+                            onshare={() => {
+                                if (selectedHubHash && selectedRoomName) {
+                                    const msg = buildRelayShareMessage({
+                                        hub: selectedHubHash,
+                                        room: selectedRoomName,
+                                    });
+                                    if (msg) {
+                                        navigator.clipboard?.writeText(msg);
+                                        ToastUtils.success(t("relay_chat.copied_share_link"));
+                                    }
+                                }
+                            }}
+                            onpopout={() => {
+                                if (!selectedHubHash || !selectedRoomName) return;
+                                const hub = encodeURIComponent(selectedHubHash);
+                                const room = encodeURIComponent(selectedRoomName);
+                                const url = `${window.location.origin}${window.location.pathname}#/popout/relay-chat/${hub}/${room}`;
+                                window.open(url, "_blank", "width=960,height=720,noopener");
+                            }}
+                            onleaveroom={() => void leaveRoom()}
+                            onclearmessages={() => void clearMessages()}
+                            ondisconnecthub={() => void disconnectHub()}
+                        />
+
+                        {#if selectedHub?.motd}
+                            <div
+                                class="flex items-start gap-2 px-3 py-2 text-xs border-b border-sem-border bg-sem-canvas text-sem-fg-secondary shrink-0"
+                            >
+                                <MaterialDesignIcon
+                                    iconName="information-outline"
+                                    class="size-4 shrink-0 mt-0.5 text-sem-accent"
+                                />
+                                <span>{selectedHub.motd}</span>
+                            </div>
+                        {/if}
+
+                        <div class="relative flex flex-1 min-h-0 overflow-hidden">
+                            <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+                                <div bind:this={scrollContainerEl} class="flex-1 overflow-y-auto p-3 space-y-1">
+                                    {#if useVirtualMessageList}
+                                        <RelayMessageListVirtual
+                                            bind:this={virtualListEl}
+                                            entries={timelineEntries}
+                                            getScrollElement={() => scrollContainerEl}
+                                            {formatDateDividerLabel}
+                                            {isPresenceGroupExpanded}
+                                            {togglePresenceGroup}
+                                            {formatPresenceGroupSummary}
+                                            messageKey={(m) => (m ? relayMessageKey(m) : "")}
+                                            {renderMessageHtml}
+                                            onmessagecontextmenu={(e, msg) => {
+                                                e.preventDefault();
+                                                messageMenu = { show: true, x: e.clientX, y: e.clientY, msg };
+                                            }}
+                                        />
+                                    {:else}
+                                        {#each timelineEntries as entry (entry.id || (entry.msg ? relayMessageKey(entry.msg) : entry.type))}
+                                            <RelayMessageListVirtual
+                                                entries={[entry]}
+                                                getScrollElement={() => scrollContainerEl}
+                                                {formatDateDividerLabel}
+                                                {isPresenceGroupExpanded}
+                                                {togglePresenceGroup}
+                                                {formatPresenceGroupSummary}
+                                                messageKey={(m) => (m ? relayMessageKey(m) : "")}
+                                                {renderMessageHtml}
+                                                onmessagecontextmenu={(e, msg) => {
+                                                    e.preventDefault();
+                                                    messageMenu = { show: true, x: e.clientX, y: e.clientY, msg };
+                                                }}
+                                            />
+                                        {/each}
+                                    {/if}
+                                </div>
+
+                                <RelayMessageComposer members={currentMembers} onsend={handleSendMessage} />
+                            </div>
+
+                            {#if showMembersPanel}
+                                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                <div
+                                    class="absolute inset-0 z-30 bg-black/40 md:hidden"
+                                    onclick={() => {
+                                        showMembersPanel = false;
+                                    }}
+                                ></div>
+                                <RelayMembersPanel
+                                    members={currentMembers}
+                                    messages={currentMessages}
+                                    canModerate={canModerateSelectedHub}
+                                    onclose={() => {
+                                        showMembersPanel = false;
+                                    }}
+                                />
+                            {/if}
+
+                            {#if showSearchPanel}
+                                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                <div
+                                    class="absolute inset-0 z-30 bg-black/40 md:hidden"
+                                    onclick={() => {
+                                        showSearchPanel = false;
+                                    }}
+                                ></div>
+                                <RelaySearchPanel
+                                    messages={currentMessages}
+                                    onclose={() => {
+                                        showSearchPanel = false;
+                                    }}
+                                    onselectmessage={(m) => {
+                                        virtualListEl?.scrollToMessageKey(relayMessageKey(m));
+                                    }}
+                                />
+                            {/if}
+                        </div>
+                    {:else if selectedHub}
+                        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center text-sem-fg-muted">
+                            <MaterialDesignIcon iconName="pound" class="size-12 opacity-30 mb-2" />
+                            <div class="font-semibold text-base mb-1">{t("relay_chat.no_room_selected")}</div>
+                            <p class="text-xs max-w-sm">{t("relay_chat.select_or_join_room_hint")}</p>
+                        </div>
+                    {:else}
+                        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center text-sem-fg-muted">
+                            <MaterialDesignIcon iconName="forum-outline" class="size-12 opacity-30 mb-2" />
+                            <div class="font-semibold text-base mb-1">{t("relay_chat.welcome_title")}</div>
+                            <p class="text-xs max-w-sm">{t("relay_chat.select_hub_hint")}</p>
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        {:else if view === "discovery"}
+            <RelayDiscoveryView
+                {discoveredHubs}
+                onrefresh={fetchDiscoveredHubs}
+                onconnect={(h) => {
+                    const hubHash = h.hub_hash || h.destination_hash || "";
+                    if (hubHash) {
+                        handleAddHub(hubHash, h.name || h.display_name || "", true, "forum");
+                        view = "chat";
+                    }
+                }}
+                oncopyhash={(h) => {
+                    navigator.clipboard.writeText(h);
+                    ToastUtils.success(t("relay_chat.copied_hub_hash"));
+                }}
+            />
+        {:else if view === "host"}
+            <RelayHostView
+                {hostedHub}
+                oncreatehub={() => {
+                    showCreateHostModal = true;
+                }}
+                ontogglestart={async () => {
+                    const api = (window as any).api;
+                    if (!api) return;
+                    try {
+                        if (hostedHub?.running) {
+                            await api.post("/api/v1/rrc/servers/stop");
+                        } else {
+                            await api.post("/api/v1/rrc/servers/start");
+                        }
+                        fetchHostedHub();
+                    } catch (e: any) {
+                        ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+                    }
+                }}
+                onopenmoderation={() => {
+                    view = "moderation";
+                }}
+                onopensettings={() => {
+                    showCreateHostModal = true;
+                }}
+                oncopyhash={(h) => {
+                    navigator.clipboard.writeText(h);
+                    ToastUtils.success(t("relay_chat.copied_hub_hash"));
+                }}
+            />
+        {:else if view === "bots"}
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <RelayBotsPage knownHubs={botsKnownHubs} />
+            </div>
+        {:else if view === "search"}
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <RelaySearchPage onopenroom={openSearchResult} />
+            </div>
+        {/if}
+    {/if}
+
+    <RelayChatModals
+        {showAddHubModal}
+        {showCreateHostModal}
+        {showHubSettingsModal}
+        {showRoomKeyModal}
+        {editingHub}
+        {sidebarMenu}
+        {messageMenu}
+        {canModerateSelectedHub}
+        oncloseaddhub={() => {
+            showAddHubModal = false;
+        }}
+        onsubmitaddhub={handleAddHub}
+        onclosecreatehost={() => {
+            showCreateHostModal = false;
+        }}
+        onsubmitcreatehost={async (name, announceInterval) => {
+            showCreateHostModal = false;
+            const api = (window as any).api;
+            if (!api) return;
+            try {
+                await api.post("/api/v1/rrc/servers", { name, announce_interval: announceInterval });
+                ToastUtils.success(t("relay_chat.host_hub_saved"));
+                fetchHostedHub();
+            } catch (e: any) {
+                ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+            }
+        }}
+        onclosehubsettings={() => {
+            showHubSettingsModal = false;
+        }}
+        onsubmithubsettings={async (hubObj, name, autoReconnect, icon) => {
+            showHubSettingsModal = false;
+            const api = (window as any).api;
+            if (!api) return;
+            try {
+                await api.put(`/api/v1/rrc/hubs/${hubObj.hub_hash}`, {
+                    custom_display_name: name || null,
+                    auto_reconnect: autoReconnect,
+                    icon,
+                });
+                ToastUtils.success(t("relay_chat.hub_updated"));
+                fetchHubs();
+            } catch (e: any) {
+                ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+            }
+        }}
+        onremovehub={handleRemoveHub}
+        oncloseroomkey={() => {
+            showRoomKeyModal = false;
+        }}
+        onsubmitroomkey={(key) => {
+            showRoomKeyModal = false;
+            if (pendingKeyRoom) {
+                WebSocketConnection.send({
+                    type: "rrc.join_room",
+                    hub_hash: pendingKeyRoom.hub.hub_hash,
+                    room: pendingKeyRoom.room,
+                    key: key || null,
+                });
+                pendingKeyRoom = null;
+            }
+        }}
+        onclosesidebarmenu={() => {
+            sidebarMenu.show = false;
+        }}
+        onclosemessagemenu={() => {
+            messageMenu.show = false;
+        }}
+        oncopytext={(txt) => {
+            navigator.clipboard?.writeText(txt);
+            ToastUtils.success(t("messages.copied_to_clipboard"));
+        }}
+        oncopylink={(h) => {
+            const msg = buildRelayShareMessage({ hub: h.hub_hash });
+            if (msg) {
+                navigator.clipboard?.writeText(msg);
+                ToastUtils.success(t("relay_chat.copied_share_link"));
+            }
+        }}
+        onconnecthub={(h) => void connectHub(h)}
+        ondisconnecthub={(h) => void disconnectHub(h)}
+        onleaveroom={(h, roomName) => void leaveRoom(h, roomName)}
+        onkickmessageauthor={async (msg) => {
+            if (!selectedHubHash || !selectedRoomName || !msg.src) return;
+            const api = (window as any).api;
+            if (!api) return;
+            try {
+                await api.post(`/api/v1/rrc/servers/${selectedHubHash}/moderate`, {
+                    action: "kick",
+                    peer: msg.src,
+                    room: selectedRoomName,
+                });
+                ToastUtils.success(t("relay_chat.host_moderation_success"));
+            } catch (e: any) {
+                ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+            }
+        }}
+        onbanmessageauthor={async (msg) => {
+            if (!selectedHubHash || !selectedRoomName || !msg.src) return;
+            const api = (window as any).api;
+            if (!api) return;
+            try {
+                await api.post(`/api/v1/rrc/servers/${selectedHubHash}/moderate`, {
+                    action: "ban",
+                    peer: msg.src,
+                    room: selectedRoomName,
+                });
+                ToastUtils.success(t("relay_chat.host_moderation_success"));
+            } catch (e: any) {
+                ToastUtils.error(e.response?.data?.message || t("relay_chat.action_failed"));
+            }
+        }}
+    />
+</div>

@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from meshchatx.src.backend import self_check
+from meshchatx.src.backend.self_check import core as self_check
 
 
 def test_check_python_runtime_ok():
@@ -68,6 +68,17 @@ def test_check_temp_filesystem_ok():
 def test_check_fs_sandbox_ok():
     result = self_check.check_fs_sandbox()
     assert result["status"] == "ok", result.get("reason")
+
+
+def test_check_appcontainer_launch_platform_behavior():
+    result = self_check.check_appcontainer_launch()
+    import sys as _sys
+
+    if _sys.platform != "win32":
+        assert result["status"] == "skipped"
+        assert result["reason"] == "Windows only"
+    else:
+        assert result["status"] in ("ok", "skipped", "failed")
 
 
 def test_check_public_assets_ok(tmp_path):

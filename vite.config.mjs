@@ -3,20 +3,17 @@ import fs from "fs";
 import { defineConfig } from "vite";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
 import { meshchatxServiceWorkerPlugin } from "./scripts/build/generate_service_worker.mjs";
-import { detectLaunchEditor, isVueDevToolsEnabled } from "./scripts/vite-dx.mjs";
 import tailwindcss from "@tailwindcss/vite";
-import vue from "@vitejs/plugin-vue";
-import vueDevTools from "vite-plugin-vue-devtools";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 const vendorChunkGroups = [
     { test: /[/\\]node_modules[/\\](vis-network|vis-data)/, name: "vendor-vis", priority: 95 },
-    { test: /[/\\]node_modules[/\\]vue-router/, name: "vendor-vue-router", priority: 90 },
     { test: /[/\\]node_modules[/\\](protobufjs|@protobufjs)/, name: "vendor-protobuf", priority: 85 },
     { test: /[/\\]node_modules[/\\]@mdi(?:\/|\\)js/, name: "vendor-mdi", priority: 75 },
     { test: /[/\\]node_modules[/\\]compressorjs/, name: "vendor-compressor", priority: 70 },
     { test: /[/\\]node_modules[/\\]micron-parser/, name: "vendor-micron", priority: 55 },
     { test: /MicronParser\.js/, name: "vendor-micron", priority: 55 },
     { test: /[/\\]node_modules[/\\]electron-prompt/, name: "vendor-electron-prompt", priority: 50 },
-    { test: /[/\\]node_modules[/\\].*vue/, name: "vendor-vue", priority: 45 },
+    { test: /[/\\]node_modules[/\\]svelte/, name: "vendor-svelte", priority: 48 },
     { test: /[/\\]node_modules[/\\]/, name: "vendor-other", priority: 10 },
 ];
 
@@ -250,39 +247,8 @@ function isViteDevCorsOrigin(origin) {
     }
 }
 
-/**
- * Strip Vue DevTools / inspector tags from the crash-tab HTML entry.
- * That frame is sandboxed to opaque null and must not pull overlay scripts.
- * @returns {import('vite').Plugin}
- */
-function skipVueDevToolsInCrashTab() {
-    return {
-        name: "meshchatx-skip-vue-devtools-in-crash-tab",
-        transformIndexHtml: {
-            order: "post",
-            handler(html, ctx) {
-                const file = String(ctx.filename || ctx.path || "");
-                if (!file.includes("nomad-crash-tab")) {
-                    return html;
-                }
-                let out = html;
-                let prev;
-                do {
-                    prev = out;
-                    out = out.replace(
-                        /<script[^>]+(?:vue-devtools-path|vue-inspector-path)[^>]*>\s*<\/script\s*>/gi,
-                        ""
-                    );
-                } while (out !== prev);
-                return out;
-            },
-        },
-    };
-}
-
 export default defineConfig(({ command }) => {
     const bundledDev = envBool(process.env.MESHCHAT_VITE_BUNDLED_DEV);
-    const vueDevToolsOn = isVueDevToolsEnabled({ command });
 
     // Only clear hashed assets on production build. Loading this config for
     // `vite` / `vite preview` must not wipe meshchatx/public/assets used by
@@ -295,7 +261,6 @@ export default defineConfig(({ command }) => {
         experimental: bundledDev ? { bundledDev: true } : undefined,
         define: {
             __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
-            __VUE_PROD_DEVTOOLS__: "false",
             "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
             "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
             "import.meta.env.VITE_VISUALISER_WASM_BUNDLED": JSON.stringify(visualiserWasmBundled ? "true" : "false"),
@@ -307,25 +272,7 @@ export default defineConfig(({ command }) => {
             __GEO_WASM_SRI_WASM__: JSON.stringify(geoWasmIntegrity?.wasm || ""),
             __GEO_WASM_SRI_EXEC__: JSON.stringify(geoWasmIntegrity?.wasmExec || ""),
         },
-        plugins: [
-            tailwindcss(),
-            ...(vueDevToolsOn
-                ? [
-                      vueDevTools({
-                          launchEditor: detectLaunchEditor(),
-                      }),
-                      skipVueDevToolsInCrashTab(),
-                  ]
-                : []),
-            vue({
-                template: {
-                    compilerOptions: {
-                        isCustomElement: (tag) => tag === "emoji-picker",
-                    },
-                },
-            }),
-            meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
-        ],
+        plugins: [tailwindcss(), svelte(), meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso })],
 
         css: {
             devSourcemap: true,
@@ -348,7 +295,11 @@ export default defineConfig(({ command }) => {
                 },
             },
             warmup: {
-                clientFiles: ["./main.js", "./components/App.vue", "./components/messages/MessagesPage.vue"],
+                clientFiles: [
+                    "./main.ts",
+                    "./features/app-shell/App.svelte",
+                    "./features/messages/MessagesPage.svelte",
+                ],
             },
             proxy: {
                 "/api": {
@@ -455,11 +406,11 @@ export default defineConfig(({ command }) => {
         },
 
         optimizeDeps: {
-            include: ["vue", "emoji-picker-element"],
+            include: ["svelte", "emoji-picker-element"],
         },
 
         resolve: {
-            dedupe: ["vue"],
+            dedupe: ["svelte"],
             tsconfigPaths: true,
             // Git-hosted micron-parser has no upstream package.json. Alias the entry so
             // Vite/Rolldown resolve it in Docker and CI without relying on metadata alone.

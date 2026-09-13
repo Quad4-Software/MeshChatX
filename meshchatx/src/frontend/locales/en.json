@@ -560,6 +560,8 @@
         "translator": "Translator",
         "translator_enabled": "Enable Translator",
         "translator_description": "Enable translation features in conversations.",
+        "libretranslate_url": "LibreTranslate URL",
+        "libretranslate_url_description": "The URL where LibreTranslate API is accessible.",
         "system": "System",
         "reticulum_stack": "Reticulum Stack",
         "reticulum_stack_description": "Manage the underlying Reticulum Network Stack.",
@@ -3128,7 +3130,7 @@
         },
         "translator": {
             "title": "Translator",
-            "description": "Translate text with LibreTranslate over the network or Argos Translate on this device."
+            "description": "Translate text offline with locally imported language packs."
         },
         "forwarder": {
             "title": "Forwarder",
@@ -3595,6 +3597,7 @@
             "publish_create_and_publish": "Create mesh server and publish...",
             "publish_manage_servers": "Manage mesh servers",
             "publish_will_start": "will start",
+            "publish_all_tabs": "Publish all tabs to server...",
             "publish_create_prompt_name": "Name for the new mesh server:",
             "publish_failed_create": "Failed to create mesh server",
             "publish_failed_start": "Failed to start mesh server",
@@ -3617,13 +3620,17 @@
             "publish_site_index_hint": "Overwrites index.mu on the server with a link list to the selected pages.",
             "publish_site_publish": "Publish {count} pages",
             "publish_site_done": "Published {published}/{total} pages to {server}",
+            "publish_site_failed_pages": "Failed to publish: {names}",
             "publish_site_no_server": "Select a mesh server or enter a name for a new one.",
             "insert_image": "Insert image",
             "image_added": "Added image \"{name}\"",
             "image_not_supported": "\"{name}\" is not a supported image file",
             "image_too_large": "\"{name}\" is too large (max {max})",
             "image_local_loaded": "Loaded",
-            "publish_images_failed": "Failed to upload {failed} of {total} images to {server}"
+            "publish_images_failed": "Failed to upload {failed} of {total} images to {server}",
+            "publish_all_prompt_server": "Enter server name to publish all tabs to:\n\nAvailable: {servers}",
+            "publish_server_not_found": "Server not found: {server}",
+            "publish_all_done": "Published {published}/{total} tabs to {server}"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Config Editor",
@@ -3825,6 +3832,7 @@
         "joined_room": "Joined room",
         "left_room": "Left room",
         "invalid_hub_hash": "Enter a valid hub hash",
+        "hub_not_added": "Add this hub to your list before opening a room.",
         "send_failed": "Failed to send message",
         "action_failed": "Action failed",
         "room_required": "A room name is required",
@@ -3968,8 +3976,8 @@
         "popout_channel": "Open in new window",
         "new_message_toast": "New message in #{room}",
         "host_users": "users",
-        "host_announce_interval": "Announce interval (minutes)",
-        "host_announce_interval_hint": "Every {minutes} minutes",
+        "host_announce_interval": "Announce interval",
+        "host_announce_interval_hint": "Every {interval}",
         "host_hub_settings": "Hub settings",
         "presence_joined": "{count} joined",
         "presence_left": "{count} left",
@@ -4033,6 +4041,8 @@
         "demote_op": "Demote Operator",
         "promote_op": "Promote to Operator",
         "composer_placeholder": "Write a message...",
+        "search_placeholder": "Search messages...",
+        "search_results_count": "{count} results",
         "type_to_search": "Type to search messages",
         "no_search_results": "No messages matching search",
         "dm_member": "Direct message",
@@ -4081,9 +4091,7 @@
         "search_global_hint": "Tip: \"quoted phrase\", a OR b, -exclude, from:nick, room:name, hub:hash",
         "search_global_count": "{count} results",
         "search_global_empty": "Search message history in every connected hub and room.",
-        "search_global_none": "No matching messages.",
-        "search_placeholder": "Search messages...",
-        "search_results_count": "{count} results"
+        "search_global_none": "No matching messages."
     },
     "rncp": {
         "file_transfer": "File Transfer",

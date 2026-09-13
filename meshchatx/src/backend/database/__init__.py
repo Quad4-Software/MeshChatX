@@ -1307,8 +1307,11 @@ class Database:
         target_dir: str,
         main_name: str,
     ) -> None:
+        from meshchatx.src.path_utils import is_safe_archive_member, is_under_root
+
         skip = {main_name, f"{main_name}-wal", f"{main_name}-shm"}
         main_stem = os.path.splitext(main_name)[0]
+        abs_target = os.path.realpath(target_dir)
         extras_aside = tempfile.mkdtemp(
             prefix=".meshchatx-extras-aside-",
             dir=target_dir,
@@ -1330,7 +1333,16 @@ class Database:
                         continue
                     if os.path.islink(src):
                         continue
+                    rel_norm = rel.replace("\\", "/")
+                    if not is_safe_archive_member(rel_norm):
+                        msg = f"Unsafe identity storage path: {rel}"
+                        raise DatabaseRestoreError(msg)
                     dest = os.path.join(target_dir, rel)
+                    # realpath resolves existing symlink prefixes under target_dir
+                    abs_dest = os.path.realpath(dest)
+                    if not is_under_root(abs_dest, abs_target):
+                        msg = f"Unsafe identity storage path: {rel}"
+                        raise DatabaseRestoreError(msg)
                     dest_dir = os.path.dirname(dest)
                     if dest_dir:
                         os.makedirs(dest_dir, exist_ok=True)

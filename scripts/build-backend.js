@@ -39,7 +39,7 @@ function stripMeshchatxFrontendSources(buildDir) {
         buf = fs.readFileSync(keepPath);
     }
     console.log(
-        "Trimming meshchatx/src/frontend to repository-server-index.html only (Vue sources are unused at runtime)."
+        "Trimming meshchatx/src/frontend to repository-server-index.html only (frontend sources are unused at runtime)."
     );
     fs.rmSync(fe, { recursive: true, force: true });
     if (buf) {
@@ -125,6 +125,10 @@ function generateManifest(buildDir, manifestPath) {
     for (const file of files) {
         const relativePath = path.relative(buildDir, file);
         if (relativePath === "backend-manifest.json") continue;
+        // Keep-marker placeholders have no content worth hashing. Packagers
+        // that drop dotfiles would otherwise report them Missing at runtime
+        // and block onboarding over an empty marker.
+        if (path.basename(file) === ".gitkeep") continue;
         const fileBuffer = fs.readFileSync(file);
         const hash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
         manifest.files[relativePath] = hash;

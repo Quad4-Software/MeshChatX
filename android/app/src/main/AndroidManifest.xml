@@ -47,6 +47,11 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="35">
 
+        <!-- Android Auto messaging notifications (MessagingStyle reply / mark-as-read). -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -118,6 +123,10 @@
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="true" />
+
+        <service
+            android:name=".MessagingReplyService"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

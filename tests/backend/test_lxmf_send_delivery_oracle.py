@@ -432,7 +432,8 @@ def test_oracle_no_receipt_cascade_contract_documented():
         / "src"
         / "backend"
         / "database"
-        / "messages.py"
+        / "messages"
+        / "dao.py"
     ).read_text(encoding="utf-8")
     assert "state = 'failed'" in messages_src
     assert "try_claim_failed_message_for_auto_resend" in messages_src

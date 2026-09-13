@@ -560,6 +560,8 @@
         "translator": "Перекладач",
         "translator_enabled": "Увімкнути перекладача",
         "translator_description": "Увімкніть функції перекладу в розмовах.",
+        "libretranslate_url": "URL LibreTranslate",
+        "libretranslate_url_description": "URL, за яким доступний API LibreTranslate.",
         "system": "Система",
         "reticulum_stack": "Стек Reticulum",
         "reticulum_stack_description": "Керуйте базовим стеком мережі Reticulum.",
@@ -3128,7 +3130,7 @@
         },
         "translator": {
             "title": "Перекладач",
-            "description": "Перекладайте текст за допомогою LibreTranslate через мережу або Argos Translate на цьому пристрої."
+            "description": "Перекладайте текст офлайн за допомогою локально імпортованих мовних пакетів."
         },
         "forwarder": {
             "title": "Пересилання",
@@ -3595,6 +3597,7 @@
             "publish_create_and_publish": "Створити mesh-сервер і опублікувати...",
             "publish_manage_servers": "Керувати mesh-серверами",
             "publish_will_start": "буде запущено",
+            "publish_all_tabs": "Опублікувати всі вкладки на сервер...",
             "publish_create_prompt_name": "Назва нового mesh-сервера:",
             "publish_failed_create": "Не вдалося створити mesh-сервер",
             "publish_failed_start": "Не вдалося запустити mesh-сервер",
@@ -3623,7 +3626,10 @@
             "image_not_supported": "\"{name}\" не є підтримуваним файлом зображення",
             "image_too_large": "\"{name}\" завелике (макс. {max})",
             "image_local_loaded": "Завантажено",
-            "publish_images_failed": "Не вдалося завантажити {failed} з {total} зображень на {server}"
+            "publish_images_failed": "Не вдалося завантажити {failed} з {total} зображень на {server}",
+            "publish_all_prompt_server": "Введіть назву сервера, щоб опублікувати всі вкладки:\n\nДоступні: {servers}",
+            "publish_server_not_found": "Сервер не знайдено: {server}",
+            "publish_all_done": "Опубліковано {published}/{total} вкладок на {server}"
         },
         "reticulum_config_editor": {
             "title": "Редактор конфігурації Reticulum",
@@ -3968,8 +3974,8 @@
         "popout_channel": "Відкрити в новому вікні",
         "new_message_toast": "Нове повідомлення в #{room}",
         "host_users": "користувачів",
-        "host_announce_interval": "Інтервал анонсу (хвилини)",
-        "host_announce_interval_hint": "Кожні {minutes} хвилин",
+        "host_announce_interval": "Інтервал анонсу",
+        "host_announce_interval_hint": "Кожні {interval}",
         "host_hub_settings": "Налаштування хаба",
         "presence_joined": "{count} приєдналося",
         "presence_left": "{count} покинуло",
@@ -4033,6 +4039,8 @@
         "demote_op": "Понизити оператора",
         "promote_op": "Підвищити до оператора",
         "composer_placeholder": "Напишіть повідомлення...",
+        "search_placeholder": "Пошук повідомлень...",
+        "search_results_count": "{count} результатів",
         "type_to_search": "Введіть текст для пошуку повідомлень",
         "no_search_results": "Немає повідомлень, що відповідають пошуку",
         "dm_member": "Особисте повідомлення",
@@ -4081,9 +4089,7 @@
         "search_global_hint": "Порада: \"точна фраза\", a АБО b, -виключити, from:нік, room:кімната, hub:хеш",
         "search_global_count": "Результатів: {count}",
         "search_global_empty": "Шукайте в історії повідомлень усіх підключених хабів і кімнат.",
-        "search_global_none": "Відповідних повідомлень немає.",
-        "search_placeholder": "Пошук повідомлень...",
-        "search_results_count": "{count} результатів"
+        "search_global_none": "Відповідних повідомлень немає."
     },
     "rncp": {
         "file_transfer": "Передача файлів",

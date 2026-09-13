@@ -560,6 +560,8 @@
         "translator": "Çevirmen",
         "translator_enabled": "Çevirmeni Etkinleştir",
         "translator_description": "Sohbetlerde çeviri özelliklerini etkinleştir.",
+        "libretranslate_url": "LibreTranslate URL",
+        "libretranslate_url_description": "LibreTranslate API'sinin erişilebilir olduğu URL.",
         "system": "Sistem",
         "reticulum_stack": "Reticulum Stack",
         "reticulum_stack_description": "Altyapıdaki Reticulum Network Stack'i yönetin.",
@@ -3128,7 +3130,7 @@
         },
         "translator": {
             "title": "Çevirmen",
-            "description": "Metni ağ üzerinden LibreTranslate veya bu cihazda Argos Translate ile çevir."
+            "description": "Metni yerel olarak içe aktarılan dil paketleriyle çevrimdışı çevirin."
         },
         "forwarder": {
             "title": "İletici",
@@ -3595,6 +3597,7 @@
             "publish_create_and_publish": "Mesh sunucusu oluştur ve yayınla...",
             "publish_manage_servers": "Mesh sunucularını yönet",
             "publish_will_start": "başlatılacak",
+            "publish_all_tabs": "Tüm sekmeleri sunucuya yayınla...",
             "publish_create_prompt_name": "Yeni mesh sunucusu için ad:",
             "publish_failed_create": "Mesh sunucusu oluşturulamadı",
             "publish_failed_start": "Mesh sunucusu başlatılamadı",
@@ -3623,7 +3626,10 @@
             "image_not_supported": "\"{name}\" desteklenmeyen bir resim dosyası",
             "image_too_large": "\"{name}\" çok büyük (en fazla {max})",
             "image_local_loaded": "Yüklendi",
-            "publish_images_failed": "{total} resimden {failed} tanesi {server} sunucusuna yüklenemedi"
+            "publish_images_failed": "{total} resimden {failed} tanesi {server} sunucusuna yüklenemedi",
+            "publish_all_prompt_server": "Tüm sekmeleri yayınlamak için sunucu adını girin:\n\nMevcut: {servers}",
+            "publish_server_not_found": "Sunucu bulunamadı: {server}",
+            "publish_all_done": "{server} sunucusuna {published}/{total} sekme yayınlandı"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Yapılandırma Düzenleyici",
@@ -3968,8 +3974,8 @@
         "popout_channel": "Yeni pencerede aç",
         "new_message_toast": "#{room} içinde yeni ileti",
         "host_users": "kullanıcı",
-        "host_announce_interval": "Duyuru aralığı (dakika)",
-        "host_announce_interval_hint": "Her {minutes} dakikada bir",
+        "host_announce_interval": "Duyuru aralığı",
+        "host_announce_interval_hint": "Her {interval}",
         "host_hub_settings": "Merkez ayarları",
         "presence_joined": "{count} katıldı",
         "presence_left": "{count} ayrıldı",
@@ -4033,6 +4039,8 @@
         "demote_op": "Operatörden Düşür",
         "promote_op": "Operatöre Yükselt",
         "composer_placeholder": "Bir ileti yazın...",
+        "search_placeholder": "İletileri ara...",
+        "search_results_count": "{count} sonuç",
         "type_to_search": "İletileri aramak için yazın",
         "no_search_results": "Aramayla eşleşen ileti yok",
         "dm_member": "Doğrudan mesaj",
@@ -4081,9 +4089,7 @@
         "search_global_hint": "İpucu: \"tam ifade\", a VEYA b, -hariç tut, from:takmaad, room:oda, hub:hash",
         "search_global_count": "{count} sonuç",
         "search_global_empty": "Bağlı tüm hub ve odalardaki mesaj geçmişinde arayın.",
-        "search_global_none": "Eşleşen mesaj yok.",
-        "search_placeholder": "İletileri ara...",
-        "search_results_count": "{count} sonuç"
+        "search_global_none": "Eşleşen mesaj yok."
     },
     "rncp": {
         "file_transfer": "Dosya Aktarımı",

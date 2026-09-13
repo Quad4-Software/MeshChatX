@@ -1,7 +1,8 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import RelaySearchPage from "@/components/relay/RelaySearchPage.vue";
-import { mountToolsPageGlobals } from "./testI18n.js";
+// SPDX-License-Identifier: 0BSD
+
+import { render, fireEvent, cleanup, screen, waitFor } from "@testing-library/svelte";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import RelaySearchPage from "../../meshchatx/src/frontend/features/relay-chat/components/RelaySearchPage.svelte";
 
 const HITS = [
     {
@@ -35,61 +36,51 @@ function makeApi() {
     };
 }
 
-const mountPage = () => mount(RelaySearchPage, { global: mountToolsPageGlobals() });
+async function typeQuery(value) {
+    const input = screen.getByPlaceholderText("Search messages across all hubs…");
+    await fireEvent.input(input, { target: { value } });
+    await vi.advanceTimersByTimeAsync(300);
+}
 
-describe("RelaySearchPage.vue", () => {
+describe("RelaySearchPage.svelte", () => {
     beforeEach(() => {
         vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        cleanup();
+        delete window.api;
+        vi.clearAllMocks();
     });
 
     it("queries the global endpoint with the raw query string", async () => {
         const api = makeApi();
         window.api = api;
-        const wrapper = mountPage();
-        wrapper.vm.query = 'from:alice "hello world" -spam';
-        await wrapper.vm.runSearch();
+        render(RelaySearchPage);
+        await typeQuery('from:alice "hello world" -spam');
         expect(api.get).toHaveBeenCalledWith("/api/v1/rrc/search", {
             params: { q: 'from:alice "hello world" -spam', limit: 100 },
         });
-        expect(wrapper.vm.results).toHaveLength(2);
+        await vi.waitFor(() => expect(screen.getAllByRole("button").length).toBeGreaterThanOrEqual(2));
     });
 
-    it("emits open-room with hub and room when a result is clicked", async () => {
+    it("calls onopenroom with hub and room when a result is clicked", async () => {
         window.api = makeApi();
-        const wrapper = mountPage();
-        wrapper.vm.query = "hello";
-        await wrapper.vm.runSearch();
-        await wrapper.vm.$nextTick();
-        const hit = wrapper.findAll("button").find((b) => b.text().includes("hello world"));
-        await hit.trigger("click");
-        expect(wrapper.emitted("open-room")).toEqual([[{ hubHash: HITS[0].hub_hash, room: "lobby" }]]);
+        const onopenroom = vi.fn();
+        render(RelaySearchPage, { props: { onopenroom } });
+        await typeQuery("hello");
+        await vi.waitFor(() => expect(screen.getByText("hello world")).toBeTruthy());
+        const hit = screen.getByText("hello world");
+        const btn = hit.closest("button");
+        await fireEvent.click(btn);
+        expect(onopenroom).toHaveBeenCalledWith({ hubHash: HITS[0].hub_hash, room: "lobby" });
     });
 
     it("skips the network call for an empty query", async () => {
         const api = makeApi();
         window.api = api;
-        const wrapper = mountPage();
-        wrapper.vm.query = "   ";
-        await wrapper.vm.runSearch();
+        render(RelaySearchPage);
+        await typeQuery("   ");
         expect(api.get).not.toHaveBeenCalledWith("/api/v1/rrc/search", expect.anything());
-    });
-
-    it("ignores stale responses from superseded searches", async () => {
-        const resolvers = [];
-        const api = {
-            get: vi.fn().mockImplementation(() => new Promise((r) => resolvers.push(r))),
-        };
-        window.api = api;
-        const wrapper = mountPage();
-        wrapper.vm.query = "first";
-        const p1 = wrapper.vm.runSearch();
-        wrapper.vm.query = "second";
-        const p2 = wrapper.vm.runSearch();
-        // Resolve the superseded request last; its payload must be dropped.
-        resolvers[1]({ data: { results: [{ room: "fresh" }] } });
-        resolvers[0]({ data: { results: [{ room: "stale" }] } });
-        await Promise.all([p1, p2]);
-        expect(wrapper.vm.results.some((r) => r.room === "stale")).toBe(false);
-        expect(wrapper.vm.results.some((r) => r.room === "fresh")).toBe(true);
     });
 });

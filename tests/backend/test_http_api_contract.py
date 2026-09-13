@@ -10,6 +10,7 @@ import pytest
 from tests.backend.http_api_contract_helpers import (
     extract_frontend_api_paths,
     extract_meshchat_http_routes,
+    frontend_path_covered_by_backend,
     load_route_fixture,
     path_matches_aiohttp_route,
     write_route_fixture,
@@ -49,9 +50,8 @@ def test_path_matches_aiohttp_wildcard_asset_route():
 def test_frontend_api_paths_exist_on_backend():
     backend_paths = [r["path"] for r in extract_meshchat_http_routes(_MESHCHAT_PY)]
     frontend_paths = extract_frontend_api_paths(_FRONTEND_ROOT)
-    missing = [
-        fp
-        for fp in sorted(frontend_paths)
-        if not any(path_matches_aiohttp_route(br, fp) for br in backend_paths)
-    ]
+    missing = []
+    for fp in sorted(frontend_paths):
+        if not frontend_path_covered_by_backend(fp, backend_paths):
+            missing.append(fp)
     assert not missing, f"Frontend references unknown HTTP paths: {missing}"

@@ -1,7 +1,7 @@
 # .agents index
 
-Agent guidance only. End-user docs: `docs/en/`.
-Entry: root `AGENTS.md`.
+Agent guidance only. End-user docs: docs/en/.
+Entry: root AGENTS.md. Always-on rules: .agents/conventions/core.md and .agents/conventions/reticulum-zen.md.
 
 ## Open by need
 
@@ -11,14 +11,14 @@ Entry: root `AGENTS.md`.
 | Domain to manager / HTTP / WS / tests | [module-ownership.md](module-ownership.md)                   |
 | Mesh Zen gates                        | [conventions/reticulum-zen.md](conventions/reticulum-zen.md) |
 | Always-on standards                   | [conventions/core.md](conventions/core.md)                   |
-| Vue UI                                | [conventions/frontend.md](conventions/frontend.md)           |
+| Frontend (Svelte 5)                   | [conventions/frontend.md](conventions/frontend.md)           |
 | Python / HTTP / SQLite                | [conventions/backend.md](conventions/backend.md)             |
 | Local FS jail                         | [conventions/path-jail.md](conventions/path-jail.md)         |
 | Android WebView                       | [conventions/android.md](conventions/android.md)             |
 | Tests / oracles / contracts           | [conventions/tests.md](conventions/tests.md)                 |
 | Commit messages                       | [conventions/commits.md](conventions/commits.md)             |
 
-Skills: one file each at `skills/<name>/SKILL.md`. Open the matching skill before coding that surface.
+Skills: one file each at skills/<name>/SKILL.md. Open the matching skill before coding that surface.
 
 ## Skills (trigger to path)
 
@@ -38,7 +38,7 @@ Skills: one file each at `skills/<name>/SKILL.md`. Open the matching skill befor
 | privacy mode / clearnet HTTP             | [privacy-mode-clearnet](skills/privacy-mode-clearnet/SKILL.md)               |
 | new page, toast, i18n                    | [page-toast-tests](skills/page-toast-tests/SKILL.md)                         |
 | nav, tools, commands, WS registry        | [contribution-registries](skills/contribution-registries/SKILL.md)           |
-| Vue mega-page extract                    | [vue-mega-page-split](skills/vue-mega-page-split/SKILL.md)                   |
+| Svelte 5 / feature modules               | [svelte-feature-modules](skills/svelte-feature-modules/SKILL.md)             |
 | HTTP/WS extract from meshchat.py         | [meshchat-orchestration-split](skills/meshchat-orchestration-split/SKILL.md) |
 | identity key vs zip restore              | [identity-restore](skills/identity-restore/SKILL.md)                         |
 | identity switch teardown                 | [identity-switch-teardown](skills/identity-switch-teardown/SKILL.md)         |

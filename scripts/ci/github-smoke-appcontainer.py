@@ -147,10 +147,12 @@ def run_smoke(build_dir: Path) -> int:
         meshchat_log = logs / "meshchatx.log"
         env = os.environ.copy()
         env["MESHCHAT_LOG_DIR"] = str(logs)
-        # The GitHub Actions Windows runner cannot complete AppContainer
-        # process creation for the frozen build, so run unsandboxed here.
-        # The AppContainer code is still covered by unit tests.
-        env["MESHCHAT_APPCONTAINER"] = "0"
+        # Exercise the real default path: the frozen backend re-enters via
+        # the AppContainer launcher. When the runner cannot complete
+        # AppContainer process creation the launcher must still bring the
+        # backend up via its unsandboxed fallback; a hard failure here means
+        # users see a dead backend.
+        env.pop("MESHCHAT_APPCONTAINER", None)
         # Keep console output as well for child/launcher diagnostics.
         console_log = tmp / "console.log"
         with open(console_log, "w", encoding="utf-8") as log_handle:
@@ -168,8 +170,10 @@ def run_smoke(build_dir: Path) -> int:
                 meshchat_log,
             )
 
-            # With MESHCHAT_APPCONTAINER=0 we expect the frozen backend to
-            # start, AppContainer APIs to be detected, but sandboxing off.
+            # Default auto mode: the backend must report AppContainer support
+            # and request it. appcontainer_active may be true (sandboxed) or
+            # false (the runner could not create the container and the
+            # launcher fell back); both are valid as long as the API is up.
             if not data.get("appcontainer_supported"):
                 print(
                     f"expected appcontainer_supported=true, got {data!r}",
@@ -180,24 +184,27 @@ def run_smoke(build_dir: Path) -> int:
             for key in (
                 "appcontainer_requested",
                 "appcontainer_auto_enabled",
-                "appcontainer_active",
-                "fs_sandbox_active",
             ):
-                if data.get(key):
+                if not data.get(key):
                     print(
-                        f"expected {key}=false, got {data!r}",
+                        f"expected {key}=true, got {data!r}",
                         file=sys.stderr,
                     )
                     return 1
 
-            if not data.get("appcontainer_disabled_by_env"):
+            if data.get("appcontainer_disabled_by_env"):
                 print(
-                    f"expected appcontainer_disabled_by_env=true, got {data!r}",
+                    f"expected appcontainer_disabled_by_env=false, got {data!r}",
                     file=sys.stderr,
                 )
                 return 1
 
-            print("AppContainer smoke passed.")
+            active = bool(data.get("appcontainer_active"))
+            print(
+                f"AppContainer smoke passed "
+                f"(appcontainer_active={active}, "
+                f"fs_sandbox_active={bool(data.get('fs_sandbox_active'))})."
+            )
             shutdown_app(DEFAULT_PORT)
         finally:
             try:

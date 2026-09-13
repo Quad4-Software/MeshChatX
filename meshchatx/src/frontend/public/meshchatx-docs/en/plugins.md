@@ -185,7 +185,7 @@ Settings enable plugin
     |
     --> Fetch frontend entry as text
     |
-    --> Spawn pluginWorker.js (module Worker)
+    --> Spawn pluginWorker.ts (module Worker)
     |
     --> Register nav / tools contributions
     |

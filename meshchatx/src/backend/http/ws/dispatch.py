@@ -11,6 +11,7 @@ from meshchatx.src.backend.constants import (
     WsInboundType,
 )
 from meshchatx.src.backend.demo_mode import demo_mode_blocks_ws_type
+from meshchatx.src.backend.http.live_names import inject_meshchat_names
 from meshchatx.src.backend.http.ws.handlers_core import HANDLERS as _CORE_HANDLERS
 from meshchatx.src.backend.http.ws.handlers_lxmf import HANDLERS as _LXMF_HANDLERS
 from meshchatx.src.backend.http.ws.handlers_nomad import HANDLERS as _NOMAD_HANDLERS
@@ -29,13 +30,40 @@ from meshchatx.src.backend.websocket_runtime import (
 
 logger = logging.getLogger(__name__)
 
+_NS_READY = False
+
 WS_HANDLERS = {}
 WS_HANDLERS.update(_CORE_HANDLERS)
 WS_HANDLERS.update(_NOMAD_HANDLERS)
 WS_HANDLERS.update(_LXMF_HANDLERS)
 WS_HANDLERS.update(_RNS_LINK_HANDLERS)
 
+_HANDLER_MODULES = (
+    "meshchatx.src.backend.http.ws.handlers_core",
+    "meshchatx.src.backend.http.ws.handlers_nomad",
+    "meshchatx.src.backend.http.ws.handlers_lxmf",
+    "meshchatx.src.backend.http.ws.handlers_rns_link",
+)
+
 _KNOWN_TYPES = frozenset(WS_HANDLERS.keys()) | WS_RUNTIME_CONTROL_TYPES
+
+
+def _ensure_meshchat_namespace() -> None:
+    global _NS_READY
+    if _NS_READY:
+        return
+    inject_meshchat_names(globals())
+    for mod_name in _HANDLER_MODULES:
+        mod = __import__(mod_name, fromlist=["*"])
+        inject_meshchat_names(mod.__dict__)
+        if hasattr(mod, "__path__"):
+            import importlib
+            import pkgutil
+
+            for info in pkgutil.walk_packages(mod.__path__, mod.__name__ + "."):
+                sub = importlib.import_module(info.name)
+                inject_meshchat_names(sub.__dict__)
+    _NS_READY = True
 
 
 async def _handle_runtime_control(app, client, data, msg_type: str) -> bool:
@@ -109,6 +137,7 @@ async def _handle_runtime_control(app, client, data, msg_type: str) -> bool:
 
 
 async def dispatch_websocket_data(app, client, data):
+    _ensure_meshchat_namespace()
     touch_client_activity(client)
 
     msg_type, envelope_err = validate_ws_envelope(data, _KNOWN_TYPES)

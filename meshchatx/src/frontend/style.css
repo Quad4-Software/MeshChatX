@@ -67,9 +67,27 @@
   }
 }
 
+.banished-overlay {
+  @apply absolute inset-0 z-100 flex items-center justify-center overflow-hidden pointer-events-none rounded-[inherit];
+  background: rgba(220, 38, 38, 0.12);
+  backdrop-filter: blur(3px) saturate(180%);
+}
+
+.banished-text {
+  @apply font-black tracking-[0.3em] uppercase pointer-events-none opacity-40;
+  font-size: clamp(1.5rem, 8vw, 6rem);
+  color: #dc2626;
+  transform: rotate(-12deg);
+  text-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
+  border: 0.2em solid #dc2626;
+  padding: 0.15em 0.4em;
+  border-radius: 0.15em;
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .route-view-fade-enter-active,
 .route-view-fade-leave-active {
-  transition: opacity 120ms ease;
+  transition: opacity 80ms ease;
 }
 
 .route-view-fade-enter-from,
@@ -442,6 +460,26 @@ select option {
 
 .icon-btn-muted {
     @apply inline-flex items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface-muted hover:text-sem-fg;
+}
+
+/* Dense toolbar icon circle. Touch size-11, desktop size-8. Pair with size-5 icons. */
+.toolbar-icon-btn {
+    @apply inline-flex size-11 sm:size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised hover:text-sem-fg;
+}
+
+/* Touch-first icon circle (call chrome). Pair with size-5 icons. */
+.toolbar-icon-btn-lg {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised hover:text-sem-fg;
+}
+
+/* Labeled chip beside toolbar-icon-btn. Pair with size-5 icons and text-sm font-medium leading-none. */
+.toolbar-label-chip {
+    @apply inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1 text-sm font-medium leading-none;
+}
+
+/* Compact IconButton override for Nomad chrome: keep touch 44px, denser from sm up. */
+.nomad-icon-btn {
+    @apply !p-0 sm:!size-8 sm:!min-h-8 sm:!min-w-8 sm:!w-8 sm:!h-8;
 }
 
 .dropdown-panel {

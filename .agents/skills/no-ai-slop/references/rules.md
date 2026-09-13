@@ -1,7 +1,7 @@
 # No AI slop rules (1 through 24)
 
-Upstream source: [realrossmanngroup/no_ai_slop_writing_rules](https://github.com/realrossmanngroup/no_ai_slop_writing_rules) `CLAUDE.md`.
-In this repo there is no project `CLAUDE.md` for these rules. Use this file.
+Upstream source: [realrossmanngroup/no_ai_slop_writing_rules](https://github.com/realrossmanngroup/no_ai_slop_writing_rules) CLAUDE.md.
+In this repo there is no project CLAUDE.md for these rules. Use this file.
 
 These are non-negotiable. Violating any of them makes the output unusable.
 
@@ -53,4 +53,4 @@ These are non-negotiable. Violating any of them makes the output unusable.
 
 24. **No research-process narration.** Report the facts you can support and silently omit what you cannot. Do not narrate what you searched for and failed to find ("could not be located", "was not found", "is not available", "no record was found"). Do not attach an "as of [date]" qualifier to your own inability to find something. Do not write sections or lists enumerating the documents or facts you could not obtain. Do not add meta-commentary about how the text was put together. If a fact cannot be supported, delete it. Do not tell the reader you looked.
 
-Banned-word lists: `ai-writing-detection.md` in this directory.
+Banned-word lists: ai-writing-detection.md in this directory.

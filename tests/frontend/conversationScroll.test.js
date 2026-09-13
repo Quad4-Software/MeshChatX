@@ -8,7 +8,7 @@ import {
     resetMessagesScrollSurface,
     scrollContainerToBottom,
     shouldLoadPreviousMessages,
-} from "@/components/messages/conversationScroll.js";
+} from "@/features/messages/lib/conversationScroll.ts";
 
 function makeScrollContainer({ reverse, scrollTop, scrollHeight, clientHeight }) {
     const outer = document.createElement("div");

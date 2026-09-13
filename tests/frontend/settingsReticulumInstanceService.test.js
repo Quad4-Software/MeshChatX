@@ -27,7 +27,7 @@ describe("settingsReticulumInstanceService", () => {
                 data: { message: "ok", instance: { local_hops_delta: true } },
             }),
         };
-        const response = await applyReticulumInstanceSettings({ local_hops_delta: true }, api);
+        const response = await applyReticulumInstanceSettings(api, { local_hops_delta: true });
         expect(api.patch).toHaveBeenCalledWith("/api/v1/reticulum/instance", {
             local_hops_delta: true,
         });

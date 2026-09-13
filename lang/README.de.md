@@ -37,10 +37,8 @@ make install && make build && make run
 
 Details: [`docs/en/installation.md`](../docs/en/installation.md).
 
-Aktuelle Version in diesem Repository: `4.9.0`.
-
 ## Sicherheit, Lizenz, Credits
 
 - [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
-- Projektanteil: 0BSD. Upstream-MeshChat-Anteil: MIT. Volltext: [LICENSE](../LICENSE).
+- Projektanteil: 0BSD. Gebündelte Drittanbieter behalten ihre Lizenzen. Volltext: [LICENSE](../LICENSE).
 - Credits: [Liam Cottle](https://github.com/liamcottle), [RFnexus](https://github.com/RFnexus), [markqvist](https://github.com/markqvist).

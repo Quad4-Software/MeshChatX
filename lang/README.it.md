@@ -37,10 +37,8 @@ make install && make build && make run
 
 Dettagli: [`docs/en/installation.md`](../docs/en/installation.md).
 
-Versione attuale nel repository: `4.9.0`.
-
 ## Sicurezza, licenza, crediti
 
 - [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
-- Codice del progetto: 0BSD. Porzioni upstream MeshChat: MIT. Testo completo: [LICENSE](../LICENSE).
+- Codice del progetto: 0BSD. Gli embed di terze parti restano sotto le loro licenze. Testo completo: [LICENSE](../LICENSE).
 - Crediti: [Liam Cottle](https://github.com/liamcottle), [RFnexus](https://github.com/RFnexus), [markqvist](https://github.com/markqvist).

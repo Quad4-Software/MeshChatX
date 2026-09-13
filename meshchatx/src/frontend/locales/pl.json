@@ -560,6 +560,8 @@
         "translator": "Tłumacz",
         "translator_enabled": "Włącz tłumacza",
         "translator_description": "Włącza funkcje tłumaczenia w rozmowach.",
+        "libretranslate_url": "URL LibreTranslate",
+        "libretranslate_url_description": "Adres URL, pod którym dostępne jest API LibreTranslate.",
         "system": "System",
         "reticulum_stack": "Stos Reticulum",
         "reticulum_stack_description": "Zarządzaj podstawowym stosem Reticulum Network Stack.",
@@ -3128,7 +3130,7 @@
         },
         "translator": {
             "title": "Tłumacz",
-            "description": "Tłumacz tekst przez LibreTranslate w sieci albo Argos Translate na tym urządzeniu."
+            "description": "Tłumacz tekst offline za pomocą lokalnie zaimportowanych pakietów językowych."
         },
         "forwarder": {
             "title": "Przekazywanie",
@@ -3595,6 +3597,7 @@
             "publish_create_and_publish": "Utwórz serwer mesh i publikuj...",
             "publish_manage_servers": "Zarządzaj serwerami mesh",
             "publish_will_start": "zostanie uruchomiony",
+            "publish_all_tabs": "Publikuj wszystkie karty na serwerze...",
             "publish_create_prompt_name": "Nazwa nowego serwera mesh:",
             "publish_failed_create": "Nie udało się utworzyć serwera mesh",
             "publish_failed_start": "Nie udało się uruchomić serwera mesh",
@@ -3623,7 +3626,10 @@
             "image_not_supported": "\"{name}\" nie jest obsługiwanym plikiem obrazu",
             "image_too_large": "\"{name}\" jest zbyt duży (maks. {max})",
             "image_local_loaded": "Wczytano",
-            "publish_images_failed": "Nie udało się przesłać {failed} z {total} obrazów do {server}"
+            "publish_images_failed": "Nie udało się przesłać {failed} z {total} obrazów do {server}",
+            "publish_all_prompt_server": "Wpisz nazwę serwera, na który opublikować wszystkie karty:\n\nDostępne: {servers}",
+            "publish_server_not_found": "Nie znaleziono serwera: {server}",
+            "publish_all_done": "Opublikowano {published}/{total} kart na {server}"
         },
         "reticulum_config_editor": {
             "title": "Edytor konfiguracji Reticulum",
@@ -3968,8 +3974,8 @@
         "popout_channel": "Otwórz w nowym oknie",
         "new_message_toast": "Nowa wiadomość w #{room}",
         "host_users": "użytkownicy",
-        "host_announce_interval": "Interwał anonsów (minuty)",
-        "host_announce_interval_hint": "Co {minutes} minut",
+        "host_announce_interval": "Interwał anonsów",
+        "host_announce_interval_hint": "Co {interval}",
         "host_hub_settings": "Ustawienia huba",
         "presence_joined": "Dołączyło: {count}",
         "presence_left": "Wyszło: {count}",
@@ -4033,6 +4039,8 @@
         "demote_op": "Odbierz status operatora",
         "promote_op": "Nadaj status operatora",
         "composer_placeholder": "Napisz wiadomość...",
+        "search_placeholder": "Szukaj wiadomości...",
+        "search_results_count": "{count} wyników",
         "type_to_search": "Wpisz, aby szukać wiadomości",
         "no_search_results": "Brak wiadomości pasujących do wyszukiwania",
         "dm_member": "Wiadomość prywatna",
@@ -4081,9 +4089,7 @@
         "search_global_hint": "Wskazówka: \"dokładna fraza\", a LUB b, -wyklucz, from:nick, room:pokój, hub:hash",
         "search_global_count": "{count} wyników",
         "search_global_empty": "Przeszukaj historię wiadomości we wszystkich połączonych hubach i pokojach.",
-        "search_global_none": "Brak pasujących wiadomości.",
-        "search_placeholder": "Szukaj wiadomości...",
-        "search_results_count": "{count} wyników"
+        "search_global_none": "Brak pasujących wiadomości."
     },
     "rncp": {
         "file_transfer": "Transfer plików",

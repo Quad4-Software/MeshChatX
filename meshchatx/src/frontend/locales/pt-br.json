@@ -560,6 +560,8 @@
         "translator": "Tradutor",
         "translator_enabled": "Ativar Tradutor",
         "translator_description": "Ative os recursos de tradução nas conversas.",
+        "libretranslate_url": "URL do LibreTranslate",
+        "libretranslate_url_description": "A URL onde a API do LibreTranslate está acessível.",
         "system": "Sistema",
         "reticulum_stack": "Pilha da Reticulum",
         "reticulum_stack_description": "Gerencie a Pilha de Rede subjacente da Reticulum.",
@@ -3128,7 +3130,7 @@
         },
         "translator": {
             "title": "Tradutor",
-            "description": "Traduz texto com LibreTranslate pela rede ou Argos Translate neste dispositivo."
+            "description": "Traduza texto offline com pacotes de idiomas importados localmente."
         },
         "forwarder": {
             "title": "Repassador",
@@ -3595,6 +3597,7 @@
             "publish_create_and_publish": "Criar mesh server e publicar...",
             "publish_manage_servers": "Gerenciar mesh servers",
             "publish_will_start": "será iniciado",
+            "publish_all_tabs": "Publicar todas as abas no servidor...",
             "publish_create_prompt_name": "Nome para o novo mesh server:",
             "publish_failed_create": "Falha ao criar mesh server",
             "publish_failed_start": "Falha ao iniciar mesh server",
@@ -3623,7 +3626,10 @@
             "image_not_supported": "\"{name}\" não é um arquivo de imagem compatível",
             "image_too_large": "\"{name}\" é muito grande (máx. {max})",
             "image_local_loaded": "Carregada",
-            "publish_images_failed": "Falha ao enviar {failed} de {total} imagens para {server}"
+            "publish_images_failed": "Falha ao enviar {failed} de {total} imagens para {server}",
+            "publish_all_prompt_server": "Digite o nome do servidor para publicar todas as abas:\n\nDisponíveis: {servers}",
+            "publish_server_not_found": "Servidor não encontrado: {server}",
+            "publish_all_done": "Publicadas {published}/{total} abas em {server}"
         },
         "reticulum_config_editor": {
             "title": "Editor de Configuração da Reticulum",
@@ -3968,8 +3974,8 @@
         "popout_channel": "Abrir em nova janela",
         "new_message_toast": "Nova mensagem em #{room}",
         "host_users": "usuários",
-        "host_announce_interval": "Intervalo de anúncio (minutos)",
-        "host_announce_interval_hint": "A cada {minutes} minutos",
+        "host_announce_interval": "Intervalo de anúncio",
+        "host_announce_interval_hint": "A cada {interval}",
         "host_hub_settings": "Configurações do hub",
         "presence_joined": "{count} entraram",
         "presence_left": "{count} saíram",
@@ -4033,6 +4039,8 @@
         "demote_op": "Rebaixar Operador",
         "promote_op": "Promover a Operador",
         "composer_placeholder": "Escreva uma mensagem...",
+        "search_placeholder": "Buscar mensagens...",
+        "search_results_count": "{count} resultados",
         "type_to_search": "Digite para buscar mensagens",
         "no_search_results": "Nenhuma mensagem corresponde à busca",
         "dm_member": "Mensagem direta",
@@ -4081,9 +4089,7 @@
         "search_global_hint": "Dica: \"frase exata\", a OU b, -excluir, from:apelido, room:sala, hub:hash",
         "search_global_count": "{count} resultados",
         "search_global_empty": "Busque no histórico de mensagens de todos os hubs e salas conectados.",
-        "search_global_none": "Nenhuma mensagem correspondente.",
-        "search_placeholder": "Buscar mensagens...",
-        "search_results_count": "{count} resultados"
+        "search_global_none": "Nenhuma mensagem correspondente."
     },
     "rncp": {
         "file_transfer": "Transferência de Arquivos",

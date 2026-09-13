@@ -1,4 +1,8 @@
-# SPDX-License-Identifier: 0BSD AND MIT
+# SPDX-License-Identifier: 0BSD
+
+"""Thread-safe scheduling helpers for the MeshChatX asyncio event loop."""
+
+from __future__ import annotations
 
 import asyncio
 import logging
@@ -10,6 +14,8 @@ _logger = logging.getLogger("meshchatx.async")
 
 
 class AsyncUtils:
+    """Bridge between sync threads and a shared asyncio loop."""
+
     main_loop: asyncio.AbstractEventLoop | None = None
     _pending_futures: ClassVar[list[Any]] = []
     _pending_coroutines: ClassVar[list[Any]] = []
@@ -22,7 +28,7 @@ class AsyncUtils:
 
     @staticmethod
     def ensure_background_loop() -> None:
-        """Start a daemon event loop for pre-web-server async work."""
+        """Start a daemon loop when the web-server loop is not running yet."""
         if AsyncUtils.main_loop and AsyncUtils.main_loop.is_running():
             return
         if AsyncUtils._background_thread and AsyncUtils._background_thread.is_alive():
@@ -47,7 +53,8 @@ class AsyncUtils:
             _logger.warning("Background asyncio loop did not become ready within 5s")
 
     @staticmethod
-    def set_main_loop(loop: asyncio.AbstractEventLoop):
+    def set_main_loop(loop: asyncio.AbstractEventLoop) -> None:
+        """Install the process main loop and drain any buffered coroutines."""
         # Swap the buffer under the lock so a run_async caller racing the
         # loop install lands either in the drained list (scheduled below)
         # or takes the live-loop path, never into a list nobody reads.
@@ -64,11 +71,11 @@ class AsyncUtils:
                 AsyncUtils._pending_futures.append(future)
 
     @staticmethod
-    def run_async(coroutine: Coroutine):
-        """Schedule *coroutine* on the main event loop from any thread.
+    def run_async(coroutine: Coroutine) -> Any:
+        """Schedule a coroutine on the main loop from any thread.
 
-        Returned futures are tracked so they (and the closures they reference)
-        can be garbage-collected promptly once finished.
+        Finished futures are pruned so closures can be collected promptly.
+        When no loop is running, coroutines are buffered up to a fixed cap.
         """
         with AsyncUtils._futures_lock:
             loop = AsyncUtils.main_loop
@@ -83,9 +90,9 @@ class AsyncUtils:
                     >= AsyncUtils._FUTURES_SWEEP_THRESHOLD
                 ):
                     AsyncUtils._pending_futures = [
-                        f for f in AsyncUtils._pending_futures if not f.done()
+                        item for item in AsyncUtils._pending_futures if not item.done()
                     ]
-                return
+                return future
 
             # If the loop isn't available yet (or has stopped), buffer the
             # coroutine but cap the backlog so we don't leak memory forever.
@@ -101,3 +108,4 @@ class AsyncUtils:
                     "Dropped %d buffered coroutine(s) because the event loop is not running",
                     dropped,
                 )
+            return None

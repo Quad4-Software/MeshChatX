@@ -3,7 +3,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import NetworkVisualiser from "../../meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue";
+import { resolveVisualiserIsDark } from "../../meshchatx/src/frontend/features/network-visualiser/lib/visualiserPrefs.js";
+import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import {
     bootThemeOracle,
     docLangCorruptsUiLocale,
@@ -12,7 +13,6 @@ import {
     visualiserIsDarkOracle,
 } from "../../meshchatx/src/frontend/js/localeThemeOracles.js";
 import { normalizeUiLocaleCode, listLocaleCodes } from "../../meshchatx/src/frontend/js/localeLoader.js";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const BOOT_THEME_JS = resolve(ROOT, "meshchatx/src/frontend/public/boot-theme.js");
@@ -86,9 +86,9 @@ describe("localeTheme oracles", () => {
         });
     });
 
-    describe("visualiserIsDarkOracle vs NetworkVisualiser.resolveVisualiserIsDark", () => {
+    describe("visualiserIsDarkOracle vs resolveVisualiserIsDark", () => {
         afterEach(() => {
-            useConfigStore().config = {};
+            GlobalState.config = {};
             document.documentElement.classList.remove("dark");
         });
 
@@ -100,14 +100,14 @@ describe("localeTheme oracles", () => {
             [undefined, false, false],
             ["", true, true],
         ])("config.theme=%j html.dark=%s => %s", (theme, htmlDark, expected) => {
-            useConfigStore().config = theme === undefined ? {} : { theme };
+            GlobalState.config = theme === undefined ? {} : { theme };
             if (htmlDark) {
                 document.documentElement.classList.add("dark");
             } else {
                 document.documentElement.classList.remove("dark");
             }
             expect(visualiserIsDarkOracle(theme, htmlDark)).toBe(expected);
-            expect(NetworkVisualiser.methods.resolveVisualiserIsDark()).toBe(expected);
+            expect(resolveVisualiserIsDark()).toBe(expected);
         });
     });
 

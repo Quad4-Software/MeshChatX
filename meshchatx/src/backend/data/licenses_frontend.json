@@ -3642,6 +3642,12 @@
         "license": "MIT"
     },
     {
+        "name": "nostics",
+        "version": "1.2.0",
+        "author": "Anthony Fu",
+        "license": "MIT"
+    },
+    {
         "name": "nth-check",
         "version": "2.1.1",
         "author": "Felix Boehm",
@@ -3891,6 +3897,12 @@
         "name": "picomatch",
         "version": "4.0.4",
         "author": "Jon Schlinkert",
+        "license": "MIT"
+    },
+    {
+        "name": "pinia",
+        "version": "4.0.3",
+        "author": "Eduardo San Martin Morote",
         "license": "MIT"
     },
     {

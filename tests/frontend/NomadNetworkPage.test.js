@@ -1,9 +1,18 @@
-import { mount } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+import { render, cleanup, waitFor, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import MicronParser from "@/js/MicronParser.js";
-
-import NomadNetworkPage from "@/components/nomadnetwork/NomadNetworkPage.vue";
-import ToastUtils from "@/js/ToastUtils";
+import NomadNetworkPage from "@/features/nomadnetwork/components/NomadNetworkPage.svelte";
+import WebSocketConnection from "@/js/WebSocketConnection";
+import { dispatchWsEvent } from "@/js/registries/wsEventRegistry";
+import { resetWsEventBridgeForTests } from "@/js/registries/wsEventBridge";
+import GlobalState from "@/js/GlobalState";
+import { NOMAD_CRASH_TAB_CHANNEL } from "@/js/nomadCrashTabShell.js";
+import {
+    resolveNomadImageDestination,
+    resolveNomadImagePolicy,
+    getNomadImageDataUrl,
+    setNomadImageCacheEntry,
+} from "@/features/nomadnetwork/lib/nomadPageImages.js";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
@@ -23,1705 +32,771 @@ vi.mock("@/js/DialogUtils", () => ({
     },
 }));
 
-const wsMessageHandlers = [];
-const wsEventHandlers = {};
-
-function registerWsEventHandler(event, handler) {
-    if (event === "message") {
-        wsMessageHandlers.push(handler);
-        return;
-    }
-    if (!wsEventHandlers[event]) {
-        wsEventHandlers[event] = [];
-    }
-    wsEventHandlers[event].push(handler);
-}
-
-function unregisterWsEventHandler(event, handler) {
-    if (event === "message") {
-        const index = wsMessageHandlers.indexOf(handler);
-        if (index >= 0) {
-            wsMessageHandlers.splice(index, 1);
-        }
-        return;
-    }
-    const list = wsEventHandlers[event] || [];
-    const index = list.indexOf(handler);
-    if (index >= 0) {
-        list.splice(index, 1);
-    }
-}
-
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
         send: vi.fn(() => true),
         isOpen: vi.fn(() => true),
-        on: vi.fn((event, handler) => {
-            registerWsEventHandler(event, handler);
-        }),
-        off: vi.fn((event, handler) => {
-            unregisterWsEventHandler(event, handler);
-        }),
-        setLiveSendBridge: vi.fn(),
-        reconnect: vi.fn(),
-        connect: vi.fn(),
-        destroy: vi.fn(),
+        on: vi.fn(),
+        off: vi.fn(),
     },
 }));
 
-vi.mock("@/js/liveTransport.js", () => ({
-    default: {
-        send: vi.fn(() => true),
-        isOpen: vi.fn(() => true),
-        on: vi.fn((event, handler) => {
-            registerWsEventHandler(event, handler);
-        }),
-        off: vi.fn((event, handler) => {
-            unregisterWsEventHandler(event, handler);
-        }),
-        connect: vi.fn(async () => ({ transport: "websocket", fellBack: false })),
-        destroy: vi.fn(),
-        configure: vi.fn(),
-        reconnect: vi.fn(),
-    },
-}));
+const TEST_DESTINATION_HASH = "aabbccddeeff00112233445566778899";
 
-describe("NomadNetworkPage.vue", () => {
+describe("NomadNetworkPage.svelte", () => {
     let axiosMock;
 
-    beforeEach(async () => {
+    beforeEach(() => {
         axiosMock = {
-            get: vi.fn(),
-            post: vi.fn(),
-            delete: vi.fn(),
+            get: vi.fn((url) => {
+                if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
+                if (url.includes("/archives")) return Promise.resolve({ data: { archives: [] } });
+                return Promise.resolve({ data: {} });
+            }),
+            post: vi.fn(() => Promise.resolve({ data: {} })),
+            delete: vi.fn(() => Promise.resolve({ data: {} })),
         };
         window.api = axiosMock;
-        wsMessageHandlers.length = 0;
-        for (const key of Object.keys(wsEventHandlers)) {
-            delete wsEventHandlers[key];
-        }
         vi.clearAllMocks();
-        const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
-        WebSocketConnection.send.mockReturnValue(true);
-        WebSocketConnection.isOpen.mockReturnValue(true);
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
-            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            if (url.includes("/path")) return Promise.resolve({ data: { path: { hops: 1 } } });
-            return Promise.resolve({ data: {} });
-        });
+        resetWsEventBridgeForTests();
     });
 
     afterEach(() => {
+        cleanup();
         delete window.api;
     });
 
-    const mountNomadNetworkPage = (props = { destinationHash: "" }) => {
-        return mount(NomadNetworkPage, {
-            props,
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $route: { query: {} },
-                    $router: { replace: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                    LoadingSpinner: true,
-                    NomadNetworkSidebar: {
-                        template: '<div class="sidebar-stub"></div>',
-                        props: ["nodes", "selectedDestinationHash"],
-                    },
-                    NomadBrowserContextMenu: true,
-                    NomadCrashTab: true,
-                    VTooltip: {
-                        template: '<div class="v-tooltip-stub"><slot /></div>',
-                    },
-                },
-            },
-        });
-    };
-
-    it("displays 'No active node' by default", () => {
-        const wrapper = mountNomadNetworkPage();
-        expect(wrapper.text()).toContain("nomadnet.no_active_node");
-    });
-
-    it("debounces node search and passes search param to announces API", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn(() => false);
-        const wrapper = mountNomadNetworkPage();
-        await wrapper.vm.$nextTick();
-        axiosMock.get.mockClear();
-
-        wrapper.vm.onNodesSearchChanged("nodequery");
-        await vi.advanceTimersByTimeAsync(500);
-        const calls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/announces");
-        expect(calls.length).toBeGreaterThanOrEqual(1);
-        const last = calls[calls.length - 1];
-        expect(last[1].params.aspect).toBe("nomadnetwork.node");
-        expect(last[1].params.search).toBe("nodequery");
-        vi.useRealTimers();
-    });
-
-    it("tracks isSearchingNodes while the debounce and request are pending, clearing it once resolved", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn(() => false);
-
-        let resolveAnnounces;
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
-            if (url === "/api/v1/announces") {
-                return new Promise((resolve) => {
-                    resolveAnnounces = resolve;
-                });
-            }
-            return Promise.resolve({ data: {} });
+    it("sends page download request over WebSocket when destinationHash is provided", async () => {
+        render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        const wrapper = mountNomadNetworkPage();
-
-        // the initial mount fetch is in flight
-        expect(wrapper.vm.isSearchingNodes).toBe(true);
-        resolveAnnounces({ data: { announces: [], total_count: 0 } });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.isSearchingNodes).toBe(false);
-
-        wrapper.vm.onNodesSearchChanged("nodequery");
-        // indicator shows immediately, even before the debounce fires
-        expect(wrapper.vm.isSearchingNodes).toBe(true);
-
-        await vi.advanceTimersByTimeAsync(500);
-        // debounce elapsed, request is now in flight and still pending
-        expect(wrapper.vm.isSearchingNodes).toBe(true);
-
-        resolveAnnounces({ data: { announces: [], total_count: 0 } });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.isSearchingNodes).toBe(false);
-
-        vi.useRealTimers();
-    });
-
-    it("does not clear isSearchingNodes for a stale request superseded by a newer search", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);
-
-        const pending = [];
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
-            if (url === "/api/v1/announces") {
-                return new Promise((resolve, reject) => {
-                    pending.push({ resolve, reject });
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountNomadNetworkPage();
-        await wrapper.vm.$nextTick();
-        expect(pending.length).toBe(1);
-
-        // reject the initial mount fetch as if it was aborted by a new search
-        wrapper.vm.onNodesSearchChanged("first");
-        await vi.advanceTimersByTimeAsync(500);
-        expect(pending.length).toBe(2);
-        pending[0].reject({ isCancelled: true });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        // the newer request is still in flight, so the indicator must stay on
-        expect(wrapper.vm.isSearchingNodes).toBe(true);
-
-        pending[1].resolve({ data: { announces: [], total_count: 0 } });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.isSearchingNodes).toBe(false);
-
-        vi.useRealTimers();
-    });
-
-    it("loads node when destinationHash prop is provided", async () => {
-        const destHash = "0123456789abcdef0123456789abcdef";
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/announces")
-                return Promise.resolve({
-                    data: { announces: [{ destination_hash: destHash, display_name: "Test Node" }] },
-                });
-            if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountNomadNetworkPage({ destinationHash: destHash });
-        // Manually set favourites to avoid undefined error if mock fails
-        wrapper.vm.favourites = [];
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick(); // Wait for fetch
-
-        expect(wrapper.vm.selectedNode.destination_hash).toBe(destHash);
-    });
-
-    it("toggles source view", async () => {
-        const destHash = "0123456789abcdef0123456789abcdef";
-        const wrapper = mountNomadNetworkPage({ destinationHash: destHash });
-        wrapper.vm.favourites = [];
-        wrapper.setData({
-            selectedNode: { destination_hash: destHash, display_name: "Test Node" },
-            nodePageContent: "Page Content",
-            nodePagePath: "test:path",
-        });
-        await wrapper.vm.$nextTick();
-
-        // Find toggle source button by icon name
-        const buttons = wrapper.findAll("button");
-        const toggleSourceButton = buttons.find((b) => b.html().includes('data-icon-name="code-tags"'));
-        if (toggleSourceButton) {
-            await toggleSourceButton.trigger("click");
-            expect(wrapper.vm.isShowingNodePageSource).toBe(true);
-        }
-    });
-
-    describe("showMicronRendererInMobileMenu", () => {
-        it("is true on .mu page when wasm bundled and not in source view", async () => {
-            const dest = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                wasmBundled: true,
-                selectedNode: { destination_hash: dest, display_name: "N" },
-                nodePagePath: `${dest}:/page/index.mu`,
-                isShowingNodePageSource: false,
-            });
-            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(true);
-        });
-
-        it("is false without selectedNode", async () => {
-            const dest = "c".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                wasmBundled: true,
-                selectedNode: null,
-                nodePagePath: `${dest}:/page/index.mu`,
-                isShowingNodePageSource: false,
-            });
-            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(false);
-        });
-
-        it("is false in source view", async () => {
-            const dest = "b".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                wasmBundled: true,
-                selectedNode: { destination_hash: dest, display_name: "N" },
-                nodePagePath: `${dest}:/page/index.mu`,
-                isShowingNodePageSource: true,
-            });
-            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(false);
-        });
-
-        it("is false when wasm is not bundled", async () => {
-            const dest = "d".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                wasmBundled: false,
-                selectedNode: { destination_hash: dest, display_name: "N" },
-                nodePagePath: `${dest}:/page/index.mu`,
-                isShowingNodePageSource: false,
-            });
-            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(false);
-        });
-
-        it("is true on .mu page when URL has Nomad data suffix after backtick", async () => {
-            const dest = "e".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                wasmBundled: true,
-                selectedNode: { destination_hash: dest, display_name: "N" },
-                nodePagePath: `${dest}:/page/repo.mu\`g=reticulum|r=nomadnet`,
-                isShowingNodePageSource: false,
-            });
-            expect(wrapper.vm.nodePagePathIsMicronMu).toBe(true);
-            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(true);
-        });
-    });
-
-    describe("partials", () => {
-        it("clearPartials resets partial state and timers", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.pagePartials = { "partial-0": "<span>x</span>" };
-            wrapper.vm.loadedPartialIds = { "partial-0": true };
-            wrapper.vm.partialIdsByKey = { "abc:path": [] };
-            wrapper.vm.partialRefreshByKey = { "abc:path": 10 };
-            wrapper.vm.partialRefreshTimers = { "abc:path": 12345 };
-
-            wrapper.vm.clearPartials();
-
-            expect(wrapper.vm.pagePartials).toEqual({});
-            expect(wrapper.vm.loadedPartialIds).toEqual({});
-            expect(wrapper.vm.partialIdsByKey).toEqual({});
-            expect(wrapper.vm.partialRefreshByKey).toEqual({});
-            expect(wrapper.vm.partialRefreshTimers).toEqual({});
-        });
-
-        it("processPartials does not call downloadNomadNetPage again after partials are marked loaded", async () => {
-            const dest = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.selectedNode = { destination_hash: dest, display_name: "Test" };
-            wrapper.vm.nodePagePath = `${dest}:/page/index.mu`;
-            wrapper.vm.nodePageContent = "`{" + dest + ":/page/nested.mu}";
-            const downloadSpy = vi
-                .spyOn(wrapper.vm, "downloadNomadNetPage")
-                .mockImplementation((_d, _p, _f, onSuccess) => {
-                    onSuccess("# ok");
-                });
-
-            await wrapper.vm.$nextTick();
-            await wrapper.vm.$nextTick();
-
-            wrapper.vm.crashTabPartials = [
-                {
-                    id: "partial-0",
-                    dest,
-                    path: "/page/nested.mu",
-                    refresh: null,
-                    fields: null,
-                },
-            ];
-            wrapper.vm.processPartials();
-            await wrapper.vm.$nextTick();
-
-            const afterFirst = downloadSpy.mock.calls.length;
-            expect(afterFirst).toBeGreaterThanOrEqual(1);
-
-            wrapper.vm.crashTabPartials = [
-                {
-                    id: "partial-0",
-                    dest,
-                    path: "/page/nested.mu",
-                    refresh: null,
-                    fields: null,
-                },
-            ];
-            wrapper.vm.processPartials();
-            await wrapper.vm.$nextTick();
-
-            expect(downloadSpy.mock.calls.length).toBe(afterFirst);
-
-            downloadSpy.mockRestore();
-        });
-
-        it("processPartials floors hostile 1s refresh to at least 5s", async () => {
-            vi.useFakeTimers();
-            const dest = "c".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.selectedNode = { destination_hash: dest, display_name: "Test" };
-            wrapper.vm.nodePagePath = `${dest}:/page/index.mu`;
-            wrapper.vm.nodePageContent = "`{" + dest + ":/page/nested.mu`1}";
-            wrapper.vm.isShowingNodePageSource = false;
-
-            const downloadSpy = vi
-                .spyOn(wrapper.vm, "downloadNomadNetPage")
-                .mockImplementation((_d, _p, _f, onSuccess) => {
-                    onSuccess("# ok");
-                });
-
-            await wrapper.vm.$nextTick();
-            await wrapper.vm.$nextTick();
-            wrapper.vm.crashTabPartials = [
-                {
-                    id: "partial-0",
-                    dest,
-                    path: "/page/nested.mu",
-                    refresh: "1",
-                    fields: null,
-                },
-            ];
-            wrapper.vm.processPartials();
-            await wrapper.vm.$nextTick();
-
-            const afterFirst = downloadSpy.mock.calls.length;
-            expect(afterFirst).toBeGreaterThanOrEqual(1);
-            expect(wrapper.vm.partialRefreshByKey[`${dest}:/page/nested.mu`]).toBe(5);
-
-            vi.advanceTimersByTime(1000);
-            expect(downloadSpy.mock.calls.length).toBe(afterFirst);
-
-            vi.advanceTimersByTime(4000);
-            await wrapper.vm.$nextTick();
-            expect(downloadSpy.mock.calls.length).toBeGreaterThan(afterFirst);
-
-            downloadSpy.mockRestore();
-            vi.useRealTimers();
-        });
-
-        it("relative page URL without selected node toasts instead of crashing", async () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.selectedNode = null;
-            await expect(wrapper.vm.onNodePageUrlClick(":/page/index.mu")).resolves.toBeUndefined();
-            expect(ToastUtils.warning).toHaveBeenCalled();
-        });
-
-        it("does not re-run Micron conversion when only favourites list updates", async () => {
-            const dest = "b".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.selectedNode = { destination_hash: dest, display_name: "Test" };
-            wrapper.vm.nodePagePath = `${dest}:/page/index.mu`;
-            wrapper.vm.nodePageContent = "# line one\n# line two";
-            wrapper.vm.isShowingNodePageSource = false;
-
-            await wrapper.vm.$nextTick();
-
-            const parseSpy = vi.spyOn(MicronParser.prototype, "convertMicronToHtml");
-
-            wrapper.vm.favourites = [{ destination_hash: "x", display_name: "Fav" }];
-            await wrapper.vm.$nextTick();
-
-            expect(parseSpy).not.toHaveBeenCalled();
-            parseSpy.mockRestore();
-        });
-
-        it("renderPageContent with .mu and pagePartials injects partial content", () => {
-            const dest = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.pagePartials = { "partial-0": "<span>Loaded partial</span>" };
-            const content = "Hello\n`{" + dest + ":/page/partial.mu}\nWorld";
-            const path = dest + ":/page/index.mu";
-
-            const html = wrapper.vm.renderPageContent(path, content);
-
-            expect(html).toContain("Loaded partial");
-            expect(html).not.toContain("Loading...");
-            expect(html).toContain("H");
-            expect(html).toContain("W");
-        });
-
-        it("renderPageContent without pagePartials shows placeholder for partial", () => {
-            const dest = "b".repeat(32);
-            const wrapper = mountNomadNetworkPage();
-            const content = "`{" + dest + ":/page/partial.mu}";
-            const path = dest + ":/page/index.mu";
-
-            const html = wrapper.vm.renderPageContent(path, content);
-
-            expect(html).toContain("mu-partial");
-            expect(html).toContain("Loading...");
-            expect(html).toContain('data-dest="' + dest + '"');
-        });
-    });
-
-    describe("page load stats", () => {
-        it("formatShortDuration formats ms and seconds", () => {
-            const wrapper = mountNomadNetworkPage();
-            expect(wrapper.vm.formatShortDuration(0)).toBe("0 ms");
-            expect(wrapper.vm.formatShortDuration(500)).toBe("500 ms");
-            expect(wrapper.vm.formatShortDuration(1500)).toMatch(/1\.5 s/);
-            expect(wrapper.vm.formatShortDuration(120000)).toMatch(/2m/);
-        });
-    });
-
-    describe("isFailedPageContent", () => {
-        const failedCases = [
-            ["request_failed"],
-            ["Failed loading page:"],
-            ["Failed loading page: Could not establish link to destination."],
-            ["Failed loading page: empty_response"],
-            ["Failed loading page: request_failed"],
-        ];
-
-        it.each(failedCases)("treats %s as failed load sentinel", (content) => {
-            const wrapper = mountNomadNetworkPage();
-            expect(wrapper.vm.isFailedPageContent(content)).toBe(true);
-        });
-
-        const notFailedCases = [
-            [null],
-            [undefined],
-            ["# README\nTalk about failure modes here."],
-            ["FAILURE is not how we detect errors"],
-            ["partial_failure in prose"],
-            [""],
-            ["Download cancelled"],
-            ["Download cancelled."],
-            ["page_download_cancelled"],
-            ["<p>success</p>"],
-        ];
-
-        it.each(notFailedCases)("does not treat %s as failed load", (content) => {
-            const wrapper = mountNomadNetworkPage();
-            expect(wrapper.vm.isFailedPageContent(content)).toBe(false);
-        });
-
-        const boundaryCases = [
-            ["phrase only mid-document", "Something happened. Failed loading page: not a real prefix.", false],
-            ["leading newline before meshchat prefix", "\nFailed loading page: timeout", false],
-            ["leading spaces before meshchat prefix", " Failed loading page: timeout", false],
-            ["wrong casing on meshchat prefix", "failed loading page: timeout", false],
-            ["wrong casing on sentinel", "REQUEST_FAILED", false],
-            ["sentinel with trailing space", "request_failed ", false],
-            ["sentinel with leading space", " request_failed", false],
-            ["meshchat prefix substring only", "PrefixedFailed loading page: no", false],
-        ];
-
-        it.each(boundaryCases)("boundary: %s", (_label, content, expectedFailed) => {
-            const wrapper = mountNomadNetworkPage();
-            expect(wrapper.vm.isFailedPageContent(content)).toBe(expectedFailed);
-        });
-
-        it("non-string and boxed values are not matched as failed", () => {
-            const wrapper = mountNomadNetworkPage();
-            expect(wrapper.vm.isFailedPageContent(123)).toBe(false);
-            expect(wrapper.vm.isFailedPageContent(NaN)).toBe(false);
-            expect(wrapper.vm.isFailedPageContent(true)).toBe(false);
-            expect(wrapper.vm.isFailedPageContent(false)).toBe(false);
-            expect(wrapper.vm.isFailedPageContent([])).toBe(false);
-            expect(wrapper.vm.isFailedPageContent({ status: "failure" })).toBe(false);
-            expect(wrapper.vm.isFailedPageContent(new String("request_failed"))).toBe(false);
-            expect(wrapper.vm.isFailedPageContent(new String("Failed loading page: boxed"))).toBe(false);
-        });
-    });
-
-    describe("isCancelledPageContent and cancel UI", () => {
-        const destHash = "d".repeat(32);
-
-        it("treats the cancel sentinel as cancelled content", () => {
-            const wrapper = mountNomadNetworkPage();
-            expect(wrapper.vm.isCancelledPageContent("page_download_cancelled")).toBe(true);
-            expect(wrapper.vm.isCancelledPageContent("nomadnet.page_download_cancelled")).toBe(true);
-            expect(wrapper.vm.isCancelledPageContent("Failed loading page: x")).toBe(false);
-            expect(wrapper.vm.isCancelledPageContent("# page")).toBe(false);
-        });
-
-        it("shows cancelled status instead of crash-tab content after cancelPageDownload", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/index.mu`,
-                isLoadingNodePage: true,
-                currentPageDownloadId: 42,
-                nodePageContent: null,
-            });
-            wrapper.vm.cancelPageDownload();
-            await wrapper.vm.$nextTick();
-
-            expect(wrapper.vm.isLoadingNodePage).toBe(false);
-            expect(wrapper.vm.currentPageDownloadId).toBe(null);
-            expect(wrapper.vm.nodePageContent).toBe("page_download_cancelled");
-            expect(wrapper.vm.showCancelledPageState).toBe(true);
-            expect(wrapper.text()).toContain("nomadnet.page_download_cancelled");
-            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(false);
-
-            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
-            expect(WebSocketConnection.send).toHaveBeenCalledWith(
-                JSON.stringify({
-                    type: "nomadnet.download.cancel",
-                    download_id: 42,
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
+            const raw = WebSocketConnection.send.mock.calls.find((call) => {
+                const msg = call[0];
+                return typeof msg === "string" && msg.includes("nomadnet.page.download");
+            })?.[0];
+            expect(raw).toBeTruthy();
+            const payload = JSON.parse(raw);
+            expect(payload).toEqual(
+                expect.objectContaining({
+                    type: "nomadnet.page.download",
+                    nomadnet_page_download: expect.objectContaining({
+                        destination_hash: TEST_DESTINATION_HASH,
+                        page_path: "/page/index.mu",
+                    }),
                 })
             );
         });
+    });
 
-        it("optimistic cancel without download id still shows cancelled status", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/index.mu`,
-                isLoadingNodePage: true,
-                currentPageDownloadId: null,
-                nodePageContent: null,
-            });
-            wrapper.vm.cancelPageDownload();
-            await wrapper.vm.$nextTick();
-
-            expect(wrapper.vm.pendingNomadPageCancelWithoutId).toBe(true);
-            expect(wrapper.vm.showCancelledPageState).toBe(true);
-            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(false);
+    it("shows loading indicator while page is loading", async () => {
+        const { getByRole } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        it("render abort shows cancelled status without wiping page bytes", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/index.mu`,
-                isLoadingNodePage: false,
-                nodePageContent: ">#!\n# Hello",
-                pageRenderAborted: false,
-                isCrashTabRendering: true,
-            });
-            wrapper.vm.onCrashTabAborted();
-            await wrapper.vm.$nextTick();
+        expect(getByRole("status")).toBeTruthy();
+    });
 
-            expect(wrapper.vm.pageRenderAborted).toBe(true);
-            expect(wrapper.vm.nodePageContent).toBe(">#!\n# Hello");
-            expect(wrapper.vm.showCancelledPageState).toBe(true);
-            expect(wrapper.vm.canRetryCrashTabRender).toBe(true);
-            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(false);
-            expect(ToastUtils.info).toHaveBeenCalledWith("nomadnet.crash_tab_render_cancelled");
-
-            wrapper.vm.retryCrashTabRender();
-            await wrapper.vm.$nextTick();
-            expect(wrapper.vm.pageRenderAborted).toBe(false);
-            expect(wrapper.vm.showCancelledPageState).toBe(false);
-            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(true);
+    it("displays page content when page download completes", async () => {
+        const { baseElement } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        it("shows loading banner with cancel while crash-tab is rendering", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/index.mu`,
-                isLoadingNodePage: false,
-                nodePageContent: ">#!\n# Hello",
-                pageRenderAborted: false,
-                isCrashTabRendering: true,
-            });
-            expect(wrapper.vm.showPageBusyBanner).toBe(true);
-            expect(wrapper.vm.pageBusyBannerLine).toBe("nomadnet.load_phase_default");
-            expect(wrapper.text()).toContain("nomadnet.load_phase_default");
-            expect(wrapper.text()).toContain("common.cancel");
-            expect(wrapper.text()).not.toContain("nomadnet.crash_tab_rendering");
-            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(true);
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
         });
 
-        it("shows empty-page status when content is blank", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/index.mu`,
-                isLoadingNodePage: false,
-                nodePageContent: "",
-                pageRenderAborted: false,
-            });
-            expect(wrapper.vm.showEmptyPageState).toBe(true);
-            expect(wrapper.vm.showCancelledPageState).toBe(false);
-            expect(wrapper.text()).toContain("nomadnet.page_empty_title");
-            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(false);
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 1,
+            nomadnet_page_download: {
+                status: "started",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+            },
+        });
+
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 1,
+            nomadnet_page_download: {
+                status: "success",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+                page_content: ">#!\n# Hello World",
+            },
+        });
+
+        await waitFor(() => {
+            expect(baseElement.querySelector("iframe")).toBeTruthy();
         });
     });
 
-    describe("crash-tab Micron chrome props", () => {
-        const destHash = "b".repeat(32);
-
-        it("passes semantic micron classes and Nomad dark colors for .mu pages", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/index.mu`,
-                isLoadingNodePage: false,
-                nodePageContent: ">#!\n# Hello",
-                isShowingNodePageSource: false,
-            });
-            expect(wrapper.vm.nomadCrashTabContentClass).toContain("nomad-page-rich");
-            expect(wrapper.vm.nomadCrashTabContentClass).toContain("bg-black");
-            expect(wrapper.vm.nomadCrashTabContentClass).not.toContain("text-gray-100");
-            expect(wrapper.vm.nomadCrashTabContentClass).not.toContain("wrap-break-word");
-            expect(wrapper.vm.nomadCrashTabColor).toBe("#dddddd");
-            expect(wrapper.vm.nomadCrashTabBackground).toBe("#000000");
+    it("displays error message when page download fails", async () => {
+        const { getByRole } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        it("uses #!bg= header for crash-tab background", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/index.mu`,
-                isLoadingNodePage: false,
-                nodePageContent: "#!bg=444\nHello",
-                isShowingNodePageSource: false,
-            });
-            expect(wrapper.vm.micronHeaderBackgroundCss).toBe("#444");
-            expect(wrapper.vm.nomadCrashTabBackground).toBe("#444");
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
         });
 
-        it("passes source chrome for view-source mode", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/index.mu`,
-                isLoadingNodePage: false,
-                nodePageContent: ">#!\n# Hello",
-                isShowingNodePageSource: true,
-            });
-            expect(wrapper.vm.nomadCrashTabContentClass).toContain("source");
-            expect(wrapper.vm.nomadCrashTabBackground).toBe("#000000");
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 2,
+            nomadnet_page_download: {
+                status: "started",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+            },
         });
 
-        it("pads markdown full-bleed hosts without micron black chrome", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/readme.md`,
-                isLoadingNodePage: false,
-                nodePageContent: "# Title",
-                isShowingNodePageSource: false,
-                pageShellBackground: "#112233",
-            });
-            expect(wrapper.vm.nomadCrashTabContentClass).toContain("nomad-markdown-host");
-            expect(wrapper.vm.nomadCrashTabContentClass).toContain("pad");
-            expect(wrapper.vm.nomadCrashTabContentClass).not.toContain("bg-black");
-            // Outer shell may use pageShellBackground. Crash-tab iframe must not,
-            // or shell-background postMessage loops render-started forever.
-            expect(wrapper.vm.nomadCrashTabBackground).toBe("transparent");
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 2,
+            nomadnet_page_download: {
+                status: "failure",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+                failure_reason: "Failed to load page",
+            },
         });
 
-        it("shell-background updates outer shell only", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                nodePagePath: `${destHash}:/page/readme.md`,
-                isLoadingNodePage: false,
-                nodePageContent: "# Title",
-                isShowingNodePageSource: false,
-                pageShellBackground: null,
-            });
-            const before = wrapper.vm.nomadCrashTabBackground;
-            wrapper.vm.onCrashTabShellBackground("rgb(17, 34, 51)");
-            await wrapper.vm.$nextTick();
-            expect(wrapper.vm.pageShellBackground).toBe("rgb(17, 34, 51)");
-            expect(wrapper.vm.nomadCrashTabBackground).toBe(before);
+        await waitFor(() => {
+            expect(getByRole("alert")).toBeTruthy();
         });
     });
 
-    describe("hasPageLoadFailed", () => {
-        const destHash = "c".repeat(32);
-
-        it("is false while loading even if content looks like an error string", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                isLoadingNodePage: true,
-                nodePageContent: "Failed loading page: race",
-            });
-            expect(wrapper.vm.hasPageLoadFailed).toBe(false);
+    it("clears busy loading when cancel arrives for the owned download id", async () => {
+        const { getByText } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        it("is false without selected node even if nodePageContent is an error string", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: null,
-                isLoadingNodePage: false,
-                nodePageContent: "Failed loading page: orphan",
-            });
-            expect(wrapper.vm.hasPageLoadFailed).toBe(false);
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
         });
 
-        it("is true when idle, node selected, and content matches failure detection", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                isLoadingNodePage: false,
-                nodePageContent: "Failed loading page: done",
-            });
-            expect(wrapper.vm.hasPageLoadFailed).toBe(true);
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 9,
+            nomadnet_page_download: {
+                status: "started",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+            },
         });
 
-        it("is false when idle with valid page prose mentioning failure", async () => {
-            const wrapper = mountNomadNetworkPage();
-            await wrapper.setData({
-                selectedNode: { destination_hash: destHash, display_name: "N" },
-                isLoadingNodePage: false,
-                nodePageContent: "# Doc\nAvoid failure during deploy.",
-            });
-            expect(wrapper.vm.hasPageLoadFailed).toBe(false);
+        await dispatchWsEvent("nomadnet.download.cancelled", {
+            type: "nomadnet.download.cancelled",
+            download_id: 9,
+        });
+
+        await waitFor(() => {
+            expect(getByText(/cancelled|stopped/i)).toBeTruthy();
         });
     });
 
-    describe("parseNomadnetworkUrl", () => {
-        it("parses absolute URL with query string", () => {
-            const wrapper = mountNomadNetworkPage();
-            const dest = "a".repeat(32);
-            const result = wrapper.vm.parseNomadnetworkUrl(`${dest}:/file/report.pdf?version=2&format=raw`);
-            expect(result).toEqual({
-                destination_hash: dest,
-                path: "/file/report.pdf",
-                query: "version=2&format=raw",
+    it("browse tab keeps the tab and list when closing a node", async () => {
+        const onclose = vi.fn();
+        let view;
+        // The browser shell applies the navigate back onto the tab props.
+        const onnavigate = vi.fn((dHash, pPath) => {
+            void view.rerender({
+                destinationHash: dHash || "",
+                pagePath: pPath || "/page/index.mu",
+                onnavigate,
+                onclose,
             });
         });
-
-        it("parses relative URL with query string", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.defaultNodePagePath = "/page/index.mu";
-            const result = wrapper.vm.parseNomadnetworkUrl(":/file/data.bin?key=val");
-            expect(result).toEqual({
-                destination_hash: null,
-                path: "/file/data.bin",
-                query: "key=val",
-            });
+        view = render(NomadNetworkPage, {
+            destinationHash: "",
+            pagePath: "",
+            onnavigate,
+            onclose,
         });
 
-        it("parses node-only URL without query", () => {
-            const wrapper = mountNomadNetworkPage();
-            const dest = "b".repeat(32);
-            const result = wrapper.vm.parseNomadnetworkUrl(dest);
-            expect(result).toEqual({
-                destination_hash: dest,
-                path: wrapper.vm.defaultNodePagePath,
-                query: null,
-            });
+        // A sidebar node click re-points this tab at a node.
+        await view.rerender({
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
+            onnavigate,
+            onclose,
         });
 
-        it("parses absolute URL without query", () => {
-            const wrapper = mountNomadNetworkPage();
-            const dest = "c".repeat(32);
-            const result = wrapper.vm.parseNomadnetworkUrl(`${dest}:/page/index.mu`);
-            expect(result).toEqual({
-                destination_hash: dest,
-                path: "/page/index.mu",
-                query: null,
-            });
-        });
+        const closeBtn = await waitFor(() => view.getByTitle("Cancel"));
+        await closeBtn.click();
 
-        it("returns null for unsupported URL", () => {
-            const wrapper = mountNomadNetworkPage();
-            expect(wrapper.vm.parseNomadnetworkUrl("not-a-url")).toBeNull();
-        });
-
-        it("handles empty query string after ?", () => {
-            const wrapper = mountNomadNetworkPage();
-            const dest = "d".repeat(32);
-            const result = wrapper.vm.parseNomadnetworkUrl(`${dest}:/file/x.txt?`);
-            expect(result.path).toBe("/file/x.txt");
-            expect(result.query).toBe("");
+        expect(onclose).not.toHaveBeenCalled();
+        expect(onnavigate).toHaveBeenCalledWith("", "/page/index.mu", false);
+        await waitFor(() => {
+            expect(view.queryByTitle("Cancel")).toBeNull();
         });
     });
 
-    describe("downloadNomadNetFile", () => {
-        let WebSocketConnection;
-
-        beforeEach(async () => {
-            // Re-import to get the mocked module
-            WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
-            WebSocketConnection.send.mockClear();
+    it("tab opened on a node closes the whole tab", async () => {
+        const onnavigate = vi.fn();
+        const onclose = vi.fn();
+        const { getByTitle } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
+            onnavigate,
+            onclose,
         });
 
-        it("includes data in websocket payload when provided", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.downloadNomadNetFile(
-                "a".repeat(32),
-                "/file/data.bin",
-                "version=2&format=raw",
-                vi.fn(),
-                vi.fn(),
-                vi.fn()
+        const closeBtn = await waitFor(() => getByTitle("Cancel"));
+        await closeBtn.click();
+
+        expect(onclose).toHaveBeenCalled();
+        expect(onnavigate).not.toHaveBeenCalled();
+    });
+
+    it("posts identify-on-connect and refreshes favourites", async () => {
+        const onfavouriteschanged = vi.fn();
+        const { getByTitle } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
+            favourites: [{ destination_hash: TEST_DESTINATION_HASH, display_name: "Node", identify_on_connect: false }],
+            onfavouriteschanged,
+        });
+
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
+        });
+
+        const identifyBtn = getByTitle(/Identify when connecting/i);
+        await identifyBtn.click();
+
+        await waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                `/api/v1/favourites/${TEST_DESTINATION_HASH}/identify-on-connect`,
+                expect.objectContaining({ enabled: true, aspect: "nomadnetwork.node" })
             );
-            expect(WebSocketConnection.send).toHaveBeenCalledOnce();
-            const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
-            expect(payload.type).toBe("nomadnet.file.download");
-            expect(payload.nomadnet_file_download.data).toBe("version=2&format=raw");
-        });
-
-        it("omits data field when data is null", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.downloadNomadNetFile("b".repeat(32), "/file/data.bin", null, vi.fn(), vi.fn(), vi.fn());
-            const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
-            expect(payload.nomadnet_file_download).not.toHaveProperty("data");
-        });
-
-        it("omits data field when data is undefined", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.downloadNomadNetFile("c".repeat(32), "/file/data.bin", undefined, vi.fn(), vi.fn(), vi.fn());
-            const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
-            expect(payload.nomadnet_file_download).not.toHaveProperty("data");
+            expect(onfavouriteschanged).toHaveBeenCalled();
         });
     });
 
-    describe("browser context menu actions", () => {
-        it("showPageSource enables source view when a page is loaded", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
-            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
-            wrapper.vm.isShowingNodePageSource = false;
-            expect(wrapper.vm.showPageSource()).toBe(true);
-            expect(wrapper.vm.isShowingNodePageSource).toBe(true);
+    it("reassembles chunked page downloads into page content", async () => {
+        const { baseElement } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        it("showPageSource warns when no page path is loaded", () => {
-            const wrapper = mountNomadNetworkPage();
-            expect(wrapper.vm.showPageSource()).toBe(false);
-            expect(ToastUtils.warning).toHaveBeenCalledWith("nomadnet.view_source_unavailable");
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
         });
 
-        it("downloadPageToDisk saves current page content", async () => {
-            const DownloadUtils = (await import("@/js/DownloadUtils")).default;
-            const downloadFile = vi.spyOn(DownloadUtils, "downloadFile").mockResolvedValue(undefined);
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
-            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
-            wrapper.vm.nodePageContent = "Hello Nomad";
-            expect(await wrapper.vm.downloadPageToDisk()).toBe(true);
-            expect(downloadFile).toHaveBeenCalledWith("index.mu", expect.any(Blob));
-            expect(ToastUtils.success).toHaveBeenCalledWith("nomadnet.download_page_started");
-            downloadFile.mockRestore();
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 11,
+            nomadnet_page_download: {
+                status: "started",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+            },
         });
 
-        it("downloadPageToDisk warns when page content is unavailable", async () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
-            wrapper.vm.nodePageContent = null;
-            expect(await wrapper.vm.downloadPageToDisk()).toBe(false);
-            expect(ToastUtils.warning).toHaveBeenCalledWith("nomadnet.download_page_unavailable");
+        const pageText = ">#!\n# Chunked Hello";
+        const bytes = new TextEncoder().encode(pageText);
+        const mid = Math.floor(bytes.length / 2);
+        const toB64 = (slice) => {
+            let binary = "";
+            for (let i = 0; i < slice.length; i++) binary += String.fromCharCode(slice[i]);
+            return btoa(binary);
+        };
+
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 11,
+            nomadnet_page_download: {
+                status: "chunk",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+                offset: 0,
+                total: bytes.length,
+                chunk_index: 0,
+                chunk_b64: toB64(bytes.slice(0, mid)),
+            },
         });
 
-        it("downloadPageToDisk reports download failures", async () => {
-            const DownloadUtils = (await import("@/js/DownloadUtils")).default;
-            const downloadFile = vi.spyOn(DownloadUtils, "downloadFile").mockRejectedValue(new Error("disk full"));
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
-            wrapper.vm.nodePageContent = "Hello Nomad";
-            expect(await wrapper.vm.downloadPageToDisk()).toBe(false);
-            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.download_page_failed");
-            downloadFile.mockRestore();
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 11,
+            nomadnet_page_download: {
+                status: "chunk",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+                offset: mid,
+                total: bytes.length,
+                chunk_index: 1,
+                chunk_b64: toB64(bytes.slice(mid)),
+            },
         });
 
-        it("toggleFavouriteFromContext adds favourite and toasts success", async () => {
-            axiosMock.post.mockResolvedValueOnce({ data: {} });
-            axiosMock.get.mockResolvedValueOnce({ data: { favourites: [] } });
-            const wrapper = mountNomadNetworkPage();
-            const node = { destination_hash: "a".repeat(32), display_name: "Node" };
-            wrapper.vm.selectedNode = node;
-            wrapper.vm.favourites = [];
-            expect(await wrapper.vm.toggleFavouriteFromContext()).toBe(true);
-            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/favourites/add", {
-                destination_hash: node.destination_hash,
-                display_name: node.display_name,
-                aspect: "nomadnetwork.node",
-            });
-            expect(ToastUtils.success).toHaveBeenCalledWith("nomadnet.favourite_added");
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 11,
+            nomadnet_page_download: {
+                status: "success",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+                chunked: true,
+                total: bytes.length,
+            },
         });
 
-        it("resolveNodeForHash prefers favourite name over Unknown Node stub", () => {
-            const wrapper = mountNomadNetworkPage();
-            const hash = "a".repeat(32);
-            wrapper.vm.nodes = {};
-            wrapper.vm.favourites = [{ destination_hash: hash, display_name: "Saved Favourite" }];
-            const resolved = wrapper.vm.resolveNodeForHash(hash);
-            expect(resolved.display_name).toBe("Saved Favourite");
-            expect(resolved.destination_hash).toBe(hash);
-        });
-
-        it("addFavourite does not overwrite existing favourite with Unknown Node", async () => {
-            axiosMock.post.mockResolvedValueOnce({ data: {} });
-            axiosMock.get.mockResolvedValueOnce({ data: { favourites: [] } });
-            const wrapper = mountNomadNetworkPage();
-            const hash = "a".repeat(32);
-            wrapper.vm.favourites = [{ destination_hash: hash, display_name: "Kept Name" }];
-            await wrapper.vm.addFavourite({
-                destination_hash: hash,
-                display_name: "Unknown Node",
-            });
-            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/favourites/add", {
-                destination_hash: hash,
-                display_name: "Kept Name",
-                aspect: "nomadnetwork.node",
-            });
-        });
-
-        it("addFavourite canonicalizes localized unknown names for new favourites", async () => {
-            axiosMock.post.mockResolvedValueOnce({ data: {} });
-            axiosMock.get.mockResolvedValueOnce({ data: { favourites: [] } });
-            const wrapper = mountNomadNetworkPage();
-            const hash = "b".repeat(32);
-            wrapper.vm.favourites = [];
-            await wrapper.vm.addFavourite({
-                destination_hash: hash,
-                display_name: "Unbekannter Knoten",
-            });
-            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/favourites/add", {
-                destination_hash: hash,
-                display_name: "Unknown Node",
-                aspect: "nomadnetwork.node",
-            });
-        });
-
-        it("onNodeClick resolves favourite names through announce cache", async () => {
-            const wrapper = mountNomadNetworkPage();
-            const hash = "c".repeat(32);
-            wrapper.vm.nodes = {
-                [hash]: {
-                    destination_hash: hash,
-                    display_name: "From Announce",
-                    aspect: "nomadnetwork.node",
-                },
-            };
-            wrapper.vm.favourites = [{ destination_hash: hash, display_name: "Unknown Node" }];
-            const loadSpy = vi.spyOn(wrapper.vm, "loadNodePage").mockResolvedValue();
-            wrapper.vm.onNodeClick({ destination_hash: hash, display_name: "Unknown Node" });
-            expect(wrapper.vm.selectedNode.display_name).toBe("From Announce");
-            expect(loadSpy).toHaveBeenCalledWith(hash, wrapper.vm.defaultNodePagePath);
-            loadSpy.mockRestore();
-        });
-
-        it("onBulkAddFavouritesFromAnnounces uses canonical unknown sentinel", async () => {
-            axiosMock.post.mockResolvedValue({ data: {} });
-            axiosMock.get.mockResolvedValue({ data: { favourites: [] } });
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.favourites = [];
-            const hash = "d".repeat(32);
-            await wrapper.vm.onBulkAddFavouritesFromAnnounces([{ destination_hash: hash, display_name: "未知节点" }]);
-            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/favourites/add", {
-                destination_hash: hash,
-                display_name: "Unknown Node",
-                aspect: "nomadnetwork.node",
-            });
-        });
-
-        it("toggleFavouriteFromContext reports API failures", async () => {
-            axiosMock.post.mockRejectedValueOnce(new Error("network"));
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
-            wrapper.vm.favourites = [];
-            expect(await wrapper.vm.toggleFavouriteFromContext()).toBe(false);
-            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.context_menu_favourite_failed");
-        });
-
-        it("onPageContextMenu delegates to browser tab actions when embedded", () => {
-            const openContextMenu = vi.fn();
-            const wrapper = mountNomadNetworkPage({ destinationHash: "", embedded: true });
-            wrapper.vm.nomadBrowserTabActions = { openContextMenu };
-            const event = { clientX: 4, clientY: 8 };
-            wrapper.vm.onPageContextMenu(event);
-            expect(openContextMenu).toHaveBeenCalledWith(event);
-        });
-
-        it("runStandaloneContextAction closes menu after failures", async () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.standaloneContextMenu.show = true;
-            await wrapper.vm.runStandaloneContextAction(() => {
-                throw new Error("boom");
-            });
-            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.context_menu_action_failed");
-            expect(wrapper.vm.standaloneContextMenu.show).toBe(false);
+        await waitFor(() => {
+            expect(baseElement.querySelector("iframe")).toBeTruthy();
         });
     });
 
-    describe("embedded tab websocket isolation", () => {
-        const hashA = "a".repeat(32);
-        const hashB = "b".repeat(32);
-        const pagePath = "/page/index.mu";
-
-        const emitPageDownload = (destinationHash, status, extra = {}) => ({
-            data: JSON.stringify({
-                type: "nomadnet.page.download",
-                download_id: 42,
-                nomadnet_page_download: {
-                    destination_hash: destinationHash,
-                    page_path: pagePath,
-                    status,
-                    page_content: "<p>other tab</p>",
-                    ...extra,
-                },
-            }),
+    it("serves a second load of the same path from in-tab cache without another WS send", async () => {
+        const { getByTitle } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        it("inactive embedded instance ignores another tab's archived page download", async () => {
-            const active = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: true,
-            });
-            const inactive = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: false,
-            });
-            await active.vm.$nextTick();
-            await inactive.vm.$nextTick();
-
-            active.vm.selectedNode = { destination_hash: hashA, display_name: "A" };
-            active.vm.nodePagePath = `${hashA}:${pagePath}`;
-            active.vm.nodePageContent = "<p>tab a</p>";
-
-            inactive.vm.selectedNode = { destination_hash: hashA, display_name: "A" };
-            inactive.vm.nodePagePath = `${hashA}:${pagePath}`;
-            inactive.vm.nodePageContent = "<p>tab a copy</p>";
-
-            await inactive.vm.onWebsocketMessage(emitPageDownload(hashB, "success", { is_archived_version: true }));
-
-            expect(active.vm.nodePageContent).toBe("<p>tab a</p>");
-            expect(inactive.vm.nodePageContent).toBe("<p>tab a copy</p>");
-            active.unmount();
-            inactive.unmount();
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
         });
 
-        it("inactive embedded instance ignores started events without a callback", async () => {
-            const inactive = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: false,
-            });
-            await inactive.vm.$nextTick();
-            inactive.vm.selectedNode = { destination_hash: hashA, display_name: "A" };
-            inactive.vm.nodePagePath = `${hashA}:${pagePath}`;
-            inactive.vm.nodePageContent = "<p>stable</p>";
-
-            await inactive.vm.onWebsocketMessage(emitPageDownload(hashB, "started"));
-
-            expect(inactive.vm.currentPageDownloadId).toBeNull();
-            expect(inactive.vm.nodePageLoadPhase).toBeNull();
-            expect(inactive.vm.nodePageContent).toBe("<p>stable</p>");
-            inactive.unmount();
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 21,
+            nomadnet_page_download: {
+                status: "started",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+            },
+        });
+        await dispatchWsEvent("nomadnet.page.download", {
+            type: "nomadnet.page.download",
+            download_id: 21,
+            nomadnet_page_download: {
+                status: "success",
+                destination_hash: TEST_DESTINATION_HASH,
+                page_path: "/page/index.mu",
+                page_content: ">#!\n# Cached",
+            },
         });
 
-        it("active instance with callback still receives page download success", async () => {
-            const wrapper = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: true,
-            });
-            await wrapper.vm.$nextTick();
+        const sendCountAfterFirst = WebSocketConnection.send.mock.calls.filter((call) =>
+            String(call[0] || "").includes("nomadnet.page.download")
+        ).length;
 
-            const onSuccess = vi.fn();
-            wrapper.vm.nomadnetPageDownloadCallbacks[`${hashB}:${pagePath}`] = {
-                onSuccessCallback: onSuccess,
-            };
+        const homeBtn = getByTitle(/Home|home/i);
+        await homeBtn.click();
 
-            await wrapper.vm.onWebsocketMessage(emitPageDownload(hashB, "success"));
-
-            expect(onSuccess).toHaveBeenCalledWith("<p>other tab</p>");
-            wrapper.unmount();
-        });
+        const sendCountAfterHome = WebSocketConnection.send.mock.calls.filter((call) =>
+            String(call[0] || "").includes("nomadnet.page.download")
+        ).length;
+        expect(sendCountAfterHome).toBe(sendCountAfterFirst);
     });
 
-    describe("archive load ownership", () => {
-        it("loadArchivedPage sets currentPageDownloadId so path-mismatched replies still apply", async () => {
-            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
-            WebSocketConnection.send.mockReturnValue(true);
-
-            const wrapper = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: true,
-            });
-            await wrapper.vm.$nextTick();
-
-            const oldHash = "a".repeat(32);
-            const archiveHash = "b".repeat(32);
-            wrapper.vm.selectedNode = { destination_hash: oldHash, display_name: "A" };
-            wrapper.vm.nodePagePath = `${oldHash}:/page/index.mu`;
-            wrapper.vm.pageArchives = [];
-
-            wrapper.vm.loadArchivedPage(99);
-
-            expect(wrapper.vm.isLoadingNodePage).toBe(true);
-            expect(wrapper.vm.currentPageDownloadId).toEqual(expect.any(Number));
-            const downloadId = wrapper.vm.currentPageDownloadId;
-
-            expect(
-                wrapper.vm.ownsNomadPageDownloadEvent(
-                    {
-                        destination_hash: archiveHash,
-                        page_path: "/page/old.mu",
-                    },
-                    downloadId
-                )
-            ).toBe(true);
-
-            await wrapper.vm.onWebsocketMessage({
-                data: JSON.stringify({
-                    type: "nomadnet.page.download",
-                    download_id: downloadId,
-                    nomadnet_page_download: {
-                        status: "success",
-                        destination_hash: archiveHash,
-                        page_path: "/page/old.mu",
-                        page_content: "<p>from archive</p>",
-                        is_archived_version: true,
-                        archived_at: "2026-01-01T00:00:00",
-                    },
-                }),
-            });
-
-            expect(wrapper.vm.isLoadingNodePage).toBe(false);
-            expect(wrapper.vm.nodePageContent).toBe("<p>from archive</p>");
-            expect(wrapper.vm.currentPageDownloadId).toBeNull();
-            wrapper.unmount();
+    it("hides the path finder menu below xl so the URL bar keeps width", async () => {
+        const { getByTitle } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        it("archive load failure clears the stuck spinner without a download callback", async () => {
-            const wrapper = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: true,
-            });
-            await wrapper.vm.$nextTick();
-            wrapper.vm.isLoadingNodePage = true;
-            wrapper.vm.currentPageDownloadId = 4242;
-            wrapper.vm.nodePagePath = `${"c".repeat(32)}:/page/index.mu`;
-
-            await wrapper.vm.onWebsocketMessage({
-                data: JSON.stringify({
-                    type: "nomadnet.page.download",
-                    download_id: 4242,
-                    nomadnet_page_download: {
-                        status: "failure",
-                        destination_hash: "",
-                        page_path: "",
-                        failure_reason: "archive not found",
-                    },
-                }),
-            });
-
-            expect(wrapper.vm.isLoadingNodePage).toBe(false);
-            expect(wrapper.vm.currentPageDownloadId).toBeNull();
-            expect(wrapper.vm.nodePageContent).toContain("archive not found");
-            expect(ToastUtils.error).toHaveBeenCalled();
-            wrapper.unmount();
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
         });
 
-        it("page download failure toasts failed_to_load_page instead of hanging", async () => {
-            const wrapper = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: true,
-            });
-            await wrapper.vm.$nextTick();
-            wrapper.vm.isLoadingNodePage = true;
-            wrapper.vm.currentPageDownloadId = 4243;
-            wrapper.vm.nodePagePath = `${"c".repeat(32)}:/page/index.mu`;
-
-            await wrapper.vm.onWebsocketMessage({
-                data: JSON.stringify({
-                    type: "nomadnet.page.download",
-                    download_id: 4243,
-                    nomadnet_page_download: {
-                        status: "failure",
-                        destination_hash: "",
-                        page_path: "",
-                        failure_reason: "request_failed",
-                    },
-                }),
-            });
-
-            expect(wrapper.vm.isLoadingNodePage).toBe(false);
-            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.failed_to_load_page");
-            wrapper.unmount();
-        });
+        const pfButton = getByTitle("Path Finder");
+        let el = pfButton;
+        while (el && !(el.classList.contains("hidden") && /xl:(block|inline-block|inline-flex)/.test(el.className))) {
+            el = el.parentElement;
+        }
+        expect(el, "path finder dropdown must stay hidden below xl").toBeTruthy();
     });
 
-    describe("websocket send race", () => {
-        it("queues primary download until websocket connects instead of hanging on Loading page", async () => {
-            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
-            const LiveTransport = (await import("@/js/liveTransport.js")).default;
-            WebSocketConnection.send.mockReset();
-            WebSocketConnection.send.mockImplementationOnce(() => false).mockImplementation(() => true);
-            WebSocketConnection.isOpen.mockReturnValue(false);
-            LiveTransport.isOpen.mockReturnValue(false);
-
-            const wrapper = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: true,
-            });
-            await wrapper.vm.$nextTick();
-
-            const hash = "d".repeat(32);
-            const path = "/page/index.mu";
-            wrapper.vm.isLoadingNodePage = true;
-            wrapper.vm.nodePagePath = `${hash}:${path}`;
-
-            const onSuccess = vi.fn();
-            const onFailure = vi.fn();
-            wrapper.vm.downloadNomadNetPage(hash, path, null, onSuccess, onFailure, null, { primary: true });
-
-            expect(WebSocketConnection.send).toHaveBeenCalledTimes(1);
-            expect(wrapper.vm.isLoadingNodePage).toBe(true);
-            expect(onFailure).not.toHaveBeenCalled();
-            expect(wsEventHandlers.connected?.length || 0).toBeGreaterThan(0);
-
-            WebSocketConnection.isOpen.mockReturnValue(true);
-            LiveTransport.isOpen.mockReturnValue(true);
-            for (const handler of [...(wsEventHandlers.connected || [])]) {
-                handler();
-            }
-
-            expect(WebSocketConnection.send).toHaveBeenCalledTimes(2);
-            expect(onFailure).not.toHaveBeenCalled();
-            expect(wrapper.vm.nomadnetPageDownloadCallbacks[`${hash}:${path}`]).toBeTruthy();
-            wrapper.unmount();
+    it("uses destination path finder HTTP helpers instead of path_probe WS", async () => {
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        const { getByTitle, getByText } = render(NomadNetworkPage, {
+            destinationHash: TEST_DESTINATION_HASH,
+            pagePath: "/page/index.mu",
         });
 
-        it("partial started events do not overwrite primary currentPageDownloadId", async () => {
-            const wrapper = mountNomadNetworkPage({
-                destinationHash: "",
-                embedded: true,
-                isActive: true,
-            });
-            await wrapper.vm.$nextTick();
-
-            const hash = "e".repeat(32);
-            const mainPath = "/page/index.mu";
-            const partialPath = "/page/partial.mu";
-            wrapper.vm.nodePagePath = `${hash}:${mainPath}`;
-            wrapper.vm.nomadnetPageDownloadCallbacks[`${hash}:${mainPath}`] = {
-                primary: true,
-                onSuccessCallback: vi.fn(),
-                onFailureCallback: vi.fn(),
-            };
-            wrapper.vm.nomadnetPageDownloadCallbacks[`${hash}:${partialPath}`] = {
-                primary: false,
-                onSuccessCallback: vi.fn(),
-                onFailureCallback: vi.fn(),
-            };
-            wrapper.vm.currentPageDownloadId = 100;
-
-            await wrapper.vm.onWebsocketMessage({
-                data: JSON.stringify({
-                    type: "nomadnet.page.download",
-                    download_id: 200,
-                    nomadnet_page_download: {
-                        status: "started",
-                        destination_hash: hash,
-                        page_path: partialPath,
-                    },
-                }),
-            });
-
-            expect(wrapper.vm.currentPageDownloadId).toBe(100);
-            wrapper.unmount();
-        });
-    });
-
-    describe("private browsing guards", () => {
-        let WebSocketConnection;
-
-        beforeEach(async () => {
-            WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
-            WebSocketConnection.send.mockClear();
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalled();
         });
 
-        it("page and file downloads mark private true", () => {
-            const wrapper = mountNomadNetworkPage({ destinationHash: "", isPrivate: true });
-            wrapper.vm.downloadNomadNetPage("a".repeat(32), "/page/index.mu", null, vi.fn(), vi.fn(), vi.fn());
-            const pagePayload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
-            expect(pagePayload.nomadnet_page_download.private).toBe(true);
+        await getByTitle("Path Finder").click();
+        await getByText("Request path").click();
 
-            WebSocketConnection.send.mockClear();
-            wrapper.vm.downloadNomadNetFile("a".repeat(32), "/file/x.bin", null, vi.fn(), vi.fn(), vi.fn());
-            const filePayload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
-            expect(filePayload.nomadnet_file_download.private).toBe(true);
-            wrapper.unmount();
-        });
-
-        it("blocks identify, archive, and favourites without sending requests", async () => {
-            const wrapper = mountNomadNetworkPage({ destinationHash: "", isPrivate: true });
-            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
-            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
-            wrapper.vm.nodePageContent = "# hi";
-
-            await wrapper.vm.identify("a".repeat(32));
-            expect(axiosMock.post).not.toHaveBeenCalledWith(
-                expect.stringContaining("/identify-on-connect"),
-                expect.anything()
+        await waitFor(() => {
+            const usedPathProbe = WebSocketConnection.send.mock.calls.some((call) =>
+                String(call[0] || "").includes("path_probe")
             );
-            expect(ToastUtils.info).toHaveBeenCalledWith("nomadnet.private_browsing_hint");
-
-            WebSocketConnection.send.mockClear();
-            wrapper.vm.manualArchive();
-            expect(WebSocketConnection.send).not.toHaveBeenCalled();
-
-            WebSocketConnection.send.mockClear();
-            wrapper.vm.fetchArchives();
-            expect(WebSocketConnection.send).not.toHaveBeenCalled();
-
-            const favOk = await wrapper.vm.addFavourite(wrapper.vm.selectedNode);
-            expect(favOk).toBe(false);
-            expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/favourites/add", expect.anything());
-            wrapper.unmount();
-        });
-
-        it("hides identify and archive controls in the header", () => {
-            const wrapper = mountNomadNetworkPage({ destinationHash: "a".repeat(32), isPrivate: true });
-            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
-            wrapper.vm.nodePageContent = "# hi";
-            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
-            expect(wrapper.find('[title="nomadnet.identify_on_connect_on"]').exists()).toBe(false);
-            expect(wrapper.find('[title="nomadnet.identify_on_connect_off"]').exists()).toBe(false);
-            expect(wrapper.find('[title="app.archives"]').exists()).toBe(false);
-            wrapper.unmount();
-        });
-
-        it("toggles sticky identify-on-connect via favourites API", async () => {
-            const DialogUtils = (await import("@/js/DialogUtils")).default;
-            DialogUtils.confirm.mockResolvedValueOnce(true);
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash, display_name: "Node" };
-            wrapper.vm.favourites = [];
-            wrapper.vm.reloadNodePage = vi.fn();
-            const favouritesAfter = [
-                {
-                    destination_hash: hash,
-                    display_name: "Node",
-                    aspect: "nomadnetwork.node",
-                    identify_on_connect: true,
-                },
-            ];
-            axiosMock.post.mockResolvedValueOnce({
-                data: {
-                    identify_on_connect: true,
-                    favourite: favouritesAfter[0],
-                },
-            });
-            const prevGet = axiosMock.get.getMockImplementation();
-            axiosMock.get.mockImplementation((url) => {
-                if (url === "/api/v1/favourites") {
-                    return Promise.resolve({ data: { favourites: favouritesAfter } });
-                }
-                return prevGet ? prevGet(url) : Promise.resolve({ data: {} });
-            });
-
-            await wrapper.vm.toggleIdentifyOnConnect(hash);
-
-            expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/favourites/${hash}/identify-on-connect`, {
-                enabled: true,
-                display_name: "Node",
-                aspect: "nomadnetwork.node",
-            });
-            expect(wrapper.vm.reloadNodePage).toHaveBeenCalled();
-            expect(wrapper.vm.selectedNodeIdentifiesOnConnect).toBe(true);
-            wrapper.unmount();
+            expect(usedPathProbe).toBe(false);
+            expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/destination/${TEST_DESTINATION_HASH}/request-path`);
+            expect(ToastUtils.success).toHaveBeenCalled();
         });
     });
 
     describe("image support", () => {
+        const IMG_HASH = "a".repeat(32);
+        const OTHER_HASH = "b".repeat(32);
+
+        afterEach(() => {
+            delete GlobalState.config.nomad_image_loading_policy;
+        });
+
+        function dispatchFrameMessage(source, data) {
+            const event = new MessageEvent("message", { data });
+            Object.defineProperty(event, "source", { value: source, configurable: true });
+            Object.defineProperty(event, "origin", { value: "null", configurable: true });
+            window.dispatchEvent(event);
+        }
+
+        function fileDownloadSends() {
+            return WebSocketConnection.send.mock.calls
+                .map((call) => String(call[0] || ""))
+                .filter((raw) => raw.includes('"nomadnet.file.download"'))
+                .map((raw) => JSON.parse(raw));
+        }
+
+        async function renderLoadedPage(props = {}) {
+            const view = render(NomadNetworkPage, {
+                destinationHash: IMG_HASH,
+                pagePath: "/page/index.mu",
+                ...props,
+            });
+            await waitFor(() => {
+                expect(WebSocketConnection.send).toHaveBeenCalled();
+            });
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 31,
+                nomadnet_page_download: {
+                    status: "started",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
+                },
+            });
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 31,
+                nomadnet_page_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
+                    page_content: ">#!\n# Hi",
+                },
+            });
+            let frame = null;
+            await waitFor(() => {
+                frame = document.body.querySelector("iframe");
+                expect(frame).toBeTruthy();
+            });
+            const fakeWindow = { postMessage: vi.fn() };
+            Object.defineProperty(frame, "contentWindow", {
+                configurable: true,
+                get: () => fakeWindow,
+            });
+            return { ...view, frame, fakeWindow };
+        }
+
+        function pushImages(fakeWindow, images) {
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "render-done",
+                partials: [],
+                images,
+            });
+        }
+
         it("resolves a relative image URL to the selected node", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            const resolved = wrapper.vm.resolveNomadImageDestination(":/file/img.webp");
-            expect(resolved.destinationHash).toBe(hash);
+            const resolved = resolveNomadImageDestination(":/file/img.webp", IMG_HASH);
+            expect(resolved.destinationHash).toBe(IMG_HASH);
             expect(resolved.filePath).toBe("/file/img.webp");
         });
 
         it("resolves an absolute image URL with destination hash", () => {
-            const hash = "a".repeat(32);
-            const other = "b".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            const resolved = wrapper.vm.resolveNomadImageDestination(`${other}:/file/img.webp`);
-            expect(resolved.destinationHash).toBe(other);
+            const resolved = resolveNomadImageDestination(`${OTHER_HASH}:/file/img.webp`, IMG_HASH);
+            expect(resolved.destinationHash).toBe(OTHER_HASH);
             expect(resolved.filePath).toBe("/file/img.webp");
         });
 
-        it("maps unknown policy values to manual", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.config = { nomad_image_loading_policy: "bogus" };
-            expect(wrapper.vm.getNomadImagePolicy()).toBe("manual");
-        });
-
-        it("uses per-node image policy override when present", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
-            wrapper.vm.nomadImagePerNodePolicies = { abc: "always" };
-            expect(wrapper.vm.getNomadImagePolicy("abc")).toBe("always");
-            expect(wrapper.vm.getNomadImagePolicy("def")).toBe("manual");
-        });
-
-        it("marks the image policy icon active only when resolved policy auto-loads", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            const configStore = wrapper.vm.configStore;
-            const previous = configStore.config.nomad_image_loading_policy;
-            try {
-                configStore.config.nomad_image_loading_policy = "manual";
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(false);
-
-                configStore.config.nomad_image_loading_policy = "auto";
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
-
-                configStore.config.nomad_image_loading_policy = "always";
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
-
-                // a per-node never override wins over a permissive global
-                wrapper.vm.nomadImagePerNodePolicies = { [hash]: "never" };
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(false);
-
-                wrapper.vm.nomadImagePerNodePolicies = { [hash]: "always" };
-                expect(wrapper.vm.selectedNodeImagesAutoLoad).toBe(true);
-            } finally {
-                if (previous === undefined) {
-                    delete configStore.config.nomad_image_loading_policy;
-                } else {
-                    configStore.config.nomad_image_loading_policy = previous;
-                }
-            }
-        });
-
-        it("sends a file download with image metadata", async () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
-            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
-            wrapper.vm.crashTabImages = [
-                {
-                    url: ":/file/img.webp",
-                    alt: "test",
-                    w: "100",
-                    h: "50",
-                    size: null,
-                    key: "",
-                    align: "left",
-                    profile: "fast",
-                },
-            ];
-            wrapper.vm.setCrashTabImage = vi.fn();
-            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
-            const calls = WebSocketConnection.send.mock.calls.filter((c) =>
-                String(c[0]).includes('"nomadnet.file.download"')
-            );
-            expect(calls.length).toBe(1);
-            const payload = JSON.parse(calls[0][0]);
-            expect(payload.nomadnet_file_download.destination_hash).toBe(hash);
-            expect(payload.nomadnet_file_download.file_path).toBe("/file/img.webp");
-            expect(payload.nomadnet_file_download.data.image_id).toBe(0);
-            expect(payload.nomadnet_file_download.data.image_profile).toBe("fast");
-        });
-
-        it("rejects non-webp and traversal image URLs", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.png").destinationHash).toBe("");
-            expect(wrapper.vm.resolveNomadImageDestination(":/page/index.mu").destinationHash).toBe("");
-            expect(wrapper.vm.resolveNomadImageDestination(":/file/../etc/shadow.webp").destinationHash).toBe("");
-            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.webp?x=1").destinationHash).toBe(hash);
-        });
-
-        it("sets the per-node image policy from the toolbar dropdown", async () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            await wrapper.vm.$nextTick();
-
-            // one instance on mobile toolbar, one inside the desktop toolbar group
-            const imageButtons = wrapper.findAll('[data-icon-name="image-outline"]');
-            expect(imageButtons.length).toBe(2);
-
-            await imageButtons[0].trigger("click");
-            await wrapper.vm.$nextTick();
-
-            const panel = document.body.querySelector(".dropdown-panel");
-            expect(panel).toBeTruthy();
-            const items = [...panel.querySelectorAll("div")].filter((el) =>
-                el.textContent.includes("nomadnet.image_loading_policy_manual_short")
-            );
-            expect(items.length).toBeGreaterThan(0);
-            items[items.length - 1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
-            await wrapper.vm.$nextTick();
-
-            expect(wrapper.vm.nomadImagePerNodePolicies[hash]).toBe("manual");
-
-            // choosing inherit clears the override
-            await imageButtons[0].trigger("click");
-            await wrapper.vm.$nextTick();
-            const panel2 = document.body.querySelectorAll(".dropdown-panel");
-            const lastPanel = panel2[panel2.length - 1];
-            const inheritItem = [...lastPanel.querySelectorAll("div")].filter((el) =>
-                el.textContent.includes("nomadnet.image_loading_policy_inherit")
-            );
-            inheritItem[inheritItem.length - 1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
-            await wrapper.vm.$nextTick();
-
-            expect(wrapper.vm.nomadImagePerNodePolicies[hash]).toBeUndefined();
-            wrapper.unmount();
-            document.body.innerHTML = "";
-        });
-
         it("resolves /media image URLs with any supported extension", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
             for (const ext of ["webp", "png", "jpg", "jpeg", "bmp", "gif", "tiff"]) {
-                const resolved = wrapper.vm.resolveNomadImageDestination(`${hash}:/media/img.${ext}`);
-                expect(resolved.destinationHash).toBe(hash);
+                const resolved = resolveNomadImageDestination(`${IMG_HASH}:/media/img.${ext}`, "");
+                expect(resolved.destinationHash).toBe(IMG_HASH);
                 expect(resolved.filePath).toBe(`/media/img.${ext}`);
             }
         });
 
+        it("rejects non-webp, non-image, and traversal image URLs", () => {
+            expect(resolveNomadImageDestination(":/file/img.png", IMG_HASH).destinationHash).toBe("");
+            expect(resolveNomadImageDestination(":/page/index.mu", IMG_HASH).destinationHash).toBe("");
+            expect(resolveNomadImageDestination(":/file/../etc/shadow.webp", IMG_HASH).destinationHash).toBe("");
+            expect(resolveNomadImageDestination(":/file/img.webp?x=1", IMG_HASH).destinationHash).toBe(IMG_HASH);
+        });
+
+        it("maps unknown policy values to manual", () => {
+            expect(resolveNomadImagePolicy(undefined, "bogus")).toBe("manual");
+            expect(resolveNomadImagePolicy(undefined, undefined)).toBe("manual");
+            expect(resolveNomadImagePolicy("always", "bogus")).toBe("always");
+        });
+
+        it("uses per-node image policy override when present", () => {
+            expect(resolveNomadImagePolicy("always", "manual")).toBe("always");
+            expect(resolveNomadImagePolicy("never", "always")).toBe("never");
+            expect(resolveNomadImagePolicy(undefined, "auto")).toBe("auto");
+        });
+
         it("detects the MIME type from downloaded image bytes", () => {
-            const wrapper = mountNomadNetworkPage();
             const pngB64 = btoa("\x89PNG\r\n\x1a\n");
             const gifB64 = btoa("GIF89a");
             const webpB64 = btoa("RIFF\x00\x00\x00\x00WEBPVP8 ");
-            expect(wrapper.vm.getNomadImageDataUrl(pngB64)).toBe(`data:image/png;base64,${pngB64}`);
-            expect(wrapper.vm.getNomadImageDataUrl(gifB64)).toBe(`data:image/gif;base64,${gifB64}`);
-            expect(wrapper.vm.getNomadImageDataUrl(webpB64)).toBe(`data:image/webp;base64,${webpB64}`);
-        });
-
-        it("ignores stale image websocket events with mismatched request_id", async () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
-            wrapper.vm.selectedNode = { destination_hash: hash };
-            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
-            wrapper.vm.crashTabImages = [{ url: ":/file/img.webp", alt: "test" }];
-            wrapper.vm.setCrashTabImage = vi.fn();
-            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
-            const badRequestId = "stale-123";
-            const handled = wrapper.vm.ownsNomadImageDownloadEvent(
-                {
-                    request_id: badRequestId,
-                    destination_hash: hash,
-                    file_path: "/file/img.webp",
-                },
-                0
-            );
-            expect(handled).toBe(false);
+            expect(getNomadImageDataUrl(pngB64)).toBe(`data:image/png;base64,${pngB64}`);
+            expect(getNomadImageDataUrl(gifB64)).toBe(`data:image/gif;base64,${gifB64}`);
+            expect(getNomadImageDataUrl(webpB64)).toBe(`data:image/webp;base64,${webpB64}`);
         });
 
         it("does not cache images in private browsing", () => {
-            const hash = "a".repeat(32);
-            const wrapper = mountNomadNetworkPage({ destinationHash: hash, isPrivate: true });
-            wrapper.vm.setNomadImageCacheEntry(hash + ":/file/img.webp", { dataUrl: "data:," });
-            expect(wrapper.vm.nomadImageCache.size).toBe(0);
+            const cache = new Map();
+            const key = `${IMG_HASH}:/file/img.webp`;
+            setNomadImageCacheEntry(cache, key, { dataUrl: "data:,", size: "0 B" }, true);
+            expect(cache.size).toBe(0);
+            setNomadImageCacheEntry(cache, key, { dataUrl: "data:,", size: "0 B" }, false);
+            expect(cache.size).toBe(1);
+        });
+
+        it("marks the image policy icon active only when resolved policy auto-loads", async () => {
+            GlobalState.config.nomad_image_loading_policy = "manual";
+            const { container } = await renderLoadedPage();
+            const btn = container.querySelector('[aria-label="Image loading for this node"]');
+            expect(btn).toBeTruthy();
+            expect(btn.className).not.toContain("text-sem-accent");
+
+            // per-node always override wins over a manual global policy
+            const menuItem = (label) =>
+                [...container.querySelectorAll('[role="menuitem"]')].find((el) =>
+                    el.textContent.trim().endsWith(label)
+                );
+
+            // per-node always override wins over a manual global policy
+            await fireEvent.click(btn);
+            await fireEvent.click(menuItem("Always"));
+            expect(btn.className).toContain("text-sem-accent");
+
+            // a per-node never override wins over a permissive global
+            GlobalState.config.nomad_image_loading_policy = "always";
+            await fireEvent.click(btn);
+            await fireEvent.click(menuItem("Never"));
+            expect(btn.className).not.toContain("text-sem-accent");
+        });
+
+        it("sends a file download with image metadata on manual load", async () => {
+            GlobalState.config.nomad_image_loading_policy = "manual";
+            const { fakeWindow } = await renderLoadedPage();
+            pushImages(fakeWindow, [{ url: ":/file/img.webp", path: ":/file/img.webp", alt: "test", profile: "fast" }]);
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "image-action",
+                action: "load",
+                index: 0,
+            });
+
+            await waitFor(() => {
+                expect(fileDownloadSends().length).toBe(1);
+            });
+            const payload = fileDownloadSends()[0];
+            expect(payload.nomadnet_file_download.destination_hash).toBe(IMG_HASH);
+            expect(payload.nomadnet_file_download.file_path).toBe("/file/img.webp");
+            expect(payload.nomadnet_file_download.data.image_id).toBe(0);
+            expect(payload.nomadnet_file_download.data.image_profile).toBe("fast");
+            expect(payload.nomadnet_file_download.data.request_id).toBeTruthy();
+            expect(payload.request_id).toBe(payload.nomadnet_file_download.data.request_id);
+        });
+
+        it("ignores stale image websocket events with mismatched request_id", async () => {
+            GlobalState.config.nomad_image_loading_policy = "manual";
+            const { fakeWindow } = await renderLoadedPage();
+            pushImages(fakeWindow, [{ url: ":/file/img.webp", alt: "test" }]);
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "image-action",
+                action: "load",
+                index: 0,
+            });
+            await waitFor(() => {
+                expect(fileDownloadSends().length).toBe(1);
+            });
+            const requestId = fileDownloadSends()[0].nomadnet_file_download.data.request_id;
+
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 77,
+                request_id: requestId,
+                nomadnet_file_download: {
+                    status: "started",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    data: { image_id: 0, request_id: requestId },
+                },
+            });
+
+            // stale event: same image_id but a different request_id
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 77,
+                nomadnet_file_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    file_name: "img.webp",
+                    file_bytes: btoa("RIFF\x00\x00\x00\x00WEBPVP8 "),
+                    data: { image_id: 0, request_id: "stale-123" },
+                },
+            });
+
+            expect(
+                fakeWindow.postMessage.mock.calls.filter((c) => c[0]?.type === "set-image" && c[0]?.state === "loaded")
+            ).toHaveLength(0);
+
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 77,
+                request_id: requestId,
+                nomadnet_file_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    file_name: "img.webp",
+                    file_bytes: btoa("RIFF\x00\x00\x00\x00WEBPVP8 "),
+                    data: { image_id: 0, request_id: requestId },
+                },
+            });
+
+            await waitFor(() => {
+                const loaded = fakeWindow.postMessage.mock.calls.filter(
+                    (c) => c[0]?.type === "set-image" && c[0]?.state === "loaded"
+                );
+                expect(loaded.length).toBe(1);
+                expect(loaded[0][0].dataUrl).toContain("data:image/webp;base64,");
+            });
+        });
+
+        it("does not cache images in private browsing across re-renders", async () => {
+            GlobalState.config.nomad_image_loading_policy = "auto";
+            const { fakeWindow } = await renderLoadedPage({ isPrivate: true });
+            const image = { url: ":/file/img.webp", alt: "test" };
+            pushImages(fakeWindow, [image]);
+            await waitFor(() => {
+                expect(fileDownloadSends().length).toBe(1);
+            });
+            const requestId = fileDownloadSends()[0].nomadnet_file_download.data.request_id;
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 78,
+                request_id: requestId,
+                nomadnet_file_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    file_name: "img.webp",
+                    file_bytes: btoa("RIFF\x00\x00\x00\x00WEBPVP8 "),
+                    data: { image_id: 0, request_id: requestId },
+                },
+            });
+            pushImages(fakeWindow, [image]);
+            await waitFor(() => {
+                expect(fileDownloadSends().length).toBe(2);
+            });
         });
     });
 
     describe("crash tab context menu forwarding", () => {
-        it("opens the standalone context menu at the forwarded coordinates", () => {
-            const wrapper = mountNomadNetworkPage();
-            wrapper.vm.onCrashTabContextMenu({ clientX: 30, clientY: 40 });
-            expect(wrapper.vm.standaloneContextMenu.show).toBe(true);
-            expect(wrapper.vm.standaloneContextMenu.x).toBe(30);
-            expect(wrapper.vm.standaloneContextMenu.y).toBe(40);
-        });
+        const IMG_HASH = "a".repeat(32);
 
-        it("routes to the browser tab context menu when embedded", () => {
-            const openContextMenu = vi.fn();
-            const wrapper = mount(NomadNetworkPage, {
-                props: { destinationHash: "", embedded: true },
-                global: {
-                    mocks: {
-                        $t: (key) => key,
-                        $route: { query: {} },
-                        $router: { replace: vi.fn() },
-                    },
-                    provide: {
-                        nomadBrowserTabActions: { openContextMenu },
-                    },
-                    stubs: {
-                        MaterialDesignIcon: {
-                            template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                            props: ["iconName"],
-                        },
-                        LoadingSpinner: true,
-                        NomadNetworkSidebar: {
-                            template: '<div class="sidebar-stub"></div>',
-                            props: ["nodes", "selectedDestinationHash"],
-                        },
-                        NomadBrowserContextMenu: true,
-                        NomadCrashTab: true,
-                        VTooltip: {
-                            template: '<div class="v-tooltip-stub"><slot /></div>',
-                        },
-                    },
+        function dispatchFrameMessage(source, data) {
+            const event = new MessageEvent("message", { data });
+            Object.defineProperty(event, "source", { value: source, configurable: true });
+            Object.defineProperty(event, "origin", { value: "null", configurable: true });
+            window.dispatchEvent(event);
+        }
+
+        async function renderLoadedPage(props = {}) {
+            const view = render(NomadNetworkPage, {
+                destinationHash: IMG_HASH,
+                pagePath: "/page/index.mu",
+                ...props,
+            });
+            await waitFor(() => {
+                expect(WebSocketConnection.send).toHaveBeenCalled();
+            });
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 41,
+                nomadnet_page_download: {
+                    status: "started",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
                 },
             });
-            wrapper.vm.onCrashTabContextMenu({ clientX: 11, clientY: 22 });
-            expect(openContextMenu).toHaveBeenCalledWith({ clientX: 11, clientY: 22 });
-            expect(wrapper.vm.standaloneContextMenu.show).toBe(false);
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 41,
+                nomadnet_page_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
+                    page_content: ">#!\n# Hi",
+                },
+            });
+            let frame = null;
+            await waitFor(() => {
+                frame = document.body.querySelector("iframe");
+                expect(frame).toBeTruthy();
+            });
+            const fakeWindow = { postMessage: vi.fn() };
+            Object.defineProperty(frame, "contentWindow", {
+                configurable: true,
+                get: () => fakeWindow,
+            });
+            return { ...view, frame, fakeWindow };
+        }
+
+        it("opens the standalone context menu at the forwarded coordinates", async () => {
+            const { fakeWindow } = await renderLoadedPage();
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "page-contextmenu",
+                x: 30,
+                y: 40,
+            });
+            await waitFor(() => {
+                const panel = document.body.querySelector(".context-menu-panel");
+                expect(panel).toBeTruthy();
+                expect(panel.style.left).toBe("30px");
+                expect(panel.style.top).toBe("40px");
+            });
+        });
+
+        it("routes to the host context menu when embedded", async () => {
+            const onpagecontextmenu = vi.fn();
+            const { fakeWindow } = await renderLoadedPage({ onpagecontextmenu });
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "page-contextmenu",
+                x: 11,
+                y: 22,
+            });
+            await waitFor(() => {
+                expect(onpagecontextmenu).toHaveBeenCalledWith(
+                    expect.objectContaining({ clientX: 11, clientY: 22, hasActivePage: true })
+                );
+            });
+            expect(document.body.querySelector(".context-menu-panel")).toBeFalsy();
         });
     });
 });

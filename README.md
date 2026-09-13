@@ -91,8 +91,6 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 AppImage, deb, rpm, Flatpak, Electron, and Android: [Installation](docs/en/installation.md) and [Building](docs/en/building.md).
 
-Current version is 4.9.0.
-
 ## Docs
 
 | Guide                                                       | Covers                                 |
@@ -107,5 +105,5 @@ Current version is 4.9.0.
 ## Security, license, credits
 
 - [SECURITY.md](SECURITY.md) · [LEGAL.md](LEGAL.md) · [donate.md](donate.md)
-- Project-owned code is 0BSD. Upstream MeshChat portions remain MIT. Full text: [LICENSE](LICENSE).
+- Project-owned code is 0BSD. Bundled third-party embeds keep their own licenses. Full text: [LICENSE](LICENSE).
 - Credits: [Liam Cottle](https://github.com/liamcottle) (original MeshChat), [RFnexus](https://github.com/RFnexus) (micron parser JS), [markqvist](https://github.com/markqvist) (Reticulum, LXMF, LXST).

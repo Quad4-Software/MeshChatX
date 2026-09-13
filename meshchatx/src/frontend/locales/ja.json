@@ -560,6 +560,8 @@
         "translator": "翻訳",
         "translator_enabled": "翻訳機能を有効化",
         "translator_description": "会話内の翻訳機能を有効化します。",
+        "libretranslate_url": "LibreTranslate URL",
+        "libretranslate_url_description": "LibreTranslate API にアクセスできる URL です。",
         "system": "システム",
         "reticulum_stack": "Reticulum スタック",
         "reticulum_stack_description": "基盤となる Reticulum Network Stack を管理します。",
@@ -3128,7 +3130,7 @@
         },
         "translator": {
             "title": "翻訳ツール",
-            "description": "ネットワーク経由の LibreTranslate またはこのデバイス上の Argos Translate でテキストを翻訳します。"
+            "description": "ローカルにインポートした言語パックでテキストをオフライン翻訳します。"
         },
         "forwarder": {
             "title": "フォワーダー",
@@ -3595,6 +3597,7 @@
             "publish_create_and_publish": "メッシュサーバーを作成して公開...",
             "publish_manage_servers": "メッシュサーバーを管理",
             "publish_will_start": "が起動します",
+            "publish_all_tabs": "すべてのタブをサーバーに公開...",
             "publish_create_prompt_name": "新しいメッシュサーバーの名前:",
             "publish_failed_create": "メッシュサーバーの作成に失敗しました",
             "publish_failed_start": "メッシュサーバーの起動に失敗しました",
@@ -3623,7 +3626,10 @@
             "image_not_supported": "「{name}」は対応していない画像ファイルです",
             "image_too_large": "「{name}」は大きすぎます（上限 {max}）",
             "image_local_loaded": "読み込み済み",
-            "publish_images_failed": "{total} 件中 {failed} 件の画像を {server} にアップロードできませんでした"
+            "publish_images_failed": "{total} 件中 {failed} 件の画像を {server} にアップロードできませんでした",
+            "publish_all_prompt_server": "すべてのタブを公開するサーバー名を入力してください:\n\n利用可能: {servers}",
+            "publish_server_not_found": "サーバーが見つかりません: {server}",
+            "publish_all_done": "{total} 個中 {published} 個のタブを {server} に公開しました"
         },
         "reticulum_config_editor": {
             "title": "Reticulum 設定エディター",
@@ -3968,8 +3974,8 @@
         "popout_channel": "新しいウィンドウで開く",
         "new_message_toast": "#{room} に新しいメッセージ",
         "host_users": "ユーザー",
-        "host_announce_interval": "アナウンス間隔（分）",
-        "host_announce_interval_hint": "{minutes}分ごと",
+        "host_announce_interval": "アナウンス間隔",
+        "host_announce_interval_hint": "{interval}ごと",
         "host_hub_settings": "ハブ設定",
         "presence_joined": "参加{count}件",
         "presence_left": "退出{count}件",
@@ -4033,6 +4039,8 @@
         "demote_op": "オペレーターから降格",
         "promote_op": "オペレーターに昇格",
         "composer_placeholder": "メッセージを入力...",
+        "search_placeholder": "メッセージを検索...",
+        "search_results_count": "{count}件の結果",
         "type_to_search": "入力するとメッセージを検索します",
         "no_search_results": "検索に一致するメッセージはありません",
         "dm_member": "ダイレクトメッセージ",
@@ -4081,9 +4089,7 @@
         "search_global_hint": "ヒント: \"完全一致フレーズ\"、a または b、-除外、from:ニック、room:ルーム、hub:ハッシュ",
         "search_global_count": "{count} 件の結果",
         "search_global_empty": "接続中のすべてのハブとルームのメッセージ履歴を検索します。",
-        "search_global_none": "一致するメッセージはありません。",
-        "search_placeholder": "メッセージを検索...",
-        "search_results_count": "{count}件の結果"
+        "search_global_none": "一致するメッセージはありません。"
     },
     "rncp": {
         "file_transfer": "ファイル転送",

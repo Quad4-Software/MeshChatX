@@ -16,10 +16,10 @@ Use this skill to implement feature pages in this repository without missing int
 - frontend route registration
 - navigation exposure
 - translated labels
-- user feedback via `ToastUtils`
+- user feedback via ToastUtils
 - test coverage updates
 
-This skill is optimized for the MeshChatX structure under `meshchatx/src/frontend` and `tests/`.
+This skill is optimized for the MeshChatX structure under meshchatx/src/frontend and tests/.
 
 ## Quick Decisions
 
@@ -34,12 +34,13 @@ Before editing files, decide:
 
 For a new top-level page, verify all relevant items:
 
-- Add route in `meshchatx/src/frontend/main.js` with `defineAsyncComponent`.
-- Add sidebar/tools entry in `meshchatx/src/frontend/components/App.vue` when the page must be user-discoverable.
-- Add translation keys in `meshchatx/src/frontend/locales/en.json` and other maintained locale files when touched by task scope.
-- Use `ToastUtils` in page actions that save, submit, refresh, copy, or fail.
-- Add or update tests in `tests/frontend/*.test.js`.
-- Add or update backend tests in `tests/backend/*.py` if API behavior changes.
+- Prefer features/<id>/ + registerFeature (see svelte-feature-modules skill). Wire via features/registerAllFeatures.ts. Do not grow hardcoded routes in main.ts.
+- Greenfield UI: Svelte 5 under features/<id>/ or ui/svelte/.
+- Add sidebar/tools entry through nav/tools registries when the page must be user-discoverable.
+- Add translation keys in meshchatx/src/frontend/locales/en.json and other maintained locale files when touched by task scope.
+- Use ToastUtils in page actions that save, submit, refresh, copy, or fail.
+- Add or update tests in tests/frontend/*.test.js.
+- Add or update backend tests in tests/backend/*.py if API behavior changes.
 
 ## Page Creation Workflow
 
@@ -47,29 +48,29 @@ For a new top-level page, verify all relevant items:
 
 Place the component in the matching feature directory, for example:
 
-- `meshchatx/src/frontend/components/tools/<NewPage>.vue`
-- `meshchatx/src/frontend/components/<feature>/<NewPage>.vue`
+- meshchatx/src/frontend/features/<id>/<NewPage>.svelte
+- meshchatx/src/frontend/features/<id>/components/<NewPage>.svelte
 
 Keep the page consistent with existing patterns:
 
-- use translated UI text with `$t("...")`
-- use `window.api` for API calls in page logic
-- use `MaterialDesignIcon` patterns already used in peer pages
+- use translated UI text with t("...") from js/i18n.ts
+- use window.api for API calls in page logic
+- use MaterialDesignIcon patterns already used in peer pages
 
 ### 2) Register route
 
-In `meshchatx/src/frontend/main.js`:
+In features/<id>/index.ts via registerFeature:
 
-- add a route object with stable `name` and `path`
-- load component via `defineAsyncComponent(() => import("..."))`
-- use `props: true` only when path/query data is required by the component
+- add a route with stable name, path, mount: "svelte", and load()
+- call the register from features/registerAllFeatures.ts
+- pass route params through the page props contract when needed
 
 ### 3) Surface navigation
 
 If user navigation should expose the page:
 
-- add a `SidebarLink` entry in `meshchatx/src/frontend/components/App.vue`, or
-- add it in the tools area if it belongs under tools, not primary nav
+- add a navRegistry entry (coreNavEntries or feature register), or
+- add it in toolsRegistry if it belongs under tools, not primary nav
 
 Keep naming consistent between route name, i18n label, and visible button/link text.
 
@@ -77,15 +78,15 @@ Keep naming consistent between route name, i18n label, and visible button/link t
 
 Import from:
 
-- `meshchatx/src/frontend/js/ToastUtils.js`
+- meshchatx/src/frontend/js/ToastUtils.js
 
 Use:
 
-- `ToastUtils.success(message)` for completion
-- `ToastUtils.error(message)` for failures
-- `ToastUtils.warning(message)` for recoverable risk
-- `ToastUtils.info(message)` for neutral updates
-- `ToastUtils.loading(message, 0, key)` and `ToastUtils.dismiss(key)` for long-running operations
+- ToastUtils.success(message) for completion
+- ToastUtils.error(message) for failures
+- ToastUtils.warning(message) for recoverable risk
+- ToastUtils.info(message) for neutral updates
+- ToastUtils.loading(message, 0, key) and ToastUtils.dismiss(key) for long-running operations
 
 Guidelines:
 
@@ -95,22 +96,22 @@ Guidelines:
 
 ## Test Workflow
 
-### Frontend tests (`vitest` + `@vue/test-utils`)
+### Frontend tests (vitest)
 
 When adding page behavior:
 
-- create or extend a test in `tests/frontend/`
-- mount component with `$t`, `$route`, `$router` mocks
-- stub non-essential child components
-- mock `window.api` responses for success and error flows
+- create or extend a test in tests/frontend/
+- render or exercise the page/helpers with locale and router mocks as nearby tests do
+- stub non-essential child components when mounting UI
+- mock window.api responses for success and error flows
 - assert both state and rendered output
 - assert toast calls when operation outcomes are user-visible
 
-### Backend tests (`pytest`)
+### Backend tests (pytest)
 
 When API/backend behavior is changed:
 
-- add focused tests under `tests/backend/`
+- add focused tests under tests/backend/
 - patch heavy dependencies and network side effects
 - verify returned payload shape and error contracts expected by frontend
 - keep fixture setup minimal and local to behavior under test
@@ -136,3 +137,4 @@ Only finish once these are true:
 ## Additional Resources
 
 - Trigger and output examples: [examples.md](examples.md)
+- Feature modules: .agents/skills/svelte-feature-modules/SKILL.md

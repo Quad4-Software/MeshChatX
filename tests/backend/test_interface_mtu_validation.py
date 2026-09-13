@@ -1,5 +1,4 @@
-# SPDX-License-Identifier: 0BSD AND MIT
-
+# SPDX-License-Identifier: 0BSD
 
 from meshchatx.src.backend.interface_editor import InterfaceEditor
 

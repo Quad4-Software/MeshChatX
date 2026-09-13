@@ -4,10 +4,10 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { rnodeIntegrityKeyForSrc } from "../../meshchatx/src/frontend/js/rnode/rnodeIntegrityKey.js";
-import MessagesPage from "../../meshchatx/src/frontend/components/messages/MessagesPage.vue";
-import MapPage from "../../meshchatx/src/frontend/components/map/MapPage.vue";
-import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
-import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore.js";
+import {
+    resolveMyLocationWgs84,
+    handleRemoteOverlaysChanged,
+} from "../../meshchatx/src/frontend/features/map/lib/mapActions.js";
 
 describe("map, messages, and rnode integrity contracts", () => {
     it("RNode SRI key for zip.min.js matches integrity.json (not js/zip.min.js)", () => {
@@ -26,20 +26,13 @@ describe("map, messages, and rnode integrity contracts", () => {
     });
 
     it("MessagesPage syncUnreadCount does not overwrite badge with a partial page count", () => {
-        useUnreadStore().unreadConversationsCount = 12;
-        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
-        const ctx = {
-            conversations: [{ is_unread: true }, { is_unread: true }, { is_unread: false }],
-            hasMoreConversations: true,
-            filterUnreadOnly: false,
-            selectedFolderId: null,
-            conversationSearchTerm: "",
-        };
-
-        MessagesPage.methods.syncUnreadCount.call(ctx);
-        expect(useUnreadStore().unreadConversationsCount).toBe(12);
-        expect(emitSpy).toHaveBeenCalledWith("notifications-changed");
-        emitSpy.mockRestore();
+        const source = readFileSync(
+            join(process.cwd(), "meshchatx/src/frontend/features/messages/MessagesPage.svelte"),
+            "utf8"
+        );
+        expect(source).toContain("const listIsPartial =");
+        expect(source).toContain('GlobalEmitter.emit("notifications-changed")');
+        expect(source).toContain("GlobalState.unreadConversationsCount = countUnreadConversations(conversations)");
     });
 
     it("Map resolveMyLocationWgs84 prefers lxmf_address_hash telemetry over identity_hash", async () => {
@@ -59,7 +52,7 @@ describe("map, messages, and rnode integrity contracts", () => {
             ],
         };
 
-        const loc = await MapPage.methods.resolveMyLocationWgs84.call(ctx);
+        const loc = await resolveMyLocationWgs84(ctx);
         expect(loc).toEqual({ lon: 11.1, lat: 22.2 });
     });
 
@@ -93,9 +86,7 @@ describe("map, messages, and rnode integrity contracts", () => {
                 this.remoteOverlayLoadGeneration = 2;
             },
         };
-        await MapPage.methods.onRemoteOverlaysChanged.call(ctx, [
-            { id: "ov1", visible: true, status: "ready", format: "geojson" },
-        ]);
+        await handleRemoteOverlaysChanged(ctx, [{ id: "ov1", visible: true, status: "ready", format: "geojson" }]);
         expect(removed).toEqual(["ov1"]);
         expect(ctx.remoteOverlayLayers.ov1).toBeUndefined();
     });

@@ -171,7 +171,7 @@ async def test_discovered_interfaces_endpoint_surfaces_ifac(temp_dir):
         patch("RNS.Transport"),
         patch("LXMF.LXMRouter"),
         patch(
-            "meshchatx.src.backend.http.routes.reticulum_instance.InterfaceDiscovery"
+            "meshchatx.meshchat.InterfaceDiscovery"
         ) as mock_discovery_cls,
     ):
         mock_reticulum = mock_rns.return_value
@@ -273,7 +273,7 @@ async def test_discovered_interfaces_filter_works_with_ifac_network_name(temp_di
         patch("RNS.Transport"),
         patch("LXMF.LXMRouter"),
         patch(
-            "meshchatx.src.backend.http.routes.reticulum_instance.InterfaceDiscovery"
+            "meshchatx.meshchat.InterfaceDiscovery"
         ) as mock_discovery_cls,
     ):
         mock_reticulum = mock_rns.return_value

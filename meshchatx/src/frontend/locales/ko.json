@@ -560,6 +560,8 @@
         "translator": "번역기",
         "translator_enabled": "번역기 활성화",
         "translator_description": "대화에서 번역 기능을 활성화합니다.",
+        "libretranslate_url": "LibreTranslate URL",
+        "libretranslate_url_description": "LibreTranslate API에 접근할 수 있는 URL입니다.",
         "system": "시스템",
         "reticulum_stack": "Reticulum 스택",
         "reticulum_stack_description": "기반이 되는 Reticulum Network Stack을 관리합니다.",
@@ -3128,7 +3130,7 @@
         },
         "translator": {
             "title": "번역기",
-            "description": "네트워크의 LibreTranslate 또는 이 기기의 Argos Translate로 텍스트를 번역합니다."
+            "description": "로컬로 가져온 언어 팩으로 텍스트를 오프라인으로 번역합니다."
         },
         "forwarder": {
             "title": "포워더",
@@ -3595,6 +3597,7 @@
             "publish_create_and_publish": "메시 서버를 만들어 게시...",
             "publish_manage_servers": "메시 서버 관리",
             "publish_will_start": "이(가) 시작됩니다",
+            "publish_all_tabs": "모든 탭을 서버에 게시...",
             "publish_create_prompt_name": "새 메시 서버의 이름:",
             "publish_failed_create": "메시 서버 생성에 실패했습니다",
             "publish_failed_start": "메시 서버 시작에 실패했습니다",
@@ -3623,7 +3626,10 @@
             "image_not_supported": "\"{name}\"은(는) 지원되지 않는 이미지 파일입니다",
             "image_too_large": "\"{name}\"이(가) 너무 큽니다 (최대 {max})",
             "image_local_loaded": "로드됨",
-            "publish_images_failed": "{total}개 중 {failed}개 이미지를 {server}에 업로드하지 못했습니다"
+            "publish_images_failed": "{total}개 중 {failed}개 이미지를 {server}에 업로드하지 못했습니다",
+            "publish_all_prompt_server": "모든 탭을 게시할 서버 이름을 입력하세요:\n\n사용 가능: {servers}",
+            "publish_server_not_found": "서버를 찾을 수 없음: {server}",
+            "publish_all_done": "{server}에 탭 {published}/{total}개를 게시했습니다"
         },
         "reticulum_config_editor": {
             "title": "Reticulum 설정 편집기",
@@ -3968,8 +3974,8 @@
         "popout_channel": "새 창에서 열기",
         "new_message_toast": "#{room}에 새 메시지",
         "host_users": "사용자",
-        "host_announce_interval": "애너운스 간격 (분)",
-        "host_announce_interval_hint": "{minutes}분마다",
+        "host_announce_interval": "애너운스 간격",
+        "host_announce_interval_hint": "{interval}마다",
         "host_hub_settings": "허브 설정",
         "presence_joined": "{count}명 참여",
         "presence_left": "{count}명 퇴장",
@@ -4033,6 +4039,8 @@
         "demote_op": "운영자 강등",
         "promote_op": "운영자로 승격",
         "composer_placeholder": "메시지 쓰기...",
+        "search_placeholder": "메시지 검색...",
+        "search_results_count": "결과 {count}개",
         "type_to_search": "메시지를 검색하려면 입력하세요",
         "no_search_results": "검색과 일치하는 메시지가 없습니다",
         "dm_member": "다이렉트 메시지",
@@ -4081,9 +4089,7 @@
         "search_global_hint": "팁: \"정확한 구문\", a 또는 b, -제외, from:닉네임, room:방, hub:해시",
         "search_global_count": "결과 {count}개",
         "search_global_empty": "연결된 모든 허브와 방의 메시지 기록을 검색합니다.",
-        "search_global_none": "일치하는 메시지가 없습니다.",
-        "search_placeholder": "메시지 검색...",
-        "search_results_count": "결과 {count}개"
+        "search_global_none": "일치하는 메시지가 없습니다."
     },
     "rncp": {
         "file_transfer": "파일 전송",

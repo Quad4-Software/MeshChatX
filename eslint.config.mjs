@@ -1,8 +1,11 @@
 import js from "@eslint/js";
-import pluginVue from "eslint-plugin-vue";
+import pluginSvelte from "eslint-plugin-svelte";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
+import oxlint from "eslint-plugin-oxlint";
 import globals from "globals";
+import tseslint from "typescript-eslint";
+import svelteConfig from "./svelte.config.mjs";
 
 export default [
     {
@@ -40,7 +43,7 @@ export default [
         ],
     },
     {
-        files: ["**/*.{js,mjs,cjs,vue}"],
+        files: ["**/*.{js,mjs,cjs}"],
         languageOptions: {
             globals: {
                 ...globals.browser,
@@ -68,18 +71,93 @@ export default [
         },
     },
     js.configs.recommended,
-    ...pluginVue.configs["flat/recommended"],
+    ...pluginSvelte.configs["flat/recommended"],
     pluginPrettier,
     pluginSecurity.configs.recommended,
     {
-        files: ["**/*.{js,mjs,cjs,vue}"],
+        files: ["**/*.{js,mjs,cjs}"],
         rules: {
-            "vue/multi-word-component-names": "off",
-            "vue/no-v-html": "error",
             "no-unused-vars": "warn",
             "no-console": "off",
             "security/detect-object-injection": "off",
             "security/detect-non-literal-fs-filename": "off",
         },
     },
+    {
+        files: ["**/*.ts", "**/*.mts", "**/*.cts"],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+                ...globals.node,
+            },
+            parser: tseslint.parser,
+        },
+        plugins: {
+            "@typescript-eslint": tseslint.plugin,
+        },
+        rules: {
+            "no-undef": "off",
+            "no-unused-vars": "off",
+            "@typescript-eslint/no-unused-vars": [
+                "warn",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                    caughtErrorsIgnorePattern: "^_",
+                },
+            ],
+            "no-console": "off",
+            "security/detect-object-injection": "off",
+        },
+    },
+    {
+        files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+            },
+            parserOptions: {
+                parser: tseslint.parser,
+                extraFileExtensions: [".svelte"],
+                svelteConfig,
+            },
+        },
+        plugins: {
+            "@typescript-eslint": tseslint.plugin,
+        },
+        rules: {
+            "no-undef": "off",
+            "no-unused-vars": "off",
+            "@typescript-eslint/no-unused-vars": [
+                "warn",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                    caughtErrorsIgnorePattern: "^_",
+                },
+            ],
+            "no-console": "off",
+            "security/detect-object-injection": "off",
+            "svelte/prefer-svelte-reactivity": "off",
+        },
+    },
+    {
+        files: ["meshchatx/src/frontend/js/**/*.{js,mjs,ts}"],
+        rules: {
+            "no-restricted-imports": [
+                "error",
+                {
+                    patterns: [
+                        {
+                            group: ["**/components/**", "**/ui/svelte/**", "**/features/**", "**/*.svelte"],
+                            message: "Kernel js/ must stay framework-free. Import only other kernel modules.",
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+    // Oxlint owns overlapping core JS/TS rules. Keep ESLint for Svelte templates,
+    // security plugin, prettier, and restricted-imports.
+    ...oxlint.buildFromOxlintConfigFile("./.oxlintrc.json"),
 ];

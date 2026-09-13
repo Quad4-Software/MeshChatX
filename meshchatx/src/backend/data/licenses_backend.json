@@ -133,7 +133,7 @@
     },
     {
         "name": "lxst",
-        "version": "0.5.2",
+        "version": "0.5.3",
         "author": "Mark Qvist",
         "license": "Other/Proprietary License"
     },
@@ -205,13 +205,13 @@
     },
     {
         "name": "reticulum-meshchatx",
-        "version": "4.9.0",
+        "version": "4.9.1",
         "author": "Quad4",
         "license": "0BSD AND MIT"
     },
     {
         "name": "rns",
-        "version": "1.5.3",
+        "version": "1.5.4",
         "author": "Mark Qvist",
         "license": "Reticulum License"
     },

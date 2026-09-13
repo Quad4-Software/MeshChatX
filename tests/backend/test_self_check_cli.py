@@ -87,8 +87,8 @@ def test_self_check_cli_success(mock_rns, temp_dir):
 
     with (
         patch("meshchatx.meshchat.ReticulumMeshChat") as mock_app_class,
-        patch("meshchatx.src.backend.identity_context.Database"),
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
         patch("aiohttp.web.run_app"),
         patch("sys.argv", ["meshchat.py", "--storage-dir", temp_dir, "--self-check"]),
     ):
@@ -116,8 +116,8 @@ def test_self_check_cli_failure(mock_rns, temp_dir):
 
     with (
         patch("meshchatx.meshchat.ReticulumMeshChat") as mock_app_class,
-        patch("meshchatx.src.backend.identity_context.Database"),
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
         patch("aiohttp.web.run_app"),
         patch("sys.argv", ["meshchat.py", "--storage-dir", temp_dir, "--self-check"]),
     ):
@@ -142,8 +142,8 @@ def test_self_check_env_var_success(mock_rns, temp_dir):
 
     with (
         patch("meshchatx.meshchat.ReticulumMeshChat") as mock_app_class,
-        patch("meshchatx.src.backend.identity_context.Database"),
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
         patch("aiohttp.web.run_app"),
         patch.dict("os.environ", env),
         patch("sys.argv", ["meshchat.py"]),

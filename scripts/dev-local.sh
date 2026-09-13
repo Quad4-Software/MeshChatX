@@ -127,7 +127,4 @@ VITE_PORT="${VITE_DEV_PORT:-5173}"
 
 log "Vite dev server  $(link "http://${VITE_HOST}:${VITE_PORT}")"
 log "API proxy        $(link "${BACKEND_URL%/api/v1/status}")"
-if [[ "${MESHCHAT_VUE_DEVTOOLS:-1}" != "0" ]]; then
-    log "Vue DevTools overlay on ${C_DIM}(MESHCHAT_VUE_DEVTOOLS=0 disables)${C_RESET}"
-fi
 pnpm run dev -- --host "$VITE_HOST" --port "$VITE_PORT"

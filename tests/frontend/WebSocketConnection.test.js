@@ -498,7 +498,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
         global.window = makeWindowMock();
-        global.document = { visibilityState: "hidden" };
+        vi.stubGlobal("document", { visibilityState: "hidden" });
 
         const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
 
@@ -528,7 +528,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
         global.window = makeWindowMock();
-        global.document = { visibilityState: "visible" };
+        vi.stubGlobal("document", { visibilityState: "visible" });
 
         const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
 

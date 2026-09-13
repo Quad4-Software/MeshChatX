@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Host helper: build MeshChatX Windows Electron artifacts with Dockerfile.electron-wine.
+# Host helper: build MeshChatX Windows Electron artifacts with docker/Dockerfile.electron-wine.
 # Optional path. GitHub Actions windows-latest remains the release default.
 set -euo pipefail
 

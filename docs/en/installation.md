@@ -36,7 +36,7 @@ Release images are published to Docker Hub (quad4io/meshchatx) and GHCR (ghcr.io
 Quick start with Compose:
 
 ```bash
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 Basic run:
@@ -89,7 +89,7 @@ Run only **one** MeshChatX instance per /config volume. Startup takes an exclusi
 
 ### Public demo instance (Coolify)
 
-For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [docker-compose.demo.yml](../../docker/docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [docker-compose.coolify.yml](../../docker/docker-compose.coolify.yml).
+For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [docker/docker-compose.demo.yml](../../docker/docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [docker/docker-compose.coolify.yml](../../docker/docker-compose.coolify.yml).
 
 Demo compose expects settings like:
 
@@ -233,7 +233,7 @@ task install
 task dev
 ```
 
-task dev starts the HTTPS backend on 127.0.0.1:8000 and Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173). Open that Vite URL. The [Vue DevTools](https://devtools.vuejs.org/) overlay is injected for this serve only. vite build / task run never ship it (**VUE_PROD_DEVTOOLS** is false). Set MESHCHAT_VUE_DEVTOOLS=0 to hide the overlay. Click a component in the inspector to open it in the editor (LAUNCH_EDITOR, default code).
+task dev starts the HTTPS backend on 127.0.0.1:8000 and Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173). Open that Vite URL for HMR during development. vite build / task run serve the production frontend bundle.
 
 Python breakpoints: task debug is the same stack with [debugpy](https://github.com/microsoft/debugpy) listening on 127.0.0.1:5678 (never 0.0.0.0). Run **MeshChatX: Vite + Python** from the debugger, or start task debug and attach **Backend: Attach debugpy**. task debug:wait pauses the backend until that attach happens.
 

@@ -1,7 +1,17 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: 0BSD
 
-# https://github.com/markqvist/Sideband/blob/e515889e210037f881c201e0d627a7b09a48eb69/sbapp/sideband/sense.py#L11
+"""LXMF sense / telemetry command opcodes used by MeshChatX.
+
+Numeric values match the Sideband sense command wire set so peers remain
+interoperable. This module is Quad4-authored and does not copy Sideband source.
+"""
+
+from __future__ import annotations
+
+
 class SidebandCommands:
+    """Opcode constants for LXMF sense-style commands."""
+
     PLUGIN_COMMAND = 0x00
     TELEMETRY_REQUEST = 0x01
     PING = 0x02

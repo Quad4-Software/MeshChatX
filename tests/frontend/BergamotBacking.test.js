@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: 0BSD
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { BergamotBacking } from "@/js/translation/BergamotBacking.js";
 
@@ -136,7 +138,7 @@ describe("BergamotBacking", () => {
             "Refusing to fetch translation file from https://evil.example"
         );
 
-        // Non-HTTP schemes should bypass the origin check and pass through to fetch.
+        // Non-HTTP schemes bypass the origin check and pass through to fetch.
         // The guard only applies once a resolved http(s) URL is produced.
         await backing.fetch("data:application/octet-stream;base64,AAAA");
         expect(fetchSpy).toHaveBeenLastCalledWith(

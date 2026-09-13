@@ -60,7 +60,7 @@ _LOOPBACK_OR_UNSPECIFIED_HOSTS = frozenset(
         "localhost",
         "127.0.0.1",
         "::1",
-        "0.0.0.0",  # noqa: S104
+        "0.0.0.0",  # nosec: BAN-B104
     },
 )
 

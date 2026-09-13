@@ -114,7 +114,7 @@ def test_connect_requires_running(handler):
     assert "not running" in result["error"]
 
 
-@patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService")
+@patch("meshchatx.src.backend.rns_filesync_handler.core.FileSyncService")
 def test_start_stop_and_teardown(mock_service_cls, handler):
     service = MagicMock()
     service.start.return_value = "dd" * 16

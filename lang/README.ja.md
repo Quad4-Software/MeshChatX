@@ -37,10 +37,8 @@ make install && make build && make run
 
 詳細は [`docs/en/installation.md`](../docs/en/installation.md)。
 
-このリポジトリの現在のバージョンは `4.9.0` です。
-
 ## セキュリティ・ライセンス・クレジット
 
 - [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
-- 本プロジェクト固有部分: 0BSD。上流 MeshChat 部分: MIT。全文: [LICENSE](../LICENSE)。
+- 本プロジェクト固有部分: 0BSD。同梱サードパーティは各ライセンス。全文: [LICENSE](../LICENSE)。
 - クレジット: [Liam Cottle](https://github.com/liamcottle)、[RFnexus](https://github.com/RFnexus)、[markqvist](https://github.com/markqvist)。

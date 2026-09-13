@@ -20,11 +20,12 @@
         }
     },
     "include": [
-        "meshchatx/src/frontend/**/*.vue",
+        "meshchatx/src/frontend/**/*.svelte",
         "meshchatx/src/frontend/**/*.js",
-        "meshchatx/src/frontend/**/*.d.ts",
+        "meshchatx/src/frontend/**/*.ts",
         "electron/**/*.js",
-        "vite.config.mjs"
+        "vite.config.mjs",
+        "svelte.config.mjs"
     ],
     "exclude": [
         "node_modules",
@@ -35,9 +36,5 @@
         "vendor",
         "android",
         "tests"
-    ],
-    "vueCompilerOptions": {
-        "target": 3,
-        "strictTemplates": true
-    }
+    ]
 }
