@@ -27,6 +27,8 @@
     import RelayDiscoveryView from "./RelayDiscoveryView.svelte";
     import RelayHostView from "./RelayHostView.svelte";
     import RelayHostModerationPage from "./RelayHostModerationPage.svelte";
+    import RelayBotsPage from "./RelayBotsPage.svelte";
+    import RelaySearchPage from "./RelaySearchPage.svelte";
     import RelayChatModals from "./RelayChatModals.svelte";
     import { MIN_VIRTUAL_RELAY_ENTRIES } from "../lib/constants.js";
     import { orderedKnownRoomNames, roomUnreadCount } from "../lib/relayFormatters.js";
@@ -34,6 +36,7 @@
         RrcDiscoveredHub,
         RrcHostedHub,
         RrcHub,
+        RrcKnownHub,
         RrcMember,
         RrcMessage,
         RrcRoom,
@@ -48,7 +51,7 @@
 
     let { hubHash = null, room = null, isPopout = false }: Props = $props();
 
-    let view = $state<"chat" | "discovery" | "host" | "moderation">("chat");
+    let view = $state<"chat" | "discovery" | "host" | "moderation" | "bots" | "search">("chat");
     let sidebarCollapsed = $state(false);
     let hubs = $state<RrcHub[]>([]);
     let selectedHubHash = $state<string | null>(null);
@@ -89,6 +92,8 @@
         { id: "chat", label: "relay_chat.tab_chat", icon: "forum" },
         { id: "discovery", label: "relay_chat.tab_discovery", icon: "compass" },
         { id: "host", label: "relay_chat.tab_host", icon: "server" },
+        { id: "bots", label: "relay_chat.tab_bots", icon: "robot" },
+        { id: "search", label: "relay_chat.tab_search", icon: "magnify" },
     ] as const;
 
     const selectedHub = $derived.by(() => {
@@ -125,6 +130,26 @@
     const useVirtualMessageList = $derived(timelineEntries.length >= MIN_VIRTUAL_RELAY_ENTRIES);
 
     const canModerateSelectedHub = $derived(!!(selectedHub?.is_operator || selectedHub?.is_founder));
+
+    const botsKnownHubs = $derived.by((): RrcKnownHub[] => {
+        const seen = new Set<string>();
+        const out: RrcKnownHub[] = [];
+        if (hostedHub?.hub_hash && !seen.has(hostedHub.hub_hash)) {
+            seen.add(hostedHub.hub_hash);
+            out.push({ hash: hostedHub.hub_hash, name: hostedHub.name || "" });
+        }
+        for (const h of hubs) {
+            const hash = h.hub_hash;
+            if (hash && !seen.has(hash)) {
+                seen.add(hash);
+                out.push({
+                    hash,
+                    name: String(h.display_name || h.custom_display_name || h.name || ""),
+                });
+            }
+        }
+        return out;
+    });
 
     function formatDateDividerLabel(dayKey?: string): string {
         return dayKey || "";
@@ -203,6 +228,24 @@
         } catch {
             // failed
         }
+    }
+
+    function openSearchResult(target: { hubHash: string; room: string }) {
+        if (!target?.hubHash || !target?.room) {
+            return;
+        }
+        view = "chat";
+        const hubObj = hubs.find((h) => h.hub_hash === target.hubHash);
+        if (hubObj) {
+            selectRoom(hubObj, { name: target.room });
+        } else {
+            selectedHubHash = target.hubHash;
+            selectedRoomName = target.room;
+            expandedHubs[target.hubHash] = true;
+            void loadRoomMessages(target.hubHash, target.room);
+            void loadRoomMembers(target.hubHash, target.room);
+        }
+        persistLayout();
     }
 
     function selectRoom(hubObj: RrcHub, roomObj: RrcRoom) {
@@ -746,6 +789,14 @@
                     ToastUtils.success(t("relay_chat.copied_hub_hash"));
                 }}
             />
+        {:else if view === "bots"}
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <RelayBotsPage knownHubs={botsKnownHubs} />
+            </div>
+        {:else if view === "search"}
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <RelaySearchPage onopenroom={openSearchResult} />
+            </div>
         {/if}
     {/if}
 

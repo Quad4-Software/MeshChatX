@@ -87,3 +87,40 @@ export interface RrcDiscoveredHub {
     last_heard?: number | string;
     [key: string]: unknown;
 }
+
+export interface RrcBotConfig {
+    hub?: string;
+    rooms?: string[];
+    nick?: string;
+    mention_only?: boolean;
+    prefix?: string;
+    rate_seconds?: number;
+    [key: string]: unknown;
+}
+
+export interface RrcBotRecord {
+    id: string;
+    name: string;
+    running?: boolean;
+    template?: string;
+    template_id?: string;
+    last_error?: string | null;
+    rrc?: RrcBotConfig | null;
+    [key: string]: unknown;
+}
+
+export interface RrcKnownHub {
+    hash: string;
+    name: string;
+}
+
+export interface RrcSearchHit {
+    hub_hash: string;
+    hub_name?: string;
+    room: string;
+    nick?: string;
+    text: string;
+    ts?: number | string;
+    kind?: string;
+    [key: string]: unknown;
+}
