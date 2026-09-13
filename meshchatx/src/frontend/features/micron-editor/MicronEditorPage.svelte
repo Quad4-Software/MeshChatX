@@ -17,6 +17,7 @@
     import { downloadMicronFile } from "./lib/micronDownload.js";
     import {
         buildSiteIndexPage,
+        dedupePublishFilenames,
         ensureNodeRunning,
         fetchNodePagesList,
         fetchPageNodesList,
@@ -366,9 +367,14 @@
             }
             const running = await ensureNodeRunning(node);
             pageNodes = [...pageNodes.filter((n) => n.node_id !== running.node_id), running];
+            // Sanitized or edited filenames can collide inside one batch;
+            // suffix duplicates so pages do not silently overwrite each other.
+            const uniqueNames = dedupePublishFilenames(pages.map((p) => p.name));
+            const pagesToPost = pages.map((p, i) => ({ ...p, name: uniqueNames[i] }));
             let published = 0;
+            const failedPages: string[] = [];
             let lastSavedName: string | null = null;
-            for (const page of pages) {
+            for (const page of pagesToPost) {
                 try {
                     const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
                         name: page.name,
@@ -377,12 +383,12 @@
                     lastSavedName = (response.data as { name?: string })?.name || page.name;
                     published++;
                 } catch {
-                    console.error(`Failed to publish page: ${page.name}`);
+                    failedPages.push(page.name);
                 }
             }
             if (payload.generateIndex && running.destination_hash && published > 0) {
                 try {
-                    const indexContent = buildSiteIndexPage(running.destination_hash, pages);
+                    const indexContent = buildSiteIndexPage(running.destination_hash, pagesToPost);
                     const indexRes = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
                         name: "index.mu",
                         content: indexContent,
@@ -407,6 +413,11 @@
                     server: running.name,
                 })
             );
+            if (failedPages.length > 0) {
+                ToastUtils.warning(
+                    t("tools.micron_editor.publish_site_failed_pages", { names: failedPages.join(", ") })
+                );
+            }
             if (lastPublished?.destinationHash) {
                 const open = await DialogUtils.confirm(
                     t("tools.micron_editor.publish_open_nomadnet_confirm", {

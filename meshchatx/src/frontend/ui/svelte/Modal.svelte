@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { tick } from "svelte";
     import type { Snippet } from "svelte";
     import { Dialog } from "bits-ui";
     import { fade, fly } from "svelte/transition";
@@ -51,6 +52,31 @@
               ? maxWidth
               : `${maxWidth}px`
     );
+
+    // Modals are opened programmatically (bind:open, no Dialog.Trigger), so
+    // record the element that held focus before the dialog took over and give
+    // it back on close for WCAG 2.4.3 focus order.
+    let previouslyFocused: HTMLElement | null = null;
+
+    $effect.pre(() => {
+        if (open) {
+            const active = document.activeElement;
+            previouslyFocused = active instanceof HTMLElement && active !== document.body ? active : null;
+        }
+    });
+
+    $effect(() => {
+        if (open) return;
+        const el = previouslyFocused;
+        previouslyFocused = null;
+        if (el?.isConnected) {
+            void tick().then(() => {
+                if (el.isConnected) {
+                    el.focus();
+                }
+            });
+        }
+    });
 
     function handleOpenChange(next: boolean) {
         if (!next) {

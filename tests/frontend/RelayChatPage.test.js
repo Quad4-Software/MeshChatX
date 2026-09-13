@@ -78,7 +78,7 @@ describe("RelayChatPage.svelte", () => {
                     return Promise.resolve({ data: { server: makeHostedHub() } });
                 }
                 if (url === "/api/v1/rrc/discovery" || url === "/api/v1/announces") {
-                    return Promise.resolve({ data: { hubs: [makeAnnounce()] } });
+                    return Promise.resolve({ data: { announces: [makeAnnounce()], total_count: 1 } });
                 }
                 if (url.includes("/messages")) {
                     return Promise.resolve({

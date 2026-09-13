@@ -17,7 +17,7 @@
     } from "../../../js/relayMessageTimeline.js";
     import { loadRelayLayout, saveRelayLayout } from "../../../js/relayLayoutStore.js";
     import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../../js/browserLayoutStore.js";
-    import { buildRelayShareMessage } from "../../../js/relayLinkUtils.js";
+    import { buildRelayShareMessage, RRC_HUB_ASPECT } from "../../../js/relayLinkUtils.js";
     import RelayChatHeader from "./RelayChatHeader.svelte";
     import RelayHubSidebar from "./RelayHubSidebar.svelte";
     import RelayMembersPanel from "./RelayMembersPanel.svelte";
@@ -210,8 +210,10 @@
         const api = (window as any).api;
         if (!api) return;
         try {
-            const res = await api.get("/api/v1/announces");
-            discoveredHubs = res.data?.hubs || res.data?.announces || [];
+            const res = await api.get("/api/v1/announces", {
+                params: { aspect: RRC_HUB_ASPECT },
+            });
+            discoveredHubs = res.data?.announces || [];
         } catch {
             discoveredHubs = [];
         }
@@ -246,19 +248,17 @@
         if (!target?.hubHash || !target?.room) {
             return;
         }
+        const hubObj = hubs.find((h) => h.hub_hash === target.hubHash);
+        if (!hubObj) {
+            // The hub is not in the local list (never added or disconnected),
+            // so selecting it would leave the pane blank with no feedback.
+            ToastUtils.warning(t("relay_chat.hub_not_added"));
+            return;
+        }
         // Capture before the switch so backing out returns to Search.
         viewBeforeRoomOpen = view;
         view = "chat";
-        const hubObj = hubs.find((h) => h.hub_hash === target.hubHash);
-        if (hubObj) {
-            selectRoom(hubObj, { name: target.room });
-        } else {
-            selectedHubHash = target.hubHash;
-            selectedRoomName = target.room;
-            expandedHubs[target.hubHash] = true;
-            void loadRoomMessages(target.hubHash, target.room);
-            void loadRoomMembers(target.hubHash, target.room);
-        }
+        selectRoom(hubObj, { name: target.room });
         persistLayout();
     }
 

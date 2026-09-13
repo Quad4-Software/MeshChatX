@@ -796,6 +796,9 @@ export default class MicronParser extends BaseMicronParser {
         } else if (url.startsWith(":")) {
             path = url.slice(1);
         }
+        // The split/join above can leave a leading slash on the path (for
+        // example "hash://media/x.png"); node file paths never start with one.
+        path = path.replace(/^\/+/, "");
         if (path.startsWith("media/")) {
             if (!/\.(webp|png|jpe?g|bmp|gif|tiff)$/i.test(path)) {
                 return null;

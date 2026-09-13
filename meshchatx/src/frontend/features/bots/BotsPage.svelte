@@ -72,6 +72,7 @@
     }
 
     async function handleStartBot(bot: BotRecord): Promise<void> {
+        actionInProgress = true;
         try {
             const templateId = bot.template_id || bot.template || "";
             await startBot({
@@ -85,6 +86,8 @@
         } catch (err: unknown) {
             const e = err as { response?: { data?: { message?: string } }; message?: string };
             ToastUtils.error(e?.response?.data?.message || e?.message || t("bots.failed_to_start"));
+        } finally {
+            actionInProgress = false;
         }
     }
 

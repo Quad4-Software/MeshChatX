@@ -70,16 +70,31 @@ function geoAnchor(display: string, text: string): string {
 /**
  * Wrap geographic references in the (already HTML-escaped) text with anchors.
  * Runs inside MarkdownRenderer.renderBasic before emphasis rules.
+ *
+ * Each pass hides the anchors produced so far behind placeholder tokens so
+ * the looser patterns below never re-match inside generated markup (for
+ * example a Maidenhead-looking data-geo-text attribute value).
  */
 export function linkifyGeoRefs(text: string): string {
     if (typeof text !== "string" || !text) return text;
     let out = text;
 
+    const stashedAnchors: string[] = [];
+    const stashAnchors = () => {
+        out = out.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, (anchor) => {
+            const token = `[[GEO_LINK_${stashedAnchors.length}]]`;
+            stashedAnchors.push(anchor);
+            return token;
+        });
+    };
+
     // Explicit geo:/grid:/locator: schemes always link.
     out = out.replace(EXPLICIT_RE, (match, body) => geoAnchor(body.trim(), body.trim()));
+    stashAnchors();
 
     // Maidenhead locators, 6+ chars only for auto-linking to avoid noise.
     out = out.replace(MAIDENHEAD_RE, (match) => geoAnchor(match, match));
+    stashAnchors();
 
     // lat, lon decimal pairs within plausible ranges.
     out = out.replace(LATLON_RE, (match, latS, lonS) => {
@@ -89,8 +104,9 @@ export function linkifyGeoRefs(text: string): string {
         if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return match;
         return geoAnchor(match, match);
     });
+    stashAnchors();
 
-    return out;
+    return out.replace(/\[\[GEO_LINK_(\d+)\]\]/g, (_m, idx) => stashedAnchors[Number(idx)] ?? _m);
 }
 
 /**

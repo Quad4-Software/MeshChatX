@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount, onDestroy, untrack } from "svelte";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
     import { t } from "../../../js/i18n.js";
@@ -213,6 +213,41 @@
         void fetchFavourites();
     }
 
+    // keepAlive pages are not remounted when the route target changes; the
+    // onMount restore below only sees the first navigation. Re-apply the
+    // route target whenever the hash, path or archive props change after that.
+    let appliedRouteSignature = "";
+    const routeHashWatchReady = $derived(
+        [destinationHash || "", routePath, routeArchiveId ?? "", routeQuery.newTab || ""].join("|")
+    );
+
+    function applyRouteTarget() {
+        const targetHash = destinationHash || "";
+        const targetPath = routePath || DEFAULT_PAGE_PATH;
+        const forceNewTab = routeQuery.newTab === "1";
+        if (targetHash) {
+            if (tabs.length === 0 || forceNewTab) {
+                handleNewTab(targetHash, targetPath, false, routeArchiveId);
+            } else {
+                const existing = tabs.find((tab) => tab.destinationHash === targetHash);
+                if (existing) {
+                    existing.path = targetPath;
+                    tabs = [...tabs];
+                    selectedTabId = existing.id;
+                    if (routeArchiveId != null) {
+                        tabBootstrapArchiveId = { ...tabBootstrapArchiveId, [existing.id]: routeArchiveId };
+                    }
+                    persistNomadTabs(tabs, selectedTabId);
+                } else {
+                    handleNewTab(targetHash, targetPath, false, routeArchiveId);
+                }
+            }
+        } else if (tabs.length === 0) {
+            handleNewTab("", DEFAULT_PAGE_PATH, false);
+        }
+        if (selectedTabId != null) ensureTabMounted(selectedTabId);
+    }
+
     onMount(() => {
         void fetchNodes();
         void fetchFavourites();
@@ -222,34 +257,24 @@
         GlobalEmitter.on("nomadnet-remove-favourite", handleRemoveFavourite);
         GlobalEmitter.on("nomadnet-favourites-changed", fetchFavourites);
 
-        const initialHash = destinationHash || "";
-        const initialPath = routePath || DEFAULT_PAGE_PATH;
-        const forceNewTab = routeQuery.newTab === "1";
-        const restored = restoreNomadTabs(initialHash, initialPath, forceNewTab);
+        const restored = restoreNomadTabs(
+            destinationHash || "",
+            routePath || DEFAULT_PAGE_PATH,
+            routeQuery.newTab === "1"
+        );
         tabs = restored.tabs;
         selectedTabId = restored.selectedTabId;
+        applyRouteTarget();
+        appliedRouteSignature = routeHashWatchReady;
+    });
 
-        if (initialHash) {
-            if (tabs.length === 0 || forceNewTab) {
-                handleNewTab(initialHash, initialPath, false, routeArchiveId);
-            } else {
-                const existing = tabs.find((tab) => tab.destinationHash === initialHash);
-                if (existing) {
-                    existing.path = initialPath;
-                    tabs = [...tabs];
-                    selectedTabId = existing.id;
-                    if (routeArchiveId != null) {
-                        tabBootstrapArchiveId = { ...tabBootstrapArchiveId, [existing.id]: routeArchiveId };
-                    }
-                    persistNomadTabs(tabs, selectedTabId);
-                } else {
-                    handleNewTab(initialHash, initialPath, false, routeArchiveId);
-                }
-            }
-        } else if (tabs.length === 0) {
-            handleNewTab("", DEFAULT_PAGE_PATH, false);
+    $effect(() => {
+        const signature = routeHashWatchReady;
+        if (signature === appliedRouteSignature) {
+            return;
         }
-        if (selectedTabId != null) ensureTabMounted(selectedTabId);
+        appliedRouteSignature = signature;
+        untrack(() => applyRouteTarget());
     });
 
     onDestroy(() => {

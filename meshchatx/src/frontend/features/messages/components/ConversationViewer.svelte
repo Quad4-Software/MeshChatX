@@ -1012,6 +1012,7 @@
             bind:messagesScroll
             bind:this={listPane}
             {groups}
+            conversationKey={selectedHash}
             {useVirtualMessageList}
             {hasMorePrevious}
             {isLoadingPrevious}
