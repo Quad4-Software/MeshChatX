@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
-    import { useEventListener } from "runed";
+    import { useEventListener, useDebounce } from "runed";
     import QRCode from "qrcode";
     import EmptyState from "../../ui/svelte/EmptyState.svelte";
     import LoadingState from "../../ui/svelte/LoadingState.svelte";
@@ -42,7 +42,7 @@
     let isLoadingMore = $state(false);
     let contactsOffset = $state(0);
     let totalContactsCount = $state(0);
-    let searchDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
+    const onContactsSearchInput = useDebounce(() => getContacts(), 250);
     const contactsPageSize = 30;
 
     let myIdentityUri: string | null = $state(null);
@@ -111,11 +111,6 @@
             isLoading = false;
             isLoadingMore = false;
         }
-    }
-
-    function onContactsSearchInput() {
-        if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
-        searchDebounceTimeout = setTimeout(() => getContacts(), 250);
     }
 
     function closeContextMenu() {
@@ -210,7 +205,6 @@
         getContacts();
         return () => {
             offWsEvent("lxm.ingest_uri.result", onLxmIngestUriResult);
-            if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
         };
     });
 </script>

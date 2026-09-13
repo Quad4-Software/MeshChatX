@@ -3,6 +3,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { SvelteSet } from "svelte/reactivity";
+    import { PersistedState } from "runed";
     import ToastUtils from "../../js/ToastUtils.js";
     import DownloadUtils from "../../js/DownloadUtils.js";
     import ElectronUtils from "../../js/ElectronUtils.js";
@@ -54,9 +55,28 @@
     let discoveredActive = $state<DiscoveredActiveInterface[]>([]);
 
     let searchTerm = $state("");
-    let statusFilter = $state<"all" | "enabled" | "disabled">("all");
+    const rawStringSerializer = {
+        serialize: (value: string) => value,
+        deserialize: <T extends string>(value: string) => value as T,
+    };
+
+    const statusFilter = new PersistedState<"all" | "enabled" | "disabled">(
+        "meshchatx.interfaces.statusFilter",
+        "all",
+        { serializer: rawStringSerializer }
+    );
     let typeFilter = $state("all");
-    let discoveredStatusFilter = $state<"all" | "connected">("all");
+    const discoveredStatusFilter = new PersistedState<"all" | "connected">(
+        "meshchatx.interfaces.discoveredStatusFilter",
+        "all",
+        { serializer: rawStringSerializer }
+    );
+    if (!["all", "enabled", "disabled"].includes(statusFilter.current)) {
+        statusFilter.current = "all";
+    }
+    if (!["all", "connected"].includes(discoveredStatusFilter.current)) {
+        discoveredStatusFilter.current = "all";
+    }
     let activeTab = $state<"overview" | "discovery">("overview");
 
     let isReticulumRunning = $state(true);
@@ -107,8 +127,8 @@
         const search = searchTerm.toLowerCase().trim();
         return interfacesWithStats
             .filter((iface) => {
-                if (statusFilter === "enabled" && !isInterfaceEnabled(iface)) return false;
-                if (statusFilter === "disabled" && isInterfaceEnabled(iface)) return false;
+                if (statusFilter.current === "enabled" && !isInterfaceEnabled(iface)) return false;
+                if (statusFilter.current === "disabled" && isInterfaceEnabled(iface)) return false;
                 if (typeFilter !== "all" && iface.type !== typeFilter) return false;
                 if (!search) return true;
                 const haystack = [
@@ -148,7 +168,7 @@
     const sortedDiscoveredInterfaces = $derived.by(() => {
         const search = searchTerm.toLowerCase().trim();
         let list = [...discoveredInterfaces];
-        if (discoveredStatusFilter === "connected") {
+        if (discoveredStatusFilter.current === "connected") {
             list = list.filter((iface) =>
                 isDiscoveredConnected(
                     iface,
@@ -186,19 +206,6 @@
     );
 
     onMount(() => {
-        try {
-            const sf = localStorage.getItem("meshchatx.interfaces.statusFilter");
-            if (sf === "all" || sf === "enabled" || sf === "disabled") {
-                statusFilter = sf;
-            }
-            const df = localStorage.getItem("meshchatx.interfaces.discoveredStatusFilter");
-            if (df === "all" || df === "connected") {
-                discoveredStatusFilter = df;
-            }
-        } catch {
-            /* ignore */
-        }
-
         loadAllData();
 
         batterySaverHandler = () => {
@@ -218,22 +225,6 @@
         }
         GlobalEmitter.off("identity-switched", handleIdentitySwitched);
         GlobalEmitter.off("websocket-reconnected", handleWebsocketReconnected);
-    });
-
-    $effect(() => {
-        try {
-            localStorage.setItem("meshchatx.interfaces.statusFilter", statusFilter);
-        } catch {
-            /* ignore */
-        }
-    });
-
-    $effect(() => {
-        try {
-            localStorage.setItem("meshchatx.interfaces.discoveredStatusFilter", discoveredStatusFilter);
-        } catch {
-            /* ignore */
-        }
     });
 
     function handleIdentitySwitched() {
@@ -571,28 +562,28 @@
                                 <div class="flex gap-2 flex-wrap">
                                     <button
                                         type="button"
-                                        class="py-1! px-3! {statusFilter === 'all'
+                                        class="py-1! px-3! {statusFilter.current === 'all'
                                             ? 'primary-chip text-xs'
                                             : 'secondary-chip text-xs'}"
-                                        onclick={() => (statusFilter = "all")}
+                                        onclick={() => (statusFilter.current = "all")}
                                     >
                                         {t("interfaces.all")}
                                     </button>
                                     <button
                                         type="button"
-                                        class="py-1! px-3! {statusFilter === 'enabled'
+                                        class="py-1! px-3! {statusFilter.current === 'enabled'
                                             ? 'primary-chip text-xs'
                                             : 'secondary-chip text-xs'}"
-                                        onclick={() => (statusFilter = "enabled")}
+                                        onclick={() => (statusFilter.current = "enabled")}
                                     >
                                         {t("app.enabled")}
                                     </button>
                                     <button
                                         type="button"
-                                        class="py-1! px-3! {statusFilter === 'disabled'
+                                        class="py-1! px-3! {statusFilter.current === 'disabled'
                                             ? 'primary-chip text-xs'
                                             : 'secondary-chip text-xs'}"
-                                        onclick={() => (statusFilter = "disabled")}
+                                        onclick={() => (statusFilter.current = "disabled")}
                                     >
                                         {t("app.disabled")}
                                     </button>
@@ -649,19 +640,19 @@
                                     <div class="flex gap-1.5 mr-2">
                                         <button
                                             type="button"
-                                            class="py-1! px-3! {discoveredStatusFilter === 'all'
+                                            class="py-1! px-3! {discoveredStatusFilter.current === 'all'
                                                 ? 'primary-chip text-xs'
                                                 : 'secondary-chip text-xs'}"
-                                            onclick={() => (discoveredStatusFilter = "all")}
+                                            onclick={() => (discoveredStatusFilter.current = "all")}
                                         >
                                             {t("interfaces.all")}
                                         </button>
                                         <button
                                             type="button"
-                                            class="py-1! px-3! {discoveredStatusFilter === 'connected'
+                                            class="py-1! px-3! {discoveredStatusFilter.current === 'connected'
                                                 ? 'primary-chip text-xs'
                                                 : 'secondary-chip text-xs'}"
-                                            onclick={() => (discoveredStatusFilter = "connected")}
+                                            onclick={() => (discoveredStatusFilter.current = "connected")}
                                         >
                                             {t("interfaces.connected_only")}
                                         </button>
