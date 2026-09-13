@@ -8,6 +8,15 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.database._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+
 
 def register_database_health_routes(routes: Any, app: Any) -> None:
     @routes.get("/api/v1/database/health")
@@ -19,12 +28,7 @@ def register_database_health_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to fetch database health: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/database/vacuum")
     async def database_vacuum(request):
@@ -37,12 +41,7 @@ def register_database_health_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to vacuum database: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/database/recover")
     async def database_recover(request):
@@ -55,18 +54,18 @@ def register_database_health_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to recover database: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/database/auto-recover")
     async def database_auto_recover(request):
         try:
             try:
-                data = await request.json()
+                data = await read_json_limited(request)
+            except PayloadTooLargeError:
+                return http_payload_too_large(
+                    "Upload exceeds size limit",
+                    strategy="none",
+                )
             except Exception:
                 data = {}
             if not isinstance(data, dict):
@@ -87,10 +86,9 @@ def register_database_health_routes(routes: Any, app: Any) -> None:
                 status=status,
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Auto recovery failed: {e!s}",
-                    "strategy": "none",
-                },
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"strategy": "none"},
+                fallback_status=500,
             )

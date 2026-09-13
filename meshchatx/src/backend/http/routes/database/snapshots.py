@@ -8,6 +8,19 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.database._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_error_from_exception,
+    http_not_found,
+    http_payload_too_large,
+)
+from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
+    PayloadTooLargeError,
+    read_json_limited,
+    write_field_to_path,
+)
+
 
 def register_database_snapshots_routes(routes: Any, app: Any) -> None:
     # ── Database ─────────────────────────────────────────────────────
@@ -15,14 +28,21 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
     @routes.post("/api/v1/database/snapshot")
     async def create_db_snapshot(request):
         try:
-            data = await request.json()
+            data = await read_json_limited(request)
             name = data.get("name", f"snapshot-{int(time.time())}")
             result = app.database.create_snapshot(app.storage_path, name)
             return web.json_response({"status": "success", "result": result})
+        except PayloadTooLargeError:
+            return http_payload_too_large(
+                "Upload exceeds size limit",
+                status="error",
+            )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.get("/api/v1/database/snapshots")
@@ -42,9 +62,11 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.delete("/api/v1/database/snapshots/{filename}")
@@ -60,9 +82,11 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
             )
             return web.json_response({"status": "success"})
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.post("/api/v1/database/snapshots/{filename}/download")
@@ -75,9 +99,9 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
             full_path = safe_path_under_dir(snapshot_dir, filename)
 
             if not full_path or not os.path.isfile(full_path):
-                return web.json_response(
-                    {"status": "error", "message": "Snapshot not found"},
-                    status=404,
+                return http_not_found(
+                    "Snapshot not found",
+                    status="error",
                 )
 
             return web.FileResponse(
@@ -87,9 +111,11 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.post("/api/v1/database/restore")
@@ -102,21 +128,25 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
                 reader = await request.multipart()
                 field = await reader.next()
                 if field is None or field.name != "file":
-                    return web.json_response(
-                        {"status": "error", "message": "Restore file is required"},
-                        status=400,
+                    return http_bad_request(
+                        "Restore file is required",
+                        status="error",
                     )
 
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                    while True:
-                        chunk = await field.read_chunk()
-                        if not chunk:
-                            break
-                        tmp.write(chunk)
                     temp_path = tmp.name
+                await write_field_to_path(
+                    field,
+                    temp_path,
+                    UPLOAD_LIMITS["database_restore"],
+                )
 
                 try:
-                    result = app.restore_database(temp_path, relaunch=True)
+                    # Restore tears down identity contexts and blocks for up
+                    # to ~30s; keep it off the event loop.
+                    result = await asyncio.to_thread(
+                        app.restore_database, temp_path, relaunch=True
+                    )
                 finally:
                     with contextlib.suppress(OSError):
                         os.remove(temp_path)
@@ -132,22 +162,24 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
                 )
 
             # JSON body: restore from an on-disk snapshot/auto-backup path
-            data = await request.json()
+            data = await read_json_limited(request)
             path = data.get("path")
             if not path:
-                return web.json_response(
-                    {"status": "error", "message": "No path provided"},
-                    status=400,
+                return http_bad_request(
+                    "No path provided",
+                    status="error",
                 )
 
             resolved = app._resolve_database_restore_path(path)
             if not resolved:
-                return web.json_response(
-                    {"status": "error", "message": "Snapshot not found"},
-                    status=404,
+                return http_not_found(
+                    "Snapshot not found",
+                    status="error",
                 )
 
-            result = app.restore_database(resolved, relaunch=True)
+            result = await asyncio.to_thread(
+                app.restore_database, resolved, relaunch=True
+            )
             return web.json_response(
                 {
                     "status": "success",
@@ -156,8 +188,15 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
                     "message": "Database restored. Application will restart.",
                 },
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large(
+                "Upload exceeds size limit",
+                status="error",
+            )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )

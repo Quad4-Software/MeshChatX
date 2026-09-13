@@ -8,6 +8,11 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.database._names import *  # noqa: F403
 
+from meshchatx.src.backend.http.errors import (
+    http_error_from_exception,
+    http_not_found,
+)
+
 
 def register_database_backups_routes(routes: Any, app: Any) -> None:
     @routes.get("/api/v1/database/backups")
@@ -37,9 +42,11 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.delete("/api/v1/database/backups/{filename}")
@@ -55,9 +62,11 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
             )
             return web.json_response({"status": "success"})
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.post("/api/v1/database/backups/{filename}/download")
@@ -70,9 +79,9 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
             full_path = safe_path_under_dir(backup_dir, filename)
 
             if not full_path or not os.path.isfile(full_path):
-                return web.json_response(
-                    {"status": "error", "message": "Backup not found"},
-                    status=404,
+                return http_not_found(
+                    "Backup not found",
+                    status="error",
                 )
 
             return web.FileResponse(
@@ -82,9 +91,11 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500,
+            return http_error_from_exception(
+                e,
+                key="message",
+                extra={"status": "error"},
+                fallback_status=500,
             )
 
     @routes.post("/api/v1/database/backup")
@@ -98,12 +109,7 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to create database backup: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.post("/api/v1/database/backup/download")
     async def database_backup_download(request):
@@ -119,9 +125,4 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as e:
-            return web.json_response(
-                {
-                    "message": f"Failed to create database backup: {e!s}",
-                },
-                status=500,
-            )
+            return http_error_from_exception(e, key="message", fallback_status=500)
