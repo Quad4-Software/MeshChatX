@@ -1578,7 +1578,7 @@ wheels = [
 
 [[package]]
 name = "lxst"
-version = "0.5.2"
+version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
@@ -1589,7 +1589,7 @@ dependencies = [
     { name = "rns" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4f/a5/c644587274fcc581fc855abcd80f7d2f1e4fd6986c351bc69b133237d7ec/lxst-0.5.2-py3-none-any.whl", hash = "sha256:2e59adfbebaf1ebbb240b5704c95646d6500a88dadaf9dadf8cd722392d7fc67", size = 3689829, upload-time = "2026-08-14T14:11:20.92Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/7a/126dd04964c48ff0c8b20324d49d0bc8178c8d7882b14691d2f21ba20749/lxst-0.5.3-py3-none-any.whl", hash = "sha256:d26281e247510b2c76cf2a67c55ffac178839597f25e29ef14343b6c8da69c87", size = 3689885, upload-time = "2026-09-10T18:18:48.622Z" },
 ]
 
 [[package]]
@@ -2538,7 +2538,7 @@ wheels = [
 
 [[package]]
 name = "reticulum-meshchatx"
-version = "4.9.0"
+version = "4.9.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -2591,13 +2591,13 @@ requires-dist = [
     { name = "cryptography", specifier = ">=50.0.1,<51.0.0" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1,<1.0" },
     { name = "lxmf", specifier = ">=1.1.1" },
-    { name = "lxst", specifier = ">=0.5.2" },
+    { name = "lxst", specifier = ">=0.5.3" },
     { name = "miniaudio", specifier = ">=1.70,<2.0" },
     { name = "ply", specifier = ">=3.11,<4.0" },
     { name = "psutil", specifier = ">=7.2.2" },
     { name = "pycparser", specifier = ">=3.0" },
     { name = "pyserial", specifier = ">=3.5" },
-    { name = "rns", specifier = ">=1.5.3" },
+    { name = "rns", specifier = ">=1.5.4" },
     { name = "wasmtime", specifier = ">=48.0.0" },
     { name = "websockets", specifier = ">=17.1" },
 ]

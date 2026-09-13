@@ -14,6 +14,7 @@ import logging
 import os
 import sys
 import tempfile
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -48,8 +49,25 @@ _TRUSTEE_IS_SID = 0
 _TRUSTEE_IS_UNKNOWN = 0
 _SUB_CONTAINERS_AND_OBJECTS_INHERIT = 0x3
 _SE_FILE_OBJECT = 1
+_SE_WINDOW_OBJECT = 6
 _DACL_SECURITY_INFORMATION = 0x00000004
 _PROTECTED_DACL_SECURITY_INFORMATION = 0x80000000
+_READ_CONTROL = 0x00020000
+_WRITE_DAC = 0x00040000
+
+# NTSTATUS codes the Windows loader returns when a process dies before main.
+# Under LPAC these mean the sandbox hid a dependency, not that the image is
+# broken, so a fast exit is a launch failure rather than a backend crash.
+_SANDBOX_INIT_FAILURE_CODES = frozenset(
+    {
+        0xC0000022,  # STATUS_ACCESS_DENIED
+        0xC0000135,  # STATUS_DLL_NOT_FOUND
+        0xC0000139,  # STATUS_ENTRYPOINT_NOT_FOUND
+        0xC0000142,  # STATUS_DLL_INIT_FAILED
+        0xC0000143,  # STATUS_MISSING_SYSTEMFILE
+    }
+)
+_SANDBOX_INIT_FAILURE_WINDOW = 30.0
 
 _SE_GROUP_ENABLED = 0x00000004
 
@@ -622,6 +640,154 @@ def revoke_path_access(sid: ctypes.c_void_p, path: str) -> None:
         logger.debug("revoke_path_access %s: %s", path, exc)
 
 
+def _grant_window_object_access(
+    handle: ctypes.c_void_p,
+    sid: ctypes.c_void_p,
+    access_mask: int,
+) -> None:
+    """Merge a package-SID allow ACE into a window station or desktop DACL."""
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    ea = _EXPLICIT_ACCESS_W()
+    ea.grfAccessPermissions = access_mask
+    ea.grfAccessMode = _GRANT_ACCESS
+    ea.grfInheritance = 0
+    ea.Trustee.pMultipleTrustee = None
+    ea.Trustee.MultipleTrusteeOperation = 0
+    ea.Trustee.TrusteeForm = _TRUSTEE_IS_SID
+    ea.Trustee.TrusteeType = _TRUSTEE_IS_UNKNOWN
+    ea.Trustee.ptstrName = sid
+
+    p_sd = ctypes.c_void_p()
+    p_dacl = ctypes.c_void_p()
+    get_status = user32.GetSecurityInfo(
+        handle,
+        _SE_WINDOW_OBJECT,
+        _DACL_SECURITY_INFORMATION,
+        None,
+        None,
+        ctypes.byref(p_dacl),
+        None,
+        ctypes.byref(p_sd),
+    )
+    if get_status != _ERROR_SUCCESS:
+        raise OSError(
+            get_status,
+            f"GetSecurityInfo on window object failed: status={get_status}",
+        )
+
+    new_acl = ctypes.c_void_p()
+    try:
+        status = advapi32.SetEntriesInAclW(
+            1,
+            ctypes.byref(ea),
+            p_dacl,
+            ctypes.byref(new_acl),
+        )
+        if status != _ERROR_SUCCESS or not new_acl.value:
+            raise OSError(
+                status,
+                f"SetEntriesInAclW for window object failed: status={status}",
+            )
+        result = user32.SetSecurityInfo(
+            handle,
+            _SE_WINDOW_OBJECT,
+            _DACL_SECURITY_INFORMATION,
+            None,
+            None,
+            new_acl,
+            None,
+        )
+        if result != _ERROR_SUCCESS:
+            raise OSError(
+                result,
+                f"SetSecurityInfo on window object failed: result={result}",
+            )
+    finally:
+        _local_free(new_acl.value)
+        _local_free(p_sd.value)
+
+
+def grant_winstation_desktop_access(sid: ctypes.c_void_p) -> None:
+    """Grant the package SID access to the caller's window station and desktop.
+
+    LPAC children opt out of ALL_APPLICATION_PACKAGES, so they lose the ambient
+    window-object access packaged apps normally get on the interactive session.
+    Without an explicit ACE the child dies during loader init (user32.dll)
+    with STATUS_DLL_INIT_FAILED (0xC0000142). The grants live on the user's
+    winsta0/Default desktop, so they do not need revoking after the child exits.
+    """
+    if sys.platform != "win32":
+        return
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+    user32.GetProcessWindowStation.restype = ctypes.c_void_p
+    user32.GetThreadDesktop.restype = ctypes.c_void_p
+    user32.OpenWindowStationW.restype = ctypes.c_void_p
+    user32.OpenDesktopW.restype = ctypes.c_void_p
+
+    winsta = user32.GetProcessWindowStation()
+    opened_winsta = False
+    if not winsta:
+        winsta = user32.OpenWindowStationW(
+            "winsta0",
+            False,
+            _GENERIC_READ | _GENERIC_EXECUTE | _WRITE_DAC | _READ_CONTROL,
+        )
+        opened_winsta = bool(winsta)
+    try:
+        if winsta:
+            _grant_window_object_access(
+                winsta,
+                sid,
+                _GENERIC_READ | _GENERIC_EXECUTE,
+            )
+    finally:
+        if opened_winsta:
+            user32.CloseWindowStation(winsta)
+
+    desktop = user32.GetThreadDesktop(kernel32.GetCurrentThreadId())
+    opened_desktop = False
+    if not desktop:
+        desktop = user32.OpenDesktopW(
+            "Default",
+            0,
+            False,
+            _GENERIC_READ
+            | _GENERIC_WRITE
+            | _GENERIC_EXECUTE
+            | _WRITE_DAC
+            | _READ_CONTROL,
+        )
+        opened_desktop = bool(desktop)
+    try:
+        if desktop:
+            _grant_window_object_access(
+                desktop,
+                sid,
+                _GENERIC_READ | _GENERIC_WRITE | _GENERIC_EXECUTE,
+            )
+    finally:
+        if opened_desktop:
+            user32.CloseDesktop(desktop)
+
+
+def _is_sandbox_init_failure(exit_code: int | None, elapsed: float) -> bool:
+    """True when a sandboxed child died during Windows loader init.
+
+    These NTSTATUS exits mean the image never reached main. Within the short
+    window they indicate the container hid a dependency the backend needs, so
+    auto mode should retry without the sandbox.
+    """
+    if exit_code is None:
+        return False
+    return (
+        elapsed <= _SANDBOX_INIT_FAILURE_WINDOW
+        and exit_code in _SANDBOX_INIT_FAILURE_CODES
+    )
+
+
 def _build_command_line(exe: str, args: list[str]) -> str:
     parts = [exe, *args]
 
@@ -997,6 +1163,19 @@ def launch_backend_sandboxed(
                             )
                     parent = os.path.dirname(parent)
 
+        # LPAC children do not inherit ALL_APPLICATION_PACKAGES, so the
+        # interactive window station and desktop deny them and user32.dll
+        # fails to initialise (0xC0000142). Grant the package SID explicitly.
+        try:
+            grant_winstation_desktop_access(sid)
+        except OSError as grant_exc:
+            logger.warning(
+                "Window station/desktop grant failed; sandboxed child may "
+                "fail during loader init: %s",
+                grant_exc,
+            )
+
+        started = time.monotonic()
         try:
             child_cwd = (
                 storage_dir or log_dir or reticulum_config_dir or os.path.dirname(exe)
@@ -1031,6 +1210,15 @@ def launch_backend_sandboxed(
             exit_code = _wait_process(h_process)
         finally:
             close_handle(h_process)
+        elapsed = time.monotonic() - started
+        if not forced and _is_sandbox_init_failure(exit_code, elapsed):
+            logger.warning(
+                "AppContainer child died during loader init "
+                "(exit=0x%08X after %.1fs); retrying unsandboxed",
+                exit_code,
+                elapsed,
+            )
+            return _run_unsandboxed_child(exe, args)
         return LaunchResult(
             ok=True,
             exit_code=exit_code,

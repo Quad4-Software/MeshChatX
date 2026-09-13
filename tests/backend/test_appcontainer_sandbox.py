@@ -323,6 +323,129 @@ def test_launch_backend_auto_fallback(monkeypatch, tmp_path):
     assert captured_env.get(ac.CHILD_ENV_FLAG) is None
 
 
+def _stub_grants(monkeypatch, sid):
+    monkeypatch.delenv("MESHCHAT_APPCONTAINER", raising=False)
+    monkeypatch.setattr(ac.sys, "platform", "win32")
+    monkeypatch.setattr(ac, "appcontainer_supported", lambda: True)
+    monkeypatch.setattr(ac, "ensure_appcontainer_profile", lambda: sid)
+    monkeypatch.setattr(ac, "grant_path_access", lambda *a, **k: None)
+    monkeypatch.setattr(ac, "grant_execute_access", lambda *a, **k: None)
+    monkeypatch.setattr(ac, "grant_winstation_desktop_access", lambda *a, **k: None)
+    monkeypatch.setattr(ac, "revoke_path_access", lambda *a, **k: None)
+    monkeypatch.setattr(ac, "collect_ro_roots", lambda **k: [])
+    monkeypatch.setattr(ac, "collect_user_exchange_roots", lambda create=True: [])
+    monkeypatch.setattr(ac, "close_handle", lambda *a, **k: None)
+
+
+def test_launch_backend_falls_back_on_sandbox_init_failure(monkeypatch, tmp_path):
+    """A fast 0xC0000142 exit means the container broke loader init."""
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    _stub_grants(monkeypatch, object())
+
+    monkeypatch.setattr(
+        ac, "create_process_in_appcontainer", lambda *a, **k: (1, 2, 99)
+    )
+    spawned = {"unsandboxed": False}
+
+    def fake_create_unsandboxed(*a, **k):
+        spawned["unsandboxed"] = True
+        return (3, 4, 100)
+
+    monkeypatch.setattr(ac, "create_process_unsandboxed", fake_create_unsandboxed)
+    wait_codes = {1: 0xC0000142, 3: 0}
+    monkeypatch.setattr(ac, "_wait_process", lambda h, **k: wait_codes[h])
+
+    result = ac.launch_backend_sandboxed(
+        str(tmp_path / "exe"),
+        ["--headless"],
+        storage_dir=str(storage),
+        reticulum_config_dir=str(storage),
+        log_dir=str(storage / "logs"),
+        forced=False,
+    )
+    assert spawned["unsandboxed"] is True
+    assert result.ok is True
+    assert result.fell_back is True
+    assert result.used_appcontainer is False
+    assert result.exit_code == 0
+
+
+def test_launch_backend_keeps_sandbox_exit_when_forced(monkeypatch, tmp_path):
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    _stub_grants(monkeypatch, object())
+
+    monkeypatch.setattr(
+        ac, "create_process_in_appcontainer", lambda *a, **k: (1, 2, 99)
+    )
+    monkeypatch.setattr(ac, "_wait_process", lambda *a, **k: 0xC0000142)
+
+    result = ac.launch_backend_sandboxed(
+        str(tmp_path / "exe"),
+        ["--headless"],
+        storage_dir=str(storage),
+        reticulum_config_dir=str(storage),
+        log_dir=str(storage / "logs"),
+        forced=True,
+    )
+    assert result.ok is True
+    assert result.used_appcontainer is True
+    assert result.fell_back is False
+    assert result.exit_code == 0xC0000142
+
+
+def test_launch_backend_no_fallback_on_late_normal_exit(monkeypatch, tmp_path):
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    _stub_grants(monkeypatch, object())
+
+    monkeypatch.setattr(
+        ac, "create_process_in_appcontainer", lambda *a, **k: (1, 2, 99)
+    )
+    monkeypatch.setattr(ac, "_wait_process", lambda *a, **k: 0xC0000142)
+    # Simulate a child that survived past the init window before dying.
+    monkeypatch.setattr(
+        ac,
+        "_SANDBOX_INIT_FAILURE_WINDOW",
+        0.0,
+    )
+
+    def fake_create_unsandboxed(*a, **k):
+        raise AssertionError("unsandboxed fallback must not run")
+
+    monkeypatch.setattr(ac, "create_process_unsandboxed", fake_create_unsandboxed)
+
+    result = ac.launch_backend_sandboxed(
+        str(tmp_path / "exe"),
+        ["--headless"],
+        storage_dir=str(storage),
+        reticulum_config_dir=str(storage),
+        log_dir=str(storage / "logs"),
+        forced=False,
+    )
+    assert result.ok is True
+    assert result.used_appcontainer is True
+    assert result.exit_code == 0xC0000142
+
+
+def test_is_sandbox_init_failure():
+    assert ac._is_sandbox_init_failure(0xC0000142, 1.0) is True
+    assert ac._is_sandbox_init_failure(0xC0000135, 1.0) is True
+    assert ac._is_sandbox_init_failure(1, 1.0) is False
+    assert ac._is_sandbox_init_failure(0, 1.0) is False
+    assert ac._is_sandbox_init_failure(None, 1.0) is False
+    assert (
+        ac._is_sandbox_init_failure(0xC0000142, ac._SANDBOX_INIT_FAILURE_WINDOW + 1)
+        is False
+    )
+
+
+def test_grant_winstation_desktop_noop_on_non_windows(monkeypatch):
+    monkeypatch.setattr(ac.sys, "platform", "linux")
+    assert ac.grant_winstation_desktop_access(object()) is None
+
+
 def test_launch_backend_unsupported_fallback(monkeypatch, tmp_path):
     storage = tmp_path / "storage"
     storage.mkdir()

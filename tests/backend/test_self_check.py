@@ -70,6 +70,17 @@ def test_check_fs_sandbox_ok():
     assert result["status"] == "ok", result.get("reason")
 
 
+def test_check_appcontainer_launch_platform_behavior():
+    result = self_check.check_appcontainer_launch()
+    import sys as _sys
+
+    if _sys.platform != "win32":
+        assert result["status"] == "skipped"
+        assert result["reason"] == "Windows only"
+    else:
+        assert result["status"] in ("ok", "skipped", "failed")
+
+
 def test_check_public_assets_ok(tmp_path):
     (tmp_path / "index.html").write_text("<html></html>", encoding="utf-8")
 

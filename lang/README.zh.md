@@ -37,8 +37,6 @@ make install && make build && make run
 
 详情见 [`docs/en/installation.md`](../docs/en/installation.md)。
 
-本仓库当前版本: `4.9.0`。
-
 ## 安全、许可与致谢
 
 - [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
