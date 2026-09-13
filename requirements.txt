@@ -633,8 +633,8 @@ lxmf==1.1.1 \
     # via
     #   lxst
     #   reticulum-meshchatx
-lxst==0.5.2 \
-    --hash=sha256:2e59adfbebaf1ebbb240b5704c95646d6500a88dadaf9dadf8cd722392d7fc67
+lxst==0.5.3 \
+    --hash=sha256:d26281e247510b2c76cf2a67c55ffac178839597f25e29ef14343b6c8da69c87
     # via reticulum-meshchatx
 miniaudio==1.71 \
     --hash=sha256:06222d80b057ca4beccb6f97a134c2c2bf646ef7890e1759cfc09db7eecec44d \
@@ -1100,9 +1100,9 @@ pyserial==3.5 \
     # via
     #   reticulum-meshchatx
     #   rns
-rns==1.5.3 \
-    --hash=sha256:0d02a0166b6f4d398549cb933153e7189c3fcde3c1fbcad03e47ce778091c351 \
-    --hash=sha256:d968e7cf21f23c792617c72887ac3c58c788f64f2300fbe603466a010a636039
+rns==1.5.4 \
+    --hash=sha256:578508ef08dedf7c109f73a445065ca89c50a63c6a69ced7b147ed20391ceb15 \
+    --hash=sha256:862615b12d449750c0b3c451dfc2cb189fd6da1c573c477a29f36f97d2a66a19
     # via
     #   lxmf
     #   lxst
