@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import { t } from "../../../js/i18n.js";
     import Modal from "../../../ui/svelte/Modal.svelte";
     import LoadingState from "../../../ui/svelte/LoadingState.svelte";
@@ -33,16 +34,11 @@
         windowWidth = window.innerWidth;
     }
 
+    useEventListener(window, "resize", onWindowResize, { passive: true });
+
     onMount(() => {
-        window.addEventListener("resize", onWindowResize, { passive: true });
         if (isPage) {
             void fetchChangelog();
-        }
-    });
-
-    onDestroy(() => {
-        if (typeof window !== "undefined") {
-            window.removeEventListener("resize", onWindowResize);
         }
     });
 

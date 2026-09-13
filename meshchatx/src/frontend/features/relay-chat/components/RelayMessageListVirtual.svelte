@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import type { Action } from "svelte/action";
+    import { useEventListener } from "runed";
     import RelayMessageEntry from "./RelayMessageEntry.svelte";
     import { estimateRelayEntryHeight, findRelayEntryIndexForMessageKey } from "../lib/relayVirtual.js";
     import type { RrcMessage, RrcTimelineEntry } from "../lib/types.js";
@@ -106,19 +107,27 @@
         return layout.totalSize;
     }
 
+    function updateViewport(el: HTMLElement) {
+        scrollTop = el.scrollTop;
+        viewportHeight = el.clientHeight;
+    }
+
+    useEventListener(
+        () => getScrollElement(),
+        "scroll",
+        (event) => {
+            updateViewport(event.currentTarget);
+        },
+        { passive: true }
+    );
+
     $effect(() => {
         const el = getScrollElement();
         if (!el) return;
-        const updateViewport = () => {
-            scrollTop = el.scrollTop;
-            viewportHeight = el.clientHeight;
-        };
-        updateViewport();
-        el.addEventListener("scroll", updateViewport, { passive: true });
-        const observer = new ResizeObserver(updateViewport);
+        updateViewport(el);
+        const observer = new ResizeObserver(() => updateViewport(el));
         observer.observe(el);
         return () => {
-            el.removeEventListener("scroll", updateViewport);
             observer.disconnect();
         };
     });

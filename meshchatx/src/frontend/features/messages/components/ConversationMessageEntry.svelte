@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import type { Action } from "svelte/action";
+    import { on } from "svelte/events";
     import { t } from "../../../js/i18n.js";
     import { isAnimatedRasterType } from "../../../js/inViewObserver.js";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
@@ -64,12 +65,12 @@
 
     const messageLinkHandlers: Action<HTMLElement> = (node) => {
         const handle = (event: MouseEvent) => actions.handleMessageClick(event);
-        node.addEventListener("click", handle);
-        node.addEventListener("auxclick", handle);
+        const offClick = on(node, "click", handle);
+        const offAuxclick = on(node, "auxclick", handle);
         return {
             destroy: () => {
-                node.removeEventListener("click", handle);
-                node.removeEventListener("auxclick", handle);
+                offClick();
+                offAuxclick();
             },
         };
     };

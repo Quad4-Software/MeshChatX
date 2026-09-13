@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import { SvelteMap } from "svelte/reactivity";
     import DialogUtils from "../../js/DialogUtils.js";
     import GlobalState from "../../js/GlobalState.js";
@@ -295,9 +296,10 @@
         handleArchiveContentClick(event, activeRouter);
     }
 
+    useEventListener(window, "resize", updateWideSplit);
+
     onMount(() => {
         updateWideSplit();
-        window.addEventListener("resize", updateWideSplit);
         const q = routeQuery?.q;
         if (typeof q === "string" && q) {
             searchQuery = q;
@@ -317,7 +319,6 @@
         }
 
         return () => {
-            window.removeEventListener("resize", updateWideSplit);
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
             }

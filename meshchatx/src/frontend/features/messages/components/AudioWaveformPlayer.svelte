@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { tick, untrack } from "svelte";
+    import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
 
     let {
@@ -230,13 +231,12 @@
         };
     });
 
+    useEventListener(window, "resize", () => drawWaveform());
+
     $effect(() => {
-        const onResize = () => drawWaveform();
-        window.addEventListener("resize", onResize);
         const darkObserver = new MutationObserver(() => drawWaveform());
         darkObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
         return () => {
-            window.removeEventListener("resize", onResize);
             darkObserver.disconnect();
             untrack(() => {
                 stopPlayback();

@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import MicronParser from "../../js/MicronParser.js";
@@ -498,17 +499,17 @@
         }
     });
 
+    useEventListener(window, "resize", handleResize);
+
     onMount(() => {
         GlobalEmitter.on("identity-switched", onIdentitySwitched);
         void loadContent().then(() => {
             renderActiveTab();
         });
         handleResize();
-        window.addEventListener("resize", handleResize);
 
         return () => {
             GlobalEmitter.off("identity-switched", onIdentitySwitched);
-            window.removeEventListener("resize", handleResize);
         };
     });
 </script>

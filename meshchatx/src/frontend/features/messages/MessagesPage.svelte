@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import WebSocketConnection from "../../js/WebSocketConnection.js";
     import Utils from "../../js/Utils.js";
@@ -148,7 +149,6 @@
     let announcesAbortController: AbortController | null = null;
     let stopIdentityReadyLoads: (() => void) | null = null;
     let liveTransportReadyWatch: (() => void) | null = null;
-    let onConversationsVisibility: (() => void) | null = null;
     let resizeContext: {
         leftPaneId: number;
         rightPaneId: number;
@@ -160,10 +160,8 @@
     } | null = null;
     let boundPaneResizeMove: ((e: PointerEvent) => void) | null = null;
     let boundPaneResizeEnd: (() => void) | null = null;
-    let paneViewportQuery: MediaQueryList | null = null;
-    let threePaneViewportQuery: MediaQueryList | null = null;
-    let paneViewportListener: ((e: MediaQueryListEvent) => void) | null = null;
-    let threePaneViewportListener: ((e: MediaQueryListEvent) => void) | null = null;
+    let paneViewportQuery = $state<MediaQueryList | null>(null);
+    let threePaneViewportQuery = $state<MediaQueryList | null>(null);
     let destinationHashWatchReady = false;
 
     const isPopoutMode = $derived(detectPopout());
@@ -1031,26 +1029,32 @@
         }
         paneViewportQuery = window.matchMedia("(min-width: 768px)");
         isWideViewport = paneViewportQuery.matches;
-        paneViewportListener = (event) => {
-            isWideViewport = event.matches;
-        };
-        paneViewportQuery.addEventListener("change", paneViewportListener);
         threePaneViewportQuery = window.matchMedia("(min-width: 1280px)");
         isWideEnoughForThreePanes = threePaneViewportQuery.matches;
-        threePaneViewportListener = (event) => {
-            isWideEnoughForThreePanes = event.matches;
-        };
-        threePaneViewportQuery.addEventListener("change", threePaneViewportListener);
     }
 
-    function teardownPaneViewportWatchers() {
-        if (paneViewportQuery && paneViewportListener) {
-            paneViewportQuery.removeEventListener("change", paneViewportListener);
+    useEventListener(
+        () => paneViewportQuery,
+        "change",
+        (event: MediaQueryListEvent) => {
+            isWideViewport = event.matches;
         }
-        if (threePaneViewportQuery && threePaneViewportListener) {
-            threePaneViewportQuery.removeEventListener("change", threePaneViewportListener);
+    );
+    useEventListener(
+        () => threePaneViewportQuery,
+        "change",
+        (event: MediaQueryListEvent) => {
+            isWideEnoughForThreePanes = event.matches;
+        }
+    );
+
+    function onConversationsVisibility() {
+        if (typeof document !== "undefined" && document.visibilityState === "visible") {
+            requestConversationsRefresh();
         }
     }
+
+    useEventListener(document, "visibilitychange", onConversationsVisibility);
 
     $effect(() => {
         saveFeatureSidebarCollapsed("messages", messagesListSidebarCollapsed);
@@ -1114,13 +1118,6 @@
         };
         const livePoll = setInterval(liveTransportReadyWatch, 2000);
 
-        onConversationsVisibility = () => {
-            if (typeof document !== "undefined" && document.visibilityState === "visible") {
-                requestConversationsRefresh();
-            }
-        };
-        document.addEventListener("visibilitychange", onConversationsVisibility);
-
         if (destinationHash) {
             void onComposeNewMessage(destinationHash);
         } else if (selectedPeer?.destination_hash) {
@@ -1135,13 +1132,9 @@
             if (conversationRefreshTimeout) clearTimeout(conversationRefreshTimeout);
             if (peersRefreshTimeout) clearTimeout(peersRefreshTimeout);
             stopIdentityReadyLoads?.();
-            if (onConversationsVisibility) {
-                document.removeEventListener("visibilitychange", onConversationsVisibility);
-            }
             conversationsAbortController?.abort();
             announcesAbortController?.abort();
             endPaneResize();
-            teardownPaneViewportWatchers();
             setOpenDestinationHashes([]);
             offWsEvent("config", onConfigEvent);
             offWsEvent("announce", onAnnounceEvent);

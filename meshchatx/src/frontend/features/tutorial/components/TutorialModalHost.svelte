@@ -7,6 +7,7 @@
      * dismissed by a stray backdrop click.
      */
     import { onDestroy, onMount } from "svelte";
+    import { useEventListener } from "runed";
     import Modal from "../../../ui/svelte/Modal.svelte";
     import TutorialProgressBar from "./TutorialProgressBar.svelte";
     import TutorialTopBar from "./TutorialTopBar.svelte";
@@ -26,15 +27,15 @@
         state.onWindowResize();
     }
 
+    useEventListener(window, "resize", onResize, { passive: true });
+
     onMount(() => {
-        window.addEventListener("resize", onResize, { passive: true });
         if (openOnMount) {
             void state.show();
         }
     });
 
     onDestroy(() => {
-        window.removeEventListener("resize", onResize);
         state.destroy();
     });
 

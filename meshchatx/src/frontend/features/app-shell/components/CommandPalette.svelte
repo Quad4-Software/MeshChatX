@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onDestroy, tick } from "svelte";
+    import { useEventListener } from "runed";
     import { t } from "../../../js/i18n.js";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
@@ -191,14 +192,14 @@
         }
     }
 
+    useEventListener(window, "keydown", handleGlobalKeydown, { capture: true });
+
     if (typeof window !== "undefined") {
-        window.addEventListener("keydown", handleGlobalKeydown, true);
         GlobalEmitter.on("open-command-palette", open);
     }
 
     onDestroy(() => {
         if (typeof window !== "undefined") {
-            window.removeEventListener("keydown", handleGlobalKeydown, true);
             GlobalEmitter.off("open-command-palette", open);
         }
     });

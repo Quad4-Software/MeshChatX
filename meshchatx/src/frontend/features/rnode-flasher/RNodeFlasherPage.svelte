@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import RNodeCapabilitiesBanner from "./components/RNodeCapabilitiesBanner.svelte";
@@ -62,8 +63,6 @@
     let configTxPower = $state(22);
     let configSpreadingFactor = $state(11);
     const configCodingRate = 5;
-
-    let onAndroidPermissionListener: ((event: any) => void) | null = null;
 
     let canFlash = $derived.by(() => {
         if (connectionMethod === TRANSPORT_WIFI) {
@@ -600,22 +599,24 @@
         }
     }
 
+    function onAndroidPermission(event: any): void {
+        const detail = event?.detail;
+        if (!detail) {
+            return;
+        }
+        refreshCapabilities();
+        if (detail.group === "bluetooth") {
+            if (detail.granted) {
+                ToastUtils.success(t("tools.rnode_flasher.support.actions.bluetooth_granted"));
+            } else {
+                ToastUtils.warning(t("tools.rnode_flasher.support.actions.bluetooth_denied"));
+            }
+        }
+    }
+
+    useEventListener(window, "meshchatx-android-permission", onAndroidPermission);
+
     onMount(() => {
-        onAndroidPermissionListener = (event: any) => {
-            const detail = event?.detail;
-            if (!detail) {
-                return;
-            }
-            refreshCapabilities();
-            if (detail.group === "bluetooth") {
-                if (detail.granted) {
-                    ToastUtils.success(t("tools.rnode_flasher.support.actions.bluetooth_granted"));
-                } else {
-                    ToastUtils.warning(t("tools.rnode_flasher.support.actions.bluetooth_denied"));
-                }
-            }
-        };
-        window.addEventListener("meshchatx-android-permission", onAndroidPermissionListener);
         if (androidBridge.hasNativeRNodeFlasher()) {
             androidBridge.openRNodeFlasher();
             ToastUtils.info(t("tools.rnode_flasher.support.actions.opened_native"));
@@ -623,12 +624,6 @@
         refreshCapabilities();
         connectionMethod = pickDefaultTransport(capabilities);
         void loadVendorLibraries().then(refreshCapabilities);
-    });
-
-    onDestroy(() => {
-        if (onAndroidPermissionListener) {
-            window.removeEventListener("meshchatx-android-permission", onAndroidPermissionListener);
-        }
     });
 </script>
 

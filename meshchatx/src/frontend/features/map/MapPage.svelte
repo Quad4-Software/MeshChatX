@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount, onDestroy, tick } from "svelte";
+    import { useEventListener } from "runed";
     import Map from "ol/Map";
     import View from "ol/View";
     import { fromLonLat, toLonLat } from "ol/proj";
@@ -198,8 +199,7 @@
     let dragBox = $state<DragBox | null>(null);
     let measureTooltipManager: MapMeasureTooltipManager | null = null;
     let measureSketch = $state<any>(null);
-    let tabToolbarMq: MediaQueryList | null = null;
-    let tabToolbarMqListener: ((event: MediaQueryListEvent) => void) | null = null;
+    let tabToolbarMq = $state<MediaQueryList | null>(null);
 
     let searchQuery = $state("");
     let searchResults = $state<SearchResult[]>([]);
@@ -1257,28 +1257,20 @@
         }
         tabToolbarMq = window.matchMedia("(min-width: 768px)");
         isWideViewport = tabToolbarMq.matches;
-        tabToolbarMqListener = () => {
-            isWideViewport = tabToolbarMq?.matches ?? false;
-            refreshTabToolbarHost();
-        };
-        if (typeof tabToolbarMq.addEventListener === "function") {
-            tabToolbarMq.addEventListener("change", tabToolbarMqListener);
-        } else if (typeof (tabToolbarMq as any).addListener === "function") {
-            (tabToolbarMq as any).addListener(tabToolbarMqListener);
-        }
         refreshTabToolbarHost();
     }
 
-    function teardownTabToolbarHostWatcher() {
-        if (tabToolbarMq && tabToolbarMqListener) {
-            if (typeof tabToolbarMq.removeEventListener === "function") {
-                tabToolbarMq.removeEventListener("change", tabToolbarMqListener);
-            } else if (typeof (tabToolbarMq as any).removeListener === "function") {
-                (tabToolbarMq as any).removeListener(tabToolbarMqListener);
-            }
+    useEventListener(
+        () => tabToolbarMq,
+        "change",
+        () => {
+            isWideViewport = tabToolbarMq?.matches ?? false;
+            refreshTabToolbarHost();
         }
+    );
+
+    function teardownTabToolbarHostWatcher() {
         tabToolbarMq = null;
-        tabToolbarMqListener = null;
         tabToolbarHostReady = false;
     }
 

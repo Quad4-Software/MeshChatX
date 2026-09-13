@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { useEventListener } from "runed";
     import Modal from "../../../ui/svelte/Modal.svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import ToastUtils from "../../../js/ToastUtils.js";
@@ -55,24 +56,14 @@
         return "border-gray-300 bg-sem-surface-muted/40 hover:border-blue-400/70 dark:border-zinc-700 cursor-pointer";
     });
 
+    useEventListener(document, "paste", onWasmPaste);
+
     $effect(() => {
         if (open) {
             formError = "";
             dragDepth = 0;
             void loadCurrentInfo();
-            if (typeof document !== "undefined") {
-                document.addEventListener("paste", onWasmPaste);
-            }
-        } else {
-            if (typeof document !== "undefined") {
-                document.removeEventListener("paste", onWasmPaste);
-            }
         }
-        return () => {
-            if (typeof document !== "undefined") {
-                document.removeEventListener("paste", onWasmPaste);
-            }
-        };
     });
 
     function close() {

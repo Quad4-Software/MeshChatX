@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount, onDestroy, tick } from "svelte";
+    import { useEventListener } from "runed";
     import MapPage from "../MapPage.svelte";
     import MapTabBar from "./MapTabBar.svelte";
     import MapTabContextMenu from "./MapTabContextMenu.svelte";
@@ -25,8 +26,7 @@
     let nextTabId = 1;
     let nextTabNumber = 1;
     let isWideViewport = $state(false);
-    let mediaQuery: MediaQueryList | null = null;
-    let mediaQueryListener: ((event: MediaQueryListEvent) => void) | null = null;
+    let mediaQuery = $state<MediaQueryList | null>(null);
     let renamingTabId = $state<number | null>(null);
     let renameDraft = $state("");
     let lastLabelTap = { tabId: null as number | null, time: 0 };
@@ -389,30 +389,19 @@
         }
         mediaQuery = window.matchMedia("(min-width: 768px)");
         isWideViewport = mediaQuery.matches;
-        mediaQueryListener = (event: MediaQueryListEvent) => {
-            isWideViewport = event.matches;
-        };
-        if (typeof mediaQuery.addEventListener === "function") {
-            mediaQuery.addEventListener("change", mediaQueryListener);
-        } else if (typeof (mediaQuery as any).addListener === "function") {
-            (mediaQuery as any).addListener(mediaQueryListener);
-        }
     }
 
-    function teardownViewportWatcher() {
-        if (!mediaQuery || !mediaQueryListener) return;
-        if (typeof mediaQuery.removeEventListener === "function") {
-            mediaQuery.removeEventListener("change", mediaQueryListener);
-        } else if (typeof (mediaQuery as any).removeListener === "function") {
-            (mediaQuery as any).removeListener(mediaQueryListener);
+    useEventListener(
+        () => mediaQuery,
+        "change",
+        (event: MediaQueryListEvent) => {
+            isWideViewport = event.matches;
         }
-        mediaQuery = null;
-        mediaQueryListener = null;
-    }
+    );
+    useEventListener(window, "keydown", handleKeydown, { capture: true });
 
     onMount(async () => {
         setupViewportWatcher();
-        window.addEventListener("keydown", handleKeydown, true);
         GlobalEmitter.on("identity-switched", onIdentitySwitched);
 
         if (!(await restoreTabs())) {
@@ -424,8 +413,6 @@
 
     onDestroy(() => {
         GlobalEmitter.off("identity-switched", onIdentitySwitched);
-        teardownViewportWatcher();
-        window.removeEventListener("keydown", handleKeydown, true);
     });
 </script>
 
