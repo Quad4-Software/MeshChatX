@@ -2,10 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import {
-    isLocalMapServiceUrl,
-    isPrivateOrLocalHostname,
-} from "../../meshchatx/src/frontend/js/mapLocalUrl.js";
+import { isLocalMapServiceUrl, isPrivateOrLocalHostname } from "../../meshchatx/src/frontend/js/mapLocalUrl.js";
 
 function src(rel) {
     return readFileSync(join(process.cwd(), rel), "utf8");

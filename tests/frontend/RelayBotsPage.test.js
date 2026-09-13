@@ -38,10 +38,7 @@ describe("RelayBotsPage.svelte", () => {
     });
 
     it("lists only rrc-template bots", async () => {
-        window.api = makeApi([
-            RRC_BOT,
-            { id: "b2", name: "Echo", template_id: "echo", running: false },
-        ]);
+        window.api = makeApi([RRC_BOT, { id: "b2", name: "Echo", template_id: "echo", running: false }]);
         render(RelayBotsPage);
         await vi.waitFor(() => expect(screen.getByText("Uptime Bot")).toBeTruthy());
         expect(screen.queryByText("Echo")).toBeNull();

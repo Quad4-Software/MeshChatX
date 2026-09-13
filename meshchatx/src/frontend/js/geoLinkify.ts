@@ -97,10 +97,7 @@ export function linkifyGeoRefs(text: string): string {
  * Resolve geo-link text to {lat, lon} or null. Maidenhead is decoded locally;
  * everything else defers to parseCoordinateQuery (WGS84, UTM, MGRS, Plus Code).
  */
-export async function resolveGeoText(
-    text: unknown,
-    options: Record<string, unknown> = {}
-): Promise<GeoPoint | null> {
+export async function resolveGeoText(text: unknown, options: Record<string, unknown> = {}): Promise<GeoPoint | null> {
     const raw = String(text || "").trim();
     if (!raw) return null;
     const mh = decodeMaidenhead(raw);
