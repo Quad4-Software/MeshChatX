@@ -1056,6 +1056,30 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.isBadKeyErrorText("+k")).toBe(false);
     });
 
+    it("back from a room opened via search returns to the search view", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        wrapper.vm.view = "search";
+
+        await wrapper.vm.openSearchResult({ hubHash: HUB_HASH, room: "lobby" });
+        expect(wrapper.vm.view).toBe("chat");
+        expect(wrapper.vm.selectedRoom).toBe("lobby");
+
+        wrapper.vm.onBackFromRoom();
+        expect(wrapper.vm.selectedRoom).toBe(null);
+        expect(wrapper.vm.view).toBe("search");
+    });
+
+    it("back from a room opened via chat stays on the chat view", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        expect(wrapper.vm.view).toBe("chat");
+
+        wrapper.vm.onBackFromRoom();
+        expect(wrapper.vm.view).toBe("chat");
+    });
+
     it("sendModerationCommand prefers peer hash over display nick", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBeGreaterThan(0));

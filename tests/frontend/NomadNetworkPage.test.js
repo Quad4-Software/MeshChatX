@@ -166,6 +166,29 @@ describe("NomadNetworkPage.vue", () => {
         expect(el, "path finder dropdown must stay hidden below xl").toBeTruthy();
     });
 
+    it("embedded browse tab keeps the tab and list when closing a node", () => {
+        const wrapper = mountNomadNetworkPage({ destinationHash: "", embedded: true });
+        wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "N" };
+
+        wrapper.vm.onCloseNodeViewer();
+
+        expect(wrapper.emitted("close-tab")).toBeUndefined();
+        const navigations = wrapper.emitted("navigate");
+        expect(navigations).toBeTruthy();
+        expect(navigations[0][0].destinationHash).toBe("");
+        expect(wrapper.vm.selectedNode).toBe(null);
+    });
+
+    it("embedded tab opened on a node closes the whole tab", () => {
+        const wrapper = mountNomadNetworkPage({ destinationHash: "b".repeat(32), embedded: true });
+        wrapper.vm.selectedNode = { destination_hash: "b".repeat(32), display_name: "N" };
+
+        wrapper.vm.onCloseNodeViewer();
+
+        expect(wrapper.emitted("close-tab")).toBeTruthy();
+        expect(wrapper.emitted("navigate")).toBeUndefined();
+    });
+
     it("debounces node search and passes search param to announces API", async () => {
         vi.useFakeTimers();
         axiosMock.isCancel = vi.fn(() => false);
