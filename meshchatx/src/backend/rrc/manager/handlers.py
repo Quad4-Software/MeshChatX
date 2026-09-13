@@ -5,6 +5,7 @@
 import contextlib
 import hashlib
 import time
+from typing import ClassVar
 
 import RNS
 
@@ -384,7 +385,7 @@ class RRCHubPacketHandlersMixin:
                     "expires": time.monotonic() + 30.0,
                 }
 
-    _PACKET_HANDLERS = {
+    _PACKET_HANDLERS: ClassVar = {
         proto.T_PING: _handle_ping,
         proto.T_PONG: _handle_pong,
         proto.T_WELCOME: _handle_welcome,
@@ -457,7 +458,21 @@ class RRCHubPacketHandlersMixin:
                     with self._lock:
                         self.motd = text
                     self.manager._notify_change(self)
-                msg = proto.RRCMessage("notice", room, None, None, text, proto.now_ms())
-                self._record_notice(msg)
+                    msg = proto.RRCMessage(
+                        "notice", room, None, None, text, proto.now_ms()
+                    )
+                    self._record_notice(msg)
+                else:
+                    # An oversized notice (eg a big /list) still carries the
+                    # same command responses; run it through the normal notice
+                    # path so room lists and /who results actually populate.
+                    self._handle_notice(
+                        {
+                            proto.K_T: proto.T_NOTICE,
+                            proto.K_BODY: text,
+                            proto.K_ROOM: room,
+                            proto.K_SRC: None,
+                        }
+                    )
         except Exception as e:
             self._log("resource handling failed: " + str(e), RNS.LOG_ERROR)

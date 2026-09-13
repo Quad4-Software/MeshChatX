@@ -8,6 +8,7 @@ import os
 
 import RNS
 
+from meshchatx.src.path_utils import atomic_write_bytes
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.manager.constants import (
     HISTORY_DIR_NAME,
@@ -139,18 +140,10 @@ class RRCManagerPersistenceMixin:
         tmp_path = path + ".tmp"
         with self._save_lock:
             try:
-                entries = []
                 with self._lock:
-                    for h in self.hubs:
-                        entries.append(self._hub_entry(h))
+                    entries = [self._hub_entry(h) for h in self.hubs]
                 data = proto.encode({"hubs": entries})
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                with open(tmp_path, "wb") as f:
-                    f.write(data)
-                    f.flush()
-                    with contextlib.suppress(Exception):
-                        os.fsync(f.fileno())
-                os.replace(tmp_path, path)
+                atomic_write_bytes(path, data)
             except Exception:
                 with contextlib.suppress(Exception):
                     os.unlink(tmp_path)
