@@ -48,6 +48,7 @@ SELF_CHECK_LABELS = {
     "storage_lock_good": "Storage Lock           ",
     "temp_fs_good": "Temp Filesystem        ",
     "fs_sandbox_good": "FS Sandbox Modules     ",
+    "appcontainer_launch": "AppContainer Launch    ",
     "public_assets_good": "Public Assets          ",
     "lxmf_router_good": "LXMF Router            ",
     "lxst_telephony": "LXST Telephony         ",
@@ -349,6 +350,85 @@ def check_fs_sandbox() -> dict[str, str]:
         return _status(False, f"exchange roots check failed: {exc}")
 
     return _status(True)
+
+
+def check_appcontainer_launch() -> dict[str, str]:
+    """Spawn a real child inside the AppContainer and require it to run.
+
+    Catches loader-init regressions such as STATUS_DLL_INIT_FAILED
+    (0xC0000142) that only appear when the frozen backend is launched into the
+    LPAC container on Windows. The child writes a marker file under the
+    sandboxed storage dir because it has no console or stdout.
+    """
+    if sys.platform != "win32":
+        return {"status": "skipped", "reason": "Windows only"}
+    try:
+        from meshchatx.src.backend import appcontainer_sandbox as ac
+    except Exception as exc:
+        return _status(False, f"import failed: {exc}")
+
+    if ac.is_appcontainer_child():
+        return {"status": "skipped", "reason": "already inside AppContainer"}
+    if not ac.appcontainer_supported():
+        return {"status": "skipped", "reason": "AppContainer APIs unavailable"}
+    if ac.appcontainer_disabled_by_env():
+        return {
+            "status": "skipped",
+            "reason": "disabled by MESHCHAT_APPCONTAINER",
+        }
+
+    exe = sys.executable
+    if not exe:
+        return _status(False, "sys.executable is unset")
+
+    marker_dir = tempfile.mkdtemp(prefix="meshchatx_ac_probe_")
+    marker = os.path.join(marker_dir, "probe.out")
+    env_flag = "MESHCHATX_SELF_CHECK_PROBE_PATH"
+    previous = os.environ.get(env_flag)
+    os.environ[env_flag] = marker
+    try:
+        if _is_frozen_executable():
+            args = [_MESHCHATX_RUN_MODULE_FLAG, _SELF_CHECK_PROBE_MODULE]
+        else:
+            args = [
+                "-c",
+                (
+                    "import os; "
+                    "open(os.environ['MESHCHATX_SELF_CHECK_PROBE_PATH'], 'w')"
+                    ".write('ok')"
+                ),
+            ]
+        result = ac.launch_backend_sandboxed(
+            exe,
+            args,
+            storage_dir=marker_dir,
+            reticulum_config_dir=marker_dir,
+            log_dir=marker_dir,
+            forced=True,
+        )
+    finally:
+        if previous is None:
+            os.environ.pop(env_flag, None)
+        else:
+            os.environ[env_flag] = previous
+
+    try:
+        if not result.ok:
+            return _status(False, f"sandboxed spawn failed: {result.error}")
+        if result.fell_back or not result.used_appcontainer:
+            return _status(False, "probe did not run inside the AppContainer")
+        marker_ok = False
+        if os.path.isfile(marker):
+            with open(marker, encoding="utf-8") as handle:
+                marker_ok = "ok" in handle.read()
+        if marker_ok:
+            return _status(True)
+        return _status(
+            False,
+            f"sandboxed child exited {result.exit_code} without marker",
+        )
+    finally:
+        shutil.rmtree(marker_dir, ignore_errors=True)
 
 
 def _is_frozen_executable() -> bool:
