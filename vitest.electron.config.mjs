@@ -7,8 +7,7 @@ export default defineConfig({
         // Same vitest-worker teardown race as vitest.config.mjs: ignore
         // pending console-log RPC rejections at worker shutdown.
         onUnhandledError(error) {
-            const message =
-                error && error.message ? String(error.message) : String(error);
+            const message = error && error.message ? String(error.message) : String(error);
             if (message.includes("Closing rpc while")) {
                 return false;
             }
