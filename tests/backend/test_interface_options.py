@@ -501,7 +501,7 @@ async def test_rnode_over_ip_allowed_on_android_without_usbserial4a_or_jnius(tem
 
     async with make_app(temp_dir, config) as handler:
         with patch(
-            "meshchatx.src.backend.http.routes.interfaces._is_chaquopy_android",
+            "meshchatx.meshchat._is_chaquopy_android",
             return_value=True,
         ):
             payload = {
@@ -526,7 +526,7 @@ async def test_rnode_serial_blocked_on_android_without_usbserial4a_or_jnius(temp
 
     async with make_app(temp_dir, config) as handler:
         with patch(
-            "meshchatx.src.backend.http.routes.interfaces._is_chaquopy_android",
+            "meshchatx.meshchat._is_chaquopy_android",
             return_value=True,
         ):
             payload = {
@@ -555,7 +555,7 @@ async def test_rnode_multi_interface_blocked_on_android(temp_dir):
 
     async with make_app(temp_dir, config) as handler:
         with patch(
-            "meshchatx.src.backend.http.routes.interfaces._is_chaquopy_android",
+            "meshchatx.meshchat._is_chaquopy_android",
             return_value=True,
         ):
             payload = {

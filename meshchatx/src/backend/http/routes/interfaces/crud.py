@@ -17,6 +17,7 @@ from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.host_interfaces import list_host_network_interfaces
 
 
 def register_interfaces_crud_routes(routes, app):

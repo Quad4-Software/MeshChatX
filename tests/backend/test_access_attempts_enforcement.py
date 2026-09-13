@@ -292,7 +292,7 @@ async def test_lockout_login_returns_429_smoke(mock_app):
                 return_value=ip,
             ),
             patch(
-                "meshchatx.src.backend.http.routes.auth.request_client_ip",
+                "meshchatx.src.backend.http.routes.auth.session.request_client_ip",
                 return_value=ip,
             ),
         ):
@@ -355,7 +355,7 @@ async def test_rate_limited_login_returns_429_smoke(mock_app):
                 return_value=ip,
             ),
             patch(
-                "meshchatx.src.backend.http.routes.auth.request_client_ip",
+                "meshchatx.src.backend.http.routes.auth.session.request_client_ip",
                 return_value=ip,
             ),
         ):

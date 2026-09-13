@@ -176,7 +176,7 @@ def register_stickers_packs_routes(routes: Any, app: Any) -> None:
     async def sticker_packs_install(request):
         identity_hash = app.identity.hash.hex()
         try:
-            data = await read_json_limited(request, _STICKER_DOC_MAX_BYTES)
+            data = await read_json_limited(request, STICKER_DOC_MAX_BYTES)
         except PayloadTooLargeError:
             return http_payload_too_large()
         except (json.JSONDecodeError, ValueError):

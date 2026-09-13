@@ -12,6 +12,7 @@ from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_payload_too_large,
 )
+from meshchatx.src.path_utils import is_loopback_bind_host
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
@@ -27,7 +28,7 @@ def register_auth_security_routes(routes: Any, app: Any) -> None:
                 "listen_host": app.listen_host,
                 "listen_port": app.listen_port,
                 "https_enabled": app.use_https,
-                "is_loopback_bind": _is_loopback_bind_host(app.listen_host),
+                "is_loopback_bind": is_loopback_bind_host(app.listen_host),
                 "web_ui_ip_allowlist": settings.get("web_ui_ip_allowlist", ""),
                 "trusted_proxy_cidrs": settings.get("trusted_proxy_cidrs", ""),
                 **app._landlock_status_dict(),
@@ -63,7 +64,7 @@ def register_auth_security_routes(routes: Any, app: Any) -> None:
                 "listen_host": app.listen_host,
                 "listen_port": app.listen_port,
                 "https_enabled": app.use_https,
-                "is_loopback_bind": _is_loopback_bind_host(app.listen_host),
+                "is_loopback_bind": is_loopback_bind_host(app.listen_host),
                 "web_ui_ip_allowlist": settings.get("web_ui_ip_allowlist", ""),
                 "trusted_proxy_cidrs": settings.get("trusted_proxy_cidrs", ""),
                 **app._landlock_status_dict(),
