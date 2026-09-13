@@ -88,7 +88,7 @@ describe("PromptDialog UI", () => {
         render(PromptDialog);
         promptHandler()({ message: "Name?", defaultValue: "a", resolve });
         await tick();
-        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
         await tick();
         expect(resolve).toHaveBeenCalledWith(null);
         expect(screen.queryByRole("dialog")).toBeNull();

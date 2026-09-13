@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import Toggle from "../Toggle.svelte";
+    import Toggle from "../../../../ui/svelte/Toggle.svelte";
     import ToastUtils from "../../../../js/ToastUtils.js";
     import Utils from "../../../../js/Utils.js";
     import { t } from "../../../../js/i18n.js";
