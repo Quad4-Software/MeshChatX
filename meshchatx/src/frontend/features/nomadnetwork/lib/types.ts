@@ -64,6 +64,20 @@ export interface NomadContextMenuState {
     tabId: number | null;
 }
 
+/** Payload the page hands to an embedded host so it can open its own menu. */
+export interface NomadPageContextMenuRequest {
+    clientX: number;
+    clientY: number;
+    hasActivePage: boolean;
+    canFavourite: boolean;
+    isFavourite: boolean;
+    canDownloadPage: boolean;
+    viewSource: () => void;
+    reload: () => void;
+    favorite: () => void;
+    downloadPage: () => void;
+}
+
 export interface NomadPageRendererChip {
     label: string;
     popoverVariant?: string;

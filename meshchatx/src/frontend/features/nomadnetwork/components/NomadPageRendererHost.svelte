@@ -44,6 +44,9 @@
         oncontentcontextmenu?: (e: MouseEvent) => void;
         oncrashtabnavigate?: (e: NomadNavigateEvent) => void;
         oncrashtabpartials?: (partials: unknown[]) => void;
+        oncrashtabimages?: (images: unknown[]) => void;
+        oncrashtabimageaction?: (payload: Record<string, unknown>) => void;
+        oncrashtabcontextmenu?: (coords: { clientX: number; clientY: number }) => void;
         onviewsource?: () => void;
         oncrashtabhung?: () => void;
         oncrashtabrenderstarted?: () => void;
@@ -88,6 +91,9 @@
         oncontentcontextmenu,
         oncrashtabnavigate,
         oncrashtabpartials,
+        oncrashtabimages,
+        oncrashtabimageaction,
+        oncrashtabcontextmenu,
         onviewsource,
         oncrashtabhung,
         oncrashtabrenderstarted,
@@ -108,6 +114,10 @@
 
     export function setPartialHtml(partialId: string, html: string) {
         crashTab?.setPartialHtml(partialId, html);
+    }
+
+    export function setImage(index: number, state: string, payload: Record<string, unknown> = {}) {
+        crashTab?.setImage(index, state, payload);
     }
 </script>
 
@@ -273,6 +283,9 @@
                 reveal={!showPageBusyBanner}
                 onnavigate={(e) => oncrashtabnavigate?.(e)}
                 onpartials={(p) => oncrashtabpartials?.(p)}
+                onimages={(i) => oncrashtabimages?.(i)}
+                onimageaction={(p) => oncrashtabimageaction?.(p)}
+                oncontextmenu={(c) => oncrashtabcontextmenu?.(c)}
                 onviewsource={() => onviewsource?.()}
                 onhung={() => oncrashtabhung?.()}
                 onrenderstarted={() => oncrashtabrenderstarted?.()}

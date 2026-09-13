@@ -20,10 +20,14 @@ import type { NomadNode, NomadPageArchive } from "./types.js";
 export type NomadPageDownloadSnapshot = {
     active: boolean;
     isPrivate: boolean;
+    isLoadingNodePage: boolean;
+    isDownloadingNodeFile: boolean;
+    isCrashTabRendering: boolean;
     currentPageDownloadId: number | string | null;
     pendingPageCancelWithoutId: boolean;
     currentFileDownloadId: number | string | null;
     nodeFilePath: string | null;
+    nodePageContent: string | null;
     selectedNode: NomadNode | null;
     relativePagePath: string;
     nodePagePath: string | null;
@@ -51,6 +55,7 @@ export type NomadPageDownloadPatch = Partial<{
     nodeFileDownloadSpeed: number | null;
     pageRenderAborted: boolean;
     pageArchives: NomadPageArchive[];
+    isCrashTabRendering: boolean;
 }>;
 
 export type NomadPageDownloadAccess = {
@@ -261,6 +266,47 @@ export function onNomadFileDownloadEvent(access: NomadPageDownloadAccess, json: 
             currentFileDownloadId: null,
         });
         ToastUtils.error(String(body.failure_reason || t("nomadnet.download_page_failed")));
+    }
+}
+
+/** Cancel any in-flight page/file download, or abort a running frame render. */
+export function cancelNomadActiveDownload(
+    access: NomadPageDownloadAccess,
+    opts: { abortRender?: () => void } = {}
+): void {
+    const s = access.get();
+    const cancelling =
+        s.isLoadingNodePage ||
+        s.currentPageDownloadId != null ||
+        s.pendingPageCancelWithoutId ||
+        s.isDownloadingNodeFile ||
+        s.currentFileDownloadId != null;
+    if (cancelling) {
+        if (s.currentPageDownloadId != null) {
+            discardDownloadChunks(s.nomadPageDownloadChunkBuffers, s.currentPageDownloadId);
+            sendNomadWs(createCancelDownloadPayload(s.currentPageDownloadId));
+        } else if (s.isLoadingNodePage) {
+            access.apply({ pendingPageCancelWithoutId: true });
+        }
+        if (s.currentFileDownloadId != null) {
+            discardDownloadChunks(s.nomadFileDownloadChunkBuffers, s.currentFileDownloadId);
+            sendNomadWs(createCancelDownloadPayload(s.currentFileDownloadId));
+        }
+        access.clearPageLoadTimeout();
+        access.apply({
+            currentPageDownloadId: null,
+            currentFileDownloadId: null,
+            isLoadingNodePage: false,
+            isDownloadingNodeFile: false,
+            isCrashTabRendering: false,
+            pageRenderAborted: false,
+            ...(s.nodePageContent ? {} : { nodePageContent: "nomadnet.page_download_cancelled" }),
+        });
+        return;
+    }
+    if (s.isCrashTabRendering) {
+        opts.abortRender?.();
+        access.apply({ isCrashTabRendering: false });
     }
 }
 

@@ -157,11 +157,18 @@ export function createFileDownloadRequestPayload(
     return createFileDownloadPayload(optionsOrHash, filePath, isPrivate, identifyOnConnect, data);
 }
 
-export function createCancelDownloadPayload(downloadId: string | number | null | undefined) {
-    return {
+export function createCancelDownloadPayload(
+    downloadId: string | number | null | undefined,
+    requestId?: string | number | null
+) {
+    const payload: Record<string, unknown> = {
         type: "nomadnet.download.cancel",
         download_id: downloadId,
     };
+    if (requestId != null) {
+        payload.request_id = requestId;
+    }
+    return payload;
 }
 
 export function createArchivesGetPayload(destinationHash: string, pagePath: string) {

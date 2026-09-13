@@ -50,24 +50,97 @@ describe("NomadCrashTab.svelte", () => {
     });
 
     it("renders iframe with sandbox attributes", () => {
-        const { container } = render(NomadCrashTab, {
+        const { baseElement } = render(NomadCrashTab, {
             path: "aabb:/page/index.mu",
             content: ">#!\n# Hi",
             active: true,
         });
-        const frame = container.querySelector("iframe");
+        const frame = baseElement.querySelector("iframe");
         expect(frame).toBeTruthy();
         expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
         expect(frame.getAttribute("allow")).toBe("local-network-access");
     });
 
-    it("posts render message to iframe when frame is ready", async () => {
-        const { container } = render(NomadCrashTab, {
+    it("parks the frame on document.body so host detach keeps it alive", () => {
+        const { baseElement, container } = render(NomadCrashTab, {
             path: "aabb:/page/index.mu",
             content: ">#!\n# Hi",
             active: true,
         });
-        const frame = container.querySelector("iframe");
+        const frame = baseElement.querySelector("iframe");
+        expect(frame.parentElement).toBe(document.body);
+        expect(container.contains(frame)).toBe(false);
+        expect(frame.style.position).toBe("fixed");
+    });
+
+    it("parks the frame over the host rect and hides it while inactive", async () => {
+        const { baseElement, container, rerender } = render(NomadCrashTab, {
+            path: "aabb:/page/index.mu",
+            content: ">#!\n# Hi",
+            active: true,
+        });
+        const host = container.querySelector(".nomad-crash-tab");
+        const frame = baseElement.querySelector("iframe");
+        // jsdom reports a zero rect, so the frame starts hidden.
+        expect(frame.style.visibility).toBe("hidden");
+
+        host.getBoundingClientRect = () => ({ left: 10, top: 20, width: 300, height: 200 });
+        window.dispatchEvent(new Event("resize"));
+
+        await waitFor(() => {
+            expect(frame.style.visibility).toBe("visible");
+        });
+        expect(frame.style.left).toBe("10px");
+        expect(frame.style.top).toBe("20px");
+        expect(frame.style.width).toBe("300px");
+        expect(frame.style.height).toBe("200px");
+
+        await rerender({ path: "aabb:/page/index.mu", content: ">#!\n# Hi", active: false });
+        expect(frame.style.visibility).toBe("hidden");
+        expect(frame.style.pointerEvents).toBe("none");
+    });
+
+    it("polls the host rect during geometry transitions", async () => {
+        const { baseElement, container } = render(NomadCrashTab, {
+            path: "aabb:/page/index.mu",
+            content: ">#!\n# Hi",
+            active: true,
+        });
+        const host = container.querySelector(".nomad-crash-tab");
+        const frame = baseElement.querySelector("iframe");
+        host.getBoundingClientRect = () => ({ left: 50, top: 5, width: 100, height: 50 });
+
+        const event = new Event("transitionrun");
+        Object.defineProperty(event, "propertyName", { value: "transform", configurable: true });
+        document.dispatchEvent(event);
+
+        await waitFor(() => {
+            expect(frame.style.visibility).toBe("visible");
+        });
+        expect(frame.style.left).toBe("50px");
+    });
+
+    it("ignores paint-only transitions", async () => {
+        render(NomadCrashTab, {
+            path: "aabb:/page/index.mu",
+            content: ">#!\n# Hi",
+            active: true,
+        });
+        const rafSpy = vi.spyOn(window, "requestAnimationFrame");
+        const event = new Event("transitionrun");
+        Object.defineProperty(event, "propertyName", { value: "background-color", configurable: true });
+        document.dispatchEvent(event);
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        expect(rafSpy).not.toHaveBeenCalled();
+    });
+
+    it("posts render message to iframe when frame is ready", async () => {
+        const { baseElement } = render(NomadCrashTab, {
+            path: "aabb:/page/index.mu",
+            content: ">#!\n# Hi",
+            active: true,
+        });
+        const frame = baseElement.querySelector("iframe");
         const fakeWindow = { postMessage: postMessageSpy };
         Object.defineProperty(frame, "contentWindow", {
             configurable: true,
@@ -88,13 +161,13 @@ describe("NomadCrashTab.svelte", () => {
 
     it("handles frame navigation messages", async () => {
         const onnavigate = vi.fn();
-        const { container } = render(NomadCrashTab, {
+        const { baseElement } = render(NomadCrashTab, {
             path: "aabb:/page/index.mu",
             content: ">#!\n# Hi",
             active: true,
             onnavigate,
         });
-        const frame = container.querySelector("iframe");
+        const frame = baseElement.querySelector("iframe");
         const fakeWindow = { postMessage: postMessageSpy };
         Object.defineProperty(frame, "contentWindow", {
             configurable: true,
@@ -115,10 +188,7 @@ describe("NomadCrashTab.svelte", () => {
 
 describe("nomadCrashTabMain entry contract", () => {
     function readEntrySource() {
-        return readFileSync(
-            join(process.cwd(), "meshchatx/src/frontend/js/nomadCrashTabMain.ts"),
-            "utf8"
-        );
+        return readFileSync(join(process.cwd(), "meshchatx/src/frontend/js/nomadCrashTabMain.ts"), "utf8");
     }
 
     it("crash-tab entry boots dark and lazy-loads the Micron renderer", () => {

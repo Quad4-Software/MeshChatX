@@ -38,6 +38,9 @@
         onpopout?: () => void;
         onclosenode?: () => void;
         ontogglesource?: () => void;
+        onpathfinderquick?: () => void;
+        onpathfinderforce?: () => void;
+        onpathfinderdrop?: () => void;
         onapplymicronengine?: (engine: string) => void;
     }
 
@@ -64,6 +67,9 @@
         onpopout,
         onclosenode,
         ontogglesource,
+        onpathfinderquick,
+        onpathfinderforce,
+        onpathfinderdrop,
         onapplymicronengine,
     }: Props = $props();
 
@@ -303,6 +309,39 @@
                 >
                     <MaterialDesignIcon iconName="code-tags" class="size-5" />
                     <span>{isShowingSource ? t("nomadnet.hide_source") : t("app.toggle_source")}</span>
+                </button>
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                    onclick={() => {
+                        mobileMenuOpen = false;
+                        onpathfinderquick?.();
+                    }}
+                >
+                    <MaterialDesignIcon iconName="map-marker-path" class="size-5" />
+                    <span>{t("nomadnet.path_finder_quick_request")}</span>
+                </button>
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                    onclick={() => {
+                        mobileMenuOpen = false;
+                        onpathfinderforce?.();
+                    }}
+                >
+                    <MaterialDesignIcon iconName="map-marker-radius" class="size-5" />
+                    <span>{t("nomadnet.path_finder_force_find")}</span>
+                </button>
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                    onclick={() => {
+                        mobileMenuOpen = false;
+                        onpathfinderdrop?.();
+                    }}
+                >
+                    <MaterialDesignIcon iconName="reload-alert" class="size-5" />
+                    <span>{t("nomadnet.path_finder_drop_and_request")}</span>
                 </button>
                 {#if showMicronRendererInMobileMenu}
                     <button

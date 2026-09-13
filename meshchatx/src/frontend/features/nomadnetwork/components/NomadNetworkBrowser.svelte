@@ -26,7 +26,14 @@
         toggleNomadIdentifyOnConnect,
     } from "../lib/nomadBrowserData.js";
     import { DEFAULT_PAGE_PATH } from "../lib/constants.js";
-    import type { NomadContextMenuState, NomadFavourite, NomadNode, NomadTab } from "../lib/types.js";
+    import { parseNomadUrl } from "../lib/nomadPageNavigation.js";
+    import type {
+        NomadContextMenuState,
+        NomadFavourite,
+        NomadNode,
+        NomadPageContextMenuRequest,
+        NomadTab,
+    } from "../lib/types.js";
     interface Props {
         destinationHash?: string;
         path?: string;
@@ -56,23 +63,16 @@
         y: 0,
         tabId: null,
     });
+    let pageContextMenu = $state<NomadPageContextMenuRequest | null>(null);
 
     const activeTab = $derived.by(() => {
         return tabs.find((t) => t.id === selectedTabId) || null;
     });
 
-    const contextTab = $derived.by(() => {
-        if (tabContextMenu.tabId === null) return null;
-        return tabs.find((t) => t.id === tabContextMenu.tabId) || null;
-    });
+    const contextTab = $derived(tabs.find((t) => t.id === tabContextMenu.tabId) || null);
 
     const routePath = $derived(path || routeQuery.path || DEFAULT_PAGE_PATH);
     const routeArchiveId = $derived(routeQuery.archive_id || null);
-    const routeHashWatchReady = $derived(Boolean(destinationHash || routePath));
-
-    $effect(() => {
-        const _ = routeHashWatchReady;
-    });
 
     function ensureTabMounted(tabId: number | null) {
         if (tabId == null || mountedTabIds[tabId]) return;
@@ -80,17 +80,10 @@
     }
 
     async function fetchNodes(append = false) {
-        if (append) {
-            isLoadingMoreNodes = true;
-        } else if (nodesSearchTerm) {
-            isSearchingNodes = true;
-        }
+        if (append) isLoadingMoreNodes = true;
+        else if (nodesSearchTerm) isSearchingNodes = true;
         try {
-            const result = await fetchNomadNodes({
-                append,
-                existingNodes: nodes,
-                searchTerm: nodesSearchTerm,
-            });
+            const result = await fetchNomadNodes({ append, existingNodes: nodes, searchTerm: nodesSearchTerm });
             if (!result) return;
             nodes = result.nodes;
             totalNodesCount = result.totalNodesCount;
@@ -105,10 +98,15 @@
         favourites = await fetchNomadFavourites();
     }
 
-    function handleSelectTab(id: number) {
-        selectedTabId = id;
-        ensureTabMounted(id);
+    function applyTabList(next: { tabs: NomadTab[]; selectedTabId: number | null }) {
+        tabs = next.tabs;
+        selectedTabId = next.selectedTabId;
+        if (selectedTabId != null) ensureTabMounted(selectedTabId);
         persistNomadTabs(tabs, selectedTabId);
+    }
+
+    function handleSelectTab(id: number) {
+        applyTabList({ tabs, selectedTabId: id });
     }
 
     function handleNewTab(
@@ -128,69 +126,70 @@
     }
 
     function handleCloseTab(id: number) {
-        const next = closeNomadTab(tabs, selectedTabId, id);
-        tabs = next.tabs;
-        selectedTabId = next.selectedTabId;
-        if (selectedTabId != null) ensureTabMounted(selectedTabId);
+        applyTabList(closeNomadTab(tabs, selectedTabId, id));
         const nextBootstrap = { ...tabBootstrapArchiveId };
         delete nextBootstrap[id];
         tabBootstrapArchiveId = nextBootstrap;
         const nextMounted = { ...mountedTabIds };
         delete nextMounted[id];
         mountedTabIds = nextMounted;
+    }
+
+    function activateTabForHash(hash: string, path: string, title: string | null = null) {
+        if (!activeTab) return handleNewTab(hash, path || DEFAULT_PAGE_PATH, false);
+        activeTab.destinationHash = hash;
+        activeTab.path = path || DEFAULT_PAGE_PATH;
+        activeTab.title = title;
+        tabs = [...tabs];
+        ensureTabMounted(activeTab.id);
         persistNomadTabs(tabs, selectedTabId);
+    }
+
+    function handleNavigateUrl(url: string) {
+        const { destinationHash: dHash, pagePath: pPath } = parseNomadUrl(url);
+        const targetHash = dHash || activeTab?.destinationHash || "";
+        if (!targetHash) return;
+        activateTabForHash(targetHash, pPath || DEFAULT_PAGE_PATH, activeTab?.title ?? null);
     }
 
     function handleNodeClick(node: NomadNode | NomadFavourite) {
         if (!node.destination_hash) return;
-        if (activeTab) {
-            activeTab.destinationHash = node.destination_hash;
-            activeTab.path = DEFAULT_PAGE_PATH;
-            activeTab.title = node.custom_display_name || node.display_name || node.destination_hash;
-            tabs = [...tabs];
-            ensureTabMounted(activeTab.id);
-            persistNomadTabs(tabs, selectedTabId);
-        } else {
-            handleNewTab(node.destination_hash, DEFAULT_PAGE_PATH, false);
-        }
+        const title = node.custom_display_name || node.display_name || node.destination_hash;
+        activateTabForHash(node.destination_hash, DEFAULT_PAGE_PATH, title || null);
     }
 
     async function handleAddFavourite(node: NomadNode) {
-        if (await addNomadFavourite(node)) {
-            await fetchFavourites();
-        }
+        if (await addNomadFavourite(node)) await fetchFavourites();
     }
 
     async function handleRemoveFavourite(fav: NomadFavourite) {
-        if (await removeNomadFavourite(fav)) {
-            await fetchFavourites();
-        }
+        if (await removeNomadFavourite(fav)) await fetchFavourites();
     }
 
     async function handleRenameFavourite(fav: NomadFavourite) {
-        if (await renameNomadFavourite(fav)) {
-            await fetchFavourites();
-        }
+        if (await renameNomadFavourite(fav)) await fetchFavourites();
     }
 
     async function handleToggleIdentifyOnConnect(hash: string) {
-        if (await toggleNomadIdentifyOnConnect(hash, favourites)) {
-            await fetchFavourites();
-        }
+        if (await toggleNomadIdentifyOnConnect(hash, favourites)) await fetchFavourites();
+    }
+
+    function openBrowserContextMenu(
+        x: number,
+        y: number,
+        tabId: number | null,
+        page: NomadPageContextMenuRequest | null = null
+    ) {
+        tabContextMenu = { show: true, justOpened: true, x, y, tabId };
+        pageContextMenu = page;
+        setTimeout(() => {
+            tabContextMenu.justOpened = false;
+        }, 50);
     }
 
     function handleTabContextMenu(e: MouseEvent, tabId: number) {
         e.preventDefault();
-        tabContextMenu = {
-            show: true,
-            justOpened: true,
-            x: e.clientX,
-            y: e.clientY,
-            tabId,
-        };
-        setTimeout(() => {
-            tabContextMenu.justOpened = false;
-        }, 50);
+        openBrowserContextMenu(e.clientX, e.clientY, tabId);
     }
 
     function onAnnounceEvent(json: Record<string, unknown>) {
@@ -198,11 +197,15 @@
         if (next) nodes = next;
     }
 
-    function onIdentitySwitched() {
+    function resetNomadTabs() {
         tabs = [];
         selectedTabId = null;
         mountedTabIds = {};
         tabBootstrapArchiveId = {};
+    }
+
+    function onIdentitySwitched() {
+        resetNomadTabs();
         nodes = {};
         favourites = [];
         handleNewTab("", DEFAULT_PAGE_PATH, false);
@@ -296,6 +299,7 @@
                     void fetchNodes(false);
                 }}
                 onloadmorenodes={() => void fetchNodes(true)}
+                onnavigateurl={handleNavigateUrl}
             />
         {/if}
 
@@ -332,16 +336,17 @@
                             }}
                             onclose={() => handleCloseTab(tab.id)}
                             onfavouriteschanged={() => void fetchFavourites()}
+                            onpagecontextmenu={(menu) =>
+                                openBrowserContextMenu(menu.clientX, menu.clientY, tab.id, menu)}
                         />
                     </div>
                 {/if}
             {/each}
             {#if !activeTab}
-                <div class="flex-1 flex items-center justify-center text-sem-fg-muted p-8 text-center">
-                    <div>
-                        <div class="text-xl font-semibold mb-2">{t("nomadnet.welcome_to_nomadnet")}</div>
-                        <div class="text-sm max-w-md">{t("nomadnet.select_node_or_enter_url")}</div>
-                    </div>
+                <div
+                    class="flex-1 flex items-center justify-center text-sem-fg-muted p-8 text-center text-xl font-semibold"
+                >
+                    {t("nomadnet.welcome_to_nomadnet")}
                 </div>
             {/if}
         </div>
@@ -352,10 +357,10 @@
         x={tabContextMenu.x}
         y={tabContextMenu.y}
         justOpened={tabContextMenu.justOpened}
-        hasActivePage={false}
-        canFavourite={false}
-        isFavourite={false}
-        canDownloadPage={false}
+        hasActivePage={pageContextMenu?.hasActivePage ?? false}
+        canFavourite={pageContextMenu?.canFavourite ?? false}
+        isFavourite={pageContextMenu?.isFavourite ?? false}
+        canDownloadPage={pageContextMenu?.canDownloadPage ?? false}
         showTabActions={true}
         canCloseTabsRight={tabContextMenu.tabId !== null &&
             tabs.findIndex((t) => t.id === tabContextMenu.tabId) < tabs.length - 1}
@@ -365,34 +370,28 @@
         onclose={() => {
             tabContextMenu.show = false;
         }}
+        onviewsource={() => pageContextMenu?.viewSource()}
+        onreload={() => pageContextMenu?.reload()}
+        onfavorite={() => pageContextMenu?.favorite()}
+        ondownloadpage={() => pageContextMenu?.downloadPage()}
         onnewprivatetab={() => {
             tabContextMenu.show = false;
             handleNewTab("", DEFAULT_PAGE_PATH, true);
         }}
         onclosetabsright={() => {
             if (tabContextMenu.tabId !== null) {
-                const next = closeTabsToRight(tabs, selectedTabId, tabContextMenu.tabId);
-                tabs = next.tabs;
-                selectedTabId = next.selectedTabId;
-                if (selectedTabId != null) ensureTabMounted(selectedTabId);
-                persistNomadTabs(tabs, selectedTabId);
+                applyTabList(closeTabsToRight(tabs, selectedTabId, tabContextMenu.tabId));
             }
             tabContextMenu.show = false;
         }}
         oncloseothertabs={() => {
             if (tabContextMenu.tabId !== null) {
-                const next = closeOtherTabs(tabs, tabContextMenu.tabId);
-                tabs = next.tabs;
-                selectedTabId = next.selectedTabId;
-                ensureTabMounted(selectedTabId);
-                persistNomadTabs(tabs, selectedTabId);
+                applyTabList(closeOtherTabs(tabs, tabContextMenu.tabId));
             }
             tabContextMenu.show = false;
         }}
         onclosealltabs={() => {
-            tabs = [];
-            mountedTabIds = {};
-            tabBootstrapArchiveId = {};
+            resetNomadTabs();
             handleNewTab("", DEFAULT_PAGE_PATH, false);
             tabContextMenu.show = false;
         }}

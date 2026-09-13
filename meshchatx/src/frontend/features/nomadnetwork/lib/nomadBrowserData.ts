@@ -105,7 +105,11 @@ export async function renameNomadFavourite(fav: NomadFavourite): Promise<boolean
     }
 }
 
-export async function toggleNomadIdentifyOnConnect(hash: string, favourites: NomadFavourite[]): Promise<boolean> {
+export async function toggleNomadIdentifyOnConnect(
+    hash: string,
+    favourites: NomadFavourite[],
+    displayName?: string | null
+): Promise<boolean> {
     if (!hash) return false;
     const api = (window as any).api;
     if (!api) return false;
@@ -120,7 +124,8 @@ export async function toggleNomadIdentifyOnConnect(hash: string, favourites: Nom
         }
         await api.post(`/api/v1/favourites/${hash}/identify-on-connect`, {
             enabled: enable,
-            display_name: existing?.custom_display_name || existing?.display_name || t("nomadnet.unknown_node"),
+            display_name:
+                displayName || existing?.custom_display_name || existing?.display_name || t("nomadnet.unknown_node"),
             aspect: "nomadnetwork.node",
         });
         return true;
