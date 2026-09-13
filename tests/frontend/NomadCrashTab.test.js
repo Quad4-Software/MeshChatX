@@ -67,7 +67,7 @@ describe("NomadCrashTab.vue", () => {
     };
 
     const attachFrame = (wrapper) => {
-        const frameEl = wrapper.find("iframe").element;
+        const frameEl = wrapper.vm.$refs.frame;
         const fakeWindow = { postMessage: postMessageSpy };
         Object.defineProperty(frameEl, "contentWindow", {
             configurable: true,
@@ -87,12 +87,11 @@ describe("NomadCrashTab.vue", () => {
 
     it("abortRender skips re-push after iframe reload ready", async () => {
         const wrapper = mountCrashTab();
-        const frame = wrapper.find("iframe");
-        expect(frame.attributes("sandbox")).toBe("allow-scripts");
-        expect(frame.attributes("allow")).toBe("local-network-access");
-        expect(frame.classes()).toContain("absolute");
-        expect(frame.classes()).toContain("inset-0");
-        const frameEl = frame.element;
+        const frame = wrapper.vm.$refs.frame;
+        expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
+        expect(frame.getAttribute("allow")).toBe("local-network-access");
+        expect(frame.style.position).toBe("fixed");
+        const frameEl = frame;
         Object.defineProperty(frameEl, "contentWindow", {
             configurable: true,
             get: () => ({ postMessage: postMessageSpy }),
@@ -119,16 +118,42 @@ describe("NomadCrashTab.vue", () => {
         expect(wrapper.vm.skipRenderUntilPropChange).toBe(false);
     });
 
+    it("teleports the frame to body so keep-alive detach keeps it alive", () => {
+        const wrapper = mountCrashTab();
+        const frame = wrapper.vm.$refs.frame;
+        expect(frame.parentElement).toBe(document.body);
+        expect(wrapper.element.contains(frame)).toBe(false);
+    });
+
+    it("parks the frame over the host rect and hides it while inactive", async () => {
+        const wrapper = mountCrashTab();
+        const frame = wrapper.vm.$refs.frame;
+        // jsdom reports a zero rect, so the frame starts hidden.
+        expect(frame.style.visibility).toBe("hidden");
+
+        wrapper.vm.frameRect = { left: 10, top: 20, width: 300, height: 200 };
+        await wrapper.vm.$nextTick();
+        expect(frame.style.visibility).toBe("visible");
+        expect(frame.style.left).toBe("10px");
+        expect(frame.style.top).toBe("20px");
+        expect(frame.style.width).toBe("300px");
+        expect(frame.style.height).toBe("200px");
+
+        await wrapper.setProps({ active: false });
+        expect(frame.style.visibility).toBe("hidden");
+        expect(frame.style.pointerEvents).toBe("none");
+    });
+
     it("exposes an accessible iframe name and title", () => {
         const wrapper = mountCrashTab({ path: "aabb:/page/index.mu" });
-        const frame = wrapper.find("iframe");
-        expect(frame.attributes("name")).toBe("nomad-page-renderer");
-        expect(frame.attributes("title")).toBe("aabb:/page/index.mu");
+        const frame = wrapper.vm.$refs.frame;
+        expect(frame.getAttribute("name")).toBe("nomad-page-renderer");
+        expect(frame.getAttribute("title")).toBe("aabb:/page/index.mu");
     });
 
     it("ignores aborted echo from frame after hard cancel", () => {
         const wrapper = mountCrashTab();
-        const frame = wrapper.find("iframe").element;
+        const frame = wrapper.vm.$refs.frame;
         const fakeWindow = { postMessage: postMessageSpy };
         Object.defineProperty(frame, "contentWindow", {
             configurable: true,
@@ -148,7 +173,7 @@ describe("NomadCrashTab.vue", () => {
 
     it("ignores frame messages that are not opaque-null origin", () => {
         const wrapper = mountCrashTab();
-        const frame = wrapper.find("iframe").element;
+        const frame = wrapper.vm.$refs.frame;
         const fakeWindow = { postMessage: postMessageSpy };
         Object.defineProperty(frame, "contentWindow", {
             configurable: true,
@@ -166,7 +191,7 @@ describe("NomadCrashTab.vue", () => {
 
     it("postToFrame uses * targetOrigin for opaque-origin frame", () => {
         const wrapper = mountCrashTab();
-        const frame = wrapper.find("iframe").element;
+        const frame = wrapper.vm.$refs.frame;
         Object.defineProperty(frame, "contentWindow", {
             configurable: true,
             get: () => ({ postMessage: postMessageSpy }),
@@ -182,7 +207,7 @@ describe("NomadCrashTab.vue", () => {
             pagePartials: { p1: "<b>x</b>" },
             renderOptions: { nomad_micron_wasm_use: true, renderMarkdown: true },
         });
-        const frame = wrapper.find("iframe").element;
+        const frame = wrapper.vm.$refs.frame;
         Object.defineProperty(frame, "contentWindow", {
             configurable: true,
             get: () => ({ postMessage: postMessageSpy }),
@@ -218,7 +243,7 @@ describe("NomadCrashTab.vue", () => {
         const wrapper = mountCrashTab({
             renderOptions: { renderMarkdown: true },
         });
-        const frame = wrapper.find("iframe").element;
+        const frame = wrapper.vm.$refs.frame;
         Object.defineProperty(frame, "contentWindow", {
             configurable: true,
             get: () => ({ postMessage: postMessageSpy }),
@@ -241,7 +266,7 @@ describe("NomadCrashTab.vue", () => {
             background: "#000000",
             contentClass: "nomad-page-rich bg-black",
         });
-        const frame = wrapper.find("iframe").element;
+        const frame = wrapper.vm.$refs.frame;
         Object.defineProperty(frame, "contentWindow", {
             configurable: true,
             get: () => ({ postMessage: postMessageSpy }),
@@ -410,7 +435,7 @@ describe("NomadCrashTab.vue", () => {
     it("pong does not clear a render-error crash overlay", () => {
         const wrapper = mountCrashTab();
         const fakeWindow = { postMessage: postMessageSpy };
-        Object.defineProperty(wrapper.find("iframe").element, "contentWindow", {
+        Object.defineProperty(wrapper.vm.$refs.frame, "contentWindow", {
             configurable: true,
             get: () => fakeWindow,
         });
@@ -433,7 +458,7 @@ describe("NomadCrashTab.vue", () => {
         try {
             wrapper.vm.status = "hung";
             wrapper.vm.framePainted = false;
-            sendFromFrame(wrapper, wrapper.find("iframe").element.contentWindow, "pong", { id: 1 });
+            sendFromFrame(wrapper, wrapper.vm.$refs.frame.contentWindow, "pong", { id: 1 });
             expect(wrapper.vm.status).toBe("hung");
             expect(wrapper.vm.framePainted).toBe(false);
         } finally {
@@ -446,7 +471,7 @@ describe("NomadCrashTab.vue", () => {
         try {
             wrapper.vm.status = "hung";
             wrapper.vm.framePainted = true;
-            sendFromFrame(wrapper, wrapper.find("iframe").element.contentWindow, "pong", { id: 1 });
+            sendFromFrame(wrapper, wrapper.vm.$refs.frame.contentWindow, "pong", { id: 1 });
             expect(wrapper.vm.status).toBe("ready");
             expect(wrapper.vm.framePainted).toBe(true);
         } finally {
@@ -490,7 +515,7 @@ describe("NomadCrashTab.vue", () => {
     it("ignores late render-done after abort", () => {
         const wrapper = mountCrashTab();
         const fakeWindow = { postMessage: postMessageSpy };
-        Object.defineProperty(wrapper.find("iframe").element, "contentWindow", {
+        Object.defineProperty(wrapper.vm.$refs.frame, "contentWindow", {
             configurable: true,
             get: () => fakeWindow,
         });
