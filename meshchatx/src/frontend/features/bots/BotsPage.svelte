@@ -22,8 +22,8 @@
         updateBotName,
     } from "./lib/botsApi.js";
     import type { BotRecord, BotTemplate, LxmfConfigPatch } from "./lib/types.js";
+    import LxmfUserIcon from "../../ui/svelte/LxmfUserIcon.svelte";
     import BotCard from "./components/BotCard.svelte";
-    import BotStartModal from "./components/BotStartModal.svelte";
     import BotLxmfConfigModal from "./components/BotLxmfConfigModal.svelte";
     import BotProcessLogModal from "./components/BotProcessLogModal.svelte";
 
@@ -33,9 +33,6 @@
     let error = $state<string | null>(null);
     let actionInProgress = $state(false);
     let relativeTimerTick = $state(0);
-
-    let selectedTemplate = $state<BotTemplate | null>(null);
-    let startModalBusy = $state(false);
 
     let configModalBot = $state<BotRecord | null>(null);
     let configModalSaving = $state(false);
@@ -70,27 +67,24 @@
         }
     }
 
-    function selectTemplate(template: BotTemplate): void {
-        selectedTemplate = template;
+    function openSetup(template: BotTemplate): void {
+        window.location.hash = `#/bots/new?template=${encodeURIComponent(template.id)}`;
     }
 
-    function closeStartModal(): void {
-        selectedTemplate = null;
-        startModalBusy = false;
-    }
-
-    async function handleStartBot(templateId: string, name: string, lxmfConfig?: LxmfConfigPatch): Promise<void> {
-        startModalBusy = true;
+    async function handleStartBot(bot: BotRecord): Promise<void> {
         try {
-            await startBot({ template_id: templateId, name, lxmf_config: lxmfConfig });
+            const templateId = bot.template_id || bot.template || "";
+            await startBot({
+                bot_id: bot.id,
+                template_id: templateId,
+                name: bot.name,
+                ...(templateId === "rrc" && bot.rrc ? { rrc: bot.rrc } : {}),
+            });
             ToastUtils.success(t("bots.bot_started"));
-            closeStartModal();
             await loadStatus(true);
         } catch (err: unknown) {
             const e = err as { response?: { data?: { message?: string } }; message?: string };
             ToastUtils.error(e?.response?.data?.message || e?.message || t("bots.failed_to_start"));
-        } finally {
-            startModalBusy = false;
         }
     }
 
@@ -280,12 +274,20 @@
                                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                                 <div
                                     class="relative rounded-lg border border-sem-border bg-sem-surface p-4 hover:border-blue-400 dark:hover:border-blue-600 transition cursor-pointer flex flex-col justify-between min-h-[140px] pr-12"
-                                    onclick={() => selectTemplate(template)}
+                                    onclick={() => openSetup(template)}
                                 >
-                                    <div class="min-w-0">
-                                        <div class="font-bold text-sem-fg">{template.name}</div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                            {template.description}
+                                    <div class="flex items-start gap-3 min-w-0">
+                                        {#if template.default_icon}
+                                            <LxmfUserIcon
+                                                iconName={template.default_icon}
+                                                iconClass="size-9 shrink-0"
+                                            />
+                                        {/if}
+                                        <div class="min-w-0">
+                                            <div class="font-bold text-sem-fg">{template.name}</div>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                {template.description}
+                                            </div>
                                         </div>
                                     </div>
                                     <div
@@ -314,7 +316,7 @@
                                     {bot}
                                     {actionInProgress}
                                     {relativeTimerTick}
-                                    onStart={() => handleStartBot(bot.template_id || "", bot.name || "")}
+                                    onStart={handleStartBot}
                                     onStop={handleStopBot}
                                     onRestart={handleRestartBot}
                                     onDelete={handleDeleteBot}
@@ -332,14 +334,6 @@
             </div>
         </div>
     </div>
-
-    <BotStartModal
-        open={Boolean(selectedTemplate)}
-        template={selectedTemplate}
-        busy={startModalBusy}
-        onClose={closeStartModal}
-        onStart={handleStartBot}
-    />
 
     <BotLxmfConfigModal
         open={Boolean(configModalBot)}

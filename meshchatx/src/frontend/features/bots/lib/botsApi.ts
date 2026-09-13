@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import DownloadUtils from "../../../js/DownloadUtils.js";
-import type { BotRecord, BotTemplate, LxmfConfigPatch } from "./types.js";
+import type { BotIconDraft, BotRecord, BotRrcConfig, BotTemplate, LxmfConfigPatch } from "./types.js";
 
 type WindowApi = {
     get: (
@@ -37,6 +37,9 @@ export async function startBotApi(payload: {
     name?: string;
     bot_id?: string;
     lxmf_config?: LxmfConfigPatch;
+    icon?: BotIconDraft | null;
+    custom?: unknown;
+    rrc?: BotRrcConfig | null;
 }): Promise<void> {
     await getApi().post("/api/v1/bots/start", payload);
 }
