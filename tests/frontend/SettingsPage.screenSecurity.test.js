@@ -109,7 +109,7 @@ describe("SettingsPage screen security edge and race", () => {
             expect(ElectronUtils.getScreenSecuritySettings).toHaveBeenCalled();
             const toggle = container.querySelector("#screen-security-enabled");
             expect(toggle).not.toBeNull();
-            expect(toggle.checked).toBe(false);
+            expect(toggle.getAttribute("aria-checked")).toBe("false");
         });
     });
 
@@ -130,7 +130,7 @@ describe("SettingsPage screen security edge and race", () => {
         await waitFor(() => {
             const toggle = container.querySelector("#screen-security-enabled");
             expect(toggle).not.toBeNull();
-            expect(toggle.checked).toBe(false);
+            expect(toggle.getAttribute("aria-checked")).toBe("false");
         });
         logSpy.mockRestore();
     });
@@ -146,7 +146,7 @@ describe("SettingsPage screen security edge and race", () => {
         await waitFor(() => {
             const toggle = container.querySelector("#screen-security-enabled");
             expect(toggle).not.toBeNull();
-            expect(toggle.checked).toBe(true);
+            expect(toggle.getAttribute("aria-checked")).toBe("true");
         });
 
         const toggle = container.querySelector("#screen-security-enabled");
@@ -155,7 +155,7 @@ describe("SettingsPage screen security edge and race", () => {
         await waitFor(() => {
             expect(DialogUtils.confirm).toHaveBeenCalled();
             expect(ElectronUtils.setScreenSecurityEnabled).not.toHaveBeenCalled();
-            expect(toggle.checked).toBe(true);
+            expect(toggle.getAttribute("aria-checked")).toBe("true");
         });
     });
 
@@ -167,7 +167,7 @@ describe("SettingsPage screen security edge and race", () => {
         await waitFor(() => {
             const toggle = container.querySelector("#screen-security-enabled");
             expect(toggle).not.toBeNull();
-            expect(toggle.checked).toBe(false);
+            expect(toggle.getAttribute("aria-checked")).toBe("false");
         });
 
         const toggle = container.querySelector("#screen-security-enabled");
@@ -175,7 +175,7 @@ describe("SettingsPage screen security edge and race", () => {
 
         await waitFor(() => {
             expect(ToastUtils.error).toHaveBeenCalled();
-            expect(toggle.checked).toBe(false);
+            expect(toggle.getAttribute("aria-checked")).toBe("false");
         });
         logSpy.mockRestore();
     });
