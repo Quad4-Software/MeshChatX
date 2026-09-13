@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Messages: reopening a conversation could paint a stale cached first page and never merge messages sent while the pane was closed, so the sidebar showed the new message but the chat view did not. The stash is now invalidated on message events, a soft resync runs whenever a cached page was painted, and the resync refreshes the stash instead of renewing the stale snapshot.
 - NomadNet: the path-finder menu now hides below xl so the URL input keeps usable width on small screens, and the mobile sidebar gains a direct URL entry row since the empty-state input only exists in the hidden viewer pane.
 - Relay chat: on narrow screens the Host, Bots and Search tabs collapse into the overflow menu so the tab bar no longer scrolls horizontally on phones.
+- Android: tapping the app icon or the "running" notification could close the app with no message when the Chaquopy runtime or WebView failed before the UI came up. `Python.start` now catches `Throwable` (native link failures are `Error`s, not `Exception`s, and escaped the old catch), a missing or updating WebView provider shows a readable startup error, the storage migration tolerates `SecurityException`, and a WebView renderer crash surfaces instead of killing the process.
 
 ### Changed
 
