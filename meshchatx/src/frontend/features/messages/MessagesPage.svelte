@@ -147,6 +147,8 @@
     let conversationRefreshTimeout: ReturnType<typeof setTimeout> | null = null;
     let peersRefreshTimeout: ReturnType<typeof setTimeout> | null = null;
     let conversationsAbortController: AbortController | null = null;
+    let conversationsInFlightCount = 0;
+    let foldersInFlight = false;
     let announcesAbortController: AbortController | null = null;
     let stopIdentityReadyLoads: (() => void) | null = null;
     let liveTransportReadyWatch: (() => void) | null = null;
@@ -254,8 +256,13 @@
             if (GlobalState.networkStarting && !GlobalState.networkReady && !GlobalState.networkDegraded) {
                 return;
             }
-            void getConversations();
-            void getFolders();
+            // skip the tick when the previous poll request is still in flight
+            if (conversationsInFlightCount === 0) {
+                void getConversations();
+            }
+            if (!foldersInFlight) {
+                void getFolders();
+            }
         }, pollMs);
     }
 
@@ -452,6 +459,7 @@
 
     async function getConversations(append = false) {
         let myController = conversationsAbortController;
+        conversationsInFlightCount += 1;
         try {
             if (!append) {
                 conversationsAbortController?.abort();
@@ -526,6 +534,7 @@
             if (api().isCancel?.(e)) return;
             console.log(e);
         } finally {
+            conversationsInFlightCount -= 1;
             if (conversationsAbortController === myController) {
                 isLoadingConversations = false;
                 isLoadingMore = false;
@@ -602,6 +611,7 @@
     }
 
     async function getFolders() {
+        foldersInFlight = true;
         try {
             const response = await api().get("/api/v1/lxmf/folders");
             folders = response.data || [];
@@ -609,6 +619,8 @@
             if (!isRetryableHttpError(e)) {
                 console.error("Failed to load folders", e);
             }
+        } finally {
+            foldersInFlight = false;
         }
     }
 

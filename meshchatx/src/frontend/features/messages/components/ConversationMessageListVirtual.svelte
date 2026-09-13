@@ -11,20 +11,49 @@
         groups,
         getScrollElement,
         actions,
+        conversationKey = "",
         overscan = 10,
     }: {
         groups: MessageDisplayEntry[];
         getScrollElement: () => HTMLElement | null | undefined;
         actions: ConversationViewerActions;
+        conversationKey?: string;
         overscan?: number;
     } = $props();
+
+    // Measurements are keyed by group key, which is stable across renders but
+    // not across conversations. Drop stale entries when the conversation
+    // changes and cap the record so long sessions cannot grow it forever.
+    const MAX_MEASURED_HEIGHTS = 2000;
 
     let scrollTop = $state(0);
     let viewportHeight = $state(0);
     let measuredHeights = $state<Record<string, number>>({});
+    let lastConversationKey: string | null = null;
+
+    $effect(() => {
+        const key = conversationKey;
+        if (key !== lastConversationKey) {
+            lastConversationKey = key;
+            measuredHeights = {};
+        }
+    });
 
     function rowHeightKey(group: MessageDisplayEntry, index: number): string {
         return group.key || `${group.type}-${index}`;
+    }
+
+    function pruneMeasuredHeights() {
+        const keys = Object.keys(measuredHeights);
+        if (keys.length <= MAX_MEASURED_HEIGHTS) return;
+        const live = new Set(groups.map((group, index) => rowHeightKey(group, index)));
+        const next: Record<string, number> = {};
+        for (const key of keys) {
+            if (live.has(key)) {
+                next[key] = measuredHeights[key];
+            }
+        }
+        measuredHeights = next;
     }
 
     const layout = $derived.by(() => {
@@ -39,15 +68,35 @@
         return { rows, totalSize: cursor };
     });
 
+    function visibleRowBounds(rows: { start: number; size: number }[], start: number, end: number) {
+        // rows are sorted by start and contiguous, so binary search the window
+        let lo = 0;
+        let hi = rows.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (rows[mid].start + rows[mid].size < start) lo = mid + 1;
+            else hi = mid;
+        }
+        const firstVisible = lo;
+        lo = firstVisible;
+        hi = rows.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (rows[mid].start <= end) lo = mid + 1;
+            else hi = mid;
+        }
+        return { firstVisible, lastVisible: lo };
+    }
+
     const virtualRows = $derived.by(() => {
         const start = Math.max(0, scrollTop);
         const end = start + Math.max(viewportHeight, 1);
-        const visible = layout.rows.filter((row) => row.start + row.size >= start && row.start <= end);
-        if (visible.length === 0) {
+        const { firstVisible, lastVisible } = visibleRowBounds(layout.rows, start, end);
+        if (lastVisible <= firstVisible) {
             return layout.rows.slice(0, Math.min(layout.rows.length, overscan * 2 + 1));
         }
-        const first = Math.max(0, visible[0].index - overscan);
-        const last = Math.min(layout.rows.length, visible[visible.length - 1].index + overscan + 1);
+        const first = Math.max(0, firstVisible - overscan);
+        const last = Math.min(layout.rows.length, lastVisible + overscan);
         return layout.rows.slice(first, last);
     });
 
@@ -60,6 +109,7 @@
             const next = Math.ceil(node.getBoundingClientRect().height);
             if (next > 0 && measuredHeights[key] !== next) {
                 measuredHeights[key] = next;
+                pruneMeasuredHeights();
             }
         };
         update();

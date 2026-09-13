@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: 0BSD
 
 import { STORAGE_KEYS } from "../../../js/constants.js";
-import * as TranslationService from "../../../js/TranslationService.js";
 import type { TranslationPack } from "../../../js/TranslationService.js";
+
+// Bergamot pulls in a large wasm-backed module, so load it lazily
+const loadTranslationService = () => import("../../../js/TranslationService.js");
 
 export type LangOption = {
     value: string;
@@ -42,6 +44,7 @@ function packToOption(pack: TranslationPack): LangOption {
  */
 export async function loadTranslatorLanguages(): Promise<{ languages: LangOption[]; hasTranslator: boolean }> {
     try {
+        const TranslationService = await loadTranslationService();
         const packs = await TranslationService.listPacks();
         const options = packs.map(packToOption).filter((opt) => Boolean(opt.value));
         return { languages: options, hasTranslator: options.length > 0 };
@@ -104,6 +107,7 @@ export async function translateText(params: {
         .slice(0, 4);
     const source = pair.slice(0, 2);
     const target = pair.slice(2, 4);
+    const TranslationService = await loadTranslationService();
     const result = await TranslationService.translate({
         from: source,
         to: target,
