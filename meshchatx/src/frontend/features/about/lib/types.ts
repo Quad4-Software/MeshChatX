@@ -111,6 +111,7 @@ export interface SandboxFeatureCard {
     active: boolean;
     warn?: boolean;
     unavailable?: boolean;
+    abi?: number | null;
     titleKey: string;
     badgeKey: string;
     noteKey: string;
