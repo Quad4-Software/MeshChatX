@@ -108,7 +108,7 @@ class MicronStorage {
         if (!this.db || !image || !image.path || !image.blob) {
             return;
         }
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             const transaction = this.db.transaction([IMAGE_STORE_NAME], "readwrite");
             const store = transaction.objectStore(IMAGE_STORE_NAME);
             store.put({
@@ -148,7 +148,7 @@ class MicronStorage {
         if (!this.db || !path) {
             return;
         }
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             const transaction = this.db.transaction([IMAGE_STORE_NAME], "readwrite");
             const store = transaction.objectStore(IMAGE_STORE_NAME);
             store.delete(path);

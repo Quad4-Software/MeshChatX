@@ -107,7 +107,7 @@ export async function resolveGeoText(
     if (mh) return { ...mh, kind: "grid" };
     const { parseCoordinateQuery } = await import("./mapGeoCoords.js");
     const res = parseCoordinateQuery(raw, options);
-    if (res && res.ok && Number.isFinite(res.lat) && Number.isFinite(res.lon)) {
+    if (res && res.ok && res.lat != null && res.lon != null && Number.isFinite(res.lat) && Number.isFinite(res.lon)) {
         return { lat: res.lat, lon: res.lon, kind: res.kind || "coords" };
     }
     return null;
