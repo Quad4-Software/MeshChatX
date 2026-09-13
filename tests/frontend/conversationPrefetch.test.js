@@ -2,6 +2,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
+    dropConversationPrefetch,
     prefetchConversationFirstPage,
     stashConversationFirstPage,
     takeConversationPrefetch,
@@ -66,5 +67,20 @@ describe("conversationPrefetch", () => {
         stashConversationFirstPage(peerHash, { lxmf_messages: [] });
         vi.advanceTimersByTime(6 * 60 * 1000);
         expect(takeConversationPrefetch(peerHash)).toBeNull();
+    });
+
+    it("dropConversationPrefetch evicts one peer only, case-insensitive", async () => {
+        const peerA = "aa".repeat(16);
+        const peerB = "bb".repeat(16);
+        stashConversationFirstPage(peerA, { lxmf_messages: [{ hash: "m1" }] });
+        stashConversationFirstPage(peerB, { lxmf_messages: [{ hash: "m2" }] });
+
+        dropConversationPrefetch(peerA.toUpperCase());
+        expect(takeConversationPrefetch(peerA)).toBeNull();
+        const kept = await takeConversationPrefetch(peerB);
+        expect(kept).toEqual({ data: { lxmf_messages: [{ hash: "m2" }] } });
+
+        dropConversationPrefetch(null);
+        dropConversationPrefetch("");
     });
 });

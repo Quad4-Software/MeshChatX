@@ -23,6 +23,7 @@
             @bulk-remove-favourites="onBulkRemoveFavourites"
             @bulk-add-favourites="onBulkAddFavouritesFromAnnounces"
             @nodes-search-changed="onNodesSearchChanged"
+            @navigate-url="onNodePageUrlClick"
             @load-more-nodes="loadMoreNodes"
             @toggle-collapse="nomadNetworkSidebarCollapsed = !nomadNetworkSidebarCollapsed"
         />
@@ -481,7 +482,9 @@
                         <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
                     </IconButton>
 
-                    <DropDownMenu v-if="selectedNode" class="shrink-0 hidden lg:inline-block">
+                    <!-- path ops stay in the mobile ⋯ menu; below xl they
+                         would squeeze the URL input on narrow screens -->
+                    <DropDownMenu v-if="selectedNode" class="shrink-0 hidden xl:inline-block">
                         <template #button>
                             <IconButton
                                 :title="$t('nomadnet.path_finder')"

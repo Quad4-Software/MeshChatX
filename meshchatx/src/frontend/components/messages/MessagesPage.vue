@@ -346,7 +346,7 @@ import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import { isRetryableHttpError } from "../../js/httpRetry.js";
 import { runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
-import { prefetchConversationFirstPage } from "../../js/conversationPrefetch.js";
+import { dropConversationPrefetch, prefetchConversationFirstPage } from "../../js/conversationPrefetch.js";
 import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
 import * as announcesApi from "../../js/api/announces.js";
 import * as lxmfApi from "../../js/api/lxmf.js";
@@ -700,13 +700,26 @@ export default {
                 this.updatePeerFromAnnounce(json.announce);
             }
         },
-        onLxmfDeliveryEvent() {
+        dropCachedConversationFirstPage(msg) {
+            // A stashed first page painted on re-open would be older than the
+            // sidebar, which already reflects this event. Both directions are
+            // dropped because is_incoming is not reliable on event payloads.
+            if (!msg || typeof msg !== "object") {
+                return;
+            }
+            dropConversationPrefetch(msg.source_hash);
+            dropConversationPrefetch(msg.destination_hash);
+        },
+        onLxmfDeliveryEvent(json) {
+            this.dropCachedConversationFirstPage(json?.lxmf_message);
             this.requestConversationsRefresh();
         },
         onLxmfMessageCreatedEvent(json) {
+            this.dropCachedConversationFirstPage(json?.lxmf_message);
             this.onOutboundMessageCreated(json.lxmf_message);
         },
         onLxmfMessageStateUpdatedEvent(json) {
+            this.dropCachedConversationFirstPage(json?.lxmf_message);
             this.onOutboundMessageStateUpdated(json.lxmf_message);
         },
         onLxmfTelemetryEvent(json) {

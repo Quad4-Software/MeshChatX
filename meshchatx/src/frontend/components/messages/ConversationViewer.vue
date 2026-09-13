@@ -3178,6 +3178,14 @@ export default {
             await this.loadPrevious();
             this.reconcileOutboundPendingPlaceholders();
 
+            // A stashed or hover-prefetched first page can be older than the
+            // server state (messages sent or received while the pane was
+            // closed never reached this viewer). Merge anything newer now.
+            if (this._paintedFirstPageFromCache) {
+                this._paintedFirstPageFromCache = false;
+                this.softResyncOpenConversation();
+            }
+
             await this.$nextTick();
             await this.$nextTick();
             await new Promise((resolve) => {
@@ -3211,6 +3219,7 @@ export default {
                 const prefetched =
                     this.oldestMessageId == null ? takeConversationPrefetch(this.selectedPeer.destination_hash) : null;
                 let response = prefetched ? await prefetched : null;
+                const paintedFromCache = Boolean(prefetched && response);
                 if (!response) {
                     response = await lxmfMessagesApi.getConversation(this.selectedPeer.destination_hash, {
                         params: {
@@ -3227,8 +3236,13 @@ export default {
 
                 // Keep the newest page warm so re-opening this peer paints
                 // instantly; live resync merges anything newer afterwards.
-                if (this.oldestMessageId == null) {
+                // Cached pages are not restashed here: that would renew the
+                // stale TTL. softResyncOpenConversation stashes the fresh page.
+                if (this.oldestMessageId == null && !paintedFromCache) {
                     stashConversationFirstPage(this.selectedPeer.destination_hash, response.data);
+                }
+                if (paintedFromCache) {
+                    this._paintedFirstPageFromCache = true;
                 }
 
                 const chatItems = [];
@@ -3468,6 +3482,9 @@ export default {
                 if (!this._hexEqual(this.selectedPeer?.destination_hash, peerHash)) {
                     return;
                 }
+                // Refresh the warm-start stash so the next open paints the
+                // page we just merged rather than an older snapshot.
+                stashConversationFirstPage(peerHash, response.data);
                 const rawList = response.data?.lxmf_messages;
                 const lxmfMessages = mergeLxmfReactionRowsIntoMessages(Array.isArray(rawList) ? rawList : []);
                 const myHash = (this.myLxmfAddressHash || "").toLowerCase();
