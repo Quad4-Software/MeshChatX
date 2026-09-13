@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";
 
@@ -28,16 +29,14 @@
 
     let rootEl: HTMLDivElement | undefined = $state();
 
-    $effect(() => {
-        if (!open || mode !== "bubble") return;
-        const onDoc = (event: MouseEvent) => {
-            if (rootEl && !rootEl.contains(event.target as Node)) {
+    onClickOutside(
+        () => rootEl,
+        () => {
+            if (open && mode === "bubble") {
                 onoutside?.();
             }
-        };
-        document.addEventListener("mousedown", onDoc, true);
-        return () => document.removeEventListener("mousedown", onDoc, true);
-    });
+        }
+    );
 </script>
 
 {#if open && mode === "compose"}

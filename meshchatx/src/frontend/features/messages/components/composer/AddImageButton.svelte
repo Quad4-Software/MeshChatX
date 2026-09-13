@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import Compressor from "compressorjs";
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
     import ToastUtils from "../../../../js/ToastUtils.js";
     import { t } from "../../../../js/i18n.js";
@@ -77,16 +78,12 @@
         clearImageInput();
     }
 
-    $effect(() => {
-        if (!isShowingMenu) return;
-        const onDoc = (event: MouseEvent) => {
-            if (rootEl && !rootEl.contains(event.target as Node)) {
-                isShowingMenu = false;
-            }
-        };
-        document.addEventListener("mousedown", onDoc, true);
-        return () => document.removeEventListener("mousedown", onDoc, true);
-    });
+    onClickOutside(
+        () => rootEl,
+        () => {
+            isShowingMenu = false;
+        }
+    );
 </script>
 
 <div bind:this={rootEl} class="inline-flex">

@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { tick } from "svelte";
+    import { onClickOutside } from "runed";
     import { t } from "../../js/i18n.js";
     import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
     import { ensureLocaleMessages, getCurrentUiLocale, listLocaleCodes, setLocale } from "../../js/localeLoader.js";
@@ -96,20 +97,14 @@
         closeDropdown();
     }
 
-    function onDocumentClick(event: MouseEvent): void {
-        if (!isDropdownOpen) return;
-        const target = event.target as Node | null;
-        if (dropdownPanel && !dropdownPanel.contains(target) && triggerButton && !triggerButton.contains(target)) {
+    onClickOutside(
+        () => dropdownPanel,
+        (event) => {
+            if (!isDropdownOpen) return;
+            if (triggerButton && triggerButton.contains(event.target as Node | null)) return;
             closeDropdown();
         }
-    }
-
-    onMount(() => {
-        document.addEventListener("click", onDocumentClick);
-        return () => {
-            document.removeEventListener("click", onDocumentClick);
-        };
-    });
+    );
 </script>
 
 <div class="relative inline-block {className}">

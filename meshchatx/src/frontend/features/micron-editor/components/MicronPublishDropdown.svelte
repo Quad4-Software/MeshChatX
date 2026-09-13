@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";
     import type { LastPublishedInfo, PageNodeItem } from "../lib/types.js";
@@ -34,17 +34,14 @@
 
     let dropdownEl = $state<HTMLElement | null>(null);
 
-    onMount(() => {
-        function handleClickOutside(event: MouseEvent): void {
-            if (showPublishMenu && dropdownEl && !dropdownEl.contains(event.target as Node | null)) {
+    onClickOutside(
+        () => dropdownEl,
+        () => {
+            if (showPublishMenu) {
                 onCloseMenu();
             }
         }
-        document.addEventListener("click", handleClickOutside);
-        return () => {
-            document.removeEventListener("click", handleClickOutside);
-        };
-    });
+    );
 </script>
 
 <div class="relative" bind:this={dropdownEl}>

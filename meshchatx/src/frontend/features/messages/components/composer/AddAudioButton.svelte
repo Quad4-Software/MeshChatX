@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import type { Snippet } from "svelte";
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
 
     let {
@@ -24,16 +25,12 @@
         onstartrecording?.(args);
     }
 
-    $effect(() => {
-        if (!isShowingMenu) return;
-        const onDoc = (event: MouseEvent) => {
-            if (rootEl && !rootEl.contains(event.target as Node)) {
-                isShowingMenu = false;
-            }
-        };
-        document.addEventListener("mousedown", onDoc, true);
-        return () => document.removeEventListener("mousedown", onDoc, true);
-    });
+    onClickOutside(
+        () => rootEl,
+        () => {
+            isShowingMenu = false;
+        }
+    );
 </script>
 
 <div bind:this={rootEl} class="relative inline-flex shrink-0">

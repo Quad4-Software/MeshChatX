@@ -3,6 +3,7 @@
 <script lang="ts">
     import { tick } from "svelte";
     import { fade } from "svelte/transition";
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
     import { t } from "../../../js/i18n.js";
@@ -102,14 +103,12 @@
         }
     });
 
-    $effect(() => {
-        if (!show) return;
-        const onDoc = () => {
+    onClickOutside(
+        () => panel,
+        () => {
             if (!justOpened) onclose?.();
-        };
-        document.addEventListener("mousedown", onDoc, true);
-        return () => document.removeEventListener("mousedown", onDoc, true);
-    });
+        }
+    );
 </script>
 
 {#if show}

@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import IconButton from "../../../ui/svelte/IconButton.svelte";
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
@@ -158,16 +159,18 @@
             : t("messages.stamp_ticket_expired")
     );
 
-    $effect(() => {
-        if (!pathMenuOpen && !moreMenuOpen) return;
-        const onDoc = (event: MouseEvent) => {
-            const target = event.target as Node;
-            if (pathMenuOpen && pathMenuRoot && !pathMenuRoot.contains(target)) pathMenuOpen = false;
-            if (moreMenuOpen && moreMenuRoot && !moreMenuRoot.contains(target)) moreMenuOpen = false;
-        };
-        document.addEventListener("mousedown", onDoc, true);
-        return () => document.removeEventListener("mousedown", onDoc, true);
-    });
+    onClickOutside(
+        () => pathMenuRoot,
+        () => {
+            pathMenuOpen = false;
+        }
+    );
+    onClickOutside(
+        () => moreMenuRoot,
+        () => {
+            moreMenuOpen = false;
+        }
+    );
 </script>
 
 <div class="relative z-20 flex items-center gap-2 px-3 sm:px-4 py-2 border-b border-sem-border bg-sem-canvas">

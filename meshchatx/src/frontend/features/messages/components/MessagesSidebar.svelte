@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
     import EmptyState from "../../../ui/svelte/EmptyState.svelte";
@@ -193,16 +194,12 @@
         if (confirmed) ondeleteFolder?.(folder.id);
     }
 
-    $effect(() => {
-        if (!folderMenuShow) return;
-        const onDoc = (event: MouseEvent) => {
-            if (folderMenuRoot && !folderMenuRoot.contains(event.target as Node)) {
-                folderMenuShow = false;
-            }
-        };
-        document.addEventListener("mousedown", onDoc, true);
-        return () => document.removeEventListener("mousedown", onDoc, true);
-    });
+    onClickOutside(
+        () => folderMenuRoot,
+        () => {
+            folderMenuShow = false;
+        }
+    );
 </script>
 
 <aside
