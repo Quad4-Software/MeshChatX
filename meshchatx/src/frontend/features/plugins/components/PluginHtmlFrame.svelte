@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { useEventListener } from "runed";
 
     const CHANNEL = "meshchatx-plugin-html-frame";
 
@@ -74,13 +74,7 @@
         }
     }
 
-    onMount(() => {
-        window.addEventListener("message", onMessage);
-    });
-
-    onDestroy(() => {
-        window.removeEventListener("message", onMessage);
-    });
+    useEventListener(window, "message", onMessage);
 </script>
 
 <iframe

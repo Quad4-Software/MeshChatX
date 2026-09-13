@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import { t } from "../../../js/i18n.js";
@@ -84,10 +85,12 @@
         return list.slice(0, 5);
     });
 
-    let mql: MediaQueryList | null = null;
+    let mql = $state<MediaQueryList | null>(null);
     function onResize() {
         if (mql) smUp = mql.matches || (typeof window !== "undefined" && window.innerWidth >= 640);
     }
+
+    useEventListener(() => mql, "change", onResize);
 
     onMount(() => {
         if (typeof window !== "undefined") {
@@ -95,17 +98,10 @@
                 mql = window.matchMedia("(min-width: 640px)");
                 if (mql) {
                     smUp = mql.matches || window.innerWidth >= 640;
-                    mql.addEventListener?.("change", onResize);
                 }
             } else {
                 smUp = window.innerWidth >= 640;
             }
-        }
-    });
-
-    onDestroy(() => {
-        if (mql) {
-            mql.removeEventListener("change", onResize);
         }
     });
 </script>

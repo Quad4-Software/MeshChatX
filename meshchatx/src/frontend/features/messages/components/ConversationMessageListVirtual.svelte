@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import type { Action } from "svelte/action";
+    import { useEventListener } from "runed";
     import ConversationMessageEntry, { type MessageDisplayEntry } from "./ConversationMessageEntry.svelte";
     import { estimateGroupHeight, findDisplayGroupIndexForMessageHash } from "../lib/messageListVirtual.js";
     import type { ConversationViewerActions } from "../lib/viewerActions.js";
@@ -99,21 +100,29 @@
         return layout.totalSize;
     }
 
+    function updateViewport(element: HTMLElement) {
+        scrollTop = element.scrollTop;
+        viewportHeight = element.clientHeight;
+    }
+
+    useEventListener(
+        () => getScrollElement(),
+        "scroll",
+        (event) => {
+            updateViewport(event.currentTarget);
+        },
+        { passive: true }
+    );
+
     $effect(() => {
         const element = getScrollElement();
         if (!element) {
             return;
         }
-        const updateViewport = () => {
-            scrollTop = element.scrollTop;
-            viewportHeight = element.clientHeight;
-        };
-        updateViewport();
-        element.addEventListener("scroll", updateViewport, { passive: true });
-        const observer = new ResizeObserver(updateViewport);
+        updateViewport(element);
+        const observer = new ResizeObserver(() => updateViewport(element));
         observer.observe(element);
         return () => {
-            element.removeEventListener("scroll", updateViewport);
             observer.disconnect();
         };
     });

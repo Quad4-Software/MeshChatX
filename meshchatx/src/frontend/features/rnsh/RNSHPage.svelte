@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount, tick } from "svelte";
+    import { useEventListener } from "runed";
     import { fade } from "svelte/transition";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
@@ -320,17 +321,17 @@
         };
     });
 
+    function handleFullscreenKeydown(event: KeyboardEvent): void {
+        if (event.key === "Escape" && sessionFullscreen) {
+            sessionFullscreen = false;
+        }
+    }
+
+    useEventListener(window, "resize", () => updateViewport(), { passive: true });
+    useEventListener(window, "keydown", handleFullscreenKeydown);
+
     onMount(() => {
         updateViewport();
-        const handleResize = () => updateViewport();
-        window.addEventListener("resize", handleResize, { passive: true });
-
-        const handleFullscreenKeydown = (event: KeyboardEvent) => {
-            if (event.key === "Escape" && sessionFullscreen) {
-                sessionFullscreen = false;
-            }
-        };
-        window.addEventListener("keydown", handleFullscreenKeydown);
 
         restoreLayout();
         void loadSessions();
@@ -341,8 +342,6 @@
         GlobalEmitter.on("websocket-reconnected", onWebsocketReconnected);
 
         return () => {
-            window.removeEventListener("resize", handleResize);
-            window.removeEventListener("keydown", handleFullscreenKeydown);
             document.body.style.overflow = "";
             offWsEvent("rnsh.session.change", onSessionChange);
             offWsEvent("rnsh.output", onOutputEvent);

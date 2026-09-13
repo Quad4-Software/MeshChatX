@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import { AlertDialog } from "bits-ui";
     import GlobalEmitter from "../../js/GlobalEmitter.js";
     import { t } from "../../js/i18n.js";
@@ -126,17 +127,16 @@
         }
     }
 
+    useEventListener(window, "keydown", onWindowKeydown, { capture: true });
+    useEventListener(window, "keyup", onWindowKeyup, { capture: true });
+
     onMount(() => {
         GlobalEmitter.on("confirm", show);
         GlobalEmitter.on("prompt", dismissForOtherDialog);
-        window.addEventListener("keydown", onWindowKeydown, true);
-        window.addEventListener("keyup", onWindowKeyup, true);
         return () => {
             cancel();
             GlobalEmitter.off("confirm", show);
             GlobalEmitter.off("prompt", dismissForOtherDialog);
-            window.removeEventListener("keydown", onWindowKeydown, true);
-            window.removeEventListener("keyup", onWindowKeyup, true);
         };
     });
 </script>

@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount, onDestroy, tick } from "svelte";
+    import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import LoadingState from "../../../ui/svelte/LoadingState.svelte";
     import ToastUtils from "../../../js/ToastUtils.js";
@@ -181,18 +182,16 @@
         }
     }
 
+    useEventListener(window, "mousemove", handleDragging);
+    useEventListener(window, "mouseup", stopDragging);
+    useEventListener(window, "resize", draw);
+
     onMount(() => {
         loadAudio();
-        window.addEventListener("mousemove", handleDragging);
-        window.addEventListener("mouseup", stopDragging);
-        window.addEventListener("resize", draw);
     });
 
     onDestroy(() => {
         stopPlayback();
-        window.removeEventListener("mousemove", handleDragging);
-        window.removeEventListener("mouseup", stopDragging);
-        window.removeEventListener("resize", draw);
         if (audioContext) audioContext.close();
     });
 </script>

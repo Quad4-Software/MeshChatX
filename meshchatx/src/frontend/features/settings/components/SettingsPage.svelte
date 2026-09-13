@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import SettingsNav from "./SettingsNav.svelte";
     import MicronWasmUpdateModal from "./MicronWasmUpdateModal.svelte";
@@ -608,6 +609,8 @@
         }
     }
 
+    useEventListener(window, "keydown", onKeydown);
+
     onMount(() => {
         loadConfig();
         loadServerSecurity();
@@ -622,13 +625,10 @@
             if (typeof label === "string") micronReleaseLabel = label;
         });
 
-        window.addEventListener("keydown", onKeydown);
-
         GlobalEmitter.on("identity-switched", loadConfig);
         GlobalEmitter.on("identity-switched-apply", loadConfig);
 
         return () => {
-            window.removeEventListener("keydown", onKeydown);
             GlobalEmitter.off("identity-switched", loadConfig);
             GlobalEmitter.off("identity-switched-apply", loadConfig);
             if (displayNameSaveTimeout) clearTimeout(displayNameSaveTimeout);

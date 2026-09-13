@@ -6,6 +6,7 @@
      * full page and loading its lists on mount instead of waiting for show().
      */
     import { onDestroy, onMount } from "svelte";
+    import { useEventListener } from "runed";
     import TutorialProgressBar from "./components/TutorialProgressBar.svelte";
     import TutorialTopBar from "./components/TutorialTopBar.svelte";
     import TutorialSteps from "./components/TutorialSteps.svelte";
@@ -18,13 +19,13 @@
         state.onWindowResize();
     }
 
+    useEventListener(window, "resize", onResize, { passive: true });
+
     onMount(() => {
-        window.addEventListener("resize", onResize, { passive: true });
         state.mountPage();
     });
 
     onDestroy(() => {
-        window.removeEventListener("resize", onResize);
         state.destroy();
     });
 </script>

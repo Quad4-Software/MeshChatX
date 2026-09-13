@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
+    import { useEventListener } from "runed";
     import "vis-network/styles/vis-network.css";
     import { DataSet } from "vis-data";
     import { Network } from "vis-network";
@@ -235,10 +236,10 @@
         rebuild();
     });
 
+    useEventListener(window, "resize", onResize);
+
     onMount(() => {
-        window.addEventListener("resize", onResize);
         return () => {
-            window.removeEventListener("resize", onResize);
             destroyNetwork();
         };
     });

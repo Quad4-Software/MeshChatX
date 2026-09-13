@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { useEventListener } from "runed";
     import PluginSlotRenderer from "./components/PluginSlotRenderer.svelte";
     import { pluginHost } from "../../js/plugins/PluginHost.js";
     import GlobalState from "../../js/GlobalState.js";
@@ -48,9 +48,6 @@
         return glass ? "glass-card bg-sem-surface/90" : "bg-sem-surface";
     });
 
-    let uiListener: ((event: any) => void) | null = null;
-    let errorListener: ((event: any) => void) | null = null;
-
     function onAction(actionId: string): void {
         if (resolvedPluginId) {
             pluginHost.postAction(resolvedPluginId, actionId);
@@ -72,30 +69,21 @@
         }
     });
 
-    onMount(() => {
-        uiListener = (event: any) => {
-            if (event.detail?.pluginId === resolvedPluginId) {
-                descriptor = event.detail.descriptor;
-                uiError = event.detail.error || "";
-            }
-        };
-        errorListener = (event: any) => {
-            if (event.detail?.pluginId === resolvedPluginId && event.detail?.uiError) {
-                uiError = event.detail.message || "";
-            }
-        };
-        window.addEventListener("meshchatx-plugin-ui", uiListener);
-        window.addEventListener("meshchatx-plugin-ui-error", errorListener);
-    });
+    function onPluginUi(event: any): void {
+        if (event.detail?.pluginId === resolvedPluginId) {
+            descriptor = event.detail.descriptor;
+            uiError = event.detail.error || "";
+        }
+    }
 
-    onDestroy(() => {
-        if (uiListener) {
-            window.removeEventListener("meshchatx-plugin-ui", uiListener);
+    function onPluginUiError(event: any): void {
+        if (event.detail?.pluginId === resolvedPluginId && event.detail?.uiError) {
+            uiError = event.detail.message || "";
         }
-        if (errorListener) {
-            window.removeEventListener("meshchatx-plugin-ui-error", errorListener);
-        }
-    });
+    }
+
+    useEventListener(window, "meshchatx-plugin-ui", onPluginUi);
+    useEventListener(window, "meshchatx-plugin-ui-error", onPluginUiError);
 </script>
 
 <div class="h-full overflow-y-auto p-4 sm:p-6" style={pageStyle}>

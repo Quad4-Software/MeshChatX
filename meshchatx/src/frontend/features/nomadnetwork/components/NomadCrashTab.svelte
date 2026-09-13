@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
+    import { useEventListener } from "runed";
     import { nomadCrashTabRendererUrl } from "../../../js/nomadCrashTabShell.js";
     import {
         postToFrame,
@@ -346,9 +347,10 @@
         }
     });
 
+    useEventListener(window, "message", onWindowMessage);
+    useEventListener(window, "visibilitychange", onVisibilityChange);
+
     onMount(() => {
-        window.addEventListener("message", onWindowMessage);
-        window.addEventListener("visibilitychange", onVisibilityChange);
         if (isDocumentHidden()) {
             livenessPaused = true;
             watchdog.stop();
@@ -362,8 +364,6 @@
     });
 
     onDestroy(() => {
-        window.removeEventListener("message", onWindowMessage);
-        window.removeEventListener("visibilitychange", onVisibilityChange);
         watchdog.stop();
         deadline.clear();
     });
