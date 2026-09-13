@@ -384,14 +384,33 @@ def check_appcontainer_launch() -> dict[str, str]:
 
     marker_dir = tempfile.mkdtemp(prefix="meshchatx_ac_probe_")
     marker = os.path.join(marker_dir, "probe.out")
+    child_log = os.path.join(marker_dir, "probe_child.log")
     env_flag = "MESHCHATX_SELF_CHECK_PROBE_PATH"
     saved = env_snapshot((env_flag,))
     os.environ[env_flag] = marker
     try:
+        child_env = None
+        extra_roots = None
         if _is_frozen_executable():
             args = [_MESHCHATX_RUN_MODULE_FLAG, _SELF_CHECK_PROBE_MODULE]
         else:
             args = ["-m", _SELF_CHECK_PROBE_MODULE]
+            # The container child cannot read the editable-install .pth
+            # finder in site-packages, so put the source tree on PYTHONPATH
+            # and grant the package tree read/execute directly. Only the
+            # package dir is granted; its ancestors get traverse access.
+            package_root = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
+            source_root = os.path.dirname(package_root)
+            child_env = dict(os.environ)
+            existing_pythonpath = child_env.get("PYTHONPATH")
+            child_env["PYTHONPATH"] = (
+                source_root + os.pathsep + existing_pythonpath
+                if existing_pythonpath
+                else source_root
+            )
+            extra_roots = [package_root]
         try:
             result = ac.launch_backend_sandboxed(
                 exe,
@@ -400,6 +419,9 @@ def check_appcontainer_launch() -> dict[str, str]:
                 reticulum_config_dir=marker_dir,
                 log_dir=marker_dir,
                 forced=True,
+                env=child_env,
+                extra_ro_roots=extra_roots,
+                child_log_path=child_log,
             )
         except Exception as exc:
             return _status(False, f"sandboxed spawn raised: {exc}")
@@ -421,9 +443,15 @@ def check_appcontainer_launch() -> dict[str, str]:
                 marker_ok = "ok" in handle.read()
         if marker_ok:
             return _status(True)
+        detail = ""
+        if os.path.isfile(child_log):
+            with open(child_log, encoding="utf-8", errors="replace") as handle:
+                tail = handle.read().strip().splitlines()[-5:]
+            if tail:
+                detail = ", child log: " + " | ".join(tail)
         return _status(
             False,
-            f"sandboxed child exited {result.exit_code} without marker",
+            f"sandboxed child exited {result.exit_code} without marker{detail}",
         )
     finally:
         shutil.rmtree(marker_dir, ignore_errors=True)
