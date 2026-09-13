@@ -4,6 +4,7 @@
     import { onMount, onDestroy, tick } from "svelte";
     import MapPage from "../MapPage.svelte";
     import MapTabBar from "./MapTabBar.svelte";
+    import MapTabContextMenu from "./MapTabContextMenu.svelte";
     import TileCache from "../../../js/TileCache.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import GlobalState from "../../../js/GlobalState.js";
@@ -31,10 +32,21 @@
     let lastLabelTap = { tabId: null as number | null, time: 0 };
     let isRouteActive = $state(true);
     let renameInputEl = $state<HTMLInputElement | null>(null);
+    let tabContextMenu = $state<{
+        show: boolean;
+        justOpened: boolean;
+        x: number;
+        y: number;
+        tabId: number | null;
+    }>({ show: false, justOpened: false, x: 0, y: 0, tabId: null });
 
     const showTabStrip = $derived(isWideViewport && tabs.length > 0);
     const canAddTab = $derived(tabs.length < MAX_MAP_TABS);
     const _activeTab = $derived(tabs.find((tab) => tab.id === activeTabId) || null);
+    const tabContextMenuTabIndex = $derived(tabs.findIndex((tab) => tab.id === tabContextMenu.tabId));
+    const tabContextMenuCanCloseRight = $derived(
+        tabContextMenuTabIndex >= 0 && tabContextMenuTabIndex < tabs.length - 1
+    );
 
     const tabLayoutSignature = $derived.by(() => {
         const tabsStr = tabs
@@ -130,6 +142,70 @@
     export function cancelRename() {
         renamingTabId = null;
         renameDraft = "";
+    }
+
+    function openTabContextMenu(event: MouseEvent, tab: MapTab) {
+        selectTab(tab.id);
+        tabContextMenu = {
+            show: true,
+            justOpened: true,
+            x: event.clientX,
+            y: event.clientY,
+            tabId: tab.id,
+        };
+        setTimeout(() => {
+            tabContextMenu.justOpened = false;
+        }, 50);
+    }
+
+    function onContextRenameTab() {
+        const tabId = tabContextMenu.tabId;
+        tabContextMenu.show = false;
+        if (tabId != null) {
+            void startRename(tabId);
+        }
+    }
+
+    function onContextNewTab() {
+        tabContextMenu.show = false;
+        addTab();
+    }
+
+    function onContextCloseTab() {
+        const tabId = tabContextMenu.tabId;
+        tabContextMenu.show = false;
+        if (tabId != null) {
+            closeTab(tabId);
+        }
+    }
+
+    function onContextCloseTabsRight() {
+        const tabId = tabContextMenu.tabId;
+        tabContextMenu.show = false;
+        const index = tabs.findIndex((tab) => tab.id === tabId);
+        if (index === -1) {
+            return;
+        }
+        for (const tab of tabs.slice(index + 1)) {
+            closeTab(tab.id);
+        }
+    }
+
+    function onContextCloseOtherTabs() {
+        const keepId = tabContextMenu.tabId;
+        tabContextMenu.show = false;
+        for (const tab of [...tabs]) {
+            if (tab.id !== keepId) {
+                closeTab(tab.id);
+            }
+        }
+    }
+
+    function onContextCloseAllTabs() {
+        tabContextMenu.show = false;
+        for (const tab of [...tabs]) {
+            closeTab(tab.id);
+        }
     }
 
     function onTabLabelTouchEnd(tab: MapTab, event: TouchEvent) {
@@ -370,6 +446,7 @@
             ontablabeltouchend={onTabLabelTouchEnd}
             onclosetab={closeTab}
             onaddtab={() => addTab()}
+            ontabcontextmenu={(tab, e) => openTabContextMenu(e, tab)}
         />
     {/if}
 
@@ -386,4 +463,23 @@
             </div>
         {/each}
     </div>
+
+    <MapTabContextMenu
+        show={tabContextMenu.show}
+        x={tabContextMenu.x}
+        y={tabContextMenu.y}
+        justOpened={tabContextMenu.justOpened}
+        canCloseRight={tabContextMenuCanCloseRight}
+        canCloseOthers={tabs.length > 1}
+        canCloseAll={tabs.length > 1}
+        onclose={() => {
+            tabContextMenu.show = false;
+        }}
+        onrename={onContextRenameTab}
+        onnewtab={onContextNewTab}
+        onclosetab={onContextCloseTab}
+        oncloseright={onContextCloseTabsRight}
+        oncloseothers={onContextCloseOtherTabs}
+        oncloseall={onContextCloseAllTabs}
+    />
 </div>
