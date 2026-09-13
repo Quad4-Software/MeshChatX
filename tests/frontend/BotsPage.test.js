@@ -182,7 +182,7 @@ describe("BotsPage.svelte", () => {
         render(BotsPage);
         await waitFor(() => expect(screen.getByText("Test Bot")).toBeTruthy());
 
-        const chatButton = screen.getByTitle("bots.chat_with_bot");
+        const chatButton = screen.getByTitle("Chat");
         await fireEvent.click(chatButton);
 
         expect(window.location.hash).toBe(`#/messages/${"a".repeat(32)}`);

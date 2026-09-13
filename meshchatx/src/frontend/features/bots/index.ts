@@ -12,6 +12,12 @@ export function registerBotsFeature(): void {
                 mount: "svelte",
                 load: () => import("./BotsPage.svelte"),
             },
+            {
+                name: "bot-setup",
+                path: "/bots/new",
+                mount: "svelte",
+                load: () => import("./BotSetupPage.svelte"),
+            },
         ],
     });
 }
