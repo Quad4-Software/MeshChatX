@@ -20,6 +20,7 @@
         ontablabeltouchend: (tab: MapTab, event: TouchEvent) => void;
         onclosetab: (id: number) => void;
         onaddtab: () => void;
+        ontabcontextmenu?: (tab: MapTab, event: MouseEvent) => void;
     }
 
     let {
@@ -37,6 +38,7 @@
         ontablabeltouchend,
         onclosetab,
         onaddtab,
+        ontabcontextmenu,
     }: Props = $props();
 </script>
 
@@ -54,6 +56,11 @@
                 ? 'bg-sem-canvas font-medium text-sem-fg shadow-xs ring-1 ring-sem-border'
                 : 'text-sem-fg-muted hover:bg-sem-surface/80 hover:text-sem-fg'}"
             onclick={() => onselect(tab.id)}
+            oncontextmenu={(e) => {
+                if (!ontabcontextmenu) return;
+                e.preventDefault();
+                ontabcontextmenu(tab, e);
+            }}
             onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
