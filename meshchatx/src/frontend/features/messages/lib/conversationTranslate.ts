@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
+import { STORAGE_KEYS } from "../../../js/constants.js";
+import * as TranslationService from "../../../js/TranslationService.js";
+import type { TranslationPack } from "../../../js/TranslationService.js";
+
 export type LangOption = {
     value: string;
     label: string;
@@ -13,64 +17,101 @@ export type BubbleTranslation = {
     loading?: boolean;
 };
 
-export async function loadTranslatorLanguages(
-    api: { get: (url: string, opts?: { params?: Record<string, unknown> }) => Promise<{ data?: unknown }> },
-    libreUrl?: string
-): Promise<{ languages: LangOption[]; hasTranslator: boolean }> {
+function displayNames(): { of: (code: string) => string | undefined } {
+    const locale = (typeof navigator !== "undefined" && navigator.language) || "en";
     try {
-        const params: Record<string, unknown> = {};
-        if (libreUrl) {
-            params.libretranslate_url = libreUrl;
-        }
-        const response = await api.get("/api/v1/translator/languages", { params });
-        const data = response.data as
-            { languages?: unknown[]; has_argos?: boolean; libretranslate_reachable?: boolean } | undefined;
-        const list = Array.isArray(data?.languages) ? data.languages : [];
-        const options: LangOption[] = list
-            .map((item: unknown) => {
-                if (typeof item === "string") {
-                    return { value: item, label: item.toUpperCase() };
-                }
-                const obj = item as Record<string, unknown>;
-                const code = String(obj.code || obj.value || "");
-                const name = String(obj.name || obj.label || code);
-                return { value: code, label: name };
-            })
-            .filter((opt: LangOption) => Boolean(opt.value));
-        const hasTranslator = options.length > 0 || Boolean(data?.has_argos || data?.libretranslate_reachable);
-        return { languages: options, hasTranslator };
+        return new Intl.DisplayNames([locale.slice(0, 2)], { type: "language" });
+    } catch {
+        return { of: (code: string) => code };
+    }
+}
+
+function packToOption(pack: TranslationPack): LangOption {
+    const names = displayNames();
+    const from = pack.from || pack.pair.slice(0, 2);
+    const to = pack.to || pack.pair.slice(2, 4);
+    return {
+        value: pack.pair,
+        label: `${names.of(from) || from} → ${names.of(to) || to}`,
+    };
+}
+
+/**
+ * List installed offline translation packs as select options.
+ * Option values are pair codes like "enes" understood by translateText.
+ */
+export async function loadTranslatorLanguages(): Promise<{ languages: LangOption[]; hasTranslator: boolean }> {
+    try {
+        const packs = await TranslationService.listPacks();
+        const options = packs.map(packToOption).filter((opt) => Boolean(opt.value));
+        return { languages: options, hasTranslator: options.length > 0 };
     } catch {
         return { languages: [], hasTranslator: false };
     }
 }
 
-export async function translateText(
-    api: { post: (url: string, body?: unknown) => Promise<{ data?: unknown }> },
-    params: {
-        text: string;
-        targetLang: string;
-        sourceLang?: string;
-        useArgos?: boolean;
-        libreUrl?: string;
-        libreApiKey?: string;
+/** Read the persisted translation target pair, if any. */
+export function readSavedTranslateTarget(): string | null {
+    let value: string | null = null;
+    try {
+        value =
+            localStorage.getItem(STORAGE_KEYS.TRANSLATE_TARGET_LANG) ||
+            localStorage.getItem(STORAGE_KEYS.COMPOSE_TRANSLATE_TARGET_LANG);
+    } catch {
+        value = null;
     }
-): Promise<{ translatedText: string; sourceLang: string }> {
-    const payload: Record<string, unknown> = {
+    return value ? String(value).toLowerCase().slice(0, 8) : null;
+}
+
+/** Persist the chosen translation target pair for the next session. */
+export function persistTranslateTarget(pair: string): void {
+    const target = String(pair || "")
+        .toLowerCase()
+        .slice(0, 8);
+    if (!target) {
+        return;
+    }
+    try {
+        localStorage.setItem(STORAGE_KEYS.TRANSLATE_TARGET_LANG, target);
+        localStorage.setItem(STORAGE_KEYS.COMPOSE_TRANSLATE_TARGET_LANG, target);
+    } catch {
+        /* storage unavailable */
+    }
+}
+
+/** Pick the persisted pair when still installed, else the first option. */
+export function defaultTranslateTarget(options: LangOption[]): string {
+    if (!options.length) {
+        return "";
+    }
+    const saved = readSavedTranslateTarget();
+    if (saved && options.some((opt) => opt.value === saved)) {
+        return saved;
+    }
+    return options[0].value;
+}
+
+/**
+ * Translate text through the local Bergamot engine. targetPair is a pack
+ * pair code like "enes"; the first two letters are the source language.
+ */
+export async function translateText(params: {
+    text: string;
+    targetPair: string;
+}): Promise<{ translatedText: string; sourceLang: string; targetLang: string }> {
+    const pair = String(params.targetPair || "")
+        .toLowerCase()
+        .slice(0, 4);
+    const source = pair.slice(0, 2);
+    const target = pair.slice(2, 4);
+    const result = await TranslationService.translate({
+        from: source,
+        to: target,
         text: params.text,
-        target_lang: params.targetLang,
-        source_lang: params.sourceLang || "auto",
-        use_argos: Boolean(params.useArgos),
-    };
-    if (params.libreUrl) {
-        payload.libretranslate_url = params.libreUrl;
-    }
-    if (params.libreApiKey) {
-        payload.libretranslate_api_key = params.libreApiKey;
-    }
-    const response = await api.post("/api/v1/translator/translate", payload);
-    const data = (response.data as { translated_text?: string; source_lang?: string } | undefined) || {};
+    });
     return {
-        translatedText: String(data.translated_text || ""),
-        sourceLang: String(data.source_lang || params.sourceLang || "auto"),
+        translatedText: String(result?.target?.text || ""),
+        sourceLang: source,
+        targetLang: target,
     };
 }

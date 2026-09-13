@@ -97,7 +97,7 @@
         onclosetelemetry,
         onshowtelemetrychange,
         onlocationclicktelemetry,
-        bubbleTranslate = { open: false, targetLang: "en", chatItem: null, working: false } as BubbleTranslateState,
+        bubbleTranslate = { open: false, targetLang: "", chatItem: null, working: false } as BubbleTranslateState,
         translateOptions = [] as LangOption[],
         onconfirmbubbletranslate,
         onclosebubbletranslate,
