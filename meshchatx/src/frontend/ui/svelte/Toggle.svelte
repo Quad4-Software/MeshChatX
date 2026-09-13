@@ -21,7 +21,7 @@
         : 'cursor-pointer'}"
 >
     <Switch.Root
-        {id}
+        id={id ?? undefined}
         bind:checked
         {disabled}
         onCheckedChange={(next) => onchange?.(next)}

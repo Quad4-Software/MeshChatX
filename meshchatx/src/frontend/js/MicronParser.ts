@@ -29,7 +29,7 @@ function clampMicronImageNumber(value, max) {
     return Math.min(Math.floor(n), max);
 }
 
-function sanitizeMicronImageString(value, maxLen, pattern = null) {
+function sanitizeMicronImageString(value, maxLen, pattern: RegExp | null = null) {
     if (typeof value !== "string") {
         return "";
     }
@@ -49,7 +49,15 @@ function truncateMicronImageAlt(value) {
 }
 
 function parseMicronImageOptions(fields) {
-    const options = {
+    const options: {
+        img: boolean;
+        w: number | null;
+        h: number | null;
+        size: number | null;
+        key: string;
+        align: string;
+        profile: string;
+    } = {
         img: false,
         w: null,
         h: null,
@@ -857,7 +865,7 @@ export default class MicronParser extends BaseMicronParser {
                 super.appendOutput(container, chunk, state);
             }
         };
-        let chunk = [];
+        let chunk: any[] = [];
         for (const p of parts) {
             if (p && p.type === "image") {
                 flushNonImage(chunk);
@@ -1057,7 +1065,7 @@ export default class MicronParser extends BaseMicronParser {
         return out;
     }
 
-    static enhanceA11y(root, options = {}) {
+    static enhanceA11y(root, options: { isPartial?: boolean } = {}) {
         if (!root || root.nodeType !== Node.ELEMENT_NODE) {
             return;
         }

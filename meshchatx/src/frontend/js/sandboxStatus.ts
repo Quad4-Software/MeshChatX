@@ -7,6 +7,7 @@ export type SandboxFeatureCard = {
     noteKey: string;
     active: boolean;
     unavailable: boolean;
+    abi: number | null;
     warn: boolean;
 };
 
