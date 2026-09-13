@@ -58,15 +58,35 @@
         return { rows, totalSize: cursor };
     });
 
+    function visibleRowBounds(rows: { start: number; size: number }[], start: number, end: number) {
+        // rows are sorted by start and contiguous, so binary search the window
+        let lo = 0;
+        let hi = rows.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (rows[mid].start + rows[mid].size < start) lo = mid + 1;
+            else hi = mid;
+        }
+        const firstVisible = lo;
+        lo = firstVisible;
+        hi = rows.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (rows[mid].start <= end) lo = mid + 1;
+            else hi = mid;
+        }
+        return { firstVisible, lastVisible: lo };
+    }
+
     const virtualRows = $derived.by(() => {
         const start = Math.max(0, scrollTop);
         const end = start + Math.max(viewportHeight, 1);
-        const visible = layout.rows.filter((row) => row.start + row.size >= start && row.start <= end);
-        if (visible.length === 0) {
+        const { firstVisible, lastVisible } = visibleRowBounds(layout.rows, start, end);
+        if (lastVisible <= firstVisible) {
             return layout.rows.slice(0, Math.min(layout.rows.length, overscan * 2 + 1));
         }
-        const first = Math.max(0, visible[0].index - overscan);
-        const last = Math.min(layout.rows.length, visible[visible.length - 1].index + overscan + 1);
+        const first = Math.max(0, firstVisible - overscan);
+        const last = Math.min(layout.rows.length, lastVisible + overscan);
         return layout.rows.slice(first, last);
     });
 
