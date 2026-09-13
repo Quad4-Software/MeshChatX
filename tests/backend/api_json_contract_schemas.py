@@ -277,6 +277,7 @@ SELF_TEST_SCHEMA: dict = {
         "storage_lock_good",
         "temp_fs_good",
         "fs_sandbox_good",
+        "appcontainer_launch",
         "public_assets_good",
         "lxmf_router_good",
         "lxst_telephony",
