@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Relay chat: on narrow screens the Host, Bots and Search tabs collapse into the overflow menu so the tab bar no longer scrolls horizontally on phones.
 - Android: tapping the app icon or the "running" notification could close the app with no message when the Chaquopy runtime or WebView failed before the UI came up. `Python.start` now catches `Throwable` (native link failures are `Error`s, not `Exception`s, and escaped the old catch), a missing or updating WebView provider shows a readable startup error, the storage migration tolerates `SecurityException`, and a WebView renderer crash surfaces instead of killing the process.
 - NomadNet: closing a node opened from the announce list destroyed the whole tab and landed on a fresh tab showing Favourites. Browse tabs now keep their list and close only returns to it; tabs that were opened directly on a node still close. The sidebar also reopens on the last used tab instead of always defaulting to Favourites.
+- NomadNet: leaving the browser route and coming back reloaded the crash tab renderer and repainted the page because detaching the DOM kills the iframe document. The renderer frame now lives outside the keep-alive subtree and is parked over its slot, so scroll position, expanded sections and field contents survive navigation with no reload.
 - Relay chat: backing out of a room that was opened from Search or Discovery returns to that view instead of always landing on Chat.
 
 ### Changed
