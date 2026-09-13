@@ -1,34 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-export interface BotLxmfConfig {
-    propagation_mode?: string;
-    propagation_node?: string;
-    propagation_fallback_enabled?: boolean | null;
-    direct_delivery_retries?: number | null;
-    opportunistic_sending?: boolean | null;
-    announce_interval_seconds?: number | null;
-    stamp_cost?: number | null;
-}
-
-export interface LxmfConfigDraft {
-    propagation_mode: string;
-    propagation_node: string;
-    propagation_fallback_enabled: string;
-    direct_delivery_retries: string;
-    opportunistic_sending: string;
-    announce_interval_seconds: string;
-    stamp_cost: string;
-}
-
-export type LxmfConfigPatch = {
-    propagation_mode?: string;
-    propagation_node?: string | null;
-    propagation_fallback_enabled?: boolean | null;
-    direct_delivery_retries?: number | null;
-    opportunistic_sending?: boolean | null;
-    announce_interval_seconds?: number | null;
-    stamp_cost?: number | null;
-};
+export type { BotLxmfConfig, LxmfConfigDraft, LxmfConfigPatch } from "./botLxmfConfigForm.js";
 
 export interface BotRecord {
     id: string;
