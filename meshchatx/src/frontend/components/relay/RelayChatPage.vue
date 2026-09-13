@@ -389,7 +389,7 @@
                                 type="button"
                                 class="md:hidden rounded-lg p-1.5 text-sem-fg-muted hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
                                 :title="$t('relay_chat.back')"
-                                @click="selectedRoom = null"
+                                @click="onBackFromRoom"
                             >
                                 <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
                             </button>
@@ -1918,6 +1918,7 @@ export default {
             this.members = [];
             this.selectedHubHash = null;
             this.selectedRoom = null;
+            this._viewBeforeRoomOpen = null;
             this.messageTranslations = {};
             this.expandedHubs = {};
             this.availableRoomsExpanded = {};
@@ -2903,11 +2904,26 @@ export default {
             if (!hubHash || !room) {
                 return;
             }
+            // Capture before the switch so backing out returns to Search.
+            this._viewBeforeRoomOpen = this.view;
             this.view = "chat";
             this.persistRelayLayout();
             this.selectRoom(hubHash, room);
         },
+        onBackFromRoom() {
+            this.selectedRoom = null;
+            this.restoreViewAfterRoomClose();
+        },
+        restoreViewAfterRoomClose() {
+            if (this._viewBeforeRoomOpen && this._viewBeforeRoomOpen !== this.view) {
+                this.view = this._viewBeforeRoomOpen;
+            }
+            this._viewBeforeRoomOpen = null;
+        },
         async selectRoom(hubHash, room) {
+            if (this.selectedRoom === null && this._viewBeforeRoomOpen == null) {
+                this._viewBeforeRoomOpen = this.view;
+            }
             this.selectedHubHash = hubHash;
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
@@ -3153,6 +3169,7 @@ export default {
             try {
                 await window.api.delete(apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(room)}`));
                 this.selectedRoom = null;
+                this.restoreViewAfterRoomClose();
                 this.messages = [];
                 this._invalidateMessageTimelineCache();
                 this.members = [];

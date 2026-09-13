@@ -847,6 +847,10 @@ import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
 import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
 
+// Remember the last picked sidebar tab for this session so a fresh sidebar
+// (new tab, remount) reopens where the user left off instead of Favourites.
+let lastSidebarTab = "favourites";
+
 export default {
     name: "NomadNetworkSidebar",
     components: {
@@ -923,7 +927,7 @@ export default {
     },
     data() {
         return {
-            tab: "favourites",
+            tab: lastSidebarTab,
             mobileUrlInput: "",
             favouritesSelectionMode: false,
             announcesSelectionMode: false,
@@ -1019,7 +1023,8 @@ export default {
             },
             deep: true,
         },
-        tab() {
+        tab(newTab) {
+            lastSidebarTab = newTab;
             this.exitFavouritesSelectionMode();
             this.exitAnnouncesSelectionMode();
             this.favouriteBulkMoveMenuOpen = false;
