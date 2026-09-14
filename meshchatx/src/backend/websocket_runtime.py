@@ -23,9 +23,10 @@ WS_RATE_RETRY_AFTER_SEC = 1.0
 
 # Cost multipliers for expensive mutators (tokens consumed per message).
 WS_RATE_COST_HEAVY = 5.0
+# nomadnet.file.download stays at base cost: image-rich pages legitimately
+# burst dozens of requests, and the transfer itself is bounded by the mesh.
 WS_HEAVY_TYPES = frozenset(
     {
-        "nomadnet.file.download",
         "nomadnet.page.download",
         "nomadnet.page.archive.add",
         "rns.link.request",
