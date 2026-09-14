@@ -102,25 +102,17 @@ describe("libs/emitter", () => {
     });
 
     it("edge: throwing handler does not prevent later handlers", () => {
+        const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
         const e = createEmitter();
         const seen = [];
         e.on("t", () => {
             throw new Error("boom");
         });
         e.on("t", () => seen.push("later"));
-        expect(() => e.emit("t")).toThrow(/boom/);
-        expect(seen).toEqual([]);
-        const safe = createEmitter();
-        safe.on("t", () => {
-            try {
-                throw new Error("boom");
-            } catch {
-                /* swallow */
-            }
-        });
-        safe.on("t", () => seen.push("later"));
-        safe.emit("t");
+        expect(() => e.emit("t")).not.toThrow();
         expect(seen).toEqual(["later"]);
+        expect(errSpy).toHaveBeenCalled();
+        errSpy.mockRestore();
     });
 
     it("wildcard * receives type and payload", () => {
