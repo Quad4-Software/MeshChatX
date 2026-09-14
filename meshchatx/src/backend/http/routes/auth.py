@@ -194,6 +194,23 @@ def register_auth_routes(routes, app):
                 )
             return http_forbidden("Initial setup already completed")
 
+        # On an OIDC-only deployment (no local password) a public setup
+        # endpoint would let any caller bootstrap a credential and session,
+        # bypassing the SSO boundary. Local password setup must instead run
+        # after an OIDC login or through config/env.
+        if app._oidc_ready():
+            if dao:
+                dao.insert(
+                    id_hash,
+                    ip,
+                    ua,
+                    SETUP_PATH,
+                    request.method,
+                    "setup_oidc_managed",
+                    "",
+                )
+            return http_forbidden("Instance is managed by single sign-on")
+
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:

@@ -391,7 +391,7 @@
         "oidc_issuer_placeholder": "https://idp.example.com/application/o/meshchatx/",
         "oidc_client_id": "ID do cliente",
         "oidc_client_secret": "Segredo do cliente (opcional para clientes publicos)",
-        "oidc_client_secret_configured": "Configurado. Digite um novo valor para substituir, limpe para remover.",
+        "oidc_client_secret_configured": "Configurado. Digite um novo valor para substituir.",
         "oidc_display_name_label": "Rotulo do botao",
         "oidc_scopes": "Escopos",
         "oidc_redirect_uri": "URI de redirecionamento",
@@ -740,7 +740,8 @@
         "message_failed_bubble_color": "Cor do balão de mensagem com falha",
         "message_waiting_bubble_color": "Cor do balão de mensagem pendente",
         "reload_rns_success": "RNS recarregada com sucesso",
-        "reload_rns_failed": "Falha ao recarregar a RNS"
+        "reload_rns_failed": "Falha ao recarregar a RNS",
+        "oidc_client_secret_clear": "Limpar"
     },
     "helptips": {
         "title_send_failed": "Coisas a tentar",

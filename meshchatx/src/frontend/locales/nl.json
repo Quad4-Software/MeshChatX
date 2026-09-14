@@ -391,7 +391,7 @@
         "oidc_issuer_placeholder": "https://idp.example.com/application/o/meshchatx/",
         "oidc_client_id": "Client-ID",
         "oidc_client_secret": "Client-secret (optioneel voor publieke clients)",
-        "oidc_client_secret_configured": "Geconfigureerd. Voer een nieuwe waarde in om te vervangen, leeg om te verwijderen.",
+        "oidc_client_secret_configured": "Geconfigureerd. Voer een nieuwe waarde in om te vervangen.",
         "oidc_display_name_label": "Knoplabel",
         "oidc_scopes": "Scopes",
         "oidc_redirect_uri": "Redirect-URI",
@@ -740,7 +740,8 @@
         "message_failed_bubble_color": "Ballonkleur mislukte berichten",
         "message_waiting_bubble_color": "Ballonkleur berichten in behandeling",
         "reload_rns_success": "RNS opnieuw geladen",
-        "reload_rns_failed": "RNS opnieuw laden mislukt"
+        "reload_rns_failed": "RNS opnieuw laden mislukt",
+        "oidc_client_secret_clear": "Wissen"
     },
     "helptips": {
         "title_send_failed": "Mogelijke oplossingen",

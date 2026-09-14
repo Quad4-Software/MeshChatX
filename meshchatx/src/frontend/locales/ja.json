@@ -391,7 +391,7 @@
         "oidc_issuer_placeholder": "https://idp.example.com/application/o/meshchatx/",
         "oidc_client_id": "クライアントID",
         "oidc_client_secret": "クライアントシークレット（パブリッククライアントでは省略可）",
-        "oidc_client_secret_configured": "設定済み。新しい値を入力すると置き換え、空にすると削除します。",
+        "oidc_client_secret_configured": "設定済み。新しい値を入力すると置き換わります。",
         "oidc_display_name_label": "ボタンラベル",
         "oidc_scopes": "スコープ",
         "oidc_redirect_uri": "リダイレクトURI",
@@ -740,7 +740,8 @@
         "message_failed_bubble_color": "失敗メッセージのバブルカラー",
         "message_waiting_bubble_color": "送信待ちメッセージのバブルカラー",
         "reload_rns_success": "RNS を正常に再読み込みしました",
-        "reload_rns_failed": "RNS の再読み込みに失敗しました"
+        "reload_rns_failed": "RNS の再読み込みに失敗しました",
+        "oidc_client_secret_clear": "クリア"
     },
     "helptips": {
         "title_send_failed": "試せる対処",

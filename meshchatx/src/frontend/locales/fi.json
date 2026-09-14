@@ -391,7 +391,7 @@
         "oidc_issuer_placeholder": "https://idp.example.com/application/o/meshchatx/",
         "oidc_client_id": "Asiakastunnus",
         "oidc_client_secret": "Asiakassalasaisuus (valinnainen julkisille asiakkaille)",
-        "oidc_client_secret_configured": "Maaritetty. Anna uusi arvo korvataksesi, tyhjenna poistaaksesi.",
+        "oidc_client_secret_configured": "Maaritetty. Anna uusi arvo korvataksesi.",
         "oidc_display_name_label": "Painikkeen teksti",
         "oidc_scopes": "Scopes",
         "oidc_redirect_uri": "Uudelleenohjaus-URI",
@@ -740,7 +740,8 @@
         "message_failed_bubble_color": "Epäonnistuneiden viestien kuplan väri",
         "message_waiting_bubble_color": "Odottavien viestien kuplan väri",
         "reload_rns_success": "RNS ladattu uudelleen onnistuneesti",
-        "reload_rns_failed": "RNS:n uudelleenlataus epäonnistui"
+        "reload_rns_failed": "RNS:n uudelleenlataus epäonnistui",
+        "oidc_client_secret_clear": "Tyhjenna"
     },
     "helptips": {
         "title_send_failed": "Kokeile seuraavaa",

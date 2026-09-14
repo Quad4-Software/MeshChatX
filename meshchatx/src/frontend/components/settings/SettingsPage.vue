@@ -2226,19 +2226,29 @@
                                             <div class="text-sm font-medium text-sem-fg">
                                                 {{ $t("app.oidc_client_secret") }}
                                             </div>
-                                            <input
-                                                v-model="oidcClientSecret"
-                                                type="password"
-                                                class="input-field font-mono text-xs"
-                                                :disabled="!!config.oidc_env_managed"
-                                                :placeholder="
-                                                    config.oidc_client_secret_set
-                                                        ? $t('app.oidc_client_secret_configured')
-                                                        : ''
-                                                "
-                                                autocomplete="new-password"
-                                                @input="onOidcSecretChange"
-                                            />
+                                            <div class="flex gap-2">
+                                                <input
+                                                    v-model="oidcClientSecret"
+                                                    type="password"
+                                                    class="input-field font-mono text-xs flex-1"
+                                                    :disabled="!!config.oidc_env_managed"
+                                                    :placeholder="
+                                                        config.oidc_client_secret_set
+                                                            ? $t('app.oidc_client_secret_configured')
+                                                            : ''
+                                                    "
+                                                    autocomplete="new-password"
+                                                    @input="onOidcSecretChange"
+                                                />
+                                                <button
+                                                    v-if="config.oidc_client_secret_set && !config.oidc_env_managed"
+                                                    type="button"
+                                                    class="px-2 py-1 text-xs rounded border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    @click="clearOidcSecret"
+                                                >
+                                                    {{ $t("app.oidc_client_secret_clear") }}
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div class="space-y-2">
@@ -3383,6 +3393,7 @@ export default {
             exposureAckVpn: false,
             oidcClientSecret: "",
             oidcSecretDirty: false,
+            oidcSecretClear: false,
             saveTimeouts: {},
             lxmfIncomingDeliveryPreset: "10mb",
             lxmfIncomingDeliveryCustomAmount: 10,
@@ -5094,6 +5105,13 @@ export default {
         },
         onOidcSecretChange() {
             this.oidcSecretDirty = true;
+            this.oidcSecretClear = false;
+            this.onOidcConfigChange();
+        },
+        clearOidcSecret() {
+            this.oidcClientSecret = "";
+            this.oidcSecretDirty = false;
+            this.oidcSecretClear = true;
             this.onOidcConfigChange();
         },
         onOidcConfigChange() {
@@ -5105,14 +5123,17 @@ export default {
                     oidc_display_name: this.config.oidc_display_name,
                     oidc_scopes: this.config.oidc_scopes,
                 };
-                if (this.oidcSecretDirty) {
+                if (this.oidcSecretClear) {
+                    payload.oidc_client_secret = null;
+                } else if (this.oidcSecretDirty && this.oidcClientSecret) {
+                    // An empty field means unchanged, not cleared. Only an
+                    // explicit clear action sends null.
                     payload.oidc_client_secret = this.oidcClientSecret;
                 }
                 await this.updateConfig(payload, "oidc_settings");
-                if (this.oidcSecretDirty) {
-                    this.oidcClientSecret = "";
-                    this.oidcSecretDirty = false;
-                }
+                this.oidcClientSecret = "";
+                this.oidcSecretDirty = false;
+                this.oidcSecretClear = false;
             }, 1000);
         },
         async onGiteaConfigChange() {

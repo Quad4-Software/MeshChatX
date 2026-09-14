@@ -1093,7 +1093,7 @@ async def test_oidc_config_patch_rejects_bad_issuer(mock_app):
             json={"oidc_issuer_url": "javascript:alert(1)"},
             headers=headers,
         )
-        assert resp.status == 200
+        assert resp.status == 400
         assert mock_app.config.oidc_issuer_url.get() == "https://good.example.com"
 
 
@@ -1224,3 +1224,33 @@ def test_verify_rejects_iss_trailing_slash(rsa_pair):
             client_id=CLIENT_ID,
             nonce="n",
         )
+
+
+@pytest.mark.asyncio
+async def test_update_config_invalid_issuer_leaves_no_partial_mutation(mock_app):
+    """A rejected oidc_issuer_url must not persist earlier keys in the PATCH."""
+    mock_app.config.display_name.set("before")
+    mock_app.config.oidc_enabled.set(False)
+    with pytest.raises(ValueError):
+        await mock_app.update_config(
+            {
+                "display_name": "after",
+                "oidc_enabled": True,
+                "oidc_issuer_url": "ht!tp://not a url",
+            }
+        )
+    assert mock_app.config.display_name.get() == "before"
+    assert mock_app.config.oidc_enabled.get() is False
+    assert mock_app.config.oidc_issuer_url.get() is None
+
+
+@pytest.mark.asyncio
+async def test_update_config_valid_issuer_persists(mock_app):
+    await mock_app.update_config(
+        {
+            "oidc_enabled": True,
+            "oidc_issuer_url": "https://idp.example.com/",
+        }
+    )
+    assert mock_app.config.oidc_enabled.get() is True
+    assert mock_app.config.oidc_issuer_url.get() == "https://idp.example.com"

@@ -391,7 +391,7 @@
         "oidc_issuer_placeholder": "https://idp.example.com/application/o/meshchatx/",
         "oidc_client_id": "클라이언트 ID",
         "oidc_client_secret": "클라이언트 시크릿 (퍼블릭 클라이언트는 선택 사항)",
-        "oidc_client_secret_configured": "구성됨. 새 값을 입력하면 교체하고, 지우면 제거됩니다.",
+        "oidc_client_secret_configured": "구성됨. 새 값을 입력하면 교체됩니다.",
         "oidc_display_name_label": "버튼 레이블",
         "oidc_scopes": "스코프",
         "oidc_redirect_uri": "리디렉션 URI",
@@ -740,7 +740,8 @@
         "message_failed_bubble_color": "실패한 메시지 말풍선 색상",
         "message_waiting_bubble_color": "전송 대기 메시지 말풍선 색상",
         "reload_rns_success": "RNS를 다시 불러왔습니다",
-        "reload_rns_failed": "RNS를 다시 불러오지 못했습니다"
+        "reload_rns_failed": "RNS를 다시 불러오지 못했습니다",
+        "oidc_client_secret_clear": "지우기"
     },
     "helptips": {
         "title_send_failed": "시도해 볼 방법",
