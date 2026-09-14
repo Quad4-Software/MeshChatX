@@ -16,8 +16,14 @@ All notable changes to this project will be documented in this file.
 - NomadNet: closing a node opened from the announce list destroyed the whole tab and landed on a fresh tab showing Favourites. Browse tabs now keep their list and close only returns to it; tabs that were opened directly on a node still close. The sidebar also reopens on the last used tab instead of always defaulting to Favourites.
 - NomadNet: leaving the browser route and coming back reloaded the crash tab renderer and repainted the page because detaching the DOM kills the iframe document. The renderer frame now lives outside the keep-alive subtree and is parked over its slot, so scroll position, expanded sections and field contents survive navigation with no reload.
 - Relay chat: backing out of a room that was opened from Search or Discovery returns to that view instead of always landing on Chat.
+- Reverse proxy: the WebSocket Origin check now honors X-Forwarded-Proto and X-Forwarded-Port when the peer is a trusted proxy (MESHCHAT_TRUSTED_PROXIES or trusted_proxy_cidrs in app_security.json). TLS-terminating ingress (Traefik, nginx, Caddy) no longer rejects every /ws upgrade with 403 because the backend hop is plain HTTP while the browser Origin is https.
+- Docker: the entrypoint prepends `meshchatx` when argv starts with a flag, so Kubernetes `command`/`args` overrides and `docker run image --flag` no longer crash su-exec with "illegal option".
+- Landlock: the parent directories of --ssl-cert/--ssl-key are granted as sandbox read roots at startup, so TLS material mounted outside the standard roots (for example a Kubernetes Secret at /tls) loads instead of failing with EACCES.
+- Logging: the Python logger also writes to stdout when a console stream exists, so aiohttp request-handler tracebacks show up in docker logs and kubectl logs instead of only the rotating file under the log dir.
 
 ### Changed
+
+- Install docs gain a reverse proxy section (trusted proxies, TLS layouts, WebSocket forwarding), Kubernetes notes for the container image, and coverage for previously undocumented flags and MESHCHAT_* environment variables including the backup/restore commands and the dangerous security-bypass knobs.
 
 - Bump rns to 1.5.4 and lxst to 0.5.3.
 - Headless self-check gains an AppContainer Launch probe that spawns a real sandboxed child on Windows so loader-init regressions surface via `--self-check` and CI.
