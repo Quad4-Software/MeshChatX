@@ -248,7 +248,11 @@ if log_dir:
         encoding="utf-8",
     )
     handlers.append(file_handler)
-else:
+
+# Always tee to stdout when one exists. Containers log to /config/logs only,
+# which hides aiohttp.server request-handler tracebacks from docker logs and
+# kubectl logs. Frozen GUI builds may have no console stream; skip then.
+if sys.stdout is not None:
     handlers.append(logging.StreamHandler(sys.stdout))
 
 logging.basicConfig(level=logging.INFO, handlers=handlers)
@@ -11777,12 +11781,24 @@ def main():
     reticulum_meshchat.appcontainer_active = is_appcontainer_child()
     if reticulum_meshchat.appcontainer_active:
         apply_windows_process_mitigations()
+    landlock_extra_read_roots = extra_read_roots_from_app(reticulum_meshchat)
+    # Custom TLS cert/key may live outside the standard roots (for example a
+    # mounted Kubernetes Secret at /tls). Grant read access to their parent
+    # directories so the sandboxed process can load them in run().
+    for tls_path in (
+        reticulum_meshchat.ssl_cert_path,
+        reticulum_meshchat.ssl_key_path,
+    ):
+        if tls_path:
+            tls_dir = os.path.dirname(os.path.abspath(str(tls_path)))
+            if tls_dir and tls_dir not in landlock_extra_read_roots:
+                landlock_extra_read_roots.append(tls_dir)
     reticulum_meshchat.landlock_active = apply_landlock_sandbox(
         storage_dir=reticulum_meshchat.storage_dir,
         reticulum_config_dir=reticulum_meshchat.reticulum_config_dir,
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         log_dir=resolve_log_dir(),
-        extra_read_roots=extra_read_roots_from_app(reticulum_meshchat),
+        extra_read_roots=landlock_extra_read_roots,
         extra_rw_roots=collect_external_filesync_rw_roots(
             reticulum_meshchat.storage_dir,
         ),
