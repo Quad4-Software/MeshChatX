@@ -7,6 +7,14 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - OIDC single sign-on for the web UI. Authentik, Keycloak, Pocket ID and compatible providers work through Authorization Code + PKCE with state and nonce binding, JWKS-verified ID tokens (RS256, ES256, EdDSA), and issuer, audience, azp, expiry and signature checks. Configure it under Settings, Authentication, or with MESHCHAT_OIDC_* environment variables. A working OIDC setup enforces authentication on its own even without a local password, password login stays available alongside it, and provider requests honor privacy mode.
+- New UI heap-profile spec mounts and unmounts each catalog page under seeded data and asserts listeners, timers, animation frames and heap return to baseline, so lifecycle leaks trip CI instead of drifting.
+
+### Security
+
+- Messages: user text could forge the internal placeholders used during markdown rendering and linkification, letting crafted content inject anchors through the restore step or smuggle tokens into linkified URLs. Placeholders now carry a per-render nonce, freshly generated anchors are shielded before the reticulum pass, and linkified URLs are truncated at bracket tokens.
+- Map exchange: the KML sanitizer missed attribute-bearing, namespaced and CDATA-wrapped href elements and could preserve remote URLs from malformed attributes. All href forms are now matched, CDATA is unwrapped, and malformed remote URL constructs are treated as unsafe.
+- Docs: uploaded Reticulum documentation HTML was served under the application origin and could be opened top level, where scripts share the app session. The docs iframe is sandboxed and /reticulum-docs/ responses carry a CSP sandbox directive, so both iframe and top-level opens run in an opaque origin.
+- Authentication: the public setup endpoint could bootstrap a local password on an OIDC-only deployment, bypassing the SSO boundary. Setup now checks OIDC readiness, not just the local password hash.
 
 ### Fixed
 
@@ -24,10 +32,21 @@ All notable changes to this project will be documented in this file.
 - Docker: the entrypoint prepends `meshchatx` when argv starts with a flag, so Kubernetes `command`/`args` overrides and `docker run image --flag` no longer crash su-exec with "illegal option".
 - Landlock: the parent directories of --ssl-cert/--ssl-key are granted as sandbox read roots at startup, so TLS material mounted outside the standard roots (for example a Kubernetes Secret at /tls) loads instead of failing with EACCES.
 - Logging: the Python logger also writes to stdout when a console stream exists, so aiohttp request-handler tracebacks show up in docker logs and kubectl logs instead of only the rotating file under the log dir.
+- WebSocket: the per-connection cost limiter now covers binary and invalid JSON frames, not just valid text, and a per-receive idle timeout plus unconditional cleanup keeps dead or flooding clients from holding a connection slot. The telephone audio socket gets the same gating.
+- Authentication: toggling auth_enabled off wiped the local password hash even while environment-managed OIDC still enforced login, so the credential could not be restored later. The hash is preserved while OIDC enforces auth.
+- Settings: an empty OIDC client secret field no longer overwrites the stored secret (explicit null clears it, and a clear action was added), and an invalid issuer URL is rejected before any config keys persist instead of leaving a partially applied update.
+- Backend: concurrent reload_reticulum calls could interleave teardown and rebuild of the live stack, and a partial failure could leave a dead reticulum attribute that recovery then reused. Reloads are now serialized and recovery clears the dead instance and RNS singleton first.
+- Backend: RNS request callbacks that fire on the transport thread now wake asyncio waiters through call_soon_threadsafe, dropped buffered coroutines are closed so the queue cannot emit coroutine was never awaited warnings, and the memory log handler drops its database reference at identity teardown instead of hitting a closed sqlite handle on every emit.
+- Voicemail: greeting text is passed to espeak over stdin, so text starting with a dash is no longer parsed as a command-line option.
+- Startup: orphaned ratchet files with non-hex names (staged-write leftovers like .out or .tmp) are swept before RNS init, so the upstream name check cannot keep re-triggering the corrupted-ratchet path on every boot.
+- Map: coordinates from telemetry, announces and interface discovery are range-validated before projection, so out-of-range, non-numeric or non-finite mesh data can no longer reach marker code, and marker updates are skipped after the map is torn down.
+- Messages: conversation and relay timelines cap retained items and dedupe live appends, unmounting a view no longer cancels sends the backend already accepted (drop and cancel are now distinct), chat window trims are coalesced to one splice per tick with a live drop count, and MiniChat merges its fetch with locally appended sends instead of racing them.
+- Frontend lifecycle: the live transport resets its bound socket state on destroy, aborts a pending WebTransport attempt when the mode changes mid-connect, and scopes the pong timeout to its socket so a reconnect cannot let an old timer kill the replacement. Failed WASM script injections are removed so the Micron and visualiser loaders can retry, and a stale NomadNet started event can no longer resurrect a cancelled or superseded download.
 
 ### Changed
 
 - Install docs gain a reverse proxy section (trusted proxies, TLS layouts, WebSocket forwarding), Kubernetes notes for the container image, and coverage for previously undocumented flags and MESHCHAT_* environment variables including the backup/restore commands and the dangerous security-bypass knobs.
+- Conversation message entries collapse repeated per-render parent lookups into computed values, the announces sidebar tab virtualizes past the list threshold, and per-view state (marker styles, delivery help tips, command palette results, discovered interfaces, NomadNet node pages and download buffers, MiniChat history, stacked toasts) is bounded so long sessions do not grow memory. Search debounce timers, audio recorder streams and SieveFlow rebuilds are cleaned up on unmount.
 
 - Bump rns to 1.5.4 and lxst to 0.5.3.
 - Headless self-check gains an AppContainer Launch probe that spawns a real sandboxed child on Windows so loader-init regressions surface via `--self-check` and CI.
