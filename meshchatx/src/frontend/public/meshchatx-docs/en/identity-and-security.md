@@ -37,6 +37,33 @@ Access attempts are logged. Repeated failures can trigger lockout when auth is e
 
 Reset a forgotten password with --reset-password or MESHCHAT_RESET_PASSWORD=true, then set a new password in the UI.
 
+### Single sign-on (OIDC)
+
+MeshChatX can sign users in through an external OpenID Connect provider such as Authentik, Keycloak, or Pocket ID. The flow is Authorization Code with PKCE, state, and nonce, and ID tokens are verified against the provider JWKS (RS256, ES256, or EdDSA).
+
+Configure it under Settings, Authentication, Single sign-on, or with MESHCHAT_OIDC_* environment variables (which take precedence over the UI fields and lock them). A working OIDC setup also enforces authentication on the web UI even if password auth was never enabled, so a configured provider can act as the only sign-in method.
+
+Required provider settings:
+
+- Issuer URL: the provider issuer, for example https://idp.example.com/application/o/meshchatx/ (Authentik) or https://idp.example.com/realms/master (Keycloak). Pasting a full discovery URL ending in /.well-known/openid-configuration also works.
+- Client ID and, for confidential clients, client secret.
+- Redirect URI: https://<your-meshchatx-host>/api/v1/auth/oidc/callback, registered exactly as shown in the settings page.
+
+Provider notes:
+
+- Authentik: create a Provider of type OAuth2/OpenID and an Application. The issuer is shown on the provider detail page.
+- Keycloak: create a client in the realm, enable client authentication if you want a secret, and add the redirect URI under Valid redirect URIs. The issuer is the realm URL.
+- Pocket ID: create an OIDC client and add the callback URL. Pocket ID issues PKCE public clients, so a client secret is optional.
+
+Deployment notes:
+
+- Behind a reverse proxy, set MESHCHAT_TRUSTED_PROXIES so the app derives the public https redirect URI from X-Forwarded-* headers. Without trusted proxies the callback URL uses the internal origin and providers reject it.
+- Privacy mode blocks OIDC discovery, JWKS, and token requests because they are clearnet HTTP calls. SSO is unavailable while privacy mode is on.
+- The client secret is stored per identity in the config database and is never returned by the API. Rotating it just means typing a new value in the settings field.
+- If a bad OIDC config locks the UI, start with MESHCHAT_OIDC_ENABLED=0 to force it off (it wins over stored settings), or clear the other MESHCHAT_OIDC_* variables and set oidc_enabled to false in the stored config.
+
+Password auth stays available alongside OIDC. If no local password is set, the login page offers the SSO button plus a link to set one.
+
 ### Demo mode
 
 MESHCHAT_DEMO_MODE=1 (or --demo) enables a public showcase profile: privacy mode on, plugins off, no outbound announces, and a default-deny HTTP mutation policy with mesh send blocked. Status reports demo_mode: true.
