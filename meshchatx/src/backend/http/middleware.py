@@ -554,6 +554,12 @@ def create_security_middleware(app):
             "object-src 'none'; "
             "base-uri 'self';"
         )
+        if path.startswith("/reticulum-docs/"):
+            # Uploaded manuals are user-supplied HTML. The sandbox directive
+            # forces an opaque origin even when a doc is opened top-level via
+            # the open-external link, so embedded scripts cannot reach the
+            # app session or API.
+            csp += " sandbox allow-scripts allow-forms allow-modals;"
         response.headers["Content-Security-Policy"] = csp
         return response
 

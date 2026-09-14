@@ -3,11 +3,13 @@
 import JSZip from "jszip";
 import { readKmlToFeatures, writeFeaturesToKml } from "./kmlCodec.js";
 import {
+    KML_HREF_TAG_RE,
     KmlSanitizeError,
     isAllowedDataImageHref,
     isRemoteHref,
     kmzEntryAllowed,
     sanitizeKmlText,
+    unwrapCdataText,
 } from "./kmlSanitize.js";
 
 /**
@@ -146,11 +148,10 @@ function zipFileInsensitive(zip, zipPath) {
  * @returns {Promise<string>}
  */
 async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
-    const hrefRe = /<href>\s*([^<]+?)\s*<\/href>/gi;
-    const matches = [...kmlText.matchAll(hrefRe)];
+    const matches = [...kmlText.matchAll(KML_HREF_TAG_RE)];
     const rawToData = new Map();
     for (const m of matches) {
-        const raw = m[1].trim();
+        const raw = unwrapCdataText(m[1]);
         if (rawToData.has(raw)) {
             continue;
         }
@@ -176,8 +177,8 @@ async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
         const b64 = uint8ToBase64(new Uint8Array(ab));
         rawToData.set(raw, `data:${mime};base64,${b64}`);
     }
-    return kmlText.replace(hrefRe, (full, inner) => {
-        const raw = inner.trim();
+    return kmlText.replace(KML_HREF_TAG_RE, (full, inner) => {
+        const raw = unwrapCdataText(inner);
         if (isAllowedDataImageHref(raw)) {
             return `<href>${raw}</href>`;
         }
