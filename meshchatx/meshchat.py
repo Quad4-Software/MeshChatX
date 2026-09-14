@@ -15,6 +15,7 @@ import importlib
 import importlib.metadata
 import json
 import logging
+import math
 import os
 import re
 import runpy
@@ -481,6 +482,9 @@ class ReticulumMeshChat:
 
         self.webtransport_state = WebTransportSidecarState()
         self._identity_hotswap_lock = asyncio.Lock()
+        # Serializes reload_reticulum: concurrent admin requests would
+        # otherwise interleave teardown and rebuild of the RNS stack.
+        self._reticulum_reload_lock = asyncio.Lock()
         self.listen_host: str | None = None
         self.listen_port: int | None = None
         self.use_https: bool = True
@@ -2140,6 +2144,9 @@ class ReticulumMeshChat:
             if identity_hash in self.contexts:
                 del self.contexts[identity_hash]
             self.current_context = None
+            # The context DB is closed; drop the stale handle so later log
+            # emits buffer in memory instead of hitting a dead SQLite file.
+            memory_log_handler.set_database(None)
             # Drop Nomad and RNS links that may have identified as the prior identity.
             self._clear_mesh_link_caches()
             self._drop_auto_resend_locks(identity_hash)
@@ -2174,6 +2181,9 @@ class ReticulumMeshChat:
         self.contexts.clear()
         self.current_context = None
         self.running = False
+        # Context DBs are closed; stop the log handler from writing to a
+        # stale handle during the reload gap.
+        memory_log_handler.set_database(None)
         # Same drop as teardown_identity. Reload and zip restore must not keep
         # Nomad or RNS Link sessions from the torn-down identities.
         self._clear_mesh_link_caches()
@@ -2441,6 +2451,10 @@ class ReticulumMeshChat:
             cp.write(f)
 
     async def reload_reticulum(self):
+        async with self._reticulum_reload_lock:
+            return await self._reload_reticulum_locked()
+
+    async def _reload_reticulum_locked(self):
         print("Hot reloading Reticulum stack...")
         # Keep reference to old reticulum instance for cleanup
         old_reticulum = getattr(self, "reticulum", None)
@@ -2961,6 +2975,17 @@ class ReticulumMeshChat:
             )
 
             # Try to recover if possible without wiping storage.
+            # A failure between RNS shutdown and the attribute drop leaves a
+            # dead self.reticulum that would make setup_identity reuse a
+            # torn-down stack, so clear it (and the RNS singleton) first.
+            if getattr(self, "reticulum", None) is not None:
+                with contextlib.suppress(Exception):
+                    RNS.Reticulum.exit_handler()
+                with contextlib.suppress(Exception):
+                    del self.reticulum
+                with contextlib.suppress(Exception):
+                    RNS.Reticulum._Reticulum__instance = None
+
             if not hasattr(self, "reticulum") and identity_to_restore is not None:
                 try:
                     self.setup_identity(identity_to_restore)
@@ -3599,6 +3624,25 @@ class ReticulumMeshChat:
             updated["publish_ifac"] = bool(
                 updated["ifac_netname"] or updated["ifac_netkey"],
             )
+
+            # Discovery announces are untrusted mesh data; reject non-finite
+            # or out-of-range coordinates before they reach map clients.
+            lat = updated.get("latitude")
+            lon = updated.get("longitude")
+            if lat is not None or lon is not None:
+                valid = (
+                    isinstance(lat, (int, float))
+                    and isinstance(lon, (int, float))
+                    and not isinstance(lat, bool)
+                    and not isinstance(lon, bool)
+                    and math.isfinite(lat)
+                    and math.isfinite(lon)
+                    and -90.0 <= lat <= 90.0
+                    and -180.0 <= lon <= 180.0
+                )
+                if not valid:
+                    updated["latitude"] = None
+                    updated["longitude"] = None
             normalized.append(updated)
         return normalized
 
@@ -3903,6 +3947,7 @@ class ReticulumMeshChat:
         )
 
         done_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
         success = [False]
         content_received = [None]
         failure_reason = ["timeout"]
@@ -3911,11 +3956,13 @@ class ReticulumMeshChat:
         def on_success(content):
             success[0] = True
             content_received[0] = content
-            done_event.set()
+            # RNS request callbacks fire on the transport thread, so the
+            # asyncio.Event must be set through the owning loop.
+            loop.call_soon_threadsafe(done_event.set)
 
         def on_failure(reason):
             failure_reason[0] = reason
-            done_event.set()
+            loop.call_soon_threadsafe(done_event.set)
 
         def on_progress(progress):
             pass
