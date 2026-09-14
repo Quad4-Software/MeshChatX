@@ -1151,6 +1151,7 @@ import {
     COORD_FORMATS,
     ensureGeoCoordsReady,
     formatCoordinate,
+    isValidLatLon,
     normalizeCoordinateFormat,
     parseCoordinateQuery,
     shouldWarnGeoWasmFallback,
@@ -2049,6 +2050,10 @@ export default {
             const startZoom = this.currentZoom !== 2 ? this.currentZoom : defaultZoom;
 
             const baseLayer = await this.buildBaseMapLayer();
+            // The component may have unmounted while the base layer awaited.
+            if (this._unmounted || !this.$refs.mapContainer) {
+                return;
+            }
             const mapPixelRatio = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
             this.map = new OlMap({
                 target: this.$refs.mapContainer,
@@ -2418,7 +2423,7 @@ export default {
             zoom = Math.max(0, Math.min(22, zoom));
             const label = (q.label != null && String(q.label)) || "Target";
 
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+            if (!isValidLatLon(lat, lon)) {
                 return;
             }
 
@@ -3542,17 +3547,26 @@ export default {
         },
         selectSearchResult(result) {
             if (!this.map) return;
+            if (!isValidLatLon(result.lat, result.lon)) return;
 
             const view = this.map.getView();
-            const center = fromLonLat([result.lon, result.lat]);
+            const center = fromLonLat([Number(result.lon), Number(result.lat)]);
 
             if (result.boundingbox && result.boundingbox.length === 4) {
                 const [minLat, maxLat, minLon, maxLon] = result.boundingbox.map(parseFloat);
-                const extent = [...fromLonLat([minLon, minLat]), ...fromLonLat([maxLon, maxLat])];
-                view.fit(extent, {
-                    padding: [50, 50, 50, 50],
-                    duration: 500,
-                });
+                if (isValidLatLon(minLat, minLon) && isValidLatLon(maxLat, maxLon)) {
+                    const extent = [...fromLonLat([minLon, minLat]), ...fromLonLat([maxLon, maxLat])];
+                    view.fit(extent, {
+                        padding: [50, 50, 50, 50],
+                        duration: 500,
+                    });
+                } else {
+                    view.animate({
+                        center: center,
+                        zoom: Math.max(view.getZoom(), 15),
+                        duration: 500,
+                    });
+                }
             } else {
                 view.animate({
                     center: center,
@@ -5390,14 +5404,14 @@ export default {
             return dedupeDiscoveredMapNodesHelper(nodes);
         },
         updateMarkers() {
-            if (!this.markerSource) return;
+            if (!this.markerSource || !this.map) return;
             const byKey = this._markerFeaturesByKey || (this._markerFeaturesByKey = new Map());
             const seen = new Set();
             const candidates = [];
 
             for (const t of this.dedupeTelemetryMarkersForMap(this.telemetryList)) {
                 const loc = t.telemetry?.location;
-                if (!loc || loc.latitude === undefined || loc.longitude === undefined) continue;
+                if (!loc || !isValidLatLon(loc.latitude, loc.longitude)) continue;
                 const coord = fromLonLat([loc.longitude, loc.latitude]);
                 const key = `t:${t.destination_hash}`;
                 let feature = byKey.get(key);
@@ -5689,8 +5703,8 @@ export default {
                 const coords = [];
                 for (const entry of history) {
                     const loc = entry.telemetry?.location;
-                    if (loc && loc.latitude !== undefined && loc.longitude !== undefined) {
-                        coords.push(fromLonLat([loc.longitude, loc.latitude]));
+                    if (loc && isValidLatLon(loc.latitude, loc.longitude)) {
+                        coords.push(fromLonLat([Number(loc.longitude), Number(loc.latitude)]));
                     }
                 }
 
@@ -5819,7 +5833,7 @@ export default {
             try {
                 const response = await window.api.get(apiPath("/reticulum/discovered-interfaces"));
                 const discovered = response.data?.interfaces ?? [];
-                const nodesWithLoc = discovered.filter((n) => n.latitude != null && n.longitude != null);
+                const nodesWithLoc = discovered.filter((n) => isValidLatLon(n.latitude, n.longitude));
                 const nodesDeduped = this.dedupeDiscoveredMapNodes(nodesWithLoc);
 
                 if (nodesDeduped.length === 0) {

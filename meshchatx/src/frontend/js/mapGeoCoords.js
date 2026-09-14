@@ -7,6 +7,13 @@ import { callGeoWasmJson, isGeoWasmReady, preloadGeoWasm } from "./GeoWasmLoader
 
 export const COORD_FORMATS = Object.freeze(["wgs84", "utm", "mgrs", "olc"]);
 
+/** True when lat/lon are finite numbers inside WGS84 bounds. */
+export function isValidLatLon(lat, lon) {
+    const la = Number(lat);
+    const lo = Number(lon);
+    return Number.isFinite(la) && Number.isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180;
+}
+
 let fallbackToastShown = false;
 
 /** Normalize a config/UI format string to a known value. */
