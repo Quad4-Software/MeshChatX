@@ -45,7 +45,10 @@ class WebSocketConnection {
         this.destroyed = false;
 
         if (typeof window === "undefined" || !window.api) {
-            setTimeout(() => this.connect(), 100);
+            this._bootstrapRetryTimeout = setTimeout(() => {
+                this._bootstrapRetryTimeout = null;
+                this.connect();
+            }, 100);
             return;
         }
 
@@ -53,17 +56,20 @@ class WebSocketConnection {
 
         if (typeof window !== "undefined" && window.addEventListener) {
             if (!this._hasEventListeners) {
-                window.addEventListener("visibilitychange", () => {
+                this._onVisibilityChange = () => {
                     if (typeof document !== "undefined" && document.visibilityState === "visible") {
                         this.handleForegroundOrNetworkChange();
                     }
-                });
-                window.addEventListener("focus", () => {
+                };
+                this._onWindowFocus = () => {
                     this.handleForegroundOrNetworkChange();
-                });
-                window.addEventListener("online", () => {
+                };
+                this._onWindowOnline = () => {
                     this.handleForegroundOrNetworkChange();
-                });
+                };
+                window.addEventListener("visibilitychange", this._onVisibilityChange);
+                window.addEventListener("focus", this._onWindowFocus);
+                window.addEventListener("online", this._onWindowOnline);
                 this._hasEventListeners = true;
             }
         }
@@ -164,10 +170,15 @@ class WebSocketConnection {
         }
 
         const wsUrl = window.location.origin.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
-        this.ws = new WebSocket(wsUrl);
+        const socket = new WebSocket(wsUrl);
+        this.ws = socket;
+        // The forced-close that spawned this attempt belongs to the previous
+        // socket. Its close event arrives later and is ignored via the stale
+        // socket guard, so the flag must not leak into this socket's lifecycle.
+        this._isForcedReconnect = false;
 
-        this.ws.addEventListener("open", () => {
-            if (this.destroyed) {
+        socket.addEventListener("open", () => {
+            if (this.destroyed || socket !== this.ws) {
                 return;
             }
             if (this._reconnectTimeout != null) {
@@ -185,7 +196,12 @@ class WebSocketConnection {
             this.emit("connected", { isReconnect });
         });
 
-        this.ws.addEventListener("close", () => {
+        socket.addEventListener("close", () => {
+            // A close from a superseded socket must not tear down the live
+            // connection's heartbeat or emit a stale disconnected event.
+            if (socket !== this.ws) {
+                return;
+            }
             this._stopHeartbeat();
             this._sessionReady = false;
             if (this.destroyed) {
@@ -235,11 +251,14 @@ class WebSocketConnection {
             }, delay);
         });
 
-        this.ws.addEventListener("error", () => {
+        socket.addEventListener("error", () => {
             // close event will follow, and reconnect is scheduled there
         });
 
-        this.ws.onmessage = (message) => {
+        socket.onmessage = (message) => {
+            if (socket !== this.ws) {
+                return;
+            }
             this._lastReceivedTime = Date.now();
             let isPong = false;
             try {
@@ -321,6 +340,19 @@ class WebSocketConnection {
         if (this._reconnectTimeout != null) {
             clearTimeout(this._reconnectTimeout);
             this._reconnectTimeout = null;
+        }
+        if (this._bootstrapRetryTimeout != null) {
+            clearTimeout(this._bootstrapRetryTimeout);
+            this._bootstrapRetryTimeout = null;
+        }
+        if (this._hasEventListeners && typeof window !== "undefined" && window.removeEventListener) {
+            window.removeEventListener("visibilitychange", this._onVisibilityChange);
+            window.removeEventListener("focus", this._onWindowFocus);
+            window.removeEventListener("online", this._onWindowOnline);
+            this._hasEventListeners = false;
+            this._onVisibilityChange = null;
+            this._onWindowFocus = null;
+            this._onWindowOnline = null;
         }
         if (this.ws) {
             try {

@@ -49,6 +49,16 @@ export function createOutboundQueue(processJob) {
         }
     }
 
+    function clear() {
+        for (const job of queue) {
+            job.cancelled = true;
+        }
+        queue.length = 0;
+        if (currentJob) {
+            currentJob.cancelled = true;
+        }
+    }
+
     return {
         enqueue(job) {
             queue.push(job);
@@ -64,6 +74,7 @@ export function createOutboundQueue(processJob) {
                 }
             }
         },
+        clear,
         get length() {
             return queue.length;
         },

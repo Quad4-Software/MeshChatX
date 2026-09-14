@@ -940,6 +940,7 @@ describe("RelayChatPage.vue", () => {
             ts: 0,
             mention: false,
         });
+        wrapper.vm.showMembers = true;
 
         expect(wrapper.vm.onlineMembers.map((m) => m.name)).toContain("carol");
         expect(wrapper.vm.offlineMembers.map((m) => m.name)).toContain("dave");

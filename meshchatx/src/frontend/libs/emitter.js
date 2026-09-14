@@ -55,13 +55,23 @@ export function createEmitter(all = new Map()) {
             const list = all.get(type);
             if (list) {
                 for (const handler of list.slice()) {
-                    /** @type {EmitterHandler} */ (handler)(event);
+                    try {
+                        /** @type {EmitterHandler} */ (handler)(event);
+                    } catch (e) {
+                        // One faulty listener must not starve the rest of the
+                        // handlers or throw out of the emit callsite.
+                        console.error(`emitter handler failed for ${String(type)}`, e);
+                    }
                 }
             }
             const wild = all.get("*");
             if (wild) {
                 for (const handler of wild.slice()) {
-                    handler(type, event);
+                    try {
+                        handler(type, event);
+                    } catch (e) {
+                        console.error(`emitter wildcard handler failed for ${String(type)}`, e);
+                    }
                 }
             }
         },

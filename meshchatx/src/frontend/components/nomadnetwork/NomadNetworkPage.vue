@@ -843,6 +843,9 @@ import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../
 import { isUnknownNodeDisplayName, resolveFavouriteUpsertDisplayName } from "../../js/nomadUnknownNodeName.js";
 import { useNomadNodesList } from "../../js/nomadnet/useNomadNodesList.js";
 
+// Bounds the per-tab page content cache. Least recently viewed pages evict first.
+const NODE_PAGE_CACHE_MAX = 50;
+
 export default {
     name: "NomadNetworkPage",
     components: {
@@ -1467,6 +1470,14 @@ export default {
         if (this.isLoadingNodePage || this.currentPageDownloadId !== null) {
             this.cancelPageDownload();
         }
+        this.nomadPageDownloadChunkBuffers = {};
+        this.nomadFileDownloadChunkBuffers = {};
+        for (const entry of Object.values(this.nomadnetPageDownloadCallbacks || {})) {
+            entry?.cancelPendingSend?.();
+        }
+        this.nomadnetPageDownloadCallbacks = {};
+        this.nomadnetFileDownloadCallbacks = {};
+        this.nomadImageDownloadCallbacks = {};
         this.teardownMultilineExpansion();
 
         offWsEvent(WS_EVENTS.ANNOUNCE, this.onNomadAnnounceEvent);
@@ -1956,6 +1967,7 @@ export default {
                             )
                         ]
                     ) {
+                        delete this.nomadPageDownloadChunkBuffers[downloadId];
                         this.isLoadingNodePage = false;
                         this.nodePageLoadPhase = null;
                         this.currentPageDownloadId = null;
@@ -1998,6 +2010,8 @@ export default {
                             );
                             return;
                         }
+                        // Tag the entry so a later cancelled event can purge it.
+                        startedCallback.downloadId = downloadId;
                         // Partials must not steal currentPageDownloadId from the main page load.
                         if (startedCallback.primary) {
                             this.currentPageDownloadId = downloadId;
@@ -2046,6 +2060,7 @@ export default {
                         this.hasArchivesForCurrentPage = this.isPrivate ? false : nomadnetPageDownload.has_archives;
                         nomadnetPageDownloadCallback.onFailureCallback(nomadnetPageDownload.failure_reason);
                         delete this.nomadnetPageDownloadCallbacks[getNomadnetPageDownloadCallbackKey];
+                        delete this.nomadPageDownloadChunkBuffers[downloadId];
                         if (this.currentPageDownloadId === downloadId) {
                             this.currentPageDownloadId = null;
                         }
@@ -2104,6 +2119,7 @@ export default {
                         if (nomadnetFileDownload.status === "failure" && imageCallback.onFailureCallback) {
                             imageCallback.onFailureCallback(nomadnetFileDownload.failure_reason);
                             delete this.nomadImageDownloadCallbacks[imageId];
+                            delete this.nomadFileDownloadChunkBuffers[downloadId];
                             return;
                         }
                         if (nomadnetFileDownload.status === "progress" && imageCallback.onProgressCallback) {
@@ -2120,6 +2136,7 @@ export default {
                         if (!this.nomadnetFileDownloadCallbacks[fileCallbackKey]) {
                             break;
                         }
+                        this.nomadnetFileDownloadCallbacks[fileCallbackKey].downloadId = downloadId;
                         this.currentFileDownloadId = downloadId;
                         return;
                     }
@@ -2154,6 +2171,7 @@ export default {
                     if (nomadnetFileDownload.status === "failure" && nomadnetFileDownloadCallback.onFailureCallback) {
                         nomadnetFileDownloadCallback.onFailureCallback(nomadnetFileDownload.failure_reason);
                         delete this.nomadnetFileDownloadCallbacks[getNomadnetFileDownloadCallbackKey];
+                        delete this.nomadFileDownloadChunkBuffers[downloadId];
                         this.currentFileDownloadId = null;
                         return;
                     }
@@ -2169,6 +2187,9 @@ export default {
                 case "nomadnet.download.cancelled": {
                     // handle download cancellation
                     const downloadId = json.download_id;
+                    delete this.nomadPageDownloadChunkBuffers[downloadId];
+                    delete this.nomadFileDownloadChunkBuffers[downloadId];
+                    this.purgeDownloadCallbacksForId(downloadId);
 
                     // clear page download if it matches
                     if (this.currentPageDownloadId === downloadId) {
@@ -2491,6 +2512,11 @@ export default {
                 // load from cache
                 const nodePagePathCacheKey = `${destinationHash}:${pagePath}`;
                 const cachedNodePageContent = this.nodePageCache[nodePagePathCacheKey];
+                if (cachedNodePageContent != null) {
+                    // refresh recency for the LRU bound
+                    delete this.nodePageCache[nodePagePathCacheKey];
+                    this.nodePageCache[nodePagePathCacheKey] = cachedNodePageContent;
+                }
 
                 // if page is cache, we can just return it now
                 if (cachedNodePageContent != null) {
@@ -2522,6 +2548,10 @@ export default {
                     if (!this.isPrivate) {
                         const nodePagePathCacheKey = `${destinationHash}:${pagePath}`;
                         this.nodePageCache[nodePagePathCacheKey] = this.nodePageContent;
+                        const cacheKeys = Object.keys(this.nodePageCache);
+                        for (let i = 0; i <= cacheKeys.length - NODE_PAGE_CACHE_MAX; i++) {
+                            delete this.nodePageCache[cacheKeys[i]];
+                        }
                     }
 
                     // update status
@@ -4105,6 +4135,7 @@ export default {
             if (downloadId !== null) {
                 this.pendingNomadPageCancelWithoutId = false;
                 this.currentPageDownloadId = null;
+                this.purgeDownloadCallbacksForId(downloadId);
                 WebSocketConnection.send(
                     JSON.stringify({
                         type: "nomadnet.download.cancel",
@@ -4116,12 +4147,34 @@ export default {
             }
             this.applyPageDownloadCancelledUi();
         },
+        // Drops page/file/image callback entries tagged with a download id.
+        // Cancelled or orphaned transfers otherwise leave their closures
+        // registered until success or failure events that never arrive.
+        purgeDownloadCallbacksForId(downloadId) {
+            if (downloadId == null) {
+                return;
+            }
+            for (const map of [
+                this.nomadnetPageDownloadCallbacks,
+                this.nomadnetFileDownloadCallbacks,
+                this.nomadImageDownloadCallbacks,
+            ]) {
+                for (const [key, entry] of Object.entries(map || {})) {
+                    if (entry && entry.downloadId === downloadId) {
+                        entry.cancelPendingSend?.();
+                        delete map[key];
+                    }
+                }
+            }
+        },
         cancelFileDownload() {
             if (this.currentFileDownloadId !== null) {
+                const downloadId = this.currentFileDownloadId;
+                this.purgeDownloadCallbacksForId(downloadId);
                 WebSocketConnection.send(
                     JSON.stringify({
                         type: "nomadnet.download.cancel",
-                        download_id: this.currentFileDownloadId,
+                        download_id: downloadId,
                     })
                 );
             }

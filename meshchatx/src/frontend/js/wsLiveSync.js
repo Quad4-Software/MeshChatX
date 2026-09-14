@@ -135,7 +135,26 @@ export function installWsLiveSync(options) {
     const getStorageKey = options.getStorageKey || (() => seqStorageKey());
     let lastSeq = loadLastSeq(getStorageKey());
     let syncInFlight = false;
+    let pendingSyncRequestId = null;
+    let syncWatchdog = null;
     let disposed = false;
+
+    const SYNC_REPLY_TIMEOUT_MS = 15000;
+
+    function clearSyncWatchdog() {
+        if (syncWatchdog != null) {
+            clearTimeout(syncWatchdog);
+            syncWatchdog = null;
+        }
+    }
+
+    function releaseSyncRequest(requestId) {
+        if (pendingSyncRequestId === requestId) {
+            pendingSyncRequestId = null;
+            syncInFlight = false;
+            clearSyncWatchdog();
+        }
+    }
 
     function persist() {
         saveLastSeq(getStorageKey(), lastSeq);
@@ -156,9 +175,10 @@ export function installWsLiveSync(options) {
         if (disposed || syncInFlight) {
             return;
         }
+        const requestId = `sync-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         syncInFlight = true;
+        pendingSyncRequestId = requestId;
         try {
-            const requestId = `sync-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             const msg = JSON.stringify({
                 type: "sync.subscribe",
                 since_seq: lastSeq,
@@ -169,12 +189,28 @@ export function installWsLiveSync(options) {
             } else if (typeof connection.send === "function") {
                 connection.send(msg);
             }
-        } finally {
-            syncInFlight = false;
+        } catch {
+            releaseSyncRequest(requestId);
+            return;
         }
+        // A lost reply must not wedge future subscribes.
+        clearSyncWatchdog();
+        syncWatchdog = setTimeout(() => {
+            syncWatchdog = null;
+            releaseSyncRequest(requestId);
+        }, SYNC_REPLY_TIMEOUT_MS);
     }
 
     async function handleSyncReply(payload) {
+        const replyRequestId = payload?.request_id;
+        if (pendingSyncRequestId != null && replyRequestId != null && replyRequestId !== pendingSyncRequestId) {
+            // Stale reply from a superseded subscribe (e.g. an earlier
+            // connection epoch). Its resync hint must not fire now.
+            return;
+        }
+        if (pendingSyncRequestId != null) {
+            releaseSyncRequest(replyRequestId ?? pendingSyncRequestId);
+        }
         if (typeof payload?.current_seq === "number" && payload.current_seq < lastSeq) {
             // The server restarted and its seq began again from zero. The
             // stored cursor is from a previous epoch and must be dropped or
@@ -223,6 +259,8 @@ export function installWsLiveSync(options) {
         requestSyncSubscribe,
         dispose: () => {
             disposed = true;
+            clearSyncWatchdog();
+            pendingSyncRequestId = null;
             connection.off("message", onMessage);
             connection.off("ready", onReady);
         },

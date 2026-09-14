@@ -1523,53 +1523,30 @@ export default {
         },
 
         async resyncShellAfterWebsocketReconnect() {
-            try {
+            const failed = [];
+            const step = async (name, fn) => {
+                try {
+                    await fn();
+                } catch {
+                    failed.push(name);
+                }
+            };
+            await step("authStatus", async () => {
                 const status = await fetchAuthStatus(window.api);
                 applyAuthStatusToStores(status);
-            } catch {
-                // ignore
+            });
+            await step("csrfToken", () => fetchCsrfToken(window.api));
+            await step("appInfo", () => this.getAppInfo());
+            await step("config", () => this.getConfig());
+            await step("blockedDestinations", () => this.getBlockedDestinations());
+            await step("keyboardShortcuts", () => this.getKeyboardShortcuts());
+            await step("ringtone", () => this.updateRingtonePlayer());
+            await step("telephoneStatus", () => this.updateTelephoneStatus());
+            await step("propagationStatus", () => this.updatePropagationNodeStatus());
+            if (failed.length) {
+                console.warn(`resync after websocket reconnect: failed steps: ${failed.join(", ")}`);
             }
-            try {
-                await fetchCsrfToken(window.api);
-            } catch {
-                // ignore
-            }
-            try {
-                await this.getAppInfo();
-            } catch {
-                // ignore
-            }
-            try {
-                await this.getConfig();
-            } catch {
-                // ignore
-            }
-            try {
-                await this.getBlockedDestinations();
-            } catch {
-                // ignore
-            }
-            try {
-                await this.getKeyboardShortcuts();
-            } catch {
-                // ignore
-            }
-            try {
-                await this.updateRingtonePlayer();
-            } catch {
-                // ignore
-            }
-            try {
-                await this.updateTelephoneStatus();
-            } catch {
-                // ignore
-            }
-            try {
-                await this.updatePropagationNodeStatus();
-            } catch {
-                // ignore
-            }
-            GlobalEmitter.emit(EMITTER_EVENTS.WEBSOCKET_RECONNECTED);
+            GlobalEmitter.emit(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, { degraded: failed.length > 0, failed });
         },
         onIdentitySwitchingStartShell() {
             this.isSwitchingIdentity = true;

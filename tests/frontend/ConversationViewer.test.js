@@ -2874,4 +2874,47 @@ describe("ConversationViewer.vue", () => {
             expect(wrapper.vm.isPaperMessageIngested({ lxmf_message: { hash } })).toBe(false);
         });
     });
+
+    describe("chat window bounds", () => {
+        const makeItem = (i) => ({ lxmf_message: { hash: `hash-${i}`, content: `msg-${i}` } });
+
+        it("drops the oldest live items once the window exceeds MAX_CHAT_ITEMS", async () => {
+            const wrapper = mountConversationViewer();
+            await flushPromises();
+            for (let i = 0; i < 2000; i++) {
+                wrapper.vm.chatItems.push(makeItem(i));
+            }
+            wrapper.vm._pushChatItem(makeItem(2000));
+            await wrapper.vm.$nextTick();
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.chatItems.length).toBeLessThanOrEqual(2000);
+            expect(wrapper.vm.chatItems.at(-1).lxmf_message.content).toBe("msg-2000");
+            wrapper.unmount();
+        });
+
+        it("trims the newest tail during deep scroll-back and marks the window trimmed", async () => {
+            const wrapper = mountConversationViewer();
+            await flushPromises();
+            for (let i = 0; i < 2500; i++) {
+                wrapper.vm.chatItems.push(makeItem(i));
+            }
+            wrapper.vm._trimChatWindowTail();
+            expect(wrapper.vm.chatItems.length).toBe(2000);
+            expect(wrapper.vm.chatWindowTailTrimmed).toBe(true);
+            expect(wrapper.vm.chatItems.at(-1).lxmf_message.content).toBe("msg-1999");
+            wrapper.unmount();
+        });
+
+        it("reloads the latest page near the bottom after the tail was trimmed", async () => {
+            const wrapper = mountConversationViewer();
+            await flushPromises();
+            const initialLoad = vi.spyOn(wrapper.vm, "initialLoad").mockImplementation(() => {});
+            wrapper.vm.chatWindowTailTrimmed = true;
+            wrapper.vm.onMessagesScroll({
+                target: { scrollTop: 900, scrollHeight: 1000, clientHeight: 200 },
+            });
+            expect(initialLoad).toHaveBeenCalled();
+            wrapper.unmount();
+        });
+    });
 });

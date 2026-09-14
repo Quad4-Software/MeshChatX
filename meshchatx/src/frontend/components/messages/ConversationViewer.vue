@@ -1660,6 +1660,9 @@ import { fromNow } from "../../libs/datetime.js";
 
 const SCROLL_SETTLE_MAX_PASSES = 24;
 const OPEN_CONVERSATION_SCROLL_PIN_MS = 900;
+// Bounds the in-memory window during deep scroll-back. Tail items are dropped
+// and refetched when the user scrolls back to the newest edge.
+const MAX_CHAT_ITEMS = 2000;
 
 import SendMessageButton from "./composer/SendMessageButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
@@ -1814,6 +1817,7 @@ export default {
             isLoadingPrevious: false,
             loadPreviousInFlight: 0,
             hasMorePrevious: true,
+            chatWindowTailTrimmed: false,
 
             newMessageDeliveryMethod: null,
             newMessageText: "",
@@ -2367,12 +2371,14 @@ export default {
         selectedPeerChatItems: {
             async handler(items) {
                 const signature = this._displayGroupsCacheSignature(items);
-                if (this.displayGroupsNewestFirst === null || this.displayGroupsCacheSignature !== signature) {
+                const changed =
+                    this.displayGroupsNewestFirst === null || this.displayGroupsCacheSignature !== signature;
+                if (changed) {
                     this.displayGroupsNewestFirst = this._buildDisplayGroupsNewestFirst(items);
                     this.displayGroupsCacheSignature = signature;
                     this.displayGroupsCachePeerItemCount = items.length;
+                    await this.processAudioForSelectedPeerChatItems();
                 }
-                await this.processAudioForSelectedPeerChatItems();
                 this.$nextTick(() => this._scheduleOutboundSendStatusTick());
             },
             deep: true,
@@ -2476,6 +2482,11 @@ export default {
         this.cancelAutoLoadAudioAttachments();
         this.clearAudioAttachmentCache();
         this.revokeNewMessageAudioPreview();
+        this._unmounted = true;
+        this._outboundQueue?.clear();
+        // Stop the recorder and release the mic; the resulting preview URL is
+        // revoked once the stop resolves.
+        void Promise.resolve(this.stopRecordingAudioAttachment()).then(() => this.revokeNewMessageAudioPreview());
     },
     methods: {
         updateKeyboardInset() {
@@ -3146,13 +3157,22 @@ export default {
                 this.loadPrevious();
             }
             this.prevScrollWantedLoadPrevious = wantLoad;
+
+            // A trimmed tail means the loaded window no longer reaches the newest
+            // message. Re-anchor on the latest page once the user scrolls back down.
+            if (nearBottom && this.chatWindowTailTrimmed && !this.initialLoadActive && !this.isLoadingPrevious) {
+                this.initialLoad();
+            }
         },
         async initialLoad() {
             this.initialLoadActive = true;
             this.messagesViewportReady = false;
             this.chatItems = [];
             this.displayGroupsNewestFirst = null;
+            this.messageBubbleTranslation = {};
+            this.isDownloadingAudio = {};
             this.hasMorePrevious = true;
+            this.chatWindowTailTrimmed = false;
             this.peerPathSnapshot = null;
             this.peerPathLoading = false;
             this.peerPathWarming = false;
@@ -3308,7 +3328,10 @@ export default {
                         const delta = newScrollHeight - prevScrollHeight;
                         scrollEl.scrollTop = prevScrollTop + delta;
                         scrollEl.style.overflowY = "";
+                        this._trimChatWindowTail();
                     });
+                } else {
+                    this.$nextTick(() => this._trimChatWindowTail());
                 }
 
                 if (chatItems.length < pageSize) {
@@ -3326,6 +3349,42 @@ export default {
                 this.loadPreviousInFlight = Math.max(0, this.loadPreviousInFlight - 1);
                 this.isLoadingPrevious = this.loadPreviousInFlight > 0;
             }
+        },
+        // Live/optimistic append path. Keeps the window bounded for busy
+        // threads: oldest loaded entries drop past the cap and are refetched
+        // by loadPrevious. Scroll is re-anchored for readers in history.
+        _pushChatItem(chatItem) {
+            this.chatItems.push(chatItem);
+            if (this.chatItems.length <= MAX_CHAT_ITEMS) {
+                return;
+            }
+            const scrollEl = this.$refs.messagesScroll;
+            const drop = this.chatItems.length - MAX_CHAT_ITEMS;
+            if (!scrollEl) {
+                this.chatItems.splice(0, drop);
+                this._invalidateDisplayGroupsCache();
+                return;
+            }
+            this.$nextTick(() => {
+                const prevScrollHeight = scrollEl.scrollHeight;
+                const prevScrollTop = scrollEl.scrollTop;
+                this.chatItems.splice(0, drop);
+                this._invalidateDisplayGroupsCache();
+                this.$nextTick(() => {
+                    scrollEl.scrollTop = Math.max(0, prevScrollTop - (prevScrollHeight - scrollEl.scrollHeight));
+                });
+            });
+        },
+        // Keeps the loaded window bounded during deep scroll-back. Dropped tail
+        // items are below the viewport, so scrollTop is unaffected. The next
+        // near-bottom scroll reloads the latest page via initialLoad.
+        _trimChatWindowTail() {
+            if (this.chatItems.length <= MAX_CHAT_ITEMS) {
+                return;
+            }
+            this.chatItems.splice(MAX_CHAT_ITEMS);
+            this.chatWindowTailTrimmed = true;
+            this._invalidateDisplayGroupsCache();
         },
         getParsedItems(chatItem) {
             const content = chatItem.lxmf_message.content;
@@ -3631,7 +3690,7 @@ export default {
                 return;
             }
 
-            this.chatItems.push({
+            this._pushChatItem({
                 type: "lxmf_message",
                 is_outbound: false,
                 lxmf_message: this.normalizeLxmfMessage(lxmfMessage, false),
@@ -3666,7 +3725,7 @@ export default {
             this.reconcileOutboundPendingPlaceholders(lxmfMessage);
 
             if (!this.isLxmfMessageInUi(lxmfMessage.hash)) {
-                this.chatItems.push({
+                this._pushChatItem({
                     type: "lxmf_message",
                     lxmf_message: this.normalizeLxmfMessage(lxmfMessage, true),
                     is_outbound: true,
@@ -4559,7 +4618,7 @@ export default {
                 console.error("Failed to download or decode audio:", e);
                 DialogUtils.alert(this.$t("messages.failed_load_audio"));
             } finally {
-                this.isDownloadingAudio[chatItem.lxmf_message.hash] = false;
+                delete this.isDownloadingAudio[chatItem.lxmf_message.hash];
             }
         },
         autoLoadAudioAttachments(items = null) {
@@ -4832,7 +4891,7 @@ export default {
             }
             this.reconcileOutboundPendingPlaceholders(lxmfMessage);
             if (lxmfMessage?.hash && !this.isLxmfMessageInUi(lxmfMessage.hash)) {
-                this.chatItems.push({
+                this._pushChatItem({
                     type: "lxmf_message",
                     lxmf_message: this.normalizeLxmfMessage(lxmfMessage, true),
                     is_outbound: true,
@@ -5770,7 +5829,7 @@ export default {
         },
         async _executeOutboundSendJob(job) {
             try {
-                if (job.cancelled) {
+                if (job.cancelled || this._unmounted) {
                     return;
                 }
                 job.pendingHash = null;
@@ -5801,7 +5860,7 @@ export default {
                         _pendingPathfinding: needsPathfinding,
                     };
                     if (!this._outboundPendingAlreadySatisfied(pendingMessage)) {
-                        this.chatItems.push({
+                        this._pushChatItem({
                             type: "lxmf_message",
                             lxmf_message: pendingMessage,
                             is_outbound: true,
@@ -5900,7 +5959,7 @@ export default {
                             });
 
                             if (!this.isLxmfMessageInUi(subResponse.data.lxmf_message.hash)) {
-                                this.chatItems.push({
+                                this._pushChatItem({
                                     type: "lxmf_message",
                                     lxmf_message: this.normalizeLxmfMessage(subResponse.data.lxmf_message, true),
                                     is_outbound: true,
@@ -6008,7 +6067,7 @@ export default {
                 });
 
                 if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
-                    this.chatItems.push({
+                    this._pushChatItem({
                         type: "lxmf_message",
                         lxmf_message: this.normalizeLxmfMessage(response.data.lxmf_message, true),
                         is_outbound: true,

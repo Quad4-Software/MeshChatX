@@ -1453,7 +1453,6 @@ import { copyTextToClipboard } from "../../js/clipboardUtils.js";
 import {
     buildRelayMessageTimeline,
     mergeRelayMessages,
-    relayMessageAlreadyPresent,
     relayMessageKey,
     prependRelayMessageTimeline,
     relayMessageTimelineSignature,
@@ -1580,6 +1579,7 @@ export default {
                 getMessagesScrollElement: () => inst?.proxy.getMessagesScrollElement(),
                 encodeRoom: (room) => inst?.proxy.encodeRoom(room),
                 prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
+                reloadLatest: () => inst?.proxy.selectRoom(inst?.proxy.selectedHubHash, inst?.proxy.selectedRoom),
                 t: (...args) => inst?.proxy.$t(...args),
             }),
         };
@@ -1810,6 +1810,9 @@ export default {
             return this.members;
         },
         offlineMembers() {
+            if (!this.showMembers) {
+                return [];
+            }
             const onlineHashes = new Set(this.members.map((m) => m.hash));
             const seen = new Map();
             for (const msg of this.messages) {
@@ -3599,8 +3602,7 @@ export default {
                 this.handleBadKeyError(json.hub_hash, json.room || json.message.room, json.message.text);
             }
             if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
-                if (!relayMessageAlreadyPresent(this.messages, json.message)) {
-                    this.messages.push(json.message);
+                if (this.pushLiveMessage(json.message)) {
                     this._invalidateMessageTimelineCache();
                     this.scrollToBottom();
                 }

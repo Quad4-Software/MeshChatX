@@ -2036,6 +2036,7 @@ export default {
         if (this.historyInterval) clearInterval(this.historyInterval);
         if (this.elapsedTimeInterval) clearInterval(this.elapsedTimeInterval);
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
+        if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
         window.removeEventListener("keydown", this.onPttKeyDown);
         window.removeEventListener("keyup", this.onPttKeyUp);
         window.removeEventListener("blur", this.onPttWindowBlur);

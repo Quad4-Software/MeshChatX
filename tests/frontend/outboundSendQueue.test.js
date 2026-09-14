@@ -79,3 +79,32 @@ describe("outboundSendQueue", () => {
         await new Promise((r) => setTimeout(r, 10));
     });
 });
+
+describe("outboundSendQueue clear", () => {
+    it("cancels queued jobs and the in-flight job", async () => {
+        const order = [];
+        let release;
+        const gate = new Promise((r) => {
+            release = r;
+        });
+        let inFlightJob;
+        const processJob = vi.fn(async (job) => {
+            inFlightJob = job;
+            order.push(`start:${job.id}`);
+            await gate;
+            order.push(`end:${job.id}`);
+        });
+        const q = createOutboundQueue(processJob);
+        q.enqueue({ id: "a" });
+        q.enqueue({ id: "b" });
+        q.enqueue({ id: "c" });
+        await new Promise((r) => setTimeout(r, 5));
+        q.clear();
+        expect(q.length).toBe(0);
+        expect(inFlightJob?.cancelled).toBe(true);
+        release();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(order).toEqual(["start:a", "end:a"]);
+        expect(processJob).toHaveBeenCalledTimes(1);
+    });
+});

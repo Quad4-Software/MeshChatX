@@ -432,6 +432,9 @@ export default {
     },
     beforeUnmount() {
         window.removeEventListener("resize", this.updateWideSplit);
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+        }
     },
     methods: {
         updateWideSplit() {

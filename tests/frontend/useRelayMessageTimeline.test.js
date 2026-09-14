@@ -133,15 +133,20 @@ describe("useRelayMessageTimeline", () => {
         expect(tl.isLoadingPrevious.value).toBe(false);
     });
 
-    it("loadPreviousMessages resets flags after a request failure", async () => {
-        window.api.get.mockRejectedValue(new Error("boom"));
+    it("loadPreviousMessages keeps hasMorePrevious after a transient failure", async () => {
+        window.api.get.mockRejectedValueOnce(new Error("boom"));
         const tl = makeTimeline();
         tl.messages.value = [msg(5)];
         tl.hasMorePrevious.value = true;
         await tl.loadPreviousMessages();
-        expect(tl.hasMorePrevious.value).toBe(false);
+        // One transient failure must not permanently disable history loading.
+        expect(tl.hasMorePrevious.value).toBe(true);
         expect(tl.isLoadingPrevious.value).toBe(false);
         expect(tl.loadPreviousInFlight.value).toBe(0);
+
+        window.api.get.mockResolvedValue({ data: { messages: [msg(1)], has_more: false } });
+        await tl.loadPreviousMessages();
+        expect(tl.messages.value.map((m) => m.seq)).toEqual([1, 5]);
     });
 
     it("onMessagesScroll loads older pages only near the top edge", () => {
@@ -173,6 +178,60 @@ describe("useRelayMessageTimeline", () => {
         expect(tl.timelineEntryKey({ type: "presenceGroup", id: "pg1" }, 0)).toBe("presence-pg1-0");
         expect(tl.timelineEntryKey({ type: "message", msg: msg(7) }, 2)).toBe("seq-7-2");
         expect(tl.timelineEntryKey({ type: "message", msg: null }, 4)).toBe("idx-4");
+    });
+
+    it("pushLiveMessage dedupes by message key", () => {
+        const tl = makeTimeline();
+        tl.messages.value = [msg(1), msg(2)];
+        expect(tl.pushLiveMessage(msg(2, "dup"))).toBe(false);
+        expect(tl.pushLiveMessage(msg(3, "new"))).toBe(true);
+        expect(tl.messages.value.map((m) => m.seq)).toEqual([1, 2, 3]);
+    });
+
+    it("pushLiveMessage trims the oldest entries past the window cap", async () => {
+        const tl = makeTimeline();
+        tl.messages.value = Array.from({ length: 2000 }, (_, i) => msg(i + 1));
+        tl.pushLiveMessage(msg(2001));
+        await nextTick();
+        expect(tl.messages.value).toHaveLength(2000);
+        expect(tl.messages.value[0].seq).toBe(2);
+        expect(tl.messages.value.at(-1).seq).toBe(2001);
+    });
+
+    it("loadPreviousMessages trims the newest tail past the window cap", async () => {
+        window.api.get.mockResolvedValue({
+            data: { messages: [msg(1), msg(2)], has_more: true },
+        });
+        const tl = makeTimeline();
+        tl.messages.value = Array.from({ length: 1999 }, (_, i) => msg(i + 3));
+        tl.hasMorePrevious.value = true;
+        await tl.loadPreviousMessages();
+        await nextTick();
+        expect(tl.messages.value.length).toBeLessThanOrEqual(2000);
+        expect(tl.messages.value[0].seq).toBe(1);
+        expect(tl.tailTrimmed.value).toBe(true);
+    });
+
+    it("onMessagesScroll reloads the latest page when the tail was trimmed", async () => {
+        const reloadLatest = vi.fn(async () => {});
+        const tl = makeTimeline({ reloadLatest });
+        tl.tailTrimmed.value = true;
+        tl.messages.value = [msg(1)];
+        tl.hasMorePrevious.value = true;
+        tl.onMessagesScroll({ target: { scrollTop: 900, scrollHeight: 1000, clientHeight: 200 } });
+        expect(reloadLatest).toHaveBeenCalledTimes(1);
+        expect(tl.tailTrimmed.value).toBe(false);
+        await vi.waitFor(() => expect(tl.reloadingLatest.value).toBe(false));
+    });
+
+    it("onMessagesScroll does not reload latest when the tail is intact", () => {
+        const reloadLatest = vi.fn(async () => {});
+        const tl = makeTimeline({ reloadLatest });
+        tl.messages.value = [msg(1)];
+        tl.hasMorePrevious.value = true;
+        tl.onMessagesScroll({ target: { scrollTop: 900, scrollHeight: 1000, clientHeight: 200 } });
+        expect(reloadLatest).not.toHaveBeenCalled();
+        expect(window.api.get).not.toHaveBeenCalled();
     });
 
     it("presence groups toggle open and closed", () => {

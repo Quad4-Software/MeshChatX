@@ -174,6 +174,10 @@ export default {
                     is_outbound: true,
                     timestamp: msg.created_at,
                 });
+                // Match the fetch window so the panel does not grow forever.
+                if (this.messages.length > 40) {
+                    this.messages.splice(0, this.messages.length - 40);
+                }
                 this.newMessage = "";
                 this.scrollToBottom();
             } catch (e) {

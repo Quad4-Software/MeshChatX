@@ -63,16 +63,15 @@ export function useAudioAttachment(options = {}) {
                 audioAttachmentRecordingStartedAt.value = Date.now();
                 isRecordingAudioAttachment.value = await audioAttachmentMicrophoneRecorder.value.start();
 
-                // update recording time in ui every second
-                audioAttachmentRecordingDuration.value = Utils.formatMinutesSeconds(0);
-                audioAttachmentRecordingTimer.value = setInterval(() => {
-                    const recordingDurationMillis = Date.now() - audioAttachmentRecordingStartedAt.value;
-                    const recordingDurationSeconds = recordingDurationMillis / 1000;
-                    audioAttachmentRecordingDuration.value = Utils.formatMinutesSeconds(recordingDurationSeconds);
-                }, 1000);
-
-                // alert if failed to start recording
-                if (!isRecordingAudioAttachment.value) {
+                if (isRecordingAudioAttachment.value) {
+                    // update recording time in ui every second
+                    audioAttachmentRecordingDuration.value = Utils.formatMinutesSeconds(0);
+                    audioAttachmentRecordingTimer.value = setInterval(() => {
+                        const recordingDurationMillis = Date.now() - audioAttachmentRecordingStartedAt.value;
+                        const recordingDurationSeconds = recordingDurationMillis / 1000;
+                        audioAttachmentRecordingDuration.value = Utils.formatMinutesSeconds(recordingDurationSeconds);
+                    }, 1000);
+                } else {
                     DialogUtils.alert(buildAudioRecordingFailureMessage());
                 }
 
@@ -102,14 +101,14 @@ export function useAudioAttachment(options = {}) {
                 audioAttachmentRecordingStartedAt.value = Date.now();
                 isRecordingAudioAttachment.value = await audioAttachmentMicrophoneRecorder.value.start();
 
-                audioAttachmentRecordingDuration.value = Utils.formatMinutesSeconds(0);
-                audioAttachmentRecordingTimer.value = setInterval(() => {
-                    const recordingDurationMillis = Date.now() - audioAttachmentRecordingStartedAt.value;
-                    const recordingDurationSeconds = recordingDurationMillis / 1000;
-                    audioAttachmentRecordingDuration.value = Utils.formatMinutesSeconds(recordingDurationSeconds);
-                }, 1000);
-
-                if (!isRecordingAudioAttachment.value) {
+                if (isRecordingAudioAttachment.value) {
+                    audioAttachmentRecordingDuration.value = Utils.formatMinutesSeconds(0);
+                    audioAttachmentRecordingTimer.value = setInterval(() => {
+                        const recordingDurationMillis = Date.now() - audioAttachmentRecordingStartedAt.value;
+                        const recordingDurationSeconds = recordingDurationMillis / 1000;
+                        audioAttachmentRecordingDuration.value = Utils.formatMinutesSeconds(recordingDurationSeconds);
+                    }, 1000);
+                } else {
                     DialogUtils.alert(buildAudioRecordingFailureMessage());
                 }
 
@@ -125,8 +124,23 @@ export function useAudioAttachment(options = {}) {
     async function stopRecordingAudioAttachment() {
         // clear audio recording timer
         clearInterval(audioAttachmentRecordingTimer.value);
+        audioAttachmentRecordingTimer.value = null;
 
         if (!isRecordingAudioAttachment.value) {
+            // A failed start() may have left the stream or graph open.
+            const recorder = audioAttachmentMicrophoneRecorder.value;
+            try {
+                await recorder?.stop?.();
+            } catch {
+                try {
+                    recorder?.teardownAudioGraph?.();
+                    recorder?.cleanupMediaStream?.();
+                } catch {
+                    // ignore
+                }
+            }
+            audioAttachmentMicrophoneRecorder.value = null;
+            audioAttachmentMicrophoneRecorderCodec.value = null;
             return;
         }
 
