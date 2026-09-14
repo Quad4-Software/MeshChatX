@@ -391,7 +391,7 @@
         "oidc_issuer_placeholder": "https://idp.example.com/application/o/meshchatx/",
         "oidc_client_id": "ID клиента",
         "oidc_client_secret": "Секрет клиента (необязателен для публичных клиентов)",
-        "oidc_client_secret_configured": "Настроено. Введите новое значение для замены, очистите для удаления.",
+        "oidc_client_secret_configured": "Настроено. Введите новое значение для замены.",
         "oidc_display_name_label": "Текст кнопки",
         "oidc_scopes": "Области",
         "oidc_redirect_uri": "URI перенаправления",
@@ -740,7 +740,8 @@
         "message_failed_bubble_color": "Цвет пузыря сообщений с ошибкой",
         "message_waiting_bubble_color": "Цвет пузыря ожидающих сообщений",
         "reload_rns_success": "RNS успешно перезагружен",
-        "reload_rns_failed": "Не удалось перезагрузить RNS"
+        "reload_rns_failed": "Не удалось перезагрузить RNS",
+        "oidc_client_secret_clear": "Очистить"
     },
     "helptips": {
         "title_send_failed": "Что можно попробовать",

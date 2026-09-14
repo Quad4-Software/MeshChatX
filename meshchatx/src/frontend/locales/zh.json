@@ -391,7 +391,7 @@
         "oidc_issuer_placeholder": "https://idp.example.com/application/o/meshchatx/",
         "oidc_client_id": "客户端 ID",
         "oidc_client_secret": "客户端密钥（公共客户端可选）",
-        "oidc_client_secret_configured": "已配置。输入新值以替换，清空以移除。",
+        "oidc_client_secret_configured": "已配置。输入新值以替换。",
         "oidc_display_name_label": "按钮标签",
         "oidc_scopes": "Scopes",
         "oidc_redirect_uri": "重定向 URI",
@@ -740,7 +740,8 @@
         "message_failed_bubble_color": "失败消息气泡颜色",
         "message_waiting_bubble_color": "等待中的消息气泡颜色",
         "reload_rns_success": "RNS 重新加载成功",
-        "reload_rns_failed": "RNS 重新加载失败"
+        "reload_rns_failed": "RNS 重新加载失败",
+        "oidc_client_secret_clear": "清除"
     },
     "helptips": {
         "title_send_failed": "可尝试的方法",

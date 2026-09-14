@@ -6024,6 +6024,23 @@ class ReticulumMeshChat:
         return None
 
     async def update_config(self, data):
+        # Validate before any .set() call: config fields persist to SQLite
+        # immediately, so a late ValueError would leave a partial update.
+        if "oidc_issuer_url" in data:
+            from meshchatx.src.backend.oidc import (
+                OidcConfigError,
+                validate_issuer_url,
+            )
+
+            raw_issuer = data["oidc_issuer_url"]
+            if raw_issuer is not None and str(raw_issuer).strip() != "":
+                try:
+                    validated_issuer_url = validate_issuer_url(str(raw_issuer))
+                except OidcConfigError as exc:
+                    raise ValueError(f"Invalid oidc_issuer_url: {exc}") from exc
+            else:
+                validated_issuer_url = None
+
         # update display name in config
         if "display_name" in data and data["display_name"] != "":
             self.config.display_name.set(data["display_name"])
@@ -6409,25 +6426,20 @@ class ReticulumMeshChat:
 
             # if disabling auth, also remove the password hash from config
             if not value:
-                self.config.auth_password_hash.set(None)
                 self.config.oidc_enabled.set(False)
+                # Only drop the stored password when the request actually
+                # turns authentication off. Env-managed OIDC can keep auth
+                # enforced, and wiping the hash in that state strands the
+                # admin's local credential while the endpoint still demands
+                # authentication.
+                if not self._oidc_ready():
+                    self.config.auth_password_hash.set(None)
 
         if "oidc_enabled" in data:
             self.config.oidc_enabled.set(self._parse_bool(data["oidc_enabled"]))
 
         if "oidc_issuer_url" in data:
-            from meshchatx.src.backend.oidc import OidcConfigError, validate_issuer_url
-
-            raw_issuer = data["oidc_issuer_url"]
-            if raw_issuer is None or str(raw_issuer).strip() == "":
-                self.config.oidc_issuer_url.set(None)
-            else:
-                try:
-                    self.config.oidc_issuer_url.set(
-                        validate_issuer_url(str(raw_issuer)),
-                    )
-                except OidcConfigError:
-                    pass
+            self.config.oidc_issuer_url.set(validated_issuer_url)
 
         if "oidc_client_id" in data:
             value = data["oidc_client_id"]
@@ -6439,9 +6451,12 @@ class ReticulumMeshChat:
 
         if "oidc_client_secret" in data:
             value = data["oidc_client_secret"]
-            self.config.oidc_client_secret.set(
-                str(value) if value is not None and str(value) != "" else None,
-            )
+            if value is None:
+                self.config.oidc_client_secret.set(None)
+            elif str(value) != "":
+                self.config.oidc_client_secret.set(str(value))
+            # Empty string means "leave unchanged": the UI never echoes the
+            # stored secret, so a blank field is not a clear request.
 
         if "oidc_display_name" in data:
             value = data["oidc_display_name"]

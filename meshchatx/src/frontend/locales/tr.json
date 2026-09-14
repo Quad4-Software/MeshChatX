@@ -391,7 +391,7 @@
         "oidc_issuer_placeholder": "https://idp.example.com/application/o/meshchatx/",
         "oidc_client_id": "Istemci ID",
         "oidc_client_secret": "Istemci sirri (genel istemciler icin istege bagli)",
-        "oidc_client_secret_configured": "Yapilandirildi. Degistirmek icin yeni deger girin, kaldirmak icin bosaltin.",
+        "oidc_client_secret_configured": "Yapilandirildi. Degistirmek icin yeni deger girin.",
         "oidc_display_name_label": "Dugme etiketi",
         "oidc_scopes": "Kapsamlar",
         "oidc_redirect_uri": "Yonlendirme URI",
@@ -740,7 +740,8 @@
         "message_failed_bubble_color": "Başarısız ileti balonu rengi",
         "message_waiting_bubble_color": "Bekleyen ileti balonu rengi",
         "reload_rns_success": "RNS başarıyla yeniden yüklendi",
-        "reload_rns_failed": "RNS yeniden yüklenemedi"
+        "reload_rns_failed": "RNS yeniden yüklenemedi",
+        "oidc_client_secret_clear": "Temizle"
     },
     "helptips": {
         "title_send_failed": "Denenecek şeyler",
