@@ -75,6 +75,8 @@ import GlobalEmitter from "../js/GlobalEmitter";
 import { EMITTER_EVENTS } from "../js/constants.js";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
+const MAX_TOASTS = 8;
+
 export default {
     name: "Toast",
     components: {
@@ -169,6 +171,14 @@ export default {
             }
 
             this.toasts.push(newToast);
+            // Backstop cap: unkeyed zero-duration toasts otherwise persist
+            // forever when a dismiss call is skipped on an error path.
+            while (this.toasts.length > MAX_TOASTS) {
+                const evicted = this.toasts.shift();
+                if (evicted?.timer) {
+                    clearTimeout(evicted.timer);
+                }
+            }
         },
         remove(id) {
             const index = this.toasts.findIndex((t) => t.id === id);

@@ -12,6 +12,9 @@ import {
 } from "../relayMessageTimeline.js";
 
 const LOAD_PREVIOUS_SCROLL_EDGE_PX = 200;
+// Bounds the in-memory window during deep scroll-back. Dropped tail entries
+// are refetched when the user scrolls back to the newest edge.
+const MAX_RELAY_MESSAGES = 2000;
 
 /**
  * Message timeline state for RelayChatPage: the raw messages list, the
@@ -24,12 +27,20 @@ const LOAD_PREVIOUS_SCROLL_EDGE_PX = 200;
  * position stable after prepending older messages, options.encodeRoom
  * URL-encodes room names for API paths, options.prependTimelineCache delegates
  * to the host's _prependMessageTimelineCache (underscore-prefixed methods are
- * not proxied from setup state), and options.t translates presence group
- * summary labels.
+ * not proxied from setup state), options.reloadLatest re-anchors the window on
+ * the newest page after the tail was trimmed, and options.t translates
+ * presence group summary labels.
  */
 export function useRelayMessageTimeline(options = {}) {
-    const { getSelectedHubHash, getSelectedRoom, getMessagesScrollElement, encodeRoom, prependTimelineCache, t } =
-        options;
+    const {
+        getSelectedHubHash,
+        getSelectedRoom,
+        getMessagesScrollElement,
+        encodeRoom,
+        prependTimelineCache,
+        reloadLatest,
+        t,
+    } = options;
 
     const messages = ref([]);
     const messageTimelineCache = ref(null);
@@ -39,12 +50,25 @@ export function useRelayMessageTimeline(options = {}) {
     const loadPreviousInFlight = ref(0);
     const roomSelectSequence = ref(0);
     const expandedPresenceGroups = ref({});
+    const tailTrimmed = ref(false);
+    const reloadingLatest = ref(false);
 
     const messageTimeline = computed(() => {
         if (messageTimelineCache.value !== null) {
             return messageTimelineCache.value;
         }
         return buildRelayMessageTimeline(messages.value);
+    });
+
+    const messageKeySet = computed(() => {
+        const set = new Set();
+        for (const msg of messages.value) {
+            const key = relayMessageKey(msg);
+            if (key) {
+                set.add(key);
+            }
+        }
+        return set;
     });
 
     const oldestLoadedSeq = computed(() => {
@@ -63,6 +87,9 @@ export function useRelayMessageTimeline(options = {}) {
     watch(
         messages,
         (msgs) => {
+            if (msgs.length === 0) {
+                tailTrimmed.value = false;
+            }
             const sig = relayMessageTimelineSignature(msgs);
             if (messageTimelineCache.value === null || messageTimelineCacheSignature.value !== sig) {
                 messageTimelineCache.value = buildRelayMessageTimeline(msgs);
@@ -110,23 +137,76 @@ export function useRelayMessageTimeline(options = {}) {
             const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
             messages.value = [...uniqueOlder, ...messages.value];
             prependTimelineCache?.(uniqueOlder);
+            // Trim after the anchor is restored: removed tail entries sit below
+            // the viewport, so scrollTop stays valid.
+            const trimTail = () => {
+                if (messages.value.length > MAX_RELAY_MESSAGES) {
+                    messages.value.splice(MAX_RELAY_MESSAGES);
+                    tailTrimmed.value = true;
+                }
+            };
             if (scrollEl) {
                 nextTick(() => {
                     const delta = scrollEl.scrollHeight - prevScrollHeight;
                     scrollEl.scrollTop = prevScrollTop + delta;
+                    trimTail();
                 });
+            } else {
+                nextTick(trimTail);
             }
         } catch {
-            hasMorePrevious.value = false;
+            // Keep hasMorePrevious: one transient failure must not permanently
+            // disable history loading for the open room.
         } finally {
             loadPreviousInFlight.value = Math.max(0, loadPreviousInFlight.value - 1);
             isLoadingPrevious.value = loadPreviousInFlight.value > 0;
         }
     }
 
+    // Live append path. Dedupes via the computed key set (O(1) per message
+    // instead of a full rescan) and drops the oldest entries past the cap,
+    // re-anchoring the scroll position for readers in history.
+    function pushLiveMessage(msg) {
+        const key = relayMessageKey(msg);
+        if (key && messageKeySet.value.has(key)) {
+            return false;
+        }
+        messages.value.push(msg);
+        if (messages.value.length <= MAX_RELAY_MESSAGES) {
+            return true;
+        }
+        const scrollEl = getMessagesScrollElement?.() ?? null;
+        const drop = messages.value.length - MAX_RELAY_MESSAGES;
+        if (!scrollEl) {
+            messages.value.splice(0, drop);
+            return true;
+        }
+        nextTick(() => {
+            const prevScrollHeight = scrollEl.scrollHeight;
+            const prevScrollTop = scrollEl.scrollTop;
+            messages.value.splice(0, drop);
+            nextTick(() => {
+                scrollEl.scrollTop = Math.max(0, prevScrollTop - (prevScrollHeight - scrollEl.scrollHeight));
+            });
+        });
+        return true;
+    }
+
     function onMessagesScroll(event) {
         const el = event.target;
-        if (!el || isLoadingPrevious.value || !hasMorePrevious.value) {
+        if (!el) {
+            return;
+        }
+        const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        if (tailTrimmed.value && distanceToBottom <= LOAD_PREVIOUS_SCROLL_EDGE_PX && !reloadingLatest.value) {
+            reloadingLatest.value = true;
+            tailTrimmed.value = false;
+            Promise.resolve(reloadLatest?.()).finally(() => {
+                reloadingLatest.value = false;
+            });
+            return;
+        }
+        if (isLoadingPrevious.value || !hasMorePrevious.value) {
             return;
         }
         if (el.scrollTop <= LOAD_PREVIOUS_SCROLL_EDGE_PX) {
@@ -187,9 +267,12 @@ export function useRelayMessageTimeline(options = {}) {
         loadPreviousInFlight,
         roomSelectSequence,
         expandedPresenceGroups,
+        tailTrimmed,
+        reloadingLatest,
         messageTimeline,
         oldestLoadedSeq,
         loadPreviousMessages,
+        pushLiveMessage,
         onMessagesScroll,
         timelineEntryKey,
         isPresenceGroupExpanded,

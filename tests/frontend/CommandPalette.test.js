@@ -133,7 +133,9 @@ describe("CommandPalette.vue", () => {
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/announces", {
             params: { aspect: "lxmf.delivery", limit: 20 },
         });
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/telephone/contacts");
+        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/telephone/contacts", {
+            params: { limit: 100 },
+        });
     });
 
     it("filters results based on query", async () => {

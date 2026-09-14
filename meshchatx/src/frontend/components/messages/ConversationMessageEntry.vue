@@ -31,11 +31,11 @@
                     <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
                 </button>
                 <div
-                    v-if="cv.imageGroupSortedChron(entry.items).length === 2"
+                    v-if="imageGroupItems.length === 2"
                     class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-sem-surface/5"
                 >
                     <div
-                        v-for="imgItem in cv.imageGroupSortedChron(entry.items)"
+                        v-for="imgItem in imageGroupItems"
                         :id="`message-${imgItem.lxmf_message.hash}`"
                         :key="imgItem.lxmf_message.hash"
                         role="button"
@@ -45,14 +45,14 @@
                             cv.openImage(
                                 cv.lxmfImageUrl(imgItem.lxmf_message.hash),
                                 cv.imageGroupGalleryUrls(entry.items),
-                                cv.imageGroupSortedChron(entry.items)
+                                imageGroupItems
                             )
                         "
                         @keydown.enter.prevent.stop="
                             cv.openImage(
                                 cv.lxmfImageUrl(imgItem.lxmf_message.hash),
                                 cv.imageGroupGalleryUrls(entry.items),
-                                cv.imageGroupSortedChron(entry.items)
+                                imageGroupItems
                             )
                         "
                         @contextmenu="cv.onMessageContextMenu($event, imgItem, true)"
@@ -82,11 +82,11 @@
                     </div>
                 </div>
                 <div
-                    v-else-if="cv.imageGroupSortedChron(entry.items).length === 3"
+                    v-else-if="imageGroupItems.length === 3"
                     class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-sem-surface/5"
                 >
                     <div
-                        v-for="imgItem in cv.imageGroupSortedChron(entry.items).slice(0, 2)"
+                        v-for="imgItem in imageGroupItems.slice(0, 2)"
                         :id="`message-${imgItem.lxmf_message.hash}`"
                         :key="imgItem.lxmf_message.hash"
                         role="button"
@@ -96,14 +96,14 @@
                             cv.openImage(
                                 cv.lxmfImageUrl(imgItem.lxmf_message.hash),
                                 cv.imageGroupGalleryUrls(entry.items),
-                                cv.imageGroupSortedChron(entry.items)
+                                imageGroupItems
                             )
                         "
                         @keydown.enter.prevent.stop="
                             cv.openImage(
                                 cv.lxmfImageUrl(imgItem.lxmf_message.hash),
                                 cv.imageGroupGalleryUrls(entry.items),
-                                cv.imageGroupSortedChron(entry.items)
+                                imageGroupItems
                             )
                         "
                         @contextmenu="cv.onMessageContextMenu($event, imgItem, true)"
@@ -132,47 +132,43 @@
                         />
                     </div>
                     <div
-                        :id="`message-${cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash}`"
+                        :id="`message-${imageGroupItems[2].lxmf_message.hash}`"
                         role="button"
                         tabindex="0"
                         class="relative col-span-2 aspect-2/1 max-h-52 min-h-[80px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80 group/img cursor-pointer"
                         @click.stop="
                             cv.openImage(
-                                cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
+                                cv.lxmfImageUrl(imageGroupItems[2].lxmf_message.hash),
                                 cv.imageGroupGalleryUrls(entry.items),
-                                cv.imageGroupSortedChron(entry.items)
+                                imageGroupItems
                             )
                         "
                         @keydown.enter.prevent.stop="
                             cv.openImage(
-                                cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
+                                cv.lxmfImageUrl(imageGroupItems[2].lxmf_message.hash),
                                 cv.imageGroupGalleryUrls(entry.items),
-                                cv.imageGroupSortedChron(entry.items)
+                                imageGroupItems
                             )
                         "
-                        @contextmenu="cv.onMessageContextMenu($event, cv.imageGroupSortedChron(entry.items)[2], true)"
+                        @contextmenu="cv.onMessageContextMenu($event, imageGroupItems[2], true)"
                     >
                         <button
                             type="button"
                             class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-sem-surface/20"
                             :title="$t('messages.save_image_to_device')"
-                            @click.stop="cv.downloadMessageImage(cv.imageGroupSortedChron(entry.items)[2])"
+                            @click.stop="cv.downloadMessageImage(imageGroupItems[2])"
                         >
                             <MaterialDesignIcon icon-name="download" class="size-4" />
                         </button>
                         <InViewAnimatedImg
-                            v-if="
-                                isAnimatedRasterType(
-                                    cv.imageGroupSortedChron(entry.items)[2].lxmf_message.fields?.image?.image_type
-                                )
-                            "
-                            :src="cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash)"
+                            v-if="isAnimatedRasterType(imageGroupItems[2].lxmf_message.fields?.image?.image_type)"
+                            :src="cv.lxmfImageUrl(imageGroupItems[2].lxmf_message.hash)"
                             fit-parent
                             img-class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
                         />
                         <img
                             v-else
-                            :src="cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash)"
+                            :src="cv.lxmfImageUrl(imageGroupItems[2].lxmf_message.hash)"
                             loading="lazy"
                             decoding="async"
                             class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
@@ -182,7 +178,7 @@
                 </div>
                 <div v-else class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-sem-surface/5">
                     <div
-                        v-for="(cell, idx) in cv.imageGroupSortedChron(entry.items).slice(0, 4)"
+                        v-for="(cell, idx) in imageGroupItems.slice(0, 4)"
                         :id="`message-${cell.lxmf_message.hash}`"
                         :key="cell.lxmf_message.hash"
                         role="button"
@@ -192,14 +188,14 @@
                             cv.openImage(
                                 cv.lxmfImageUrl(cell.lxmf_message.hash),
                                 cv.imageGroupGalleryUrls(entry.items),
-                                cv.imageGroupSortedChron(entry.items)
+                                imageGroupItems
                             )
                         "
                         @keydown.enter.prevent.stop="
                             cv.openImage(
                                 cv.lxmfImageUrl(cell.lxmf_message.hash),
                                 cv.imageGroupGalleryUrls(entry.items),
-                                cv.imageGroupSortedChron(entry.items)
+                                imageGroupItems
                             )
                         "
                         @contextmenu="cv.onMessageContextMenu($event, cell, true)"
@@ -227,10 +223,10 @@
                             alt=""
                         />
                         <div
-                            v-if="idx === 3 && cv.imageGroupSortedChron(entry.items).length > 4"
+                            v-if="idx === 3 && imageGroupItems.length > 4"
                             class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-white text-3xl font-bold"
                         >
-                            +{{ cv.imageGroupSortedChron(entry.items).length - 4 }}
+                            +{{ imageGroupItems.length - 4 }}
                         </div>
                     </div>
                 </div>
@@ -649,9 +645,9 @@
                     <div
                         v-if="
                             chatItem.lxmf_message.content &&
-                            !cv.getParsedItems(chatItem)?.isOnlyPaperMessage &&
-                            !cv.getParsedItems(chatItem)?.isOnlyMapLink &&
-                            !cv.getParsedItems(chatItem)?.isOnlyRelayLink &&
+                            !parsedItems?.isOnlyPaperMessage &&
+                            !parsedItems?.isOnlyMapLink &&
+                            !parsedItems?.isOnlyRelayLink &&
                             !cv.shouldHideAutoImageCaption(chatItem) &&
                             cv.isMessageBodyTooLargeForDisplay(chatItem)
                         "
@@ -683,15 +679,15 @@
                     <div
                         v-else-if="
                             chatItem.lxmf_message.content &&
-                            !cv.getParsedItems(chatItem)?.isOnlyPaperMessage &&
-                            !cv.getParsedItems(chatItem)?.isOnlyMapLink &&
-                            !cv.getParsedItems(chatItem)?.isOnlyRelayLink &&
+                            !parsedItems?.isOnlyPaperMessage &&
+                            !parsedItems?.isOnlyMapLink &&
+                            !parsedItems?.isOnlyRelayLink &&
                             !cv.shouldHideAutoImageCaption(chatItem)
                         "
                         class="min-w-0"
                     >
                         <div
-                            v-if="cv.bubbleViewModel(chatItem).kind === 'loading'"
+                            v-if="bubbleVm.kind === 'loading'"
                             class="text-sm text-sem-info/90 dark:text-indigo-300 py-0.5"
                         >
                             {{ $t("messages.translating_message") }}
@@ -705,50 +701,40 @@
                                     'markdown-content--outbound-solid':
                                         chatItem.is_outbound && !cv.isThemeOutboundBubble(chatItem),
                                     'markdown-content--inbound': !chatItem.is_outbound,
-                                    'markdown-content--single-emoji': cv.bubbleViewModel(chatItem).singleEmoji,
+                                    'markdown-content--single-emoji': bubbleVm.singleEmoji,
                                 }"
                                 :style="{
                                     'font-family': 'inherit',
-                                    'font-size': cv.bubbleMessageBodyFontSizePx(cv.bubbleViewModel(chatItem)) + 'px',
+                                    'font-size': cv.bubbleMessageBodyFontSizePx(bubbleVm) + 'px',
                                 }"
                                 @click="cv.handleMessageClick"
                                 @auxclick="cv.handleMessageClick"
-                                v-html="cv.renderMarkdown(cv.bubbleViewModel(chatItem).textForRender)"
+                                v-html="cv.renderMarkdown(bubbleVm.textForRender)"
                             ></div>
                             <div
-                                v-if="cv.bubbleViewModel(chatItem).showFooter"
+                                v-if="bubbleVm.showFooter"
                                 class="mt-1.5 pt-1.5 border-t border-black/5 dark:border-white/5 text-xs text-sem-fg-muted"
                             >
-                                <div v-if="cv.bubbleViewModel(chatItem).showOriginalLink" class="wrap-break-word">
+                                <div v-if="bubbleVm.showOriginalLink" class="wrap-break-word">
                                     <span>{{
                                         $t("messages.translated_from_to", {
-                                            source: String(cv.bubbleViewModel(chatItem).fromCode || "").toUpperCase(),
-                                            target: String(cv.bubbleViewModel(chatItem).toCode || "").toUpperCase(),
+                                            source: String(bubbleVm.fromCode || "").toUpperCase(),
+                                            target: String(bubbleVm.toCode || "").toUpperCase(),
                                         })
                                     }}</span>
                                     <button
                                         type="button"
                                         class="ml-1.5 text-sem-info hover:underline"
-                                        @click.stop="
-                                            cv.setBubbleMessageShowOriginal(
-                                                cv.bubbleViewModel(chatItem).messageHash,
-                                                true
-                                            )
-                                        "
+                                        @click.stop="cv.setBubbleMessageShowOriginal(bubbleVm.messageHash, true)"
                                     >
                                         {{ $t("messages.show_original") }}
                                     </button>
                                 </div>
-                                <div v-else-if="cv.bubbleViewModel(chatItem).showTranslationLink">
+                                <div v-else-if="bubbleVm.showTranslationLink">
                                     <button
                                         type="button"
                                         class="text-sem-info hover:underline"
-                                        @click.stop="
-                                            cv.setBubbleMessageShowOriginal(
-                                                cv.bubbleViewModel(chatItem).messageHash,
-                                                false
-                                            )
-                                        "
+                                        @click.stop="cv.setBubbleMessageShowOriginal(bubbleVm.messageHash, false)"
                                     >
                                         {{ $t("messages.show_translation") }}
                                     </button>
@@ -796,10 +782,10 @@
                     </div>
 
                     <!-- parsed items (contacts / paper messages) -->
-                    <div v-if="cv.getParsedItems(chatItem)" class="mt-2 space-y-2">
+                    <div v-if="parsedItems" class="mt-2 space-y-2">
                         <!-- contact -->
                         <div
-                            v-if="cv.getParsedItems(chatItem).contact"
+                            v-if="parsedItems.contact"
                             class="flex flex-col gap-2 p-3 rounded-xl border"
                             :class="
                                 chatItem.is_outbound
@@ -834,7 +820,7 @@
                                                 : 'text-sem-fg'
                                         "
                                     >
-                                        {{ cv.getParsedItems(chatItem).contact.name }}
+                                        {{ parsedItems.contact.name }}
                                     </div>
                                     <div
                                         class="text-[10px] font-mono truncate"
@@ -846,10 +832,10 @@
                                                 : 'text-sem-fg-muted'
                                         "
                                     >
-                                        {{ cv.getParsedItems(chatItem).contact.hash }}
+                                        {{ parsedItems.contact.hash }}
                                     </div>
                                     <div
-                                        v-if="cv.getParsedItems(chatItem).contact.lxmf_address"
+                                        v-if="parsedItems.contact.lxmf_address"
                                         class="text-[9px] font-mono truncate"
                                         :class="
                                             chatItem.is_outbound
@@ -859,10 +845,10 @@
                                                 : 'text-sem-fg-muted'
                                         "
                                     >
-                                        LXMF: {{ cv.getParsedItems(chatItem).contact.lxmf_address }}
+                                        LXMF: {{ parsedItems.contact.lxmf_address }}
                                     </div>
                                     <div
-                                        v-if="cv.getParsedItems(chatItem).contact.lxst_address"
+                                        v-if="parsedItems.contact.lxst_address"
                                         class="text-[9px] font-mono truncate"
                                         :class="
                                             chatItem.is_outbound
@@ -872,7 +858,7 @@
                                                 : 'text-sem-fg-muted'
                                         "
                                     >
-                                        LXST: {{ cv.getParsedItems(chatItem).contact.lxst_address }}
+                                        LXST: {{ parsedItems.contact.lxst_address }}
                                     </div>
                                 </div>
                             </div>
@@ -882,10 +868,10 @@
                                 class="w-full py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="
                                     cv.addContact(
-                                        cv.getParsedItems(chatItem).contact.name,
-                                        cv.getParsedItems(chatItem).contact.hash,
-                                        cv.getParsedItems(chatItem).contact.lxmf_address,
-                                        cv.getParsedItems(chatItem).contact.lxst_address
+                                        parsedItems.contact.name,
+                                        parsedItems.contact.hash,
+                                        parsedItems.contact.lxmf_address,
+                                        parsedItems.contact.lxst_address
                                     )
                                 "
                             >
@@ -895,7 +881,7 @@
 
                         <!-- paper message auto-conversion -->
                         <div
-                            v-if="cv.getParsedItems(chatItem).paperMessage"
+                            v-if="parsedItems.paperMessage"
                             class="flex flex-col gap-2 p-3 rounded-xl border"
                             :class="
                                 chatItem.is_outbound
@@ -952,88 +938,83 @@
                                 v-if="!chatItem.is_outbound && !cv.isPaperMessageIngested(chatItem)"
                                 type="button"
                                 class="w-full py-2 bg-sem-success hover:bg-sem-success/80 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
-                                @click="
-                                    cv.ingestPaperMessage(
-                                        cv.getParsedItems(chatItem).paperMessage,
-                                        chatItem.lxmf_message.hash
-                                    )
-                                "
+                                @click="cv.ingestPaperMessage(parsedItems.paperMessage, chatItem.lxmf_message.hash)"
                             >
                                 {{ $t("messages.paper_message_ingest") }}
                             </button>
                         </div>
 
                         <div
-                            v-if="cv.getParsedItems(chatItem).mapLink"
+                            v-if="parsedItems.mapLink"
                             class="flex flex-col gap-2 p-3 rounded-xl bg-sem-info/5 border border-sem-info/20"
                         >
                             <div class="flex items-center gap-2 text-sem-info">
                                 <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
                                 <span class="text-sm font-bold">{{
-                                    cv.getParsedItems(chatItem).mapLink.kind === "ping"
+                                    parsedItems.mapLink.kind === "ping"
                                         ? $t("messages.map_link_ping_title")
                                         : $t("messages.map_link_share_title")
                                 }}</span>
                             </div>
                             <div class="text-[10px] font-mono text-sem-info break-all">
-                                {{ cv.getParsedItems(chatItem).mapLink.parsed.lat.toFixed(5) }},
-                                {{ cv.getParsedItems(chatItem).mapLink.parsed.lon.toFixed(5) }}
-                                (z{{ cv.getParsedItems(chatItem).mapLink.parsed.zoom }})
+                                {{ parsedItems.mapLink.parsed.lat.toFixed(5) }},
+                                {{ parsedItems.mapLink.parsed.lon.toFixed(5) }}
+                                (z{{ parsedItems.mapLink.parsed.zoom }})
                             </div>
                             <button
                                 type="button"
                                 class="w-full py-2 bg-sem-info hover:bg-sem-info/80 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
-                                @click="cv.openMapShareFromParsed(cv.getParsedItems(chatItem).mapLink.parsed)"
+                                @click="cv.openMapShareFromParsed(parsedItems.mapLink.parsed)"
                             >
                                 {{ $t("messages.map_link_open") }}
                             </button>
                             <button
                                 type="button"
                                 class="w-full py-2 bg-sem-surface border border-sem-info/20 dark:border-sky-800 text-sem-info dark:text-sky-200 rounded-lg text-xs font-bold"
-                                @click="cv.copyMapShareUri(cv.getParsedItems(chatItem).mapLink.uri)"
+                                @click="cv.copyMapShareUri(parsedItems.mapLink.uri)"
                             >
                                 {{ $t("messages.map_link_copy_uri") }}
                             </button>
                         </div>
 
                         <div
-                            v-if="cv.getParsedItems(chatItem).relayLink"
+                            v-if="parsedItems.relayLink"
                             class="flex flex-col gap-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/50"
                         >
                             <div class="flex items-center gap-2 text-violet-800 dark:text-violet-300">
                                 <MaterialDesignIcon icon-name="forum-outline" class="size-5" />
                                 <span class="text-sm font-bold">{{
-                                    cv.getParsedItems(chatItem).relayLink.parsed.room
+                                    parsedItems.relayLink.parsed.room
                                         ? $t("messages.relay_link_room_title")
                                         : $t("messages.relay_link_hub_title")
                                 }}</span>
                             </div>
                             <div
-                                v-if="cv.getParsedItems(chatItem).relayLink.parsed.name"
+                                v-if="parsedItems.relayLink.parsed.name"
                                 class="text-xs font-semibold text-violet-900/90 dark:text-violet-200/90 truncate"
                             >
-                                {{ cv.getParsedItems(chatItem).relayLink.parsed.name }}
+                                {{ parsedItems.relayLink.parsed.name }}
                             </div>
                             <div
-                                v-if="cv.getParsedItems(chatItem).relayLink.parsed.room"
+                                v-if="parsedItems.relayLink.parsed.room"
                                 class="text-xs text-violet-900/80 dark:text-violet-200/90"
                             >
-                                #{{ cv.getParsedItems(chatItem).relayLink.parsed.room }}
+                                #{{ parsedItems.relayLink.parsed.room }}
                             </div>
                             <div class="text-[10px] font-mono text-violet-900/80 dark:text-violet-200/90 break-all">
-                                {{ cv.getParsedItems(chatItem).relayLink.parsed.hub }}
+                                {{ parsedItems.relayLink.parsed.hub }}
                             </div>
                             <button
                                 type="button"
                                 class="w-full py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
-                                @click="cv.openRelayShareFromParsed(cv.getParsedItems(chatItem).relayLink.parsed)"
+                                @click="cv.openRelayShareFromParsed(parsedItems.relayLink.parsed)"
                             >
                                 {{ $t("messages.relay_link_join") }}
                             </button>
                             <button
                                 type="button"
                                 class="w-full py-2 bg-sem-surface border border-violet-200 dark:border-violet-800 text-violet-800 dark:text-violet-200 rounded-lg text-xs font-bold"
-                                @click="cv.copyRelayShareUri(cv.getParsedItems(chatItem).relayLink.uri)"
+                                @click="cv.copyRelayShareUri(parsedItems.relayLink.uri)"
                             >
                                 {{ $t("messages.relay_link_copy_uri") }}
                             </button>
@@ -1227,7 +1208,7 @@
                         class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3"
                     >
                         <span
-                            v-if="cv.getParsedItems(chatItem)?.paperMessage && cv.isPaperMessageIngested(chatItem)"
+                            v-if="parsedItems?.paperMessage && cv.isPaperMessageIngested(chatItem)"
                             class="inline-flex items-center opacity-80"
                             :title="$t('messages.paper_message_ingested')"
                         >
@@ -1453,6 +1434,19 @@ export default {
         cv: {
             type: Object,
             required: true,
+        },
+    },
+    computed: {
+        // Computed caching collapses the per-render parent method calls: the
+        // template used to invoke these viewers dozens of times per row.
+        imageGroupItems() {
+            return this.cv.imageGroupSortedChron(this.entry?.items || []);
+        },
+        parsedItems() {
+            return this.cv.getParsedItems(this.entry?.chatItem);
+        },
+        bubbleVm() {
+            return this.cv.bubbleViewModel(this.entry?.chatItem);
         },
     },
     methods: {

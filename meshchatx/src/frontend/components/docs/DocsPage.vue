@@ -780,6 +780,9 @@ export default {
         if (this.statusInterval) {
             clearInterval(this.statusInterval);
         }
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+        }
     },
     methods: {
         async fetchStatus() {

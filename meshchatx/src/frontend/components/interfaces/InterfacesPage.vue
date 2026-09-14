@@ -772,6 +772,9 @@ import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants.js";
 import { useInterfaceListFilters } from "../../js/interfaces/useInterfaceListFilters.js";
 import { BATTERY_SAVER_CHANGED_EVENT, loadBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
 
+// Bounds the discovered-interfaces accumulation across discovery polls.
+const MAX_DISCOVERED_INTERFACES = 200;
+
 export default {
     name: "InterfacesPage",
     components: {
@@ -1176,7 +1179,13 @@ export default {
                 this.discoveredInterfaces.forEach((iface) => addOrUpdate(iface, false));
                 incoming.forEach((iface) => addOrUpdate(iface, true));
 
-                this.discoveredInterfaces = Array.from(merged.values());
+                // Bound the accumulation: keep the most recently heard entries.
+                const mergedList = Array.from(merged.values());
+                if (mergedList.length > MAX_DISCOVERED_INTERFACES) {
+                    mergedList.sort((a, b) => (b.last_heard ?? 0) - (a.last_heard ?? 0));
+                    mergedList.length = MAX_DISCOVERED_INTERFACES;
+                }
+                this.discoveredInterfaces = mergedList;
                 this.discoveredActive = active;
                 return true;
             } catch (e) {
