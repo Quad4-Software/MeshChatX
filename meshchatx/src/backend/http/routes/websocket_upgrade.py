@@ -22,6 +22,7 @@ from meshchatx.src.backend.http.errors import (
 )
 from meshchatx.src.backend.websocket_config_guard import websocket_origin_allowed
 from meshchatx.src.backend.websocket_runtime import (
+    WS_IDLE_TIMEOUT_SEC,
     WS_RATE_ABUSE_STRIKES,
     WS_RATE_RETRY_AFTER_SEC,
     client_is_idle,
@@ -54,6 +55,35 @@ async def _reject_forbidden_ws_session(app, request):
     ):
         return http_unauthorized("Authentication required")
     return None
+
+
+async def _ws_rate_gate(app, websocket_response, cost: float, request_id=None) -> bool:
+    """Consume *cost* tokens; on exhaustion warn, strike, and close at the cap.
+
+    Returns True when the frame may proceed, False when it was rejected.
+    """
+    bucket = get_client_bucket(websocket_response)
+    if bucket.consume(cost):
+        websocket_response._meshchatx_rate_strikes = 0
+        return True
+    counters = getattr(app, "ws_counters", None)
+    if counters is not None:
+        counters.rate_limit_hits += 1
+    strikes = int(
+        getattr(websocket_response, "_meshchatx_rate_strikes", 0) or 0,
+    )
+    strikes += 1
+    websocket_response._meshchatx_rate_strikes = strikes
+    await send_ws_error(
+        websocket_response,
+        message="Rate limit exceeded",
+        code="rate_limited",
+        request_id=request_id,
+        retry_after=WS_RATE_RETRY_AFTER_SEC,
+    )
+    if strikes >= WS_RATE_ABUSE_STRIKES:
+        await websocket_response.close()
+    return False
 
 
 def _reject_forbidden_ws_origin(app, request):
@@ -113,95 +143,121 @@ def register_websocket_upgrade_routes(routes, app):
         await app.send_active_sessions_to_websocket_clients()
 
         # handle websocket messages until disconnected
-        async for msg in websocket_response:
-            message = cast("WSMessage", msg)
-            if message.type == WSMsgType.TEXT:
-                touch_client_activity(websocket_response)
-                try:
-                    data = json.loads(message.data)
-                except Exception as e:
-                    print("failed to process client message")
-                    print(e)
-                    await send_ws_error(
-                        websocket_response,
-                        message="Invalid JSON",
-                        code="invalid_json",
-                    )
-                    continue
-                counters = getattr(app, "ws_counters", None)
-                if counters is not None:
-                    counters.msgs_in += 1
-                bucket = get_client_bucket(websocket_response)
-                msg_type = data.get("type") if isinstance(data, dict) else None
-                cost = message_rate_cost(
-                    msg_type if isinstance(msg_type, str) else None
-                )
-                if not bucket.consume(cost):
-                    if counters is not None:
-                        counters.rate_limit_hits += 1
-                    strikes = int(
-                        getattr(websocket_response, "_meshchatx_rate_strikes", 0) or 0,
-                    )
-                    strikes += 1
-                    websocket_response._meshchatx_rate_strikes = strikes
-                    await send_ws_error(
-                        websocket_response,
-                        message="Rate limit exceeded",
-                        code="rate_limited",
-                        request_id=data.get("request_id")
-                        if isinstance(data, dict)
-                        else None,
-                        retry_after=WS_RATE_RETRY_AFTER_SEC,
-                    )
-                    if strikes >= WS_RATE_ABUSE_STRIKES:
-                        await websocket_response.close()
-                        break
-                    continue
-                websocket_response._meshchatx_rate_strikes = 0
-                try:
-                    await app.on_websocket_data_received(websocket_response, data)
-                except Exception as e:
-                    print("failed to process client message")
-                    print(e)
-                    await send_ws_error(
-                        websocket_response,
-                        message="Handler failed",
-                        code="handler_failed",
-                        request_id=data.get("request_id")
-                        if isinstance(data, dict)
-                        else None,
-                    )
-            elif message.type == WSMsgType.BINARY:
-                touch_client_activity(websocket_response)
-                try:
-                    await app.on_websocket_binary_received(
-                        websocket_response,
-                        message.data,
-                    )
-                except Exception as e:
-                    print("failed to process binary client message")
-                    print(e)
-            elif message.type == WSMsgType.ERROR:
-                print(f"ws connection error {websocket_response.exception()}")
-
-            if client_is_idle(websocket_response):
-                counters = getattr(app, "ws_counters", None)
-                if counters is not None:
-                    counters.idle_closes += 1
-                try:
-                    await websocket_response.close()
-                except Exception:
-                    pass
-                break
-
-        # websocket closed
         try:
-            app.websocket_clients.remove(websocket_response)
-        except ValueError:
-            pass
-        app._detach_active_session(websocket_response)
-        app._cancel_rns_link_tasks_for_client(websocket_response)
-        await app.send_active_sessions_to_websocket_clients()
+            while True:
+                try:
+                    message = cast(
+                        "WSMessage",
+                        await websocket_response.receive(
+                            timeout=WS_IDLE_TIMEOUT_SEC,
+                        ),
+                    )
+                except TimeoutError:
+                    # No inbound frame within the idle window. Close only when
+                    # activity is actually stale so receive-only listeners on a
+                    # busy broadcast stream keep their socket.
+                    if not client_is_idle(websocket_response):
+                        continue
+                    counters = getattr(app, "ws_counters", None)
+                    if counters is not None:
+                        counters.idle_closes += 1
+                    break
+                if message.type in (
+                    WSMsgType.CLOSE,
+                    WSMsgType.CLOSING,
+                    WSMsgType.CLOSED,
+                    WSMsgType.ERROR,
+                ):
+                    if message.type == WSMsgType.ERROR:
+                        print(
+                            f"ws connection error {websocket_response.exception()}",
+                        )
+                    break
+                if message.type == WSMsgType.TEXT:
+                    touch_client_activity(websocket_response)
+                    counters = getattr(app, "ws_counters", None)
+                    if counters is not None:
+                        counters.msgs_in += 1
+                    try:
+                        data = json.loads(message.data)
+                    except Exception as e:
+                        print("failed to process client message")
+                        print(e)
+                        # Malformed frames still consume tokens so a garbage
+                        # flood cannot bypass the rate limiter.
+                        if not await _ws_rate_gate(app, websocket_response, 1.0):
+                            if websocket_response.closed:
+                                break
+                            continue
+                        await send_ws_error(
+                            websocket_response,
+                            message="Invalid JSON",
+                            code="invalid_json",
+                        )
+                        continue
+                    msg_type = data.get("type") if isinstance(data, dict) else None
+                    cost = message_rate_cost(
+                        msg_type if isinstance(msg_type, str) else None
+                    )
+                    if not await _ws_rate_gate(
+                        app,
+                        websocket_response,
+                        cost,
+                        request_id=data.get("request_id")
+                        if isinstance(data, dict)
+                        else None,
+                    ):
+                        if websocket_response.closed:
+                            break
+                        continue
+                    try:
+                        await app.on_websocket_data_received(websocket_response, data)
+                    except Exception as e:
+                        print("failed to process client message")
+                        print(e)
+                        await send_ws_error(
+                            websocket_response,
+                            message="Handler failed",
+                            code="handler_failed",
+                            request_id=data.get("request_id")
+                            if isinstance(data, dict)
+                            else None,
+                        )
+                elif message.type == WSMsgType.BINARY:
+                    touch_client_activity(websocket_response)
+                    # Binary frames carry a msgpack envelope; price them like a
+                    # normal message before the decode dispatch.
+                    if not await _ws_rate_gate(app, websocket_response, 1.0):
+                        if websocket_response.closed:
+                            break
+                        continue
+                    try:
+                        await app.on_websocket_binary_received(
+                            websocket_response,
+                            message.data,
+                        )
+                    except Exception as e:
+                        print("failed to process binary client message")
+                        print(e)
+
+                if client_is_idle(websocket_response):
+                    counters = getattr(app, "ws_counters", None)
+                    if counters is not None:
+                        counters.idle_closes += 1
+                    break
+        finally:
+            # websocket closed or handler failed: always release client state.
+            try:
+                await websocket_response.close()
+            except Exception:
+                pass
+            try:
+                app.websocket_clients.remove(websocket_response)
+            except ValueError:
+                pass
+            app._detach_active_session(websocket_response)
+            app._cancel_rns_link_tasks_for_client(websocket_response)
+            await app.send_active_sessions_to_websocket_clients()
 
         return websocket_response
 
@@ -247,6 +303,11 @@ def register_websocket_upgrade_routes(routes, app):
             await websocket_response.close()
             return websocket_response
 
+        max_audio_clients = 8
+        if len(app.web_audio_bridge.clients) >= max_audio_clients:
+            await websocket_response.close(code=1008, message=b"Too many audio clients")
+            return websocket_response
+
         await app.web_audio_bridge.send_status(websocket_response)
         attached = app.web_audio_bridge.attach_client(websocket_response)
         if not attached:
@@ -256,28 +317,55 @@ def register_websocket_upgrade_routes(routes, app):
                 ),
             )
 
-        async for msg in websocket_response:
-            message = cast("WSMessage", msg)
-            touch_client_activity(websocket_response)
-            if message.type == WSMsgType.BINARY:
-                # Only accept PCM after a successful attach for this socket.
-                if websocket_response in app.web_audio_bridge.clients:
-                    app.web_audio_bridge.push_client_frame(message.data)
-            elif message.type == WSMsgType.TEXT:
+        try:
+            while True:
                 try:
-                    data = json.loads(message.data)
-                    if data.get("type") == "attach":
-                        app.web_audio_bridge.attach_client(websocket_response)
-                    elif data.get("type") == "ping":
-                        await websocket_response.send_str(
-                            json.dumps({"type": "pong"}),
-                        )
-                except Exception as e:
-                    logging.exception(
-                        f"Error processing websocket text message: {e}",
+                    message = cast(
+                        "WSMessage",
+                        await websocket_response.receive(
+                            timeout=WS_IDLE_TIMEOUT_SEC,
+                        ),
                     )
-            elif message.type == WSMsgType.ERROR:
-                print(f"telephone audio ws error {websocket_response.exception()}")
-
-        app.web_audio_bridge.detach_client(websocket_response)
+                except TimeoutError:
+                    if not client_is_idle(websocket_response):
+                        continue
+                    break
+                if message.type in (
+                    WSMsgType.CLOSE,
+                    WSMsgType.CLOSING,
+                    WSMsgType.CLOSED,
+                    WSMsgType.ERROR,
+                ):
+                    if message.type == WSMsgType.ERROR:
+                        print(
+                            f"telephone audio ws error "
+                            f"{websocket_response.exception()}",
+                        )
+                    break
+                touch_client_activity(websocket_response)
+                if message.type == WSMsgType.BINARY:
+                    # Only accept PCM after a successful attach for this socket.
+                    # Audio frames are real-time paced so they bypass the
+                    # message bucket but stay bounded by max_msg_size.
+                    if websocket_response in app.web_audio_bridge.clients:
+                        app.web_audio_bridge.push_client_frame(message.data)
+                elif message.type == WSMsgType.TEXT:
+                    try:
+                        data = json.loads(message.data)
+                        if data.get("type") == "attach":
+                            app.web_audio_bridge.attach_client(websocket_response)
+                        elif data.get("type") == "ping":
+                            await websocket_response.send_str(
+                                json.dumps({"type": "pong"}),
+                            )
+                    except Exception as e:
+                        logging.exception(
+                            f"Error processing websocket text message: {e}",
+                        )
+        finally:
+            app.web_audio_bridge.detach_client(websocket_response)
+            try:
+                await websocket_response.close()
+            except Exception:
+                pass
         return websocket_response
