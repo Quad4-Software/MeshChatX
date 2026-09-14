@@ -81,7 +81,7 @@ describe("outboundSendQueue", () => {
 });
 
 describe("outboundSendQueue clear", () => {
-    it("cancels queued jobs and the in-flight job", async () => {
+    it("drops queued jobs and the in-flight job without marking user-cancel", async () => {
         const order = [];
         let release;
         const gate = new Promise((r) => {
@@ -101,7 +101,10 @@ describe("outboundSendQueue clear", () => {
         await new Promise((r) => setTimeout(r, 5));
         q.clear();
         expect(q.length).toBe(0);
-        expect(inFlightJob?.cancelled).toBe(true);
+        // Teardown marks dropped, not cancelled: an already-accepted send must
+        // not be retro-cancelled server-side when the view unmounts.
+        expect(inFlightJob?.dropped).toBe(true);
+        expect(inFlightJob?.cancelled).not.toBe(true);
         release();
         await new Promise((r) => setTimeout(r, 20));
         expect(order).toEqual(["start:a", "end:a"]);
