@@ -27,6 +27,8 @@ class _WsRequest:
         origin=None,
         remote="127.0.0.1",
         forwarded_host=None,
+        forwarded_proto=None,
+        forwarded_port=None,
     ):
         self.host = host
         self.scheme = scheme
@@ -36,6 +38,10 @@ class _WsRequest:
             self.headers["Origin"] = origin
         if forwarded_host is not None:
             self.headers["X-Forwarded-Host"] = forwarded_host
+        if forwarded_proto is not None:
+            self.headers["X-Forwarded-Proto"] = forwarded_proto
+        if forwarded_port is not None:
+            self.headers["X-Forwarded-Port"] = forwarded_port
 
 
 def _client_ip_allowed(remote, cidrs):
@@ -88,6 +94,25 @@ def _expected_origin_allowed(request, trusted_cidrs):
     default_port = 443 if request.scheme == "https" else 80
     candidates = [request.host]
     if trusted_cidrs and _client_ip_allowed(request.remote, trusted_cidrs):
+        proxy_port = None
+        fwd_port = request.headers.get("X-Forwarded-Port")
+        if fwd_port:
+            try:
+                port = int(fwd_port.split(",")[0].strip())
+            except ValueError:
+                port = 0
+            if 1 <= port <= 65535:
+                proxy_port = port
+        if proxy_port is None:
+            proto = request.headers.get("X-Forwarded-Proto")
+            if proto:
+                scheme = proto.split(",")[0].strip().lower()
+                if scheme == "https":
+                    proxy_port = 443
+                elif scheme == "http":
+                    proxy_port = 80
+        if proxy_port is not None:
+            default_port = proxy_port
         forwarded = request.headers.get("X-Forwarded-Host")
         if forwarded:
             candidates.insert(0, forwarded.split(",")[0].strip())
@@ -142,14 +167,22 @@ class TestWebSocketOriginOracle:
         origin=origin_pair(),
         forwarded=authority(),
         remote=st.sampled_from(["127.0.0.1", "203.0.113.9"]),
+        forwarded_proto=st.one_of(
+            st.none(),
+            st.sampled_from(["http", "https", "https,http", "gopher"]),
+        ),
+        forwarded_port=st.one_of(
+            st.none(),
+            st.sampled_from(["443", "80", "8443", "abc", "0", "99999"]),
+        ),
     )
     @settings(
-        max_examples=100,
+        max_examples=150,
         deadline=None,
         suppress_health_check=[HealthCheck.function_scoped_fixture],
     )
     def test_origin_allowed_honors_trusted_proxy_forwarded_host(
-        self, host, origin, forwarded, remote
+        self, host, origin, forwarded, remote, forwarded_proto, forwarded_port
     ):
         origin_url, scheme, _ = origin
         req = _WsRequest(
@@ -158,6 +191,8 @@ class TestWebSocketOriginOracle:
             origin=origin_url,
             remote=remote,
             forwarded_host=forwarded,
+            forwarded_proto=forwarded_proto,
+            forwarded_port=forwarded_port,
         )
         expected = _expected_origin_allowed(req, "127.0.0.1/32")
         assert websocket_origin_allowed(req, "127.0.0.1/32") is expected
