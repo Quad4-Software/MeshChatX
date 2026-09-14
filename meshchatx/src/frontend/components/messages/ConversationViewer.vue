@@ -3355,17 +3355,25 @@ export default {
         // by loadPrevious. Scroll is re-anchored for readers in history.
         _pushChatItem(chatItem) {
             this.chatItems.push(chatItem);
-            if (this.chatItems.length <= MAX_CHAT_ITEMS) {
+            if (this.chatItems.length <= MAX_CHAT_ITEMS || this._chatHeadTrimQueued) {
                 return;
             }
+            this._chatHeadTrimQueued = true;
             const scrollEl = this.$refs.messagesScroll;
-            const drop = this.chatItems.length - MAX_CHAT_ITEMS;
-            if (!scrollEl) {
-                this.chatItems.splice(0, drop);
-                this._invalidateDisplayGroupsCache();
-                return;
-            }
-            this.$nextTick(() => {
+            const trimNow = () => {
+                this._chatHeadTrimQueued = false;
+                // Compute the drop live: pushes landing in the same tick must
+                // not each schedule a splice against a stale length, or a
+                // burst removes far more than the overflow.
+                const drop = this.chatItems.length - MAX_CHAT_ITEMS;
+                if (drop <= 0) {
+                    return;
+                }
+                if (!scrollEl) {
+                    this.chatItems.splice(0, drop);
+                    this._invalidateDisplayGroupsCache();
+                    return;
+                }
                 const prevScrollHeight = scrollEl.scrollHeight;
                 const prevScrollTop = scrollEl.scrollTop;
                 this.chatItems.splice(0, drop);
@@ -3373,7 +3381,12 @@ export default {
                 this.$nextTick(() => {
                     scrollEl.scrollTop = Math.max(0, prevScrollTop - (prevScrollHeight - scrollEl.scrollHeight));
                 });
-            });
+            };
+            if (!scrollEl) {
+                trimNow();
+                return;
+            }
+            this.$nextTick(trimNow);
         },
         // Keeps the loaded window bounded during deep scroll-back. Dropped tail
         // items are below the viewport, so scrollTop is unaffected. The next
@@ -5829,7 +5842,7 @@ export default {
         },
         async _executeOutboundSendJob(job) {
             try {
-                if (job.cancelled || this._unmounted) {
+                if (job.cancelled || job.dropped || this._unmounted) {
                     return;
                 }
                 job.pendingHash = null;
@@ -5872,7 +5885,7 @@ export default {
                     });
                 }
 
-                if (job.cancelled) {
+                if (job.cancelled || job.dropped) {
                     this.removePendingOutboundPlaceholder(job.pendingHash);
                     return;
                 }
@@ -5914,6 +5927,11 @@ export default {
                         this.removePendingOutboundPlaceholder(job.pendingHash);
                         return;
                     }
+                    if (job.dropped || this._unmounted) {
+                        // The view went away mid-send. The backend already
+                        // accepted the message so it must not be cancelled.
+                        return;
+                    }
                     job.messageHash = response.data.lxmf_message.hash;
                     this._absorbOutboundSendResponse(job, response.data.lxmf_message);
                 } else {
@@ -5939,10 +5957,17 @@ export default {
                         this.removePendingOutboundPlaceholder(job.pendingHash);
                         return;
                     }
+                    if (job.dropped || this._unmounted) {
+                        // Accepted by the backend; leave it sent.
+                        return;
+                    }
                     job.messageHash = response.data.lxmf_message.hash;
                     this._absorbOutboundSendResponse(job, response.data.lxmf_message);
 
                     for (let i = 1; i < job.images.length; i++) {
+                        if (job.cancelled || job.dropped) {
+                            break;
+                        }
                         const image = job.images[i];
                         const subsequentFields = {
                             image: { image_type: image.image_type, image_bytes: image.image_bytes },

@@ -31,7 +31,7 @@ export function createOutboundQueue(processJob) {
         try {
             while (queue.length) {
                 const job = queue.shift();
-                if (job?.cancelled) {
+                if (job?.cancelled || job?.dropped) {
                     continue;
                 }
                 currentJob = job;
@@ -50,12 +50,15 @@ export function createOutboundQueue(processJob) {
     }
 
     function clear() {
+        // Dropped (teardown) is weaker than user-cancelled: an in-flight job
+        // whose REST send already reached the backend must not be cancelled
+        // server-side when the view goes away.
         for (const job of queue) {
-            job.cancelled = true;
+            job.dropped = true;
         }
         queue.length = 0;
         if (currentJob) {
-            currentJob.cancelled = true;
+            currentJob.dropped = true;
         }
     }
 

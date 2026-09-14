@@ -141,18 +141,28 @@ export default {
     },
     methods: {
         async fetchMessages() {
-            if (!this.destinationHash) return;
+            const hash = this.destinationHash;
+            if (!hash) return;
             this.loading = true;
+            const gen = (this._fetchGen = (this._fetchGen || 0) + 1);
             try {
                 const response = await window.api.get(
-                    apiPath(`/lxmf-messages/conversation/${this.destinationHash}?count=20&order=desc`)
+                    apiPath(`/lxmf-messages/conversation/${hash}?count=20&order=desc`)
                 );
-                this.messages = (response.data.lxmf_messages || []).reverse();
+                // A stale fetch must not clobber a newer peer view or a
+                // message that sendMessage appended after this fetch started.
+                if (gen !== this._fetchGen || hash !== this.destinationHash) return;
+                const fetched = (response.data.lxmf_messages || []).reverse();
+                const fetchedHashes = new Set(fetched.map((m) => m.hash));
+                const unsynced = this.messages.filter((m) => m.is_outbound && m.hash && !fetchedHashes.has(m.hash));
+                this.messages = [...fetched, ...unsynced].slice(-40);
                 this.scrollToBottom();
             } catch (e) {
                 console.error("Failed to fetch messages", e);
             } finally {
-                this.loading = false;
+                if (gen === this._fetchGen) {
+                    this.loading = false;
+                }
             }
         },
         async sendMessage() {

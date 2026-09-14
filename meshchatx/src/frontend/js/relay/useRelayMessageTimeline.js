@@ -52,6 +52,7 @@ export function useRelayMessageTimeline(options = {}) {
     const expandedPresenceGroups = ref({});
     const tailTrimmed = ref(false);
     const reloadingLatest = ref(false);
+    let headTrimQueued = false;
 
     const messageTimeline = computed(() => {
         if (messageTimelineCache.value !== null) {
@@ -172,23 +173,36 @@ export function useRelayMessageTimeline(options = {}) {
             return false;
         }
         messages.value.push(msg);
-        if (messages.value.length <= MAX_RELAY_MESSAGES) {
+        if (messages.value.length <= MAX_RELAY_MESSAGES || headTrimQueued) {
             return true;
         }
+        headTrimQueued = true;
         const scrollEl = getMessagesScrollElement?.() ?? null;
-        const drop = messages.value.length - MAX_RELAY_MESSAGES;
-        if (!scrollEl) {
-            messages.value.splice(0, drop);
-            return true;
-        }
-        nextTick(() => {
+        const trimNow = () => {
+            headTrimQueued = false;
+            // Compute the drop live: pushes landing in the same tick must not
+            // each schedule a splice against a stale length, or a burst
+            // removes far more than the overflow.
+            const drop = messages.value.length - MAX_RELAY_MESSAGES;
+            if (drop <= 0) {
+                return;
+            }
+            if (!scrollEl) {
+                messages.value.splice(0, drop);
+                return;
+            }
             const prevScrollHeight = scrollEl.scrollHeight;
             const prevScrollTop = scrollEl.scrollTop;
             messages.value.splice(0, drop);
             nextTick(() => {
                 scrollEl.scrollTop = Math.max(0, prevScrollTop - (prevScrollHeight - scrollEl.scrollHeight));
             });
-        });
+        };
+        if (!scrollEl) {
+            trimNow();
+            return true;
+        }
+        nextTick(trimNow);
         return true;
     }
 
