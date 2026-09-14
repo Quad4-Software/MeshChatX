@@ -506,7 +506,7 @@ if (networkReady) {
         void import("./components/interfaces/InterfacesPage.vue");
     }
 
-    function bootstrap() {
+    async function bootstrap() {
         registerMeshchatServiceWorker();
         const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
         const app = createApp(App);
@@ -551,6 +551,14 @@ if (networkReady) {
             }
         } catch {
             // ignore
+        }
+        // Wait for the initial route's lazy chunk so the splash lifts onto a
+        // laid-out page instead of an empty router-view that pops in after.
+        try {
+            await Promise.race([router.isReady(), new Promise((resolve) => setTimeout(resolve, 4000))]);
+        } catch {
+            // isReady rejects when the first navigation fails. Drop the splash
+            // anyway so the error UI behind it is reachable.
         }
         // Keep splash until the first painted frame so WebView does not flash white.
         requestAnimationFrame(() => {

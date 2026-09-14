@@ -1710,6 +1710,42 @@ describe("NomadNetworkPage.vue", () => {
             expect(handled).toBe(false);
         });
 
+        it("fails a pending image download when the ws reports an error for its request_id", async () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
+            wrapper.vm.crashTabImages = [{ url: ":/file/img.webp", alt: "test" }];
+            wrapper.vm.setCrashTabImage = vi.fn();
+            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
+            const requestId = wrapper.vm.nomadImageDownloadCallbacks[0].requestId;
+            wrapper.vm.onWsErrorEvent({
+                type: "error",
+                code: "rate_limited",
+                message: "Rate limit exceeded",
+                request_id: requestId,
+            });
+            expect(wrapper.vm.nomadImageDownloadCallbacks[0]).toBeUndefined();
+            const lastCall = wrapper.vm.setCrashTabImage.mock.calls.at(-1);
+            expect(lastCall[1]).toBe("error");
+            expect(lastCall[2].reason).toBe("Rate limit exceeded");
+        });
+
+        it("fails a pending image download when the ws send is refused", async () => {
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
+            wrapper.vm.crashTabImages = [{ url: ":/file/img.webp", alt: "test" }];
+            wrapper.vm.setCrashTabImage = vi.fn();
+            WebSocketConnection.send.mockReturnValueOnce(false);
+            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
+            expect(wrapper.vm.nomadImageDownloadCallbacks[0]).toBeUndefined();
+            const lastCall = wrapper.vm.setCrashTabImage.mock.calls.at(-1);
+            expect(lastCall[1]).toBe("error");
+        });
+
         it("does not cache images in private browsing", () => {
             const hash = "a".repeat(32);
             const wrapper = mountNomadNetworkPage({ destinationHash: hash, isPrivate: true });

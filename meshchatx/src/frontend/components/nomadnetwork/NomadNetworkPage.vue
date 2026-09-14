@@ -1486,6 +1486,7 @@ export default {
         offWsEvent(WS_EVENTS.NOMADNET_DOWNLOAD_CANCELLED, this.onNomadDownloadCancelledEvent);
         offWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVES, this.onNomadPageArchivesEvent);
         offWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVE_ADDED, this.onNomadPageArchiveAddedEvent);
+        offWsEvent(WS_EVENTS.ERROR, this.onWsErrorEvent);
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
     },
@@ -1502,6 +1503,7 @@ export default {
         onWsEvent(WS_EVENTS.NOMADNET_DOWNLOAD_CANCELLED, this.onNomadDownloadCancelledEvent);
         onWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVES, this.onNomadPageArchivesEvent);
         onWsEvent(WS_EVENTS.NOMADNET_PAGE_ARCHIVE_ADDED, this.onNomadPageArchiveAddedEvent);
+        onWsEvent(WS_EVENTS.ERROR, this.onWsErrorEvent);
         GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
         this.refreshMicronWasmReleaseLabel();
@@ -3044,6 +3046,32 @@ export default {
         generateNomadImageRequestId() {
             return `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
         },
+        // A rejected request (rate limit, dropped frame) still emits a WS error
+        // with the echoed request_id. Without this, pending downloads would sit
+        // on the loading state forever since no status event ever arrives.
+        onWsErrorEvent(json) {
+            const requestId = json?.request_id;
+            if (requestId == null) {
+                return;
+            }
+            const reason = json.message || this.$t("nomadnet.image_load_failed");
+            for (const key of Object.keys(this.nomadImageDownloadCallbacks)) {
+                const context = this.nomadImageDownloadCallbacks[key];
+                if (context && String(context.requestId) === String(requestId)) {
+                    this.onNomadImageDownloadFailure(Number(key), reason);
+                }
+            }
+            for (const map of [this.nomadnetFileDownloadCallbacks, this.nomadnetPageDownloadCallbacks]) {
+                for (const key of Object.keys(map || {})) {
+                    const entry = map[key];
+                    if (entry && entry.requestId != null && String(entry.requestId) === String(requestId)) {
+                        entry.cancelPendingSend?.();
+                        entry.onFailureCallback?.(reason);
+                        delete map[key];
+                    }
+                }
+            }
+        },
         ownsNomadImageDownloadEvent(eventData, index) {
             const context = this.nomadImageDownloadCallbacks[index];
             if (!context) {
@@ -3983,6 +4011,7 @@ export default {
                         onSuccessCallback: onSuccessCallback,
                         onFailureCallback: onFailureCallback,
                         onProgressCallback: onProgressCallback,
+                        requestId: data && data.request_id != null ? data.request_id : null,
                     };
 
                 // ask reticulum to download file from nomadnet
@@ -4000,7 +4029,14 @@ export default {
                         payload.request_id = data.request_id;
                     }
                 }
-                WebSocketConnection.send(JSON.stringify(payload));
+                if (!WebSocketConnection.send(JSON.stringify(payload))) {
+                    delete this.nomadnetFileDownloadCallbacks[
+                        this.getNomadnetFileDownloadCallbackKey(destinationHash, filePath)
+                    ];
+                    if (onFailureCallback) {
+                        onFailureCallback(this.$t("nomadnet.websocket_not_connected"));
+                    }
+                }
             } catch (e) {
                 console.error(e);
             }

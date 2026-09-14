@@ -118,7 +118,9 @@ async def test_coalesce_offer_during_flush_is_not_dropped():
 
 def test_message_rate_cost_heavy_types():
     assert message_rate_cost("ping") == 1.0
-    assert message_rate_cost("nomadnet.file.download") == 5.0
+    # Image-rich pages legitimately burst many file downloads.
+    assert message_rate_cost("nomadnet.file.download") == 1.0
+    assert message_rate_cost("nomadnet.page.download") == 5.0
     assert message_rate_cost("rns.link.request") == 5.0
 
 

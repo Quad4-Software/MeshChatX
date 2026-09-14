@@ -20,6 +20,7 @@ export const WS_EVENTS = Object.freeze({
     ANNOUNCE: "announce",
     APP_SESSIONS_UPDATED: "app.sessions.updated",
     CONFIG: "config",
+    ERROR: "error",
     KEYBOARD_SHORTCUTS: "keyboard_shortcuts",
     LXMF_DELIVERY: "lxmf.delivery",
     LXMF_FORWARDING_RULES: "lxmf.forwarding.rules",
