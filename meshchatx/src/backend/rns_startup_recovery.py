@@ -383,6 +383,45 @@ def apply_startup_recovery_step(
     return disabled
 
 
+def sweep_orphaned_ratchet_files(config_dir: str) -> int:
+    """Remove ratchet storage entries whose names are not 32-hex destinations.
+
+    Older RNS builds staged ratchet writes under temp names like
+    <hash>.out. A crash between write and rename leaves the orphan behind,
+    and upstream _clean_ratchets cannot remove it: it calls
+    bytes.fromhex on the full filename, the suffix breaks parsing, and the
+    unlink is skipped, so the corrupted-file error path re-runs on every
+    startup. Sweeping before Reticulum init removes the recurring error
+    and the wasted per-boot processing.
+    """
+    ratchets_dir = os.path.join(config_dir, "storage", "ratchets")
+    if not os.path.isdir(ratchets_dir):
+        return 0
+    removed = 0
+    try:
+        for name in os.listdir(ratchets_dir):
+            if len(name) == 32:
+                try:
+                    bytes.fromhex(name)
+                    continue
+                except ValueError:
+                    pass
+            path = os.path.join(ratchets_dir, name)
+            if not os.path.isfile(path):
+                continue
+            try:
+                os.unlink(path)
+                removed += 1
+                logger.warning("Removed orphaned ratchet storage file %s", name)
+            except OSError as exc:
+                logger.warning(
+                    "Could not remove orphaned ratchet file %s: %s", name, exc
+                )
+    except OSError as exc:
+        logger.warning("Could not sweep ratchet storage: %s", exc)
+    return removed
+
+
 def create_reticulum_with_recovery(
     config_dir: str,
     *,
@@ -391,6 +430,7 @@ def create_reticulum_with_recovery(
 ) -> Any:
     """Construct RNS, progressively disabling bad interfaces on failure."""
     install_rns_panic_containment()
+    sweep_orphaned_ratchet_files(config_dir)
     try:
         from meshchatx.src.backend.rns_rnode_patch import (
             install_rns_rnode_patches,

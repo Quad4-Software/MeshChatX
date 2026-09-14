@@ -260,3 +260,44 @@ interface_enabled = true
         "no",
         "0",
     )
+
+
+def test_sweep_orphaned_ratchet_files_removes_non_hex_names(tmp_path):
+    ratchets = tmp_path / "storage" / "ratchets"
+    ratchets.mkdir(parents=True)
+    valid = "a" * 32
+    (ratchets / valid).write_bytes(b"data")
+    (ratchets / f"{valid[:-4]}.out").write_bytes(b"")
+    (ratchets / ".ratchet.abc123.tmp").write_bytes(b"")
+    (ratchets / "subdir").mkdir()
+
+    removed = recovery.sweep_orphaned_ratchet_files(str(tmp_path))
+
+    assert removed == 2
+    assert (ratchets / valid).is_file()
+    assert not (ratchets / f"{valid[:-4]}.out").exists()
+    assert not (ratchets / ".ratchet.abc123.tmp").exists()
+    assert (ratchets / "subdir").is_dir()
+
+
+def test_sweep_orphaned_ratchet_files_missing_dir(tmp_path):
+    assert recovery.sweep_orphaned_ratchet_files(str(tmp_path)) == 0
+
+
+def test_create_reticulum_with_recovery_sweeps_ratchets(tmp_path, monkeypatch):
+    ratchets = tmp_path / "storage" / "ratchets"
+    ratchets.mkdir(parents=True)
+    (ratchets / ("b" * 32 + ".out")).write_bytes(b"")
+    (tmp_path / "config").write_text("[reticulum]\n[interfaces]\n", encoding="utf-8")
+
+    called = []
+
+    def construct():
+        called.append(True)
+        return object()
+
+    result = recovery.create_reticulum_with_recovery(str(tmp_path), construct=construct)
+
+    assert result is not None
+    assert called
+    assert not (ratchets / ("b" * 32 + ".out")).exists()
