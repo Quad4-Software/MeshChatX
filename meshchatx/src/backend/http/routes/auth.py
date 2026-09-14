@@ -118,6 +118,8 @@ def register_auth_routes(routes, app):
                     "stage": app._startup_stage,
                     "demo_mode": app.demo_mode,
                     "auth_page_hint": app.auth_page_hint,
+                    "oidc_enabled": app._oidc_ready(),
+                    "oidc_display_name": app._oidc_settings().display_name,
                 },
             )
         try:
@@ -130,6 +132,7 @@ def register_auth_routes(routes, app):
                 session_identity == app.identity.hash.hex()
             )
 
+            oidc_settings = app._oidc_settings()
             return web.json_response(
                 {
                     "auth_enabled": app.auth_enabled,
@@ -138,6 +141,8 @@ def register_auth_routes(routes, app):
                     "network_ready": True,
                     "demo_mode": app.demo_mode,
                     "auth_page_hint": app.auth_page_hint,
+                    "oidc_enabled": app._oidc_ready(),
+                    "oidc_display_name": oidc_settings.display_name,
                 },
             )
         except Exception:
@@ -156,6 +161,8 @@ def register_auth_routes(routes, app):
                     ),
                     "demo_mode": app.demo_mode,
                     "auth_page_hint": app.auth_page_hint,
+                    "oidc_enabled": app._oidc_ready(),
+                    "oidc_display_name": app._oidc_settings().display_name,
                     "error": "Status unavailable",
                 },
             )

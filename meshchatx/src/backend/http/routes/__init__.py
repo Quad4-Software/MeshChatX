@@ -25,6 +25,7 @@ from meshchatx.src.backend.http.routes.maintenance import register_maintenance_r
 from meshchatx.src.backend.http.routes.map import register_map_routes
 from meshchatx.src.backend.http.routes.messages import register_messages_routes
 from meshchatx.src.backend.http.routes.nomad import register_nomad_routes
+from meshchatx.src.backend.http.routes.oidc import register_oidc_routes
 from meshchatx.src.backend.http.routes.page_nodes import register_page_nodes_routes
 from meshchatx.src.backend.http.routes.path_probe import register_path_probe_routes
 from meshchatx.src.backend.http.routes.plugins import register_plugins_routes
@@ -54,6 +55,7 @@ _REGISTER_ORDER = (
     register_database_routes,
     register_status_routes,
     register_auth_routes,
+    register_oidc_routes,
     register_interfaces_routes,
     register_community_routes,
     register_websocket_upgrade_routes,

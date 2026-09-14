@@ -28,6 +28,13 @@ WEBSOCKET_CONFIG_DENYLIST = frozenset(
     {
         "auth_enabled",
         "auth_password_hash",
+        # OIDC changes the HTTP auth boundary and carries a client secret.
+        "oidc_enabled",
+        "oidc_issuer_url",
+        "oidc_client_id",
+        "oidc_client_secret",
+        "oidc_display_name",
+        "oidc_scopes",
         # Clearnet outbound kill-switch. Must use CSRF-protected HTTP PATCH.
         "privacy_mode_enabled",
     },

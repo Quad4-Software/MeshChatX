@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.1] - [unreleased]
 
+### Added
+
+- OIDC single sign-on for the web UI. Authentik, Keycloak, Pocket ID and compatible providers work through Authorization Code + PKCE with state and nonce binding, JWKS-verified ID tokens (RS256, ES256, EdDSA), and issuer, audience, azp, expiry and signature checks. Configure it under Settings, Authentication, or with MESHCHAT_OIDC_* environment variables. A working OIDC setup enforces authentication on its own even without a local password, password login stays available alongside it, and provider requests honor privacy mode.
+
 ### Fixed
 
 - Windows desktop: the AppContainer child no longer dies during loader init (exit 0xC0000142) on hosts where the LPAC token lacks window station and desktop access. The launcher now grants the package SID explicit access to the interactive winsta and desktop, and a sandboxed child that still fails to start falls back to an unsandboxed backend in auto mode.

@@ -388,6 +388,8 @@ AUTH_STATUS_SCHEMA: dict = {
             "enum": ["http", "starting", "rns", "identity", "ready", "failed"],
         },
         "error": {"type": "string"},
+        "oidc_enabled": {"type": "boolean"},
+        "oidc_display_name": {"type": ["string", "null"]},
         **_DEMO_PUBLIC_STATUS_FIELDS,
     },
     "additionalProperties": False,

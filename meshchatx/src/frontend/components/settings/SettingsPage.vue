@@ -2169,6 +2169,128 @@
                                         accessing the web interface.
                                     </p>
                                 </div>
+
+                                <div class="space-y-3 border-t border-sem-border pt-4">
+                                    <div>
+                                        <div class="text-sm font-medium text-sem-fg">
+                                            {{ $t("app.oidc_title") }}
+                                        </div>
+                                        <p class="text-xs text-sem-fg-muted mt-1">
+                                            {{ $t("app.oidc_description") }}
+                                        </p>
+                                    </div>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="oidc-enabled"
+                                            v-model="config.oidc_enabled"
+                                            :disabled="!!config.oidc_env_managed"
+                                            @update:model-value="onOidcEnabledChange"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{ $t("app.oidc_enable") }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.oidc_enable_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <div v-if="config.oidc_env_managed" class="info-callout">
+                                        <p class="text-sm">{{ $t("app.oidc_env_managed") }}</p>
+                                    </div>
+                                    <template v-if="config.oidc_enabled">
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-sem-fg">
+                                                {{ $t("app.oidc_issuer_url") }}
+                                            </div>
+                                            <input
+                                                v-model="config.oidc_issuer_url"
+                                                type="text"
+                                                class="input-field font-mono text-xs"
+                                                :disabled="!!config.oidc_env_managed"
+                                                :placeholder="$t('app.oidc_issuer_placeholder')"
+                                                @input="onOidcConfigChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-sem-fg">
+                                                {{ $t("app.oidc_client_id") }}
+                                            </div>
+                                            <input
+                                                v-model="config.oidc_client_id"
+                                                type="text"
+                                                class="input-field font-mono text-xs"
+                                                :disabled="!!config.oidc_env_managed"
+                                                @input="onOidcConfigChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-sem-fg">
+                                                {{ $t("app.oidc_client_secret") }}
+                                            </div>
+                                            <input
+                                                v-model="oidcClientSecret"
+                                                type="password"
+                                                class="input-field font-mono text-xs"
+                                                :disabled="!!config.oidc_env_managed"
+                                                :placeholder="
+                                                    config.oidc_client_secret_set
+                                                        ? $t('app.oidc_client_secret_configured')
+                                                        : ''
+                                                "
+                                                autocomplete="new-password"
+                                                @input="onOidcSecretChange"
+                                            />
+                                        </div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div class="space-y-2">
+                                                <div class="text-sm font-medium text-sem-fg">
+                                                    {{ $t("app.oidc_display_name_label") }}
+                                                </div>
+                                                <input
+                                                    v-model="config.oidc_display_name"
+                                                    type="text"
+                                                    class="input-field text-xs"
+                                                    :disabled="!!config.oidc_env_managed"
+                                                    placeholder="SSO"
+                                                    @input="onOidcConfigChange"
+                                                />
+                                            </div>
+                                            <div class="space-y-2">
+                                                <div class="text-sm font-medium text-sem-fg">
+                                                    {{ $t("app.oidc_scopes") }}
+                                                </div>
+                                                <input
+                                                    v-model="config.oidc_scopes"
+                                                    type="text"
+                                                    class="input-field font-mono text-xs"
+                                                    :disabled="!!config.oidc_env_managed"
+                                                    placeholder="openid profile email"
+                                                    @input="onOidcConfigChange"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-sem-fg">
+                                                {{ $t("app.oidc_redirect_uri") }}
+                                            </div>
+                                            <input
+                                                :value="oidcRedirectUri"
+                                                type="text"
+                                                readonly
+                                                class="input-field font-mono text-xs opacity-70"
+                                            />
+                                            <div class="text-xs text-sem-fg-muted">
+                                                {{ $t("app.oidc_redirect_hint") }}
+                                            </div>
+                                        </div>
+                                        <div class="text-xs text-sem-fg-muted">
+                                            {{
+                                                config.oidc_ready
+                                                    ? $t("app.oidc_status_ready")
+                                                    : $t("app.oidc_status_incomplete")
+                                            }}
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </section>
 
@@ -3259,6 +3381,8 @@ export default {
             },
             exposureAckFirewall: false,
             exposureAckVpn: false,
+            oidcClientSecret: "",
+            oidcSecretDirty: false,
             saveTimeouts: {},
             lxmfIncomingDeliveryPreset: "10mb",
             lxmfIncomingDeliveryCustomAmount: 10,
@@ -3311,6 +3435,9 @@ export default {
         },
         micronWasmBundledInBuild() {
             return isMicronWasmBundled();
+        },
+        oidcRedirectUri() {
+            return window.location.origin + apiPath("/auth/oidc/callback");
         },
         settingsSearchActive() {
             return normalizeSearchString(this.searchQuery).length > 0;
@@ -4961,6 +5088,32 @@ export default {
                 // or just to auth page in general
                 this.$router.push({ name: "auth" });
             }
+        },
+        async onOidcEnabledChange(value) {
+            await this.updateConfig({ oidc_enabled: value }, "oidc_settings");
+        },
+        onOidcSecretChange() {
+            this.oidcSecretDirty = true;
+            this.onOidcConfigChange();
+        },
+        onOidcConfigChange() {
+            if (this.saveTimeouts.oidc) clearTimeout(this.saveTimeouts.oidc);
+            this.saveTimeouts.oidc = setTimeout(async () => {
+                const payload = {
+                    oidc_issuer_url: this.config.oidc_issuer_url,
+                    oidc_client_id: this.config.oidc_client_id,
+                    oidc_display_name: this.config.oidc_display_name,
+                    oidc_scopes: this.config.oidc_scopes,
+                };
+                if (this.oidcSecretDirty) {
+                    payload.oidc_client_secret = this.oidcClientSecret;
+                }
+                await this.updateConfig(payload, "oidc_settings");
+                if (this.oidcSecretDirty) {
+                    this.oidcClientSecret = "";
+                    this.oidcSecretDirty = false;
+                }
+            }, 1000);
         },
         async onGiteaConfigChange() {
             if (this.saveTimeouts.gitea) clearTimeout(this.saveTimeouts.gitea);

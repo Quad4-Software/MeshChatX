@@ -938,8 +938,18 @@ class ReticulumMeshChat:
         if auth_bypass_from_env():
             return False
         if self.config:
-            return self.config.auth_enabled.get()
-        return self.auth_enabled_initial
+            return self.config.auth_enabled.get() or self._oidc_ready()
+        return self.auth_enabled_initial or self._oidc_ready()
+
+    def _oidc_settings(self):
+        from meshchatx.src.backend.oidc import load_oidc_settings
+
+        return load_oidc_settings(self.config)
+
+    def _oidc_ready(self) -> bool:
+        from meshchatx.src.backend.oidc import oidc_ready
+
+        return oidc_ready(self._oidc_settings())
 
     @property
     def storage_path(self):
@@ -6400,6 +6410,54 @@ class ReticulumMeshChat:
             # if disabling auth, also remove the password hash from config
             if not value:
                 self.config.auth_password_hash.set(None)
+                self.config.oidc_enabled.set(False)
+
+        if "oidc_enabled" in data:
+            self.config.oidc_enabled.set(self._parse_bool(data["oidc_enabled"]))
+
+        if "oidc_issuer_url" in data:
+            from meshchatx.src.backend.oidc import OidcConfigError, validate_issuer_url
+
+            raw_issuer = data["oidc_issuer_url"]
+            if raw_issuer is None or str(raw_issuer).strip() == "":
+                self.config.oidc_issuer_url.set(None)
+            else:
+                try:
+                    self.config.oidc_issuer_url.set(
+                        validate_issuer_url(str(raw_issuer)),
+                    )
+                except OidcConfigError:
+                    pass
+
+        if "oidc_client_id" in data:
+            value = data["oidc_client_id"]
+            self.config.oidc_client_id.set(
+                str(value).strip()
+                if value is not None and str(value).strip()
+                else None,
+            )
+
+        if "oidc_client_secret" in data:
+            value = data["oidc_client_secret"]
+            self.config.oidc_client_secret.set(
+                str(value) if value is not None and str(value) != "" else None,
+            )
+
+        if "oidc_display_name" in data:
+            value = data["oidc_display_name"]
+            self.config.oidc_display_name.set(
+                str(value).strip()
+                if value is not None and str(value).strip()
+                else None,
+            )
+
+        if "oidc_scopes" in data:
+            value = data["oidc_scopes"]
+            scopes = str(value).strip() if value is not None else ""
+            if scopes and "openid" in scopes.split():
+                self.config.oidc_scopes.set(scopes[:200])
+            elif not scopes:
+                self.config.oidc_scopes.set("openid profile email")
 
         if "privacy_mode_enabled" in data:
             self.config.privacy_mode_enabled.set(
@@ -7648,9 +7706,12 @@ class ReticulumMeshChat:
 
     # returns a dictionary of config
     def get_config_dict(self, context=None):
+        from meshchatx.src.backend import oidc
+
         ctx = context or self.current_context
         if not ctx:
             return {}
+        oidc_settings = self._oidc_settings()
         return {
             "display_name": ctx.config.display_name.get(),
             "identity_hash": ctx.identity.hash.hex(),
@@ -7714,6 +7775,16 @@ class ReticulumMeshChat:
             "crawler_requests_per_day_per_node": ctx.config.crawler_requests_per_day_per_node.get(),
             "crawler_refresh_days": ctx.config.crawler_refresh_days.get(),
             "auth_enabled": self.auth_enabled,
+            **{
+                "oidc_enabled": oidc_settings.enabled,
+                "oidc_ready": oidc.oidc_ready(oidc_settings),
+                "oidc_env_managed": oidc_settings.env_managed,
+                "oidc_issuer_url": oidc_settings.issuer,
+                "oidc_client_id": oidc_settings.client_id,
+                "oidc_display_name": oidc_settings.display_name,
+                "oidc_scopes": oidc_settings.scopes,
+                "oidc_client_secret_set": bool(oidc_settings.client_secret),
+            },
             "privacy_mode_enabled": ctx.config.privacy_mode_enabled.get(),
             "multi_session_warning_enabled": ctx.config.multi_session_warning_enabled.get(),
             "voicemail_enabled": ctx.config.voicemail_enabled.get(),
