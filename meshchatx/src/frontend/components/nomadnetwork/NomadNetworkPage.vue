@@ -2002,6 +2002,22 @@ export default {
                         }
                         if (this.pendingNomadPageCancelWithoutId && startedCallback.primary) {
                             this.pendingNomadPageCancelWithoutId = false;
+                            // Drop the entry rather than tagging it: a later
+                            // started event for a replacement backend download
+                            // must not resurrect a page the user cancelled.
+                            startedCallback.cancelPendingSend?.();
+                            delete this.nomadnetPageDownloadCallbacks[startedCallbackKey];
+                            WebSocketConnection.send(
+                                JSON.stringify({
+                                    type: "nomadnet.download.cancel",
+                                    download_id: downloadId,
+                                })
+                            );
+                            return;
+                        }
+                        if (startedCallback.downloadId != null && startedCallback.downloadId !== downloadId) {
+                            // Backend restarted this transfer after the entry
+                            // was already tagged: stale attempt, cancel it.
                             WebSocketConnection.send(
                                 JSON.stringify({
                                     type: "nomadnet.download.cancel",
