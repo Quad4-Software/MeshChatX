@@ -135,6 +135,25 @@ def test_normalize_skips_non_dict_entries():
     assert normalized[1]["passphrase"] == "k"
 
 
+def test_normalize_rejects_out_of_range_coordinates():
+    interfaces = [
+        {"name": "ok", "latitude": 51.5, "longitude": -0.12},
+        {"name": "bad-lat", "latitude": 91.0, "longitude": 0.0},
+        {"name": "bad-lon", "latitude": 0.0, "longitude": -181.0},
+        {"name": "nan", "latitude": float("nan"), "longitude": 0.0},
+        {"name": "inf", "latitude": 0.0, "longitude": float("inf")},
+        {"name": "str", "latitude": "51", "longitude": 0.0},
+        {"name": "bool", "latitude": True, "longitude": 0.0},
+        {"name": "missing-pair", "latitude": 51.5},
+    ]
+    normalized = ReticulumMeshChat.normalize_discovered_ifac_fields(interfaces)
+    assert normalized[0]["latitude"] == 51.5
+    assert normalized[0]["longitude"] == -0.12
+    for entry in normalized[1:]:
+        assert entry["latitude"] is None, entry["name"]
+        assert entry["longitude"] is None, entry["name"]
+
+
 def test_discovery_filter_candidates_includes_network_name():
     iface = {
         "name": "node-1",
