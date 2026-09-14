@@ -37,16 +37,21 @@ export default class LinkUtils {
 
     static protectAnchors(text) {
         const anchors = [];
+        // The nonce keeps user-typed [[ANCHOR_n]] text from resolving to a
+        // real anchor element at restore time.
+        const nonce = Math.random().toString(36).slice(2);
         const protectedText = text.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, (anchor) => {
-            const token = `[[ANCHOR_${anchors.length}]]`;
+            const token = `[[ANC_${nonce}_${anchors.length}]]`;
             anchors.push(anchor);
             return token;
         });
-        return { protectedText, anchors };
+        return { protectedText, anchors, nonce };
     }
 
-    static restoreAnchors(text, anchors) {
-        return text.replace(/\[\[ANCHOR_(\d+)\]\]/g, (match, idx) => {
+    static restoreAnchors(text, anchors, nonce) {
+        // eslint-disable-next-line security/detect-non-literal-regexp -- nonce is generated, not user input
+        const re = nonce ? new RegExp(`\\[\\[ANC_${nonce}_(\\d+)\\]\\]`, "g") : /\[\[ANCHOR_(\d+)\]\]/g;
+        return text.replace(re, (match, idx) => {
             const i = Number(idx);
             return Number.isInteger(i) && i >= 0 && i < anchors.length ? anchors[i] : match;
         });
@@ -132,7 +137,15 @@ export default class LinkUtils {
 
         const urlRegex = /(^|[^\w"'=])(https?:\/\/[^\s<'"]+)/g;
         return text.replace(urlRegex, (match, prefix, url) => {
-            const { core, suffix } = this.splitTrailingPunctuation(url);
+            let { core, suffix } = this.splitTrailingPunctuation(url);
+            // Placeholder tokens ([[IC_n_0]] etc.) must never reach an
+            // attribute value: the later restore pass would splice markup
+            // containing quotes into data-http-url.
+            const bracket = core.indexOf("[");
+            if (bracket >= 0) {
+                suffix = core.slice(bracket) + suffix;
+                core = core.slice(0, bracket);
+            }
             if (!core) {
                 return match;
             }
@@ -151,9 +164,14 @@ export default class LinkUtils {
      * Applies all link rendering.
      */
     static renderAllLinks(text) {
-        const { protectedText, anchors } = this.protectAnchors(text);
+        const { protectedText, anchors, nonce } = this.protectAnchors(text);
         let rendered = this.renderStandardLinks(protectedText);
-        rendered = this.renderReticulumLinks(rendered);
-        return this.restoreAnchors(rendered, anchors);
+        // renderStandardLinks emits anchor markup whose attribute values can
+        // hold 32-hex tokens. Shield them so the reticulum pass cannot inject
+        // attributes into the generated anchors.
+        const shielded = this.protectAnchors(rendered);
+        rendered = this.renderReticulumLinks(shielded.protectedText);
+        rendered = this.restoreAnchors(rendered, shielded.anchors, shielded.nonce);
+        return this.restoreAnchors(rendered, anchors, nonce);
     }
 }

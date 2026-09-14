@@ -178,6 +178,25 @@ describe("LinkUtils.js", () => {
             expect(result).toContain('class="lxmf-link');
             expect(result).toContain('data-lxmf-address="1dfeb0d794963579bd21ac8f153c77a4"');
         });
+
+        it("does not inject nomadnet-link markup into a generated anchor", () => {
+            // A hash:/path token inside an http(s) URL must not be re-scanned
+            // by the reticulum pass after the URL becomes anchor markup.
+            const text = "see https://example.com/0123456789abcdef0123456789abcdef:/page/x.mu";
+            const result = LinkUtils.renderAllLinks(text);
+            expect(result).not.toContain("nomadnet-link");
+            expect(result).not.toContain("data-nomadnet-url");
+            expect(result).toContain('data-http-url="https://example.com/0123456789abcdef0123456789abcdef:/page/x.mu"');
+        });
+
+        it("does not resolve user-typed anchor placeholders", () => {
+            // A literal [[ANCHOR_0]] in the input must not splice real anchor
+            // markup into arbitrary positions at restore time.
+            const text = 'x <a href="#" data-http-url="https://example.com/">l</a> [[ANCHOR_0]]';
+            const result = LinkUtils.renderAllLinks(text);
+            expect(result).toContain("[[ANCHOR_0]]");
+            expect((result.match(/<a /g) || []).length).toBe(1);
+        });
     });
 
     describe("risky: no script or data URLs in href", () => {
