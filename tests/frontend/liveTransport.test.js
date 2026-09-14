@@ -188,6 +188,35 @@ describe("LiveTransport WebTransport candidate lifecycle", () => {
         expect(events).toHaveLength(0);
     });
 
+    it("re-registers WebSocket forwards after destroy() then connect()", async () => {
+        liveTransport.configure({ mode: "websocket" });
+        const messages = [];
+        liveTransport.on("message", (e) => messages.push(e));
+
+        await liveTransport.connect();
+        liveTransport.destroy();
+        await liveTransport.connect();
+
+        WebSocketConnection.emit("message", { data: "after-restart" });
+        expect(messages).toEqual([{ data: "after-restart" }]);
+    });
+
+    it("a second connect() abandons the in-flight WT candidate before choosing", async () => {
+        // Simulate a shell restart racing an in-flight WebTransport attempt.
+        const p1 = liveTransport.connect();
+        expect(MockWebTransport.instances).toHaveLength(1);
+        liveTransport.configure({ mode: "websocket" });
+        const p2 = liveTransport.connect();
+
+        expect(MockWebTransport.instances[0].closed).toBe(true);
+        MockWebTransport.instances[0]._resolveReady();
+        const r1 = await p1;
+        const r2 = await p2;
+        expect(r1.superseded).toBe(true);
+        expect(r2.transport).toBe("websocket");
+        expect(liveTransport.activeTransport).toBe("websocket");
+    });
+
     it("destroy() closes the in-flight candidate and clears forwards", async () => {
         const events = [];
         liveTransport.on("disconnected", () => events.push("disconnected"));

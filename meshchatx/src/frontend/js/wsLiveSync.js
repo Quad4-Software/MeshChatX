@@ -247,8 +247,18 @@ export function installWsLiveSync(options) {
         void requestSyncSubscribe();
     }
 
+    function onQueueExpired(payload) {
+        // The outbound queue evicted our subscribe before it ever sent, so
+        // no reply will arrive. Release immediately instead of waiting out
+        // the watchdog.
+        if (payload && payload.request_id != null) {
+            releaseSyncRequest(payload.request_id);
+        }
+    }
+
     connection.on("message", onMessage);
     connection.on("ready", onReady);
+    connection.on("queue_expired", onQueueExpired);
 
     return {
         getLastSeq: () => lastSeq,
@@ -263,6 +273,7 @@ export function installWsLiveSync(options) {
             pendingSyncRequestId = null;
             connection.off("message", onMessage);
             connection.off("ready", onReady);
+            connection.off("queue_expired", onQueueExpired);
         },
     };
 }

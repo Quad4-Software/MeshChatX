@@ -112,19 +112,23 @@ class WebSocketConnection {
         if (this.destroyed || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
             return;
         }
+        const socket = this.ws;
         try {
-            this.ws.send(JSON.stringify({ type: "ping" }));
+            socket.send(JSON.stringify({ type: "ping" }));
         } catch {
             return;
         }
         this._clearPongTimeout();
         this._pongTimeout = setTimeout(() => {
             this._pongTimeout = null;
-            if (this.destroyed || !this.ws) {
+            // The socket that armed this timeout may have been replaced by a
+            // reconnect that never saw its close event. Only time out the
+            // socket that is still current.
+            if (this.destroyed || this.ws !== socket) {
                 return;
             }
             try {
-                this.ws.close(4000, "heartbeat timeout");
+                socket.close(4000, "heartbeat timeout");
             } catch {
                 // ignore
             }
@@ -401,7 +405,7 @@ class WebSocketConnection {
      * @returns {boolean} true if sent or queued
      */
     sendQueued(message) {
-        if (typeof message !== "string") {
+        if (typeof message !== "string" || this.destroyed) {
             return false;
         }
         if (this._liveSendBridge) {
@@ -431,7 +435,10 @@ class WebSocketConnection {
             return false;
         }
         if (this._outboundQueue.length >= OUTBOUND_QUEUE_MAX) {
-            this._outboundQueue.shift();
+            // Surface the eviction so request_id-correlated callers can settle
+            // instead of hanging until their own timeout.
+            const evicted = this._outboundQueue.shift();
+            this.emit("queue_expired", { request_id: evicted.requestId });
         }
         this._outboundQueue.push({
             message,

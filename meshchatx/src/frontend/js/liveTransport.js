@@ -253,6 +253,20 @@ class LiveTransport {
     }
 
     async connect() {
+        // A concurrent or repeated connect abandons any in-flight session,
+        // regardless of which transport this call ends up choosing.
+        this._clearForwards(this._connectingWt);
+        this._connectingWt?.destroy();
+        this._connectingWt = null;
+        if (this._usingWt) {
+            this._clearForwards(this._wt);
+            this._wt?.destroy();
+            this._wt = null;
+            this._usingWt = false;
+            this._active = WebSocketConnection;
+            setWsLiveSendBridge(null);
+        }
+
         if (!this._boundWs) {
             this._forwardFrom(WebSocketConnection);
             this._boundWs = true;
@@ -267,9 +281,6 @@ class LiveTransport {
         });
 
         if (choice === "webtransport" && this._serverInfo?.url) {
-            // A concurrent or repeated connect abandons any in-flight session.
-            this._clearForwards(this._connectingWt);
-            this._connectingWt?.destroy();
             const session = new WebTransportLiveSession();
             this._connectingWt = session;
             try {
@@ -351,6 +362,7 @@ class LiveTransport {
         this._connectingWt?.destroy();
         this._connectingWt = null;
         if (this._usingWt) {
+            this._clearForwards(this._wt);
             this._wt?.destroy();
             this._wt = null;
             this._usingWt = false;
@@ -374,10 +386,17 @@ class LiveTransport {
         this._clearForwards(this._connectingWt);
         this._connectingWt?.destroy();
         this._connectingWt = null;
+        this._clearForwards(this._wt);
         this._wt?.destroy();
         this._wt = null;
         setWsLiveSendBridge(null);
         this._clearForwards();
+        // Leave the facade on the WebSocket source and mark it unbound so a
+        // later connect() re-registers forwards. Without this every reconnect
+        // after a shell restart produced a deaf channel.
+        this._boundWs = false;
+        this._usingWt = false;
+        this._active = WebSocketConnection;
         WebSocketConnection.destroy();
     }
 
