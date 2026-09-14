@@ -325,57 +325,63 @@ Open the UI at the host and port you chose. HTTPS is enabled by default with a s
 
 Common flags and environment variables:
 
-| Flag                       | Environment variable                    | Default      | Description                                                                            |
-| -------------------------- | --------------------------------------- | ------------ | -------------------------------------------------------------------------------------- |
-| --host                     | MESHCHAT_HOST                           | 127.0.0.1    | Bind address                                                                           |
-| --port                     | MESHCHAT_PORT                           | 8000         | HTTP or HTTPS port                                                                     |
-| --no-https                 | MESHCHAT_NO_HTTPS                       | false        | Serve plain HTTP                                                                       |
-| --ssl-cert                 | MESHCHAT_SSL_CERT                       | auto         | TLS certificate path                                                                   |
-| --ssl-key                  | MESHCHAT_SSL_KEY                        | auto         | TLS private key path                                                                   |
-| --headless                 | MESHCHAT_HEADLESS                       | false        | Do not open a browser                                                                  |
-| --auth                     | MESHCHAT_AUTH                           | false        | Require password auth for the UI                                                       |
-| --reset-password           | MESHCHAT_RESET_PASSWORD                 | false        | Clear the stored password hash so a new one can be set in the UI                       |
-| --storage-dir              | MESHCHAT_STORAGE_DIR                    | ./storage    | Application data directory                                                             |
-| --public-dir               | MESHCHAT_PUBLIC_DIR                     | auto/bundled | Frontend files. Needed for source installs without bundled assets.                     |
-| --reticulum-config-dir     | MESHCHAT_RETICULUM_CONFIG_DIR           | ~/.reticulum | Reticulum configuration                                                                |
-| --data-dir                 | MESHCHAT_DATA_DIR                       | none         | Portable root (storage + .reticulum subdirs when the two paths above are unset)        |
-| --identity-file            | MESHCHAT_IDENTITY_FILE                  | none         | Load identity from file                                                                |
-| --identity-base64          | MESHCHAT_IDENTITY_BASE64                | none         | Load identity from a base64 string                                                     |
-| --identity-base32          | MESHCHAT_IDENTITY_BASE32                | none         | Load identity from a base32 string                                                     |
-| --generate-identity-file   |                                         | none         | Write a new identity to PATH and exit                                                  |
-| --generate-identity-base64 |                                         | none         | Print a new identity as base64 and exit                                                |
-| --rns-log-level            | MESHCHAT_RNS_LOG_LEVEL                  | none         | Reticulum log level                                                                    |
-| (env only)                 | MESHCHAT_RNS_LOG_DEST                   | logging      | stdout keeps RNS on the console. With a log dir, default is the rotating Python logger |
-| (env only)                 | MESHCHAT_LOG_DIR                        | auto         | Log file directory                                                                     |
-| --auto-recover             | MESHCHAT_AUTO_RECOVER                   | false        | Attempt SQLite recovery on start                                                       |
-| --emergency                | MESHCHAT_EMERGENCY                      | false        | Start without database                                                                 |
-| --disable-plugins          | MESHCHAT_DISABLE_PLUGINS                | false        | Disable the plugin system                                                              |
-| --demo                     | MESHCHAT_DEMO_MODE                      | false        | Public read-only demo mode                                                             |
-| --no-crash-recovery        | MESHCHAT_NO_CRASH_RECOVERY              | false        | Disable the crash recovery and diagnostic system                                       |
-| --self-check               | MESHCHAT_SELF_CHECK                     | false        | Run startup diagnostics and exit 0 on pass, 1 on fail                                  |
-| --memory-diag              | MESHCHAT_MEMORY_DIAG                    | false        | Enable tracemalloc memory diagnostics                                                  |
-| --gitea-base-url           | MESHCHAT_GITEA_BASE_URL                 | none         | Gitea instance base URL                                                                |
-| --backup-db                |                                         | none         | Create a database backup zip at PATH and exit                                          |
-| --restore-db               |                                         | none         | Restore the database from a zip or db file and exit                                    |
-| --list-backups             |                                         | none         | List automatic backups in storage (JSON) and exit                                      |
-| --export-backup            |                                         | none         | Write a new backup zip to PATH, or copy backup NAME to DEST, and exit                  |
-| --restore-from-snapshot    | MESHCHAT_RESTORE_SNAPSHOT               | none         | Restore the database from a snapshot name or path on startup                           |
-| --test-exception-message   |                                         | none         | Throw an exception at startup (Electron error dialog testing)                          |
-| (env only)                 | MESHCHAT_TRUSTED_PROXIES                | none         | Proxy IPs/CIDRs allowed to supply X-Forwarded-* headers (see reverse proxy section)    |
-| (env only)                 | MESHCHAT_LANDLOCK                       | auto         | Linux filesystem sandbox: 1/0 to force on or off                                       |
-| (env only)                 | MESHCHAT_SECCOMP                        | auto         | Linux seccomp syscall filter: 1/0 to force on or off                                   |
-| (env only)                 | MESHCHAT_APPCONTAINER                   | auto         | Windows AppContainer sandbox: 1/0 to force on or off                                   |
-| (env only)                 | MESHCHAT_FORCE_WEB_AUDIO                | false        | Force browser-side call audio (no host audio device)                                   |
-| (env only)                 | MESHCHAT_EXPERIMENTAL_WEBTRANSPORT      | false        | Enable the experimental WebTransport live channel                                      |
-| (env only)                 | MESHCHAT_LIBCODEC2_PATH                 | auto         | Explicit libcodec2 shared library path                                                 |
-| (env only)                 | MESHCHAT_NATIVE_LIB_DIR                 | auto         | Directory holding native codec libraries                                               |
-| (env only)                 | MESHCHAT_PRE_MIGRATE_BACKUP_KEEP        | 5            | Number of pre-migration backups kept in storage                                        |
-| (env only)                 | MESHCHAT_SKIP_PRE_MIGRATE_BACKUP        | false        | Skip the safety backup before schema migrations                                        |
-| (env only)                 | MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION | false        | Do not auto-migrate the legacy upstream data folder                                    |
-| (env only)                 | MESHCHAT_SKIP_LEGACY_MIGRATION_UI       | false        | Skip the legacy migration prompt in the UI                                             |
-| (env only)                 | MESHCHAT_REPOSITORY_EXTRA_PIP           | none         | Extra pip arguments for the in-app repository installer                                |
-| (env only)                 | MESHCHAT_BOT_RETICULUM_CONFIG_DIR       | none         | Reticulum config dir for spawned bot processes                                         |
-| (env only)                 | MESHCHAT_AUTH_PAGE_HINT                 | none         | Custom text shown on the login page                                                    |
+| Flag                       | Environment variable                    | Default              | Description                                                                            |
+| -------------------------- | --------------------------------------- | -------------------- | -------------------------------------------------------------------------------------- |
+| --host                     | MESHCHAT_HOST                           | 127.0.0.1            | Bind address                                                                           |
+| --port                     | MESHCHAT_PORT                           | 8000                 | HTTP or HTTPS port                                                                     |
+| --no-https                 | MESHCHAT_NO_HTTPS                       | false                | Serve plain HTTP                                                                       |
+| --ssl-cert                 | MESHCHAT_SSL_CERT                       | auto                 | TLS certificate path                                                                   |
+| --ssl-key                  | MESHCHAT_SSL_KEY                        | auto                 | TLS private key path                                                                   |
+| --headless                 | MESHCHAT_HEADLESS                       | false                | Do not open a browser                                                                  |
+| --auth                     | MESHCHAT_AUTH                           | false                | Require password auth for the UI                                                       |
+| --reset-password           | MESHCHAT_RESET_PASSWORD                 | false                | Clear the stored password hash so a new one can be set in the UI                       |
+| --storage-dir              | MESHCHAT_STORAGE_DIR                    | ./storage            | Application data directory                                                             |
+| --public-dir               | MESHCHAT_PUBLIC_DIR                     | auto/bundled         | Frontend files. Needed for source installs without bundled assets.                     |
+| --reticulum-config-dir     | MESHCHAT_RETICULUM_CONFIG_DIR           | ~/.reticulum         | Reticulum configuration                                                                |
+| --data-dir                 | MESHCHAT_DATA_DIR                       | none                 | Portable root (storage + .reticulum subdirs when the two paths above are unset)        |
+| --identity-file            | MESHCHAT_IDENTITY_FILE                  | none                 | Load identity from file                                                                |
+| --identity-base64          | MESHCHAT_IDENTITY_BASE64                | none                 | Load identity from a base64 string                                                     |
+| --identity-base32          | MESHCHAT_IDENTITY_BASE32                | none                 | Load identity from a base32 string                                                     |
+| --generate-identity-file   |                                         | none                 | Write a new identity to PATH and exit                                                  |
+| --generate-identity-base64 |                                         | none                 | Print a new identity as base64 and exit                                                |
+| --rns-log-level            | MESHCHAT_RNS_LOG_LEVEL                  | none                 | Reticulum log level                                                                    |
+| (env only)                 | MESHCHAT_RNS_LOG_DEST                   | logging              | stdout keeps RNS on the console. With a log dir, default is the rotating Python logger |
+| (env only)                 | MESHCHAT_LOG_DIR                        | auto                 | Log file directory                                                                     |
+| --auto-recover             | MESHCHAT_AUTO_RECOVER                   | false                | Attempt SQLite recovery on start                                                       |
+| --emergency                | MESHCHAT_EMERGENCY                      | false                | Start without database                                                                 |
+| --disable-plugins          | MESHCHAT_DISABLE_PLUGINS                | false                | Disable the plugin system                                                              |
+| --demo                     | MESHCHAT_DEMO_MODE                      | false                | Public read-only demo mode                                                             |
+| --no-crash-recovery        | MESHCHAT_NO_CRASH_RECOVERY              | false                | Disable the crash recovery and diagnostic system                                       |
+| --self-check               | MESHCHAT_SELF_CHECK                     | false                | Run startup diagnostics and exit 0 on pass, 1 on fail                                  |
+| --memory-diag              | MESHCHAT_MEMORY_DIAG                    | false                | Enable tracemalloc memory diagnostics                                                  |
+| --gitea-base-url           | MESHCHAT_GITEA_BASE_URL                 | none                 | Gitea instance base URL                                                                |
+| --backup-db                |                                         | none                 | Create a database backup zip at PATH and exit                                          |
+| --restore-db               |                                         | none                 | Restore the database from a zip or db file and exit                                    |
+| --list-backups             |                                         | none                 | List automatic backups in storage (JSON) and exit                                      |
+| --export-backup            |                                         | none                 | Write a new backup zip to PATH, or copy backup NAME to DEST, and exit                  |
+| --restore-from-snapshot    | MESHCHAT_RESTORE_SNAPSHOT               | none                 | Restore the database from a snapshot name or path on startup                           |
+| --test-exception-message   |                                         | none                 | Throw an exception at startup (Electron error dialog testing)                          |
+| (env only)                 | MESHCHAT_TRUSTED_PROXIES                | none                 | Proxy IPs/CIDRs allowed to supply X-Forwarded-* headers (see reverse proxy section)    |
+| (env only)                 | MESHCHAT_LANDLOCK                       | auto                 | Linux filesystem sandbox: 1/0 to force on or off                                       |
+| (env only)                 | MESHCHAT_SECCOMP                        | auto                 | Linux seccomp syscall filter: 1/0 to force on or off                                   |
+| (env only)                 | MESHCHAT_APPCONTAINER                   | auto                 | Windows AppContainer sandbox: 1/0 to force on or off                                   |
+| (env only)                 | MESHCHAT_FORCE_WEB_AUDIO                | false                | Force browser-side call audio (no host audio device)                                   |
+| (env only)                 | MESHCHAT_EXPERIMENTAL_WEBTRANSPORT      | false                | Enable the experimental WebTransport live channel                                      |
+| (env only)                 | MESHCHAT_LIBCODEC2_PATH                 | auto                 | Explicit libcodec2 shared library path                                                 |
+| (env only)                 | MESHCHAT_NATIVE_LIB_DIR                 | auto                 | Directory holding native codec libraries                                               |
+| (env only)                 | MESHCHAT_PRE_MIGRATE_BACKUP_KEEP        | 5                    | Number of pre-migration backups kept in storage                                        |
+| (env only)                 | MESHCHAT_SKIP_PRE_MIGRATE_BACKUP        | false                | Skip the safety backup before schema migrations                                        |
+| (env only)                 | MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION | false                | Do not auto-migrate the legacy upstream data folder                                    |
+| (env only)                 | MESHCHAT_SKIP_LEGACY_MIGRATION_UI       | false                | Skip the legacy migration prompt in the UI                                             |
+| (env only)                 | MESHCHAT_REPOSITORY_EXTRA_PIP           | none                 | Extra pip arguments for the in-app repository installer                                |
+| (env only)                 | MESHCHAT_BOT_RETICULUM_CONFIG_DIR       | none                 | Reticulum config dir for spawned bot processes                                         |
+| (env only)                 | MESHCHAT_AUTH_PAGE_HINT                 | none                 | Custom text shown on the login page                                                    |
+| (env only)                 | MESHCHAT_OIDC_ENABLED                   | none                 | Force OIDC single sign-on on or off (overrides stored config)                          |
+| (env only)                 | MESHCHAT_OIDC_ISSUER                    | none                 | OIDC issuer URL; setting it implies enabled                                            |
+| (env only)                 | MESHCHAT_OIDC_CLIENT_ID                 | none                 | OIDC client ID                                                                         |
+| (env only)                 | MESHCHAT_OIDC_CLIENT_SECRET             | none                 | OIDC client secret                                                                     |
+| (env only)                 | MESHCHAT_OIDC_DISPLAY_NAME              | none                 | Label for the SSO button                                                               |
+| (env only)                 | MESHCHAT_OIDC_SCOPES                    | openid profile email | OIDC scopes                                                                            |
 
 The next group disables real security controls. They exist for tests and development and must not be set in production:
 

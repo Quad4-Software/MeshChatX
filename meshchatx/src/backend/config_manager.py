@@ -200,6 +200,16 @@ class ConfigManager:
         self.auth_enabled = self.BoolConfig(self, "auth_enabled", False)
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
+        self.oidc_enabled = self.BoolConfig(self, "oidc_enabled", False)
+        self.oidc_issuer_url = self.StringConfig(self, "oidc_issuer_url", None)
+        self.oidc_client_id = self.StringConfig(self, "oidc_client_id", None)
+        self.oidc_client_secret = self.StringConfig(self, "oidc_client_secret", None)
+        self.oidc_display_name = self.StringConfig(self, "oidc_display_name", None)
+        self.oidc_scopes = self.StringConfig(
+            self,
+            "oidc_scopes",
+            "openid profile email",
+        )
         self.privacy_mode_enabled = self.BoolConfig(self, "privacy_mode_enabled", False)
         self.bug_capture_enabled = self.BoolConfig(self, "bug_capture_enabled", True)
         self.multi_session_warning_enabled = self.BoolConfig(

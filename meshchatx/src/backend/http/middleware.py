@@ -252,6 +252,8 @@ def create_auth_middleware(app):
             API_V1_PREFIX + "/auth/login",
             API_V1_PREFIX + "/auth/status",
             API_V1_PREFIX + "/auth/logout",
+            API_V1_PREFIX + "/auth/oidc/login",
+            API_V1_PREFIX + "/auth/oidc/callback",
             "/manifest.json",
             "/service-worker.js",
         ]
