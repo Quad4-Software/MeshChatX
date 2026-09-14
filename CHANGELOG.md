@@ -42,6 +42,8 @@ All notable changes to this project will be documented in this file.
 - Map: coordinates from telemetry, announces and interface discovery are range-validated before projection, so out-of-range, non-numeric or non-finite mesh data can no longer reach marker code, and marker updates are skipped after the map is torn down.
 - Messages: conversation and relay timelines cap retained items and dedupe live appends, unmounting a view no longer cancels sends the backend already accepted (drop and cancel are now distinct), chat window trims are coalesced to one splice per tick with a live drop count, and MiniChat merges its fetch with locally appended sends instead of racing them.
 - Frontend lifecycle: the live transport resets its bound socket state on destroy, aborts a pending WebTransport attempt when the mode changes mid-connect, and scopes the pong timeout to its socket so a reconnect cannot let an old timer kill the replacement. Failed WASM script injections are removed so the Micron and visualiser loaders can retry, and a stale NomadNet started event can no longer resurrect a cancelled or superseded download.
+- Boot: the splash now waits for the initial route's lazy chunk (with a 4 second cap) before fading, so the app shell no longer pops a large layout shift onto an empty router-view.
+- NomadNet: page images could stick on Loading forever. File downloads cost 5 rate-limit tokens each, so a burst over 12 image requests was dropped and the rate_limited error never reached the pending callback. File downloads now cost the base rate, websocket errors carrying a request_id fail the matching download, and a refused send fails fast instead of hanging.
 
 ### Changed
 
