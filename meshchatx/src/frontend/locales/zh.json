@@ -315,6 +315,7 @@
         "transport_description": "为中继路径和流量到附近的节点。",
         "enable_transport_mode": "启用传输模式",
         "transport_toggle_description": "路由广播、响应路径请求，帮助您的网格保持在线。",
+        "transport_shared_instance_notice": "已连接到共享 Reticulum 实例。传输模式由该实例控制，因此此开关只会更新本地配置。",
         "share_reticulum_instance": "共享Reticulum实例",
         "share_reticulum_instance_description": "将此MeshChatX Reticulum实例提供给其他本地程序使用（Sideband风格的共享实例）。其他应用无需启用Transport即可使用连接。",
         "obfuscate_hops": "混淆跳数",

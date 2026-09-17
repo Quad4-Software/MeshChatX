@@ -315,6 +315,7 @@
         "transport_description": "Retransmite caminhos e tráfego para pares próximos.",
         "enable_transport_mode": "Ativar Modo Transporte",
         "transport_toggle_description": "Roteie anúncios, responda a solicitações de caminho e ajude a manter sua malha on-line.",
+        "transport_shared_instance_notice": "Conectado a uma instância Reticulum compartilhada. Essa instância controla o modo de transporte, portanto este botão apenas atualiza sua configuração local.",
         "share_reticulum_instance": "Compartilhar Instância da Reticulum",
         "share_reticulum_instance_description": "Disponibilize esta instância da Reticulum do MeshChatX para outros programas locais (instância compartilhada estilo Sideband). Outros apps podem usar a conectividade sem o Transporte ativado.",
         "obfuscate_hops": "Ofuscar Saltos",

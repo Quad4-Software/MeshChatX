@@ -315,6 +315,7 @@
         "transport_description": "Yakındaki eşler için aktarım yolları ve trafiği.",
         "enable_transport_mode": "Transport Modunu Etkinleştir",
         "transport_toggle_description": "Duyuruları yönlendirin, yol isteklerini yanıtlayın ve mesh ağınızın çevrimiçi kalmasına yardımcı olun.",
+        "transport_shared_instance_notice": "Paylaşılan bir Reticulum örneğine bağlı. Aktarım modunu o örnek kontrol eder, bu nedenle bu anahtar yalnızca yerel yapılandırmanızı günceller.",
         "share_reticulum_instance": "Reticulum Örneğini Paylaş",
         "share_reticulum_instance_description": "Bu MeshChatX Reticulum örneğini diğer yerel programlara aç (Sideband tarzı paylaşılan örnek). Diğer uygulamalar Transport etkin olmadan bağlanabilirliği kullanabilir.",
         "obfuscate_hops": "Hop'ları Gizle",

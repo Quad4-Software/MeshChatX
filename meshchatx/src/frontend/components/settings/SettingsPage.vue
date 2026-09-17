@@ -1724,6 +1724,12 @@
                                         }}</span>
                                     </span>
                                 </label>
+                                <p
+                                    v-if="reticulumInstance.is_connected_to_shared_instance"
+                                    class="text-xs text-amber-700 dark:text-amber-300"
+                                >
+                                    {{ $t("app.transport_shared_instance_notice") }}
+                                </p>
 
                                 <label class="setting-toggle">
                                     <Toggle
@@ -4164,8 +4170,21 @@ export default {
                     ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
                 }
             } catch (e) {
-                ToastUtils.error(this.$t("common.save_failed"));
+                const detail = e?.response?.data?.error || e?.response?.data?.message;
+                ToastUtils.error(detail || this.$t("common.save_failed"));
                 console.log(e);
+                try {
+                    const fresh = await fetchMergedConfig(window.api, this.config);
+                    if (fresh) {
+                        for (const key of Object.keys(config)) {
+                            if (key in fresh) {
+                                this.config[key] = fresh[key];
+                            }
+                        }
+                    }
+                } catch {
+                    // keep local state if the resync fetch also fails
+                }
             }
         },
         async onMapOverlayLimitChange(key) {
@@ -5189,18 +5208,28 @@ export default {
             await this.onIsTransportEnabledChange();
         },
         async onIsTransportEnabledChange() {
+            const requested = !!this.config.is_transport_enabled;
             try {
-                const response = await applyTransportMode(this.config.is_transport_enabled, window.api);
-                if (response?.data?.message) {
-                    ToastUtils.success(response.data.message);
+                const response = await applyTransportMode(requested, window.api);
+                const data = response?.data;
+                if (data && typeof data.transport_enabled === "boolean") {
+                    this.config.is_transport_enabled = data.transport_enabled;
                 }
-            } catch {
+                if (data?.message) {
+                    ToastUtils.success(data.message);
+                }
+            } catch (e) {
+                this.config.is_transport_enabled = !requested;
+                const detail = e?.response?.data?.message || e?.response?.data?.error;
                 ToastUtils.error(
-                    this.config.is_transport_enabled
-                        ? this.$t("settings.failed_enable_transport")
-                        : this.$t("settings.failed_disable_transport")
+                    detail ||
+                        (requested
+                            ? this.$t("settings.failed_enable_transport")
+                            : this.$t("settings.failed_disable_transport"))
                 );
+                await this.getConfig();
             }
+            await this.loadReticulumInstanceSettings();
         },
         async reloadRns() {
             if (this.reloadingRns) return;
@@ -5213,8 +5242,9 @@ export default {
                 if (response?.data?.message) {
                     this.reloadRnsStatusMessage = response.data.message;
                 }
-            } catch {
-                ToastUtils.error(this.$t("settings.failed_reload_reticulum"));
+            } catch (e) {
+                const detail = e?.response?.data?.error || e?.response?.data?.message;
+                ToastUtils.error(detail || this.$t("settings.failed_reload_reticulum"));
             } finally {
                 ToastUtils.dismiss("settings-rns-reload");
                 this.reloadingRns = false;

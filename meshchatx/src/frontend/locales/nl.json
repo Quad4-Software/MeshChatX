@@ -315,6 +315,7 @@
         "transport_description": "Routeer paden en verkeer voor nabijgelegen peers.",
         "enable_transport_mode": "Transportmodus inschakelen",
         "transport_toggle_description": "Route announce, beantwoordt padverzoeken en helpt je mesh online te houden.",
+        "transport_shared_instance_notice": "Verbonden met een gedeelde Reticulum-instantie. Die instantie beheert de transportmodus, dus deze schakelaar werkt alleen je lokale configuratie bij.",
         "share_reticulum_instance": "Reticulum-instantie delen",
         "share_reticulum_instance_description": "Maak deze MeshChatX Reticulum-instantie beschikbaar voor andere lokale programma's (Sideband-stijl gedeelde instantie). Andere apps kunnen connectiviteit gebruiken zonder Transport ingeschakeld.",
         "obfuscate_hops": "Hops verdoezelen",

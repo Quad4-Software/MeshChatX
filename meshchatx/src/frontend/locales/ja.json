@@ -315,6 +315,7 @@
         "transport_description": "近隣ピアのパスとトラフィックを中継します。",
         "enable_transport_mode": "トランスポートモードを有効化",
         "transport_toggle_description": "アナウンスを中継し、パス要求に応答して、メッシュの常時稼働を助けます。",
+        "transport_shared_instance_notice": "共有 Reticulum インスタンスに接続されています。トランスポートモードはそのインスタンスが制御するため、このトグルはローカル設定のみを更新します。",
         "share_reticulum_instance": "Reticulum インスタンスを共有",
         "share_reticulum_instance_description": "この MeshChatX の Reticulum インスタンスを他のローカルプログラムから利用できるようにします（Sideband 方式の共有インスタンス）。他のアプリはトランスポートを有効化しなくても接続を利用できます。",
         "obfuscate_hops": "ホップの難読化",
