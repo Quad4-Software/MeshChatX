@@ -218,8 +218,8 @@ importers:
         specifier: ^13.4.1
         version: 13.4.1
       micron-parser:
-        specifier: github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098
-        version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/33feb1054c8b2cb3f5f05abbb8903360d3f0c098
+        specifier: github:RFnexus/micron-parser-js#ce24ce44adf804230a16520a9f79cd5f183c0bb5
+        version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/ce24ce44adf804230a16520a9f79cd5f183c0bb5
       minimatch:
         specifier: '>=10.2.3'
         version: 10.2.3
@@ -3806,8 +3806,8 @@ packages:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
     engines: {node: '>=8.6'}
 
-  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/33feb1054c8b2cb3f5f05abbb8903360d3f0c098:
-    resolution: {gitHosted: true, integrity: sha512-3osvBCnGsK2tkJyPQ22orJpx2t8vXoCqm1S4pTalwP0E6evnx9Z/MizGZ0GGcHEhKXHG+xhAnuZY4PbldPX8fQ==, tarball: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/33feb1054c8b2cb3f5f05abbb8903360d3f0c098}
+  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/ce24ce44adf804230a16520a9f79cd5f183c0bb5:
+    resolution: {gitHosted: true, integrity: sha512-TByCtzryQvJnUzpHsPbqxg9r71gIab32tPJmmu0zGWNVRku6n3luP2jymc7RFiIGlb0poggLvYMgF4XffTYhZA==, tarball: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/ce24ce44adf804230a16520a9f79cd5f183c0bb5}
     version: 0.0.0
 
   mime-db@1.52.0:
@@ -4715,6 +4715,9 @@ packages:
 
   third-party-web@0.29.2:
     resolution: {integrity: sha512-fegtha91tq2DHphyoiBXVHjVi2YG9zFaRnboT9C28tO1en9Y3wJsfspuy40F+u5wl3hHVbw7cnd1b67kEGHb8g==}
+
+  third-party-web@0.30.0:
+    resolution: {integrity: sha512-p+PfyL5U0ediGzvwPzMSdD9MnC8rHW6nWJJVLIQvqN7RsSqfaZ+7n4c9GILqH36EYR0eXB9CzAeCRnKFr/9uJg==}
 
   tiny-async-pool@1.3.0:
     resolution: {integrity: sha512-01EAw5EDrcVrdgyCLgoSPvqznC0sVxDSVeiOz09FUpjh71G79VCqneOr+xvt7T1r76CF6ZZfPjHorN2+d+3mqA==}
@@ -6509,7 +6512,7 @@ snapshots:
   '@paulirish/trace_engine@0.0.65':
     dependencies:
       legacy-javascript: 0.0.1
-      third-party-web: 0.29.2
+      third-party-web: 0.30.0
 
   '@peculiar/asn1-schema@2.9.4':
     dependencies:
@@ -9097,7 +9100,7 @@ snapshots:
       braces: 3.0.3
       picomatch: 4.0.4
 
-  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/33feb1054c8b2cb3f5f05abbb8903360d3f0c098: {}
+  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/ce24ce44adf804230a16520a9f79cd5f183c0bb5: {}
 
   mime-db@1.52.0: {}
 
@@ -10073,6 +10076,8 @@ snapshots:
       source-map-support: 0.5.21
 
   third-party-web@0.29.2: {}
+
+  third-party-web@0.30.0: {}
 
   tiny-async-pool@1.3.0:
     dependencies:
