@@ -315,6 +315,7 @@
         "transport_description": "주변 피어의 경로와 트래픽을 중계합니다.",
         "enable_transport_mode": "전송 모드 활성화",
         "transport_toggle_description": "애너운스를 라우팅하고 경로 요청에 응답하여 메시가 온라인을 유지하도록 돕습니다.",
+        "transport_shared_instance_notice": "공유 Reticulum 인스턴스에 연결되어 있습니다. 해당 인스턴스가 전송 모드를 제어하므로 이 토글은 로컬 구성만 업데이트합니다.",
         "share_reticulum_instance": "Reticulum 인스턴스 공유",
         "share_reticulum_instance_description": "이 MeshChatX Reticulum 인스턴스를 다른 로컬 프로그램에서 사용할 수 있도록 공유합니다(Sideband 방식의 공유 인스턴스). 다른 앱은 Transport를 켜지 않고도 연결 기능을 사용할 수 있습니다.",
         "obfuscate_hops": "홉 난독화",

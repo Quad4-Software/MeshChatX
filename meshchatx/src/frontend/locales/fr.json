@@ -315,6 +315,7 @@
         "transport_description": "Relay chemins et le trafic pour les pairs à proximité.",
         "enable_transport_mode": "Activer le mode de transport",
         "transport_toggle_description": "Route annonce, répond aux demandes de chemin et aide votre mesh rester en ligne.",
+        "transport_shared_instance_notice": "Connecté à une instance Reticulum partagée. Cette instance contrôle le mode transport, donc ce commutateur ne met à jour que votre configuration locale.",
         "share_reticulum_instance": "Partager l'instance Reticulum",
         "share_reticulum_instance_description": "Rendre cette instance Reticulum de MeshChatX disponible pour d'autres programmes locaux (instance partagée de type Sideband). D'autres applications peuvent utiliser la connectivité sans activer le transport.",
         "obfuscate_hops": "Masquer les sauts",

@@ -315,6 +315,7 @@
         "transport_description": "Przekazuje ścieżki i ruch dla pobliskich peerów.",
         "enable_transport_mode": "Włącz tryb transportu",
         "transport_toggle_description": "Przekazuje anonsy, odpowiada na żądania ścieżki i pomaga utrzymać Twoją sieć mesh online.",
+        "transport_shared_instance_notice": "Połączono ze współdzieloną instancją Reticulum. To ona kontroluje tryb transportu, więc ten przełącznik aktualizuje tylko lokalną konfigurację.",
         "share_reticulum_instance": "Udostępnij instancję Reticulum",
         "share_reticulum_instance_description": "Udostępnia tę instancję Reticulum MeshChatX innym lokalnym programom (współdzielona instancja w stylu Sideband). Inne aplikacje mogą korzystać z łączności bez włączonego Transportu.",
         "obfuscate_hops": "Zaciemniaj przeskoki",

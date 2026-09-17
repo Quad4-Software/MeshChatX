@@ -495,3 +495,213 @@ def test_build_reticulum_instance_settings_prefers_config_over_live():
     assert settings["local_hops_delta"] is False
     assert settings["rpc_config_snippet"]
     assert "rpc_key = " in settings["rpc_config_snippet"]
+
+
+@pytest.mark.asyncio
+async def test_reticulum_instance_patch_reload_exception_returns_json_error(
+    temp_dir,
+):
+    config = ConfigDict({"reticulum": {"share_instance": "Yes"}, "interfaces": {}})
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.share_instance = True
+        mock_reticulum.rpc_key = None
+        mock_reticulum.transport_enabled.return_value = False
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app_instance.reload_reticulum = AsyncMock(side_effect=RuntimeError("boom"))
+        patch_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/instance",
+            "PATCH",
+        )
+
+        payload = {"local_hops_delta": True}
+
+        class PatchRequest:
+            content = _JsonContent(payload)
+
+            @staticmethod
+            async def json():
+                return payload
+
+        response = await patch_handler(PatchRequest())
+        body = json.loads(response.body)
+
+        assert response.status == 500
+        assert body["message"] == "Instance settings were saved, but RNS reload failed."
+        assert "instance" in body
+        assert config["reticulum"]["local_hops_delta"] == "Yes"
+
+
+@pytest.mark.asyncio
+async def test_reticulum_reload_endpoint_exception_returns_json_error(temp_dir):
+    config = ConfigDict({"reticulum": {"share_instance": "Yes"}, "interfaces": {}})
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.share_instance = True
+        mock_reticulum.rpc_key = None
+        mock_reticulum.transport_enabled.return_value = False
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app_instance.reload_reticulum = AsyncMock(side_effect=RuntimeError("boom"))
+        reload_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/reload",
+            "POST",
+        )
+        assert reload_handler is not None
+
+        response = await reload_handler(MagicMock())
+        body = json.loads(response.body)
+
+        assert response.status == 500
+        assert body["message"] == "Failed to reload Reticulum"
+
+
+@pytest.mark.asyncio
+async def test_interface_bitrates_falsy_reload_returns_error(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {"share_instance": "Yes"},
+            "interfaces": {
+                "TestNet": {
+                    "type": "TCPClientInterface",
+                    "enabled": "Yes",
+                    "target_host": "127.0.0.1",
+                    "target_port": "4242",
+                },
+            },
+        },
+    )
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.share_instance = True
+        mock_reticulum.rpc_key = None
+        mock_reticulum.transport_enabled.return_value = False
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        # Reload completes but reports failure: must not claim reloaded=True.
+        app_instance.reload_reticulum = AsyncMock(return_value=False)
+        bitrates_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/interfaces/bitrates",
+            "POST",
+        )
+        assert bitrates_handler is not None
+
+        payload = {"bitrates": {"TestNet": 9600}, "reload": True}
+
+        class BitratesRequest:
+            content = _JsonContent(payload)
+
+            @staticmethod
+            async def json():
+                return payload
+
+        response = await bitrates_handler(BitratesRequest())
+        body = json.loads(response.body)
+
+        assert response.status == 500
+        assert body["reloaded"] is False
+        assert body["updated"] == ["TestNet"]
+        assert config["interfaces"]["TestNet"]["bitrate"] == "9600"
+
+
+@pytest.mark.asyncio
+async def test_interface_bitrates_true_reload_reports_reloaded(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {"share_instance": "Yes"},
+            "interfaces": {
+                "TestNet": {
+                    "type": "TCPClientInterface",
+                    "enabled": "Yes",
+                    "target_host": "127.0.0.1",
+                    "target_port": "4242",
+                },
+            },
+        },
+    )
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.share_instance = True
+        mock_reticulum.rpc_key = None
+        mock_reticulum.transport_enabled.return_value = False
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app_instance.reload_reticulum = AsyncMock(return_value=True)
+        bitrates_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/interfaces/bitrates",
+            "POST",
+        )
+        assert bitrates_handler is not None
+
+        payload = {"bitrates": {"TestNet": 9600}, "reload": True}
+
+        class BitratesRequest:
+            content = _JsonContent(payload)
+
+            @staticmethod
+            async def json():
+                return payload
+
+        response = await bitrates_handler(BitratesRequest())
+        body = json.loads(response.body)
+
+        assert response.status == 200
+        assert body["reloaded"] is True
+        assert body["updated"] == ["TestNet"]

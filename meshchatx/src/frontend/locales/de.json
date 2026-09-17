@@ -315,6 +315,7 @@
         "transport_description": "Leiten Sie Pfade und Verkehr für nahegelegene Peers weiter.",
         "enable_transport_mode": "Transport-Modus aktivieren",
         "transport_toggle_description": "Ankündigungen weiterleiten, auf Pfadanfragen antworten und helfen, dass Ihr Mesh online bleibt.",
+        "transport_shared_instance_notice": "Mit einer gemeinsamen Reticulum-Instanz verbunden. Diese Instanz steuert den Transportmodus, daher aktualisiert dieser Schalter nur Ihre lokale Konfiguration.",
         "share_reticulum_instance": "Reticulum-Instanz teilen",
         "share_reticulum_instance_description": "Machen Sie diese MeshChatX-Reticulum-Instanz für andere lokale Programme verfügbar (Sideband-artige gemeinsam genutzte Instanz). Andere Apps können die Konnektivität nutzen, ohne dass Transport aktiviert ist.",
         "obfuscate_hops": "Hops verschleiern",

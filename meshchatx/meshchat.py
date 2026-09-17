@@ -4578,6 +4578,10 @@ class ReticulumMeshChat:
             "rpc_key": rpc_key,
             "rpc_config_snippet": rpc_snippet,
             "is_connected_to_shared_instance": is_connected,
+            "is_shared_instance": bool(
+                reticulum is not None
+                and getattr(reticulum, "is_shared_instance", False),
+            ),
             "enable_transport": self._parse_rns_config_bool(
                 section.get("enable_transport"),
                 default=bool(

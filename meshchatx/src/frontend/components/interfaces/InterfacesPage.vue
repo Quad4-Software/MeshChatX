@@ -1070,7 +1070,9 @@ export default {
                 });
                 this.trackInterfaceChange(interfaceName);
             } catch (e) {
-                DialogUtils.alert(this.$t("interfaces.failed_enable"));
+                DialogUtils.alert(
+                    e?.response?.data?.error || e?.response?.data?.message || this.$t("interfaces.failed_enable")
+                );
                 console.log(e);
             }
 
@@ -1085,7 +1087,9 @@ export default {
                 });
                 this.trackInterfaceChange(interfaceName);
             } catch (e) {
-                DialogUtils.alert(this.$t("interfaces.failed_disable"));
+                DialogUtils.alert(
+                    e?.response?.data?.error || e?.response?.data?.message || this.$t("interfaces.failed_disable")
+                );
                 console.log(e);
             }
 

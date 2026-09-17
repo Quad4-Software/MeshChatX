@@ -315,6 +315,7 @@
         "transport_description": "Inoltra percorsi e traffico per i peer vicini.",
         "enable_transport_mode": "Abilita Modalità Trasporto",
         "transport_toggle_description": "Inoltra annunci, rispondi alle richieste di percorso e aiuta la tua mesh a rimanere online.",
+        "transport_shared_instance_notice": "Collegato a un'istanza Reticulum condivisa. Quell'istanza controlla la modalità trasporto, quindi questo interruttore aggiorna solo la configurazione locale.",
         "share_reticulum_instance": "Condividi istanza Reticulum",
         "share_reticulum_instance_description": "Rendi disponibile questa istanza Reticulum di MeshChatX ad altri programmi locali (istanza condivisa stile Sideband). Altre app possono utilizzare la connettività senza Transport abilitato.",
         "obfuscate_hops": "Offusca salti",

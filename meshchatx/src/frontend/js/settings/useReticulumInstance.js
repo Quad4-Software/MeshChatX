@@ -98,8 +98,9 @@ export function useReticulumInstance(options = {}) {
             if (response?.data?.message) {
                 ToastUtils.success(response.data.message);
             }
-        } catch {
-            ToastUtils.error(t("settings.failed_update_reticulum_instance"));
+        } catch (e) {
+            const detail = e?.response?.data?.error || e?.response?.data?.message;
+            ToastUtils.error(detail || t("settings.failed_update_reticulum_instance"));
             await loadReticulumInstanceSettings();
         } finally {
             reticulumInstanceSaving.value = false;

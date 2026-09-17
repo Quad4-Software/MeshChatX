@@ -592,6 +592,47 @@ describe("SettingsPage: transport mode (POST, not PATCH)", () => {
     });
 });
 
+describe("SettingsPage: updateConfig failure handling", () => {
+    let serverConfigRef;
+    let api;
+
+    beforeEach(() => {
+        serverConfigRef = { current: buildFullServerConfig() };
+        api = createWindowApi(serverConfigRef);
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        delete window.api;
+        vi.clearAllMocks();
+    });
+
+    it("shows server error detail and reverts the patched key", async () => {
+        const w = await mountSettingsPage(api);
+        api.patch.mockRejectedValueOnce(
+            Object.assign(new Error("bad"), {
+                response: { data: { error: "theme unsupported" } },
+            })
+        );
+        w.vm.config.theme = "light";
+        await w.vm.updateConfig({ theme: "light" }, "theme");
+
+        expect(ToastUtils.error).toHaveBeenCalledWith("theme unsupported");
+        expect(w.vm.config.theme).toBe("dark");
+    });
+
+    it("falls back to generic error and still reverts the patched key", async () => {
+        const w = await mountSettingsPage(api);
+        api.patch.mockRejectedValueOnce(new Error("boom"));
+        w.vm.config.theme = "light";
+        await w.vm.updateConfig({ theme: "light" });
+
+        expect(ToastUtils.error).toHaveBeenCalledWith("common.save_failed");
+        expect(w.vm.config.theme).toBe("dark");
+    });
+});
+
 describe("SettingsPage: visualiser display prefs (localStorage + emitter)", () => {
     let serverConfigRef;
     let api;

@@ -315,6 +315,7 @@
         "transport_description": "Relay paths and traffic for nearby peers.",
         "enable_transport_mode": "Enable Transport Mode",
         "transport_toggle_description": "Route announces, respond to path requests and help your mesh stay online.",
+        "transport_shared_instance_notice": "Attached to a shared Reticulum instance. That instance controls transport mode, so this toggle only updates your local config.",
         "share_reticulum_instance": "Share Reticulum Instance",
         "share_reticulum_instance_description": "Make this MeshChatX Reticulum instance available to other local programs (Sideband-style shared instance). Other apps can use connectivity without Transport enabled.",
         "obfuscate_hops": "Obfuscate Hops",

@@ -657,6 +657,83 @@ describe("SettingsPage Component", () => {
         expect(ToastUtils.error).toHaveBeenCalledWith("settings.failed_enable_transport");
     });
 
+    it("shows server detail and reverts toggle when transport enable is rejected", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
+        await wrapper.vm.$nextTick();
+
+        const conflictMessage =
+            "Transport mode was saved to the Reticulum config, but this process is attached to a shared Reticulum instance that controls transport.";
+        axiosMock.post.mockRejectedValueOnce(
+            Object.assign(new Error("conflict"), {
+                response: { data: { message: conflictMessage } },
+            })
+        );
+        axiosMock.get.mockResolvedValueOnce({
+            data: { config: { ...baseConfig, is_transport_enabled: false } },
+        });
+        wrapper.vm.config.is_transport_enabled = true;
+        await wrapper.vm.onIsTransportEnabledChange();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/enable-transport");
+        expect(ToastUtils.error).toHaveBeenCalledWith(conflictMessage);
+        expect(wrapper.vm.config.is_transport_enabled).toBe(false);
+    });
+
+    it("reverts toggle and refreshes config when transport disable fails", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
+        await wrapper.vm.$nextTick();
+
+        axiosMock.post.mockRejectedValueOnce(
+            Object.assign(new Error("conflict"), {
+                response: { data: { error: "server detail" } },
+            })
+        );
+        axiosMock.get.mockResolvedValueOnce({
+            data: { config: { ...baseConfig, is_transport_enabled: true } },
+        });
+        wrapper.vm.config.is_transport_enabled = false;
+        await wrapper.vm.onIsTransportEnabledChange();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/disable-transport");
+        expect(ToastUtils.error).toHaveBeenCalledWith("server detail");
+        expect(wrapper.vm.config.is_transport_enabled).toBe(true);
+    });
+
+    it("syncs toggle from transport_enabled in the transport response", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
+        await wrapper.vm.$nextTick();
+
+        axiosMock.post.mockResolvedValueOnce({
+            data: {
+                message: "Transport mode disabled and RNS restarted successfully.",
+                transport_enabled: false,
+            },
+        });
+        wrapper.vm.config.is_transport_enabled = false;
+        await wrapper.vm.onIsTransportEnabledChange();
+
+        expect(wrapper.vm.config.is_transport_enabled).toBe(false);
+        expect(ToastUtils.success).toHaveBeenCalledWith("Transport mode disabled and RNS restarted successfully.");
+    });
+
+    it("shows shared-instance notice for transport toggle when attached", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).not.toContain("app.transport_shared_instance_notice");
+        wrapper.vm.reticulumInstance.is_connected_to_shared_instance = true;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("app.transport_shared_instance_notice");
+    });
+
     it("handles multiple toggle changes without errors", async () => {
         const wrapper = mountSettingsPage();
         await wrapper.vm.$nextTick();

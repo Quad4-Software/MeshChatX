@@ -315,6 +315,7 @@
         "transport_description": "Välitä lähimpien vertaisten polkuja ja liikennettä.",
         "enable_transport_mode": "Kytke välitystila päälle",
         "transport_toggle_description": "Välitä kuulutuksia, vastaa polkukyselyihin ja vahvista mesh-verkon toimintaa.",
+        "transport_shared_instance_notice": "Yhdistetty jaettuun Reticulum-instanssiin. Kyseinen instanssi hallitsee välitystilaa, joten tämä kytkin päivittää vain paikallisen määrityksesi.",
         "share_reticulum_instance": "Jaa Reticulum-instanssi",
         "share_reticulum_instance_description": "Tee tästä MeshChatX Reticulum -instanssista saatavilla muille paikallisille ohjelmille (Sideband-tyylinen jaettu instanssi). Muut sovellukset voivat käyttää yhteyttä ilman Transportia.",
         "obfuscate_hops": "Peitä hypyt",

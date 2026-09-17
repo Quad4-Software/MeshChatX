@@ -315,6 +315,7 @@
         "transport_description": "Rutas de relé y tráfico para compañeros cercanos.",
         "enable_transport_mode": "Modo de transporte habilitado",
         "transport_toggle_description": "La ruta anuncia, responde a las solicitudes de ruta y ayuda a su malla a permanecer en línea.",
+        "transport_shared_instance_notice": "Conectado a una instancia compartida de Reticulum. Esa instancia controla el modo de transporte, por lo que este interruptor solo actualiza tu configuración local.",
         "share_reticulum_instance": "Compartir instancia de Reticulum",
         "share_reticulum_instance_description": "Haz que esta instancia de Reticulum de MeshChatX esté disponible para otros programas locales (instancia compartida estilo Sideband). Otras aplicaciones pueden usar la conectividad sin Transport habilitado.",
         "obfuscate_hops": "Ofuscar saltos",
