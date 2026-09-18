@@ -497,6 +497,53 @@ def register_interfaces_routes(routes, app):
                     )
                 return http_error(422, message)
 
+        elif interface_type == "AwareInterface":
+            # WiFi Aware (NAN) only exists in the Android app via the
+            # local-link Java bridge. Reject early on desktop, web, and
+            # Android devices without Aware hardware so the config can
+            # never reference an interface that cannot start.
+            from meshchatx.src.backend import android_locallink
+
+            if not android_locallink.is_available():
+                return http_error(
+                    422,
+                    "WiFi Aware is only available in the Android app.",
+                )
+            aware_caps = android_locallink.probe_capabilities()
+            if not aware_caps.get("supported") or not aware_caps.get("wifi_aware"):
+                return http_error(
+                    422,
+                    "WiFi Aware is not supported on this device.",
+                )
+            if not aware_caps.get("wifi_aware_available"):
+                return http_error(
+                    422,
+                    "WiFi Aware is currently unavailable. Check that WiFi is enabled.",
+                )
+
+            # mode is the Aware role (publish/subscribe), not a Reticulum
+            # interface mode, so apply_interface_mode is skipped below.
+            aware_role = str(data.get("mode") or "subscribe").strip().lower()
+            if aware_role not in {"subscribe", "publish"}:
+                return http_error(
+                    422,
+                    "AwareInterface mode must be subscribe or publish",
+                )
+            interface_details["mode"] = aware_role
+
+            aware_peers = data.get("peers")
+            if aware_peers not in (None, ""):
+                try:
+                    aware_peers = int(aware_peers)
+                except (TypeError, ValueError):
+                    aware_peers = -1
+                if aware_peers < 1 or aware_peers > 8:
+                    return http_error(
+                        422,
+                        "AwareInterface peers must be an integer from 1 to 8",
+                    )
+                interface_details["peers"] = aware_peers
+
         # if interface doesn't have enabled or interface_enabled setting already, enable it by default
         if (
             "enabled" not in interface_details
@@ -1097,6 +1144,7 @@ def register_interfaces_routes(routes, app):
                 "AX25KISSInterface",
                 "PipeInterface",
                 "HTTPInterface",
+                "AwareInterface",
             },
         )
         if interface_type not in _builtin_interface_types:
@@ -1106,7 +1154,10 @@ def register_interfaces_routes(routes, app):
             if not isinstance(extra, dict):
                 return http_error(422, "extra_config must be a JSON object")
             for key, value in extra.items():
-                if key in {"name", "type", "allow_overwriting_interface"}:
+                if key in InterfaceEditor.UI_METADATA_KEYS | {
+                    "type",
+                    "allow_overwriting_interface",
+                }:
                     continue
                 if value is None or value == "":
                     interface_details.pop(key, None)
@@ -1161,7 +1212,7 @@ def register_interfaces_routes(routes, app):
 
         # set common interface options
         InterfaceEditor.update_value(interface_details, data, "bitrate")
-        if interface_type != "HTTPInterface":
+        if interface_type not in ("HTTPInterface", "AwareInterface"):
             mode_error = InterfaceEditor.apply_interface_mode(interface_details, data)
             if mode_error is not None:
                 return http_error(422, mode_error)
@@ -1201,6 +1252,7 @@ def register_interfaces_routes(routes, app):
         InterfaceEditor.update_value(interface_details, data, "ifac_size")
 
         # merge new interface into existing interfaces
+        InterfaceEditor.strip_ui_metadata(interface_details)
         interfaces_before_write = app._get_interfaces_snapshot()
         if interface_type == "I2PInterface":
             # I2P must be last: drop and reinsert so ConfigObj order is correct.
@@ -1381,6 +1433,7 @@ def register_interfaces_routes(routes, app):
                 )
                 if import_option_error is not None:
                     return http_error(422, import_option_error)
+                InterfaceEditor.strip_ui_metadata(iface_body)
                 if iface_type in ("RNodeInterface", "RNodeIPInterface"):
                     freq = iface_body.get("frequency")
                     if freq is not None and freq != "":

@@ -247,7 +247,7 @@
                                     }"
                                 >
                                     <div
-                                        class="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-start relative min-w-0"
+                                        class="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-start relative min-w-0 pt-11 sm:pt-0"
                                     >
                                         <!-- Disconnected Overlay -->
                                         <div
@@ -269,181 +269,192 @@
                                             </div>
                                         </div>
 
-                                        <div class="interface-card__icon shrink-0">
-                                            <MaterialDesignIcon :icon-name="getDiscoveryIcon(iface)" class="w-6 h-6" />
-                                        </div>
+                                        <div class="flex gap-3 sm:gap-4 min-w-0 flex-1">
+                                            <div class="interface-card__icon shrink-0">
+                                                <MaterialDesignIcon
+                                                    :icon-name="getDiscoveryIcon(iface)"
+                                                    class="w-6 h-6"
+                                                />
+                                            </div>
 
-                                        <div class="flex-1 min-w-0 space-y-2">
-                                            <div class="flex items-center gap-2 flex-nowrap min-w-0">
-                                                <div
-                                                    class="text-base sm:text-lg font-semibold text-sem-fg truncate min-w-0"
-                                                >
-                                                    {{ iface.name }}
+                                            <div class="flex-1 min-w-0 space-y-2">
+                                                <div class="flex items-center gap-2 flex-nowrap min-w-0">
+                                                    <div
+                                                        class="text-base sm:text-lg font-semibold text-sem-fg truncate min-w-0"
+                                                    >
+                                                        {{ iface.name }}
+                                                    </div>
+                                                    <span class="type-chip shrink-0">{{ iface.type }}</span>
                                                 </div>
-                                                <span class="type-chip shrink-0">{{ iface.type }}</span>
-                                            </div>
 
-                                            <div class="flex items-center gap-2 flex-wrap">
-                                                <span v-if="iface.value" class="text-[10px] font-bold text-sem-accent">
-                                                    Stamps: {{ iface.value }}
-                                                </span>
-                                                <span
-                                                    v-if="isDiscoveredConnected(iface)"
-                                                    class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-emerald-900/40 dark:text-emerald-200 shrink-0"
-                                                >
-                                                    Connected
-                                                </span>
-                                                <span
-                                                    v-if="iface.is_blacklisted"
-                                                    class="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-red-900/40 dark:text-red-200 shrink-0"
-                                                >
-                                                    Blocked
-                                                </span>
-                                                <span
-                                                    v-else-if="iface.is_allowed === false"
-                                                    class="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-amber-900/40 dark:text-amber-200 shrink-0"
-                                                >
-                                                    Not allowed
-                                                </span>
-                                            </div>
-
-                                            <div class="flex flex-wrap gap-1.5 text-[10px] sm:text-xs">
-                                                <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
-                                                    >Hops: {{ iface.hops }}</span
-                                                >
-                                                <span class="stat-chip capitalize bg-gray-50 dark:bg-zinc-800/50">{{
-                                                    iface.status
-                                                }}</span>
-                                                <span
-                                                    v-if="iface.last_heard"
-                                                    class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
-                                                >
-                                                    Heard: {{ formatLastHeard(iface.last_heard) }}
-                                                </span>
-                                                <template v-if="discoveredBytes(iface)">
-                                                    <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50">
-                                                        {{ $t("interface.tx") }}
-                                                        {{ discoveredBytes(iface).tx }}
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span
+                                                        v-if="iface.value"
+                                                        class="text-[10px] font-bold text-sem-accent"
+                                                    >
+                                                        Stamps: {{ iface.value }}
                                                     </span>
-                                                    <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50">
-                                                        {{ $t("interface.rx") }}
-                                                        {{ discoveredBytes(iface).rx }}
+                                                    <span
+                                                        v-if="isDiscoveredConnected(iface)"
+                                                        class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-emerald-900/40 dark:text-emerald-200 shrink-0"
+                                                    >
+                                                        Connected
                                                     </span>
-                                                </template>
-                                            </div>
-
-                                            <div class="grid gap-1.5 text-[10px] sm:text-[11px] pt-1 min-w-0">
-                                                <div
-                                                    v-if="iface.reachable_on"
-                                                    class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
-                                                    @click="
-                                                        copyToClipboard(
-                                                            `${iface.reachable_on}:${iface.port}`,
-                                                            'Address'
-                                                        )
-                                                    "
-                                                >
-                                                    <MaterialDesignIcon
-                                                        icon-name="link-variant"
-                                                        class="w-3.5 h-3.5 shrink-0"
-                                                    />
-                                                    <span class="truncate"
-                                                        >Address: {{ iface.reachable_on }}:{{ iface.port }}</span
+                                                    <span
+                                                        v-if="iface.is_blacklisted"
+                                                        class="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-red-900/40 dark:text-red-200 shrink-0"
                                                     >
+                                                        Blocked
+                                                    </span>
+                                                    <span
+                                                        v-else-if="iface.is_allowed === false"
+                                                        class="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-amber-900/40 dark:text-amber-200 shrink-0"
+                                                    >
+                                                        Not allowed
+                                                    </span>
                                                 </div>
 
-                                                <div
-                                                    v-if="iface.transport_id"
-                                                    class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
-                                                    @click="copyToClipboard(iface.transport_id, 'Transport ID')"
-                                                >
-                                                    <MaterialDesignIcon
-                                                        icon-name="identifier"
-                                                        class="w-3.5 h-3.5 shrink-0"
-                                                    />
-                                                    <span class="truncate font-mono"
-                                                        >Transport ID: {{ iface.transport_id }}</span
+                                                <div class="flex flex-wrap gap-1.5 text-[10px] sm:text-xs">
+                                                    <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
+                                                        >Hops: {{ iface.hops }}</span
                                                     >
+                                                    <span class="stat-chip capitalize bg-gray-50 dark:bg-zinc-800/50">{{
+                                                        iface.status
+                                                    }}</span>
+                                                    <span
+                                                        v-if="iface.last_heard"
+                                                        class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
+                                                    >
+                                                        Heard: {{ formatLastHeard(iface.last_heard) }}
+                                                    </span>
+                                                    <template v-if="discoveredBytes(iface)">
+                                                        <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50">
+                                                            {{ $t("interface.tx") }}
+                                                            {{ discoveredBytes(iface).tx }}
+                                                        </span>
+                                                        <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50">
+                                                            {{ $t("interface.rx") }}
+                                                            {{ discoveredBytes(iface).rx }}
+                                                        </span>
+                                                    </template>
                                                 </div>
 
-                                                <div
-                                                    v-if="iface.network_id"
-                                                    class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
-                                                    @click="copyToClipboard(iface.network_id, 'Network ID')"
-                                                >
-                                                    <MaterialDesignIcon icon-name="lan" class="w-3.5 h-3.5 shrink-0" />
-                                                    <span class="truncate font-mono"
-                                                        >Network ID: {{ iface.network_id }}</span
+                                                <div class="grid gap-1.5 text-[10px] sm:text-[11px] pt-1 min-w-0">
+                                                    <div
+                                                        v-if="iface.reachable_on"
+                                                        class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                        @click="
+                                                            copyToClipboard(
+                                                                `${iface.reachable_on}:${iface.port}`,
+                                                                'Address'
+                                                            )
+                                                        "
                                                     >
-                                                </div>
+                                                        <MaterialDesignIcon
+                                                            icon-name="link-variant"
+                                                            class="w-3.5 h-3.5 shrink-0"
+                                                        />
+                                                        <span class="truncate"
+                                                            >Address: {{ iface.reachable_on }}:{{ iface.port }}</span
+                                                        >
+                                                    </div>
 
-                                                <div
-                                                    v-if="discoveredNetworkName(iface)"
-                                                    class="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-500 cursor-pointer transition-colors min-w-0"
-                                                    :title="$t('interfaces.discovered_copy_network_name')"
-                                                    data-testid="discovered-network-name"
-                                                    @click="
-                                                        copyToClipboard(
-                                                            discoveredNetworkName(iface),
-                                                            $t('interfaces.discovered_network_name')
-                                                        )
-                                                    "
-                                                >
-                                                    <MaterialDesignIcon
-                                                        icon-name="shield-key"
-                                                        class="w-3.5 h-3.5 shrink-0"
-                                                    />
-                                                    <span class="truncate font-mono"
-                                                        >{{ $t("interfaces.discovered_network_name") }}:
-                                                        {{ discoveredNetworkName(iface) }}</span
+                                                    <div
+                                                        v-if="iface.transport_id"
+                                                        class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                        @click="copyToClipboard(iface.transport_id, 'Transport ID')"
                                                     >
-                                                </div>
+                                                        <MaterialDesignIcon
+                                                            icon-name="identifier"
+                                                            class="w-3.5 h-3.5 shrink-0"
+                                                        />
+                                                        <span class="truncate font-mono"
+                                                            >Transport ID: {{ iface.transport_id }}</span
+                                                        >
+                                                    </div>
 
-                                                <div
-                                                    v-if="discoveredPassphrase(iface)"
-                                                    class="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-500 cursor-pointer transition-colors min-w-0"
-                                                    :title="$t('interfaces.discovered_copy_passphrase')"
-                                                    data-testid="discovered-passphrase"
-                                                    @click="
-                                                        copyToClipboard(
-                                                            discoveredPassphrase(iface),
-                                                            $t('interfaces.discovered_passphrase')
-                                                        )
-                                                    "
-                                                >
-                                                    <MaterialDesignIcon
-                                                        icon-name="shield-lock"
-                                                        class="w-3.5 h-3.5 shrink-0"
-                                                    />
-                                                    <span class="truncate font-mono"
-                                                        >{{ $t("interfaces.discovered_passphrase") }}:
-                                                        {{ maskPassphrase(discoveredPassphrase(iface)) }}</span
+                                                    <div
+                                                        v-if="iface.network_id"
+                                                        class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                        @click="copyToClipboard(iface.network_id, 'Network ID')"
                                                     >
-                                                </div>
+                                                        <MaterialDesignIcon
+                                                            icon-name="lan"
+                                                            class="w-3.5 h-3.5 shrink-0"
+                                                        />
+                                                        <span class="truncate font-mono"
+                                                            >Network ID: {{ iface.network_id }}</span
+                                                        >
+                                                    </div>
 
-                                                <div
-                                                    v-if="iface.latitude != null && iface.longitude != null"
-                                                    class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
-                                                    @click="
-                                                        copyToClipboard(
-                                                            `${iface.latitude}, ${iface.longitude}`,
-                                                            'Location'
-                                                        )
-                                                    "
-                                                >
-                                                    <MaterialDesignIcon
-                                                        icon-name="map-marker"
-                                                        class="w-3.5 h-3.5 shrink-0"
-                                                    />
-                                                    <span class="truncate"
-                                                        >Loc: {{ iface.latitude }}, {{ iface.longitude }}</span
+                                                    <div
+                                                        v-if="discoveredNetworkName(iface)"
+                                                        class="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-500 cursor-pointer transition-colors min-w-0"
+                                                        :title="$t('interfaces.discovered_copy_network_name')"
+                                                        data-testid="discovered-network-name"
+                                                        @click="
+                                                            copyToClipboard(
+                                                                discoveredNetworkName(iface),
+                                                                $t('interfaces.discovered_network_name')
+                                                            )
+                                                        "
                                                     >
+                                                        <MaterialDesignIcon
+                                                            icon-name="shield-key"
+                                                            class="w-3.5 h-3.5 shrink-0"
+                                                        />
+                                                        <span class="truncate font-mono"
+                                                            >{{ $t("interfaces.discovered_network_name") }}:
+                                                            {{ discoveredNetworkName(iface) }}</span
+                                                        >
+                                                    </div>
+
+                                                    <div
+                                                        v-if="discoveredPassphrase(iface)"
+                                                        class="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-500 cursor-pointer transition-colors min-w-0"
+                                                        :title="$t('interfaces.discovered_copy_passphrase')"
+                                                        data-testid="discovered-passphrase"
+                                                        @click="
+                                                            copyToClipboard(
+                                                                discoveredPassphrase(iface),
+                                                                $t('interfaces.discovered_passphrase')
+                                                            )
+                                                        "
+                                                    >
+                                                        <MaterialDesignIcon
+                                                            icon-name="shield-lock"
+                                                            class="w-3.5 h-3.5 shrink-0"
+                                                        />
+                                                        <span class="truncate font-mono"
+                                                            >{{ $t("interfaces.discovered_passphrase") }}:
+                                                            {{ maskPassphrase(discoveredPassphrase(iface)) }}</span
+                                                        >
+                                                    </div>
+
+                                                    <div
+                                                        v-if="iface.latitude != null && iface.longitude != null"
+                                                        class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                        @click="
+                                                            copyToClipboard(
+                                                                `${iface.latitude}, ${iface.longitude}`,
+                                                                'Location'
+                                                            )
+                                                        "
+                                                    >
+                                                        <MaterialDesignIcon
+                                                            icon-name="map-marker"
+                                                            class="w-3.5 h-3.5 shrink-0"
+                                                        />
+                                                        <span class="truncate"
+                                                            >Loc: {{ iface.latitude }}, {{ iface.longitude }}</span
+                                                        >
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div
-                                            class="flex flex-row sm:flex-col gap-2 shrink-0 self-end sm:self-auto justify-end"
+                                            class="absolute top-0 right-0 z-20 flex flex-row gap-1 sm:static sm:z-auto sm:ml-auto sm:flex-col sm:gap-2 sm:shrink-0 sm:self-auto sm:justify-end"
                                         >
                                             <div class="relative">
                                                 <button

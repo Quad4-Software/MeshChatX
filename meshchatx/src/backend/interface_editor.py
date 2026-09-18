@@ -377,6 +377,30 @@ class InterfaceEditor:
             maximum=10_000,
         )
 
+    # Keys that describe a preset or the editor UI rather than Reticulum.
+    # They may arrive inside import payloads or extra_config blobs and must
+    # never be persisted into the Reticulum config file.
+    UI_METADATA_KEYS = frozenset(
+        {
+            "name",
+            "description",
+            "selected_interface_mode",
+            "i2p_peers",
+        },
+    )
+
+    @staticmethod
+    def strip_ui_metadata(interface_details: dict) -> None:
+        """Drop UI/preset metadata keys and None values before persisting."""
+        for key in InterfaceEditor.UI_METADATA_KEYS:
+            if key in interface_details and not isinstance(
+                interface_details[key],
+                dict,
+            ):
+                interface_details.pop(key, None)
+        for key in [k for k, v in interface_details.items() if v is None]:
+            interface_details.pop(key, None)
+
     @staticmethod
     def sanitize_imported_rns_options(iface_body: dict) -> str | None:
         """Normalize/validate RNS 1.3.7+ options on import. Return error or None."""
