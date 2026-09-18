@@ -1,0 +1,9 @@
+{
+    "@context": "https://openvex.dev/ns/v0.2.0",
+    "@id": "https://github.com/Quad4-Software/MeshChatX/openvex.json",
+    "author": "Quad4 Software",
+    "role": "Project steward",
+    "timestamp": "2026-09-18T22:30:00Z",
+    "version": 1,
+    "statements": []
+}
