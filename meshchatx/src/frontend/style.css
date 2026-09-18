@@ -18,6 +18,19 @@
   --color-sem-accent-hover: var(--mc-accent-hover);
   --color-sem-action-primary: var(--mc-action-primary);
   --color-sem-action-primary-hover: var(--mc-action-primary-hover);
+  --color-sem-action-primary-text: var(--mc-action-primary-text);
+  --color-sem-action-danger: var(--mc-action-danger);
+  --color-sem-action-danger-hover: var(--mc-action-danger-hover);
+  --color-sem-action-danger-text: var(--mc-action-danger-text);
+  --color-sem-action-warning: var(--mc-action-warning);
+  --color-sem-action-warning-hover: var(--mc-action-warning-hover);
+  --color-sem-action-warning-text: var(--mc-action-warning-text);
+  --color-sem-action-success: var(--mc-action-success);
+  --color-sem-action-success-hover: var(--mc-action-success-hover);
+  --color-sem-action-success-text: var(--mc-action-success-text);
+  --color-sem-action-info: var(--mc-action-info);
+  --color-sem-action-info-hover: var(--mc-action-info-hover);
+  --color-sem-action-info-text: var(--mc-action-info-text);
   --color-sem-focus: var(--mc-focus);
   --color-sem-glass: var(--mc-glass-surface);
   --color-sem-surface-muted: var(--mc-surface-muted);
@@ -200,7 +213,7 @@ select option {
 }
 
 .primary-chip {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! bg-sem-action-primary! px-4! py-2! text-xs! font-bold! text-white! shadow-xs! transition-all!;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! bg-sem-action-primary! px-4! py-2! text-xs! font-bold! text-sem-action-primary-text! shadow-xs! transition-all!;
 }
 .primary-chip svg,
 .secondary-chip svg,
@@ -275,7 +288,7 @@ select option {
 }
 
 .primary-action {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! text-white! shadow-md! transition-all! duration-200!;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! text-sem-action-primary-text! shadow-md! transition-all! duration-200!;
     background-color: var(--mc-action-primary) !important;
 }
 .primary-action:hover {
@@ -303,11 +316,11 @@ select option {
 }
 
 .danger-action {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! text-white! shadow-md! transition-all! duration-200!;
-    background-color: var(--mc-danger-chip-bg) !important;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! text-sem-action-danger-text! shadow-md! transition-all! duration-200!;
+    background-color: var(--mc-action-danger) !important;
 }
 .danger-action:hover {
-    background-color: var(--mc-danger-chip-hover-bg) !important;
+    background-color: var(--mc-action-danger-hover) !important;
     @apply -translate-y-0.5! shadow-lg!;
 }
 .danger-action:active {
@@ -357,11 +370,11 @@ select option {
 }
 
 .file-input::file-selector-button {
-    @apply mr-2 border-0 rounded-md bg-sem-action-primary text-white px-3 py-1 text-xs font-semibold cursor-pointer hover:bg-sem-action-primary-hover transition;
+    @apply mr-2 border-0 rounded-md bg-sem-action-primary text-sem-action-primary-text px-3 py-1 text-xs font-semibold cursor-pointer hover:bg-sem-action-primary-hover transition;
 }
 
 .dark .file-input::file-selector-button {
-    @apply bg-sem-action-primary hover:bg-sem-action-primary-hover text-white;
+    @apply bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text;
 }
 
 .no-scrollbar::-webkit-scrollbar {

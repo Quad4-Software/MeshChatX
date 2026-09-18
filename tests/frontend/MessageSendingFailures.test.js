@@ -377,15 +377,7 @@ describe("MessageSendingFailures.test.js", () => {
 
         await wrapper.vm.retrySendingMessage(failedItem);
 
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            "/api/v1/lxmf-messages/send",
-            expect.objectContaining({
-                lxmf_message: expect.objectContaining({
-                    content: "retry me",
-                    destination_hash: "test-hash",
-                }),
-            })
-        );
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/lxmf-messages/failed-hash/resend");
 
         // Old item should be removed
         expect(wrapper.vm.chatItems.find((i) => i.lxmf_message.hash === "failed-hash")).toBeUndefined();

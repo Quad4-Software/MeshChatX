@@ -22,7 +22,7 @@
                                         @input="onDisplayNameChange"
                                     />
                                 </div>
-                                <div class="text-sm text-sem-fg-muted whitespace-nowrap">
+                                <div class="min-w-0 text-sm text-sem-fg-muted">
                                     {{ $t("app.manage_identity") }}
                                 </div>
                             </div>
@@ -598,7 +598,7 @@
                                 <div class="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        class="px-4 py-2 text-sm font-semibold text-white bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
+                                        class="px-4 py-2 text-sm font-semibold text-sem-action-primary-text bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
                                         :disabled="selfTestRunning"
                                         @click="runSelfTest"
                                     >
@@ -1895,7 +1895,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-2 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 text-white text-sm font-semibold px-3 py-2"
+                                        class="inline-flex items-center gap-2 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 text-sem-action-primary-text text-sm font-semibold px-3 py-2"
                                         :disabled="!reticulumInstance.rpc_config_snippet"
                                         @click="copyRpcConfigSnippet"
                                     >

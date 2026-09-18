@@ -53,7 +53,7 @@
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <button
-                    class="rnf-action-btn bg-sem-action-primary text-white! border-none! hover:bg-sem-action-primary-hover"
+                    class="rnf-action-btn bg-sem-action-primary text-sem-action-primary-text! border-none! hover:bg-sem-action-primary-hover"
                     @click="$emit('action', 'enable-tnc')"
                 >
                     {{ $t("tools.rnode_flasher.enable") }}

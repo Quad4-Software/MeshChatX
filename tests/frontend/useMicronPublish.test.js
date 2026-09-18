@@ -105,24 +105,22 @@ describe("useMicronPublish", () => {
 
     it("resolvePublishPageBase uses index when server has no index.mu", async () => {
         const publish = makePublish();
-        await expect(
-            publish.resolvePublishPageBase({ name: "New Tab 1" }, [], "srv")
-        ).resolves.toBe("index");
+        await expect(publish.resolvePublishPageBase({ name: "New Tab 1" }, [], "srv")).resolves.toBe("index");
     });
 
     it("resolvePublishPageBase uses tab name when index.mu exists and tab is renamed", async () => {
         const publish = makePublish();
-        await expect(
-            publish.resolvePublishPageBase({ name: "About Page" }, ["index.mu"], "srv")
-        ).resolves.toBe("About_Page");
+        await expect(publish.resolvePublishPageBase({ name: "About Page" }, ["index.mu"], "srv")).resolves.toBe(
+            "About_Page"
+        );
     });
 
     it("resolvePublishPageBase prompts when index.mu exists and tab name is unset", async () => {
         DialogUtils.prompt.mockResolvedValue("custom_page");
         const publish = makePublish();
-        await expect(
-            publish.resolvePublishPageBase({ name: "New Tab 1" }, ["index.mu"], "srv")
-        ).resolves.toBe("custom_page");
+        await expect(publish.resolvePublishPageBase({ name: "New Tab 1" }, ["index.mu"], "srv")).resolves.toBe(
+            "custom_page"
+        );
         expect(DialogUtils.prompt).toHaveBeenCalled();
     });
 
@@ -181,10 +179,7 @@ describe("useMicronPublish", () => {
             name: "index",
             content: "x",
         });
-        expect(uploadImages).toHaveBeenCalledWith(
-            expect.objectContaining({ node_id: "n1" }),
-            ["x"]
-        );
+        expect(uploadImages).toHaveBeenCalledWith(expect.objectContaining({ node_id: "n1" }), ["x"]);
         expect(publish.lastPublished.value?.pageName).toBe("index.mu");
         expect(publish.publishBusy.value).toBe(false);
     });

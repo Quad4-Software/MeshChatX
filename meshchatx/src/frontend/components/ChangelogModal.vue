@@ -8,7 +8,7 @@
         :max-width="800"
         :show-close="true"
         panel-class="border-0"
-        body-class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 sm:py-8"
+        body-class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-6 sm:px-6 sm:py-8"
         @close="close"
     >
         <template #header>
@@ -43,7 +43,7 @@
 
         <template #actions>
             <div class="flex w-full flex-wrap items-center gap-y-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                <div class="flex flex-col gap-1">
+                <div class="flex min-w-0 flex-col gap-1">
                     <label class="flex items-center gap-2 text-sm font-medium text-sem-fg-muted">
                         <input
                             v-model="dontShowAgain"
@@ -243,7 +243,24 @@ export default {
 <style>
 @reference "../style.css";
 .changelog-content {
-    @apply leading-relaxed;
+    @apply leading-relaxed min-w-0;
+    overflow-wrap: break-word;
+}
+
+.changelog-content pre {
+    @apply max-w-full overflow-x-auto;
+}
+
+.changelog-content code {
+    overflow-wrap: anywhere;
+}
+
+.changelog-content table {
+    @apply block max-w-full overflow-x-auto;
+}
+
+.changelog-content img {
+    @apply h-auto max-w-full;
 }
 
 .changelog-content h1 {

@@ -147,7 +147,7 @@
 
                                         <div
                                             v-if="activeCall && activeCall.status === 6"
-                                            class="absolute -bottom-2 -right-2 bg-sem-success text-white p-2 rounded-full shadow-lg border-4 border-sem-canvas z-20"
+                                            class="absolute -bottom-2 -right-2 bg-sem-action-success text-sem-action-success-text p-2 rounded-full shadow-lg border-4 border-sem-canvas z-20"
                                         >
                                             <MaterialDesignIcon icon-name="phone-in-talk" class="size-5" />
                                         </div>
@@ -388,7 +388,7 @@
                                         <div v-if="isCallEnded && wasVoicemail" class="mt-6 animate-fade-in">
                                             <button
                                                 type="button"
-                                                class="px-6 py-3 rounded-full bg-sem-info/50 hover:bg-sem-action-primary text-white font-bold flex items-center gap-2 shadow-lg shadow-sem-accent/30 transition-all hover:scale-105"
+                                                class="px-6 py-3 rounded-full bg-sem-action-info hover:bg-sem-action-info-hover text-sem-action-info-text font-bold flex items-center gap-2 shadow-lg shadow-sem-accent/30 transition-all hover:scale-105"
                                                 @click="playLatestVoicemail"
                                             >
                                                 <MaterialDesignIcon
@@ -438,7 +438,7 @@
                                                     :title="isMicMuted ? $t('call.unmute_mic') : $t('call.mute_mic')"
                                                     :class="[
                                                         isMicMuted
-                                                            ? 'bg-sem-danger text-white shadow-sem-danger/20'
+                                                            ? 'bg-sem-action-danger text-sem-action-danger-text shadow-sem-danger/20'
                                                             : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-muted hover:bg-sem-surface-muted shadow-sem-surface-muted/20 dark:shadow-sem-fg/20',
                                                     ]"
                                                     class="p-4 rounded-full shadow-lg transition-all duration-200"
@@ -460,7 +460,7 @@
                                                     "
                                                     :class="[
                                                         isSpeakerMuted
-                                                            ? 'bg-sem-danger text-white shadow-sem-danger/20'
+                                                            ? 'bg-sem-action-danger text-sem-action-danger-text shadow-sem-danger/20'
                                                             : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-muted hover:bg-sem-surface-muted shadow-sem-surface-muted/20 dark:shadow-sem-fg/20',
                                                     ]"
                                                     class="p-4 rounded-full shadow-lg transition-all duration-200"
@@ -514,7 +514,7 @@
                                             <button
                                                 v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                                                 type="button"
-                                                class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sem-success py-4 text-sm font-bold text-white shadow-xl shadow-sem-success/20 hover:bg-sem-success transition-all duration-200"
+                                                class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sem-action-success py-4 text-sm font-bold text-sem-action-success-text shadow-xl shadow-sem-success/20 hover:bg-sem-action-success-hover transition-all duration-200"
                                                 @click="answerCall"
                                             >
                                                 <MaterialDesignIcon icon-name="phone" class="size-5" />
@@ -525,7 +525,7 @@
                                             <button
                                                 v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                                                 type="button"
-                                                class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sem-action-primary py-4 text-sm font-bold text-white shadow-xl shadow-sem-action-primary/20 hover:bg-sem-info/50 transition-all duration-200"
+                                                class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sem-action-primary py-4 text-sm font-bold text-sem-action-primary-text shadow-xl shadow-sem-action-primary/20 hover:bg-sem-info/50 transition-all duration-200"
                                                 @click="sendToVoicemail"
                                             >
                                                 <MaterialDesignIcon icon-name="voicemail" class="size-5" />
@@ -546,7 +546,7 @@
                                         <!-- hangup/decline call -->
                                         <button
                                             type="button"
-                                            class="w-full flex items-center justify-center gap-2 rounded-2xl bg-sem-danger py-4 text-sm font-bold text-white shadow-xl shadow-red-600/20 hover:bg-sem-danger transition-all duration-200"
+                                            class="w-full flex items-center justify-center gap-2 rounded-2xl bg-sem-action-danger py-4 text-sm font-bold text-sem-action-danger-text shadow-xl shadow-red-600/20 hover:bg-sem-action-danger-hover transition-all duration-200"
                                             @click="hangupCall"
                                         >
                                             <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-135" />
@@ -642,7 +642,7 @@
                                                 </div>
                                                 <button
                                                     type="button"
-                                                    class="bg-sem-action-primary hover:bg-sem-info/50 text-white px-6 rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+                                                    class="bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text px-6 rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
                                                     @click="call(destinationHash)"
                                                 >
                                                     <MaterialDesignIcon icon-name="phone" class="size-5" />
@@ -992,7 +992,7 @@
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                class="flex items-center gap-1.5 px-3 py-1 bg-sem-action-primary text-white rounded-lg text-[10px] font-bold hover:bg-sem-info/50 transition-all shadow-md shadow-blue-500/10 shrink-0"
+                                                                class="flex items-center gap-1.5 px-3 py-1 bg-sem-action-primary text-sem-action-primary-text rounded-lg text-[10px] font-bold hover:bg-sem-action-primary-hover transition-all shadow-md shadow-blue-500/10 shrink-0"
                                                                 @click="
                                                                     destinationHash =
                                                                         entry.remote_telephony_hash ||
@@ -1603,7 +1603,7 @@
                                 <button
                                     v-if="contactForm.custom_image"
                                     type="button"
-                                    class="absolute -top-1 -right-1 p-1 bg-sem-danger text-white rounded-full shadow-lg hover:bg-sem-danger transition-colors"
+                                    class="absolute -top-1 -right-1 p-1 bg-sem-action-danger text-sem-action-danger-text rounded-full shadow-lg hover:bg-sem-action-danger-hover transition-colors"
                                     @click="contactForm.custom_image = null"
                                 >
                                     <MaterialDesignIcon icon-name="close" class="size-3" />
@@ -1702,7 +1702,7 @@
                         </button>
                         <button
                             type="button"
-                            class="flex-2 px-6 py-3 rounded-2xl bg-sem-action-primary text-white font-bold shadow-lg shadow-sem-action-primary/20 hover:bg-sem-info/50 transition-all active:scale-95"
+                            class="flex-2 px-6 py-3 rounded-2xl bg-sem-action-primary text-sem-action-primary-text font-bold shadow-lg shadow-sem-action-primary/20 hover:bg-sem-action-primary-hover transition-all active:scale-95"
                             @click="saveContact(contactForm)"
                         >
                             {{ $t("call.save_contact") }}

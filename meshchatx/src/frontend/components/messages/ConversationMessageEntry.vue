@@ -383,28 +383,28 @@
                 <button
                     v-if="cv.canCancelOutboundSend(entry.items[0])"
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-warning/50 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-warning px-3 py-1.5 text-xs font-semibold text-sem-action-warning-text shadow-xs hover:bg-sem-action-warning-hover transition-colors"
                     @click.stop="cv.cancelSendingMessage(entry.items[0])"
                 >
                     {{ $t("messages.cancel_send") }}
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-accent px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-action-primary-hover transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-primary px-3 py-1.5 text-xs font-semibold text-sem-action-primary-text shadow-xs hover:bg-sem-action-primary-hover transition-colors"
                     @click.stop="cv.replyToMessage(entry.items[0])"
                 >
                     {{ $t("messages.reply") }}
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-danger px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-danger transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-danger px-3 py-1.5 text-xs font-semibold text-sem-action-danger-text shadow-xs hover:bg-sem-action-danger-hover transition-colors"
                     @click.stop="cv.deleteChatItem(entry.items[0])"
                 >
                     Delete
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-fg transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-sem-canvas shadow-xs hover:bg-sem-fg transition-colors"
                     @click.stop="cv.showRawMessage(entry.items[0])"
                 >
                     Raw LXM
@@ -668,7 +668,7 @@
                         </div>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-2 rounded-lg bg-sem-warning hover:bg-sem-warning/80 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
+                            class="inline-flex items-center gap-2 rounded-lg bg-sem-action-warning hover:bg-sem-action-warning-hover px-3 py-2 text-xs font-semibold text-sem-action-warning-text transition-colors"
                             @click.stop="cv.copyOversizedMessageBody(chatItem)"
                         >
                             <MaterialDesignIcon icon-name="content-copy" class="size-4 shrink-0" />
@@ -865,7 +865,7 @@
                             <button
                                 v-if="!chatItem.is_outbound"
                                 type="button"
-                                class="w-full py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                class="w-full py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="
                                     cv.addContact(
                                         parsedItems.contact.name,
@@ -937,7 +937,7 @@
                             <button
                                 v-if="!chatItem.is_outbound && !cv.isPaperMessageIngested(chatItem)"
                                 type="button"
-                                class="w-full py-2 bg-sem-success hover:bg-sem-success/80 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                class="w-full py-2 bg-sem-action-success hover:bg-sem-action-success-hover text-sem-action-success-text rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="cv.ingestPaperMessage(parsedItems.paperMessage, chatItem.lxmf_message.hash)"
                             >
                                 {{ $t("messages.paper_message_ingest") }}
@@ -963,7 +963,7 @@
                             </div>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-sem-info hover:bg-sem-info/80 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                class="w-full py-2 bg-sem-action-info hover:bg-sem-action-info-hover text-sem-action-info-text rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="cv.openMapShareFromParsed(parsedItems.mapLink.parsed)"
                             >
                                 {{ $t("messages.map_link_open") }}
@@ -1347,28 +1347,28 @@
                         <button
                             v-if="cv.canCancelOutboundSend(chatItem)"
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-warning/50 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-warning px-3 py-1.5 text-xs font-semibold text-sem-action-warning-text shadow-xs hover:bg-sem-action-warning-hover transition-colors"
                             @click.stop="cv.cancelSendingMessage(chatItem)"
                         >
                             {{ $t("messages.cancel_send") }}
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-accent px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-action-primary-hover transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-primary px-3 py-1.5 text-xs font-semibold text-sem-action-primary-text shadow-xs hover:bg-sem-action-primary-hover transition-colors"
                             @click.stop="cv.replyToMessage(chatItem)"
                         >
                             {{ $t("messages.reply") }}
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-danger px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-danger transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-danger px-3 py-1.5 text-xs font-semibold text-sem-action-danger-text shadow-xs hover:bg-sem-action-danger-hover transition-colors"
                             @click.stop="cv.deleteChatItem(chatItem)"
                         >
                             Delete
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-fg transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-sem-canvas shadow-xs hover:bg-sem-fg transition-colors"
                             @click.stop="cv.showRawMessage(chatItem)"
                         >
                             Raw LXM
