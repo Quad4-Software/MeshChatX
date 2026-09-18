@@ -70,7 +70,7 @@ def _png_pixels(data):
 def test_write_starter_contains_land_fill(tmp_path):
     """A z0 tile must contain Natural Earth land and coastline pixels.
 
-    Oracle: not just the graticule placeholder colors.
+    Reference: not just the graticule placeholder colors.
     """
     import sqlite3
 
@@ -156,7 +156,7 @@ def test_land_rings_failure_not_sticky(tmp_path, monkeypatch):
 
 
 def test_concurrent_ensure_starter_mbtiles_race(tmp_path):
-    """Oracle: parallel seeds must leave one valid SQLite MBTiles, not a torn file."""
+    """Reference: parallel seeds must leave one valid SQLite MBTiles, not a torn file."""
     import sqlite3
     import threading
 

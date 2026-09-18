@@ -8,7 +8,7 @@ import { detectLaunchEditor, envFlagEnabled, isVueDevToolsEnabled } from "../../
 const ROOT = resolve(import.meta.dirname, "../..");
 
 describe("vite-dx Vue DevTools gate", () => {
-    it("oracle: only vite serve enables DevTools by default", () => {
+    it("reference: only vite serve enables DevTools by default", () => {
         const cases = [
             { command: "serve", env: {}, expected: true },
             { command: "build", env: {}, expected: false },

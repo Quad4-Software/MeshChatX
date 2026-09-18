@@ -173,7 +173,7 @@ class _FakeMultipartReader:
 
 
 @pytest.mark.asyncio
-async def test_oracle_multipart_skips_non_file_fields():
+async def test_multipart_skips_non_file_fields():
     csrf = _FakeMultipartPart("csrf_token", filename=None, data=b"tok")
     audio = _FakeMultipartPart("file", filename="ring.wav", data=b"RIFF")
     reader = _FakeMultipartReader([csrf, audio])
@@ -183,7 +183,7 @@ async def test_oracle_multipart_skips_non_file_fields():
 
 
 @pytest.mark.asyncio
-async def test_oracle_multipart_missing_file_returns_none():
+async def test_multipart_missing_file_returns_none():
     reader = _FakeMultipartReader(
         [_FakeMultipartPart("csrf_token", filename=None, data=b"tok")],
     )

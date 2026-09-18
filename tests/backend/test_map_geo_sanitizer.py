@@ -33,7 +33,7 @@ def _kmz(files: dict[str, bytes]) -> bytes:
     return buf.getvalue()
 
 
-def test_oracle_remote_href_is_remote():
+def test_remote_href_is_remote():
     assert is_remote_href("https://evil.example/icon.png") is True
     assert is_remote_href("http://evil.example/x") is True
     assert is_remote_href("//cdn.example/x.png") is True
@@ -44,7 +44,7 @@ def test_oracle_remote_href_is_remote():
     assert is_remote_href(TINY_PNG_DATA) is False
 
 
-def test_oracle_data_image_allowlist():
+def test_data_image_allowlist():
     assert is_allowed_data_image_href(TINY_PNG_DATA) is True
     assert is_allowed_data_image_href("data:text/html;base64,PHNjcmlwdD4=") is False
     assert is_allowed_data_image_href("data:image/svg+xml;base64,PHN2Zz4=") is False

@@ -17,7 +17,7 @@ Applies when editing `meshchatx/**/*.py`.
 - Keep conversation list queries slim: truncate content, derive attachment flags in SQL, avoid shipping full `fields` blobs.
 - Identity restore validates size and empty payloads. Preserve existing identity metadata on re-import.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
-- RRC / LXMF / LXST changes: open the matching skill under `.agents/skills/` and run oracle-style tests when behaviour changes.
+- RRC / LXMF / LXST changes: open the matching skill under `.agents/skills/` and run reference-style tests when behaviour changes.
 - Local filesystem browse/upload/download/delete: follow `.agents/conventions/path-jail.md` and `.agents/skills/path-jail-local-fs/SKILL.md`.
 - File persistence: write via `atomic_write_bytes`/`atomic_write_text` or `json_store.save_json`; read state via `json_store.load_json` (default on corrupt/missing) or `load_json_required` (raise). Do not hand-roll mkstemp+os.replace or bare open+json.load.
 - Manager result envelopes use `backend/results.py` (`ok_result`, `err_result`, `err_result_from`); never return `str(exc)` from OSError to clients.

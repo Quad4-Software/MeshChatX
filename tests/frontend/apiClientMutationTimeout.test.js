@@ -15,7 +15,7 @@ describe("apiClient mutation timeout", () => {
     });
 
     it("rejects a stuck POST with TimeoutError without aborting the fetch", async () => {
-        // Oracle: a mutation fired just before the WebView freezes can sit
+        // Reference: a mutation fired just before the WebView freezes can sit
         // pending forever. The caller must be released, but the underlying
         // request is left alone because the server may still be processing it.
         const { setCsrfToken } = await import("../../meshchatx/src/frontend/js/csrfToken.js");

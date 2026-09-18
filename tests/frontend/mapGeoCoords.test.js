@@ -49,7 +49,7 @@ describe("mapGeoCoords", () => {
         expect(res.lon).toBeCloseTo(36.817223, 5);
     });
 
-    it("oracle: WGS84 format text round-trips through parse", () => {
+    it("reference: WGS84 format text round-trips through parse", () => {
         const lon = 5.892;
         const lat = 52.658;
         const formatted = formatCoordinate(lon, lat, "wgs84");
@@ -60,7 +60,7 @@ describe("mapGeoCoords", () => {
         expect(parsed.lon).toBeCloseTo(lon, 5);
     });
 
-    it("oracle: reject out-of-range WGS84", () => {
+    it("reference: reject out-of-range WGS84", () => {
         expect(parseCoordinateQuery("91, 0").ok).toBe(false);
         expect(parseCoordinateQuery("0, 181").ok).toBe(false);
         expect(parseCoordinateQuery("").error).toBe("empty");
@@ -85,7 +85,7 @@ describe("mapGeoCoords", () => {
         expect(res.error).toBe("parse_failed");
     });
 
-    it("oracle: looksLikeAdvancedCoordinate accept/reject matrix", () => {
+    it("reference: looksLikeAdvancedCoordinate accept/reject matrix", () => {
         const accept = [
             "6GCRPR78+CV",
             "PR78+CV",

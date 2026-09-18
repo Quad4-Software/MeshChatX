@@ -1,11 +1,11 @@
 ---
 name: test-oracles
-description: Property, fuzz, and security tests that accept or reject with an independent oracle. Use when adding Hypothesis tests or reviewing soft fuzz.
+description: Property, fuzz, and security tests that accept or reject with an independent reference. Use when adding Hypothesis tests or reviewing soft fuzz.
 ---
 
 # Skill: test-oracles
 
-Write property, fuzz, and security tests that decide accept or reject with an independent oracle. Never soft-fuzz that only checks nothing crashed.
+Write property, fuzz, and security tests that decide accept or reject with an independent reference. Never soft-fuzz that only checks nothing crashed.
 
 ## When to use
 
@@ -14,11 +14,11 @@ Write property, fuzz, and security tests that decide accept or reject with an in
 - Protocol decode/encode, parsers, normalizers
 - Reviewing tests that look like fuzz but assert nothing
 
-## What an oracle is
+## What an reference is
 
-An oracle predicts the correct outcome from the input alone (or from a simpler trusted model), then the test checks the code matches that prediction.
+An reference predicts the correct outcome from the input alone (or from a simpler trusted model), then the test checks the code matches that prediction.
 
-| Oracle type    | Example                                          |
+| Reference type    | Example                                          |
 | -------------- | ------------------------------------------------ |
 | Accept/reject  | Empty room name must raise ValueError            |
 | Origin parse   | `http://127.0.0.1:9337@example.com` is not local |
@@ -51,14 +51,14 @@ Do not ship tests that only do:
 - Room keys: `tests/backend/test_rrc_room_keys.py`
 - EECT shared asserts: `tests/backend/eect/asserts.py`
 - URL origin allowlists: `tests/electron/mainHelpers.test.js`, `android/app/src/test/java/com/meshchatx/RemoteBackendUrlTest.java`
-- XSS sanitizers: `tests/frontend/sanitizerXssOracle.test.js` (shared payload list against Markdown, Nomad, Micron, KML)
+- XSS sanitizers: `tests/frontend/sanitizerXss.test.js` (shared payload list against Markdown, Nomad, Micron, KML)
 - Mesh size caps: `tests/backend/test_announce_manager_extended.py`, `tests/backend/test_nomadnet_downloader.py`, `tests/backend/test_map_geo_validator.py`, `tests/backend/test_rrc_security.py`
 
 ## Commands
 
 ```bash
 uv run pytest tests/backend/test_rrc_membership_acls.py tests/backend/test_rrc_protocol_fuzz.py -q --tb=short
-pnpm exec vitest run tests/frontend/sanitizerXssOracle.test.js
+pnpm exec vitest run tests/frontend/sanitizerXss.test.js
 task test:eect
 ```
 

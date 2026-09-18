@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracles for conversation and announce list joins.
+"""References for conversation and announce list joins.
 
 Contact OR-joins must not multiply rows. Announce COUNT must equal the
 number of matching announce rows. Conversation list SQL must not GROUP BY

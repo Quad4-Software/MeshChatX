@@ -92,7 +92,7 @@ export function syncSubscribeRequiresResync(reply) {
 }
 
 /**
- * Pure oracle for transport mode selection.
+ * Pure reference for transport mode selection.
  * @param {{
  *   mode: string,
  *   clientSupportsWebTransport: boolean,

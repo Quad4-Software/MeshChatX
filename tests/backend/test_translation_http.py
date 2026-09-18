@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""HTTP oracles for local translation pack routes."""
+"""HTTP references for local translation pack routes."""
 
 from __future__ import annotations
 

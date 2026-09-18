@@ -16,7 +16,7 @@ import { getDrawFeatureMetadataPayload } from "@/js/mapExchange/metadataUtils.js
 const TINY_PNG =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
-describe("kmlSanitize oracle", () => {
+describe("kmlSanitize reference", () => {
     it("classifies remote hrefs as remote", () => {
         expect(isRemoteHref("https://evil.example/i.png")).toBe(true);
         expect(isRemoteHref("http://evil.example/x")).toBe(true);

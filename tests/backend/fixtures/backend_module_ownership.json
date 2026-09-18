@@ -25,7 +25,7 @@
             "primary_tests": [
                 "test_http_auth_security.py",
                 "test_app_security_features.py",
-                "test_sanitizer_auth_ws_oracles.py",
+                "test_sanitizer_auth_ws.py",
                 "test_access_attempts_*"
             ],
             "frontend_page": ["App.vue"]

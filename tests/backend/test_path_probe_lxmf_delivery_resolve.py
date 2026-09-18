@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracles for identity hash to lxmf.delivery resolution on path and ping APIs."""
+"""References for identity hash to lxmf.delivery resolution on path and ping APIs."""
 
 from __future__ import annotations
 

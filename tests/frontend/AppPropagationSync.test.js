@@ -235,7 +235,7 @@ describe("App propagation sync", () => {
     });
 
     it("still starts sync when request-path fails (stale CSRF / brief offline after background)", async () => {
-        // Oracle: request-path is best-effort priming. The /sync POST already
+        // Reference: request-path is best-effort priming. The /sync POST already
         // requests a path server-side. A CSRF or network failure on the POST
         // must not abort the user-initiated sync (common after a backgrounded tab).
         let syncCalled = false;
@@ -278,7 +278,7 @@ describe("App propagation sync", () => {
     });
 
     it("clears stuck userInitiatedPropagationSync when status returns idle after background", async () => {
-        // Oracle: after a backgrounded tab, chrome can still show a prior sync
+        // Reference: after a backgrounded tab, chrome can still show a prior sync
         // as running. A status poll that sees idle/complete must clear the flag
         // so the next Sync Messages click starts a new sync instead of stop-confirm.
         axiosMock.get.mockImplementation((url) => {

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Template-level oracles for CustomBotTemplate and icon appearance fields."""
+"""Template-level references for CustomBotTemplate and icon appearance fields."""
 
 from unittest.mock import MagicMock
 

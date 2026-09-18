@@ -5,7 +5,7 @@
 Spins up a TCPServerInterface peer and a TCPClientInterface peer on
 127.0.0.1, announces lxmf.delivery, finds a path, and delivers real
 LXMF messages across the link. Parent process can feed received
-payloads into MeshChatX on_lxmf_delivery for store/reject oracles.
+payloads into MeshChatX on_lxmf_delivery for store/reject references.
 
 Covers text, images, voice notes, file attachments, Sideband/bot
 commands, telemetry, icon appearance, and reactions.

@@ -512,7 +512,7 @@ def test_landlock_extra_read_root_allows_custom_ssl_cert_dir(tmp_path):
 
 @requires_landlock_integration
 def test_landlock_denies_ssl_cert_dir_without_extra_read_root(tmp_path):
-    """Regression oracle for the reverse: without the extra root, EACCES."""
+    """Regression reference for the reverse: without the extra root, EACCES."""
     tls_dir = Path(
         tempfile.mkdtemp(prefix="meshchat_ll_tls_", dir=os.path.expanduser("~")),
     )

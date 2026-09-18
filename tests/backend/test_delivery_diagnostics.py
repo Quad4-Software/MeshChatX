@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracles for delivery diagnostics snapshots and HTTP route."""
+"""References for delivery diagnostics snapshots and HTTP route."""
 
 from __future__ import annotations
 
