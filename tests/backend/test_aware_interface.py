@@ -40,11 +40,32 @@ def _load_module():
     return module
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def reticulum(tmp_path_factory):
     """Interface.__init__ needs a live Reticulum for ingress defaults."""
     config_dir = tmp_path_factory.mktemp("rns-aware")
-    return RNS.Reticulum(configdir=str(config_dir), loglevel=RNS.LOG_ERROR)
+    yield RNS.Reticulum(configdir=str(config_dir), loglevel=RNS.LOG_ERROR)
+    # Reset the RNS singleton so later tests can init their own Reticulum.
+    try:
+        RNS.Reticulum.exit_handler()
+    except Exception:
+        pass
+    if hasattr(RNS.Reticulum, "_Reticulum__instance"):
+        RNS.Reticulum._Reticulum__instance = None
+    for flag in (
+        "_Reticulum__exit_handler_ran",
+        "_Reticulum__interface_detach_ran",
+    ):
+        if hasattr(RNS.Reticulum, flag):
+            setattr(RNS.Reticulum, flag, False)
+    try:
+        from meshchatx.meshchat import ReticulumMeshChat
+
+        ReticulumMeshChat._reset_transport_globals_for_reload()
+    except Exception:
+        RNS.Transport._should_run = True
+        RNS.Transport.interfaces = []
+        RNS.Transport.destinations = []
 
 
 @pytest.fixture()
