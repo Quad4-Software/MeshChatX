@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracle: RNS log destination prefers rotating Python logging when a log dir exists."""
+"""Reference: RNS log destination prefers rotating Python logging when a log dir exists."""
 
 from __future__ import annotations
 

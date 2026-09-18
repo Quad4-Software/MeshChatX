@@ -295,7 +295,7 @@ describe("libs/datetime", () => {
         }
     });
 
-    it("oracle: formatDate matches dayjs for MeshChatX patterns", () => {
+    it("reference: formatDate matches dayjs for MeshChatX patterns", () => {
         const patterns = ["MMM D, h:mm A", "YYYY-MM-DD hh:mm A", "MMM D, HH:mm", "M", "D", "H", "a"];
         const stamps = [
             new Date(2020, 0, 1, 0, 0, 0),

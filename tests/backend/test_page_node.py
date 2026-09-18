@@ -789,7 +789,7 @@ class TestPageNodeEdgeCases:
         assert name == "passwd.mu"
         assert not os.path.exists(os.path.join(node_dir, "..", "etc"))
 
-    @pytest.mark.skipif(os.name == "nt", reason="symlink jail oracle is POSIX")
+    @pytest.mark.skipif(os.name == "nt", reason="symlink jail reference is POSIX")
     def test_file_symlink_out_is_not_readable_or_overwritten(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
         node.setup()
@@ -811,7 +811,7 @@ class TestPageNodeEdgeCases:
         responder = node._make_file_responder("escape.bin")
         assert responder("/file/escape.bin", None, None, None, None, None) is None
 
-    @pytest.mark.skipif(os.name == "nt", reason="symlink jail oracle is POSIX")
+    @pytest.mark.skipif(os.name == "nt", reason="symlink jail reference is POSIX")
     def test_page_symlink_out_is_not_readable_or_overwritten(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
         node.setup()

@@ -10,7 +10,7 @@ function readRepo(relPath) {
     return readFileSync(resolve(ROOT, relPath), "utf8");
 }
 
-describe("sidebar virtualization wiring oracle", () => {
+describe("sidebar virtualization wiring reference", () => {
     it("MessagesSidebar virtualizes conversations at MIN_VIRTUAL_SIDEBAR_ITEMS", () => {
         const src = readRepo("meshchatx/src/frontend/components/messages/MessagesSidebar.vue");
         expect(src).toContain("SidebarVirtualList");

@@ -12,7 +12,7 @@ import {
 } from "../../meshchatx/src/frontend/js/wsLiveSync.js";
 import { encodeWtJsonLine, feedWtJsonLines } from "../../meshchatx/src/frontend/js/wtJsonFraming.js";
 
-describe("wsLiveSync oracles", () => {
+describe("wsLiveSync references", () => {
     it("tracks max seq", () => {
         expect(nextLastSeqFromPayload({ seq: 3 }, 1)).toBe(3);
         expect(nextLastSeqFromPayload({ seq: 2 }, 5)).toBe(5);

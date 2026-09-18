@@ -29,7 +29,7 @@ Treat MeshChatX local API access (UI session, shared host, scripted client) as a
 - Adversarial traversal and absolute-path cases with bait files that must survive
 - Cross-identity bait directory in the same test
 - Symlink-out cases (POSIX) for list, read, write, delete
-- Oracle or Hypothesis: accept only when resolved path stays under the root
+- Reference or Hypothesis: accept only when resolved path stays under the root
 - Frontend mutators go through `window.api` (apiFetchGuard stays green)
 
 ## Central helpers (use these, do not re-implement)
@@ -46,4 +46,4 @@ All path-jail primitives live in `meshchatx/src/path_utils.py`:
 
 Full workflow: `.agents/skills/path-jail-local-fs/SKILL.md`.
 Reference implementation: `meshchatx/src/backend/rns_filesync_handler.py` (`_resolve_manager_path` and manager APIs).
-Oracle examples: `tests/backend/test_rns_filesync_security.py`, `tests/backend/test_path_jail_oracles.py`, `tests/backend/test_path_utils_oracles.py`.
+Reference examples: `tests/backend/test_rns_filesync_security.py`, `tests/backend/test_path_jail.py`, `tests/backend/test_path_utils_properties.py`.

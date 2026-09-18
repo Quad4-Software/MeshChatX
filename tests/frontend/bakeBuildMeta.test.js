@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: 0BSD */
 /**
- * Channel / commit bake oracles for scripts/bake_build_meta.js
+ * Channel / commit bake references for scripts/bake_build_meta.js
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { spawnSync } from "node:child_process";
@@ -37,7 +37,7 @@ function runBake(envOverrides) {
     return readBaked();
 }
 
-describe("bake_build_meta channel oracles", () => {
+describe("bake_build_meta channel references", () => {
     let previous = null;
 
     afterEach(() => {

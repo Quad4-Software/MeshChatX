@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracle: frozen desktop builds must ship RNS.vendor.umsgpack (issue 76)."""
+"""Reference: frozen desktop builds must ship RNS.vendor.umsgpack (issue 76)."""
 
 from __future__ import annotations
 

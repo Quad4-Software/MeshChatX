@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracles for websocket_runtime helpers (rate limit, origin policy, envelope, peek)."""
+"""References for websocket_runtime helpers (rate limit, origin policy, envelope, peek)."""
 
 from __future__ import annotations
 

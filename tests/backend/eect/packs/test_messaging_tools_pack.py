@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""MessagingToolsPack: sieve, forwarder, and blocklist accept/reject oracles."""
+"""MessagingToolsPack: sieve, forwarder, and blocklist accept/reject references."""
 
 from __future__ import annotations
 

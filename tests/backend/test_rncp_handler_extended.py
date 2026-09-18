@@ -419,7 +419,7 @@ _TRAVERSAL_PATHS = (
         st.text(min_size=0, max_size=200),
     ),
 )
-def test_fetch_request_path_oracle(rncp_handler, tmp_path, data):
+def test_fetch_request_path(rncp_handler, tmp_path, data):
     """Fetch never serves outside the jail. Success only for files inside it."""
     jail = tmp_path / "share"
     jail.mkdir(exist_ok=True)
@@ -432,7 +432,7 @@ def test_fetch_request_path_oracle(rncp_handler, tmp_path, data):
     rncp_handler.fetch_jail = str(jail)
     _CapturingResource.served_path = None
 
-    link = _FakeLink(link_id=b"link-oracle")
+    link = _FakeLink(link_id=b"link-ref")
     with (
         patch("meshchatx.src.backend.rncp_handler.RNS.Transport") as transport,
         patch(
@@ -479,7 +479,7 @@ def test_fetch_request_path_oracle(rncp_handler, tmp_path, data):
         st.text(min_size=0, max_size=200),
     ),
 )
-def test_resolve_send_path_oracle(rncp_handler, file_path):
+def test_resolve_send_path(rncp_handler, file_path):
     """Resolved send paths stay under storage or home and never expose identity keys."""
     storage = os.path.realpath(rncp_handler.storage_dir)
     home = os.path.expanduser("~")

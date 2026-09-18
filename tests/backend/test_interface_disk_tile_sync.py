@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracle: Interfaces tiles must include every on-disk [[section]]."""
+"""Reference: Interfaces tiles must include every on-disk [[section]]."""
 
 from __future__ import annotations
 
@@ -106,15 +106,15 @@ def _write_disk_config(app_instance, text=DOTTED_CONFIG):
     return path
 
 
-def _oracle_disk_names(text):
+def _expected_disk_names(text):
     return {iface["name"] for iface in InterfaceConfigParser.parse(text)}
 
 
 @pytest.mark.asyncio
 async def test_get_interfaces_includes_disk_only_dotted_name(app):
     _write_disk_config(app)
-    oracle_names = _oracle_disk_names(DOTTED_CONFIG)
-    assert "artyom.ddns.net" in oracle_names
+    expected_names = _expected_disk_names(DOTTED_CONFIG)
+    assert "artyom.ddns.net" in expected_names
     assert "artyom.ddns.net" not in app.reticulum.config["interfaces"]
 
     handler = _find_handler(app, "GET", "/api/v1/reticulum/interfaces")
@@ -122,7 +122,7 @@ async def test_get_interfaces_includes_disk_only_dotted_name(app):
     assert response.status == 200
     body = json.loads(response.body)
     listed = set(body["interfaces"].keys())
-    assert oracle_names <= listed
+    assert expected_names <= listed
     assert body["interfaces"]["artyom.ddns.net"]["type"] == "TCPClientInterface"
     assert body["interfaces"]["artyom.ddns.net"]["target_host"] == "10.100.11.12"
 
@@ -150,7 +150,7 @@ async def test_delete_removes_disk_only_dotted_name(app):
     assert response.status == 200, json.loads(response.body)
     assert "artyom.ddns.net" not in app.reticulum.config["interfaces"]
 
-    remaining_names = _oracle_disk_names(open(path, encoding="utf-8").read())
+    remaining_names = _expected_disk_names(open(path, encoding="utf-8").read())
     assert "artyom.ddns.net" not in remaining_names
     assert "Default Interface" in remaining_names
     assert "Catz-Node (TCP)" in remaining_names
@@ -168,7 +168,7 @@ async def test_raw_put_replaces_live_interfaces_from_file(app):
     response = await handler(Request())
     assert response.status == 200, json.loads(response.body)
     live_names = set(app.reticulum.config["interfaces"].keys())
-    assert live_names == _oracle_disk_names(DOTTED_CONFIG)
+    assert live_names == _expected_disk_names(DOTTED_CONFIG)
 
 
 @pytest.mark.asyncio

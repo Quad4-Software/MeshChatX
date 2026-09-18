@@ -62,7 +62,7 @@ describe("App websocket reconnect shell resync", () => {
     });
 
     it("refreshes CSRF and shell status on reconnect after background stall recovery", async () => {
-        // Oracle: forceReconnect after a backgrounded tab must still run shell
+        // Reference: forceReconnect after a backgrounded tab must still run shell
         // resync (isReconnect true) including CSRF refresh so Sync Messages POSTs work.
         const emitSpy = vi.spyOn(GlobalEmitter, "emit");
         const { banner, ctx } = makeBanner();
