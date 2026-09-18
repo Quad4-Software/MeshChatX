@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from aiohttp import web
 
-from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
@@ -38,10 +37,6 @@ def register_config_routes(routes, app):
         try:
             data = await read_json_limited(request)
             await app.update_config(data)
-            try:
-                AsyncUtils.run_async(app.send_config_to_websocket_clients())
-            except Exception as e:
-                print(f"Failed to broadcast config update: {e}")
 
             return web.json_response(
                 {

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 
 import LXMF
 import RNS
@@ -141,6 +142,8 @@ async def handle_lxm_ingest_uri(app, client, data):
             try:
                 lat = float(q.get("lat", "") or "")
                 lon = float(q.get("lon", "") or "")
+                if not (math.isfinite(lat) and math.isfinite(lon)):
+                    raise ValueError("non-finite coordinate")
             except (TypeError, ValueError):
                 AsyncUtils.run_async(
                     client.send_str(
@@ -291,13 +294,12 @@ async def handle_lxm_ingest_uri(app, client, data):
             return
 
         # ensure uri starts with lxmf:// or lxm://
-        if not uri.lower().startswith(
+        if not uri_raw.lower().startswith(
             LXMF.LXMessage.URI_SCHEMA + "://",
-        ) and not uri.lower().startswith("lxm://"):
-            if ":" in uri and "//" not in uri:
-                uri = LXMF.LXMessage.URI_SCHEMA + "://" + uri
-            else:
-                uri = LXMF.LXMessage.URI_SCHEMA + "://" + uri
+        ) and not uri_raw.lower().startswith("lxm://"):
+            uri = LXMF.LXMessage.URI_SCHEMA + "://" + uri_raw
+        else:
+            uri = uri_raw
 
         ingest_result = app.message_router.ingest_lxm_uri(
             uri,

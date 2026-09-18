@@ -175,7 +175,7 @@ async def test_teardown_identity(mock_rns, temp_dir):
 
         app.teardown_identity()
 
-        assert app.running is False
+        assert app.current_context is None
         assert mock_rns["Transport"].deregister_announce_handler.called
         # IdentityContext.teardown calls database.durable_shutdown()
         assert mock_db_instance.durable_shutdown.called

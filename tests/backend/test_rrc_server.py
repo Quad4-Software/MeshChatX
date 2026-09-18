@@ -403,6 +403,7 @@ def _loopback_client_hub(tmp_path):
     hub = manager.add_hub(server.dest_hash)
     link = _LoopbackEndpoint(hub, server)
     server._attach_loopback(link, manager.identity)
+    hub._hub_identity_hash = server.identity.hash
     hub.link = link
     hub._send_hello(link)
     assert hub.welcomed is True

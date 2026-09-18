@@ -29,6 +29,7 @@ from meshchatx.src.backend.http.errors import (
     http_not_found,
     http_payload_too_large,
     http_unavailable,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
@@ -49,6 +50,7 @@ from meshchatx.src.backend.lxmf_utils import (
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
+    lxmf_row_arrival_timestamp,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.meshchat_utils import (
@@ -71,6 +73,82 @@ logger = logging.getLogger(__name__)
 LXMF_ATTACHMENT_CACHE_HEADERS = {
     "Cache-Control": "private, max-age=31536000, immutable",
 }
+
+
+def _lxmf_fields_to_send_parts(fields):
+    """Build LXMF attachment parts from a fields dict.
+
+    Returns (image_field, audio_field, file_attachments_field,
+    telemetry_data, commands). Raises ValueError on malformed input.
+    """
+    image_field = None
+    audio_field = None
+    file_attachments_field = None
+    telemetry_data = None
+    commands = None
+
+    try:
+        if "image" in fields and isinstance(fields.get("image"), dict):
+            image_bytes = base64.b64decode(fields["image"]["image_bytes"])
+            detected = detect_image_format_from_magic(image_bytes)
+            if detected is None or detected in {"webm", "tgs"}:
+                raise ValueError("Invalid image attachment")
+            image_type = "jpg" if detected == "jpeg" else detected
+            image_field = LxmfImageField(image_type, image_bytes)
+
+        if "audio" in fields and isinstance(fields.get("audio"), dict):
+            audio_mode = fields["audio"]["audio_mode"]
+            audio_bytes = base64.b64decode(fields["audio"]["audio_bytes"])
+            audio_field = LxmfAudioField(audio_mode, audio_bytes)
+
+        if "file_attachments" in fields and isinstance(
+            fields.get("file_attachments"),
+            list,
+        ):
+            file_attachments = []
+            for file_attachment in fields["file_attachments"]:
+                if not isinstance(file_attachment, dict):
+                    continue
+                file_name = file_attachment["file_name"]
+                file_bytes = base64.b64decode(file_attachment["file_bytes"])
+                file_attachments.append(
+                    LxmfFileAttachment(file_name, file_bytes),
+                )
+
+            file_attachments_field = LxmfFileAttachmentsField(file_attachments)
+
+        if "telemetry" in fields:
+            telemetry_val = fields["telemetry"]
+            if isinstance(telemetry_val, dict):
+                telemetry_data = Telemeter.pack(location=telemetry_val)
+            elif isinstance(telemetry_val, str):
+                telemetry_data = base64.b64decode(telemetry_val)
+
+        if "commands" in fields and isinstance(fields.get("commands"), list):
+            commands = []
+            for cmd in fields["commands"]:
+                new_cmd = {}
+                if not isinstance(cmd, dict):
+                    continue
+                for k, v in cmd.items():
+                    try:
+                        if k.startswith("0x"):
+                            new_cmd[int(k, 16)] = v
+                        else:
+                            new_cmd[int(k)] = v
+                    except (ValueError, TypeError):
+                        new_cmd[k] = v
+                commands.append(new_cmd)
+    except (KeyError, TypeError, ValueError, binascii.Error) as e:
+        raise ValueError("Invalid lxmf_message.fields") from e
+
+    return (
+        image_field,
+        audio_field,
+        file_attachments_field,
+        telemetry_data,
+        commands,
+    )
 
 
 def register_lxmf_routes(routes, app):
@@ -513,65 +591,15 @@ def register_lxmf_routes(routes, app):
             app_extensions_payload if isinstance(app_extensions_payload, dict) else None
         )
 
-        image_field = None
-        audio_field = None
-        file_attachments_field = None
-        telemetry_data = None
-        commands = None
-
         try:
-            if "image" in fields and isinstance(fields.get("image"), dict):
-                image_bytes = base64.b64decode(fields["image"]["image_bytes"])
-                detected = detect_image_format_from_magic(image_bytes)
-                if detected is None or detected in {"webm", "tgs"}:
-                    return http_bad_request("Invalid image attachment")
-                image_type = "jpg" if detected == "jpeg" else detected
-                image_field = LxmfImageField(image_type, image_bytes)
-
-            if "audio" in fields and isinstance(fields.get("audio"), dict):
-                audio_mode = fields["audio"]["audio_mode"]
-                audio_bytes = base64.b64decode(fields["audio"]["audio_bytes"])
-                audio_field = LxmfAudioField(audio_mode, audio_bytes)
-
-            if "file_attachments" in fields and isinstance(
-                fields.get("file_attachments"),
-                list,
-            ):
-                file_attachments = []
-                for file_attachment in fields["file_attachments"]:
-                    if not isinstance(file_attachment, dict):
-                        continue
-                    file_name = file_attachment["file_name"]
-                    file_bytes = base64.b64decode(file_attachment["file_bytes"])
-                    file_attachments.append(
-                        LxmfFileAttachment(file_name, file_bytes),
-                    )
-
-                file_attachments_field = LxmfFileAttachmentsField(file_attachments)
-
-            if "telemetry" in fields:
-                telemetry_val = fields["telemetry"]
-                if isinstance(telemetry_val, dict):
-                    telemetry_data = Telemeter.pack(location=telemetry_val)
-                elif isinstance(telemetry_val, str):
-                    telemetry_data = base64.b64decode(telemetry_val)
-
-            if "commands" in fields and isinstance(fields.get("commands"), list):
-                commands = []
-                for cmd in fields["commands"]:
-                    new_cmd = {}
-                    if not isinstance(cmd, dict):
-                        continue
-                    for k, v in cmd.items():
-                        try:
-                            if k.startswith("0x"):
-                                new_cmd[int(k, 16)] = v
-                            else:
-                                new_cmd[int(k)] = v
-                        except (ValueError, TypeError):
-                            new_cmd[k] = v
-                    commands.append(new_cmd)
-        except (KeyError, TypeError, ValueError, binascii.Error):
+            (
+                image_field,
+                audio_field,
+                file_attachments_field,
+                telemetry_data,
+                commands,
+            ) = _lxmf_fields_to_send_parts(fields)
+        except ValueError:
             return http_bad_request("Invalid lxmf_message.fields")
 
         reply_to_hash = None
@@ -751,6 +779,92 @@ def register_lxmf_routes(routes, app):
         return web.json_response(
             {
                 "message": "ok",
+            },
+        )
+
+    # resend a failed or cancelled outbound lxmf message
+    @routes.post(API_V1_PREFIX + "/lxmf-messages/{hash}/resend")
+    async def lxmf_messages_resend(request):
+        from meshchatx.src.backend.demo_mode import demo_mode_block_response
+
+        blocked = demo_mode_block_response(app)
+        if blocked is not None:
+            return blocked
+
+        message_hash = request.match_info.get("hash", None)
+        if not message_hash:
+            return http_error(422, "hash is required")
+
+        db_lxmf_message = app.database.messages.get_lxmf_message_by_hash(
+            message_hash,
+        )
+        if db_lxmf_message is None:
+            return http_not_found("Message not found")
+        if db_lxmf_message["is_incoming"]:
+            return http_bad_request("Cannot resend an incoming message")
+        if db_lxmf_message["state"] not in ("failed", "cancelled"):
+            return http_error(409, "Only failed or cancelled messages can be resent")
+
+        from meshchatx.src.backend.lxmf_utils import parse_stored_lxmf_fields
+
+        raw_fields = parse_stored_lxmf_fields(db_lxmf_message["fields"])
+        fields = dict(raw_fields) if isinstance(raw_fields, dict) else {}
+        app_extensions_payload = fields.pop("app_extensions", None)
+        validated_app_extensions = (
+            app_extensions_payload if isinstance(app_extensions_payload, dict) else None
+        )
+
+        try:
+            (
+                image_field,
+                audio_field,
+                file_attachments_field,
+                telemetry_data,
+                commands,
+            ) = _lxmf_fields_to_send_parts(fields)
+        except ValueError:
+            return http_error(500, "Stored message attachments are invalid")
+
+        destination_hash = db_lxmf_message["destination_hash"]
+        try:
+            lxmf_message = await app.send_message(
+                destination_hash=destination_hash,
+                content=db_lxmf_message["content"] or "",
+                image_field=image_field,
+                audio_field=audio_field,
+                file_attachments_field=file_attachments_field,
+                telemetry_data=telemetry_data,
+                commands=commands,
+                delivery_method=db_lxmf_message["method"],
+                reply_to_hash=db_lxmf_message["reply_to_hash"],
+                app_extensions=validated_app_extensions,
+            )
+        except Exception as e:
+            internal = str(e).strip()
+            status = 503
+            if isinstance(e, (ValueError, LookupError)):
+                status = 400
+                detail = internal or "Invalid request"
+            elif isinstance(e, TimeoutError):
+                detail = "Sending timed out"
+            else:
+                detail = "Sending failed"
+            return web.json_response({"message": detail}, status=status)
+
+        is_local_self = app._is_self_lxmf_destination(destination_hash)
+        app.database.messages.delete_lxmf_message_by_hash(message_hash)
+        return web.json_response(
+            {
+                "lxmf_message": convert_lxmf_message_to_dict(
+                    lxmf_message,
+                    include_attachments=False,
+                    reticulum=app.reticulum,
+                    message_router=app.current_context.message_router
+                    if app.current_context
+                    else None,
+                    state_override="delivered" if is_local_self else None,
+                    method_override="local" if is_local_self else None,
+                ),
             },
         )
 
@@ -1128,7 +1242,7 @@ def register_lxmf_routes(routes, app):
                 if is_unread and filter_unread:
                     if app.database.messages.notification_viewed_covers(
                         viewed_map.get(other_user_hash),
-                        row["timestamp"],
+                        lxmf_row_arrival_timestamp(row) or row["timestamp"],
                     ):
                         is_unread = False
                         if filter_unread:
@@ -1211,7 +1325,9 @@ def register_lxmf_routes(routes, app):
 
     @routes.patch(API_V1_PREFIX + "/lxmf/folders/{id}")
     async def lxmf_folders_patch(request):
-        folder_id = int(request.match_info["id"])
+        folder_id = parse_int_param(request.match_info["id"])
+        if folder_id is None:
+            return http_bad_request("invalid folder id")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
@@ -1224,7 +1340,9 @@ def register_lxmf_routes(routes, app):
 
     @routes.delete(API_V1_PREFIX + "/lxmf/folders/{id}")
     async def lxmf_folders_delete(request):
-        folder_id = int(request.match_info["id"])
+        folder_id = parse_int_param(request.match_info["id"])
+        if folder_id is None:
+            return http_bad_request("invalid folder id")
         app.database.messages.delete_folder(folder_id)
         return web.json_response({"message": "Folder deleted"})
 

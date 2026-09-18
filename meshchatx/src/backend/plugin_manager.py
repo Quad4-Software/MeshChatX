@@ -1396,18 +1396,18 @@ class PluginManager:
             raise PermissionError("plugin is disabled")
         self._require_untampered_backend(record)
         args = args or {}
+        if method == "callManager":
+            capability = args.get("capability")
+            if not isinstance(capability, str) or not capability:
+                raise ValueError("capability is required")
+            return self.call_manager(plugin_id, capability, args.get("args") or {})
+        if method == "readPaths":
+            return self.call_manager(plugin_id, "destinationPath.read", args)
+        backend = record.manifest.get("backend")
+        if not backend:
+            raise ValueError(f"unknown method: {method}")
+        backend_type = self._backend_type(record)
         try:
-            if method == "callManager":
-                capability = args.get("capability")
-                if not isinstance(capability, str) or not capability:
-                    raise ValueError("capability is required")
-                return self.call_manager(plugin_id, capability, args.get("args") or {})
-            if method == "readPaths":
-                return self.call_manager(plugin_id, "destinationPath.read", args)
-            backend = record.manifest.get("backend")
-            if not backend:
-                raise ValueError(f"unknown method: {method}")
-            backend_type = self._backend_type(record)
             if backend_type == "python":
                 return self._python_runtime.invoke(
                     record.id,
@@ -1632,6 +1632,20 @@ class PluginManager:
             if record.enabled and self._hook_allowed(record, "announce.received"):
                 self.dispatch_hook(record.id, "announce.received", payload)
 
+    def restore_enabled_hooks(self) -> None:
+        """Re-register shared hooks for plugins enabled across restarts.
+
+        _load_installed_plugins restores enabled state from disk but does
+        not run the enable() path, so announce handlers must be attached
+        again once the app and RNS.Transport are up.
+        """
+        for record in list(self._plugins.values()):
+            if record.enabled:
+                try:
+                    self._register_plugin_hooks(record)
+                except Exception as exc:
+                    print(f"Failed to restore hooks for plugin {record.id}: {exc}")
+
     def _register_plugin_hooks(self, record: PluginRecord) -> None:
         if not self.app:
             return
@@ -1663,7 +1677,7 @@ class PluginManager:
         if not self.app:
             return
         any_enabled_hooks = any(
-            record.enabled
+            p.enabled
             and "announce.received"
             in ((p.manifest.get("permissions") or {}).get("hooks") or [])
             for p in self._plugins.values()

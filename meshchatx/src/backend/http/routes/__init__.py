@@ -20,6 +20,7 @@ from meshchatx.src.backend.http.routes.filesync import register_filesync_routes
 from meshchatx.src.backend.http.routes.gifs import register_gifs_routes
 from meshchatx.src.backend.http.routes.identities import register_identities_routes
 from meshchatx.src.backend.http.routes.interfaces import register_interfaces_routes
+from meshchatx.src.backend.http.routes.locallink import register_locallink_routes
 from meshchatx.src.backend.http.routes.lxmf import register_lxmf_routes
 from meshchatx.src.backend.http.routes.maintenance import register_maintenance_routes
 from meshchatx.src.backend.http.routes.map import register_map_routes
@@ -84,6 +85,7 @@ _REGISTER_ORDER = (
     register_blocklist_routes,
     register_spam_routes,
     register_map_routes,
+    register_locallink_routes,
     register_stickers_routes,
     register_gifs_routes,
     register_translation_routes,

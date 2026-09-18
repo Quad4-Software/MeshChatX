@@ -12,6 +12,7 @@ from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_not_found,
     http_payload_too_large,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -29,8 +30,10 @@ def register_debug_routes(routes, app):
         level = request.query.get("level")
         module = request.query.get("module")
         is_anomaly = parse_bool_query_param(request.query.get("is_anomaly"))
-        limit = int(request.query.get("limit", 100))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 100, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request("limit and offset must be non-negative integers")
 
         logs = memory_log_handler.get_logs(
             limit=limit,
@@ -93,8 +96,10 @@ def register_debug_routes(routes, app):
     async def get_access_attempts(request):
         search = request.query.get("search")
         outcome = request.query.get("outcome") or None
-        limit = int(request.query.get("limit", 100))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 100, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request("limit and offset must be non-negative integers")
         if not app.database:
             return web.json_response(
                 {"attempts": [], "total": 0, "limit": limit, "offset": offset},
@@ -151,7 +156,9 @@ def register_debug_routes(routes, app):
     async def get_heap_analysis(request):
         if app._mem_diag is None or not app._mem_diag.enabled:
             return http_bad_request("Memory diagnostics not enabled")
-        top_n = int(request.query.get("top_n", 40))
+        top_n = parse_int_param(request.query.get("top_n"), 40, minimum=1)
+        if top_n is None:
+            return http_bad_request("top_n must be a positive integer")
         by_type = await asyncio.to_thread(app._mem_diag.heap_by_type, top_n=top_n)
         by_cat = await asyncio.to_thread(app._mem_diag.heap_by_category)
         acc = await asyncio.to_thread(app._mem_diag.accumulating_types)
@@ -224,7 +231,9 @@ def register_debug_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/bug-reports/issues")
     async def list_bug_issues(request):
         manager = _bug_manager()
-        limit = int(request.query.get("limit", 50))
+        limit = parse_int_param(request.query.get("limit"), 50, minimum=0)
+        if limit is None:
+            return http_bad_request("limit must be a non-negative integer")
         status = request.query.get("status") or None
         return web.json_response(manager.list_issues(limit=limit, status=status))
 

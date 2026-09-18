@@ -21,6 +21,7 @@ from meshchatx.src.backend.http.errors import (
     http_not_found,
     http_payload_too_large,
     http_unavailable,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
@@ -315,6 +316,8 @@ def register_telephone_routes(routes, app):
     # answer incoming telephone call
     @routes.post(API_V1_PREFIX + "/telephone/answer")
     async def telephone_answer(request):
+        if app.telephone_manager.telephone is None:
+            return http_bad_request("Telephone is not enabled")
         # get incoming caller identity
         active_call = app.telephone_manager.telephone.active_call
         if not active_call:
@@ -359,6 +362,8 @@ def register_telephone_routes(routes, app):
     # send active call to voicemail
     @routes.post(API_V1_PREFIX + "/telephone/send-to-voicemail")
     async def telephone_send_to_voicemail(request):
+        if app.telephone_manager.telephone is None:
+            return http_bad_request("Telephone is not enabled")
         active_call = app.telephone_manager.telephone.active_call
         if not active_call:
             return http_not_found("No active call")
@@ -487,8 +492,12 @@ def register_telephone_routes(routes, app):
     # get call history
     @routes.get(API_V1_PREFIX + "/telephone/history")
     async def telephone_history(request):
-        limit = int(request.query.get("limit", 10))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 10, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request(
+                "limit and offset must be non-negative integers",
+            )
         search = request.query.get("search", None)
         history = app.database.telephone.get_call_history(
             search=search,
@@ -736,8 +745,12 @@ def register_telephone_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/telephone/voicemails")
     async def telephone_voicemails(request):
         search = request.query.get("search")
-        limit = int(request.query.get("limit", 50))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 50, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request(
+                "limit and offset must be non-negative integers",
+            )
         voicemails_rows = app.database.voicemails.get_voicemails(
             search=search,
             limit=limit,
@@ -852,8 +865,12 @@ def register_telephone_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/telephone/recordings")
     async def telephone_recordings(request):
         search = request.query.get("search", None)
-        limit = int(request.query.get("limit", 10))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 10, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request(
+                "limit and offset must be non-negative integers",
+            )
         recordings_rows = app.database.telephone.get_call_recordings(
             search=search,
             limit=limit,
@@ -1082,7 +1099,9 @@ def register_telephone_routes(routes, app):
 
     @routes.get(API_V1_PREFIX + "/telephone/ringtones/{id}/audio")
     async def telephone_ringtone_audio(request):
-        ringtone_id = int(request.match_info["id"])
+        ringtone_id = parse_int_param(request.match_info["id"])
+        if ringtone_id is None:
+            return http_bad_request("invalid ringtone id")
         ringtone = app.database.ringtones.get_by_id(ringtone_id)
         if not ringtone:
             return http_not_found("Ringtone not found")
@@ -1165,7 +1184,9 @@ def register_telephone_routes(routes, app):
     @routes.patch(API_V1_PREFIX + "/telephone/ringtones/{id}")
     async def telephone_ringtone_patch(request):
         try:
-            ringtone_id = int(request.match_info["id"])
+            ringtone_id = parse_int_param(request.match_info["id"])
+            if ringtone_id is None:
+                return http_bad_request("invalid ringtone id")
             data = await read_json_limited(request)
 
             display_name = data.get("display_name")
@@ -1186,7 +1207,9 @@ def register_telephone_routes(routes, app):
     @routes.delete(API_V1_PREFIX + "/telephone/ringtones/{id}")
     async def telephone_ringtone_delete(request):
         try:
-            ringtone_id = int(request.match_info["id"])
+            ringtone_id = parse_int_param(request.match_info["id"])
+            if ringtone_id is None:
+                return http_bad_request("invalid ringtone id")
             ringtone = app.database.ringtones.get_by_id(ringtone_id)
             if ringtone:
                 app.ringtone_manager.remove_ringtone(ringtone["storage_filename"])
@@ -1258,7 +1281,9 @@ def register_telephone_routes(routes, app):
 
     @routes.get(API_V1_PREFIX + "/notification-sounds/{id}/audio")
     async def notification_sound_audio(request):
-        sound_id = int(request.match_info["id"])
+        sound_id = parse_int_param(request.match_info["id"])
+        if sound_id is None:
+            return http_bad_request("invalid sound id")
         sound = app.database.notification_sounds.get_by_id(sound_id)
         if not sound:
             return web.Response(status=404)
@@ -1339,7 +1364,9 @@ def register_telephone_routes(routes, app):
     @routes.patch(API_V1_PREFIX + "/notification-sounds/{id}")
     async def notification_sound_patch(request):
         try:
-            sound_id = int(request.match_info["id"])
+            sound_id = parse_int_param(request.match_info["id"])
+            if sound_id is None:
+                return http_bad_request("invalid sound id")
             data = await read_json_limited(request)
 
             display_name = data.get("display_name")
@@ -1360,7 +1387,9 @@ def register_telephone_routes(routes, app):
     @routes.delete(API_V1_PREFIX + "/notification-sounds/{id}")
     async def notification_sound_delete(request):
         try:
-            sound_id = int(request.match_info["id"])
+            sound_id = parse_int_param(request.match_info["id"])
+            if sound_id is None:
+                return http_bad_request("invalid sound id")
             sound = app.database.notification_sounds.get_by_id(sound_id)
             if sound:
                 if app.notification_sound_manager:

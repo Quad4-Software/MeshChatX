@@ -386,6 +386,7 @@ class VoicemailManager:
                 if self.is_recording:
                     self.stop_recording()
             finally:
+                self.telephone_manager.is_voicemail_session_active = False
                 with contextlib.suppress(Exception):
                     if not prev_receive_muted:
                         self.telephone_manager.unmute_receive()
