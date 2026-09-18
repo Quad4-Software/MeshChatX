@@ -136,6 +136,19 @@ def _install_android_rnode_support(activity=None):
         print(f"meshchat_wrapper: Android RNode support skipped: {exc}")
 
 
+def _install_android_locallink_support(activity=None):
+    try:
+        from meshchatx.src.backend.android_locallink import install_android_locallink
+
+        ok = install_android_locallink(activity)
+        if ok:
+            print("meshchat_wrapper: Android local-link support ready")
+        else:
+            print("meshchat_wrapper: Android local-link support not fully configured")
+    except Exception as exc:
+        print(f"meshchat_wrapper: Android local-link support skipped: {exc}")
+
+
 def _probe_local_status_payload(port, timeout=1.5):
     import http.client
     import json
@@ -204,6 +217,12 @@ def _wait_for_own_backend_or_free_port(
 
 def start_server(port=8000, app_files_dir=None, activity=None):
     global _server_loop_active
+    # Rebind the Activity into the Java bridges before any early return.
+    # On Activity recreation both paths below return without reaching the
+    # install calls, which would leave usb4a, org.able.BLE, LocalLink, and
+    # the lazy NFC/Aware bridges bound to a destroyed Activity.
+    _install_android_rnode_support(activity)
+    _install_android_locallink_support(activity)
     with _server_loop_lock:
         if _server_loop_active:
             print("meshchat_wrapper: start_server ignored (server loop already active)")
@@ -276,7 +295,6 @@ def start_server(port=8000, app_files_dir=None, activity=None):
                 print(f"meshchat_wrapper: Codec2/pycodec2 unavailable: {err}")
         except Exception as codec2_exc:
             print(f"meshchat_wrapper: Codec2 preload skipped: {codec2_exc}")
-        _install_android_rnode_support(activity)
         from meshchatx.meshchat import ReticulumMeshChat, main
 
         try:

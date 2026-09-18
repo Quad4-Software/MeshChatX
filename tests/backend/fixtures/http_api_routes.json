@@ -513,6 +513,74 @@
             "path": "/api/v1/licenses"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/locallink/aware/start"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/locallink/aware/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/aware/stop"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/locallink/capabilities"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/hotspot/start"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/locallink/hotspot/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/hotspot/stop"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/nfc/clear"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/nfc/read/start"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/nfc/read/stop"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/nfc/share"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/locallink/nfc/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/p2p/start"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/locallink/p2p/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/p2p/stop"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/wifi/join"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/locallink/wifi/leave"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/lxmf-messages/attachment/{message_hash}/{attachment_type}"
         },
@@ -539,6 +607,10 @@
         {
             "method": "POST",
             "path": "/api/v1/lxmf-messages/{hash}/cancel"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf-messages/{hash}/resend"
         },
         {
             "method": "POST",

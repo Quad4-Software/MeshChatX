@@ -12,8 +12,9 @@ The **Tools** page groups mesh diagnostics and helper apps. Each tool opens its 
 | RNPath-trace       | Trace hops toward a destination                    |
 | RNStatus           | Read node status information                       |
 | Network visualiser | Graph view of topology (also in main navigation)   |
+| Nearby             | Link devices over local transports (Android)       |
 
-Use these when messages or pages fail despite interfaces showing as enabled.
+Use these when messages or pages fail despite interfaces showing as enabled. See [Nearby transports](platform-guides/nearby-transports.md) for the hotspot, WiFi Direct, WiFi Aware, and NFC flows.
 
 ## File transfer and shell
 

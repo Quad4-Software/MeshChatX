@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: 0BSD -->
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/nfc_share_service_description"
+    android:requireDeviceUnlock="false">
+    <aid-group
+        android:description="@string/nfc_share_aid_description"
+        android:category="other">
+        <aid-filter android:name="F04D43585331" />
+    </aid-group>
+</host-apdu-service>

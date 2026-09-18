@@ -36,6 +36,8 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
+import android.webkit.WebBackForwardList;
+import android.webkit.WebHistoryItem;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageView;
@@ -92,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int WEB_MEDIA_PERMISSION_REQUEST_CODE = 1003;
     private static final int RNODE_BLUETOOTH_PERMISSION_REQUEST_CODE = 1004;
     private static final int WEBVIEW_GEOLOCATION_PERMISSION_REQUEST_CODE = 1006;
+    private static final int NEARBY_WIFI_PERMISSION_REQUEST_CODE = 1007;
     private static final String PREFS_NAME = "meshchatx";
     private static final String PREF_BATTERY_OPT_REQUESTED = "battery_opt_requested";
     private static final int MAX_CONNECTION_ATTEMPTS = 120;
@@ -130,6 +133,23 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
         return RemoteBackendUrl.isAllowedShellNavigation(uri.toString(), resolveBackendUrl());
+    }
+
+    private boolean canGoBackWithinApp() {
+        if (webView == null || !webView.canGoBack()) {
+            return false;
+        }
+        // about:blank sits at the bottom of the WebView history, so an
+        // unguarded goBack can strand the user on a blank page. Only go back
+        // when the previous entry is a backend-origin page.
+        WebBackForwardList history = webView.copyBackForwardList();
+        int index = history.getCurrentIndex();
+        if (index <= 0) {
+            return false;
+        }
+        WebHistoryItem previous = history.getItemAtIndex(index - 1);
+        return previous != null
+            && RemoteBackendUrl.matchesBackend(previous.getUrl(), resolveBackendUrl());
     }
 
     private void openExternalBrowserUri(Uri uri) {
@@ -564,7 +584,7 @@ public class MainActivity extends AppCompatActivity {
             new OnBackPressedCallback(true) {
                 @Override
                 public void handleOnBackPressed() {
-                    if (webView != null && webView.canGoBack()) {
+                    if (canGoBackWithinApp()) {
                         webView.goBack();
                     } else {
                         setEnabled(false);
@@ -741,6 +761,32 @@ public class MainActivity extends AppCompatActivity {
             .apply();
     }
 
+    private static final String PREF_NEARBY_WIFI_PERM_PROMPTED = "nearby_wifi_perm_prompted";
+
+    boolean isNearbyWifiPermanentlyDenied() {
+        boolean prompted =
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(PREF_NEARBY_WIFI_PERM_PROMPTED, false);
+        if (!prompted) {
+            return false;
+        }
+        String permission = Build.VERSION.SDK_INT >= 33
+            ? Manifest.permission.NEARBY_WIFI_DEVICES
+            : Manifest.permission.ACCESS_FINE_LOCATION;
+        if (ContextCompat.checkSelfPermission(this, permission)
+            == PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+        return !ActivityCompat.shouldShowRequestPermissionRationale(this, permission);
+    }
+
+    void markNearbyWifiPermissionPrompted() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .putBoolean(PREF_NEARBY_WIFI_PERM_PROMPTED, true)
+            .apply();
+    }
+
     private String[] grantableWebPermissionResources(PermissionRequest request) {
         if (request == null) {
             return new String[0];
@@ -850,6 +896,36 @@ public class MainActivity extends AppCompatActivity {
                 webView.evaluateJavascript(
                     "window.dispatchEvent(new CustomEvent('meshchatx-android-permission',"
                         + "{detail:{group:'bluetooth',granted:"
+                        + ok
+                        + "}}));",
+                    null
+                );
+            }
+            return;
+        }
+        if (requestCode == NEARBY_WIFI_PERMISSION_REQUEST_CODE) {
+            boolean granted = grantResults != null && grantResults.length > 0;
+            if (granted) {
+                for (int result : grantResults) {
+                    if (result != PackageManager.PERMISSION_GRANTED) {
+                        granted = false;
+                        break;
+                    }
+                }
+            }
+            final boolean ok = granted;
+            if (!ok && isNearbyWifiPermanentlyDenied()) {
+                openAppPermissionSettings();
+                Toast.makeText(
+                    this,
+                    "Nearby devices blocked. Enable it in app settings.",
+                    Toast.LENGTH_LONG
+                ).show();
+            }
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('meshchatx-android-permission',"
+                        + "{detail:{group:'nearby_wifi',granted:"
                         + ok
                         + "}}));",
                     null
@@ -1888,6 +1964,45 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public boolean hasNativeRNodeFlasher() {
             return true;
+        }
+
+        @JavascriptInterface
+        public boolean hasNearbyWifiPermissions() {
+            String permission = Build.VERSION.SDK_INT >= 33
+                ? Manifest.permission.NEARBY_WIFI_DEVICES
+                : Manifest.permission.ACCESS_FINE_LOCATION;
+            return ContextCompat.checkSelfPermission(activity, permission)
+                == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public String requestNearbyWifiPermissions() {
+            if (hasNearbyWifiPermissions()) {
+                return "granted";
+            }
+            if (activity.isNearbyWifiPermanentlyDenied()) {
+                activity.runOnUiThread(() -> {
+                    activity.openAppPermissionSettings();
+                    Toast.makeText(
+                        activity,
+                        "Nearby devices blocked. Enable it in app settings.",
+                        Toast.LENGTH_LONG
+                    ).show();
+                });
+                return "settings";
+            }
+            activity.runOnUiThread(() -> {
+                String permission = Build.VERSION.SDK_INT >= 33
+                    ? Manifest.permission.NEARBY_WIFI_DEVICES
+                    : Manifest.permission.ACCESS_FINE_LOCATION;
+                activity.markNearbyWifiPermissionPrompted();
+                ActivityCompat.requestPermissions(
+                    activity,
+                    new String[] { permission },
+                    NEARBY_WIFI_PERMISSION_REQUEST_CODE
+                );
+            });
+            return "requested";
         }
 
         @JavascriptInterface
