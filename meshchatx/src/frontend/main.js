@@ -287,6 +287,11 @@ const router = createRouter({
             component: () => import("./components/tools/PaperMessagePage.vue"),
         },
         {
+            name: "nearby",
+            path: "/tools/nearby",
+            component: () => import("./components/tools/NearbyPage.vue"),
+        },
+        {
             name: "sieve-filters",
             path: "/tools/sieve-filters",
             component: () => import("./components/tools/SieveFiltersPage.vue"),
