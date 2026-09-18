@@ -494,3 +494,13 @@ TELEPHONE_CONTACT_CHECK_SCHEMA: dict = {
 
 def assert_matches_schema(instance: object, schema: dict) -> None:
     Draft202012Validator(schema).validate(instance)
+
+
+LOCALLINK_STATUS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["supported"],
+    "properties": {
+        "supported": {"type": "boolean"},
+    },
+    "additionalProperties": True,
+}
