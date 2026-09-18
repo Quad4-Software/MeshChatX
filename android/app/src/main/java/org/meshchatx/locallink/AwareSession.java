@@ -2,6 +2,7 @@
 package org.meshchatx.locallink;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
@@ -56,6 +57,7 @@ import java.util.Map;
  * Roles are fixed by the spec: subscriber is the initiator, publisher is the
  * responder. No identity or mesh data appears in advertisements.
  */
+@TargetApi(26)
 public class AwareSession {
 
     private static final String TAG = "AwareSession-meshchatx";
