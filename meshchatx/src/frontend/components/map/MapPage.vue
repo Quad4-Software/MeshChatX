@@ -343,7 +343,7 @@
                             <!-- eslint-disable vue/no-v-html -- sanitized via drawFeatureDescriptionSanitized -->
                             <div
                                 v-else-if="drawFeatureDescriptionSanitized"
-                                class="text-[11px] text-sem-fg-muted prose prose-sm dark:prose-invert max-w-none leading-snug [&_*]:bg-transparent! [&_*]:text-inherit!"
+                                class="min-w-0 text-[11px] text-sem-fg-muted prose prose-sm dark:prose-invert max-w-none leading-snug wrap-break-word [&_*]:bg-transparent! [&_*]:text-inherit!"
                                 v-html="drawFeatureDescriptionSanitized"
                             ></div>
                             <!-- eslint-enable vue/no-v-html -->
