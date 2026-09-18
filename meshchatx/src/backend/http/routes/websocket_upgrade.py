@@ -197,7 +197,7 @@ def register_websocket_upgrade_routes(routes, app):
                         continue
                     msg_type = data.get("type") if isinstance(data, dict) else None
                     cost = message_rate_cost(
-                        msg_type if isinstance(msg_type, str) else None
+                        msg_type.strip() if isinstance(msg_type, str) else None
                     )
                     if not await _ws_rate_gate(
                         app,
@@ -257,6 +257,7 @@ def register_websocket_upgrade_routes(routes, app):
                 pass
             app._detach_active_session(websocket_response)
             app._cancel_rns_link_tasks_for_client(websocket_response)
+            app._clear_page_file_grants_for_client(websocket_response)
             await app.send_active_sessions_to_websocket_clients()
 
         return websocket_response

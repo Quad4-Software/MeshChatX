@@ -22,6 +22,7 @@ from meshchatx.src.backend.http.uploads import (
 )
 from meshchatx.src.backend.lxmf_utils import (
     is_user_facing_lxmf_payload,
+    lxmf_row_arrival_timestamp,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.meshchat_utils import (
@@ -158,9 +159,9 @@ def register_messages_routes(routes, app):
             )
             # Keep conversation read state in sync
             app.database.messages.mark_conversations_as_read(destination_hashes)
-        else:
-            # mark all LXMF conversations as viewed if no hashes provided
-            # (this happens when "Clear All" is clicked)
+        elif not notification_ids:
+            # mark all LXMF conversations as viewed only when nothing was
+            # specified at all (this happens when "Clear All" is clicked)
             app.database.messages.mark_all_notifications_as_viewed()
             # Also mark all conversations as read
             app.database.messages.mark_all_conversations_as_read()
@@ -168,8 +169,9 @@ def register_messages_routes(routes, app):
         if notification_ids:
             # mark system notifications as viewed
             app.database.misc.mark_notifications_as_viewed(notification_ids)
-        else:
-            # mark all system notifications as viewed if no ids provided
+        elif not destination_hashes:
+            # mark all system notifications as viewed only when nothing was
+            # specified at all
             app.database.misc.mark_notifications_as_viewed()
 
         return web.json_response(
@@ -239,7 +241,8 @@ def register_messages_routes(routes, app):
                     ):
                         if not app.database.messages.notification_viewed_covers(
                             viewed_map.get(other_user_hash),
-                            db_message["timestamp"],
+                            lxmf_row_arrival_timestamp(db_message)
+                            or db_message["timestamp"],
                         ):
                             total_unread_peer_hashes.add(other_user_hash)
 
@@ -265,10 +268,13 @@ def register_messages_routes(routes, app):
                                     last_read_dt = last_read_dt.replace(
                                         tzinfo=UTC,
                                     )
-                                if (
-                                    latest_user_facing["timestamp"]
-                                    <= last_read_dt.timestamp()
-                                ):
+                                facing_arrival = (
+                                    lxmf_row_arrival_timestamp(
+                                        latest_user_facing,
+                                    )
+                                    or latest_user_facing["timestamp"]
+                                )
+                                if facing_arrival <= last_read_dt.timestamp():
                                     continue
                             except (ValueError, TypeError):
                                 pass
@@ -284,7 +290,8 @@ def register_messages_routes(routes, app):
                     # Check if notification has been viewed
                     if app.database.messages.notification_viewed_covers(
                         viewed_map.get(other_user_hash),
-                        latest_for_preview["timestamp"],
+                        lxmf_row_arrival_timestamp(latest_for_preview)
+                        or latest_for_preview["timestamp"],
                     ):
                         continue
 
@@ -432,7 +439,7 @@ def register_messages_routes(routes, app):
                     ):
                         if not app.database.messages.notification_viewed_covers(
                             viewed_map.get(other_user_hash),
-                            conv["timestamp"],
+                            lxmf_row_arrival_timestamp(conv) or conv["timestamp"],
                         ):
                             lxmf_total_unread_count += 1
 
@@ -457,10 +464,13 @@ def register_messages_routes(routes, app):
                                     last_read_dt = last_read_dt.replace(
                                         tzinfo=UTC,
                                     )
-                                if (
-                                    latest_user_facing["timestamp"]
-                                    <= last_read_dt.timestamp()
-                                ):
+                                facing_arrival = (
+                                    lxmf_row_arrival_timestamp(
+                                        latest_user_facing,
+                                    )
+                                    or latest_user_facing["timestamp"]
+                                )
+                                if facing_arrival <= last_read_dt.timestamp():
                                     continue
                             except (ValueError, TypeError):
                                 pass
@@ -475,7 +485,8 @@ def register_messages_routes(routes, app):
 
                     if not app.database.messages.notification_viewed_covers(
                         viewed_map.get(other_user_hash),
-                        latest_for_check["timestamp"],
+                        lxmf_row_arrival_timestamp(latest_for_check)
+                        or latest_for_check["timestamp"],
                     ):
                         lxmf_unread_count += 1
 

@@ -876,8 +876,13 @@ class RnsFilesyncHandler:
         with self._lock:
             if self.service is not None and self.service.get_status().get("running"):
                 status = self.service.get_status()
-                status["monitor"] = self._monitor
-                status["announce_interval"] = self._announce_interval
+                # Report the live service values, not the stored config:
+                # update_settings may change stored values while running.
+                status["announce_interval"] = getattr(
+                    self.service,
+                    "_announce_interval",
+                    self._announce_interval,
+                )
                 status["config_directory"] = self._root
                 status["storage_directory"] = self.storage_dir
                 return status
@@ -1027,6 +1032,11 @@ class RnsFilesyncHandler:
         announce_interval: int | None = None,
     ) -> dict[str, Any]:
         with self._lock:
+            if self.service is not None:
+                status = self.service.get_status()
+                if status.get("running"):
+                    return ok_result(already_running=True, **status)
+
             if sync_directory is not None:
                 resolved = self._resolve_sync_directory(sync_directory)
                 if resolved is None:
@@ -1042,11 +1052,6 @@ class RnsFilesyncHandler:
                 if interval < 10:
                     return err_result("announce_interval must be >= 10")
                 self._announce_interval = interval
-
-            if self.service is not None:
-                status = self.service.get_status()
-                if status.get("running"):
-                    return ok_result(already_running=True, **status)
 
             try:
                 os.makedirs(self._sync_directory, exist_ok=True)
@@ -1185,7 +1190,15 @@ class RnsFilesyncHandler:
             if replace or rules_text is not None:
                 permissions = PermissionStore()
                 if rules_text:
-                    permissions.load_allowed_text(rules_text)
+                    loaded = permissions.load_allowed_text(rules_text)
+                    has_content = any(
+                        line.strip() and not line.strip().startswith("#")
+                        for line in rules_text.splitlines()
+                    )
+                    if has_content and loaded == 0:
+                        # A failed parse must not replace a working ACL
+                        # with an empty store whose _enforce is False.
+                        return err_result("no valid rules parsed")
             else:
                 permissions = self._permissions()
 
@@ -1202,6 +1215,14 @@ class RnsFilesyncHandler:
 
             if self.service is not None:
                 self.service.permissions = permissions
+                # Drop live links the new ACL can no longer accept. Per-
+                # request checks already deny them, but the link itself
+                # should not survive a revocation or an enforce switch.
+                if permissions.enabled:
+                    for _peer_id, link in list(self.service._links.items()):
+                        if not permissions.can_connect(_peer_id):
+                            with contextlib.suppress(Exception):
+                                link.teardown()
 
             self._save_acl(permissions)
             return ok_result(

@@ -7,6 +7,7 @@ from __future__ import annotations
 from meshchatx.src.backend.demo_mode import create_demo_mode_middleware
 from meshchatx.src.backend.http.middleware import (
     create_auth_middleware,
+    create_bad_request_middleware,
     create_csrf_middleware,
     create_ip_allowlist_middleware,
     create_mime_type_middleware,
@@ -25,6 +26,7 @@ def register_all_routes(routes, app):
     """
     register_extracted_routes(routes, app)
     return (
+        create_bad_request_middleware(app),
         create_sqlite_unavailable_middleware(app),
         create_auth_middleware(app),
         create_mime_type_middleware(app),

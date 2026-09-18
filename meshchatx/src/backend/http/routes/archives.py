@@ -334,6 +334,12 @@ def register_archives_routes(routes, app):
             return http_bad_request(
                 "destination_hash must be 32 hex characters",
             )
+        try:
+            bytes.fromhex(destination_hash)
+        except ValueError:
+            return http_bad_request(
+                "destination_hash must be valid hex",
+            )
         if not page_path:
             page_path = (
                 app.config.nomad_default_page_path.get() if app.config else None

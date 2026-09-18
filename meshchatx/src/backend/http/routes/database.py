@@ -17,6 +17,7 @@ from meshchatx.src.backend.http.errors import (
     http_error_from_exception,
     http_not_found,
     http_payload_too_large,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
@@ -53,8 +54,12 @@ def register_database_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/database/snapshots")
     async def list_db_snapshots(request):
         try:
-            limit = int(request.query.get("limit", 100))
-            offset = int(request.query.get("offset", 0))
+            limit = parse_int_param(request.query.get("limit"), 100, minimum=0)
+            offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+            if limit is None or offset is None:
+                return http_bad_request(
+                    "limit and offset must be non-negative integers",
+                )
             snapshots = app.database.list_snapshots(app.storage_path)
             total = len(snapshots)
             paginated_snapshots = snapshots[offset : offset + limit]
@@ -180,8 +185,12 @@ def register_database_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/database/backups")
     async def list_db_backups(request):
         try:
-            limit = int(request.query.get("limit", 100))
-            offset = int(request.query.get("offset", 0))
+            limit = parse_int_param(request.query.get("limit"), 100, minimum=0)
+            offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+            if limit is None or offset is None:
+                return http_bad_request(
+                    "limit and offset must be non-negative integers",
+                )
             storage_path = app.storage_path
             if app.database is not None:
                 sorted_backups = app.database.list_auto_backups(storage_path)

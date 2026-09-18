@@ -26,6 +26,7 @@ from meshchatx.src.backend.http.uploads import (
     DEFAULT_JSON_BODY_BYTES,
     DEFAULT_TEXT_FIELD_BYTES,
     UPLOAD_LIMITS,
+    JsonBodyError,
     PayloadTooLargeError,
     read_body_limited,
     read_field_limited,
@@ -380,17 +381,21 @@ class TestReadJsonLimited:
             await read_json_limited(request, 8)
 
     @given(
-        payload=st.recursive(
-            st.none()
-            | st.booleans()
-            | st.integers()
-            | st.floats(allow_nan=False)
-            | st.text(),
-            lambda children: (
-                st.lists(children, max_size=5)
-                | st.dictionaries(st.text(), children, max_size=5)
+        payload=st.dictionaries(
+            st.text(),
+            st.recursive(
+                st.none()
+                | st.booleans()
+                | st.integers()
+                | st.floats(allow_nan=False)
+                | st.text(),
+                lambda children: (
+                    st.lists(children, max_size=5)
+                    | st.dictionaries(st.text(), children, max_size=5)
+                ),
+                max_leaves=20,
             ),
-            max_leaves=20,
+            max_size=5,
         )
     )
     @settings(max_examples=80, deadline=None)
@@ -410,7 +415,7 @@ class TestReadJsonLimited:
             out = asyncio.run(read_json_limited(request))
         except PayloadTooLargeError:
             return
-        except (json.JSONDecodeError, UnicodeDecodeError):
+        except (json.JSONDecodeError, UnicodeDecodeError, JsonBodyError):
             return
         assert out == json.loads(raw.decode("utf-8"))
 

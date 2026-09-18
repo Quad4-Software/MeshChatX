@@ -250,7 +250,8 @@ class MessageHandler:
 
         if filter_unread:
             where_clauses.append(
-                "(s.is_incoming = 1 AND (r.last_read_at IS NULL OR s.timestamp > strftime('%s', r.last_read_at)))",
+                "(s.is_incoming = 1 AND (r.last_read_at IS NULL OR "
+                "COALESCE(strftime('%s', s.created_at), s.timestamp) > strftime('%s', r.last_read_at)))",
             )
 
         if filter_failed:

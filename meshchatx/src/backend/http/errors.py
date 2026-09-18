@@ -35,6 +35,33 @@ _PATH_JAIL_STATUS = {
 }
 
 
+def parse_int_param(
+    value: Any,
+    default: int | None = None,
+    *,
+    minimum: int | None = None,
+    maximum: int | None = None,
+) -> int | None:
+    """Parse an int from a query or path parameter.
+
+    Returns default when the value is missing. Returns None when the value
+    is present but unparseable or outside the bounds, so handlers can turn
+    the None into a 400 instead of leaking a ValueError or a nonsense
+    negative into slicing/SQL.
+    """
+    if value is None:
+        return default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    if minimum is not None and parsed < minimum:
+        return None
+    if maximum is not None and parsed > maximum:
+        return None
+    return parsed
+
+
 def _error_payload(message: str, code: str, extra: dict[str, Any]) -> dict[str, Any]:
     payload: dict[str, Any] = {"error": message, "code": code, "message": message}
     payload.update(extra)
