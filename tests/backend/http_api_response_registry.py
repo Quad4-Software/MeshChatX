@@ -10,6 +10,7 @@ from tests.backend.api_json_contract_schemas import (
     API_V1_APP_INFO_ENVELOPE_SCHEMA,
     API_V1_STATUS_SCHEMA,
     AUTH_STATUS_SCHEMA,
+    LOCALLINK_STATUS_SCHEMA,
     SELF_TEST_SCHEMA,
     TELEPHONE_CONTACT_CHECK_SCHEMA,
     TELEPHONE_CONTACTS_LIST_SCHEMA,
@@ -224,6 +225,13 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     ),
     HttpJsonContract("GET", "/api/v1/reticulum/blackhole", BLACKHOLE_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/interface-stats", INTERFACE_STATS_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/locallink/capabilities", LOCALLINK_STATUS_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/locallink/hotspot/status", LOCALLINK_STATUS_SCHEMA
+    ),
+    HttpJsonContract("GET", "/api/v1/locallink/p2p/status", LOCALLINK_STATUS_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/locallink/aware/status", LOCALLINK_STATUS_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/locallink/nfc/status", LOCALLINK_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/path-table", PATH_TABLE_SCHEMA),
     HttpJsonContract("GET", "/api/v1/licenses", LICENSES_ENVELOPE_SCHEMA),
     HttpJsonContract("GET", "/api/v1/docs/status", DOCS_STATUS_SCHEMA),
