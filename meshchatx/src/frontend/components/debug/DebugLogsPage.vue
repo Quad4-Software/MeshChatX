@@ -27,7 +27,7 @@
                             class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
                             :class="
                                 activeTab === 'logs'
-                                    ? 'bg-sem-action-primary text-white'
+                                    ? 'bg-sem-action-primary text-sem-action-primary-text'
                                     : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-raised'
                             "
                             @click="switchTab('logs')"
@@ -39,7 +39,7 @@
                             class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
                             :class="
                                 activeTab === 'access'
-                                    ? 'bg-sem-action-primary text-white'
+                                    ? 'bg-sem-action-primary text-sem-action-primary-text'
                                     : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-raised'
                             "
                             @click="switchTab('access')"

@@ -1491,7 +1491,7 @@ import Toggle from "../forms/Toggle.vue";
 import * as TranslationService from "../../js/TranslationService.js";
 
 const BTN_PRIMARY =
-    "inline-flex items-center justify-center gap-1.5 rounded-lg bg-sem-action-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center gap-1.5 rounded-lg bg-sem-action-primary px-3 py-2 text-sm font-semibold text-sem-action-primary-text transition hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed";
 const BTN_SECONDARY =
     "inline-flex items-center justify-center gap-1.5 rounded-lg border border-sem-border bg-sem-surface-muted px-3 py-2 text-sm font-medium text-sem-fg transition hover:bg-sem-surface-raised disabled:opacity-50 disabled:cursor-not-allowed";
 const BTN_ICON =
@@ -1913,6 +1913,10 @@ export default {
             }
         },
         onIdentitySwitched() {
+            // Invalidate in-flight selectRoom/softResync work first so a stale
+            // response cannot merge old-identity messages, POST a read receipt
+            // as the new identity, or overwrite the saved layout.
+            this.roomSelectSequence += 1;
             this.hubs = [];
             this.serverHubs = [];
             this.discovered = [];
@@ -3004,13 +3008,20 @@ export default {
             return this.$refs.messageList ?? null;
         },
         async refreshMembers() {
-            if (!this.selectedHubHash || !this.selectedRoom) {
+            const hubHash = this.selectedHubHash;
+            const room = this.selectedRoom;
+            if (!hubHash || !room) {
                 return;
             }
             try {
                 const response = await window.api.get(
-                    apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`)
+                    apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`)
                 );
+                // The user may have switched rooms while this was in flight;
+                // only the still-selected room may write the sidebar roster.
+                if (this.selectedHubHash !== hubHash || this.selectedRoom !== room) {
+                    return;
+                }
                 this.members = response.data?.members || [];
             } catch {
                 // ignore member refresh failures

@@ -211,7 +211,7 @@
                                 @click="composeNewMessage"
                             >
                                 <span
-                                    class="flex items-center rounded-full border border-sem-action-primary bg-sem-action-primary px-2.5 py-1.5 text-white shadow-xs transition hover:bg-sem-action-primary-hover"
+                                    class="flex items-center rounded-full border border-sem-action-primary bg-sem-action-primary px-2.5 py-1.5 text-sem-action-primary-text shadow-xs transition hover:bg-sem-action-primary-hover"
                                 >
                                     <MaterialDesignIcon icon-name="email" class="size-5" />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-semibold">{{

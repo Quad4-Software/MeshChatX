@@ -180,7 +180,7 @@ import ToastUtils from "../../js/ToastUtils";
 import { apiPath } from "../../js/constants.js";
 
 const BTN_PRIMARY =
-    "inline-flex items-center justify-center gap-1.5 rounded-lg bg-sem-action-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-sem-action-primary-hover disabled:opacity-50";
+    "inline-flex items-center justify-center gap-1.5 rounded-lg bg-sem-action-primary px-3 py-2 text-sm font-semibold text-sem-action-primary-text transition hover:bg-sem-action-primary-hover disabled:opacity-50";
 const BTN_SECONDARY =
     "inline-flex items-center justify-center gap-1.5 rounded-lg border border-sem-border bg-sem-surface-raised px-3 py-2 text-sm font-medium text-sem-fg transition hover:bg-sem-surface-muted disabled:opacity-50";
 const BTN_ICON =

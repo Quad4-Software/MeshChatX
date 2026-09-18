@@ -102,7 +102,7 @@ describe("layout UX oracle-light", () => {
 
         it("mobile toast bottom clears compose FAB band", () => {
             const cls = toastWrapper.find("[class*='fixed']").classes().join(" ");
-            expect(cls).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
+            expect(cls).toContain("max-sm:bottom-[calc(4.5rem+max(1.25rem,env(safe-area-inset-bottom,0px)))]");
         });
 
         it("call overlay uses safe-area bottom and responsive width", () => {

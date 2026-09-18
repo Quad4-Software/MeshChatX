@@ -719,7 +719,7 @@
                                     $t("about.virtual_memory")
                                 }}</span>
                                 <span class="font-mono text-xs font-bold tabular-nums">{{
-                                    formatBytes(appInfo.memory_usage.vms || 0)
+                                    appInfo.memory_usage.vms != null ? formatBytes(appInfo.memory_usage.vms) : "N/A"
                                 }}</span>
                             </div>
                             <div

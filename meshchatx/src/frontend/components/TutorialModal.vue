@@ -848,7 +848,7 @@
                                             href="/meshchatx-docs/index.html"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            class="px-3 py-1 text-[10px] rounded-xl bg-blue-600 hover:bg-sem-accent text-white font-semibold shadow-xs transition-all inline-block"
+                                            class="px-3 py-1 text-[10px] rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text font-semibold shadow-xs transition-all inline-block"
                                         >
                                             {{ $t("tutorial.meshchatx_docs") }}
                                         </a>
@@ -1992,7 +1992,7 @@
                                                     href="/meshchatx-docs/index.html"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    class="flex min-h-12 items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-base font-semibold text-white shadow-xs transition-all hover:bg-sem-accent"
+                                                    class="flex min-h-12 items-center justify-center rounded-xl bg-sem-action-primary px-4 py-3 text-base font-semibold text-sem-action-primary-text shadow-xs transition-all hover:bg-sem-action-primary-hover"
                                                 >
                                                     {{ $t("tutorial.read_meshchatx_docs") }}
                                                 </a>

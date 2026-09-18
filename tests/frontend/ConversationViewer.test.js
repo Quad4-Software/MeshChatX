@@ -1251,15 +1251,7 @@ describe("ConversationViewer.vue", () => {
         expect(retryButtonEl).toBeDefined();
 
         await wrapper.vm.retrySendingMessage(failedChatItem);
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            expect.stringContaining("/lxmf-messages/send"),
-            expect.objectContaining({
-                lxmf_message: expect.objectContaining({
-                    destination_hash: "test-hash",
-                    content: "retry me",
-                }),
-            })
-        );
+        expect(axiosMock.post).toHaveBeenCalledWith(expect.stringContaining("/lxmf-messages/retry-hash/resend"));
     });
 
     it("marks received messages as not outbound", async () => {

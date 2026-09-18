@@ -96,7 +96,7 @@
                 <div class="flex items-center gap-1.5 shrink-0 sm:justify-end">
                     <button
                         type="button"
-                        class="min-h-[36px] sm:min-h-0 flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium rounded-md bg-sem-warning hover:bg-sem-warning/80 text-white transition-colors"
+                        class="min-h-[36px] sm:min-h-0 flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium rounded-md bg-sem-action-warning hover:bg-sem-action-warning-hover text-sem-action-warning-text transition-colors"
                         @click="addStrangerAsContact"
                     >
                         {{ $t("messages.add_to_contacts") }}
@@ -1166,7 +1166,7 @@
                                 class="px-3 py-2 flex items-center gap-3 cursor-pointer rounded-lg transition-colors"
                                 :class="[
                                     index === selectedComposeSuggestionIndex
-                                        ? 'bg-sem-action-primary text-white'
+                                        ? 'bg-sem-action-primary text-sem-action-primary-text'
                                         : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                 ]"
                                 @mousedown.prevent="selectComposeSuggestion(suggestion)"
@@ -1540,7 +1540,7 @@
                                 </p>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-2 rounded-lg bg-sem-warning hover:bg-sem-warning/80 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
+                                    class="inline-flex items-center gap-2 rounded-lg bg-sem-action-warning hover:bg-sem-action-warning-hover px-3 py-2 text-xs font-semibold text-sem-action-warning-text transition-colors"
                                     @click="copyRawMessageModalContent"
                                 >
                                     <MaterialDesignIcon icon-name="content-copy" class="size-4 shrink-0" />
@@ -1582,7 +1582,7 @@
                 <div class="px-6 py-4 border-t border-sem-border flex justify-end shrink-0">
                     <button
                         type="button"
-                        class="px-4 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-lg text-sm font-bold transition-colors"
+                        class="px-4 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-lg text-sm font-bold transition-colors"
                         @click="isRawMessageModalOpen = false"
                     >
                         Close
@@ -3093,6 +3093,9 @@ export default {
                 this.saveDraft(dest, previousKey);
             }
             this.lxmfMessagesRequestSequence += 1;
+            // Queued sends were composed under the old identity; dropping them
+            // keeps a pending job from transmitting as the new identity.
+            this._outboundQueue?.clear();
             this.chatItems = [];
             this.displayGroupsNewestFirst = null;
             this.messageBubbleTranslation = {};
@@ -6074,6 +6077,34 @@ export default {
             }
         },
         async retrySendingMessage(chatItem) {
+            const hash = chatItem.lxmf_message.hash;
+
+            if (!this._isPendingOutboundHash(hash)) {
+                // server-backed items: attachments were stripped from the
+                // stored fields blob sent to the UI, so the backend must
+                // rebuild them from the original message row
+                try {
+                    const response = await window.api.post(apiPath(`/lxmf-messages/${hash}/resend`));
+                    this.chatItems = this.chatItems.filter((item) => {
+                        return !this._hexEqual(item.lxmf_message?.hash, hash);
+                    });
+                    if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
+                        this._pushChatItem({
+                            type: "lxmf_message",
+                            lxmf_message: this.normalizeLxmfMessage(response.data.lxmf_message, true),
+                            is_outbound: true,
+                        });
+                    }
+                    this._invalidateDisplayGroupsCache();
+                    this.scrollMessagesToBottom();
+                } catch (e) {
+                    const message = e.response?.data?.message ?? "failed to send message";
+                    DialogUtils.alert(message);
+                    console.log(e);
+                }
+                return;
+            }
+
             await this.deleteChatItem(chatItem, false);
 
             try {

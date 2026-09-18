@@ -132,7 +132,7 @@ describe("Toast.vue", () => {
         const container = wrapper.find("[class*='fixed']");
         expect(container.exists()).toBe(true);
         const cls = container.classes().join(" ");
-        expect(cls).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
+        expect(cls).toContain("max-sm:bottom-[calc(4.5rem+max(1.25rem,env(safe-area-inset-bottom,0px)))]");
         expect(cls).not.toContain("max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]");
     });
 

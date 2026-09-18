@@ -21,7 +21,7 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'conversations'
-                            ? 'bg-sem-accent text-white'
+                            ? 'bg-sem-action-primary text-sem-action-primary-text'
                             : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                     "
                     @click="tab = 'conversations'"
@@ -33,7 +33,7 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'announces'
-                            ? 'bg-sem-accent text-white'
+                            ? 'bg-sem-action-primary text-sem-action-primary-text'
                             : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                     "
                     @click="tab = 'announces'"
@@ -1683,7 +1683,7 @@ export default {
         filterChipClasses(isActive) {
             const base = "px-2 py-0.5 rounded-full text-xs font-medium transition-colors";
             if (isActive) {
-                return `${base} bg-sem-action-primary text-white`;
+                return `${base} bg-sem-action-primary text-sem-action-primary-text`;
             }
             return `${base} bg-sem-surface-muted text-sem-fg`;
         },
