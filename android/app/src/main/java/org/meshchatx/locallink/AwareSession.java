@@ -434,6 +434,7 @@ public class AwareSession {
         }
     }
 
+    @TargetApi(29)
     private void onDataPathReady(Network network, int role, int peerId) {
         ConnectivityManager cm =
             (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
