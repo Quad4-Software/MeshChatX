@@ -40,7 +40,8 @@ Identity **key** import vs database **zip** restore is covered by `identity-rest
 - `meshchatx/meshchat.py` (switch endpoints, `identity_switched` broadcast)
 - `meshchatx/src/frontend/components/App.vue` (`identity_switched` handler)
 - `meshchatx/src/frontend/components/settings/IdentitiesPage.vue`
-- `meshchatx/src/frontend/js/messages/useMessageDrafts.js` (load-time identity capture pattern)
+- `meshchatx/src/frontend/js/identityScope.js` (`useIdentityScope`: load-time capture, captured-key writes)
+- `meshchatx/src/frontend/js/messages/useMessageDrafts.js` (reference consumer of the scope)
 - `meshchatx/src/frontend/js/relay/relayPrefsStore.js` (identity-bucketed localStorage)
 
 ## Verification

@@ -112,7 +112,7 @@ storage/identities/<identity_hash>/
 
 Shared: Reticulum config `~/.reticulum` (`--reticulum-config-dir` / `MESHCHAT_RETICULUM_CONFIG_DIR`). Interfaces live with Reticulum, not only in the identity DB.
 
-Frontend per-identity state uses the same bucketing idea in localStorage: stores like `useMessageDrafts` and `relayPrefsStore` keep a `{ [identity_hash]: {...} }` root under one `STORAGE_KEYS` entry. The identity key is captured at load time, so a deferred save can never land in a switched identity's bucket. Rule details: `.agents/conventions/frontend.md`.
+Frontend per-identity state uses the same bucketing idea in localStorage: stores like `useMessageDrafts` and `relayPrefsStore` keep a `{ [identity_hash]: {...} }` root under one `STORAGE_KEYS` entry. `js/identityScope.js` captures the identity at load time, so a deferred save can never land in a switched identity's bucket. Rule details: `.agents/conventions/frontend.md`.
 
 ### Key restore vs database restore
 

@@ -91,4 +91,22 @@ describe("useMessageDrafts", () => {
         expect(stored().idA.peer1).toBe("typed under idA");
         expect(stored().idB).toBeUndefined();
     });
+
+    it("a bare saveDraft after identity switch stays in the captured bucket", () => {
+        let identity = "idA";
+        let text = "";
+        const d = useMessageDrafts({
+            getIdentityKey: () => identity,
+            getNewMessageText: () => text,
+            setDraftText: (v) => (text = v),
+        });
+        d.loadDraft("peer1");
+        text = "typed under idA";
+        identity = "idB";
+        // No explicit key: the scope's captured identity must win over the
+        // live one so a deferred save cannot leak into idB.
+        d.saveDraft("peer1");
+        expect(stored().idA.peer1).toBe("typed under idA");
+        expect(stored().idB).toBeUndefined();
+    });
 });
