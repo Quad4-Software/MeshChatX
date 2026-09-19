@@ -2,6 +2,7 @@
 package org.meshchatx.locallink;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
@@ -114,11 +115,7 @@ public class LocalLink {
             PackageManager pm = mContext != null ? mContext.getPackageManager() : null;
             boolean awareFeature = pm != null
                 && pm.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE);
-            boolean awareAvailable = false;
-            if (awareFeature) {
-                WifiAwareManager aware = mContext.getSystemService(WifiAwareManager.class);
-                awareAvailable = aware != null && aware.isAvailable();
-            }
+            boolean awareAvailable = awareFeature && awareManagerAvailable();
             boolean nfc = false;
             if (pm != null && pm.hasSystemFeature(PackageManager.FEATURE_NFC)) {
                 nfc = NfcAdapter.getDefaultAdapter(mContext) != null;
@@ -138,6 +135,14 @@ public class LocalLink {
             Log.w(TAG, "probeCapabilities failed", e);
         }
         return out.toString();
+    }
+
+    @TargetApi(26)
+    private boolean awareManagerAvailable() {
+        // FEATURE_WIFI_AWARE cannot exist below API 26 so callers never reach
+        // this on older devices, but lint cannot see that chain.
+        WifiAwareManager aware = mContext.getSystemService(WifiAwareManager.class);
+        return aware != null && aware.isAvailable();
     }
 
     private JSONObject satelliteStateJson() {
