@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Hostless audio oracles and property tests for LXST telephony / web audio.
+"""Hostless audio references and property tests for LXST telephony / web audio.
 
-Oracles (invariants that must always hold):
+References (invariants that must always hold):
 1. Hostless LineSource/LineSink construct without PulseAudio and never raise on start/stop.
 2. WebAudioSource drops oversized frames.
 3. When web_audio is required, bridge.config_enabled is True even if config is False.
@@ -50,11 +50,11 @@ def _reset_hostless():
 
 
 # ---------------------------------------------------------------------------
-# Oracles: hostless backends
+# References: hostless backends
 # ---------------------------------------------------------------------------
 
 
-def test_oracle_hostless_source_matches_linesource_ctor_shape():
+def test_hostless_source_matches_linesource_ctor_shape():
     sink = MagicMock()
     sink.can_receive.return_value = True
     src = HostlessAudioSource(
@@ -75,7 +75,7 @@ def test_oracle_hostless_source_matches_linesource_ctor_shape():
     assert src.can_receive() is True
 
 
-def test_oracle_hostless_sink_never_needs_pulse():
+def test_hostless_sink_never_needs_pulse():
     sink = HostlessAudioSink(preferred_device=None)
     sink.start()
     sink.handle_frame(np.zeros((160, 1), dtype=np.float32), None)
@@ -84,7 +84,7 @@ def test_oracle_hostless_sink_never_needs_pulse():
     assert sink.can_receive() is True
 
 
-def test_oracle_install_hostless_is_idempotent():
+def test_install_hostless_is_idempotent():
     assert install_hostless_lxst_audio() is True
     assert hostless_lxst_audio_installed() is True
     assert install_hostless_lxst_audio() is True
@@ -94,7 +94,7 @@ def test_oracle_install_hostless_is_idempotent():
     assert T.LineSink is HostlessAudioSink
 
 
-def test_oracle_hostless_linesource_constructs_without_soundcard():
+def test_hostless_linesource_constructs_without_soundcard():
     assert install_hostless_lxst_audio() is True
     from LXST.Primitives import Telephony as T
 
@@ -105,11 +105,11 @@ def test_oracle_hostless_linesource_constructs_without_soundcard():
 
 
 # ---------------------------------------------------------------------------
-# Oracles: web audio required / force_enabled
+# References: web audio required / force_enabled
 # ---------------------------------------------------------------------------
 
 
-def test_oracle_force_enabled_overrides_config_false():
+def test_force_enabled_overrides_config_false():
     cfg = MagicMock()
     cfg.telephone_web_audio_enabled.get.return_value = False
     bridge = WebAudioBridge(None, cfg, force_enabled=True)
@@ -120,7 +120,7 @@ def test_oracle_force_enabled_overrides_config_false():
     assert diag["config_enabled"] is True
 
 
-def test_oracle_force_disabled_follows_config():
+def test_force_disabled_follows_config():
     cfg = MagicMock()
     cfg.telephone_web_audio_enabled.get.return_value = False
     bridge = WebAudioBridge(None, cfg, force_enabled=False)
@@ -129,7 +129,7 @@ def test_oracle_force_disabled_follows_config():
 
 @given(extra=st.integers(min_value=1, max_value=8192))
 @settings(max_examples=20, deadline=None)
-def test_oracle_web_audio_drops_oversized_pcm(extra):
+def test_web_audio_drops_oversized_pcm(extra):
     sink = MagicMock()
     sink.can_receive.return_value = True
     src = WebAudioSource(target_frame_ms=60, sink=sink)
@@ -138,7 +138,7 @@ def test_oracle_web_audio_drops_oversized_pcm(extra):
 
 
 # ---------------------------------------------------------------------------
-# Oracles: Codec2 profile fallback
+# References: Codec2 profile fallback
 # ---------------------------------------------------------------------------
 
 
@@ -167,7 +167,7 @@ def test_property_resolve_profile_never_returns_codec2_when_unavailable(pid):
     assert resolved not in CODEC2_PROFILES
 
 
-def test_oracle_codec2_available_false_on_android_probe_fail():
+def test_codec2_available_false_on_android_probe_fail():
     tm = TelephoneManager(identity=MagicMock())
     with (
         patch("meshchatx.android_codec2._is_chaquopy_android", return_value=True),
@@ -228,7 +228,7 @@ def test_init_telephone_skips_hostless_when_not_required(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_oracle_meshchat_web_audio_required_host_audio_unavailable():
+def test_meshchat_web_audio_required_host_audio_unavailable():
     from meshchatx.meshchat import ReticulumMeshChat
 
     app = ReticulumMeshChat.__new__(ReticulumMeshChat)
@@ -245,7 +245,7 @@ def test_oracle_meshchat_web_audio_required_host_audio_unavailable():
         assert app.web_audio_required() is True
 
 
-def test_oracle_meshchat_web_audio_required_env(monkeypatch):
+def test_meshchat_web_audio_required_env(monkeypatch):
     from meshchatx.meshchat import ReticulumMeshChat
 
     app = ReticulumMeshChat.__new__(ReticulumMeshChat)
@@ -257,7 +257,7 @@ def test_oracle_meshchat_web_audio_required_env(monkeypatch):
     monkeypatch.delenv("MESHCHAT_FORCE_WEB_AUDIO", raising=False)
 
 
-def test_oracle_meshchat_web_audio_not_required_when_host_audio_ok():
+def test_meshchat_web_audio_not_required_when_host_audio_ok():
     from meshchatx.meshchat import ReticulumMeshChat
 
     app = ReticulumMeshChat.__new__(ReticulumMeshChat)
@@ -268,7 +268,7 @@ def test_oracle_meshchat_web_audio_not_required_when_host_audio_ok():
         assert app.web_audio_required() is False
 
 
-def test_oracle_headless_alone_does_not_force_web_audio():
+def test_headless_alone_does_not_force_web_audio():
     """Frozen Electron uses --headless but still has host speakers/mic."""
     from meshchatx.meshchat import ReticulumMeshChat
 

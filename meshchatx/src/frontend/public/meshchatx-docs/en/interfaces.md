@@ -25,6 +25,7 @@ The **Add interface** flow includes:
 | I2PInterface          | I2P-based Reticulum transport                 |
 | AutoInterface         | Automatic discovery on local networks         |
 | HTTPInterface         | HTTP/S tunnel (bundled RNS-over-HTTP)         |
+| AwareInterface        | WiFi Aware peer links (bundled, Android)      |
 | Custom external types | Advanced setups                               |
 
 Community-curated suggestions come from bundled community_interfaces.json, built from [meshchatx.com/api/mcx-interfaces](https://meshchatx.com/api/mcx-interfaces) at release time. Browse listings at [meshchatx.com/interfaces](https://meshchatx.com/interfaces). An optional public/community_interfaces.json override can replace that list locally. The app does not fetch the directory over the network at runtime.
@@ -48,6 +49,20 @@ MeshChatX includes a custom WebsocketServerInterface for WebSocket-based Reticul
 ## HTTP tunnel interface
 
 MeshChatX vendors [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) and installs HTTPInterface.py into your Reticulum interfacepath on startup. Use **Add interface -> HTTP Tunnel** for client or server mode when only HTTP/S egress is available. Default transport is HTTP/1.1. HTTP/2 and HTTP/3 need TLS and optional extra packages on the server side.
+
+## WiFi Aware interface
+
+On Android, the bundled AwareInterface.py installs into the Reticulum interfacepath alongside HTTPInterface. It drives the same WiFi Aware session as the Nearby page and spawns one interface per established data path. A stanza looks like:
+
+```
+[[WiFi Aware]]
+  type = AwareInterface
+  enabled = yes
+  mode = subscribe
+  peers = 4
+```
+
+`mode` is `publish` (be found, waits for initiators) or `subscribe` (find publishers). `peers` caps concurrent data paths and defaults to 4. The interface only works while the Android local-link bridge is available, so it stays an Android feature. Most users should drive Aware from Tools -> Nearby instead of config.
 
 ## Getting onto the mesh
 

@@ -2,7 +2,7 @@
 
 <template>
     <div
-        class="fixed max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
+        class="fixed max-sm:bottom-[calc(4.5rem+max(1.25rem,env(safe-area-inset-bottom,0px)))] bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
         role="status"
         aria-live="polite"
         aria-atomic="false"
@@ -74,6 +74,8 @@
 import GlobalEmitter from "../js/GlobalEmitter";
 import { EMITTER_EVENTS } from "../js/constants.js";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+
+const MAX_TOASTS = 8;
 
 export default {
     name: "Toast",
@@ -169,6 +171,14 @@ export default {
             }
 
             this.toasts.push(newToast);
+            // Backstop cap: unkeyed zero-duration toasts otherwise persist
+            // forever when a dismiss call is skipped on an error path.
+            while (this.toasts.length > MAX_TOASTS) {
+                const evicted = this.toasts.shift();
+                if (evicted?.timer) {
+                    clearTimeout(evicted.timer);
+                }
+            }
         },
         remove(id) {
             const index = this.toasts.findIndex((t) => t.id === id);

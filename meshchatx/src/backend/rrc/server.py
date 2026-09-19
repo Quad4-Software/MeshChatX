@@ -406,6 +406,7 @@ class RRCHubServer:
                     reg = self.rooms.get_state(room)
                     if not members and (reg is None or not reg.get("registered")):
                         self._room_members.pop(room, None)
+                        self.rooms.drop_transient_state(room)
                 else:
                     reg = self.rooms.get_state(room)
                 if remaining and peer is not None:
@@ -563,7 +564,12 @@ class RRCHubServer:
             if not self._refill_ctrl_and_take(sess):
                 self._bump("control_drops")
                 self._note_rate_limited(sess)
-                self._queue_error(outgoing, link, "rate limited")
+                self._queue_error(
+                    outgoing,
+                    link,
+                    "rate limited",
+                    room=env.get(proto.K_ROOM),
+                )
                 return
         if not sess.welcomed:
             if t == proto.T_HELLO:
@@ -573,7 +579,12 @@ class RRCHubServer:
             if not self._refill_and_take(sess):
                 self._bump("rate_limited_drops")
                 self._note_rate_limited(sess)
-                self._queue_error(outgoing, link, "rate limited")
+                self._queue_error(
+                    outgoing,
+                    link,
+                    "rate limited",
+                    room=env.get(proto.K_ROOM),
+                )
                 return
         if t == proto.T_HELLO:
             self._handle_hello(link, sess, env, outgoing)
@@ -793,6 +804,7 @@ class RRCHubServer:
             reg = self.rooms.get_state(r)
             if not members and (reg is None or not reg.get("registered")):
                 self._room_members.pop(r, None)
+                self.rooms.drop_transient_state(r)
 
         if remaining and sess.peer is not None:
             fanout = proto.encode(

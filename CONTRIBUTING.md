@@ -35,6 +35,37 @@ Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches
 
 Editor baseline: .editorconfig. Agent conventions: .agents/conventions/.
 
+### Commit signing
+
+Project commits are signed with rngcs, which binds each commit to a Reticulum identity using Git's SSH signature format. Verification is fully offline: no keyserver, no allowed-signers file, only rngcs installed.
+
+Setup for maintainers and mesh contributors:
+
+```bash
+pip install rns                       # rngcs ships inside the rns package
+rnid -g ~/.rngit/client_identity      # once, creates your signing identity
+rnid -i ~/.rngit/client_identity -p   # prints your 32-char identity hash
+
+git config --local gpg.format ssh
+git config --local gpg.ssh.program rngcs
+git config --local gpg.ssh.allowedsignersfile none
+git config --local user.signingKey ~/.rngit/client_identity
+git config --local user.email <your-identity-hash>
+git config --local commit.gpgsign true
+```
+
+The author email must equal the signing identity hash. Verification fails when the author and signer differ, and the same binding keeps `Signed-off-by:` trailers working for DCO-style checks.
+
+Add a `.mailmap` line so `git log`, `shortlog`, and `blame` stay readable while the raw author field stays identity-bound:
+
+```
+Your Name <you@example.com> <your-identity-hash>
+```
+
+Verify locally with `git log --show-signature`. `git log --format=%G?` reports `G` for a verified rngcs signature, `E` when rngcs is not installed, and `N` for unsigned commits. GitHub cannot parse the RSG payload, so commits show no verified badge there and hash-authored commits do not link to a GitHub account; that is the accepted trade-off for offline-verifiable, identity-bound signatures over `rns://` remotes.
+
+Unsigned or GPG-signed pull requests from outside contributors are still accepted.
+
 ---
 
 ## Generating a patch (LXMF)

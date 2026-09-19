@@ -124,14 +124,25 @@
                                                         icon: 'web',
                                                         color: 'text-teal-500',
                                                     },
+                                                    {
+                                                        id: 'AwareInterface',
+                                                        name: 'WiFi Aware',
+                                                        icon: 'wifi-tethering',
+                                                        color: 'text-lime-500',
+                                                    },
                                                 ]"
                                                 :key="type.id"
                                                 type="button"
                                                 class="flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 text-center gap-1 group"
+                                                :disabled="type.id === 'AwareInterface' && !awareInterfaceSupported"
+                                                :title="type.id === 'AwareInterface' ? awareTileHint || '' : ''"
                                                 :class="[
                                                     newInterfaceType === type.id
                                                         ? 'bg-sem-info/50/10 border-blue-500 ring-1 ring-blue-500/50'
                                                         : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border hover:border-sem-border dark:hover:border-zinc-600',
+                                                    type.id === 'AwareInterface' && !awareInterfaceSupported
+                                                        ? 'opacity-40 cursor-not-allowed saturate-50'
+                                                        : '',
                                                 ]"
                                                 @click="newInterfaceType = type.id"
                                             >
@@ -151,6 +162,12 @@
                                                     ]"
                                                 >
                                                     {{ type.name }}
+                                                </span>
+                                                <span
+                                                    v-if="type.id === 'AwareInterface' && !awareInterfaceSupported"
+                                                    class="text-[9px] font-semibold uppercase tracking-tight text-sem-fg-muted leading-tight"
+                                                >
+                                                    {{ awareTileHint }}
                                                 </span>
                                             </button>
                                         </div>
@@ -1583,6 +1600,81 @@
                                             />
                                         </div>
 
+                                        <!-- WiFi Aware (NAN) - Android only, bundled AwareInterface module -->
+                                        <div v-if="newInterfaceType === 'AwareInterface'" class="space-y-4">
+                                            <p class="text-xs text-sem-fg-muted leading-relaxed">
+                                                {{ $t("tools.nearby.aware_description") }}
+                                            </p>
+                                            <div
+                                                v-if="awareNeedsPermission"
+                                                class="rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 p-3 space-y-2"
+                                            >
+                                                <p
+                                                    class="text-xs text-amber-900 dark:text-amber-200/90 leading-relaxed"
+                                                >
+                                                    {{ $t("interfaces.aware_permission_banner") }}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    class="secondary-chip py-1.5! px-3! text-[10px]!"
+                                                    :disabled="awarePermissionRequesting"
+                                                    @click="requestAwarePermission"
+                                                >
+                                                    {{ $t("interfaces.aware_permission_grant") }}
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.aware_role_label")
+                                                }}</FormLabel>
+                                                <div class="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
+                                                        :class="
+                                                            newInterfaceAwareMode === 'subscribe'
+                                                                ? 'bg-lime-500/10 border-lime-500 text-lime-700 dark:text-lime-300'
+                                                                : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                        "
+                                                        @click="newInterfaceAwareMode = 'subscribe'"
+                                                    >
+                                                        {{ $t("tools.nearby.aware_subscribe") }}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
+                                                        :class="
+                                                            newInterfaceAwareMode === 'publish'
+                                                                ? 'bg-lime-500/10 border-lime-500 text-lime-700 dark:text-lime-300'
+                                                                : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                        "
+                                                        @click="newInterfaceAwareMode = 'publish'"
+                                                    >
+                                                        {{ $t("tools.nearby.aware_publish") }}
+                                                    </button>
+                                                </div>
+                                                <p class="text-xs text-sem-fg-muted mt-1.5 leading-relaxed">
+                                                    {{ $t("tools.nearby.aware_hint") }}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.aware_max_peers")
+                                                }}</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceAwarePeers"
+                                                    type="number"
+                                                    min="1"
+                                                    max="8"
+                                                    placeholder="4"
+                                                    class="input-field"
+                                                />
+                                                <p class="text-xs text-sem-fg-muted mt-1.5 leading-relaxed">
+                                                    {{ $t("interfaces.aware_max_peers_hint") }}
+                                                </p>
+                                            </div>
+                                        </div>
+
                                         <!-- External interface module (TypeName.py under Reticulum interfacepath) -->
                                         <div v-if="newInterfaceType === '__external__'" class="space-y-4">
                                             <p class="text-xs text-sem-fg-muted leading-relaxed">
@@ -1828,7 +1920,11 @@
                                     <template #content>
                                         <div class="p-6 space-y-6">
                                             <div class="grid grid-cols-2 gap-4">
-                                                <div v-if="newInterfaceType !== 'HTTPInterface'">
+                                                <div
+                                                    v-if="
+                                                        !['HTTPInterface', 'AwareInterface'].includes(newInterfaceType)
+                                                    "
+                                                >
                                                     <FormLabel class="glass-label">Interface Mode</FormLabel>
                                                     <select v-model="sharedInterfaceSettings.mode" class="input-field">
                                                         <option :value="undefined">
@@ -1852,9 +1948,17 @@
                                                         </option>
                                                     </select>
                                                 </div>
-                                                <div v-else class="col-span-2">
+                                                <div
+                                                    v-else-if="newInterfaceType === 'HTTPInterface'"
+                                                    class="col-span-2"
+                                                >
                                                     <p class="text-xs text-sem-fg-muted">
                                                         {{ $t("interfaces.http_tunnel_mode_note") }}
+                                                    </p>
+                                                </div>
+                                                <div v-else class="col-span-2">
+                                                    <p class="text-xs text-sem-fg-muted">
+                                                        {{ $t("interfaces.aware_mode_note") }}
                                                     </p>
                                                 </div>
                                                 <div>
@@ -2174,6 +2278,7 @@ import Toggle from "../forms/Toggle.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import { RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL } from "../../js/reticulumDocsEntryUrl.js";
+import AndroidBridge from "../../js/rnode/AndroidBridge";
 import { useRNodeInterfaceForm } from "../../js/interfaces/useRNodeInterfaceForm.js";
 
 export default {
@@ -2262,6 +2367,13 @@ export default {
             newInterfaceHttpTlsVerify: true,
             newInterfaceHttpTlsCertfile: null,
             newInterfaceHttpTlsKeyfile: null,
+
+            // WiFi Aware (Android only)
+            locallinkCapabilities: null,
+            newInterfaceAwareMode: "subscribe",
+            newInterfaceAwarePeers: 4,
+            awarePermissionRequesting: false,
+            androidBridge: new AndroidBridge(),
             reticulumInstance: {
                 share_instance: true,
                 local_hops_delta: false,
@@ -2397,6 +2509,33 @@ export default {
             }
             return this.transportEnabled && !this.hasExistingI2PInterface;
         },
+        awareInterfaceSupported() {
+            const caps = this.locallinkCapabilities;
+            return Boolean(caps && caps.supported && caps.wifi_aware && caps.wifi_aware_available);
+        },
+        awareNeedsPermission() {
+            const caps = this.locallinkCapabilities;
+            return Boolean(this.awareInterfaceSupported && caps && !caps.permission_nearby_wifi);
+        },
+        awareTileHint() {
+            const caps = this.locallinkCapabilities;
+            if (caps === null) {
+                return this.$t("interfaces.aware_checking");
+            }
+            if (!caps.supported) {
+                return this.$t("interfaces.aware_android_only");
+            }
+            if (!caps.wifi_aware) {
+                return this.$t("interfaces.aware_not_supported");
+            }
+            if (!caps.wifi_aware_available) {
+                return this.$t("interfaces.aware_unavailable");
+            }
+            if (!caps.permission_nearby_wifi) {
+                return this.$t("interfaces.aware_permission_required");
+            }
+            return null;
+        },
     },
     watch: {
         newInterfaceType(value) {
@@ -2413,6 +2552,13 @@ export default {
         this.loadComports();
         this.loadHostKernelInterfaces();
         this.loadCommunityInterfaces();
+        this.loadLocalLinkCapabilities();
+        this._awarePermListener = (event) => {
+            if (event?.detail?.group === "nearby_wifi") {
+                this.loadLocalLinkCapabilities();
+            }
+        };
+        window.addEventListener("meshchatx-android-permission", this._awarePermListener);
         if (this.newInterfaceType === "__external__") {
             this.loadInstalledInterfaceModules();
         }
@@ -2429,7 +2575,33 @@ export default {
             this.applyDiscoveredInterfacePrefill();
         }
     },
+    beforeUnmount() {
+        if (this._awarePermListener) {
+            window.removeEventListener("meshchatx-android-permission", this._awarePermListener);
+        }
+    },
     methods: {
+        async loadLocalLinkCapabilities() {
+            try {
+                const res = await window.api.get(apiPath("/locallink/capabilities"));
+                this.locallinkCapabilities = res.data || { supported: false };
+            } catch {
+                this.locallinkCapabilities = { supported: false };
+            }
+        },
+        async requestAwarePermission() {
+            this.awarePermissionRequesting = true;
+            try {
+                const result = await this.androidBridge.requestPermission(AndroidBridge.PERM_NEARBY_WIFI);
+                if (result === "granted") {
+                    await this.loadLocalLinkCapabilities();
+                } else if (result === "settings") {
+                    ToastUtils.warning(this.$t("tools.nearby.permission_settings"));
+                }
+            } finally {
+                this.awarePermissionRequesting = false;
+            }
+        },
         applyDiscoveryPatch(patch) {
             this.discovery = {
                 ...this.discovery,
@@ -2819,7 +2991,13 @@ export default {
                 this.newInterfaceCodingRate = iface.codingrate;
                 this.newInterfaceCommand = iface.command;
                 this.newInterfaceRespawnDelay = iface.respawn_delay;
-                this.sharedInterfaceSettings.mode = iface.type === "HTTPInterface" ? null : iface.mode;
+                if (iface.type === "AwareInterface") {
+                    this.newInterfaceAwareMode = iface.mode === "publish" ? "publish" : "subscribe";
+                    this.newInterfaceAwarePeers = iface.peers != null && iface.peers !== "" ? Number(iface.peers) : 4;
+                }
+                this.sharedInterfaceSettings.mode = ["HTTPInterface", "AwareInterface"].includes(iface.type)
+                    ? null
+                    : iface.mode;
                 this.sharedInterfaceSettings.bitrate = iface.bitrate;
                 this.sharedInterfaceSettings.network_name = iface.network_name;
                 this.sharedInterfaceSettings.passphrase = iface.passphrase;
@@ -3401,6 +3579,18 @@ export default {
                     }
                 }
 
+                if (this.newInterfaceType === "AwareInterface") {
+                    if (!this.awareInterfaceSupported) {
+                        ToastUtils.error(this.awareTileHint || this.$t("interfaces.aware_unsupported_toast"));
+                        return;
+                    }
+                    const awarePeers = this.numOrNull(this.newInterfaceAwarePeers);
+                    if (awarePeers != null && (awarePeers < 1 || awarePeers > 8)) {
+                        ToastUtils.error(this.$t("interfaces.aware_max_peers_invalid"));
+                        return;
+                    }
+                }
+
                 if (this.newInterfaceType === "HTTPInterface") {
                     if (this.newInterfaceHttpTunnelMode === "client") {
                         if (!(this.newInterfaceHttpServerUrl || "").trim()) {
@@ -3491,7 +3681,10 @@ export default {
                     target_host: isBackboneListener ? null : this.newInterfaceTargetHost,
                     target_port: isBackboneListener ? null : this.newInterfaceTargetPort,
                     transport_identity: isBackboneListener ? null : this.newInterfaceTransportIdentity,
-                    peers: i2pPeers,
+                    peers:
+                        this.newInterfaceType === "AwareInterface"
+                            ? this.numOrNull(this.newInterfaceAwarePeers)
+                            : i2pPeers,
                     listen_ip: isBackboneListener
                         ? (this.newInterfaceBackboneListenIp || "").trim() || null
                         : this.newInterfaceType === "TCPServerInterface" || this.newInterfaceType === "UDPInterface"
@@ -3620,7 +3813,9 @@ export default {
                     mode:
                         this.newInterfaceType === "HTTPInterface"
                             ? this.newInterfaceHttpTunnelMode || "client"
-                            : this.sharedInterfaceSettings.mode || null,
+                            : this.newInterfaceType === "AwareInterface"
+                              ? this.newInterfaceAwareMode
+                              : this.sharedInterfaceSettings.mode || null,
                     recursive_prs: this.sharedInterfaceSettings.recursive_prs === true,
                     announces_from_internal: this.sharedInterfaceSettings.announces_from_internal !== false,
                     announces_to_internal: this.sharedInterfaceSettings.announces_to_internal === true,
@@ -3671,6 +3866,7 @@ export default {
                 "AutoInterface",
                 "LocalInterface",
                 "HTTPInterface",
+                "AwareInterface",
             ]);
             return builtin.has(t);
         },

@@ -12,17 +12,40 @@
                             <img class="w-16 h-16 object-contain p-2" :src="logoUrl" alt="" />
                         </div>
                         <h1 class="text-2xl font-bold text-sem-fg mb-2">
-                            {{ isSetup ? $t("auth.setup_title") : $t("auth.login_title") }}
+                            {{ showSetupForm ? $t("auth.setup_title") : $t("auth.login_title") }}
                         </h1>
                         <p class="text-sm text-sem-fg-muted">
-                            {{ isSetup ? $t("auth.setup_subtitle") : $t("auth.login_subtitle") }}
+                            {{ showSetupForm ? $t("auth.setup_subtitle") : $t("auth.login_subtitle") }}
                         </p>
                         <p v-if="authPageHint" class="mt-3 text-xs text-sem-fg-muted whitespace-pre-line">
                             {{ authPageHint }}
                         </p>
                     </div>
 
-                    <form class="space-y-6" @submit.prevent="handleSubmit">
+                    <div v-if="oidcEnabled" class="mb-6">
+                        <button
+                            type="button"
+                            class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                            @click="startOidcLogin"
+                        >
+                            {{ $t("auth.oidc_continue", { name: oidcName }) }}
+                        </button>
+                        <div v-if="showPasswordForm" class="flex items-center gap-3 mt-6">
+                            <div class="flex-1 border-t border-sem-border"></div>
+                            <span class="text-xs text-sem-fg-muted">{{ $t("auth.or") }}</span>
+                            <div class="flex-1 border-t border-sem-border"></div>
+                        </div>
+                        <button
+                            v-else
+                            type="button"
+                            class="mt-4 w-full text-center text-xs text-sem-fg-muted hover:text-sem-fg underline"
+                            @click="showPasswordForm = true"
+                        >
+                            {{ $t("auth.set_local_password") }}
+                        </button>
+                    </div>
+
+                    <form v-if="showPasswordForm" class="space-y-6" @submit.prevent="handleSubmit">
                         <div>
                             <label for="password" class="block text-sm font-medium text-sem-fg-muted mb-2">
                                 {{ $t("auth.password_label") }}
@@ -32,7 +55,7 @@
                                 v-model="password"
                                 type="password"
                                 required
-                                :minlength="isSetup ? 8 : 1"
+                                :minlength="showSetupForm ? 8 : 1"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 :placeholder="$t('auth.password_placeholder')"
                                 autocomplete="current-password"
@@ -42,7 +65,7 @@
                             </p>
                         </div>
 
-                        <div v-if="isSetup">
+                        <div v-if="showSetupForm">
                             <label for="confirmPassword" class="block text-sm font-medium text-sem-fg-muted mb-2">
                                 {{ $t("auth.confirm_password_label") }}
                             </label>
@@ -58,22 +81,22 @@
                             />
                         </div>
 
-                        <div
-                            v-if="error"
-                            class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                        >
-                            <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
-                        </div>
-
                         <button
                             type="submit"
-                            :disabled="isLoading || (isSetup && password !== confirmPassword)"
+                            :disabled="isLoading || (showSetupForm && password !== confirmPassword)"
                             class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
                         >
                             <span v-if="isLoading">{{ $t("auth.processing") }}</span>
-                            <span v-else>{{ isSetup ? $t("auth.set_password") : $t("auth.login") }}</span>
+                            <span v-else>{{ showSetupForm ? $t("auth.set_password") : $t("auth.login") }}</span>
                         </button>
                     </form>
+
+                    <div
+                        v-if="error"
+                        class="mt-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                    >
+                        <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -94,8 +117,17 @@ export default {
             error: "",
             isLoading: false,
             isSetup: false,
+            oidcEnabled: false,
+            oidcName: "SSO",
+            passwordSet: false,
+            showPasswordForm: true,
             authPageHint: "",
         };
+    },
+    computed: {
+        showSetupForm() {
+            return this.showPasswordForm && this.isSetup;
+        },
     },
     async mounted() {
         await this.checkAuthStatus();
@@ -117,6 +149,19 @@ export default {
                 }
 
                 this.isSetup = !status.password_set;
+                this.passwordSet = !!status.password_set;
+                this.oidcEnabled = !!status.oidc_enabled;
+                this.oidcName = status.oidc_display_name || "SSO";
+                // With SSO only (no password yet), hide the password form behind
+                // a link. With a password set, offer both methods.
+                this.showPasswordForm = !this.oidcEnabled || this.passwordSet;
+
+                const oidcError = this.$route.query.oidc_error;
+                if (typeof oidcError === "string" && oidcError) {
+                    const key = `auth.oidc_error_${oidcError}`;
+                    this.error = this.$te(key) ? this.$t(key) : this.$t("auth.oidc_error_failed");
+                }
+
                 const hint = status.auth_page_hint;
                 this.authPageHint = typeof hint === "string" ? hint : "";
             } catch (e) {
@@ -124,10 +169,13 @@ export default {
                 this.error = this.$t("auth.status_check_failed");
             }
         },
+        startOidcLogin() {
+            window.location.assign(apiPath("/auth/oidc/login"));
+        },
         async handleSubmit() {
             this.error = "";
 
-            if (this.isSetup) {
+            if (this.showSetupForm) {
                 if (this.password !== this.confirmPassword) {
                     this.error = this.$t("auth.passwords_mismatch");
                     return;

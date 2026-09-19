@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracle tests for shared DB availability helpers and sibling list GETs."""
+"""Reference tests for shared DB availability helpers and sibling list GETs."""
 
 from __future__ import annotations
 
@@ -19,12 +19,12 @@ from meshchatx.src.backend.http.routes.blocklist import register_blocklist_route
 from meshchatx.src.backend.http.routes.favourites import register_favourites_routes
 
 
-def test_require_database_oracle():
+def test_require_database():
     assert require_database(SimpleNamespace(database=None)).status == 503
     assert require_database(SimpleNamespace(database=object())) is None
 
 
-def test_http_for_database_exception_oracle():
+def test_http_for_database_exception():
     locked = http_for_database_exception(sqlite3.OperationalError("database is locked"))
     assert locked.status == 503
     body = json.loads(locked.body)

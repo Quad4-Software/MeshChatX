@@ -20,6 +20,10 @@ class PayloadTooLargeError(ValueError):
     """Raised when a request body or multipart field exceeds its byte cap."""
 
 
+class JsonBodyError(ValueError):
+    """Raised when a request body is valid JSON but not a JSON object."""
+
+
 # Default cap for request.json() bodies and small multipart text fields.
 # JSON endpoints take config or command payloads; anything larger is a
 # feature-specific upload and must declare its own limit.
@@ -163,12 +167,19 @@ async def read_json_limited(
 ):
     """Read a JSON request body, capped at max_bytes.
 
-    Raises PayloadTooLargeError over the cap and json.JSONDecodeError on
-    malformed JSON so existing except clauses keep working. aiohttp
-    requests always carry .content; the request.json fallback exists so
-    legacy test fakes that only stub json() still exercise handlers.
+    Raises PayloadTooLargeError over the cap, json.JSONDecodeError on
+    malformed JSON, and JsonBodyError when the top level is not an object.
+    Every route handler treats the body as a dict, so accepting arrays or
+    scalars here would only surface later as an uncaught AttributeError.
+    aiohttp requests always carry .content; the request.json fallback
+    exists so legacy test fakes that only stub json() still exercise
+    handlers.
     """
     if getattr(request, "content", None) is None:
-        return await request.json()
-    raw = await read_body_limited(request, max_bytes, chunk_size=chunk_size)
-    return json.loads(raw.decode("utf-8"))
+        data = await request.json()
+    else:
+        raw = await read_body_limited(request, max_bytes, chunk_size=chunk_size)
+        data = json.loads(raw.decode("utf-8"))
+    if not isinstance(data, dict):
+        raise JsonBodyError("expected a JSON object")
+    return data

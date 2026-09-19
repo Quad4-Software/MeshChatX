@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: 0BSD */
 /**
- * Adversarial / race oracles for tutorial connect + bootstrap flows.
+ * Adversarial / race references for tutorial connect + bootstrap flows.
  * Each case states an invariant and asserts an exact postcondition.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -104,7 +104,7 @@ async function mountTutorial(communityInterfaces = tcpCommunity(6)) {
     return wrapper;
 }
 
-describe("TutorialModal connect/bootstrap adversarial oracles", () => {
+describe("TutorialModal connect/bootstrap adversarial references", () => {
     beforeEach(() => {
         window.api = axiosMock;
         vi.clearAllMocks();

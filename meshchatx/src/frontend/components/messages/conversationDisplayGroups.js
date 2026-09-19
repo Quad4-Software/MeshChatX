@@ -100,7 +100,7 @@ export function prependDisplayGroupsNewestFirst(
 }
 
 /**
- * Flatten display groups to message hashes oldest-first (oracle helper).
+ * Flatten display groups to message hashes oldest-first (reference helper).
  *
  * @param {unknown[]} groupsNewestFirst
  * @returns {string[]}

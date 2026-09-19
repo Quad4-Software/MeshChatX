@@ -598,7 +598,7 @@ def test_rnsh_manager_save_is_atomic(tmp_path):
     assert len(data["sessions"]) == 1
 
 
-def test_oracle_rnsh_rejects_config_path_outside_jail(tmp_path):
+def test_rnsh_rejects_config_path_outside_jail(tmp_path):
     from meshchatx.src.backend.rnsh_manager import RNSHManager
 
     storage = tmp_path / "storage"
@@ -618,7 +618,7 @@ def test_oracle_rnsh_rejects_config_path_outside_jail(tmp_path):
     assert (bait / "secret").read_text(encoding="utf-8") == "nope"
 
 
-def test_oracle_rnsh_rejects_extra_args(tmp_path):
+def test_rnsh_rejects_extra_args(tmp_path):
     from meshchatx.src.backend.rnsh_manager import RNSHManager
 
     manager = RNSHManager(str(tmp_path))
@@ -631,7 +631,7 @@ def test_oracle_rnsh_rejects_extra_args(tmp_path):
         )
 
 
-def test_oracle_rnsh_allows_relative_config_under_storage(tmp_path):
+def test_rnsh_allows_relative_config_under_storage(tmp_path):
     from meshchatx.src.backend.rnsh_manager import RNSHManager
 
     storage = tmp_path / "storage"

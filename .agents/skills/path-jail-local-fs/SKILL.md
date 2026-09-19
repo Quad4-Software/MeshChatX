@@ -1,11 +1,11 @@
 ---
 name: path-jail-local-fs
-description: Local file browse/upload/download/delete with a hard path jail, CSRF-safe mutators, and oracle tests. Use when any handler takes a client path and touches disk.
+description: Local file browse/upload/download/delete with a hard path jail, CSRF-safe mutators, and reference tests. Use when any handler takes a client path and touches disk.
 ---
 
 # Skill: path-jail-local-fs
 
-Add or change local filesystem features (browse, upload, download, mkdir, delete) with a hard path jail, CSRF-safe mutators, and oracle-style tests. Do not ship file CRUD that can escape identity or feature roots.
+Add or change local filesystem features (browse, upload, download, mkdir, delete) with a hard path jail, CSRF-safe mutators, and reference-style tests. Do not ship file CRUD that can escape identity or feature roots.
 
 ## When to use
 
@@ -87,7 +87,7 @@ Extend or add:
 - Second identity storage bait in the same test
 - Symlink inside root pointing outside (list/read/write/delete fail closed)
 - Upload basename sanitization (path segments stripped or rejected, never escape)
-- Hypothesis or explicit oracle: accept only when resolved path stays under root
+- Hypothesis or explicit reference: accept only when resolved path stays under root
 - Frontend: mock `window.api`, assert upload/delete calls and toasts
 
 Soft fuzz that only checks "did not crash" is not enough. See `test-oracles`.
@@ -105,7 +105,7 @@ Soft fuzz that only checks "did not crash" is not enough. See `test-oracles`.
 
 ```bash
 task test:filesync:security
-uv run pytest tests/backend/test_path_jail_oracles.py -q --tb=short
+uv run pytest tests/backend/test_path_jail.py -q --tb=short
 pnpm exec vitest run tests/frontend/apiFetchGuard.test.js
 ```
 
@@ -118,6 +118,6 @@ Do not ship until all are true:
 1. Every list/read/write/delete/upload goes through the feature resolve helper
 2. Escape payloads never read or delete bait files outside the root
 3. Symlink-out and cross-identity cases fail closed with tests
-4. Oracle or Hypothesis coverage exists for the resolve helper
+4. Reference or Hypothesis coverage exists for the resolve helper
 5. Mutators are CSRF HTTP via `window.api`
 6. Route fixture / JSON contract registry updated when routes change

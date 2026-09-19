@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracle tests for sqlite-unavailable API middleware."""
+"""Reference tests for sqlite-unavailable API middleware."""
 
 from __future__ import annotations
 

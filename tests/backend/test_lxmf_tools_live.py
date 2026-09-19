@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Live LXMF pack/unpack oracles for sieve matching, alias identities, and paper URIs.
+"""Live LXMF pack/unpack references for sieve matching, alias identities, and paper URIs.
 
 Pack and unpack require an isolated Reticulum instance. Enable with
 MESHCHAT_LIVE_RETICULUM=1 (same gate as test_lxmf_communication.py).
@@ -76,7 +76,7 @@ def _parse_result(proc):
 
 @pytest.mark.integration
 @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
-def test_live_packed_lxmf_content_matches_sieve_oracle():
+def test_live_packed_lxmf_content_matches_sieve():
     script = _SUBPROCESS_PREAMBLE + textwrap.dedent("""\
     try:
         sender_id = RNS.Identity()

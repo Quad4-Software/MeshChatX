@@ -12,11 +12,11 @@ Applies when editing `tests/**/*.{py,js}`.
 - Unit tests for rules and ABI: `tests/backend/test_landlock_sandbox.py`.
 - Long-running / notification soak suites can hang. Prefer timeouts and avoid piping pytest through `tail` in agent shells.
 
-## Oracle style (no soft fuzz)
+## Reference style (no soft fuzz)
 
 Property and fuzz tests must assert an accept or reject outcome, not only that nothing crashed.
-Refuse bare `except Exception: pass`, `never_raises`-only tests, checking a result dict has an `"ok"` key without checking its value, and mocks that always succeed under a security oracle.
-Prefer an independent oracle (predict accept or reject from the input, then assert the code matches), jail oracles (resolved path stays under the allowed root), closed reason sets (`ValueError` message is one of the known machine reasons), or round-trip invariants for pure parsing.
+Refuse bare `except Exception: pass`, `never_raises`-only tests, checking a result dict has an `"ok"` key without checking its value, and mocks that always succeed under a security reference.
+Prefer an independent reference (predict accept or reject from the input, then assert the code matches), jail references (resolved path stays under the allowed root), closed reason sets (`ValueError` message is one of the known machine reasons), or round-trip invariants for pure parsing.
 
 Full guidance and examples: `.agents/skills/test-oracles/SKILL.md`.
 Path jail filesystem features: `.agents/skills/path-jail-local-fs/SKILL.md` and `.agents/conventions/path-jail.md`.

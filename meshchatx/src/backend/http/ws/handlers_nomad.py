@@ -361,6 +361,15 @@ async def handle_nomadnet_page_archive_load(app, client, data):
     archive = app.database.misc.get_archived_page_by_id(archive_id)
 
     if archive:
+        try:
+            app._register_page_file_grant(
+                client,
+                bytes.fromhex(archive["destination_hash"]),
+                archive["page_path"],
+                archive["content"],
+            )
+        except (TypeError, ValueError):
+            pass
         AsyncUtils.run_async(
             client.send_str(
                 json.dumps(
@@ -748,6 +757,13 @@ async def handle_nomadnet_page_download(app, client, data):
         page_path_to_download,
         request_data=combined_data,
     )
+    if local_page is not None and len(local_page) > WS_NOMAD_PAGE_MAX_CHARS:
+        await send_failure(
+            "page_too_large",
+            destination_hash.hex(),
+            page_path,
+        )
+        return
     if local_page is not None:
         if not private:
             app.archive_page(destination_hash.hex(), page_path, local_page)
@@ -875,6 +891,7 @@ async def handle_nomadnet_page_download(app, client, data):
         on_phase=on_page_download_phase,
         reticulum=getattr(app, "reticulum", None),
         private=private,
+        max_bytes=WS_NOMAD_PAGE_MAX_CHARS,
         **nomad_link_identity_kwargs(app, destination_hash, private=private),
     )
     app.active_downloads[download_id] = downloader

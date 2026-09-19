@@ -78,7 +78,7 @@
                         <div class="flex gap-2 pt-1">
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
                                 @click="printQRCode"
                             >
                                 <MaterialDesignIcon icon-name="printer" class="size-4" />
@@ -130,7 +130,7 @@
                         <div class="flex gap-2 pt-1">
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
                                 @click="printQRCode"
                             >
                                 <MaterialDesignIcon icon-name="printer" class="size-4" />

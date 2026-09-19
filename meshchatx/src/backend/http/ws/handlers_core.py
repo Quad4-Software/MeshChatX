@@ -38,10 +38,6 @@ async def handle_config_set(app, client, data):
 
     try:
         await app.update_config(config)
-        try:
-            AsyncUtils.run_async(app.send_config_to_websocket_clients())
-        except Exception as e:
-            print(f"Failed to broadcast config update: {e}")
         await client.send_str(
             json.dumps(
                 {

@@ -23,3 +23,27 @@ describe("GlobalEmitter.listenerCount", () => {
         expect(GlobalEmitter.listenerCount(event)).toBe(1);
     });
 });
+
+describe("GlobalEmitter.emit isolation", () => {
+    const event = "test-emit-isolation";
+
+    afterEach(() => {
+        GlobalEmitter.off(event);
+    });
+
+    it("a throwing handler does not starve later handlers", () => {
+        const calls = [];
+        const consoleError = console.error;
+        console.error = () => {};
+        try {
+            GlobalEmitter.on(event, () => {
+                throw new Error("boom");
+            });
+            GlobalEmitter.on(event, () => calls.push("second"));
+            GlobalEmitter.emit(event, { n: 1 });
+        } finally {
+            console.error = consoleError;
+        }
+        expect(calls).toEqual(["second"]);
+    });
+});

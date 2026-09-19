@@ -15,6 +15,7 @@ import importlib
 import importlib.metadata
 import json
 import logging
+import math
 import os
 import re
 import runpy
@@ -248,7 +249,11 @@ if log_dir:
         encoding="utf-8",
     )
     handlers.append(file_handler)
-else:
+
+# Always tee to stdout when one exists. Containers log to /config/logs only,
+# which hides aiohttp.server request-handler tracebacks from docker logs and
+# kubectl logs. Frozen GUI builds may have no console stream; skip then.
+if sys.stdout is not None:
     handlers.append(logging.StreamHandler(sys.stdout))
 
 logging.basicConfig(level=logging.INFO, handlers=handlers)
@@ -477,6 +482,9 @@ class ReticulumMeshChat:
 
         self.webtransport_state = WebTransportSidecarState()
         self._identity_hotswap_lock = asyncio.Lock()
+        # Serializes reload_reticulum: concurrent admin requests would
+        # otherwise interleave teardown and rebuild of the RNS stack.
+        self._reticulum_reload_lock = asyncio.Lock()
         self.listen_host: str | None = None
         self.listen_port: int | None = None
         self.use_https: bool = True
@@ -934,8 +942,18 @@ class ReticulumMeshChat:
         if auth_bypass_from_env():
             return False
         if self.config:
-            return self.config.auth_enabled.get()
-        return self.auth_enabled_initial
+            return self.config.auth_enabled.get() or self._oidc_ready()
+        return self.auth_enabled_initial or self._oidc_ready()
+
+    def _oidc_settings(self):
+        from meshchatx.src.backend.oidc import load_oidc_settings
+
+        return load_oidc_settings(self.config)
+
+    def _oidc_ready(self) -> bool:
+        from meshchatx.src.backend.oidc import oidc_ready
+
+        return oidc_ready(self._oidc_settings())
 
     @property
     def storage_path(self):
@@ -1416,41 +1434,53 @@ class ReticulumMeshChat:
         db_path = self.prepare_for_database_restore()
         if not db_path:
             raise RuntimeError("Database path is unknown")
-        from meshchatx.src.backend.database import Database
-
-        db = Database(db_path)
         try:
-            result = db.restore_database(backup_path)
-        finally:
-            db.close_all()
-        identity_storage_file = os.path.join(os.path.dirname(db_path), "identity")
-        main_identity_file = self.identity_file_path or os.path.join(
-            self.storage_dir,
-            "identity",
-        )
-        restored_identity_hash = None
-        if os.path.isfile(identity_storage_file):
+            from meshchatx.src.backend.database import Database
+
+            db = Database(db_path)
             try:
-                restored_identity = RNS.Identity.from_file(identity_storage_file)
-                restored_identity_hash = restored_identity.hash.hex()
-            except Exception as exc:
-                print(
-                    "Restored identity file is invalid; keeping the current "
-                    f"identity key: {exc}",
+                result = db.restore_database(backup_path)
+            finally:
+                db.close_all()
+            identity_storage_file = os.path.join(os.path.dirname(db_path), "identity")
+            main_identity_file = self.identity_file_path or os.path.join(
+                self.storage_dir,
+                "identity",
+            )
+            restored_identity_hash = None
+            if os.path.isfile(identity_storage_file):
+                try:
+                    restored_identity = RNS.Identity.from_file(identity_storage_file)
+                    restored_identity_hash = restored_identity.hash.hex()
+                except Exception as exc:
+                    print(
+                        "Restored identity file is invalid; keeping the current "
+                        f"identity key: {exc}",
+                    )
+                else:
+                    os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
+                    shutil.copy2(identity_storage_file, main_identity_file)
+            final_db_path = db_path
+            if restored_identity_hash:
+                final_db_path = self._relocate_restored_identity_dir(
+                    db_path,
+                    restored_identity_hash,
                 )
-            else:
-                os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
-                shutil.copy2(identity_storage_file, main_identity_file)
-        final_db_path = db_path
-        if restored_identity_hash:
-            final_db_path = self._relocate_restored_identity_dir(
-                db_path,
+            self._rebaseline_integrity_after_restore(
+                final_db_path,
                 restored_identity_hash,
             )
-        self._rebaseline_integrity_after_restore(
-            final_db_path,
-            restored_identity_hash,
-        )
+        except Exception:
+            # Contexts were torn down before the backup was validated. Without
+            # re-setup the app stays contextless and every request 503s until
+            # a manual restart.
+            try:
+                if self.identity:
+                    self.running = True
+                    self.setup_identity(self.identity)
+            except Exception as rec_exc:
+                print(f"Recovery after failed database restore failed: {rec_exc}")
+            raise
         if relaunch:
             self._schedule_process_restart()
         return result
@@ -1924,6 +1954,13 @@ class ReticulumMeshChat:
                 self.current_context = self.contexts[identity_hash]
                 if not self.current_context.running:
                     self.current_context.setup()
+                # Rebind app-level log sinks: keep-alive switches skip the
+                # new-context path below, which would leave these pointed at
+                # the previously selected identity's database.
+                memory_log_handler.set_database(self.current_context.database)
+                if hasattr(self, "_crash_recovery") and self._crash_recovery:
+                    self._crash_recovery.set_database(self.current_context.database)
+                    self._crash_recovery.log_handler = memory_log_handler
                 self.web_audio_bridge = WebAudioBridge(
                     self.current_context.telephone_manager,
                     self.current_context.config,
@@ -2032,6 +2069,10 @@ class ReticulumMeshChat:
                 self.plugin_manager.install_bundled_examples()
             except Exception as exc:
                 print(f"Bundled plugin sync failed: {exc}", flush=True)
+            try:
+                self.plugin_manager.restore_enabled_hooks()
+            except Exception as exc:
+                print(f"Plugin hook restore failed: {exc}", flush=True)
         try:
             self.sideband_plugin_loader.reload()
             self._ensure_sideband_telemetry_loop()
@@ -2120,12 +2161,17 @@ class ReticulumMeshChat:
 
     def teardown_identity(self):
         if self.current_context:
-            self.running = False
+            # Do not clear self.running here: per-context loops already exit on
+            # ctx.running/session_id, and an app-wide stop would kill loops for
+            # other kept-alive contexts whose ctx.running stays True.
             identity_hash = self.current_context.identity_hash
             self.current_context.teardown()
             if identity_hash in self.contexts:
                 del self.contexts[identity_hash]
             self.current_context = None
+            # The context DB is closed; drop the stale handle so later log
+            # emits buffer in memory instead of hitting a dead SQLite file.
+            memory_log_handler.set_database(None)
             # Drop Nomad and RNS links that may have identified as the prior identity.
             self._clear_mesh_link_caches()
             self._drop_auto_resend_locks(identity_hash)
@@ -2160,6 +2206,9 @@ class ReticulumMeshChat:
         self.contexts.clear()
         self.current_context = None
         self.running = False
+        # Context DBs are closed; stop the log handler from writing to a
+        # stale handle during the reload gap.
+        memory_log_handler.set_database(None)
         # Same drop as teardown_identity. Reload and zip restore must not keep
         # Nomad or RNS Link sessions from the torn-down identities.
         self._clear_mesh_link_caches()
@@ -2427,6 +2476,10 @@ class ReticulumMeshChat:
             cp.write(f)
 
     async def reload_reticulum(self):
+        async with self._reticulum_reload_lock:
+            return await self._reload_reticulum_locked()
+
+    async def _reload_reticulum_locked(self):
         print("Hot reloading Reticulum stack...")
         # Keep reference to old reticulum instance for cleanup
         old_reticulum = getattr(self, "reticulum", None)
@@ -2947,6 +3000,20 @@ class ReticulumMeshChat:
             )
 
             # Try to recover if possible without wiping storage.
+            # A failure between RNS shutdown and the attribute drop leaves a
+            # dead self.reticulum that would make setup_identity reuse a
+            # torn-down stack, so clear it (and the RNS singleton) first.
+            # The singleton clear must run even when self.reticulum is already
+            # gone: a failure after `del self.reticulum` but before __instance
+            # was reset still leaves the singleton bound to the dead stack.
+            if getattr(self, "reticulum", None) is not None:
+                with contextlib.suppress(Exception):
+                    RNS.Reticulum.exit_handler()
+                with contextlib.suppress(Exception):
+                    del self.reticulum
+            with contextlib.suppress(Exception):
+                RNS.Reticulum._Reticulum__instance = None
+
             if not hasattr(self, "reticulum") and identity_to_restore is not None:
                 try:
                     self.setup_identity(identity_to_restore)
@@ -3585,6 +3652,25 @@ class ReticulumMeshChat:
             updated["publish_ifac"] = bool(
                 updated["ifac_netname"] or updated["ifac_netkey"],
             )
+
+            # Discovery announces are untrusted mesh data; reject non-finite
+            # or out-of-range coordinates before they reach map clients.
+            lat = updated.get("latitude")
+            lon = updated.get("longitude")
+            if lat is not None or lon is not None:
+                valid = (
+                    isinstance(lat, (int, float))
+                    and isinstance(lon, (int, float))
+                    and not isinstance(lat, bool)
+                    and not isinstance(lon, bool)
+                    and math.isfinite(lat)
+                    and math.isfinite(lon)
+                    and -90.0 <= lat <= 90.0
+                    and -180.0 <= lon <= 180.0
+                )
+                if not valid:
+                    updated["latitude"] = None
+                    updated["longitude"] = None
             normalized.append(updated)
         return normalized
 
@@ -3889,6 +3975,7 @@ class ReticulumMeshChat:
         )
 
         done_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
         success = [False]
         content_received = [None]
         failure_reason = ["timeout"]
@@ -3897,11 +3984,13 @@ class ReticulumMeshChat:
         def on_success(content):
             success[0] = True
             content_received[0] = content
-            done_event.set()
+            # RNS request callbacks fire on the transport thread, so the
+            # asyncio.Event must be set through the owning loop.
+            loop.call_soon_threadsafe(done_event.set)
 
         def on_failure(reason):
             failure_reason[0] = reason
-            done_event.set()
+            loop.call_soon_threadsafe(done_event.set)
 
         def on_progress(progress):
             pass
@@ -4517,6 +4606,10 @@ class ReticulumMeshChat:
             "rpc_key": rpc_key,
             "rpc_config_snippet": rpc_snippet,
             "is_connected_to_shared_instance": is_connected,
+            "is_shared_instance": bool(
+                reticulum is not None
+                and getattr(reticulum, "is_shared_instance", False),
+            ),
             "enable_transport": self._parse_rns_config_bool(
                 section.get("enable_transport"),
                 default=bool(
@@ -5440,6 +5533,7 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.http.register import register_all_routes
 
         (
+            bad_request_middleware,
             sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
@@ -5450,6 +5544,7 @@ class ReticulumMeshChat:
         ) = register_all_routes(routes, self)
 
         return (
+            bad_request_middleware,
             sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
@@ -5553,6 +5648,7 @@ class ReticulumMeshChat:
         # create route table
         routes = web.RouteTableDef()
         (
+            bad_request_middleware,
             sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
@@ -5675,6 +5771,7 @@ class ReticulumMeshChat:
         # add other middlewares
         app.middlewares.extend(
             [
+                bad_request_middleware,
                 sqlite_unavailable_middleware,
                 auth_middleware,
                 mime_type_middleware,
@@ -6010,6 +6107,23 @@ class ReticulumMeshChat:
         return None
 
     async def update_config(self, data):
+        # Validate before any .set() call: config fields persist to SQLite
+        # immediately, so a late ValueError would leave a partial update.
+        if "oidc_issuer_url" in data:
+            from meshchatx.src.backend.oidc import (
+                OidcConfigError,
+                validate_issuer_url,
+            )
+
+            raw_issuer = data["oidc_issuer_url"]
+            if raw_issuer is not None and str(raw_issuer).strip() != "":
+                try:
+                    validated_issuer_url = validate_issuer_url(str(raw_issuer))
+                except OidcConfigError as exc:
+                    raise ValueError(f"Invalid oidc_issuer_url: {exc}") from exc
+            else:
+                validated_issuer_url = None
+
         # update display name in config
         if "display_name" in data and data["display_name"] != "":
             self.config.display_name.set(data["display_name"])
@@ -6395,7 +6509,53 @@ class ReticulumMeshChat:
 
             # if disabling auth, also remove the password hash from config
             if not value:
-                self.config.auth_password_hash.set(None)
+                self.config.oidc_enabled.set(False)
+                # Only drop the stored password when the request actually
+                # turns authentication off. Env-managed OIDC can keep auth
+                # enforced, and wiping the hash in that state strands the
+                # admin's local credential while the endpoint still demands
+                # authentication.
+                if not self._oidc_ready():
+                    self.config.auth_password_hash.set(None)
+
+        if "oidc_enabled" in data:
+            self.config.oidc_enabled.set(self._parse_bool(data["oidc_enabled"]))
+
+        if "oidc_issuer_url" in data:
+            self.config.oidc_issuer_url.set(validated_issuer_url)
+
+        if "oidc_client_id" in data:
+            value = data["oidc_client_id"]
+            self.config.oidc_client_id.set(
+                str(value).strip()
+                if value is not None and str(value).strip()
+                else None,
+            )
+
+        if "oidc_client_secret" in data:
+            value = data["oidc_client_secret"]
+            if value is None:
+                self.config.oidc_client_secret.set(None)
+            elif str(value) != "":
+                self.config.oidc_client_secret.set(str(value))
+            # Empty string means "leave unchanged": the UI never echoes the
+            # stored secret, so a blank field is not a clear request.
+
+        if "oidc_display_name" in data:
+            value = data["oidc_display_name"]
+            self.config.oidc_display_name.set(
+                str(value).strip()
+                if value is not None and str(value).strip()
+                else None,
+            )
+
+        if "oidc_scopes" in data:
+            value = data["oidc_scopes"]
+            scopes = str(value).strip() if value is not None else ""
+            if scopes and "openid" in scopes.split():
+                self.config.oidc_scopes.set(scopes[:200])
+            elif not scopes:
+                self.config.oidc_scopes.set("openid profile email")
 
         if "privacy_mode_enabled" in data:
             self.config.privacy_mode_enabled.set(
@@ -6414,10 +6574,16 @@ class ReticulumMeshChat:
             )
 
         if "map_default_lat" in data:
-            self.config.map_default_lat.set(str(data["map_default_lat"]))
+            _map_lat = data["map_default_lat"]
+            self.config.map_default_lat.set(
+                str(_map_lat) if _map_lat is not None else None,
+            )
 
         if "map_default_lon" in data:
-            self.config.map_default_lon.set(str(data["map_default_lon"]))
+            _map_lon = data["map_default_lon"]
+            self.config.map_default_lon.set(
+                str(_map_lon) if _map_lon is not None else None,
+            )
 
         if "map_default_zoom" in data:
             try:
@@ -6456,13 +6622,22 @@ class ReticulumMeshChat:
             self.config.location_source.set(data["location_source"])
 
         if "location_manual_lat" in data:
-            self.config.location_manual_lat.set(str(data["location_manual_lat"]))
+            _loc_lat = data["location_manual_lat"]
+            self.config.location_manual_lat.set(
+                str(_loc_lat) if _loc_lat is not None else None,
+            )
 
         if "location_manual_lon" in data:
-            self.config.location_manual_lon.set(str(data["location_manual_lon"]))
+            _loc_lon = data["location_manual_lon"]
+            self.config.location_manual_lon.set(
+                str(_loc_lon) if _loc_lon is not None else None,
+            )
 
         if "location_manual_alt" in data:
-            self.config.location_manual_alt.set(str(data["location_manual_alt"]))
+            _loc_alt = data["location_manual_alt"]
+            self.config.location_manual_alt.set(
+                str(_loc_alt) if _loc_alt is not None else None,
+            )
 
         if "telemetry_enabled" in data:
             self.config.telemetry_enabled.set(
@@ -7644,9 +7819,12 @@ class ReticulumMeshChat:
 
     # returns a dictionary of config
     def get_config_dict(self, context=None):
+        from meshchatx.src.backend import oidc
+
         ctx = context or self.current_context
         if not ctx:
             return {}
+        oidc_settings = self._oidc_settings()
         return {
             "display_name": ctx.config.display_name.get(),
             "identity_hash": ctx.identity.hash.hex(),
@@ -7710,6 +7888,16 @@ class ReticulumMeshChat:
             "crawler_requests_per_day_per_node": ctx.config.crawler_requests_per_day_per_node.get(),
             "crawler_refresh_days": ctx.config.crawler_refresh_days.get(),
             "auth_enabled": self.auth_enabled,
+            **{
+                "oidc_enabled": oidc_settings.enabled,
+                "oidc_ready": oidc.oidc_ready(oidc_settings),
+                "oidc_env_managed": oidc_settings.env_managed,
+                "oidc_issuer_url": oidc_settings.issuer,
+                "oidc_client_id": oidc_settings.client_id,
+                "oidc_display_name": oidc_settings.display_name,
+                "oidc_scopes": oidc_settings.scopes,
+                "oidc_client_secret_set": bool(oidc_settings.client_secret),
+            },
             "privacy_mode_enabled": ctx.config.privacy_mode_enabled.get(),
             "multi_session_warning_enabled": ctx.config.multi_session_warning_enabled.get(),
             "voicemail_enabled": ctx.config.voicemail_enabled.get(),
@@ -8272,6 +8460,107 @@ class ReticulumMeshChat:
             "updated_at": updated_at,
         }
 
+    def build_pending_announce_dict(
+        self,
+        aspect,
+        destination_hash,
+        announced_identity,
+        app_data,
+        announce_packet_hash,
+    ):
+        """Slim announce payload for background-ingested peers.
+
+        Matches convert_db_announce_to_dict's output for strangers without
+        any SQLite lookups: unknown peers have no contact, custom name, or
+        icon by definition, so those fields are always empty here.
+        """
+        from meshchatx.src.backend.announce_manager import (
+            MAX_ANNOUNCE_APP_DATA_BYTES,
+        )
+
+        dh_hex = (
+            destination_hash.hex()
+            if isinstance(destination_hash, (bytes, bytearray, memoryview))
+            else destination_hash
+        )
+        identity_hash = None
+        identity_public_key = None
+        if announced_identity is not None and getattr(
+            announced_identity,
+            "hash",
+            None,
+        ):
+            identity_hash = announced_identity.hash.hex()
+            try:
+                identity_public_key = base64.b64encode(
+                    announced_identity.get_public_key(),
+                ).decode("utf-8")
+            except Exception:
+                identity_public_key = None
+
+        app_data_b64 = None
+        if (
+            app_data is not None
+            and isinstance(
+                app_data,
+                (bytes, bytearray, memoryview),
+            )
+            and len(app_data) <= MAX_ANNOUNCE_APP_DATA_BYTES
+        ):
+            app_data_b64 = base64.b64encode(bytes(app_data)).decode("utf-8")
+
+        display_name = None
+        if aspect in ("lxmf.delivery", "lxst.telephony"):
+            display_name = parse_lxmf_display_name(app_data_b64)
+        elif aspect == "nomadnetwork.node":
+            display_name = parse_nomadnetwork_node_display_name(app_data_b64)
+        elif aspect == "rrc.hub":
+            display_name = rrc_protocol.display_name_from_hub_app_data(app_data_b64)
+
+        rssi = snr = quality = None
+        if announce_packet_hash and getattr(self, "reticulum", None):
+            rssi = self.reticulum.get_packet_rssi(announce_packet_hash)
+            snr = self.reticulum.get_packet_snr(announce_packet_hash)
+            quality = self.reticulum.get_packet_q(announce_packet_hash)
+
+        hops = None
+        try:
+            hops = RNS.Transport.hops_to(bytes.fromhex(dh_hex))
+        except Exception:
+            pass
+
+        now = datetime.now(UTC).isoformat()
+        return {
+            "id": None,
+            "destination_hash": dh_hex,
+            "aspect": aspect,
+            "identity_hash": identity_hash,
+            "identity_public_key": identity_public_key,
+            "app_data": app_data_b64,
+            "hops": hops,
+            "rssi": rssi,
+            "snr": snr,
+            "quality": quality,
+            "display_name": display_name,
+            "lxmf_destination_hash": None,
+            "custom_display_name": None,
+            "lxmf_user_icon": None,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+    def _broadcast_announce_event(self, announce_dict):
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "announce",
+                        "announce": announce_dict,
+                    },
+                ),
+            ),
+        )
+
     # convert database lxmf message to a dictionary
     # updates the lxmf user icon for the provided destination hash
     def update_lxmf_user_icon(
@@ -8677,6 +8966,8 @@ class ReticulumMeshChat:
         except Exception as e:
             print(f"banish_lxmf_peer: failed: {e}")
             return
+        if ctx.announce_manager:
+            ctx.announce_manager.invalidate_peer_sets()
         self._lxmf_reticulum_enforce_block(destination_hash, context=ctx)
         handler = getattr(ctx, "message_handler", None)
         local_dest = getattr(ctx, "local_lxmf_destination", None)
@@ -8704,6 +8995,8 @@ class ReticulumMeshChat:
                 ctx.database.misc.delete_blocked_destination(peer_hash)
             except Exception as e:
                 print(f"lift_lxmf_peer_banishment: delete {peer_hash} failed: {e}")
+        if ctx.announce_manager:
+            ctx.announce_manager.invalidate_peer_sets()
         try:
             if (
                 hasattr(self, "reticulum")
@@ -9797,12 +10090,14 @@ class ReticulumMeshChat:
         if path_row_hash_hex is not None:
             lxmf_message_dict["path_row_hash_hex"] = path_row_hash_hex
 
-        # calculate peer hash
-        local_hash = ctx.local_lxmf_destination.hexhash
-        if lxmf_message_dict["source_hash"] == local_hash:
-            lxmf_message_dict["peer_hash"] = lxmf_message_dict["destination_hash"]
-        else:
+        # calculate peer hash. Direction decides the peer rather than comparing
+        # source to the main identity: outbound copies sent via forwarding
+        # aliases have a different source hash but are still our messages, so
+        # the peer is the destination, not the alias.
+        if lxmf_message_dict.get("is_incoming"):
             lxmf_message_dict["peer_hash"] = lxmf_message_dict["source_hash"]
+        else:
+            lxmf_message_dict["peer_hash"] = lxmf_message_dict["destination_hash"]
 
         try:
             ctx.database.messages.upsert_lxmf_message(lxmf_message_dict)
@@ -10430,7 +10725,11 @@ class ReticulumMeshChat:
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
             return
         identity_hash = announced_identity.hash.hex()
-        if self.is_destination_blocked(identity_hash, context=ctx):
+        verdict = ctx.announce_manager.classify_announce(
+            destination_hash,
+            identity_hash,
+        )
+        if verdict == "blocked":
             logger.debug(
                 "Dropping telephone announce from blocked source: %s",
                 identity_hash,
@@ -10449,6 +10748,27 @@ class ReticulumMeshChat:
 
         # track announce timestamp
         self._note_announce_timestamp()
+
+        if verdict == "background":
+            ctx.announce_manager.upsert_announce(
+                self.reticulum,
+                announced_identity,
+                destination_hash,
+                aspect,
+                app_data,
+                announce_packet_hash,
+                defer=True,
+            )
+            self._broadcast_announce_event(
+                self.build_pending_announce_dict(
+                    aspect,
+                    destination_hash,
+                    announced_identity,
+                    app_data,
+                    announce_packet_hash,
+                ),
+            )
+            return
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
@@ -10501,7 +10821,11 @@ class ReticulumMeshChat:
 
         # check if source is blocked - drop announce and path if blocked
         identity_hash = announced_identity.hash.hex()
-        if self.is_destination_blocked(identity_hash, context=ctx):
+        verdict = ctx.announce_manager.classify_announce(
+            destination_hash,
+            identity_hash,
+        )
+        if verdict == "blocked":
             logger.debug(
                 "Dropping announce from blocked source: %s",
                 identity_hash,
@@ -10520,6 +10844,27 @@ class ReticulumMeshChat:
 
         # track announce timestamp
         self._note_announce_timestamp()
+
+        if verdict == "background":
+            ctx.announce_manager.upsert_announce(
+                self.reticulum,
+                announced_identity,
+                destination_hash,
+                aspect,
+                app_data,
+                announce_packet_hash,
+                defer=True,
+            )
+            self._broadcast_announce_event(
+                self.build_pending_announce_dict(
+                    aspect,
+                    destination_hash,
+                    announced_identity,
+                    app_data,
+                    announce_packet_hash,
+                ),
+            )
+            return
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
@@ -10576,6 +10921,15 @@ class ReticulumMeshChat:
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
             return
 
+        verdict = ctx.announce_manager.classify_announce(
+            destination_hash,
+            getattr(announced_identity, "hash", None),
+        )
+        if verdict == "blocked":
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.drop_path(destination_hash)
+            return
+
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
@@ -10586,6 +10940,27 @@ class ReticulumMeshChat:
 
         # track announce timestamp
         self._note_announce_timestamp()
+
+        if verdict == "background":
+            ctx.announce_manager.upsert_announce(
+                self.reticulum,
+                announced_identity,
+                destination_hash,
+                aspect,
+                app_data,
+                announce_packet_hash,
+                defer=True,
+            )
+            self._broadcast_announce_event(
+                self.build_pending_announce_dict(
+                    aspect,
+                    destination_hash,
+                    announced_identity,
+                    app_data,
+                    announce_packet_hash,
+                ),
+            )
+            return
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
@@ -10787,7 +11162,11 @@ class ReticulumMeshChat:
             return
 
         identity_hash = announced_identity.hash.hex()
-        if self.is_destination_blocked(identity_hash, context=ctx):
+        verdict = ctx.announce_manager.classify_announce(
+            destination_hash,
+            identity_hash,
+        )
+        if verdict == "blocked":
             logger.debug(
                 "Dropping rrc.hub announce from blocked source: %s",
                 identity_hash,
@@ -10805,6 +11184,27 @@ class ReticulumMeshChat:
         )
 
         self._note_announce_timestamp()
+
+        if verdict == "background":
+            ctx.announce_manager.upsert_announce(
+                self.reticulum,
+                announced_identity,
+                destination_hash,
+                aspect,
+                app_data,
+                announce_packet_hash,
+                defer=True,
+            )
+            self._broadcast_announce_event(
+                self.build_pending_announce_dict(
+                    aspect,
+                    destination_hash,
+                    announced_identity,
+                    app_data,
+                    announce_packet_hash,
+                ),
+            )
+            return
 
         ctx.announce_manager.upsert_announce(
             self.reticulum,
@@ -10846,7 +11246,11 @@ class ReticulumMeshChat:
 
         # check if source is blocked - drop announce and path if blocked
         identity_hash = announced_identity.hash.hex()
-        if self.is_destination_blocked(identity_hash, context=ctx):
+        verdict = ctx.announce_manager.classify_announce(
+            destination_hash,
+            identity_hash,
+        )
+        if verdict == "blocked":
             logger.debug(
                 "Dropping announce from blocked source: %s",
                 identity_hash,
@@ -10865,6 +11269,31 @@ class ReticulumMeshChat:
 
         # track announce timestamp
         self._note_announce_timestamp()
+
+        if verdict == "background":
+            ctx.announce_manager.upsert_announce(
+                self.reticulum,
+                announced_identity,
+                destination_hash,
+                aspect,
+                app_data,
+                announce_packet_hash,
+                defer=True,
+            )
+            self._broadcast_announce_event(
+                self.build_pending_announce_dict(
+                    aspect,
+                    destination_hash,
+                    announced_identity,
+                    app_data,
+                    announce_packet_hash,
+                ),
+            )
+            self.queue_crawler_task(
+                destination_hash.hex(),
+                self.config.nomad_default_page_path.get() or "/page/index.mu",
+            )
+            return
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
@@ -10914,7 +11343,11 @@ class ReticulumMeshChat:
         if not announced_identity or not announced_identity.hash:
             return
         identity_hash = announced_identity.hash.hex()
-        if self.is_destination_blocked(identity_hash, context=ctx):
+        verdict = ctx.announce_manager.classify_announce(
+            destination_hash,
+            identity_hash,
+        )
+        if verdict == "blocked":
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10925,6 +11358,26 @@ class ReticulumMeshChat:
             RNS.prettyhexrep(destination_hash),
         )
         self._note_announce_timestamp()
+        if verdict == "background":
+            ctx.announce_manager.upsert_announce(
+                self.reticulum,
+                announced_identity,
+                destination_hash,
+                aspect,
+                app_data,
+                announce_packet_hash,
+                defer=True,
+            )
+            self._broadcast_announce_event(
+                self.build_pending_announce_dict(
+                    aspect,
+                    destination_hash,
+                    announced_identity,
+                    app_data,
+                    announce_packet_hash,
+                ),
+            )
+            return
         ctx.announce_manager.upsert_announce(
             self.reticulum,
             announced_identity,
@@ -11014,14 +11467,27 @@ class ReticulumMeshChat:
         self._page_file_grants = {
             k: v for k, v in self._page_file_grants.items() if v.get("expires", 0) > now
         }
-        self._page_file_grants[key] = {
-            "expires": now + ttl,
-            "destinations": {
-                destination_hash.hex(): {
-                    page_path: self._extract_page_file_links(page_content)
-                }
-            },
-        }
+        grant = self._page_file_grants.setdefault(
+            key,
+            {"expires": now + ttl, "destinations": {}},
+        )
+        grant["expires"] = now + ttl
+        destinations = grant.setdefault("destinations", {})
+        dest_pages = destinations.setdefault(destination_hash.hex(), {})
+        norm_path = self._normalize_grant_page_path(destination_hash, page_path)
+        dest_pages[norm_path] = self._extract_page_file_links(page_content)
+
+    def _clear_page_file_grants_for_client(self, client) -> None:
+        """Drop all page-file grants held by a disconnected client."""
+        self._page_file_grants.pop(id(client), None)
+
+    @staticmethod
+    def _normalize_grant_page_path(destination_hash: bytes, page_path: str) -> str:
+        """Strip the "hash:" prefix the frontend sends inside page_path."""
+        prefix = f"{destination_hash.hex()}:"
+        if page_path.startswith(prefix):
+            return page_path[len(prefix) :]
+        return page_path
 
     def _check_page_file_grant(
         self,
@@ -11036,7 +11502,9 @@ class ReticulumMeshChat:
         if not grant or grant.get("expires", 0) <= time.time():
             return False
         by_dest = grant.get("destinations", {})
-        by_page = by_dest.get(destination_hash.hex(), {}).get(page_path)
+        by_page = by_dest.get(destination_hash.hex(), {}).get(
+            self._normalize_grant_page_path(destination_hash, page_path)
+        )
         if not by_page:
             return False
         name = file_path.lstrip("/")
@@ -11777,12 +12245,24 @@ def main():
     reticulum_meshchat.appcontainer_active = is_appcontainer_child()
     if reticulum_meshchat.appcontainer_active:
         apply_windows_process_mitigations()
+    landlock_extra_read_roots = extra_read_roots_from_app(reticulum_meshchat)
+    # Custom TLS cert/key may live outside the standard roots (for example a
+    # mounted Kubernetes Secret at /tls). Grant read access to their parent
+    # directories so the sandboxed process can load them in run().
+    for tls_path in (
+        reticulum_meshchat.ssl_cert_path,
+        reticulum_meshchat.ssl_key_path,
+    ):
+        if tls_path:
+            tls_dir = os.path.dirname(os.path.abspath(str(tls_path)))
+            if tls_dir and tls_dir not in landlock_extra_read_roots:
+                landlock_extra_read_roots.append(tls_dir)
     reticulum_meshchat.landlock_active = apply_landlock_sandbox(
         storage_dir=reticulum_meshchat.storage_dir,
         reticulum_config_dir=reticulum_meshchat.reticulum_config_dir,
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         log_dir=resolve_log_dir(),
-        extra_read_roots=extra_read_roots_from_app(reticulum_meshchat),
+        extra_read_roots=landlock_extra_read_roots,
         extra_rw_roots=collect_external_filesync_rw_roots(
             reticulum_meshchat.storage_dir,
         ),

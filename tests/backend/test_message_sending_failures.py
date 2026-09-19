@@ -44,7 +44,7 @@ def mock_app():
 
 
 @pytest.mark.asyncio
-async def test_oracle_path_wait_uses_lxmf_delivery_hash_not_identity_hash(mock_app):
+async def test_path_wait_uses_lxmf_delivery_hash_not_identity_hash(mock_app):
     """Pasting an identity hash must wait on lxmf.delivery, not the identity hash."""
     ident = RNS.Identity()
     identity_hex = ident.hash.hex()
@@ -67,7 +67,7 @@ async def test_oracle_path_wait_uses_lxmf_delivery_hash_not_identity_hash(mock_a
 
 
 @pytest.mark.asyncio
-async def test_oracle_path_wait_keeps_lxmf_delivery_hash(mock_app):
+async def test_path_wait_keeps_lxmf_delivery_hash(mock_app):
     ident = RNS.Identity()
     delivery = RNS.Destination.hash(ident, "lxmf", "delivery")
     mock_app.recall_identity = MagicMock(return_value=ident)

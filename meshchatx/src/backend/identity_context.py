@@ -230,7 +230,21 @@ class IdentityContext:
             self.config.gitea_base_url.set(self.app.gitea_base_url_override)
 
         self.message_handler = MessageHandler(self.database)
-        self.announce_manager = AnnounceManager(self.database, self.config)
+        self.announce_manager = AnnounceManager(
+            self.database,
+            self.config,
+            related_hashes_resolver=lambda h: (
+                self.app._related_hashes_for_contact_lookup(
+                    h,
+                    context=self,
+                )
+            ),
+            is_blocked_resolver=lambda h: self.app.is_destination_blocked(
+                h,
+                context=self,
+            ),
+        )
+        self.announce_manager.start()
         self.archiver_manager = ArchiverManager(self.database)
         self.crawler_manager = CrawlerManager(self.database, self.config)
         self.map_manager = MapManager(self.config, self.app.storage_dir)
@@ -1107,6 +1121,12 @@ class IdentityContext:
             self.message_handler = None
 
         if self.announce_manager:
+            try:
+                self.announce_manager.stop()
+            except Exception as e:
+                print(
+                    f"Error while stopping announce journal for {self.identity_hash}: {e}",
+                )
             self.announce_manager = None
 
         if self.archiver_manager:

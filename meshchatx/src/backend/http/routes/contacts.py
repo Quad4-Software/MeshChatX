@@ -16,6 +16,7 @@ from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_payload_too_large,
     http_unexpected,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -205,7 +206,9 @@ def register_contacts_routes(routes, app):
 
     @routes.patch(API_V1_PREFIX + "/telephone/contacts/{id}")
     async def telephone_contacts_patch(request):
-        contact_id = int(request.match_info["id"])
+        contact_id = parse_int_param(request.match_info["id"])
+        if contact_id is None:
+            return http_bad_request("invalid contact id")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
@@ -235,7 +238,9 @@ def register_contacts_routes(routes, app):
 
     @routes.delete(API_V1_PREFIX + "/telephone/contacts/{id}")
     async def telephone_contacts_delete(request):
-        contact_id = int(request.match_info["id"])
+        contact_id = parse_int_param(request.match_info["id"])
+        if contact_id is None:
+            return http_bad_request("invalid contact id")
         app.database.contacts.delete_contact(contact_id)
         app.sync_telephone_call_policy()
         return web.json_response({"message": "Contact deleted"})

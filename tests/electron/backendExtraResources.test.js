@@ -103,7 +103,7 @@ function backendResourceFilters() {
     return filters;
 }
 
-describe("backend extraResources packaging oracle", () => {
+describe("backend extraResources packaging reference", () => {
     it("every file the manifest can hash is either packaged or deliberately excluded", () => {
         const filters = backendResourceFilters();
         expect(filters.length).toBeGreaterThan(0);

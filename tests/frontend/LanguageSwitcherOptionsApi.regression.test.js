@@ -130,7 +130,7 @@ describe("language switcher Options API $i18n regression", () => {
         expect(wrapper.find("#msg").text()).not.toBe(en.app.language);
     });
 
-    it("oracle: every bundled pack is reachable via Options API setLocale", async () => {
+    it("reference: every bundled pack is reachable via Options API setLocale", async () => {
         const i18n = createAppI18n();
         registerUiI18n(i18n);
         const wrapper = mount({ template: "<div />" }, { global: { plugins: [i18n] } });

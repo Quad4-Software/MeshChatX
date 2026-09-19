@@ -21,7 +21,7 @@
                     class="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl border text-xs sm:text-sm font-bold transition-all"
                     :class="
                         connectionMethod === option.id
-                            ? 'bg-sem-action-primary text-white border-transparent'
+                            ? 'bg-sem-action-primary text-sem-action-primary-text border-transparent'
                             : option.available
                               ? 'bg-sem-surface-muted border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
                               : 'bg-sem-surface-muted border-sem-border text-sem-fg-muted opacity-60 cursor-not-allowed'

@@ -40,6 +40,7 @@ function scrollToElementId(id, scrollRoot) {
  * @param {(url: string) => void} [options.onNomadUrl] - data-nomadnet-url handler
  * @param {(address: string) => void} [options.onLxmfAddress] - data-lxmf-address handler
  * @param {(text: string) => void} [options.onGeo] - data-geo-text handler
+ * @param {(uri: string) => void} [options.onRrcUrl] - data-rrc-url handler
  * @param {(destination: string, fields: string|null) => void} [options.onOpenNode]
  * @param {(url: string) => void|Promise<void>} [options.openExternalHttp]
  * @param {boolean} [options.blockUnhandledAnchors=true]
@@ -51,6 +52,7 @@ export function handleRichHtmlLinkClick(event, options = {}) {
         onNomadUrl,
         onLxmfAddress,
         onGeo,
+        onRrcUrl,
         onOpenNode,
         openExternalHttp = openExternalHttpUrl,
         blockUnhandledAnchors = true,
@@ -62,6 +64,16 @@ export function handleRichHtmlLinkClick(event, options = {}) {
         const url = nomadLink.getAttribute("data-nomadnet-url");
         if (url) {
             onNomadUrl(url);
+        }
+        return true;
+    }
+
+    const rrcLink = event.target.closest("a.rrc-link[data-rrc-url]");
+    if (rrcLink && onRrcUrl) {
+        stopEvent(event);
+        const uri = rrcLink.getAttribute("data-rrc-url");
+        if (uri) {
+            onRrcUrl(uri);
         }
         return true;
     }

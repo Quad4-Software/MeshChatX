@@ -19,6 +19,34 @@ export function isCancel(error) {
     return error.name === "AbortError" || error.name === "CanceledError";
 }
 
+// Mutations get a default ceiling so a request stuck server-side or dropped
+// by a frozen WebView cannot leave the UI waiting forever. The fetch itself
+// is never aborted: the server may already be processing the write, and
+// cancelling the connection could interrupt it mid-flight. A caller-provided
+// config.timeout (ms) overrides the default; 0 disables it.
+const DEFAULT_MUTATION_TIMEOUT_MS = 120000;
+
+function fetchWithTimeout(url, init, timeoutMs) {
+    if (!timeoutMs || timeoutMs <= 0) {
+        return fetch(url, init);
+    }
+    let timeoutId;
+    const fetchPromise = fetch(url, init);
+    fetchPromise.catch(() => {});
+    return Promise.race([
+        fetchPromise,
+        new Promise((_, reject) => {
+            timeoutId = setTimeout(() => {
+                reject(
+                    Object.assign(new Error(`Request timed out after ${timeoutMs}ms`), {
+                        name: "TimeoutError",
+                    })
+                );
+            }, timeoutMs);
+        }),
+    ]).finally(() => clearTimeout(timeoutId));
+}
+
 function buildUrl(path, params) {
     if (!params || typeof params !== "object" || Object.keys(params).length === 0) {
         return path;
@@ -180,9 +208,12 @@ export function createApiClient(options = {}) {
             }
         }
 
+        const mutatingMethod = method !== "GET" && method !== "HEAD";
+        const timeoutMs = config.timeout ?? (mutatingMethod ? DEFAULT_MUTATION_TIMEOUT_MS : 0);
+
         let response;
         try {
-            response = await fetch(url, init);
+            response = await fetchWithTimeout(url, init, timeoutMs);
         } catch (e) {
             if (isCancel(e)) throw e;
             throw e;

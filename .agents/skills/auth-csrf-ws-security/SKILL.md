@@ -57,6 +57,6 @@ Public / read / mutator classification lives in `WEBSOCKET_PUBLIC_TYPES`, `WEBSO
 ## Verification
 
 ```bash
-uv run pytest tests/backend/test_websocket_config_security.py tests/backend/test_websocket_config_guard.py tests/backend/test_ws_origin_filesync_oracles.py -q --tb=short
+uv run pytest tests/backend/test_websocket_config_security.py tests/backend/test_websocket_config_guard.py tests/backend/test_ws_origin_filesync.py -q --tb=short
 pnpm exec vitest run tests/frontend/apiFetchGuard.test.js
 ```

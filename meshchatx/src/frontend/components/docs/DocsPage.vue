@@ -610,11 +610,16 @@
                 </div>
 
                 <!-- Reticulum Docs View -->
+                <!-- Uploaded manuals are user-supplied HTML: sandbox keeps them
+                     in an opaque origin so embedded scripts cannot reach the
+                     app DOM, session, or API. allow-scripts keeps the bundled
+                     manual's own JS working. -->
                 <iframe
                     v-if="activeTab === 'reticulum' && status.has_docs && !searchQuery"
                     :key="localDocsUrl"
                     ref="docsFrame"
                     :src="localDocsUrl"
+                    sandbox="allow-scripts allow-forms allow-modals"
                     class="w-full flex-1 min-h-0 border-none opacity-0 transition-opacity duration-1000"
                     @load="onReticulumFrameLoad"
                 ></iframe>
@@ -780,6 +785,9 @@ export default {
         if (this.statusInterval) {
             clearInterval(this.statusInterval);
         }
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+        }
     },
     methods: {
         async fetchStatus() {
@@ -914,12 +922,11 @@ export default {
                 this.showVersions = false;
                 this.selectedReticulumPath = null;
                 this.fetchStatus();
-                // reload iframe if in reticulum tab
+                // Reload the docs frame if in reticulum tab. The sandboxed
+                // frame is cross-origin, so remount it via the cache-bust key
+                // instead of contentWindow.location.
                 if (this.activeTab === "reticulum") {
-                    const iframe = this.$refs.docsFrame;
-                    if (iframe) {
-                        iframe.contentWindow.location.reload();
-                    }
+                    this.reticulumDocsCacheBust += 1;
                 }
             } catch (error) {
                 console.error("Failed to switch docs version:", error);

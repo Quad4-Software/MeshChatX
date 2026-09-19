@@ -49,4 +49,6 @@
     <string name="rnode_flasher_ready">Ready</string>
     <string name="rnode_flasher_no_usb">No USB serial devices found. Plug in your RNode.</string>
     <string name="rnode_flasher_busy">Working…</string>
+    <string name="nfc_share_service_description">MeshChatX NFC share</string>
+    <string name="nfc_share_aid_description">MeshChatX bootstrap payloads</string>
 </resources>

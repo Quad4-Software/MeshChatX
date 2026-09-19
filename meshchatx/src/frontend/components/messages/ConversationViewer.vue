@@ -96,7 +96,7 @@
                 <div class="flex items-center gap-1.5 shrink-0 sm:justify-end">
                     <button
                         type="button"
-                        class="min-h-[36px] sm:min-h-0 flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium rounded-md bg-sem-warning hover:bg-sem-warning/80 text-white transition-colors"
+                        class="min-h-[36px] sm:min-h-0 flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium rounded-md bg-sem-action-warning hover:bg-sem-action-warning-hover text-sem-action-warning-text transition-colors"
                         @click="addStrangerAsContact"
                     >
                         {{ $t("messages.add_to_contacts") }}
@@ -1166,7 +1166,7 @@
                                 class="px-3 py-2 flex items-center gap-3 cursor-pointer rounded-lg transition-colors"
                                 :class="[
                                     index === selectedComposeSuggestionIndex
-                                        ? 'bg-sem-action-primary text-white'
+                                        ? 'bg-sem-action-primary text-sem-action-primary-text'
                                         : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                 ]"
                                 @mousedown.prevent="selectComposeSuggestion(suggestion)"
@@ -1540,7 +1540,7 @@
                                 </p>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-2 rounded-lg bg-sem-warning hover:bg-sem-warning/80 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
+                                    class="inline-flex items-center gap-2 rounded-lg bg-sem-action-warning hover:bg-sem-action-warning-hover px-3 py-2 text-xs font-semibold text-sem-action-warning-text transition-colors"
                                     @click="copyRawMessageModalContent"
                                 >
                                     <MaterialDesignIcon icon-name="content-copy" class="size-4 shrink-0" />
@@ -1582,7 +1582,7 @@
                 <div class="px-6 py-4 border-t border-sem-border flex justify-end shrink-0">
                     <button
                         type="button"
-                        class="px-4 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-lg text-sm font-bold transition-colors"
+                        class="px-4 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-lg text-sm font-bold transition-colors"
                         @click="isRawMessageModalOpen = false"
                     >
                         Close
@@ -1660,6 +1660,9 @@ import { fromNow } from "../../libs/datetime.js";
 
 const SCROLL_SETTLE_MAX_PASSES = 24;
 const OPEN_CONVERSATION_SCROLL_PIN_MS = 900;
+// Bounds the in-memory window during deep scroll-back. Tail items are dropped
+// and refetched when the user scrolls back to the newest edge.
+const MAX_CHAT_ITEMS = 2000;
 
 import SendMessageButton from "./composer/SendMessageButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
@@ -1688,7 +1691,7 @@ import {
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
-import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } from "../../js/relayLinkUtils.js";
+import { applyRelayShareLink, findRelayUriInContent, parseRelayUri } from "../../js/relayLinkUtils.js";
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import { useImageModal } from "../../js/messages/useImageModal.js";
@@ -1814,6 +1817,7 @@ export default {
             isLoadingPrevious: false,
             loadPreviousInFlight: 0,
             hasMorePrevious: true,
+            chatWindowTailTrimmed: false,
 
             newMessageDeliveryMethod: null,
             newMessageText: "",
@@ -2367,12 +2371,14 @@ export default {
         selectedPeerChatItems: {
             async handler(items) {
                 const signature = this._displayGroupsCacheSignature(items);
-                if (this.displayGroupsNewestFirst === null || this.displayGroupsCacheSignature !== signature) {
+                const changed =
+                    this.displayGroupsNewestFirst === null || this.displayGroupsCacheSignature !== signature;
+                if (changed) {
                     this.displayGroupsNewestFirst = this._buildDisplayGroupsNewestFirst(items);
                     this.displayGroupsCacheSignature = signature;
                     this.displayGroupsCachePeerItemCount = items.length;
+                    await this.processAudioForSelectedPeerChatItems();
                 }
-                await this.processAudioForSelectedPeerChatItems();
                 this.$nextTick(() => this._scheduleOutboundSendStatusTick());
             },
             deep: true,
@@ -2476,6 +2482,11 @@ export default {
         this.cancelAutoLoadAudioAttachments();
         this.clearAudioAttachmentCache();
         this.revokeNewMessageAudioPreview();
+        this._unmounted = true;
+        this._outboundQueue?.clear();
+        // Stop the recorder and release the mic; the resulting preview URL is
+        // revoked once the stop resolves.
+        void Promise.resolve(this.stopRecordingAudioAttachment()).then(() => this.revokeNewMessageAudioPreview());
     },
     methods: {
         updateKeyboardInset() {
@@ -2645,6 +2656,9 @@ export default {
                 },
                 onGeo: (geoText) => {
                     this.openGeoOnMap(geoText);
+                },
+                onRrcUrl: (uri) => {
+                    this.openRelayShareFromParsed(parseRelayUri(uri));
                 },
             });
         },
@@ -3082,6 +3096,9 @@ export default {
                 this.saveDraft(dest, previousKey);
             }
             this.lxmfMessagesRequestSequence += 1;
+            // Queued sends were composed under the old identity; dropping them
+            // keeps a pending job from transmitting as the new identity.
+            this._outboundQueue?.clear();
             this.chatItems = [];
             this.displayGroupsNewestFirst = null;
             this.messageBubbleTranslation = {};
@@ -3146,13 +3163,22 @@ export default {
                 this.loadPrevious();
             }
             this.prevScrollWantedLoadPrevious = wantLoad;
+
+            // A trimmed tail means the loaded window no longer reaches the newest
+            // message. Re-anchor on the latest page once the user scrolls back down.
+            if (nearBottom && this.chatWindowTailTrimmed && !this.initialLoadActive && !this.isLoadingPrevious) {
+                this.initialLoad();
+            }
         },
         async initialLoad() {
             this.initialLoadActive = true;
             this.messagesViewportReady = false;
             this.chatItems = [];
             this.displayGroupsNewestFirst = null;
+            this.messageBubbleTranslation = {};
+            this.isDownloadingAudio = {};
             this.hasMorePrevious = true;
+            this.chatWindowTailTrimmed = false;
             this.peerPathSnapshot = null;
             this.peerPathLoading = false;
             this.peerPathWarming = false;
@@ -3308,7 +3334,10 @@ export default {
                         const delta = newScrollHeight - prevScrollHeight;
                         scrollEl.scrollTop = prevScrollTop + delta;
                         scrollEl.style.overflowY = "";
+                        this._trimChatWindowTail();
                     });
+                } else {
+                    this.$nextTick(() => this._trimChatWindowTail());
                 }
 
                 if (chatItems.length < pageSize) {
@@ -3326,6 +3355,55 @@ export default {
                 this.loadPreviousInFlight = Math.max(0, this.loadPreviousInFlight - 1);
                 this.isLoadingPrevious = this.loadPreviousInFlight > 0;
             }
+        },
+        // Live/optimistic append path. Keeps the window bounded for busy
+        // threads: oldest loaded entries drop past the cap and are refetched
+        // by loadPrevious. Scroll is re-anchored for readers in history.
+        _pushChatItem(chatItem) {
+            this.chatItems.push(chatItem);
+            if (this.chatItems.length <= MAX_CHAT_ITEMS || this._chatHeadTrimQueued) {
+                return;
+            }
+            this._chatHeadTrimQueued = true;
+            const scrollEl = this.$refs.messagesScroll;
+            const trimNow = () => {
+                this._chatHeadTrimQueued = false;
+                // Compute the drop live: pushes landing in the same tick must
+                // not each schedule a splice against a stale length, or a
+                // burst removes far more than the overflow.
+                const drop = this.chatItems.length - MAX_CHAT_ITEMS;
+                if (drop <= 0) {
+                    return;
+                }
+                if (!scrollEl) {
+                    this.chatItems.splice(0, drop);
+                    this._invalidateDisplayGroupsCache();
+                    return;
+                }
+                const prevScrollHeight = scrollEl.scrollHeight;
+                const prevScrollTop = scrollEl.scrollTop;
+                this.chatItems.splice(0, drop);
+                this._invalidateDisplayGroupsCache();
+                this.$nextTick(() => {
+                    scrollEl.scrollTop = Math.max(0, prevScrollTop - (prevScrollHeight - scrollEl.scrollHeight));
+                });
+            };
+            if (!scrollEl) {
+                trimNow();
+                return;
+            }
+            this.$nextTick(trimNow);
+        },
+        // Keeps the loaded window bounded during deep scroll-back. Dropped tail
+        // items are below the viewport, so scrollTop is unaffected. The next
+        // near-bottom scroll reloads the latest page via initialLoad.
+        _trimChatWindowTail() {
+            if (this.chatItems.length <= MAX_CHAT_ITEMS) {
+                return;
+            }
+            this.chatItems.splice(MAX_CHAT_ITEMS);
+            this.chatWindowTailTrimmed = true;
+            this._invalidateDisplayGroupsCache();
         },
         getParsedItems(chatItem) {
             const content = chatItem.lxmf_message.content;
@@ -3396,7 +3474,7 @@ export default {
 
             const relayUri = findRelayUriInContent(content);
             if (relayUri && !items.paperMessage && !items.mapLink) {
-                const parsed = parseMeshchatRelayUri(relayUri);
+                const parsed = parseRelayUri(relayUri);
                 if (parsed) {
                     let t = content.trim().replace(relayUri, "").trim();
                     t = t
@@ -3631,7 +3709,7 @@ export default {
                 return;
             }
 
-            this.chatItems.push({
+            this._pushChatItem({
                 type: "lxmf_message",
                 is_outbound: false,
                 lxmf_message: this.normalizeLxmfMessage(lxmfMessage, false),
@@ -3666,7 +3744,7 @@ export default {
             this.reconcileOutboundPendingPlaceholders(lxmfMessage);
 
             if (!this.isLxmfMessageInUi(lxmfMessage.hash)) {
-                this.chatItems.push({
+                this._pushChatItem({
                     type: "lxmf_message",
                     lxmf_message: this.normalizeLxmfMessage(lxmfMessage, true),
                     is_outbound: true,
@@ -4559,7 +4637,7 @@ export default {
                 console.error("Failed to download or decode audio:", e);
                 DialogUtils.alert(this.$t("messages.failed_load_audio"));
             } finally {
-                this.isDownloadingAudio[chatItem.lxmf_message.hash] = false;
+                delete this.isDownloadingAudio[chatItem.lxmf_message.hash];
             }
         },
         autoLoadAudioAttachments(items = null) {
@@ -4832,7 +4910,7 @@ export default {
             }
             this.reconcileOutboundPendingPlaceholders(lxmfMessage);
             if (lxmfMessage?.hash && !this.isLxmfMessageInUi(lxmfMessage.hash)) {
-                this.chatItems.push({
+                this._pushChatItem({
                     type: "lxmf_message",
                     lxmf_message: this.normalizeLxmfMessage(lxmfMessage, true),
                     is_outbound: true,
@@ -5770,7 +5848,7 @@ export default {
         },
         async _executeOutboundSendJob(job) {
             try {
-                if (job.cancelled) {
+                if (job.cancelled || job.dropped || this._unmounted) {
                     return;
                 }
                 job.pendingHash = null;
@@ -5801,7 +5879,7 @@ export default {
                         _pendingPathfinding: needsPathfinding,
                     };
                     if (!this._outboundPendingAlreadySatisfied(pendingMessage)) {
-                        this.chatItems.push({
+                        this._pushChatItem({
                             type: "lxmf_message",
                             lxmf_message: pendingMessage,
                             is_outbound: true,
@@ -5813,7 +5891,7 @@ export default {
                     });
                 }
 
-                if (job.cancelled) {
+                if (job.cancelled || job.dropped) {
                     this.removePendingOutboundPlaceholder(job.pendingHash);
                     return;
                 }
@@ -5855,6 +5933,11 @@ export default {
                         this.removePendingOutboundPlaceholder(job.pendingHash);
                         return;
                     }
+                    if (job.dropped || this._unmounted) {
+                        // The view went away mid-send. The backend already
+                        // accepted the message so it must not be cancelled.
+                        return;
+                    }
                     job.messageHash = response.data.lxmf_message.hash;
                     this._absorbOutboundSendResponse(job, response.data.lxmf_message);
                 } else {
@@ -5880,10 +5963,17 @@ export default {
                         this.removePendingOutboundPlaceholder(job.pendingHash);
                         return;
                     }
+                    if (job.dropped || this._unmounted) {
+                        // Accepted by the backend; leave it sent.
+                        return;
+                    }
                     job.messageHash = response.data.lxmf_message.hash;
                     this._absorbOutboundSendResponse(job, response.data.lxmf_message);
 
                     for (let i = 1; i < job.images.length; i++) {
+                        if (job.cancelled || job.dropped) {
+                            break;
+                        }
                         const image = job.images[i];
                         const subsequentFields = {
                             image: { image_type: image.image_type, image_bytes: image.image_bytes },
@@ -5900,7 +5990,7 @@ export default {
                             });
 
                             if (!this.isLxmfMessageInUi(subResponse.data.lxmf_message.hash)) {
-                                this.chatItems.push({
+                                this._pushChatItem({
                                     type: "lxmf_message",
                                     lxmf_message: this.normalizeLxmfMessage(subResponse.data.lxmf_message, true),
                                     is_outbound: true,
@@ -5990,6 +6080,34 @@ export default {
             }
         },
         async retrySendingMessage(chatItem) {
+            const hash = chatItem.lxmf_message.hash;
+
+            if (!this._isPendingOutboundHash(hash)) {
+                // server-backed items: attachments were stripped from the
+                // stored fields blob sent to the UI, so the backend must
+                // rebuild them from the original message row
+                try {
+                    const response = await window.api.post(apiPath(`/lxmf-messages/${hash}/resend`));
+                    this.chatItems = this.chatItems.filter((item) => {
+                        return !this._hexEqual(item.lxmf_message?.hash, hash);
+                    });
+                    if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
+                        this._pushChatItem({
+                            type: "lxmf_message",
+                            lxmf_message: this.normalizeLxmfMessage(response.data.lxmf_message, true),
+                            is_outbound: true,
+                        });
+                    }
+                    this._invalidateDisplayGroupsCache();
+                    this.scrollMessagesToBottom();
+                } catch (e) {
+                    const message = e.response?.data?.message ?? "failed to send message";
+                    DialogUtils.alert(message);
+                    console.log(e);
+                }
+                return;
+            }
+
             await this.deleteChatItem(chatItem, false);
 
             try {
@@ -6008,7 +6126,7 @@ export default {
                 });
 
                 if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
-                    this.chatItems.push({
+                    this._pushChatItem({
                         type: "lxmf_message",
                         lxmf_message: this.normalizeLxmfMessage(response.data.lxmf_message, true),
                         is_outbound: true,

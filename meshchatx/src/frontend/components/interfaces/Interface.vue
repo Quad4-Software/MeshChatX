@@ -96,7 +96,7 @@
                 </div>
             </div>
             <div
-                class="flex flex-row items-center gap-1 sm:relative sm:z-auto sm:flex sm:flex-row sm:gap-2 sm:items-center sm:shrink-0 sm:justify-end mt-4 sm:mt-0"
+                class="absolute top-0 right-0 z-20 flex flex-row items-center gap-1 sm:static sm:z-auto sm:ml-auto sm:flex sm:flex-row sm:gap-2 sm:items-center sm:shrink-0 sm:justify-end"
             >
                 <button
                     v-if="isInterfaceEnabled(iface)"
@@ -246,6 +246,8 @@ export default {
                     return "pipe";
                 case "HTTPInterface":
                     return "web";
+                case "AwareInterface":
+                    return "wifi-tethering";
                 default:
                     return "server-network";
             }
@@ -272,6 +274,11 @@ export default {
             }
             if (this.iface.type === "AutoInterface") {
                 return "Auto-detect Ethernet and Wi-Fi peers";
+            }
+            if (this.iface.type === "AwareInterface") {
+                const role = String(this.iface.mode || "subscribe").toLowerCase();
+                const peers = this.iface.peers;
+                return `WiFi Aware (${role}${peers != null && peers !== "" ? `, max ${peers} peers` : ""})`;
             }
             if (this.iface.type === "BackboneInterface") {
                 if (this.isBackboneIfacTunnel) {

@@ -221,7 +221,7 @@ def test_start_bot_passes_parent_pid(mock_popen, temp_identity_dir):
 
 @pytest.mark.skipif(
     not sys.platform.startswith("linux"),
-    reason="foreign pid oracle needs /proc cmdline",
+    reason="foreign pid reference needs /proc cmdline",
 )
 def test_stop_bot_refuses_to_signal_recycled_foreign_pid(temp_identity_dir):
     """A stale pid from state must never be killpg'd into a foreign group.
@@ -505,7 +505,7 @@ def test_request_announce_rejects_escaped_storage(
     assert bait.read_bytes() == b"SECRET_BAIT_BYTES"
 
 
-@pytest.mark.skipif(os.name == "nt", reason="symlink jail oracle is POSIX")
+@pytest.mark.skipif(os.name == "nt", reason="symlink jail reference is POSIX")
 def test_get_bot_identity_path_rejects_symlink_out_bot_config_dir(
     temp_identity_dir,
     tmp_path,

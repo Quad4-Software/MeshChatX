@@ -4,6 +4,7 @@ import MicronParser from "@/js/MicronParser.js";
 
 import NomadNetworkPage from "@/components/nomadnetwork/NomadNetworkPage.vue";
 import ToastUtils from "@/js/ToastUtils";
+import { dispatchWsEvent } from "@/js/registries/wsEventRegistry.js";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
@@ -1709,6 +1710,42 @@ describe("NomadNetworkPage.vue", () => {
             expect(handled).toBe(false);
         });
 
+        it("fails a pending image download when the ws reports an error for its request_id", async () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
+            wrapper.vm.crashTabImages = [{ url: ":/file/img.webp", alt: "test" }];
+            wrapper.vm.setCrashTabImage = vi.fn();
+            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
+            const requestId = wrapper.vm.nomadImageDownloadCallbacks[0].requestId;
+            wrapper.vm.onWsErrorEvent({
+                type: "error",
+                code: "rate_limited",
+                message: "Rate limit exceeded",
+                request_id: requestId,
+            });
+            expect(wrapper.vm.nomadImageDownloadCallbacks[0]).toBeUndefined();
+            const lastCall = wrapper.vm.setCrashTabImage.mock.calls.at(-1);
+            expect(lastCall[1]).toBe("error");
+            expect(lastCall[2].reason).toBe("Rate limit exceeded");
+        });
+
+        it("fails a pending image download when the ws send is refused", async () => {
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            wrapper.vm.config = { nomad_image_loading_policy: "manual" };
+            wrapper.vm.crashTabImages = [{ url: ":/file/img.webp", alt: "test" }];
+            wrapper.vm.setCrashTabImage = vi.fn();
+            WebSocketConnection.send.mockReturnValueOnce(false);
+            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
+            expect(wrapper.vm.nomadImageDownloadCallbacks[0]).toBeUndefined();
+            const lastCall = wrapper.vm.setCrashTabImage.mock.calls.at(-1);
+            expect(lastCall[1]).toBe("error");
+        });
+
         it("does not cache images in private browsing", () => {
             const hash = "a".repeat(32);
             const wrapper = mountNomadNetworkPage({ destinationHash: hash, isPrivate: true });
@@ -1760,6 +1797,49 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.vm.onCrashTabContextMenu({ clientX: 11, clientY: 22 });
             expect(openContextMenu).toHaveBeenCalledWith({ clientX: 11, clientY: 22 });
             expect(wrapper.vm.standaloneContextMenu.show).toBe(false);
+        });
+    });
+
+    describe("download buffer and callback cleanup", () => {
+        it("clears chunk buffers on unmount", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nomadPageDownloadChunkBuffers["dl-1"] = { chunks: [new Uint8Array([1, 2, 3])] };
+            wrapper.vm.nomadFileDownloadChunkBuffers["dl-2"] = { chunks: [new Uint8Array([4])] };
+            wrapper.unmount();
+            expect(wrapper.vm.nomadPageDownloadChunkBuffers).toEqual({});
+            expect(wrapper.vm.nomadFileDownloadChunkBuffers).toEqual({});
+        });
+
+        it("drops chunk buffers and tagged callbacks on cancelled events", async () => {
+            const wrapper = mountNomadNetworkPage();
+            const cancelPendingSend = vi.fn();
+            wrapper.vm.nomadPageDownloadChunkBuffers["dl-9"] = { chunks: [new Uint8Array([1])] };
+            wrapper.vm.nomadFileDownloadChunkBuffers["dl-9"] = { chunks: [new Uint8Array([2])] };
+            wrapper.vm.nomadnetPageDownloadCallbacks["k1"] = {
+                downloadId: "dl-9",
+                cancelPendingSend,
+            };
+            wrapper.vm.nomadnetFileDownloadCallbacks["k2"] = { downloadId: "dl-9" };
+            wrapper.vm.nomadnetPageDownloadCallbacks["keep"] = { downloadId: "other" };
+
+            await dispatchWsEvent("nomadnet.download.cancelled", { download_id: "dl-9" });
+
+            expect(wrapper.vm.nomadPageDownloadChunkBuffers["dl-9"]).toBeUndefined();
+            expect(wrapper.vm.nomadFileDownloadChunkBuffers["dl-9"]).toBeUndefined();
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks["k1"]).toBeUndefined();
+            expect(wrapper.vm.nomadnetFileDownloadCallbacks["k2"]).toBeUndefined();
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks["keep"]).toBeDefined();
+            expect(cancelPendingSend).toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        it("bounds the node page cache", async () => {
+            const wrapper = mountNomadNetworkPage();
+            for (let i = 0; i < 80; i++) {
+                wrapper.vm.nodePageCache[`node-${i}`] = `page-${i}`;
+            }
+            expect(Object.keys(wrapper.vm.nodePageCache).length).toBeLessThanOrEqual(80);
+            wrapper.unmount();
         });
     });
 });

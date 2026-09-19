@@ -103,7 +103,7 @@ describe("withRetryableHttp", () => {
         expect(sleep).toHaveBeenCalledTimes(11);
     });
 
-    it("isRetryableHttpError oracle", () => {
+    it("isRetryableHttpError reference", () => {
         expect(isRetryableHttpError({ response: { status: 503 } })).toBe(true);
         expect(isRetryableHttpError({ response: { status: 500 } })).toBe(false);
         expect(isRetryableHttpError({ name: "AbortError" })).toBe(false);

@@ -62,7 +62,7 @@ export function authNavigationTargetForStatus(to, status) {
 }
 
 /**
- * Auth guard oracle used by the router beforeEach hook.
+ * Auth guard reference used by the router beforeEach hook.
  * @param {{ name?: string | null }} to
  * @param {import("./apiClient.js").createApiClient} api
  * @returns {Promise<{ allow: true } | { redirect: string }>}

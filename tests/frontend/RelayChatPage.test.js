@@ -940,6 +940,7 @@ describe("RelayChatPage.vue", () => {
             ts: 0,
             mention: false,
         });
+        wrapper.vm.showMembers = true;
 
         expect(wrapper.vm.onlineMembers.map((m) => m.name)).toContain("carol");
         expect(wrapper.vm.offlineMembers.map((m) => m.name)).toContain("dave");
@@ -1098,5 +1099,407 @@ describe("RelayChatPage.vue", () => {
                 room: "lobby",
             })
         );
+    });
+
+    describe("chat UX enhancements", () => {
+        const openRoom = async (wrapper) => {
+            await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+            await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        };
+
+        const liveMsg = (overrides = {}) => ({
+            kind: "msg",
+            room: "lobby",
+            src: "cc".repeat(16),
+            nick: "burger",
+            text: "hi",
+            ts: Date.now(),
+            mention: false,
+            ...overrides,
+        });
+
+        beforeEach(() => {
+            localStorage.clear();
+        });
+
+        describe("new messages pill", () => {
+            it("tracks near-bottom state from scroll reports", () => {
+                const wrapper = mountPage();
+                wrapper.vm._onMessagesScrollState(500);
+                expect(wrapper.vm.relayAtBottom).toBe(false);
+                wrapper.vm.newMessagesBelow = 3;
+                wrapper.vm._onMessagesScrollState(10);
+                expect(wrapper.vm.relayAtBottom).toBe(true);
+                expect(wrapper.vm.newMessagesBelow).toBe(0);
+            });
+
+            it("increments pending count instead of auto-scrolling when scrolled up", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                const scrollSpy = vi.spyOn(wrapper.vm, "scrollToBottom");
+                wrapper.vm.relayAtBottom = false;
+
+                wrapper.vm.onRrcMessage({ hub_hash: HUB_HASH, room: "lobby", message: liveMsg() });
+                expect(wrapper.vm.newMessagesBelow).toBe(1);
+                expect(scrollSpy).not.toHaveBeenCalled();
+
+                wrapper.vm.onRrcMessage({ hub_hash: HUB_HASH, room: "lobby", message: liveMsg({ text: "two" }) });
+                expect(wrapper.vm.newMessagesBelow).toBe(2);
+            });
+
+            it("auto-scrolls live arrivals when near the bottom", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                const scrollSpy = vi.spyOn(wrapper.vm, "scrollToBottom");
+                wrapper.vm.relayAtBottom = true;
+
+                wrapper.vm.onRrcMessage({ hub_hash: HUB_HASH, room: "lobby", message: liveMsg() });
+                expect(scrollSpy).toHaveBeenCalledTimes(1);
+                expect(wrapper.vm.newMessagesBelow).toBe(0);
+            });
+
+            it("presence and system arrivals do not inflate the pill count", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.relayAtBottom = false;
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "lobby",
+                    message: { kind: "system", room: "lobby", text: "x joined", ts: 1 },
+                });
+                expect(wrapper.vm.newMessagesBelow).toBe(0);
+            });
+
+            it("scrollToBottom resets the pending count and re-follows", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.relayAtBottom = false;
+                wrapper.vm.newMessagesBelow = 5;
+                wrapper.vm.scrollToBottom();
+                expect(wrapper.vm.relayAtBottom).toBe(true);
+                expect(wrapper.vm.newMessagesBelow).toBe(0);
+            });
+        });
+
+        describe("rrc:// deep links", () => {
+            it("openRelayRoomLink joins the linked hub and room", async () => {
+                const wrapper = mountPage();
+                await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+                const selectSpy = vi.spyOn(wrapper.vm, "selectRoom");
+                await wrapper.vm.openRelayRoomLink(`rrc://${HUB_HASH}/lobby`);
+                expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
+                    room: "lobby",
+                });
+                expect(selectSpy).toHaveBeenCalledWith(HUB_HASH, "lobby");
+            });
+
+            it("openRelayRoomLink rejects malformed links", async () => {
+                const ToastUtils = (await import("@/js/ToastUtils")).default;
+                const errSpy = vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+                const wrapper = mountPage();
+                await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+                await vi.waitFor(() => expect(wrapper.vm.selectedRoom).toBe("lobby"));
+                const before = wrapper.vm.selectedRoom;
+                await wrapper.vm.openRelayRoomLink("rrc://nothex/lobby");
+                expect(errSpy).toHaveBeenCalled();
+                expect(wrapper.vm.selectedRoom).toBe(before);
+            });
+
+            it("renders rrc links clickable inside message html", () => {
+                const wrapper = mountPage();
+                const html = wrapper.vm.renderMessageHtml(`join rrc://${HUB_HASH}/lobby`);
+                expect(html).toContain("rrc-link");
+                expect(html).toContain(`data-rrc-url="rrc://${HUB_HASH}/lobby"`);
+            });
+        });
+
+        describe("tab nick completion", () => {
+            it("completes a member prefix at line start", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                const input = document.createElement("input");
+                input.value = "car";
+                input.setSelectionRange(3, 3);
+                wrapper.vm.composer = "car";
+                wrapper.vm.onComposerKeydown({ key: "Tab", target: input, preventDefault: vi.fn() });
+                expect(wrapper.vm.composer).toBe("@carol: ");
+            });
+
+            it("cycles members on repeated tabs and resets on other keys", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                const input = document.createElement("input");
+                input.value = "@";
+                wrapper.vm.composer = "@";
+                input.setSelectionRange(1, 1);
+                wrapper.vm.onComposerKeydown({ key: "Tab", target: input, preventDefault: vi.fn() });
+                expect(wrapper.vm.composer).toBe("@carol: ");
+                wrapper.vm.onComposerKeydown({ key: "a", target: input });
+                expect(wrapper.vm.nickCycle).toBe(null);
+            });
+        });
+
+        describe("per-room drafts", () => {
+            it("restores the draft when switching back to a room", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.composer = "half typed";
+                await wrapper.vm.selectRoom(HUB_HASH, "other");
+                expect(wrapper.vm.composer).toBe("");
+                await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+                expect(wrapper.vm.composer).toBe("half typed");
+            });
+
+            it("clears the draft after a successful send", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.composer = "gone";
+                await wrapper.vm.sendMessage();
+                expect(wrapper.vm.composer).toBe("");
+                await wrapper.vm.selectRoom(HUB_HASH, "other");
+                await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+                expect(wrapper.vm.composer).toBe("");
+            });
+
+            it("saves an unsaved draft under the identity that loaded it on switch", async () => {
+                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                useConfigStore().config = { identity_hash: "id-old" };
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                // Typing without any save leaves lastDraftIdentityKey set only
+                // because loadDraft recorded the loading identity.
+                wrapper.vm.composer = "secret draft";
+                useConfigStore().config = { identity_hash: "id-new" };
+                wrapper.vm.onIdentitySwitched({ identity_hash: "id-new" });
+                const stored = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
+                expect(stored["id-old"]?.[`${HUB_HASH}/lobby`]).toBe("secret draft");
+                expect(stored["id-new"]).toBeUndefined();
+                useConfigStore().config = {};
+            });
+        });
+
+        describe("client-side ignore", () => {
+            it("ignores a message author, purges their messages, and persists", async () => {
+                const ToastUtils = (await import("@/js/ToastUtils")).default;
+                vi.spyOn(ToastUtils, "info").mockImplementation(() => {});
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                const msg = liveMsg({ src: "aabb", nick: "carol" });
+                wrapper.vm.messageMenu = { show: true, x: 0, y: 0, msg };
+                await wrapper.vm.toggleIgnoreFromMenu();
+
+                expect(wrapper.vm.ignoredPeers).toEqual([{ hash: "aabb", name: "carol" }]);
+                expect(wrapper.vm.isIgnoredMsg(liveMsg({ src: "aabb" }))).toBe(true);
+                // The pre-existing lobby message from aabb is gone from the timeline.
+                expect(wrapper.vm.messages.every((m) => m.src !== "aabb")).toBe(true);
+                const stored = JSON.parse(localStorage.getItem("meshchatx.rrc.prefs"));
+                expect(stored._.ignored).toEqual([{ hash: "aabb", name: "carol" }]);
+            });
+
+            it("persists prefs under the captured identity, not a switched live one", async () => {
+                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                useConfigStore().config = { identity_hash: "id-old" };
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                // Live config moves on without the switch handler having run
+                // (a deferred save queued before the event landed).
+                useConfigStore().config = { identity_hash: "id-new" };
+                wrapper.vm.ignoredPeers = [{ hash: "aabb", name: "carol" }];
+                wrapper.vm.persistRelayPrefs();
+                const stored = JSON.parse(localStorage.getItem("meshchatx.rrc.prefs") || "{}");
+                expect(stored["id-old"]?.ignored).toEqual([{ hash: "aabb", name: "carol" }]);
+                expect(stored["id-new"]).toBeUndefined();
+                useConfigStore().config = {};
+            });
+
+            it("drops live pushes from ignored peers but keeps system rows", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.ignoredPeers = [{ hash: "aabb", name: "carol" }];
+                const before = wrapper.vm.messages.length;
+                wrapper.vm.onRrcMessage({ hub_hash: HUB_HASH, room: "lobby", message: liveMsg({ src: "aabb" }) });
+                expect(wrapper.vm.messages.length).toBe(before);
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "lobby",
+                    message: { kind: "system", text: "x joined", ts: 1 },
+                });
+                expect(wrapper.vm.messages.length).toBe(before + 1);
+            });
+
+            it("suppresses the toast for ignored messages in other rooms", async () => {
+                const ToastUtils = (await import("@/js/ToastUtils")).default;
+                const infoSpy = vi.spyOn(ToastUtils, "info").mockImplementation(() => {});
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.ignoredPeers = [{ hash: "aabb", name: "carol" }];
+                wrapper.vm.onRrcMessage({ hub_hash: HUB_HASH, room: "other", message: liveMsg({ src: "aabb" }) });
+                await vi.waitFor(() => expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs"));
+                expect(infoSpy).not.toHaveBeenCalled();
+            });
+
+            it("canIgnoreMessageAuthor excludes own and system messages", async () => {
+                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                useConfigStore().config = { identity_hash: "dd".repeat(16) };
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                expect(wrapper.vm.canIgnoreMessageAuthor(liveMsg({ src: "dd".repeat(16) }))).toBe(false);
+                expect(wrapper.vm.canIgnoreMessageAuthor({ kind: "system", text: "joined" })).toBe(false);
+                expect(wrapper.vm.canIgnoreMessageAuthor(liveMsg())).toBe(true);
+                useConfigStore().config = {};
+            });
+
+            it("unignoring from the menu restores messages via resync", async () => {
+                const ToastUtils = (await import("@/js/ToastUtils")).default;
+                vi.spyOn(ToastUtils, "info").mockImplementation(() => {});
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                const msg = liveMsg({ src: "aabb", nick: "carol" });
+                wrapper.vm.ignoredPeers = [{ hash: "aabb", name: "carol" }];
+                wrapper.vm.messageMenu = { show: true, x: 0, y: 0, msg };
+                await wrapper.vm.toggleIgnoreFromMenu();
+                expect(wrapper.vm.ignoredPeers).toEqual([]);
+                // The resync reloaded the room, bringing aabb's message back.
+                await vi.waitFor(() => expect(wrapper.vm.messages.some((m) => m.src === "aabb")).toBe(true));
+            });
+        });
+
+        describe("custom highlight words", () => {
+            it("flags matching messages with the mention highlight", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["uucp"];
+                const msg = liveMsg({ text: "anyone using uucp?" });
+                wrapper.vm.applyLocalHighlightFlags([msg]);
+                expect(msg.mention).toBe(true);
+            });
+
+            it("does not flag own, ignored, or already-mentioned messages", async () => {
+                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                useConfigStore().config = { identity_hash: "dd".repeat(16) };
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["uucp"];
+                wrapper.vm.ignoredPeers = [{ hash: "aabb", name: "carol" }];
+                const own = liveMsg({ src: "dd".repeat(16), text: "uucp" });
+                const ignored = liveMsg({ src: "aabb", text: "uucp" });
+                const mentioned = liveMsg({ text: "uucp", mention: true });
+                wrapper.vm.applyLocalHighlightFlags([own, ignored, mentioned]);
+                expect(own.mention).toBe(false);
+                expect(ignored.mention).toBe(false);
+                expect(mentioned.mention).toBe(true);
+                useConfigStore().config = {};
+            });
+
+            it("bumps the mention badge for matching messages in other rooms", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["callsign"];
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "other",
+                    message: liveMsg({ room: "other", text: "what is your callsign" }),
+                });
+                await vi.waitFor(() => {
+                    const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                    expect(hub.mention_rooms).toContain("other");
+                });
+            });
+
+            it("bumps the mention badge for action messages in other rooms", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["callsign"];
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "other",
+                    message: liveMsg({ kind: "action", room: "other", text: "waves their callsign" }),
+                });
+                await vi.waitFor(() => {
+                    const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                    expect(hub.mention_rooms).toContain("other");
+                });
+            });
+
+            it("keeps the local mention flag across hub refreshes", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["callsign"];
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "other",
+                    message: liveMsg({ room: "other", text: "callsign check" }),
+                });
+                await vi.waitFor(() => {
+                    const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                    expect(hub.mention_rooms).toContain("other");
+                });
+                // A later fetchHubs replaces the hubs array; the client-side
+                // flag must survive or the badge silently drops.
+                axiosMock.get.mockResolvedValueOnce({ data: { hubs: [makeHub()] } });
+                await wrapper.vm.fetchHubs();
+                const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                expect(hub.mention_rooms).toContain("other");
+            });
+
+            it("clears the local mention flag when the room is read", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["callsign"];
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "other",
+                    message: liveMsg({ room: "other", text: "callsign check" }),
+                });
+                await vi.waitFor(() => {
+                    const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                    expect(hub.mention_rooms).toContain("other");
+                });
+                wrapper.vm.clearLocalRoomUnread(HUB_HASH, "other");
+                const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                expect(hub.mention_rooms || []).not.toContain("other");
+                await wrapper.vm.fetchHubs();
+                const hub2 = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                expect(hub2.mention_rooms || []).not.toContain("other");
+            });
+
+            it("removing a word unflags previously highlighted messages", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["uucp"];
+                const msg = liveMsg({ text: "anyone using uucp?" });
+                wrapper.vm.messages = [msg];
+                wrapper.vm.applyLocalHighlightFlags(wrapper.vm.messages);
+                expect(msg.mention).toBe(true);
+                wrapper.vm.removeHighlightWord("uucp");
+                expect(msg.mention).toBe(false);
+            });
+
+            it("does not clear a server-set mention when a word is removed", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["uucp"];
+                const serverMention = liveMsg({ text: "uucp fan", mention: true });
+                wrapper.vm.messages = [serverMention];
+                wrapper.vm.applyLocalHighlightFlags(wrapper.vm.messages);
+                wrapper.vm.removeHighlightWord("uucp");
+                expect(serverMention.mention).toBe(true);
+            });
+
+            it("adds and removes words through the prefs actions", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWordDraft = "  callsign  ";
+                wrapper.vm.addHighlightWord();
+                expect(wrapper.vm.highlightWords).toEqual(["callsign"]);
+                wrapper.vm.highlightWordDraft = "callsign";
+                wrapper.vm.addHighlightWord();
+                expect(wrapper.vm.highlightWords).toEqual(["callsign"]);
+                const stored = JSON.parse(localStorage.getItem("meshchatx.rrc.prefs"));
+                expect(stored._.highlightWords).toEqual(["callsign"]);
+                wrapper.vm.removeHighlightWord("callsign");
+                expect(wrapper.vm.highlightWords).toEqual([]);
+            });
+        });
     });
 });

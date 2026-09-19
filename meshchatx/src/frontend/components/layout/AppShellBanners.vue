@@ -4,7 +4,7 @@
     <div>
         <div
             v-if="showEmergency"
-            class="relative z-100 bg-sem-danger text-white px-4 py-2 text-center text-sm font-bold shadow-md animate-pulse"
+            class="relative z-100 bg-sem-action-danger text-sem-action-danger-text px-4 py-2 text-center text-sm font-bold shadow-md animate-pulse"
         >
             <div class="flex items-center justify-center gap-2">
                 <MaterialDesignIcon icon-name="alert-decagram" class="size-5" />
@@ -14,7 +14,7 @@
 
         <div
             v-if="showDemo"
-            class="relative z-100 bg-sem-warning text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-sem-warning/80"
+            class="relative z-100 bg-sem-action-warning text-sem-action-warning-text px-4 py-2 text-center text-sm font-medium shadow-md border-b border-sem-warning/80"
             role="status"
         >
             {{ demoLabel }}
@@ -22,7 +22,7 @@
 
         <div
             v-if="showWsDisconnected"
-            class="relative z-100 bg-sem-danger text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-sem-danger/80"
+            class="relative z-100 bg-sem-action-danger text-sem-action-danger-text px-4 py-3 text-center text-sm font-medium shadow-md border-b border-sem-danger/80"
             role="status"
             aria-live="polite"
         >
@@ -47,7 +47,7 @@
         </div>
         <div
             v-if="showWsReconnected"
-            class="relative z-100 bg-sem-success text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-sem-success/80 transition-opacity duration-300"
+            class="relative z-100 bg-sem-action-success text-sem-action-success-text px-4 py-2 text-center text-sm font-medium shadow-md border-b border-sem-success/80 transition-opacity duration-300"
             role="status"
             aria-live="polite"
         >
@@ -55,7 +55,7 @@
         </div>
         <div
             v-if="showNetworkStarting"
-            class="relative z-100 bg-sem-info text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-sem-info/80"
+            class="relative z-100 bg-sem-action-info text-sem-action-info-text px-4 py-2 text-center text-sm font-medium shadow-md border-b border-sem-info/80"
             role="status"
             aria-live="polite"
         >
@@ -63,7 +63,7 @@
         </div>
         <div
             v-if="showLanBindNoAuth"
-            class="relative z-100 bg-sem-warning text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-sem-warning/80"
+            class="relative z-100 bg-sem-action-warning text-sem-action-warning-text px-4 py-3 text-center text-sm font-medium shadow-md border-b border-sem-warning/80"
             role="status"
             aria-live="polite"
         >
@@ -87,7 +87,7 @@
         </div>
         <div
             v-if="showNetworkDegraded"
-            class="relative z-100 bg-sem-warning text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-sem-warning/80"
+            class="relative z-100 bg-sem-action-warning text-sem-action-warning-text px-4 py-3 text-center text-sm font-medium shadow-md border-b border-sem-warning/80"
             role="status"
             aria-live="polite"
         >

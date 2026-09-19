@@ -66,6 +66,24 @@ _LXMF_ATTACHMENT_FLAG_KEYS = (
 )
 
 
+def _lxmf_created_at_epoch(raw) -> float | None:
+    """Epoch seconds for a created_at value, or None when unparseable."""
+    if raw is None or raw == "":
+        return None
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    if isinstance(raw, datetime):
+        dt = raw
+    else:
+        try:
+            dt = datetime.fromisoformat(str(raw))
+        except (TypeError, ValueError):
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.timestamp()
+
+
 class MessageDAO:
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -695,7 +713,7 @@ class MessageDAO:
             "CASE WHEN fields IS NOT NULL AND fields != '' AND fields != '{}' "
             "AND (instr(fields, '\"file_attachments\"') > 0 OR instr(fields, '\"0x07\"') > 0) "
             "THEN 1 ELSE 0 END as has_files, "
-            "timestamp "
+            "timestamp, created_at "
             "FROM lxmf_messages WHERE peer_hash = ? AND is_incoming = 1 "
             "ORDER BY timestamp DESC LIMIT ?",
             (peer_hash, scan_limit),
@@ -852,11 +870,11 @@ class MessageDAO:
     def is_conversation_unread(self, destination_hash):
         row = self.provider.fetchone(
             """
-            SELECT m.timestamp, r.last_read_at
+            SELECT m.created_at, m.timestamp, r.last_read_at
             FROM lxmf_messages m
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = ?
             WHERE m.peer_hash = ? AND m.is_incoming = 1
-            ORDER BY m.timestamp DESC LIMIT 1
+            ORDER BY m.id DESC LIMIT 1
         """,
             (destination_hash, destination_hash),
         )
@@ -870,7 +888,12 @@ class MessageDAO:
         if last_read_at.tzinfo is None:
             last_read_at = last_read_at.replace(tzinfo=UTC)
 
-        return row["timestamp"] > last_read_at.timestamp()
+        # Rows migrated before created_at existed fall back to the
+        # sender-supplied timestamp, matching pre-migration behavior.
+        arrival_ts = _lxmf_created_at_epoch(row["created_at"])
+        if arrival_ts is None:
+            arrival_ts = row["timestamp"]
+        return arrival_ts is not None and arrival_ts > last_read_at.timestamp()
 
     def mark_stuck_messages_as_failed(self):
         self.provider.execute(
@@ -1043,18 +1066,23 @@ class MessageDAO:
 
         placeholders = ", ".join(["?"] * len(destination_hashes))
         query = f"""
-            SELECT peer_hash, MAX(timestamp) as latest_ts, last_read_at
+            SELECT m.peer_hash, m.created_at as latest_created_at,
+                m.timestamp as latest_ts, r.last_read_at
             FROM lxmf_messages m
+            JOIN (
+                SELECT peer_hash, MAX(id) as max_id
+                FROM lxmf_messages
+                WHERE peer_hash IN ({placeholders}) AND is_incoming = 1
+                GROUP BY peer_hash
+            ) latest ON latest.max_id = m.id
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = m.peer_hash
-            WHERE m.peer_hash IN ({placeholders}) AND m.is_incoming = 1
-            GROUP BY m.peer_hash
         """
         rows = self.provider.fetchall(query, destination_hashes)
 
         unread_states = {}
         for row in rows:
             peer_hash = row["peer_hash"]
-            latest_ts = row["latest_ts"]
+            latest_created_at = row["latest_created_at"]
             last_read_at_str = row["last_read_at"]
 
             if not last_read_at_str:
@@ -1065,7 +1093,12 @@ class MessageDAO:
             if last_read_at.tzinfo is None:
                 last_read_at = last_read_at.replace(tzinfo=UTC)
 
-            unread_states[peer_hash] = latest_ts > last_read_at.timestamp()
+            arrival_ts = _lxmf_created_at_epoch(latest_created_at)
+            if arrival_ts is None:
+                arrival_ts = row["latest_ts"]
+            unread_states[peer_hash] = (
+                arrival_ts is not None and arrival_ts > last_read_at.timestamp()
+            )
 
         return unread_states
 

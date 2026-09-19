@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracle tests for contacts list reliability (pagination, 503, enrichment)."""
+"""Reference tests for contacts list reliability (pagination, 503, enrichment)."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class _Query(dict):
         return dict.get(self, key, default)
 
 
-def _oracle_pagination(raw_limit, raw_offset, default_limit=100):
+def _expected_pagination(raw_limit, raw_offset, default_limit=100):
     """Independent expected (limit, offset) or None for non-integers."""
     try:
         limit = int(raw_limit if raw_limit is not None else default_limit)
@@ -52,13 +52,13 @@ def _oracle_pagination(raw_limit, raw_offset, default_limit=100):
         (None, None),
     ],
 )
-def test_parse_contacts_pagination_matches_oracle(limit, offset):
+def test_parse_contacts_pagination_matches(limit, offset):
     query = _Query()
     if limit is not None:
         query["limit"] = limit
     if offset is not None:
         query["offset"] = offset
-    expected = _oracle_pagination(limit, offset)
+    expected = _expected_pagination(limit, offset)
     assert parse_contacts_pagination(query) == expected
 
 

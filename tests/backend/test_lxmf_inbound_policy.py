@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracles for pre-transfer inbound LXMF delivery resource policy."""
+"""References for pre-transfer inbound LXMF delivery resource policy."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _policy_ctx(*, block_all=False, block_attachments=False):
     return ctx
 
 
-def test_oracle_source_hash_from_delivery_resource():
+def test_source_hash_from_delivery_resource():
     resource = _resource_for_peer(PEER_SPAMMER)
     assert (
         source_hash_from_delivery_resource(resource) == PEER_SPAMMER
@@ -61,7 +61,7 @@ def test_oracle_source_hash_from_delivery_resource():
         (False, False, False, None),
     ],
 )
-def test_oracle_evaluate_inbound_delivery_resource_policy(
+def test_evaluate_inbound_delivery_resource_policy(
     block_all,
     block_attachments,
     is_contact,
@@ -80,7 +80,7 @@ def test_oracle_evaluate_inbound_delivery_resource_policy(
         assert reason == expected_reason  # skipcq: BAN-B101
 
 
-def test_oracle_blocked_peer_rejects_before_transfer():
+def test_blocked_peer_rejects_before_transfer():
     app = _policy_app(is_blocked=True)
     ctx = _policy_ctx()
     resource = _resource_for_peer(PEER_SPAMMER)
@@ -90,7 +90,7 @@ def test_oracle_blocked_peer_rejects_before_transfer():
     assert reason == "blocked"  # skipcq: BAN-B101
 
 
-def test_oracle_unknown_identity_does_not_reject_attachment_block():
+def test_unknown_identity_does_not_reject_attachment_block():
     """Fresh LXMF delivery links often lack remote identity at advertise.
 
     Rejecting unknown identity marked contact attachments REJECTED on the
@@ -112,7 +112,7 @@ def test_oracle_unknown_identity_does_not_reject_attachment_block():
     app.is_destination_blocked.assert_not_called()
 
 
-def test_oracle_inbound_link_local_destination_identity_is_not_peer():
+def test_inbound_link_local_destination_identity_is_not_peer():
     """Inbound links carry the local lxmf.delivery destination.
 
     When the remote has not identified, destination.identity is our own

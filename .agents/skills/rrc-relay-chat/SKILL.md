@@ -66,4 +66,4 @@ uv run pytest tests/backend/test_rrc_membership_acls.py tests/backend/test_rrc_r
 pnpm exec vitest run tests/frontend/RelayChatPage.test.js
 ```
 
-Use oracle and exploratory skills when hunting RRC bugs.
+Use reference and exploratory skills when hunting RRC bugs.

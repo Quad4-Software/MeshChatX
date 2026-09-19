@@ -2,8 +2,20 @@
 
 const THROTTLE_MS = 5 * 60 * 1000;
 const PEER_HELPTIP_COOLDOWN_MS = 30 * 1000;
+const MAX_TRACKED_ENTRIES = 500;
 const lastShownAt = new Map();
 const lastPeerHelptipAt = new Map();
+
+function prune(map, windowMs, now) {
+    for (const [key, ts] of map) {
+        if (now - ts >= windowMs) {
+            map.delete(key);
+        }
+    }
+    while (map.size > MAX_TRACKED_ENTRIES) {
+        map.delete(map.keys().next().value);
+    }
+}
 
 /**
  * @param {object | null | undefined} config
@@ -32,6 +44,7 @@ export function shouldShowHelptip(peerHash, tipId) {
         return false;
     }
     lastShownAt.set(key, now);
+    prune(lastShownAt, THROTTLE_MS, now);
     return true;
 }
 
@@ -51,6 +64,7 @@ export function shouldShowHelptipForPeer(peerHash, now = Date.now()) {
  */
 export function recordHelptipShownForPeer(peerHash, now = Date.now()) {
     lastPeerHelptipAt.set((peerHash || "").toLowerCase(), now);
+    prune(lastPeerHelptipAt, PEER_HELPTIP_COOLDOWN_MS, now);
 }
 
 /**

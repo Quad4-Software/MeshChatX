@@ -64,7 +64,7 @@
                         </label>
                         <button
                             type="button"
-                            class="px-4 py-2 bg-sem-action-primary text-white text-xs font-bold rounded-lg hover:bg-sem-action-primary-hover transition-colors shadow-xs shrink-0"
+                            class="px-4 py-2 bg-sem-action-primary text-sem-action-primary-text text-xs font-bold rounded-lg hover:bg-sem-action-primary-hover transition-colors shadow-xs shrink-0"
                             @click="close"
                         >
                             {{ $t("messages.telemetry_history_done") }}
