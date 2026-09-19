@@ -39,8 +39,12 @@ export function useMessageDrafts(options = {}) {
 
     function loadDraft(destinationHash, identityKey) {
         try {
-            const drafts = readDraftRoot();
             const key = identityKey || getIdentityKey();
+            // Record which identity the composer text belongs to before any
+            // saveDraft call, so a later save cannot fall back to a switched
+            // identity and leak the draft into the wrong bucket.
+            lastDraftIdentityKey.value = key;
+            const drafts = readDraftRoot();
             const bucket = draftBucketFor(drafts, key);
             let text = "";
             if (bucket && typeof bucket[destinationHash] === "string") {

@@ -260,6 +260,22 @@ describe("useRelayMessageTimeline", () => {
         expect(tl.hasMorePrevious.value).toBe(true);
     });
 
+    it("loadPreviousMessages decorates the surviving older page", async () => {
+        window.api.get.mockResolvedValue({
+            data: { messages: [msg(1), msg(2, "x", { src: "ignored" }), msg(3)], has_more: false },
+        });
+        const decorateMessages = vi.fn();
+        const tl = makeTimeline({
+            excludeMessage: (m) => m.src === "ignored",
+            decorateMessages,
+        });
+        tl.messages.value = [msg(4)];
+        tl.hasMorePrevious.value = true;
+        await tl.loadPreviousMessages();
+        expect(decorateMessages).toHaveBeenCalledTimes(1);
+        expect(decorateMessages.mock.calls[0][0].map((m) => m.seq)).toEqual([1, 3]);
+    });
+
     it("onMessagesScroll reports distance-to-bottom through onScrollState", () => {
         const onScrollState = vi.fn();
         const tl = makeTimeline({ onScrollState });

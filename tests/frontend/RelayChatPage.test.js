@@ -1260,6 +1260,22 @@ describe("RelayChatPage.vue", () => {
                 await wrapper.vm.selectRoom(HUB_HASH, "lobby");
                 expect(wrapper.vm.composer).toBe("");
             });
+
+            it("saves an unsaved draft under the identity that loaded it on switch", async () => {
+                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                useConfigStore().config = { identity_hash: "id-old" };
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                // Typing without any save leaves lastDraftIdentityKey set only
+                // because loadDraft recorded the loading identity.
+                wrapper.vm.composer = "secret draft";
+                useConfigStore().config = { identity_hash: "id-new" };
+                wrapper.vm.onIdentitySwitched({ identity_hash: "id-new" });
+                const stored = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
+                expect(stored["id-old"]?.[`${HUB_HASH}/lobby`]).toBe("secret draft");
+                expect(stored["id-new"]).toBeUndefined();
+                useConfigStore().config = {};
+            });
         });
 
         describe("client-side ignore", () => {
@@ -1372,6 +1388,86 @@ describe("RelayChatPage.vue", () => {
                     const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
                     expect(hub.mention_rooms).toContain("other");
                 });
+            });
+
+            it("bumps the mention badge for action messages in other rooms", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["callsign"];
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "other",
+                    message: liveMsg({ kind: "action", room: "other", text: "waves their callsign" }),
+                });
+                await vi.waitFor(() => {
+                    const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                    expect(hub.mention_rooms).toContain("other");
+                });
+            });
+
+            it("keeps the local mention flag across hub refreshes", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["callsign"];
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "other",
+                    message: liveMsg({ room: "other", text: "callsign check" }),
+                });
+                await vi.waitFor(() => {
+                    const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                    expect(hub.mention_rooms).toContain("other");
+                });
+                // A later fetchHubs replaces the hubs array; the client-side
+                // flag must survive or the badge silently drops.
+                axiosMock.get.mockResolvedValueOnce({ data: { hubs: [makeHub()] } });
+                await wrapper.vm.fetchHubs();
+                const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                expect(hub.mention_rooms).toContain("other");
+            });
+
+            it("clears the local mention flag when the room is read", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["callsign"];
+                wrapper.vm.onRrcMessage({
+                    hub_hash: HUB_HASH,
+                    room: "other",
+                    message: liveMsg({ room: "other", text: "callsign check" }),
+                });
+                await vi.waitFor(() => {
+                    const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                    expect(hub.mention_rooms).toContain("other");
+                });
+                wrapper.vm.clearLocalRoomUnread(HUB_HASH, "other");
+                const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                expect(hub.mention_rooms || []).not.toContain("other");
+                await wrapper.vm.fetchHubs();
+                const hub2 = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
+                expect(hub2.mention_rooms || []).not.toContain("other");
+            });
+
+            it("removing a word unflags previously highlighted messages", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["uucp"];
+                const msg = liveMsg({ text: "anyone using uucp?" });
+                wrapper.vm.messages = [msg];
+                wrapper.vm.applyLocalHighlightFlags(wrapper.vm.messages);
+                expect(msg.mention).toBe(true);
+                wrapper.vm.removeHighlightWord("uucp");
+                expect(msg.mention).toBe(false);
+            });
+
+            it("does not clear a server-set mention when a word is removed", async () => {
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                wrapper.vm.highlightWords = ["uucp"];
+                const serverMention = liveMsg({ text: "uucp fan", mention: true });
+                wrapper.vm.messages = [serverMention];
+                wrapper.vm.applyLocalHighlightFlags(wrapper.vm.messages);
+                wrapper.vm.removeHighlightWord("uucp");
+                expect(serverMention.mention).toBe(true);
             });
 
             it("adds and removes words through the prefs actions", async () => {
