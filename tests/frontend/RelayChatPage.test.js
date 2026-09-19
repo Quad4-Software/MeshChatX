@@ -1296,6 +1296,22 @@ describe("RelayChatPage.vue", () => {
                 expect(stored._.ignored).toEqual([{ hash: "aabb", name: "carol" }]);
             });
 
+            it("persists prefs under the captured identity, not a switched live one", async () => {
+                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                useConfigStore().config = { identity_hash: "id-old" };
+                const wrapper = mountPage();
+                await openRoom(wrapper);
+                // Live config moves on without the switch handler having run
+                // (a deferred save queued before the event landed).
+                useConfigStore().config = { identity_hash: "id-new" };
+                wrapper.vm.ignoredPeers = [{ hash: "aabb", name: "carol" }];
+                wrapper.vm.persistRelayPrefs();
+                const stored = JSON.parse(localStorage.getItem("meshchatx.rrc.prefs") || "{}");
+                expect(stored["id-old"]?.ignored).toEqual([{ hash: "aabb", name: "carol" }]);
+                expect(stored["id-new"]).toBeUndefined();
+                useConfigStore().config = {};
+            });
+
             it("drops live pushes from ignored peers but keeps system rows", async () => {
                 const wrapper = mountPage();
                 await openRoom(wrapper);

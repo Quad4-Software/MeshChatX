@@ -2090,22 +2090,25 @@ export default {
         _relayDraftKey(hubHash, room) {
             return `${hubHash || ""}/${room || ""}`;
         },
+        // Identity captured at load/switch time wins over live config so a
+        // deferred save cannot write one identity's state into another's
+        // localStorage bucket.
+        _scopedIdentityKey() {
+            return this.lastDraftIdentityKey || this._draftIdentityKey();
+        },
         saveCurrentRoomDraft() {
             if (!this.selectedHubHash || !this.selectedRoom) {
                 return;
             }
-            this.saveDraft(
-                this._relayDraftKey(this.selectedHubHash, this.selectedRoom),
-                this.lastDraftIdentityKey || this._draftIdentityKey()
-            );
+            this.saveDraft(this._relayDraftKey(this.selectedHubHash, this.selectedRoom), this._scopedIdentityKey());
         },
         loadRelayPrefs() {
-            const prefs = loadRelayPrefs(this._draftIdentityKey());
+            const prefs = loadRelayPrefs(this._scopedIdentityKey());
             this.ignoredPeers = prefs.ignored;
             this.highlightWords = prefs.highlightWords;
         },
         persistRelayPrefs() {
-            saveRelayPrefs(this._draftIdentityKey(), {
+            saveRelayPrefs(this._scopedIdentityKey(), {
                 ignored: this.ignoredPeers,
                 highlightWords: this.highlightWords,
             });

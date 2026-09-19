@@ -1,8 +1,7 @@
 // @ts-check
 
-import { ref } from "vue";
-
 import { STORAGE_KEYS } from "../constants.js";
+import { useIdentityScope } from "../identityScope.js";
 
 /**
  * Conversation draft persistence for ConversationViewer. Drafts live in
@@ -14,11 +13,10 @@ import { STORAGE_KEYS } from "../constants.js";
  * compose textarea state the host owns.
  */
 export function useMessageDrafts(options = {}) {
-    const getIdentityKey = options.getIdentityKey || (() => "_");
+    const scope = options.identityScope || useIdentityScope({ getIdentityKey: options.getIdentityKey });
+    const lastDraftIdentityKey = scope.identityKey;
     const getNewMessageText = options.getNewMessageText || (() => "");
     const setDraftText = options.setDraftText || (() => {});
-
-    const lastDraftIdentityKey = ref("");
 
     function readDraftRoot() {
         const raw = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGE_DRAFTS) || "{}");
@@ -39,11 +37,10 @@ export function useMessageDrafts(options = {}) {
 
     function loadDraft(destinationHash, identityKey) {
         try {
-            const key = identityKey || getIdentityKey();
             // Record which identity the composer text belongs to before any
             // saveDraft call, so a later save cannot fall back to a switched
             // identity and leak the draft into the wrong bucket.
-            lastDraftIdentityKey.value = key;
+            const key = scope.beginIdentity(identityKey);
             const drafts = readDraftRoot();
             const bucket = draftBucketFor(drafts, key);
             let text = "";
@@ -62,7 +59,7 @@ export function useMessageDrafts(options = {}) {
     function saveDraft(destinationHash, identityKey) {
         try {
             const drafts = readDraftRoot();
-            const key = identityKey || getIdentityKey();
+            const key = scope.keyForWrite(identityKey);
             let bucket = draftBucketFor(drafts, key);
             if (!bucket) {
                 bucket = {};
@@ -77,7 +74,7 @@ export function useMessageDrafts(options = {}) {
                 delete bucket[destinationHash];
             }
             localStorage.setItem(STORAGE_KEYS.MESSAGE_DRAFTS, JSON.stringify(drafts));
-            lastDraftIdentityKey.value = key;
+            scope.identityKey.value = key;
         } catch (e) {
             console.error("Failed to save draft:", e);
         }
@@ -87,5 +84,6 @@ export function useMessageDrafts(options = {}) {
         lastDraftIdentityKey,
         loadDraft,
         saveDraft,
+        identityScope: scope,
     };
 }
