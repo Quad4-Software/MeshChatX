@@ -141,6 +141,8 @@ import * as announcesApi from "../js/api/announces.js";
 import ToastUtils from "../js/ToastUtils";
 import { listCommands } from "../js/registries/commandRegistry.js";
 
+const MAX_VISIBLE_RESULTS = 50;
+
 export default {
     name: "CommandPalette",
     components: { MaterialDesignIcon, LxmfUserIcon },
@@ -200,11 +202,18 @@ export default {
             return results;
         },
         filteredResults() {
-            if (!this.query) return this.allResults.filter((r) => r.type === "navigation" || r.type === "action");
-            const q = this.query.toLowerCase();
-            return this.allResults.filter(
-                (r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
-            );
+            let results;
+            if (!this.query) {
+                results = this.allResults.filter((r) => r.type === "navigation" || r.type === "action");
+            } else {
+                const q = this.query.toLowerCase();
+                results = this.allResults.filter(
+                    (r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
+                );
+            }
+            // A broad match over a large address book must not mount hundreds
+            // of dropdown rows.
+            return results.slice(0, MAX_VISIBLE_RESULTS);
         },
         groupedResults() {
             const groups = {};
@@ -266,7 +275,9 @@ export default {
                 });
                 this.peers = peerResponse.data.announces;
 
-                const contactResponse = await window.api.get(apiPath("/telephone/contacts"));
+                const contactResponse = await window.api.get(apiPath("/telephone/contacts"), {
+                    params: { limit: 100 },
+                });
                 this.contacts =
                     contactResponse.data?.contacts ?? (Array.isArray(contactResponse.data) ? contactResponse.data : []);
             } catch (e) {

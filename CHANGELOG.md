@@ -4,24 +4,56 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.1] - [unreleased]
 
+### Added
+
+- Android Nearby: hotspot, WiFi Direct, WiFi Aware, and NFC tap link nearby phones with no router. Peers join through Auto Interface or the bundled AwareInterface.
+- Android satellite readiness: the app declares constrained-data optimization so the OS can route mesh traffic on a satellite attach. Nearby shows satellite state and a low-bandwidth hint.
+- OIDC sign-on for the web UI (Authentik, Keycloak, Pocket ID, and compatible providers) via Authorization Code + PKCE. Set it under Settings, Authentication, or with MESHCHAT_OIDC_* variables. OIDC can require login without a local password.
+- UI heap-profile spec fails CI if a catalog page leaves listeners, timers, or heap above baseline after unmount.
+
+### Security
+
+- Messages: user text could forge markdown placeholders and inject anchors or tokens into linkified URLs. Placeholders now use a per-render nonce, and linkified URLs stop at bracket tokens.
+- Map exchange: the KML sanitizer now matches namespaced, attribute, and CDATA href forms, and treats malformed remote URLs as unsafe.
+- Docs: uploaded Reticulum documentation HTML no longer shares the app origin. The docs iframe and `/reticulum-docs/` responses are CSP-sandboxed.
+- Authentication: the public setup endpoint no longer sets a local password on an OIDC-only deployment.
+
 ### Fixed
 
-- Windows desktop: the AppContainer child no longer dies during loader init (exit 0xC0000142) on hosts where the LPAC token lacks window station and desktop access. The launcher now grants the package SID explicit access to the interactive winsta and desktop, and a sandboxed child that still fails to start falls back to an unsandboxed backend in auto mode.
-- Packaged builds: `.gitkeep` keep-marker placeholders are no longer hashed into `backend-manifest.json`, so a dropped placeholder cannot produce a Missing integrity warning that blocks onboarding.
-- Relay chat: the hosted hub announce interval now displays hours and days (for example "6 h", "1 h 30 min", "1 d") and the input accepts unit-suffixed values like "6h" or "1d" instead of raw minutes only.
-- Messages: reopening a conversation could paint a stale cached first page and never merge messages sent while the pane was closed, so the sidebar showed the new message but the chat view did not. The stash is now invalidated on message events, a soft resync runs whenever a cached page was painted, and the resync refreshes the stash instead of renewing the stale snapshot.
-- NomadNet: the path-finder menu now hides below xl so the URL input keeps usable width on small screens, and the mobile sidebar gains a direct URL entry row since the empty-state input only exists in the hidden viewer pane.
-- Relay chat: on narrow screens the Host, Bots and Search tabs collapse into the overflow menu so the tab bar no longer scrolls horizontally on phones.
-- Android: tapping the app icon or the "running" notification could close the app with no message when the Chaquopy runtime or WebView failed before the UI came up. `Python.start` now catches `Throwable` (native link failures are `Error`s, not `Exception`s, and escaped the old catch), a missing or updating WebView provider shows a readable startup error, the storage migration tolerates `SecurityException`, and a WebView renderer crash surfaces instead of killing the process.
-- NomadNet: closing a node opened from the announce list destroyed the whole tab and landed on a fresh tab showing Favourites. Browse tabs now keep their list and close only returns to it; tabs that were opened directly on a node still close. The sidebar also reopens on the last used tab instead of always defaulting to Favourites.
-- NomadNet: leaving the browser route and coming back reloaded the crash tab renderer and repainted the page because detaching the DOM kills the iframe document. The renderer frame now lives outside the keep-alive subtree and is parked over its slot, so scroll position, expanded sections and field contents survive navigation with no reload.
-- Relay chat: backing out of a room that was opened from Search or Discovery returns to that view instead of always landing on Chat.
+- Windows desktop: the AppContainer child no longer dies at loader init (0xC0000142) when the LPAC token lacks window station access. A failed sandbox still falls back to an unsandboxed backend in auto mode.
+- Packaged builds: `.gitkeep` placeholders are no longer hashed into `backend-manifest.json`, so a dropped marker cannot block onboarding.
+- Relay chat: hosted hub announce intervals show hours and days, and accept values like "6h" or "1d".
+- Messages: reopening a conversation no longer shows a stale first page that misses messages sent while the pane was closed.
+- NomadNet: the path-finder menu hides on small screens, and the mobile sidebar gains a URL entry row.
+- Relay chat: Host, Bots, and Search tabs collapse into the overflow menu on narrow screens.
+- Android: a failed Chaquopy start or missing WebView no longer closes the app with no message. Startup and renderer crashes show a readable error.
+- NomadNet: closing a node opened from the announce list returns to that list instead of a new Favourites tab. The sidebar reopens on the last used tab.
+- NomadNet: leaving the browser and coming back no longer reloads the page. Scroll position and field contents survive.
+- Relay chat: backing out of a room opened from Search or Discovery returns to that view.
+- Reverse proxy: trusted proxies can pass X-Forwarded-Proto and X-Forwarded-Port, so TLS-terminating ingress no longer gets 403 on `/ws` upgrades.
+- Docker: the entrypoint prepends `meshchatx` when argv starts with a flag, so `docker run image --flag` and Kubernetes args no longer crash su-exec.
+- Landlock: parent directories of `--ssl-cert` and `--ssl-key` are granted as read roots, so TLS files outside the usual roots load.
+- Logging: the Python logger also writes to stdout, so request-handler tracebacks show up in docker logs and kubectl logs.
+- WebSocket: the cost limiter covers binary and invalid JSON frames, and idle timeout drops dead or flooding clients. The telephone audio socket uses the same gating.
+- Authentication: turning auth_enabled off no longer wipes the local password hash while OIDC still enforces login.
+- Settings: an empty OIDC client secret no longer overwrites the stored secret, and an invalid issuer URL is rejected before any keys persist.
+- Backend: concurrent `reload_reticulum` calls are serialized, and recovery clears a dead instance instead of reusing it.
+- Backend: transport-thread RNS callbacks wake asyncio safely, dropped coroutines are closed, and the memory log handler drops its database handle at identity teardown.
+- Voicemail: greeting text is passed to espeak on stdin, so a leading dash is not treated as a flag.
+- Startup: leftover ratchet files with non-hex names are swept before RNS init, so they do not retrigger the corrupted-ratchet path on every boot.
+- Map: telemetry, announce, and interface coordinates are range-checked before projection, and marker updates stop after the map is torn down.
+- Messages: conversation and relay timelines cap retained items, unmount no longer cancels accepted sends, and MiniChat no longer races local appends against its fetch.
+- Frontend lifecycle: live transport cleans up sockets on destroy and mid-connect mode changes, failed WASM injections can be retried, and a stale NomadNet started event cannot resurrect a cancelled download.
+- Boot: the splash waits for the initial route chunk (4 second cap) before fading, so the shell does not jump onto an empty view.
+- NomadNet: page images no longer stick on Loading when a burst of file downloads was rate-limited. Errors now fail the matching download.
 
 ### Changed
 
+- Install docs cover reverse proxies, Kubernetes, and previously undocumented flags and MESHCHAT_* variables.
+- Long sessions bound per-view state (announces, map markers, NomadNet pages, MiniChat, toasts) and clean up timers and streams on unmount.
 - Bump rns to 1.5.4 and lxst to 0.5.3.
-- Headless self-check gains an AppContainer Launch probe that spawns a real sandboxed child on Windows so loader-init regressions surface via `--self-check` and CI.
-- CI verifies the packaged Electron backend tree against `backend-manifest.json` before the unpacked staging dir is pruned.
+- Headless self-check gains a Windows AppContainer launch probe so loader-init failures show up in `--self-check` and CI.
+- CI checks the packaged Electron backend tree against `backend-manifest.json` before staging is pruned.
 
 ## [4.9.0] - 2026-09-12 [released]
 

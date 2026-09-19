@@ -21,7 +21,7 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'conversations'
-                            ? 'bg-sem-accent text-white'
+                            ? 'bg-sem-action-primary text-sem-action-primary-text'
                             : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                     "
                     @click="tab = 'conversations'"
@@ -33,7 +33,7 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'announces'
-                            ? 'bg-sem-accent text-white'
+                            ? 'bg-sem-action-primary text-sem-action-primary-text'
                             : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                     "
                     @click="tab = 'announces'"
@@ -861,120 +861,210 @@
                 </div>
 
                 <!-- peers -->
-                <div class="flex h-full overflow-y-auto" @scroll="onPeersScroll">
-                    <div v-if="searchedPeers.length > 0" class="w-full">
-                        <div
-                            v-for="peer of searchedPeers"
-                            :key="peer.destination_hash"
-                            v-memo="[
-                                peer.destination_hash,
-                                peer.updated_at,
-                                peer.hops,
-                                peer.snr,
-                                selectedDestinationHash === peer.destination_hash,
-                                configStore.config.banished_effect_enabled && isBlocked(peer.destination_hash),
-                                timeAgoTick,
-                                isRightSidebar,
-                            ]"
-                            :class="[
-                                'flex cursor-pointer p-2 relative',
-                                selectionEdgeBorderClass,
-                                peer.destination_hash === selectedDestinationHash
-                                    ? 'bg-sem-info/15 border-sem-accent'
-                                    : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
-                            ]"
-                            @click="onPeerClick(peer)"
-                        >
-                            <!-- banished overlay -->
-                            <div
-                                v-if="configStore.config.banished_effect_enabled && isBlocked(peer.destination_hash)"
-                                class="banished-overlay"
-                                :style="{ background: configStore.config.banished_color + '33' }"
-                            >
-                                <span
-                                    class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                    :style="{ 'background-color': configStore.config.banished_color }"
-                                    >{{ configStore.config.banished_text }}</span
-                                >
-                            </div>
-
-                            <div class="my-auto mr-2">
-                                <LxmfUserIcon
-                                    :custom-image="peer.contact_image"
-                                    :icon-name="peer.lxmf_user_icon?.icon_name"
-                                    :icon-foreground-colour="peer.lxmf_user_icon?.foreground_colour"
-                                    :icon-background-colour="peer.lxmf_user_icon?.background_colour"
-                                    icon-class="shrink-0"
-                                    :icon-style="messageIconStyle"
-                                />
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div
-                                    class="text-sem-fg truncate"
-                                    :title="peer.custom_display_name ?? peer.display_name"
-                                >
-                                    {{ peer.custom_display_name ?? peer.display_name }}
-                                </div>
-                                <div class="flex space-x-1 text-sem-fg-muted text-sm">
-                                    <!-- time ago -->
-                                    <span class="flex my-auto space-x-1">
-                                        {{ formatTimeAgo(peer.updated_at) }}
-                                    </span>
-
-                                    <!-- hops away -->
-                                    <span
-                                        v-if="peer.hops != null && peer.hops !== 128"
-                                        class="flex my-auto text-sm text-sem-fg-muted space-x-1"
-                                    >
-                                        <span>•</span>
-                                        <span v-if="peer.hops === 0 || peer.hops === 1">{{
-                                            $t("messages.direct")
-                                        }}</span>
-                                        <span v-else>{{ $t("messages.hops", { count: peer.hops }) }}</span>
-                                    </span>
-
-                                    <!-- snr -->
-                                    <span v-if="peer.snr != null" class="flex my-auto space-x-1">
-                                        <span>•</span>
-                                        <span>{{ $t("messages.snr", { snr: peer.snr }) }}</span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- loading more spinner -->
-                        <div v-if="isLoadingMoreAnnounces" class="p-4 text-center">
-                            <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-sem-fg-muted" />
-                        </div>
-                    </div>
-                    <div
-                        v-else-if="isSearchingAnnounces && peersSearchTerm.trim() !== ''"
-                        class="mx-auto my-auto text-center leading-5"
+                <div class="flex h-full flex-col">
+                    <SidebarVirtualList
+                        v-if="searchedPeers.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
+                        class="h-full w-full"
+                        :items="searchedPeers"
+                        :item-key="(item) => item.destination_hash"
+                        @scroll="onPeersScroll"
                     >
-                        <div class="flex flex-col text-sem-fg">
-                            <div class="mx-auto mb-1 text-sem-fg-muted">
-                                <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin" />
+                        <template #item="{ item: peer }">
+                            <div
+                                v-memo="[
+                                    peer.destination_hash,
+                                    peer.updated_at,
+                                    peer.hops,
+                                    peer.snr,
+                                    selectedDestinationHash === peer.destination_hash,
+                                    configStore.config.banished_effect_enabled && isBlocked(peer.destination_hash),
+                                    timeAgoTick,
+                                    isRightSidebar,
+                                ]"
+                                :class="[
+                                    'flex cursor-pointer p-2 relative',
+                                    selectionEdgeBorderClass,
+                                    peer.destination_hash === selectedDestinationHash
+                                        ? 'bg-sem-info/15 border-sem-accent'
+                                        : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
+                                ]"
+                                @click="onPeerClick(peer)"
+                            >
+                                <!-- banished overlay -->
+                                <div
+                                    v-if="
+                                        configStore.config.banished_effect_enabled && isBlocked(peer.destination_hash)
+                                    "
+                                    class="banished-overlay"
+                                    :style="{ background: configStore.config.banished_color + '33' }"
+                                >
+                                    <span
+                                        class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
+                                        :style="{ 'background-color': configStore.config.banished_color }"
+                                        >{{ configStore.config.banished_text }}</span
+                                    >
+                                </div>
+
+                                <div class="my-auto mr-2">
+                                    <LxmfUserIcon
+                                        :custom-image="peer.contact_image"
+                                        :icon-name="peer.lxmf_user_icon?.icon_name"
+                                        :icon-foreground-colour="peer.lxmf_user_icon?.foreground_colour"
+                                        :icon-background-colour="peer.lxmf_user_icon?.background_colour"
+                                        icon-class="shrink-0"
+                                        :icon-style="messageIconStyle"
+                                    />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div
+                                        class="text-sem-fg truncate"
+                                        :title="peer.custom_display_name ?? peer.display_name"
+                                    >
+                                        {{ peer.custom_display_name ?? peer.display_name }}
+                                    </div>
+                                    <div class="flex space-x-1 text-sem-fg-muted text-sm">
+                                        <!-- time ago -->
+                                        <span class="flex my-auto space-x-1">
+                                            {{ formatTimeAgo(peer.updated_at) }}
+                                        </span>
+
+                                        <!-- hops away -->
+                                        <span
+                                            v-if="peer.hops != null && peer.hops !== 128"
+                                            class="flex my-auto text-sm text-sem-fg-muted space-x-1"
+                                        >
+                                            <span>•</span>
+                                            <span v-if="peer.hops === 0 || peer.hops === 1">{{
+                                                $t("messages.direct")
+                                            }}</span>
+                                            <span v-else>{{ $t("messages.hops", { count: peer.hops }) }}</span>
+                                        </span>
+
+                                        <!-- snr -->
+                                        <span v-if="peer.snr != null" class="flex my-auto space-x-1">
+                                            <span>•</span>
+                                            <span>{{ $t("messages.snr", { snr: peer.snr }) }}</span>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="font-semibold">{{ $t("messages.searching_announces") }}</div>
+                        </template>
+                    </SidebarVirtualList>
+                    <div v-else class="h-full overflow-y-auto" @scroll="onPeersScroll">
+                        <div v-if="searchedPeers.length > 0" class="w-full">
+                            <div
+                                v-for="peer of searchedPeers"
+                                :key="peer.destination_hash"
+                                v-memo="[
+                                    peer.destination_hash,
+                                    peer.updated_at,
+                                    peer.hops,
+                                    peer.snr,
+                                    selectedDestinationHash === peer.destination_hash,
+                                    configStore.config.banished_effect_enabled && isBlocked(peer.destination_hash),
+                                    timeAgoTick,
+                                    isRightSidebar,
+                                ]"
+                                :class="[
+                                    'flex cursor-pointer p-2 relative',
+                                    selectionEdgeBorderClass,
+                                    peer.destination_hash === selectedDestinationHash
+                                        ? 'bg-sem-info/15 border-sem-accent'
+                                        : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
+                                ]"
+                                @click="onPeerClick(peer)"
+                            >
+                                <!-- banished overlay -->
+                                <div
+                                    v-if="
+                                        configStore.config.banished_effect_enabled && isBlocked(peer.destination_hash)
+                                    "
+                                    class="banished-overlay"
+                                    :style="{ background: configStore.config.banished_color + '33' }"
+                                >
+                                    <span
+                                        class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
+                                        :style="{ 'background-color': configStore.config.banished_color }"
+                                        >{{ configStore.config.banished_text }}</span
+                                    >
+                                </div>
+
+                                <div class="my-auto mr-2">
+                                    <LxmfUserIcon
+                                        :custom-image="peer.contact_image"
+                                        :icon-name="peer.lxmf_user_icon?.icon_name"
+                                        :icon-foreground-colour="peer.lxmf_user_icon?.foreground_colour"
+                                        :icon-background-colour="peer.lxmf_user_icon?.background_colour"
+                                        icon-class="shrink-0"
+                                        :icon-style="messageIconStyle"
+                                    />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div
+                                        class="text-sem-fg truncate"
+                                        :title="peer.custom_display_name ?? peer.display_name"
+                                    >
+                                        {{ peer.custom_display_name ?? peer.display_name }}
+                                    </div>
+                                    <div class="flex space-x-1 text-sem-fg-muted text-sm">
+                                        <!-- time ago -->
+                                        <span class="flex my-auto space-x-1">
+                                            {{ formatTimeAgo(peer.updated_at) }}
+                                        </span>
+
+                                        <!-- hops away -->
+                                        <span
+                                            v-if="peer.hops != null && peer.hops !== 128"
+                                            class="flex my-auto text-sm text-sem-fg-muted space-x-1"
+                                        >
+                                            <span>•</span>
+                                            <span v-if="peer.hops === 0 || peer.hops === 1">{{
+                                                $t("messages.direct")
+                                            }}</span>
+                                            <span v-else>{{ $t("messages.hops", { count: peer.hops }) }}</span>
+                                        </span>
+
+                                        <!-- snr -->
+                                        <span v-if="peer.snr != null" class="flex my-auto space-x-1">
+                                            <span>•</span>
+                                            <span>{{ $t("messages.snr", { snr: peer.snr }) }}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            v-else-if="isSearchingAnnounces && peersSearchTerm.trim() !== ''"
+                            class="mx-auto my-auto text-center leading-5"
+                        >
+                            <div class="flex flex-col text-sem-fg">
+                                <div class="mx-auto mb-1 text-sem-fg-muted">
+                                    <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin" />
+                                </div>
+                                <div class="font-semibold">{{ $t("messages.searching_announces") }}</div>
+                            </div>
+                        </div>
+                        <div v-else-if="peersSearchTerm.trim() !== ''" class="mx-auto my-auto text-center leading-5">
+                            <div class="flex flex-col text-sem-fg">
+                                <div class="mx-auto mb-1 text-sem-fg-muted">
+                                    <MaterialDesignIcon icon-name="account-off-outline" class="size-6" />
+                                </div>
+                                <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
+                                <div>{{ $t("messages.no_search_results_peers") }}</div>
+                            </div>
+                        </div>
+                        <div v-else class="mx-auto my-auto text-center leading-5">
+                            <div class="flex flex-col text-sem-fg">
+                                <div class="mx-auto mb-1 text-sem-fg-muted">
+                                    <MaterialDesignIcon icon-name="account-search-outline" class="size-6" />
+                                </div>
+                                <div class="font-semibold">{{ $t("messages.no_peers_discovered") }}</div>
+                                <div>{{ $t("messages.waiting_for_announce") }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div v-else-if="peersSearchTerm.trim() !== ''" class="mx-auto my-auto text-center leading-5">
-                        <div class="flex flex-col text-sem-fg">
-                            <div class="mx-auto mb-1 text-sem-fg-muted">
-                                <MaterialDesignIcon icon-name="account-off-outline" class="size-6" />
-                            </div>
-                            <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
-                            <div>{{ $t("messages.no_search_results_peers") }}</div>
-                        </div>
-                    </div>
-                    <div v-else class="mx-auto my-auto text-center leading-5">
-                        <div class="flex flex-col text-sem-fg">
-                            <div class="mx-auto mb-1 text-sem-fg-muted">
-                                <MaterialDesignIcon icon-name="account-search-outline" class="size-6" />
-                            </div>
-                            <div class="font-semibold">{{ $t("messages.no_peers_discovered") }}</div>
-                            <div>{{ $t("messages.waiting_for_announce") }}</div>
-                        </div>
+                    <div v-if="isLoadingMoreAnnounces" class="shrink-0 p-4 text-center">
+                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-sem-fg-muted" />
                     </div>
                 </div>
             </div>
@@ -1593,7 +1683,7 @@ export default {
         filterChipClasses(isActive) {
             const base = "px-2 py-0.5 rounded-full text-xs font-medium transition-colors";
             if (isActive) {
-                return `${base} bg-sem-action-primary text-white`;
+                return `${base} bg-sem-action-primary text-sem-action-primary-text`;
             }
             return `${base} bg-sem-surface-muted text-sem-fg`;
         },

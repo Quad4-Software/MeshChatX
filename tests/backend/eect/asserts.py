@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Shared oracles for EECT packs."""
+"""Shared references for EECT packs."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Any
 
 
 def assert_no_unexpected_http_500(status: int, body: Any = None) -> None:
-    """EECT HTTP oracle: unexpected 500s fail; 4xx/503 are recoverable."""
+    """EECT HTTP reference: unexpected 500s fail; 4xx/503 are recoverable."""
     if status == 500:
         raise AssertionError(f"unexpected HTTP 500 body={body!r}")
 
@@ -34,7 +34,7 @@ def assert_preview_capped(content: str | None, max_chars: int = 240) -> None:
 
 
 def assert_diagnostic_text_redacted(text: str) -> None:
-    """Oracle: diagnostic dumps must not keep raw absolute paths or full 32-byte hex hashes."""
+    """Reference: diagnostic dumps must not keep raw absolute paths or full 32-byte hex hashes."""
     lower = text.lower()
     assert "/tmp/" not in lower
     assert "\\users\\" not in lower

@@ -933,7 +933,7 @@ describe("CallPage.vue", () => {
     });
 
     describe("web audio required (headless / Android)", () => {
-        it("oracle: required status forces webAudioBridgeEnabled and blocks disable", async () => {
+        it("reference: required status forces webAudioBridgeEnabled and blocks disable", async () => {
             const wrapper = mountCallPage();
             await flushPromises();
             wrapper.vm.config = { telephone_enabled: true, telephone_web_audio_enabled: false };

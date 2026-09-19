@@ -8,7 +8,7 @@ import {
     shouldShowMultiSessionToast,
 } from "../../meshchatx/src/frontend/js/activeSessions.js";
 
-describe("activeSessions oracles", () => {
+describe("activeSessions references", () => {
     it("classifies loopback and lan addresses", () => {
         expect(isLoopbackOrLanIp("127.0.0.1")).toBe(true);
         expect(isLoopbackOrLanIp("::1")).toBe(true);

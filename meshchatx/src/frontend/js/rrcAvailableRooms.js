@@ -3,7 +3,7 @@
 /**
  * Unjoined public rooms for the Available Rooms sidebar.
  *
- * Oracle: entries in availableRooms whose names are not in knownRooms,
+ * Reference: entries in availableRooms whose names are not in knownRooms,
  * sorted by room name.
  */
 export function unjoinedAvailableRooms(availableRooms, knownRooms, keyedRooms) {
@@ -25,7 +25,7 @@ export function unjoinedAvailableRooms(availableRooms, knownRooms, keyedRooms) {
 /**
  * Diff two available_rooms snapshots after a hub /list refresh.
  *
- * A full list reply replaces the map. This oracle describes that replace
+ * A full list reply replaces the map. This reference describes that replace
  * as added, removed, and topic-updated room names.
  */
 export function diffAvailableRooms(previous, next) {
@@ -57,7 +57,7 @@ export function diffAvailableRooms(previous, next) {
 /**
  * Apply a refreshed hub room-list snapshot.
  *
- * Oracle: the next map fully replaces previous (add, remove, and topic update).
+ * Reference: the next map fully replaces previous (add, remove, and topic update).
  */
 export function applyAvailableRoomsSnapshot(_previous, next) {
     if (!next || typeof next !== "object" || Array.isArray(next)) {

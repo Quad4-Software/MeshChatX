@@ -82,14 +82,29 @@ class WebTransportLiveSession {
             }
         }
         const transport = new WebTransport(url, wtOpts);
+        this._transport = transport;
+        let timeoutId = null;
         const readyRace = Promise.race([
             transport.ready,
             new Promise((_, reject) => {
-                setTimeout(() => reject(new Error("webtransport_timeout")), WT_CONNECT_BUDGET_MS);
+                timeoutId = setTimeout(() => reject(new Error("webtransport_timeout")), WT_CONNECT_BUDGET_MS);
             }),
         ]);
-        await readyRace;
-        this._transport = transport;
+        try {
+            await readyRace;
+        } finally {
+            if (timeoutId != null) {
+                clearTimeout(timeoutId);
+            }
+        }
+        if (this.destroyed) {
+            try {
+                transport.close();
+            } catch {
+                // ignore
+            }
+            throw new Error("destroyed");
+        }
         const stream = await transport.createBidirectionalStream();
         this._writer = stream.writable.getWriter();
         this._reader = stream.readable.getReader();
@@ -179,7 +194,8 @@ class LiveTransport {
         this._serverInfo = { server_available: false };
         this._usingWt = false;
         this._fallbackNotified = false;
-        this._forwardCleanups = [];
+        this._forwardBySource = new Map();
+        this._connectingWt = null;
         this._boundWs = false;
     }
 
@@ -207,24 +223,50 @@ class LiveTransport {
         }
     }
 
-    _clearForwards() {
-        for (const fn of this._forwardCleanups) {
+    _clearForwards(source) {
+        if (source == null) {
+            for (const fns of this._forwardBySource.values()) {
+                for (const fn of fns) {
+                    fn();
+                }
+            }
+            this._forwardBySource.clear();
+            return;
+        }
+        const fns = this._forwardBySource.get(source) || [];
+        for (const fn of fns) {
             fn();
         }
-        this._forwardCleanups = [];
+        this._forwardBySource.delete(source);
     }
 
     _forwardFrom(source) {
-        this._clearForwards();
+        this._clearForwards(source);
         const events = ["message", "connected", "ready", "disconnected", "queue_expired"];
+        const fns = [];
         for (const ev of events) {
             const handler = (payload) => this.emit(ev, payload);
             source.on(ev, handler);
-            this._forwardCleanups.push(() => source.off(ev, handler));
+            fns.push(() => source.off(ev, handler));
         }
+        this._forwardBySource.set(source, fns);
     }
 
     async connect() {
+        // A concurrent or repeated connect abandons any in-flight session,
+        // regardless of which transport this call ends up choosing.
+        this._clearForwards(this._connectingWt);
+        this._connectingWt?.destroy();
+        this._connectingWt = null;
+        if (this._usingWt) {
+            this._clearForwards(this._wt);
+            this._wt?.destroy();
+            this._wt = null;
+            this._usingWt = false;
+            this._active = WebSocketConnection;
+            setWsLiveSendBridge(null);
+        }
+
         if (!this._boundWs) {
             this._forwardFrom(WebSocketConnection);
             this._boundWs = true;
@@ -239,13 +281,26 @@ class LiveTransport {
         });
 
         if (choice === "webtransport" && this._serverInfo?.url) {
+            const session = new WebTransportLiveSession();
+            this._connectingWt = session;
             try {
-                this._wt = new WebTransportLiveSession();
-                this._forwardFrom(this._wt);
-                await this._wt.connect({
+                // Forward the candidate alongside WebSocket during the attempt
+                // so its initial connected/ready events reach consumers while
+                // WebSocket events keep flowing. WS forwards drop on success.
+                this._forwardFrom(session);
+                await session.connect({
                     url: this._serverInfo.url,
                     certSha256B64: this._serverInfo.cert_sha256_b64,
                 });
+                if (this._connectingWt !== session) {
+                    this._clearForwards(session);
+                    session.destroy();
+                    return { transport: "webtransport", fellBack: false, superseded: true };
+                }
+                this._connectingWt = null;
+                this._wt = session;
+                this._clearForwards(WebSocketConnection);
+                this._boundWs = false;
                 this._usingWt = true;
                 this._active = this._wt;
                 setWsLiveSendBridge({
@@ -255,12 +310,20 @@ class LiveTransport {
                 });
                 return { transport: "webtransport", fellBack: false };
             } catch {
-                this._wt?.destroy();
+                this._clearForwards(session);
+                session.destroy();
+                if (this._connectingWt !== session) {
+                    // A newer connect already superseded this session. Leave
+                    // the active transport state alone.
+                    return { transport: "webtransport", fellBack: false, superseded: true };
+                }
+                this._connectingWt = null;
                 this._wt = null;
                 this._usingWt = false;
                 this._active = WebSocketConnection;
                 setWsLiveSendBridge(null);
                 this._forwardFrom(WebSocketConnection);
+                this._boundWs = true;
                 if (this._mode === "webtransport" || this._mode === "auto") {
                     this._fallbackNotified = true;
                     this.emit("transport_fallback", { from: "webtransport", to: "websocket" });
@@ -295,13 +358,18 @@ class LiveTransport {
     }
 
     reconnect() {
+        this._clearForwards(this._connectingWt);
+        this._connectingWt?.destroy();
+        this._connectingWt = null;
         if (this._usingWt) {
+            this._clearForwards(this._wt);
             this._wt?.destroy();
             this._wt = null;
             this._usingWt = false;
             this._active = WebSocketConnection;
             setWsLiveSendBridge(null);
             this._forwardFrom(WebSocketConnection);
+            this._boundWs = true;
         }
         WebSocketConnection.reconnect();
     }
@@ -315,10 +383,20 @@ class LiveTransport {
     }
 
     destroy() {
+        this._clearForwards(this._connectingWt);
+        this._connectingWt?.destroy();
+        this._connectingWt = null;
+        this._clearForwards(this._wt);
         this._wt?.destroy();
         this._wt = null;
         setWsLiveSendBridge(null);
         this._clearForwards();
+        // Leave the facade on the WebSocket source and mark it unbound so a
+        // later connect() re-registers forwards. Without this every reconnect
+        // after a shell restart produced a deaf channel.
+        this._boundWs = false;
+        this._usingWt = false;
+        this._active = WebSocketConnection;
         WebSocketConnection.destroy();
     }
 

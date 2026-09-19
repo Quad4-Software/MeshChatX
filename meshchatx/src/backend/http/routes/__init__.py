@@ -20,11 +20,13 @@ from meshchatx.src.backend.http.routes.filesync import register_filesync_routes
 from meshchatx.src.backend.http.routes.gifs import register_gifs_routes
 from meshchatx.src.backend.http.routes.identities import register_identities_routes
 from meshchatx.src.backend.http.routes.interfaces import register_interfaces_routes
+from meshchatx.src.backend.http.routes.locallink import register_locallink_routes
 from meshchatx.src.backend.http.routes.lxmf import register_lxmf_routes
 from meshchatx.src.backend.http.routes.maintenance import register_maintenance_routes
 from meshchatx.src.backend.http.routes.map import register_map_routes
 from meshchatx.src.backend.http.routes.messages import register_messages_routes
 from meshchatx.src.backend.http.routes.nomad import register_nomad_routes
+from meshchatx.src.backend.http.routes.oidc import register_oidc_routes
 from meshchatx.src.backend.http.routes.page_nodes import register_page_nodes_routes
 from meshchatx.src.backend.http.routes.path_probe import register_path_probe_routes
 from meshchatx.src.backend.http.routes.plugins import register_plugins_routes
@@ -54,6 +56,7 @@ _REGISTER_ORDER = (
     register_database_routes,
     register_status_routes,
     register_auth_routes,
+    register_oidc_routes,
     register_interfaces_routes,
     register_community_routes,
     register_websocket_upgrade_routes,
@@ -82,6 +85,7 @@ _REGISTER_ORDER = (
     register_blocklist_routes,
     register_spam_routes,
     register_map_routes,
+    register_locallink_routes,
     register_stickers_routes,
     register_gifs_routes,
     register_translation_routes,

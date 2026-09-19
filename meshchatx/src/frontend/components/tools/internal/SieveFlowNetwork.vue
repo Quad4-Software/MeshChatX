@@ -28,25 +28,27 @@ export default {
     data() {
         return {
             network: null,
+            rebuildTimer: null,
+            resizeRaf: null,
         };
     },
     watch: {
         filters: {
             deep: true,
             handler() {
-                this.rebuild();
+                this.scheduleRebuild();
             },
         },
         folders: {
             deep: true,
             handler() {
-                this.rebuild();
+                this.scheduleRebuild();
             },
         },
         labels: {
             deep: true,
             handler() {
-                this.rebuild();
+                this.scheduleRebuild();
             },
         },
     },
@@ -56,17 +58,42 @@ export default {
     },
     beforeUnmount() {
         window.removeEventListener("resize", this.onResize);
+        if (this.rebuildTimer != null) {
+            clearTimeout(this.rebuildTimer);
+            this.rebuildTimer = null;
+        }
+        if (this.resizeRaf != null) {
+            cancelAnimationFrame(this.resizeRaf);
+            this.resizeRaf = null;
+        }
         this.destroyNetwork();
     },
     methods: {
-        onResize() {
-            try {
-                this.network?.redraw();
-                this.network?.fit({ animation: false });
-            } catch (error) {
-                console.warn("SieveFlowNetwork resize failed:", error);
-                this.destroyNetwork();
+        // Deep prop changes fire per keystroke while rules are edited.
+        // Coalesce them so each burst produces one destroy/layout cycle.
+        scheduleRebuild() {
+            if (this.rebuildTimer != null) {
+                clearTimeout(this.rebuildTimer);
             }
+            this.rebuildTimer = setTimeout(() => {
+                this.rebuildTimer = null;
+                this.rebuild();
+            }, 150);
+        },
+        onResize() {
+            if (this.resizeRaf != null) {
+                return;
+            }
+            this.resizeRaf = requestAnimationFrame(() => {
+                this.resizeRaf = null;
+                try {
+                    this.network?.redraw();
+                    this.network?.fit({ animation: false });
+                } catch (error) {
+                    console.warn("SieveFlowNetwork resize failed:", error);
+                    this.destroyNetwork();
+                }
+            });
         },
         destroyNetwork() {
             if (this.network) {

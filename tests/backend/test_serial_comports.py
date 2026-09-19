@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracle: /api/v1/comports must not 500 when pyserial SysFS hits Landlock."""
+"""Reference: /api/v1/comports must not 500 when pyserial SysFS hits Landlock."""
 
 from __future__ import annotations
 

@@ -40,7 +40,7 @@ def test_hex_identifier_to_bytes_invalid_returns_none():
 
 
 @given(s=st.one_of(st.none(), st.text(), st.binary(), st.integers()))
-def test_normalize_hex_identifier_oracle(s):
+def test_normalize_hex_identifier(s):
     """Output is only lowercase hex digits, empty for non-str or empty input."""
     out = normalize_hex_identifier(s)  # type: ignore[arg-type]
     if not isinstance(s, str) or not s:
@@ -52,7 +52,7 @@ def test_normalize_hex_identifier_oracle(s):
 
 
 @given(s=st.one_of(st.none(), st.text(max_size=400)))
-def test_hex_identifier_to_bytes_oracle(s):
+def test_hex_identifier_to_bytes(s):
     """Accept only even-length normalized hex. Reject odd or empty."""
     n = normalize_hex_identifier(s)
     b = hex_identifier_to_bytes(s)

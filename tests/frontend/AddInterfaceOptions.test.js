@@ -54,6 +54,9 @@ describe("AddInterfacePage.vue interface options", () => {
             if (String(url).includes("/api/v1/reticulum/interfaces")) {
                 return { data: { interfaces: {} } };
             }
+            if (String(url).includes("/api/v1/locallink/capabilities")) {
+                return { data: { supported: false, wifi_aware: false, wifi_aware_available: false } };
+            }
             return { data: {} };
         });
         mockAxios.post.mockResolvedValue({ data: { message: "ok" } });
@@ -518,5 +521,100 @@ describe("AddInterfacePage.vue interface options", () => {
         const mcxIdx = html.indexOf("https://meshchatx.com/interfaces");
         expect(recipesIdx).toBeGreaterThan(-1);
         expect(mcxIdx).toBeGreaterThan(recipesIdx);
+    });
+
+    it("greys out the WiFi Aware tile when local-link is unsupported", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.loadLocalLinkCapabilities();
+        await wrapper.vm.$nextTick();
+
+        const tile = wrapper.findAll("button").find((b) => b.text().includes("WiFi Aware"));
+        expect(tile).toBeTruthy();
+        expect(tile.attributes("disabled")).toBeDefined();
+        expect(tile.text()).toContain("interfaces.aware_android_only");
+        expect(wrapper.vm.awareInterfaceSupported).toBe(false);
+    });
+
+    it("enables the WiFi Aware tile and posts role plus peers on supported devices", async () => {
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/locallink/capabilities")) {
+                return {
+                    data: {
+                        supported: true,
+                        wifi_aware: true,
+                        wifi_aware_available: true,
+                        permission_nearby_wifi: true,
+                    },
+                };
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.loadLocalLinkCapabilities();
+        await wrapper.vm.$nextTick();
+
+        const tile = wrapper.findAll("button").find((b) => b.text().includes("WiFi Aware"));
+        expect(tile.attributes("disabled")).toBeUndefined();
+        expect(wrapper.vm.awareInterfaceSupported).toBe(true);
+
+        wrapper.vm.newInterfaceName = "Nan";
+        wrapper.vm.newInterfaceType = "AwareInterface";
+        wrapper.vm.newInterfaceAwareMode = "publish";
+        wrapper.vm.newInterfaceAwarePeers = 3;
+        await wrapper.vm.saveInterface();
+
+        const addCall = mockAxios.post.mock.calls.find((c) => String(c[0]).includes("/reticulum/interfaces/add"));
+        expect(addCall).toBeTruthy();
+        expect(addCall[1].type).toBe("AwareInterface");
+        expect(addCall[1].mode).toBe("publish");
+        expect(addCall[1].peers).toBe(3);
+    });
+
+    it("blocks the Aware save when the device reports unsupported", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.loadLocalLinkCapabilities();
+
+        wrapper.vm.newInterfaceName = "Nan";
+        wrapper.vm.newInterfaceType = "AwareInterface";
+        await wrapper.vm.saveInterface();
+
+        const addCall = mockAxios.post.mock.calls.find((c) => String(c[0]).includes("/reticulum/interfaces/add"));
+        expect(addCall).toBeUndefined();
+    });
+
+    it("shows the permission banner on supported devices missing nearby-wifi permission", async () => {
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/locallink/capabilities")) {
+                return {
+                    data: {
+                        supported: true,
+                        wifi_aware: true,
+                        wifi_aware_available: true,
+                        permission_nearby_wifi: false,
+                    },
+                };
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.loadLocalLinkCapabilities();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.awareInterfaceSupported).toBe(true);
+        expect(wrapper.vm.awareNeedsPermission).toBe(true);
+
+        wrapper.vm.newInterfaceType = "AwareInterface";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("interfaces.aware_permission_banner");
     });
 });

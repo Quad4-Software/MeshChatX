@@ -334,6 +334,12 @@ def register_archives_routes(routes, app):
             return http_bad_request(
                 "destination_hash must be 32 hex characters",
             )
+        try:
+            bytes.fromhex(destination_hash)
+        except ValueError:
+            return http_bad_request(
+                "destination_hash must be valid hex",
+            )
         if not page_path:
             page_path = (
                 app.config.nomad_default_page_path.get() if app.config else None
@@ -348,6 +354,7 @@ def register_archives_routes(routes, app):
             return http_forbidden("Node is on the crawl opt-out list")
 
         done_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
         success = [False]
         content_received = [None]
         failure_reason = ["timeout"]
@@ -355,11 +362,13 @@ def register_archives_routes(routes, app):
         def on_success(content):
             success[0] = True
             content_received[0] = content
-            done_event.set()
+            # RNS request callbacks fire on the transport thread, so the
+            # asyncio.Event must be set through the owning loop.
+            loop.call_soon_threadsafe(done_event.set)
 
         def on_failure(reason):
             failure_reason[0] = reason or "download failed"
-            done_event.set()
+            loop.call_soon_threadsafe(done_event.set)
 
         downloader = NomadnetPageDownloader(
             destination_hash=bytes.fromhex(destination_hash),

@@ -73,7 +73,7 @@ def should_warn_multi_session(
     warning_enabled: bool,
     sessions: Any = None,
 ) -> bool:
-    """Oracle: warn when two or more non-local sessions are active and the setting is on.
+    """Reference: warn when two or more non-local sessions are active and the setting is on.
 
     Localhost and LAN-only clients (same machine or private network) do not
     trigger the toast. Pass sessions=None to skip the locality check.

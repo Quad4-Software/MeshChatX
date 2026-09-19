@@ -9,8 +9,10 @@ from aiohttp import web
 
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
     http_not_found,
     http_payload_too_large,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -84,8 +86,12 @@ def register_telemetry_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/telemetry/history/{destination_hash}")
     async def get_telemetry_history(request):
         destination_hash = request.match_info.get("destination_hash")
-        limit = int(request.query.get("limit", 100))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 100, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request(
+                "limit and offset must be non-negative integers",
+            )
 
         results = app.database.telemetry.get_telemetry_history(
             destination_hash,

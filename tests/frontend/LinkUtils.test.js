@@ -178,6 +178,25 @@ describe("LinkUtils.js", () => {
             expect(result).toContain('class="lxmf-link');
             expect(result).toContain('data-lxmf-address="1dfeb0d794963579bd21ac8f153c77a4"');
         });
+
+        it("does not inject nomadnet-link markup into a generated anchor", () => {
+            // A hash:/path token inside an http(s) URL must not be re-scanned
+            // by the reticulum pass after the URL becomes anchor markup.
+            const text = "see https://example.com/0123456789abcdef0123456789abcdef:/page/x.mu";
+            const result = LinkUtils.renderAllLinks(text);
+            expect(result).not.toContain("nomadnet-link");
+            expect(result).not.toContain("data-nomadnet-url");
+            expect(result).toContain('data-http-url="https://example.com/0123456789abcdef0123456789abcdef:/page/x.mu"');
+        });
+
+        it("does not resolve user-typed anchor placeholders", () => {
+            // A literal [[ANCHOR_0]] in the input must not splice real anchor
+            // markup into arbitrary positions at restore time.
+            const text = 'x <a href="#" data-http-url="https://example.com/">l</a> [[ANCHOR_0]]';
+            const result = LinkUtils.renderAllLinks(text);
+            expect(result).toContain("[[ANCHOR_0]]");
+            expect((result.match(/<a /g) || []).length).toBe(1);
+        });
     });
 
     describe("risky: no script or data URLs in href", () => {
@@ -228,6 +247,51 @@ describe("LinkUtils.js", () => {
             const start = Date.now();
             LinkUtils.renderAllLinks(long);
             expect(Date.now() - start).toBeLessThan(200);
+        });
+    });
+
+    describe("renderRelayLinks", () => {
+        const HUB = "00112233445566778899aabbccddeeff";
+
+        it("detects rrc://hub/room links", () => {
+            const result = LinkUtils.renderRelayLinks(`join rrc://${HUB}/lobby now`);
+            expect(result).toContain('class="rrc-link');
+            expect(result).toContain(`data-rrc-url="rrc://${HUB}/lobby"`);
+        });
+
+        it("detects meshchatx relay share links", () => {
+            const uri = `meshchatx://relay?hub=${HUB}&amp;room=general`;
+            const result = LinkUtils.renderRelayLinks(`see ${uri}`);
+            expect(result).toContain('class="rrc-link');
+            expect(result).toContain(`data-rrc-url="meshchatx://relay?hub=${HUB}&amp;room=general"`);
+        });
+
+        it("folds escaped ampersands before storing the uri", () => {
+            const result = LinkUtils.renderRelayLinks(`meshchatx://relay?hub=${HUB}&amp;room=general`);
+            // Attribute holds the escaped form; reading it back yields a real &.
+            const match = result.match(/data-rrc-url="([^"]+)"/);
+            expect(match).not.toBeNull();
+            expect(match[1]).toContain("&amp;room=general");
+            expect(match[1]).not.toContain("&amp;amp;");
+        });
+
+        it("skips invalid rrc and relay uris", () => {
+            expect(LinkUtils.renderRelayLinks("rrc://nothex/lobby")).not.toContain("rrc-link");
+            expect(LinkUtils.renderRelayLinks("meshchatx://relay?hub=bad")).not.toContain("rrc-link");
+            expect(LinkUtils.renderRelayLinks("rrc://" + HUB)).not.toContain("rrc-link");
+        });
+
+        it("trims trailing punctuation and escaped entities off the match", () => {
+            const result = LinkUtils.renderRelayLinks(`join rrc://${HUB}/lobby.`);
+            expect(result).toContain(`data-rrc-url="rrc://${HUB}/lobby"`);
+            const quoted = LinkUtils.renderRelayLinks(`join "rrc://${HUB}/lobby&quot;`);
+            expect(quoted).toContain(`data-rrc-url="rrc://${HUB}/lobby"`);
+        });
+
+        it("does not let the reticulum pass rewrite the hub hash inside anchors", () => {
+            const result = LinkUtils.renderAllLinks(`rrc://${HUB}/lobby`);
+            expect((result.match(/<a /g) || []).length).toBe(1);
+            expect(result).toContain("rrc-link");
         });
     });
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracle: SafeRotatingFileHandler does not thrash on EMFILE."""
+"""Reference: SafeRotatingFileHandler does not thrash on EMFILE."""
 
 from __future__ import annotations
 

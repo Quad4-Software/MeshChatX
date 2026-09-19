@@ -62,7 +62,7 @@ describe("App websocket reconnect shell resync", () => {
     });
 
     it("refreshes CSRF and shell status on reconnect after background stall recovery", async () => {
-        // Oracle: forceReconnect after a backgrounded tab must still run shell
+        // Reference: forceReconnect after a backgrounded tab must still run shell
         // resync (isReconnect true) including CSRF refresh so Sync Messages POSTs work.
         const emitSpy = vi.spyOn(GlobalEmitter, "emit");
         const { banner, ctx } = makeBanner();
@@ -78,7 +78,7 @@ describe("App websocket reconnect shell resync", () => {
         expect(fetchCsrfToken).toHaveBeenCalledTimes(1);
         expect(ctx.updatePropagationNodeStatus).toHaveBeenCalled();
         expect(ctx.getConfig).toHaveBeenCalled();
-        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected");
+        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected", { degraded: false, failed: [] });
         expect(banner.wsReconnectedBanner.value).toBe(false);
 
         banner.onWsShellReady();
@@ -97,7 +97,7 @@ describe("App websocket reconnect shell resync", () => {
 
         expect(fetchCsrfToken).toHaveBeenCalledTimes(1);
         expect(banner.wsReconnectedBanner.value).toBe(false);
-        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected");
+        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected", { degraded: false, failed: [] });
 
         banner.onWsShellReady();
         expect(banner.wsReconnectedBanner.value).toBe(false);
@@ -145,7 +145,7 @@ describe("App websocket reconnect shell resync", () => {
 
         expect(fetchCsrfToken).not.toHaveBeenCalled();
         expect(resyncCtx.updatePropagationNodeStatus).not.toHaveBeenCalled();
-        expect(emitSpy).not.toHaveBeenCalledWith("websocket-reconnected");
+        expect(emitSpy.mock.calls.filter((c) => c[0] === "websocket-reconnected")).toHaveLength(0);
 
         banner.onWsShellReady();
         expect(banner.wsReconnectedBanner.value).toBe(false);

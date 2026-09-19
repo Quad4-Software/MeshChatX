@@ -102,17 +102,25 @@ class SimpleTelemeter:
 
 
 class SimpleSensor:
+    _ENTRY_LIMIT = 100
+
     def __init__(self, name: str):
         self.name = name
         self.data: dict[str, Any] = {}
 
+    def _append_bounded(self, key: str, entry) -> None:
+        entries = self.data.setdefault(key, [])
+        entries.append(entry)
+        if len(entries) > self._ENTRY_LIMIT:
+            del entries[: len(entries) - self._ENTRY_LIMIT]
+
     def update_consumer(self, value, type_label: str = "", **kwargs):
         entry = {"value": value, "type_label": type_label, **kwargs}
-        self.data.setdefault("consumers", []).append(entry)
+        self._append_bounded("consumers", entry)
 
     def update_producer(self, value, type_label: str = "", **kwargs):
         entry = {"value": value, "type_label": type_label, **kwargs}
-        self.data.setdefault("producers", []).append(entry)
+        self._append_bounded("producers", entry)
 
     def update_entry(self, *args, **kwargs):
-        self.data.setdefault("entries", []).append({"args": args, "kwargs": kwargs})
+        self._append_bounded("entries", {"args": args, "kwargs": kwargs})

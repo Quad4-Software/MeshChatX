@@ -291,7 +291,7 @@ def test_is_destination_blocked_by_identity_hash(mock_rns_minimal, temp_dir):
 
 
 def _banish_app():
-    """Lightweight app for banishment ACL oracles (no Reticulum boot)."""
+    """Lightweight app for banishment ACL references (no Reticulum boot)."""
     app = ReticulumMeshChat.__new__(ReticulumMeshChat)
     ctx = MagicMock()
     ctx.database.announces.get_announce_by_hash.return_value = None
@@ -308,7 +308,7 @@ def _banish_app():
     return app, ctx
 
 
-def test_oracle_identity_block_matches_lxmf_destination():
+def test_identity_block_matches_lxmf_destination():
     """Call/Nomad banish stores the identity hash. LXMF dest of that identity must match."""
     app, ctx = _banish_app()
     ident = "a" * 32
@@ -325,14 +325,14 @@ def test_oracle_identity_block_matches_lxmf_destination():
     assert app.is_destination_blocked("f" * 32) is False
 
 
-def test_oracle_is_destination_blocked_fail_closed_on_db_error():
+def test_is_destination_blocked_fail_closed_on_db_error():
     """Broken block-list queries must not fail open for inbound LXMF/LXST."""
     app, ctx = _banish_app()
     ctx.database.misc.is_destination_blocked.side_effect = RuntimeError("db down")
     assert app.is_destination_blocked("a" * 32) is True
 
 
-def test_oracle_banish_identity_hash_persists_related_dest_and_wipes_history():
+def test_banish_identity_hash_persists_related_dest_and_wipes_history():
     app, ctx = _banish_app()
     ident = "a" * 32
     dest = "b" * 32
@@ -360,7 +360,7 @@ def test_oracle_banish_identity_hash_persists_related_dest_and_wipes_history():
     assert args[0] == bytes.fromhex(ident)
 
 
-def test_oracle_banish_does_not_remove_reticulum_interfaces():
+def test_banish_does_not_remove_reticulum_interfaces():
     """Banish blackholes the peer. It must not delete interface config sections."""
     import copy
 
@@ -382,7 +382,7 @@ def test_oracle_banish_does_not_remove_reticulum_interfaces():
     assert app.reticulum.config["interfaces"] == before
 
 
-def test_oracle_lift_identity_unblocks_related_dest():
+def test_lift_identity_unblocks_related_dest():
     app, ctx = _banish_app()
     ident = "a" * 32
     dest = "b" * 32

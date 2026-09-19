@@ -12,7 +12,7 @@ import {
 } from "../../meshchatx/src/frontend/js/wsLiveSync.js";
 import { encodeWtJsonLine, feedWtJsonLines } from "../../meshchatx/src/frontend/js/wtJsonFraming.js";
 
-describe("wsLiveSync oracles", () => {
+describe("wsLiveSync references", () => {
     it("tracks max seq", () => {
         expect(nextLastSeqFromPayload({ seq: 3 }, 1)).toBe(3);
         expect(nextLastSeqFromPayload({ seq: 2 }, 5)).toBe(5);
@@ -125,6 +125,84 @@ describe("wsLiveSync oracles", () => {
         });
         await vi.waitFor(() => expect(onNeedsResync).toHaveBeenCalledTimes(1));
         handle.dispose();
+    });
+
+    it("ignores replies whose request_id does not match the pending subscribe", async () => {
+        const handlers = {};
+        const connection = {
+            on(ev, fn) {
+                handlers[ev] = fn;
+            },
+            off() {},
+            sendQueued: vi.fn(),
+        };
+        const onNeedsResync = vi.fn(async () => {});
+        const handle = installWsLiveSync({
+            connection,
+            onNeedsResync,
+            getStorageKey: () => "meshchatx_ws_last_seq:vitest-stale",
+        });
+        handle.clearCursor();
+        handlers.ready();
+        const sent = JSON.parse(connection.sendQueued.mock.calls[0][0]);
+        expect(sent.request_id).toBeTruthy();
+
+        // A reply for a different (older epoch) request_id must be dropped.
+        handlers.message({
+            data: JSON.stringify({
+                type: "sync.subscribe",
+                request_id: "sync-old-epoch",
+                status: "gap",
+                resync: true,
+                current_seq: 99,
+            }),
+        });
+        await new Promise((r) => setTimeout(r, 20));
+        expect(onNeedsResync).not.toHaveBeenCalled();
+
+        // The matching reply releases the in-flight flag and resyncs.
+        handlers.message({
+            data: JSON.stringify({
+                type: "sync.subscribe",
+                request_id: sent.request_id,
+                status: "gap",
+                resync: true,
+                current_seq: 99,
+            }),
+        });
+        await vi.waitFor(() => expect(onNeedsResync).toHaveBeenCalledTimes(1));
+        handle.dispose();
+    });
+
+    it("dedupes overlapping subscribes until the reply or watchdog", async () => {
+        vi.useFakeTimers();
+        try {
+            const handlers = {};
+            const connection = {
+                on(ev, fn) {
+                    handlers[ev] = fn;
+                },
+                off() {},
+                sendQueued: vi.fn(),
+            };
+            const handle = installWsLiveSync({
+                connection,
+                onNeedsResync: vi.fn(async () => {}),
+                getStorageKey: () => "meshchatx_ws_last_seq:vitest-dedupe",
+            });
+            handle.clearCursor();
+            handlers.ready();
+            handlers.ready();
+            expect(connection.sendQueued).toHaveBeenCalledTimes(1);
+
+            // Watchdog frees the flag when the reply never arrives.
+            await vi.advanceTimersByTimeAsync(16000);
+            handlers.ready();
+            expect(connection.sendQueued).toHaveBeenCalledTimes(2);
+            handle.dispose();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });
 

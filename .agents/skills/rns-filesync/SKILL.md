@@ -34,10 +34,10 @@ Reference resolve helper: `rns_filesync_handler.py` (`_resolve_manager_path`).
 | HTTP             | `meshchatx/src/backend/http/routes/filesync.py`                                          |
 | Vendored service | `vendor/rns_filesync/`                                                                   |
 | UI               | `meshchatx/src/frontend/components/filesync/`                                            |
-| Oracle tests     | `tests/backend/test_rns_filesync_security.py`, `tests/backend/test_path_jail_oracles.py` |
+| Reference tests     | `tests/backend/test_rns_filesync_security.py`, `tests/backend/test_path_jail.py` |
 
 ## Verification
 
 ```bash
-uv run pytest tests/backend/test_rns_filesync_security.py tests/backend/test_path_jail_oracles.py tests/backend/test_ws_origin_filesync_oracles.py -q --tb=short
+uv run pytest tests/backend/test_rns_filesync_security.py tests/backend/test_path_jail.py tests/backend/test_ws_origin_filesync.py -q --tb=short
 ```

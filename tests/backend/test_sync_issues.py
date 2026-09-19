@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracles for scripts/sync-issues.py pure helpers."""
+"""References for scripts/sync-issues.py pure helpers."""
 
 from __future__ import annotations
 

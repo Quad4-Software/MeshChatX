@@ -22,7 +22,7 @@
                                         @input="onDisplayNameChange"
                                     />
                                 </div>
-                                <div class="text-sm text-sem-fg-muted whitespace-nowrap">
+                                <div class="min-w-0 text-sm text-sem-fg-muted">
                                     {{ $t("app.manage_identity") }}
                                 </div>
                             </div>
@@ -598,7 +598,7 @@
                                 <div class="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        class="px-4 py-2 text-sm font-semibold text-white bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
+                                        class="px-4 py-2 text-sm font-semibold text-sem-action-primary-text bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
                                         :disabled="selfTestRunning"
                                         @click="runSelfTest"
                                     >
@@ -1724,6 +1724,12 @@
                                         }}</span>
                                     </span>
                                 </label>
+                                <p
+                                    v-if="reticulumInstance.is_connected_to_shared_instance"
+                                    class="text-xs text-amber-700 dark:text-amber-300"
+                                >
+                                    {{ $t("app.transport_shared_instance_notice") }}
+                                </p>
 
                                 <label class="setting-toggle">
                                     <Toggle
@@ -1889,7 +1895,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-2 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 text-white text-sm font-semibold px-3 py-2"
+                                        class="inline-flex items-center gap-2 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 text-sem-action-primary-text text-sm font-semibold px-3 py-2"
                                         :disabled="!reticulumInstance.rpc_config_snippet"
                                         @click="copyRpcConfigSnippet"
                                     >
@@ -2168,6 +2174,138 @@
                                         Authentication is currently enabled. You will be asked for your password when
                                         accessing the web interface.
                                     </p>
+                                </div>
+
+                                <div class="space-y-3 border-t border-sem-border pt-4">
+                                    <div>
+                                        <div class="text-sm font-medium text-sem-fg">
+                                            {{ $t("app.oidc_title") }}
+                                        </div>
+                                        <p class="text-xs text-sem-fg-muted mt-1">
+                                            {{ $t("app.oidc_description") }}
+                                        </p>
+                                    </div>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="oidc-enabled"
+                                            v-model="config.oidc_enabled"
+                                            :disabled="!!config.oidc_env_managed"
+                                            @update:model-value="onOidcEnabledChange"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{ $t("app.oidc_enable") }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.oidc_enable_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <div v-if="config.oidc_env_managed" class="info-callout">
+                                        <p class="text-sm">{{ $t("app.oidc_env_managed") }}</p>
+                                    </div>
+                                    <template v-if="config.oidc_enabled">
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-sem-fg">
+                                                {{ $t("app.oidc_issuer_url") }}
+                                            </div>
+                                            <input
+                                                v-model="config.oidc_issuer_url"
+                                                type="text"
+                                                class="input-field font-mono text-xs"
+                                                :disabled="!!config.oidc_env_managed"
+                                                :placeholder="$t('app.oidc_issuer_placeholder')"
+                                                @input="onOidcConfigChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-sem-fg">
+                                                {{ $t("app.oidc_client_id") }}
+                                            </div>
+                                            <input
+                                                v-model="config.oidc_client_id"
+                                                type="text"
+                                                class="input-field font-mono text-xs"
+                                                :disabled="!!config.oidc_env_managed"
+                                                @input="onOidcConfigChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-sem-fg">
+                                                {{ $t("app.oidc_client_secret") }}
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <input
+                                                    v-model="oidcClientSecret"
+                                                    type="password"
+                                                    class="input-field font-mono text-xs flex-1"
+                                                    :disabled="!!config.oidc_env_managed"
+                                                    :placeholder="
+                                                        config.oidc_client_secret_set
+                                                            ? $t('app.oidc_client_secret_configured')
+                                                            : ''
+                                                    "
+                                                    autocomplete="new-password"
+                                                    @input="onOidcSecretChange"
+                                                />
+                                                <button
+                                                    v-if="config.oidc_client_secret_set && !config.oidc_env_managed"
+                                                    type="button"
+                                                    class="px-2 py-1 text-xs rounded border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    @click="clearOidcSecret"
+                                                >
+                                                    {{ $t("app.oidc_client_secret_clear") }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div class="space-y-2">
+                                                <div class="text-sm font-medium text-sem-fg">
+                                                    {{ $t("app.oidc_display_name_label") }}
+                                                </div>
+                                                <input
+                                                    v-model="config.oidc_display_name"
+                                                    type="text"
+                                                    class="input-field text-xs"
+                                                    :disabled="!!config.oidc_env_managed"
+                                                    placeholder="SSO"
+                                                    @input="onOidcConfigChange"
+                                                />
+                                            </div>
+                                            <div class="space-y-2">
+                                                <div class="text-sm font-medium text-sem-fg">
+                                                    {{ $t("app.oidc_scopes") }}
+                                                </div>
+                                                <input
+                                                    v-model="config.oidc_scopes"
+                                                    type="text"
+                                                    class="input-field font-mono text-xs"
+                                                    :disabled="!!config.oidc_env_managed"
+                                                    placeholder="openid profile email"
+                                                    @input="onOidcConfigChange"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-sem-fg">
+                                                {{ $t("app.oidc_redirect_uri") }}
+                                            </div>
+                                            <input
+                                                :value="oidcRedirectUri"
+                                                type="text"
+                                                readonly
+                                                class="input-field font-mono text-xs opacity-70"
+                                            />
+                                            <div class="text-xs text-sem-fg-muted">
+                                                {{ $t("app.oidc_redirect_hint") }}
+                                            </div>
+                                        </div>
+                                        <div class="text-xs text-sem-fg-muted">
+                                            {{
+                                                config.oidc_ready
+                                                    ? $t("app.oidc_status_ready")
+                                                    : $t("app.oidc_status_incomplete")
+                                            }}
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </section>
@@ -3259,6 +3397,9 @@ export default {
             },
             exposureAckFirewall: false,
             exposureAckVpn: false,
+            oidcClientSecret: "",
+            oidcSecretDirty: false,
+            oidcSecretClear: false,
             saveTimeouts: {},
             lxmfIncomingDeliveryPreset: "10mb",
             lxmfIncomingDeliveryCustomAmount: 10,
@@ -3311,6 +3452,9 @@ export default {
         },
         micronWasmBundledInBuild() {
             return isMicronWasmBundled();
+        },
+        oidcRedirectUri() {
+            return window.location.origin + apiPath("/auth/oidc/callback");
         },
         settingsSearchActive() {
             return normalizeSearchString(this.searchQuery).length > 0;
@@ -4026,8 +4170,21 @@ export default {
                     ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
                 }
             } catch (e) {
-                ToastUtils.error(this.$t("common.save_failed"));
+                const detail = e?.response?.data?.error || e?.response?.data?.message;
+                ToastUtils.error(detail || this.$t("common.save_failed"));
                 console.log(e);
+                try {
+                    const fresh = await fetchMergedConfig(window.api, this.config);
+                    if (fresh) {
+                        for (const key of Object.keys(config)) {
+                            if (key in fresh) {
+                                this.config[key] = fresh[key];
+                            }
+                        }
+                    }
+                } catch {
+                    // keep local state if the resync fetch also fails
+                }
             }
         },
         async onMapOverlayLimitChange(key) {
@@ -4962,6 +5119,42 @@ export default {
                 this.$router.push({ name: "auth" });
             }
         },
+        async onOidcEnabledChange(value) {
+            await this.updateConfig({ oidc_enabled: value }, "oidc_settings");
+        },
+        onOidcSecretChange() {
+            this.oidcSecretDirty = true;
+            this.oidcSecretClear = false;
+            this.onOidcConfigChange();
+        },
+        clearOidcSecret() {
+            this.oidcClientSecret = "";
+            this.oidcSecretDirty = false;
+            this.oidcSecretClear = true;
+            this.onOidcConfigChange();
+        },
+        onOidcConfigChange() {
+            if (this.saveTimeouts.oidc) clearTimeout(this.saveTimeouts.oidc);
+            this.saveTimeouts.oidc = setTimeout(async () => {
+                const payload = {
+                    oidc_issuer_url: this.config.oidc_issuer_url,
+                    oidc_client_id: this.config.oidc_client_id,
+                    oidc_display_name: this.config.oidc_display_name,
+                    oidc_scopes: this.config.oidc_scopes,
+                };
+                if (this.oidcSecretClear) {
+                    payload.oidc_client_secret = null;
+                } else if (this.oidcSecretDirty && this.oidcClientSecret) {
+                    // An empty field means unchanged, not cleared. Only an
+                    // explicit clear action sends null.
+                    payload.oidc_client_secret = this.oidcClientSecret;
+                }
+                await this.updateConfig(payload, "oidc_settings");
+                this.oidcClientSecret = "";
+                this.oidcSecretDirty = false;
+                this.oidcSecretClear = false;
+            }, 1000);
+        },
         async onGiteaConfigChange() {
             if (this.saveTimeouts.gitea) clearTimeout(this.saveTimeouts.gitea);
             this.saveTimeouts.gitea = setTimeout(async () => {
@@ -5015,18 +5208,28 @@ export default {
             await this.onIsTransportEnabledChange();
         },
         async onIsTransportEnabledChange() {
+            const requested = !!this.config.is_transport_enabled;
             try {
-                const response = await applyTransportMode(this.config.is_transport_enabled, window.api);
-                if (response?.data?.message) {
-                    ToastUtils.success(response.data.message);
+                const response = await applyTransportMode(requested, window.api);
+                const data = response?.data;
+                if (data && typeof data.transport_enabled === "boolean") {
+                    this.config.is_transport_enabled = data.transport_enabled;
                 }
-            } catch {
+                if (data?.message) {
+                    ToastUtils.success(data.message);
+                }
+            } catch (e) {
+                this.config.is_transport_enabled = !requested;
+                const detail = e?.response?.data?.message || e?.response?.data?.error;
                 ToastUtils.error(
-                    this.config.is_transport_enabled
-                        ? this.$t("settings.failed_enable_transport")
-                        : this.$t("settings.failed_disable_transport")
+                    detail ||
+                        (requested
+                            ? this.$t("settings.failed_enable_transport")
+                            : this.$t("settings.failed_disable_transport"))
                 );
+                await this.getConfig();
             }
+            await this.loadReticulumInstanceSettings();
         },
         async reloadRns() {
             if (this.reloadingRns) return;
@@ -5039,8 +5242,9 @@ export default {
                 if (response?.data?.message) {
                     this.reloadRnsStatusMessage = response.data.message;
                 }
-            } catch {
-                ToastUtils.error(this.$t("settings.failed_reload_reticulum"));
+            } catch (e) {
+                const detail = e?.response?.data?.error || e?.response?.data?.message;
+                ToastUtils.error(detail || this.$t("settings.failed_reload_reticulum"));
             } finally {
                 ToastUtils.dismiss("settings-rns-reload");
                 this.reloadingRns = false;

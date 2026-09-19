@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""HTTP oracles for per-bot LXMF config routes."""
+"""HTTP references for per-bot LXMF config routes."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def bot_http_client(tmp_path):
         {
             "id": "bot1",
             "template_id": "echo",
-            "name": "Oracle Bot",
+            "name": "Reference Bot",
             "storage_dir": storage,
             "enabled": False,
         },

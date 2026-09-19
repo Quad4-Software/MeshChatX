@@ -154,7 +154,7 @@ paths_to_mutate = ["meshchatx/src/backend/"]
 # package, so these non-backend modules must be copied too.
 # Backend tests also read repo-relative paths (pytest.ini config, CI scripts,
 # workflow files, packaging metadata, and frontend/android sources used by
-# oracle tests). Those must exist under mutants/ as well or baseline test
+# reference tests). Those must exist under mutants/ as well or baseline test
 # collection fails before any mutant is measured.
 also_copy = [
     "pytest.ini",

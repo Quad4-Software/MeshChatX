@@ -135,7 +135,7 @@
                 class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                 :class="
                     tab.id === activeTabId
-                        ? 'bg-sem-action-primary text-white'
+                        ? 'bg-sem-action-primary text-sem-action-primary-text'
                         : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                 "
                 @click="$emit('action', `tab:${tab.id}`)"
@@ -449,7 +449,7 @@ export default {
             if (action.variant === "danger") {
                 return `${base} danger-chip border border-sem-danger/40 bg-sem-surface text-sem-danger hover:bg-sem-danger/10`;
             }
-            return `${base} primary-chip bg-sem-action-primary text-white hover:bg-sem-action-primary-hover`;
+            return `${base} primary-chip bg-sem-action-primary text-sem-action-primary-text hover:bg-sem-action-primary-hover`;
         },
     },
 };

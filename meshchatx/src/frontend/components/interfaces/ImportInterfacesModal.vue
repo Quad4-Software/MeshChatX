@@ -126,7 +126,7 @@
                         Cancel
                     </button>
                     <button
-                        class="px-4 py-2 text-sm font-medium text-white bg-sem-accent rounded-md hover:opacity-90"
+                        class="px-4 py-2 text-sm font-medium text-sem-action-primary-text bg-sem-action-primary rounded-md hover:opacity-90"
                         @click="importSelectedInterfaces"
                     >
                         Import Selected

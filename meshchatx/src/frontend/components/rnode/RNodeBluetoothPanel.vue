@@ -19,7 +19,7 @@
                     {{ $t("tools.rnode_flasher.disable") }}
                 </button>
                 <button
-                    class="rnf-action-btn col-span-2 sm:col-span-1 bg-sem-action-primary text-white! border-none! hover:bg-sem-action-primary-hover"
+                    class="rnf-action-btn col-span-2 sm:col-span-1 bg-sem-action-primary text-sem-action-primary-text! border-none! hover:bg-sem-action-primary-hover"
                     @click="$emit('action', 'pair-bluetooth')"
                 >
                     <MaterialDesignIcon icon-name="key-link" class="size-4" />

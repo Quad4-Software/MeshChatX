@@ -10,7 +10,7 @@ function readRepo(relPath) {
     return readFileSync(resolve(ROOT, relPath), "utf8");
 }
 
-describe("electron packaging and security oracle", () => {
+describe("electron packaging and security reference", () => {
     it("electron-builder fuses harden the packaged binary", () => {
         const pkg = JSON.parse(readRepo("package.json"));
         const fuses = pkg.build.electronFuses;

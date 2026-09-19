@@ -419,6 +419,14 @@
                                 <MaterialDesignIcon icon-name="magnify" class="size-5" />
                             </button>
                             <button
+                                type="button"
+                                :class="btnIcon"
+                                :title="$t('relay_chat.chat_prefs')"
+                                @click="openChatPrefs"
+                            >
+                                <MaterialDesignIcon icon-name="tune-variant" class="size-5" />
+                            </button>
+                            <button
                                 v-if="smUp"
                                 type="button"
                                 data-testid="relay-popout"
@@ -509,6 +517,28 @@
                                 </div>
                             </div>
 
+                            <Transition name="scroll-fab">
+                                <div
+                                    v-if="!relayAtBottom && selectedRoom"
+                                    class="flex justify-center pb-1.5 pt-0.5 shrink-0"
+                                >
+                                    <button
+                                        type="button"
+                                        class="relative flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-sem-surface/90 backdrop-blur-sm border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
+                                        :title="$t('relay_chat.scroll_to_bottom')"
+                                        @click="scrollToBottom()"
+                                    >
+                                        <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
+                                        <span
+                                            v-if="newMessagesBelow > 0"
+                                            class="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 rounded-full bg-sem-action-primary px-1 text-[10px] font-bold text-sem-action-primary-text"
+                                        >
+                                            {{ newMessagesBelow > 99 ? "99+" : newMessagesBelow }}
+                                        </span>
+                                    </button>
+                                </div>
+                            </Transition>
+
                             <form
                                 v-if="selectedHub && selectedRoom"
                                 class="flex items-center gap-2 p-2.5 border-t border-sem-border bg-sem-canvas"
@@ -521,6 +551,7 @@
                                     :maxlength="selectedHub.max_msg_body_bytes || 350"
                                     :placeholder="$t('relay_chat.message_placeholder')"
                                     class="input-field"
+                                    @keydown="onComposerKeydown"
                                 />
                                 <button
                                     type="submit"
@@ -1343,6 +1374,94 @@
                 </div>
             </div>
 
+            <!-- local chat preferences: ignored peers + highlight words -->
+            <div
+                v-if="showChatPrefs"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                @click.self="showChatPrefs = false"
+            >
+                <div class="w-full max-w-md rounded-2xl border border-sem-border-card bg-sem-surface p-5 shadow-xl">
+                    <h2 class="mb-4 text-lg font-semibold">{{ $t("relay_chat.chat_prefs") }}</h2>
+                    <div class="space-y-5">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-sem-fg-secondary">{{
+                                $t("relay_chat.prefs_highlight_words")
+                            }}</label>
+                            <p class="text-xs text-sem-fg-muted">{{ $t("relay_chat.prefs_highlight_hint") }}</p>
+                            <div class="flex gap-2">
+                                <input
+                                    v-model="highlightWordDraft"
+                                    type="text"
+                                    :placeholder="$t('relay_chat.prefs_highlight_placeholder')"
+                                    class="input-field"
+                                    @keydown.enter.prevent="addHighlightWord"
+                                />
+                                <button
+                                    type="button"
+                                    :class="[btnSecondary, 'shrink-0']"
+                                    :disabled="!highlightWordDraft.trim()"
+                                    @click="addHighlightWord"
+                                >
+                                    {{ $t("common.add") }}
+                                </button>
+                            </div>
+                            <div v-if="highlightWords.length" class="flex flex-wrap gap-1.5 pt-1">
+                                <span
+                                    v-for="w in highlightWords"
+                                    :key="w"
+                                    class="inline-flex items-center gap-1 rounded-full border border-sem-border bg-sem-canvas px-2.5 py-1 text-xs font-medium text-sem-fg"
+                                >
+                                    {{ w }}
+                                    <button
+                                        type="button"
+                                        class="text-sem-fg-muted hover:text-sem-danger"
+                                        :title="$t('common.delete')"
+                                        @click="removeHighlightWord(w)"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="size-3.5" />
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-sem-fg-secondary">{{
+                                $t("relay_chat.prefs_ignored")
+                            }}</label>
+                            <p class="text-xs text-sem-fg-muted">{{ $t("relay_chat.prefs_ignored_hint") }}</p>
+                            <div
+                                v-if="ignoredPeers.length === 0"
+                                class="rounded-lg border border-dashed border-sem-border px-3 py-4 text-center text-xs text-sem-fg-muted"
+                            >
+                                {{ $t("relay_chat.prefs_ignored_empty") }}
+                            </div>
+                            <ul v-else class="max-h-48 space-y-1 overflow-y-auto custom-scrollbar pr-1">
+                                <li
+                                    v-for="peer in ignoredPeers"
+                                    :key="peer.hash || peer.name"
+                                    class="flex items-center gap-2 rounded-lg border border-sem-border bg-sem-canvas px-2.5 py-1.5"
+                                >
+                                    <span class="min-w-0 flex-1 truncate text-sm font-medium text-sem-fg">
+                                        {{ peer.name || peer.hash }}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="shrink-0 rounded-md px-2 py-0.5 text-xs font-medium text-sem-accent hover:bg-sem-surface/60"
+                                        @click="removeIgnoredPeer(peer)"
+                                    >
+                                        {{ $t("relay_chat.unignore") }}
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button type="button" :class="btnSecondary" @click="showChatPrefs = false">
+                            {{ $t("common.close") }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <MdiIconPickerModal
                 :open="showIconPicker"
                 :selected-icon="settingsForm.hub_icon"
@@ -1414,6 +1533,16 @@
                     {{ $t("relay_chat.ctx_copy_message") }}
                 </ContextMenuItem>
                 <ContextMenuItem
+                    v-if="messageMenu.msg && canIgnoreMessageAuthor(messageMenu.msg)"
+                    @click="toggleIgnoreFromMenu"
+                >
+                    {{
+                        isIgnoredAuthor(messageMenu.msg)
+                            ? $t("relay_chat.ctx_unignore_user")
+                            : $t("relay_chat.ctx_ignore_user")
+                    }}
+                </ContextMenuItem>
+                <ContextMenuItem
                     v-if="messageMenu.msg && canTranslateRelayMessage(messageMenu.msg)"
                     @click="translateRelayMessageFromMenu"
                 >
@@ -1453,18 +1582,26 @@ import { copyTextToClipboard } from "../../js/clipboardUtils.js";
 import {
     buildRelayMessageTimeline,
     mergeRelayMessages,
-    relayMessageAlreadyPresent,
     relayMessageKey,
     prependRelayMessageTimeline,
     relayMessageTimelineSignature,
     RELAY_MESSAGES_INITIAL_PAGE_SIZE,
 } from "../../js/relayMessageTimeline.js";
 import { useRelayMessageTimeline } from "../../js/relay/useRelayMessageTimeline.js";
+import { useMessageDrafts } from "../../js/messages/useMessageDrafts.js";
+import { relayNickCompletionStep } from "../../js/relay/relayNickCompletion.js";
+import {
+    isIgnoredRelayMessage,
+    loadRelayPrefs,
+    relayPrefsEqualIgnored,
+    saveRelayPrefs,
+} from "../../js/relay/relayPrefsStore.js";
+import { normalizeHighlightWordInput, relayTextMatchesWords } from "../../js/relay/relayHighlights.js";
 import { MIN_VIRTUAL_RELAY_ENTRIES } from "./relayMessageListVirtual.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
 import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../js/relayHostModalClasses.js";
-import { buildRelayShareMessage } from "../../js/relayLinkUtils.js";
+import { applyRelayShareLink, buildRelayShareMessage, parseRelayUri } from "../../js/relayLinkUtils.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import MarkdownRenderer from "../../js/MarkdownRenderer.js";
 import { preferNativeTextSelectionMenu } from "../../js/contextMenuUtils.js";
@@ -1492,7 +1629,7 @@ import Toggle from "../forms/Toggle.vue";
 import * as TranslationService from "../../js/TranslationService.js";
 
 const BTN_PRIMARY =
-    "inline-flex items-center justify-center gap-1.5 rounded-lg bg-sem-action-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center gap-1.5 rounded-lg bg-sem-action-primary px-3 py-2 text-sm font-semibold text-sem-action-primary-text transition hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed";
 const BTN_SECONDARY =
     "inline-flex items-center justify-center gap-1.5 rounded-lg border border-sem-border bg-sem-surface-muted px-3 py-2 text-sm font-medium text-sem-fg transition hover:bg-sem-surface-raised disabled:opacity-50 disabled:cursor-not-allowed";
 const BTN_ICON =
@@ -1511,6 +1648,9 @@ const OVERFLOW_TAB_IDS = new Set(["host", "bots", "search"]);
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
+// Matches the conversations jump-to-bottom threshold: within this many pixels
+// of the newest message the view still auto-follows live arrivals.
+const RELAY_NEAR_BOTTOM_PX = 80;
 
 function resolveAnnounceIntervalSeconds(seconds, defaultSeconds = DEFAULT_ANNOUNCE_INTERVAL_SECONDS) {
     if (seconds == null) {
@@ -1564,6 +1704,7 @@ export default {
         Toggle,
     },
     beforeRouteLeave(to, from, next) {
+        this.saveCurrentRoomDraft();
         this.persistRelayLayout();
         next();
     },
@@ -1580,7 +1721,20 @@ export default {
                 getMessagesScrollElement: () => inst?.proxy.getMessagesScrollElement(),
                 encodeRoom: (room) => inst?.proxy.encodeRoom(room),
                 prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
+                reloadLatest: () => inst?.proxy.selectRoom(inst?.proxy.selectedHubHash, inst?.proxy.selectedRoom),
+                excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
+                decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
+                onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),
                 t: (...args) => inst?.proxy.$t(...args),
+            }),
+            ...useMessageDrafts({
+                getIdentityKey: () => inst?.proxy._draftIdentityKey(),
+                getNewMessageText: () => inst?.proxy.composer ?? "",
+                setDraftText: (text) => {
+                    if (inst) {
+                        inst.proxy.composer = text;
+                    }
+                },
             }),
         };
     },
@@ -1664,6 +1818,14 @@ export default {
             members: [],
             composer: "",
             sending: false,
+            relayAtBottom: true,
+            newMessagesBelow: 0,
+            nickCycle: null,
+            ignoredPeers: [],
+            highlightWords: [],
+            localMentionRooms: new Map(),
+            showChatPrefs: false,
+            highlightWordDraft: "",
             joinRoomName: "",
             joinRoomKey: "",
             badKeyPromptInFlight: null,
@@ -1810,6 +1972,9 @@ export default {
             return this.members;
         },
         offlineMembers() {
+            if (!this.showMembers) {
+                return [];
+            }
             const onlineHashes = new Set(this.members.map((m) => m.hash));
             const seen = new Map();
             for (const msg of this.messages) {
@@ -1864,8 +2029,10 @@ export default {
             this.fetchDiscovered();
         }
         this.loadTranslationPacks();
+        this.loadRelayPrefs();
     },
     beforeUnmount() {
+        this.saveCurrentRoomDraft();
         offWsEvent(WS_EVENTS.RRC_CHANGE, this.onRrcChange);
         offWsEvent(WS_EVENTS.RRC_MESSAGE, this.onRrcMessage);
         offWsEvent(WS_EVENTS.RRC_SERVER_CHANGE, this.onRrcServerChange);
@@ -1909,7 +2076,230 @@ export default {
                 this._rebuildMessageTimelineCache();
             }
         },
-        onIdentitySwitched() {
+        _onMessagesScrollState(distanceToBottom) {
+            const near = distanceToBottom <= RELAY_NEAR_BOTTOM_PX;
+            this.relayAtBottom = near;
+            if (near) {
+                this.newMessagesBelow = 0;
+            }
+        },
+        _draftIdentityKey() {
+            const hash = useConfigStore().config?.identity_hash || "";
+            return typeof hash === "string" && hash ? hash : "_";
+        },
+        _relayDraftKey(hubHash, room) {
+            return `${hubHash || ""}/${room || ""}`;
+        },
+        // Identity captured at load/switch time wins over live config so a
+        // deferred save cannot write one identity's state into another's
+        // localStorage bucket.
+        _scopedIdentityKey() {
+            return this.lastDraftIdentityKey || this._draftIdentityKey();
+        },
+        saveCurrentRoomDraft() {
+            if (!this.selectedHubHash || !this.selectedRoom) {
+                return;
+            }
+            this.saveDraft(this._relayDraftKey(this.selectedHubHash, this.selectedRoom), this._scopedIdentityKey());
+        },
+        loadRelayPrefs() {
+            const prefs = loadRelayPrefs(this._scopedIdentityKey());
+            this.ignoredPeers = prefs.ignored;
+            this.highlightWords = prefs.highlightWords;
+        },
+        persistRelayPrefs() {
+            saveRelayPrefs(this._scopedIdentityKey(), {
+                ignored: this.ignoredPeers,
+                highlightWords: this.highlightWords,
+            });
+        },
+        isOwnRelayMessage(msg) {
+            const own = useConfigStore().config?.identity_hash;
+            return Boolean(own && typeof msg?.src === "string" && msg.src.toLowerCase() === String(own).toLowerCase());
+        },
+        isIgnoredMsg(msg) {
+            return isIgnoredRelayMessage(msg, this.ignoredPeers, useConfigStore().config?.identity_hash || "");
+        },
+        isIgnoredAuthor(msg) {
+            if (!msg) {
+                return false;
+            }
+            return this.ignoredPeers.some((entry) => relayPrefsEqualIgnored(entry, msg));
+        },
+        canIgnoreMessageAuthor(msg) {
+            if (!msg || (msg.kind !== "msg" && msg.kind !== "action")) {
+                return false;
+            }
+            if (this.isOwnRelayMessage(msg)) {
+                return false;
+            }
+            return Boolean((typeof msg.src === "string" && msg.src.trim()) || this.displayName(msg));
+        },
+        purgeIgnoredMessages() {
+            const kept = this.messages.filter((m) => !this.isIgnoredMsg(m));
+            if (kept.length !== this.messages.length) {
+                this.messages = kept;
+                this._invalidateMessageTimelineCache();
+            }
+        },
+        async toggleIgnoreFromMenu() {
+            const msg = this.messageMenu.msg;
+            this.closeMessageMenu();
+            if (!this.canIgnoreMessageAuthor(msg)) {
+                return;
+            }
+            const name = this.displayName(msg);
+            if (this.isIgnoredAuthor(msg)) {
+                await this.removeIgnoredPeerForMessage(msg);
+                return;
+            }
+            const entry = {
+                hash: typeof msg.src === "string" ? msg.src.trim().toLowerCase() : "",
+                name: typeof msg.nick === "string" && msg.nick.trim() ? msg.nick.trim() : name,
+            };
+            const dupe = this.ignoredPeers.some(
+                (p) =>
+                    (entry.hash && p.hash === entry.hash) ||
+                    (entry.name && p.name.toLowerCase() === entry.name.toLowerCase())
+            );
+            if (!dupe) {
+                this.ignoredPeers = [...this.ignoredPeers, entry];
+                this.persistRelayPrefs();
+            }
+            this.purgeIgnoredMessages();
+            ToastUtils.info(this.$t("relay_chat.ignore_added", { name }));
+        },
+        async removeIgnoredPeerForMessage(msg) {
+            const name = this.displayName(msg);
+            this.ignoredPeers = this.ignoredPeers.filter((p) => !relayPrefsEqualIgnored(p, msg));
+            this.persistRelayPrefs();
+            ToastUtils.info(this.$t("relay_chat.ignore_removed", { name }));
+            await this.softResyncOpenRoom();
+        },
+        async removeIgnoredPeer(peer) {
+            this.ignoredPeers = this.ignoredPeers.filter((p) => p !== peer);
+            this.persistRelayPrefs();
+            await this.softResyncOpenRoom();
+        },
+        openChatPrefs() {
+            this.highlightWordDraft = "";
+            this.showChatPrefs = true;
+        },
+        addHighlightWord() {
+            const word = normalizeHighlightWordInput(this.highlightWordDraft);
+            if (!word) {
+                return;
+            }
+            const exists = this.highlightWords.some((w) => w.toLowerCase() === word.toLowerCase());
+            if (!exists) {
+                this.highlightWords = [...this.highlightWords, word];
+                this.persistRelayPrefs();
+                this.refreshHighlightFlags();
+            }
+            this.highlightWordDraft = "";
+        },
+        removeHighlightWord(word) {
+            this.highlightWords = this.highlightWords.filter((w) => w !== word);
+            this.persistRelayPrefs();
+            this.refreshHighlightFlags();
+        },
+        matchesHighlightWords(text) {
+            return relayTextMatchesWords(text, this.highlightWords);
+        },
+        applyLocalHighlightFlags(msgs) {
+            if (!this.highlightWords.length || !Array.isArray(msgs)) {
+                return;
+            }
+            for (const msg of msgs) {
+                if (!msg || (msg.kind !== "msg" && msg.kind !== "action") || msg.mention) {
+                    continue;
+                }
+                if (this.isOwnRelayMessage(msg) || this.isIgnoredMsg(msg)) {
+                    continue;
+                }
+                if (this.matchesHighlightWords(msg.text)) {
+                    msg.mention = true;
+                    // Track locally set flags so removing a word can undo them
+                    // without touching server-side mention flags.
+                    msg.localMention = true;
+                }
+            }
+        },
+        clearLocalHighlightFlags(msgs) {
+            if (!Array.isArray(msgs)) {
+                return;
+            }
+            for (const msg of msgs) {
+                if (msg?.localMention) {
+                    msg.mention = false;
+                    delete msg.localMention;
+                }
+            }
+        },
+        refreshHighlightFlags() {
+            this.clearLocalHighlightFlags(this.messages);
+            this.applyLocalHighlightFlags(this.messages);
+        },
+        shouldBumpRoomMention(msg) {
+            if (!msg || (msg.kind !== "msg" && msg.kind !== "action") || msg.mention) {
+                return false;
+            }
+            if (this.isOwnRelayMessage(msg) || this.isIgnoredMsg(msg)) {
+                return false;
+            }
+            return this.matchesHighlightWords(msg.text);
+        },
+        flagLocalRoomMention(hubHash, room) {
+            if (!hubHash || !room) {
+                return;
+            }
+            let rooms = this.localMentionRooms.get(hubHash);
+            if (!rooms) {
+                rooms = new Set();
+                this.localMentionRooms.set(hubHash, rooms);
+            }
+            rooms.add(room);
+            this.applyLocalMentionRooms();
+        },
+        applyLocalMentionRooms() {
+            // Custom highlight words are client-side, so the server never sets
+            // mention_rooms for them. Reapply our local flags after every hub
+            // refresh or the next fetchHubs response would silently drop them.
+            for (const [hubHash, rooms] of this.localMentionRooms) {
+                const hub = this.hubs.find((h) => h.hub_hash === hubHash);
+                if (!hub) {
+                    continue;
+                }
+                if (!Array.isArray(hub.mention_rooms)) {
+                    hub.mention_rooms = [];
+                }
+                for (const room of rooms) {
+                    if (!hub.mention_rooms.includes(room)) {
+                        hub.mention_rooms = [...hub.mention_rooms, room];
+                    }
+                }
+            }
+            this.updateUnreadBadge();
+        },
+        clearLocalRoomMentionFlag(hubHash, room) {
+            const rooms = this.localMentionRooms.get(hubHash);
+            if (rooms) {
+                rooms.delete(room);
+                if (rooms.size === 0) {
+                    this.localMentionRooms.delete(hubHash);
+                }
+            }
+        },
+        onIdentitySwitched(json) {
+            // Invalidate in-flight selectRoom/softResync work first so a stale
+            // response cannot merge old-identity messages, POST a read receipt
+            // as the new identity, or overwrite the saved layout.
+            this.roomSelectSequence += 1;
+            this.saveCurrentRoomDraft();
+            this.lastDraftIdentityKey =
+                typeof json?.identity_hash === "string" && json.identity_hash
+                    ? json.identity_hash
+                    : this._draftIdentityKey();
             this.hubs = [];
             this.serverHubs = [];
             this.discovered = [];
@@ -1920,6 +2310,12 @@ export default {
             this.selectedRoom = null;
             this._viewBeforeRoomOpen = null;
             this.messageTranslations = {};
+            this.composer = "";
+            this.nickCycle = null;
+            this.relayAtBottom = true;
+            this.newMessagesBelow = 0;
+            this.localMentionRooms = new Map();
+            this.loadRelayPrefs();
             this.expandedHubs = {};
             this.availableRoomsExpanded = {};
             this.availableRoomsRefreshing = {};
@@ -1954,8 +2350,9 @@ export default {
                 if (seq !== this.roomSelectSequence || hubHash !== this.selectedHubHash || room !== this.selectedRoom) {
                     return;
                 }
-                const loaded = response.data?.messages || [];
+                const loaded = (response.data?.messages || []).filter((m) => !this.isIgnoredMsg(m));
                 this.messages = mergeRelayMessages(loaded, this.messages);
+                this.applyLocalHighlightFlags(this.messages);
                 this._rebuildMessageTimelineCache();
                 if (Array.isArray(response.data?.members)) {
                     this.members = response.data.members;
@@ -2849,7 +3246,35 @@ export default {
                 onGeo: (geoText) => {
                     this.openGeoOnMap(geoText);
                 },
+                onRrcUrl: (uri) => {
+                    this.openRelayRoomLink(uri);
+                },
             });
+        },
+        async openRelayRoomLink(uri) {
+            const parsed = parseRelayUri(uri);
+            if (!parsed) {
+                ToastUtils.error(this.$t("messages.relay_link_invalid"));
+                return;
+            }
+            if (useConfigStore().config?.rrc_enabled === false) {
+                ToastUtils.warning(this.$t("messages.relay_link_disabled"));
+                return;
+            }
+            try {
+                const result = await applyRelayShareLink(parsed);
+                await this.fetchHubs();
+                this.view = "chat";
+                this.expandedHubs[result.hub_hash] = true;
+                if (result.room) {
+                    await this.selectRoom(result.hub_hash, result.room);
+                } else {
+                    this.selectedHubHash = result.hub_hash;
+                }
+                ToastUtils.success(this.$t("messages.relay_link_opened"));
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("messages.relay_link_failed"));
+            }
         },
         async openGeoOnMap(geoText) {
             try {
@@ -2892,7 +3317,7 @@ export default {
                     this.selectedHubHash = this.hubs[0].hub_hash;
                     this.expandedHubs[this.hubs[0].hub_hash] = true;
                 }
-                this.updateUnreadBadge();
+                this.applyLocalMentionRooms();
             } catch {
                 // relay chat may be unavailable for this identity
             }
@@ -2911,7 +3336,12 @@ export default {
             this.selectRoom(hubHash, room);
         },
         onBackFromRoom() {
+            this.saveCurrentRoomDraft();
             this.selectedRoom = null;
+            this.composer = "";
+            this.nickCycle = null;
+            this.relayAtBottom = true;
+            this.newMessagesBelow = 0;
             this.restoreViewAfterRoomClose();
         },
         restoreViewAfterRoomClose() {
@@ -2924,6 +3354,7 @@ export default {
             if (this.selectedRoom === null && this._viewBeforeRoomOpen == null) {
                 this._viewBeforeRoomOpen = this.view;
             }
+            this.saveCurrentRoomDraft();
             this.selectedHubHash = hubHash;
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
@@ -2933,6 +3364,10 @@ export default {
             // Clear before fetch so only websocket arrivals during the request are merged back.
             this.messages = [];
             this.members = [];
+            this.nickCycle = null;
+            this.relayAtBottom = true;
+            this.newMessagesBelow = 0;
+            this.loadDraft(this._relayDraftKey(hubHash, room));
             const seq = ++this.roomSelectSequence;
             try {
                 const response = await rrcApi.getHubsRoomsMessages(hubHash, this.encodeRoom(room), {
@@ -2941,8 +3376,9 @@ export default {
                 if (seq !== this.roomSelectSequence) {
                     return;
                 }
-                const loaded = response.data?.messages || [];
+                const loaded = (response.data?.messages || []).filter((m) => !this.isIgnoredMsg(m));
                 this.messages = mergeRelayMessages(loaded, this.messages);
+                this.applyLocalHighlightFlags(this.messages);
                 this._rebuildMessageTimelineCache();
                 this.members = response.data?.members || [];
                 this.hasMorePrevious = Boolean(response.data?.has_more);
@@ -2959,6 +3395,7 @@ export default {
             }
         },
         clearLocalRoomUnread(hubHash, room) {
+            this.clearLocalRoomMentionFlag(hubHash, room);
             const hub = this.hubs.find((h) => h.hub_hash === hubHash);
             if (!hub) {
                 return;
@@ -3001,19 +3438,28 @@ export default {
             return this.$refs.messageList ?? null;
         },
         async refreshMembers() {
-            if (!this.selectedHubHash || !this.selectedRoom) {
+            const hubHash = this.selectedHubHash;
+            const room = this.selectedRoom;
+            if (!hubHash || !room) {
                 return;
             }
             try {
                 const response = await window.api.get(
-                    apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`)
+                    apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`)
                 );
+                // The user may have switched rooms while this was in flight;
+                // only the still-selected room may write the sidebar roster.
+                if (this.selectedHubHash !== hubHash || this.selectedRoom !== room) {
+                    return;
+                }
                 this.members = response.data?.members || [];
             } catch {
                 // ignore member refresh failures
             }
         },
         scrollToBottom() {
+            this.relayAtBottom = true;
+            this.newMessagesBelow = 0;
             nextTick(() => {
                 if (this.useVirtualMessageList && this.$refs.messageListVirtual) {
                     this.$refs.messageListVirtual.scrollToBottom();
@@ -3025,6 +3471,40 @@ export default {
                 }
             });
         },
+        onComposerKeydown(event) {
+            if (event.key !== "Tab") {
+                if (event.key !== "Shift") {
+                    this.nickCycle = null;
+                }
+                return;
+            }
+            event.preventDefault();
+            const el = event.target;
+            // The caret indexes the DOM value; prefer it so a stale v-model
+            // sync cannot complete against a different string than the one
+            // the caret points into.
+            const text = typeof el?.value === "string" ? el.value : this.composer;
+            const caret = typeof el?.selectionStart === "number" ? el.selectionStart : text.length;
+            const names = this.members.map((m) => m?.name).filter(Boolean);
+            const step = relayNickCompletionStep({
+                text,
+                caret,
+                names,
+                cycle: this.nickCycle,
+                backwards: event.shiftKey,
+            });
+            if (!step) {
+                this.nickCycle = null;
+                return;
+            }
+            this.composer = step.text;
+            this.nickCycle = step.cycle;
+            nextTick(() => {
+                if (el && typeof el.setSelectionRange === "function") {
+                    el.setSelectionRange(step.caret, step.caret);
+                }
+            });
+        },
         async sendMessage() {
             const text = this.composer.trim();
             if (!text || !this.selectedHub || !this.selectedRoom) {
@@ -3033,12 +3513,16 @@ export default {
             const isAction = text.startsWith("/me ");
             const payload = isAction ? { text: text.slice(4), action: true } : { text };
             this.sending = true;
+            const sentRoom = this.selectedRoom;
+            const sentHub = this.selectedHubHash;
             try {
                 await window.api.post(
                     apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`),
                     payload
                 );
                 this.composer = "";
+                this.nickCycle = null;
+                this.saveDraft(this._relayDraftKey(sentHub, sentRoom));
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.send_failed"));
             } finally {
@@ -3166,8 +3650,12 @@ export default {
                 return;
             }
             const room = this.selectedRoom;
+            const draftHub = this.selectedHubHash;
             try {
                 await window.api.delete(apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(room)}`));
+                // A left room is gone for good, so its draft goes with it.
+                this.composer = "";
+                this.saveDraft(this._relayDraftKey(draftHub, room));
                 this.selectedRoom = null;
                 this.restoreViewAfterRoomClose();
                 this.messages = [];
@@ -3599,10 +4087,17 @@ export default {
                 this.handleBadKeyError(json.hub_hash, json.room || json.message.room, json.message.text);
             }
             if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
-                if (!relayMessageAlreadyPresent(this.messages, json.message)) {
-                    this.messages.push(json.message);
+                const ignored = this.isIgnoredMsg(json.message);
+                if (!ignored && this.highlightWords.length) {
+                    this.applyLocalHighlightFlags([json.message]);
+                }
+                if (!ignored && this.pushLiveMessage(json.message)) {
                     this._invalidateMessageTimelineCache();
-                    this.scrollToBottom();
+                    if (this.relayAtBottom) {
+                        this.scrollToBottom();
+                    } else if (json.message.kind === "msg" || json.message.kind === "action") {
+                        this.newMessagesBelow += 1;
+                    }
                 }
                 if (json.message.kind === "system" || json.message.kind === "notice") {
                     this.refreshMembers();
@@ -3610,12 +4105,20 @@ export default {
                 // Chat is already open: dismiss unread/mention badge without waiting
                 // for a later hub list refresh race.
                 this.markRoomRead(json.hub_hash, json.room);
-            } else if (json.message && json.message.kind === "msg") {
-                const onRelayPage = this.$route?.name === "relay-chat" || this.$route?.name === "relay-chat-popout";
-                if (!onRelayPage || json.hub_hash !== this.selectedHubHash || json.room !== this.selectedRoom) {
-                    ToastUtils.info(this.$t("relay_chat.new_message_toast", { room: json.room || "" }));
+            } else if (json.message && (json.message.kind === "msg" || json.message.kind === "action")) {
+                const ignored = this.isIgnoredMsg(json.message);
+                const bump = !ignored && this.shouldBumpRoomMention(json.message);
+                if (!ignored) {
+                    const onRelayPage = this.$route?.name === "relay-chat" || this.$route?.name === "relay-chat-popout";
+                    if (!onRelayPage || json.hub_hash !== this.selectedHubHash || json.room !== this.selectedRoom) {
+                        ToastUtils.info(this.$t("relay_chat.new_message_toast", { room: json.room || "" }));
+                    }
                 }
-                this.fetchHubs();
+                this.fetchHubs().then(() => {
+                    if (bump) {
+                        this.flagLocalRoomMention(json.hub_hash, json.room);
+                    }
+                });
             } else {
                 this.fetchHubs();
             }
@@ -3664,3 +4167,23 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+.scroll-fab-enter-active,
+.scroll-fab-leave-active {
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+.scroll-fab-enter-from,
+.scroll-fab-leave-to {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scroll-fab-enter-active,
+    .scroll-fab-leave-active {
+        transition: none;
+    }
+}
+</style>

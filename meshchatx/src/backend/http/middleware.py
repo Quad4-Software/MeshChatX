@@ -4,11 +4,13 @@
 
 Factories take the live app instance and return middleware callables.
 Order returned by register_all_routes / _define_routes must remain:
-sqlite_unavailable, auth, mime_type, security, csrf, ip_allowlist, demo_mode.
+bad_request, sqlite_unavailable, auth, mime_type, security, csrf,
+ip_allowlist, demo_mode.
 """
 
 from __future__ import annotations
 
+import json
 from urllib.parse import urlparse
 
 from aiohttp import web
@@ -26,10 +28,12 @@ from meshchatx.src.backend.http.db_availability import (
     exception_looks_like_missing_database,
 )
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
     http_forbidden,
     http_unauthorized,
     http_unavailable,
 )
+from meshchatx.src.backend.http.uploads import JsonBodyError
 from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.privacy_mode import privacy_mode_enabled
 from meshchatx.src.env_utils import env_bool
@@ -115,6 +119,26 @@ def build_nomad_crash_tab_csp() -> str:
         "base-uri 'none'; "
         "form-action 'none'"
     )
+
+
+def create_bad_request_middleware(app):
+    """Map malformed request bodies on /api to HTTP 400.
+
+    Handlers that already catch JSONDecodeError keep their custom error
+    payloads; this only covers the sites without a local guard. The catch
+    list is deliberately narrow so real handler bugs still surface as 500.
+    """
+
+    @web.middleware
+    async def bad_request_middleware(request, handler):
+        try:
+            return await handler(request)
+        except (json.JSONDecodeError, UnicodeDecodeError, JsonBodyError):
+            if not request.path.startswith("/api/"):
+                raise
+            return http_bad_request("invalid request body")
+
+    return bad_request_middleware
 
 
 def create_sqlite_unavailable_middleware(app):
@@ -252,6 +276,8 @@ def create_auth_middleware(app):
             API_V1_PREFIX + "/auth/login",
             API_V1_PREFIX + "/auth/status",
             API_V1_PREFIX + "/auth/logout",
+            API_V1_PREFIX + "/auth/oidc/login",
+            API_V1_PREFIX + "/auth/oidc/callback",
             "/manifest.json",
             "/service-worker.js",
         ]
@@ -552,6 +578,12 @@ def create_security_middleware(app):
             "object-src 'none'; "
             "base-uri 'self';"
         )
+        if path.startswith("/reticulum-docs/"):
+            # Uploaded manuals are user-supplied HTML. The sandbox directive
+            # forces an opaque origin even when a doc is opened top-level via
+            # the open-external link, so embedded scripts cannot reach the
+            # app session or API.
+            csp += " sandbox allow-scripts allow-forms allow-modals;"
         response.headers["Content-Security-Policy"] = csp
         return response
 

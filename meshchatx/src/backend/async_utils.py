@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: 0BSD AND MIT
 
 import asyncio
+import contextlib
 import logging
 import threading
 from collections.abc import Coroutine
@@ -91,13 +92,18 @@ class AsyncUtils:
             # coroutine but cap the backlog so we don't leak memory forever.
             AsyncUtils._pending_coroutines.append(coroutine)
             if len(AsyncUtils._pending_coroutines) > AsyncUtils._COROUTINES_MAX:
-                dropped = (
-                    len(AsyncUtils._pending_coroutines) - AsyncUtils._COROUTINES_MAX
-                )
+                overflow = AsyncUtils._pending_coroutines[
+                    : len(AsyncUtils._pending_coroutines) - AsyncUtils._COROUTINES_MAX
+                ]
                 AsyncUtils._pending_coroutines = AsyncUtils._pending_coroutines[
                     -AsyncUtils._COROUTINES_MAX :
                 ]
+                # Close dropped coroutines so their destruction does not emit
+                # RuntimeWarning: coroutine was never awaited.
+                for stale in overflow:
+                    with contextlib.suppress(Exception):
+                        stale.close()
                 _logger.warning(
                     "Dropped %d buffered coroutine(s) because the event loop is not running",
-                    dropped,
+                    len(overflow),
                 )

@@ -153,6 +153,31 @@ export function adjustHex(hex, amount) {
 }
 
 /**
+ * Relative luminance check for choosing on-fill text color. Returns true when
+ * the fill is light enough that dark text outperforms white on it.
+ * @param {string} hex
+ * @returns {boolean}
+ */
+export function isLightFill(hex) {
+    const rgb = parseHexColor(hex);
+    if (!rgb) {
+        return false;
+    }
+    const lum = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+    return lum > 0.45;
+}
+
+/**
+ * Text color guaranteed readable on top of the given action fill.
+ * @param {string} fillHex
+ * @param {string} [darkText]
+ * @returns {string}
+ */
+export function actionTextForFill(fillHex, darkText = "#111827") {
+    return isLightFill(fillHex) ? darkText : "#ffffff";
+}
+
+/**
  * @param {string} a
  * @param {string} b
  * @param {number} ratio
@@ -183,6 +208,7 @@ export function accentDerivativeVars(accentHex, isDark) {
         "--mc-accent-hover": hover,
         "--mc-action-primary": accentHex,
         "--mc-action-primary-hover": hover,
+        "--mc-action-primary-text": actionTextForFill(accentHex),
         "--mc-focus": hover,
         "--mc-focus-border": hover,
         "--mc-secondary-chip-hover-border": hover,
@@ -285,6 +311,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#8fbcbb",
             "--mc-action-primary": "#81a1c1",
             "--mc-action-primary-hover": "#88c0d0",
+            "--mc-action-primary-text": "#2e3440",
         },
     },
     gruvbox: {
@@ -313,6 +340,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#8ec07c",
             "--mc-action-primary": "#83a598",
             "--mc-action-primary-hover": "#8ec07c",
+            "--mc-action-primary-text": "#282828",
         },
     },
     catppuccin: {
@@ -341,6 +369,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#74c7ec",
             "--mc-action-primary": "#89b4fa",
             "--mc-action-primary-hover": "#74c7ec",
+            "--mc-action-primary-text": "#1e1e2e",
         },
     },
     dracula: {
@@ -369,6 +398,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#ff79c6",
             "--mc-action-primary": "#bd93f9",
             "--mc-action-primary-hover": "#ff79c6",
+            "--mc-action-primary-text": "#282a36",
         },
     },
     rose_pine: {
@@ -397,6 +427,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#eb6f92",
             "--mc-action-primary": "#c4a7e7",
             "--mc-action-primary-hover": "#eb6f92",
+            "--mc-action-primary-text": "#191724",
         },
     },
     forest: {
@@ -425,6 +456,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#74c69d",
             "--mc-action-primary": "#52b788",
             "--mc-action-primary-hover": "#74c69d",
+            "--mc-action-primary-text": "#081c15",
         },
     },
     midnight: {
@@ -453,6 +485,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#38bdf8",
             "--mc-action-primary": "#60a5fa",
             "--mc-action-primary-hover": "#38bdf8",
+            "--mc-action-primary-text": "#0f172a",
         },
     },
     warm_paper: {
@@ -481,6 +514,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#fbbf24",
             "--mc-action-primary": "#f59e0b",
             "--mc-action-primary-hover": "#fbbf24",
+            "--mc-action-primary-text": "#1c1917",
         },
     },
     tokyo: {
@@ -509,6 +543,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#bb9af7",
             "--mc-action-primary": "#7aa2f7",
             "--mc-action-primary-hover": "#bb9af7",
+            "--mc-action-primary-text": "#1a1b26",
         },
     },
     atom_one: {
@@ -537,6 +572,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#56b6c2",
             "--mc-action-primary": "#61afef",
             "--mc-action-primary-hover": "#56b6c2",
+            "--mc-action-primary-text": "#282c34",
         },
     },
     neo_brutalist: {
@@ -553,6 +589,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#2478ab",
             "--mc-action-primary": "#8080c0",
             "--mc-action-primary-hover": "#2478ab",
+            "--mc-action-primary-text": "#2b2b2b",
             "--mc-secondary-chip-hover-border": "#8080c0",
             "--mc-address-action-hover-border": "#8080c0",
         },
@@ -569,6 +606,7 @@ export const THEME_PRESETS = {
             "--mc-accent-hover": "#5ab7ec",
             "--mc-action-primary": "#bc86dd",
             "--mc-action-primary-hover": "#5ab7ec",
+            "--mc-action-primary-text": "#18191b",
             "--mc-secondary-chip-hover-border": "#bc86dd",
             "--mc-address-action-hover-border": "#bc86dd",
             "--mc-glass-surface": "rgb(34 36 40 / 0.92)",

@@ -6,12 +6,12 @@ export const SHELL_FALLBACK_URL = "/";
 export const UPDATE_MESSAGE_TYPE = "meshchatx-sw-updated";
 
 /**
- * Independent accept/reject oracle for shell caching.
+ * Independent accept/reject reference for shell caching.
  * Predicts strategy from raw inputs without calling classifyShellRequest.
  * @param {{ method?: string, pathname?: string, mode?: string, destination?: string, accept?: string }} input
  * @returns {"bypass"|"asset"|"navigation"|"shell-helper"|"network-only"}
  */
-export function oracleExpectedStrategy(input) {
+export function expectedStrategy(input) {
     const method = input.method || "GET";
     const pathname = String(input.pathname || "/");
     if (method !== "GET" && method !== "HEAD") {

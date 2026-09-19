@@ -89,6 +89,16 @@ export const CORE_TOOLS_ENTRIES = [
         group: "transfer",
     },
     {
+        name: "nearby",
+        route: { name: "nearby" },
+        icon: "access-point-network",
+        iconBg: "tool-card__icon bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-200",
+        titleKey: "tools.nearby.title",
+        descriptionKey: "tools.nearby.description",
+        alpha: true,
+        group: "network",
+    },
+    {
         name: "rnsh",
         route: { name: "rnsh" },
         icon: "console-network-outline",

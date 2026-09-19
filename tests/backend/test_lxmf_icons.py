@@ -32,7 +32,7 @@ from meshchatx.src.backend.meshchat_utils import parse_lxmf_icon_appearance
         (["user", b"\xaa\xbb\xcc", b"\x11\x22\x33"], ("user", "#aabbcc", "#112233")),
     ],
 )
-def test_parse_lxmf_icon_appearance_oracle(value, expected):
+def test_parse_lxmf_icon_appearance(value, expected):
     assert parse_lxmf_icon_appearance(value) == expected
 
 

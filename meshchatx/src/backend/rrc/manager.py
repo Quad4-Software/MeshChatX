@@ -33,6 +33,7 @@ SLOW_CHANNEL_BPS = 300
 _slow_connect_gate = threading.Semaphore(1)
 BAD_KEY_MARKERS = ("bad key (+k)", "bad key")
 FORCED_LEAVE_MARKERS = ("kicked from", "banned from", "banned (kline)")
+JOIN_FATAL_MARKERS = ("banned from", "bad key", "invite-only")
 
 HISTORY_DIR_NAME = "rrc_history"
 HISTORY_FILENAME_SANITIZE_RE = re.compile(r"[^a-z0-9._-]+")
@@ -67,6 +68,7 @@ class RRCHub:
         self.status_text = "Disconnected"
         self.welcomed = False
         self.hub_name = None
+        self._hub_identity_hash = None
         self.hub_version = None
         self.hub_caps = {}
         self.motd = None
@@ -296,6 +298,7 @@ class RRCHub:
         link = _LoopbackEndpoint(self, server)
         server._attach_loopback(link, self.manager.identity)
         with self._lock:
+            self._hub_identity_hash = server.identity.hash
             self.link = link
         self._set_status(RRCHub.STATUS_CONNECTING, "Connected locally, sending HELLO")
         self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True)
@@ -365,6 +368,9 @@ class RRCHub:
                 )
                 self._maybe_schedule_reconnect_after_failed_connect()
                 return
+
+            with self._lock:
+                self._hub_identity_hash = hub_identity.hash
 
             self._stop_hello.clear()
             link = RNS.Link(
@@ -1265,14 +1271,25 @@ class RRCHub:
         if not isinstance(body, str):
             return
 
+        # Only the hub may drive protocol state via NOTICE. Peer NOTICEs are
+        # fanned out to room members with src rewritten to the peer's hash, so
+        # without this check any member could spoof nick overrides, room
+        # lists, WHO results, or the MOTD. A missing src is unattributed and
+        # can only come from the hub itself.
+        is_hub_src = src is None or (
+            self._hub_identity_hash is not None
+            and isinstance(src, (bytes, bytearray))
+            and bytes(src) == bytes(self._hub_identity_hash)
+        )
+
         nick_prefix = "nickname set to "
-        if body.startswith(nick_prefix):
+        if body.startswith(nick_prefix) and is_hub_src:
             new_nick = body[len(nick_prefix) :].strip()
             if new_nick:
                 self.set_nick_override(new_nick)
 
         parsed = proto.parse_room_list_notice_details(body)
-        if parsed is not None:
+        if parsed is not None and is_hub_src:
             with self._lock:
                 self.available_rooms = {
                     name: info.get("topic") for name, info in parsed.items()
@@ -1288,7 +1305,7 @@ class RRCHub:
                 return
 
         parsed_who = proto.parse_who_notice(body)
-        if parsed_who is not None:
+        if parsed_who is not None and is_hub_src:
             who_room, who_entries = parsed_who
             with self._lock:
                 members = self.members.setdefault(who_room, set())
@@ -1312,7 +1329,7 @@ class RRCHub:
                 return
 
         room_n = room.strip().lower() if isinstance(room, str) else None
-        if room_n is None and isinstance(body, str) and body.strip():
+        if room_n is None and isinstance(body, str) and body.strip() and is_hub_src:
             with self._lock:
                 self.motd = body
             self.manager._notify_change(self)
@@ -1335,7 +1352,9 @@ class RRCHub:
         leave_rooms = []
         with self._lock:
             if r:
-                if r in self._pending_joins:
+                if r in self._pending_joins and self.manager.is_fatal_join_error(
+                    text,
+                ):
                     rollback_join = True
                 self._pending_joins.discard(r)
                 self._silent_joins.discard(r)
@@ -1737,6 +1756,18 @@ class RRCManager:
             return False
         lowered = text.strip().lower()
         return any(marker in lowered for marker in FORCED_LEAVE_MARKERS)
+
+    @staticmethod
+    def is_fatal_join_error(text):
+        """Whether a JOIN error means the room can never be joined.
+
+        Transient failures like rate limiting must keep room membership
+        and history so saved rooms can retry on the next connect.
+        """
+        if not isinstance(text, str):
+            return False
+        lowered = text.strip().lower()
+        return any(marker in lowered for marker in JOIN_FATAL_MARKERS)
 
     def get_nickname(self):
         if self._get_nickname is None:

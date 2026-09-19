@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Property and fuzz tests for IntegrityManager with explicit oracles.
+"""Property and fuzz tests for IntegrityManager with explicit references.
 
 Every test predicts accept/reject from the input alone: volatile paths must
 never produce findings, monitored non-critical paths must surface drift in
@@ -57,7 +57,7 @@ def _file_tree_strategy():
 
 
 def _expected_classification(rel_path):
-    """Oracle: what class a mutated path falls into."""
+    """Reference: what class a mutated path falls into."""
     if IntegrityManager("", "/nonexistent")._should_ignore(rel_path):
         return "ignored"
     parts = Path(rel_path).parts
@@ -97,7 +97,7 @@ class TestIntegrityFuzz(IntegrityFuzzBase):
     )
     @given(tree=_file_tree_strategy())
     def test_save_then_check_always_clean(self, tree):
-        """Oracle: a snapshot taken and immediately checked reports nothing."""
+        """Reference: a snapshot taken and immediately checked reports nothing."""
         self._write_tree(tree)
         self.assertTrue(self.manager.save_manifest())
         is_ok, issues = self.manager.check_integrity()
@@ -118,7 +118,7 @@ class TestIntegrityFuzz(IntegrityFuzzBase):
         new_data=st.binary(min_size=1, max_size=128),
     )
     def test_single_mutation_classification(self, tree, target, new_data):
-        """Oracle: mutating a file must be classified by its scope."""
+        """Reference: mutating a file must be classified by its scope."""
         self._write_tree(tree)
         self.manager.save_manifest()
 
@@ -158,7 +158,7 @@ class TestIntegrityFuzz(IntegrityFuzzBase):
     )
     @given(tree=_file_tree_strategy(), target=_rel_path_strategy())
     def test_single_deletion_classification(self, tree, target):
-        """Oracle: deleting a file must be classified by its scope."""
+        """Reference: deleting a file must be classified by its scope."""
         self._write_tree(tree)
         path = self.test_dir / target
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -195,7 +195,7 @@ class TestIntegrityFuzz(IntegrityFuzzBase):
     )
     @given(manifest_bytes=st.binary(min_size=0, max_size=512))
     def test_manifest_bytes_never_crash(self, manifest_bytes):
-        """Oracle: any manifest content yields (bool, list[str]) or a safe failure."""
+        """Reference: any manifest content yields (bool, list[str]) or a safe failure."""
         self.manager.manifest_path.write_bytes(manifest_bytes)
         is_ok, issues = self.manager.check_integrity()
         self.assertIsInstance(is_ok, bool)
@@ -234,7 +234,7 @@ class TestIntegrityFuzz(IntegrityFuzzBase):
         ),
     )
     def test_manifest_shape_fuzz(self, manifest):
-        """Oracle: structurally valid JSON with hostile shapes never crashes."""
+        """Reference: structurally valid JSON with hostile shapes never crashes."""
         self.manager.manifest_path.write_text(json.dumps(manifest))
         is_ok, issues = self.manager.check_integrity()
         self.assertIsInstance(is_ok, bool)
@@ -257,7 +257,7 @@ class TestIntegrityFuzz(IntegrityFuzzBase):
     def test_lenient_mode_classification(self, tree, target, new_data):
         """Demote non-critical drift after unclean shutdown only.
 
-        Oracle: after unclean shutdown, non-critical drift demotes while
+        Reference: after unclean shutdown, non-critical drift demotes while
         critical drift stays critical.
         """
         self._write_tree(tree)
@@ -332,7 +332,7 @@ class TestIntegrityTrustFuzz(unittest.TestCase):
     def test_signed_manifest_corruption_detected(self, corruption):
         """Detect byte-level rewrites of a signed manifest.
 
-        Oracle: the rewrite must fail signature or JSON parsing; it must
+        Reference: the rewrite must fail signature or JSON parsing; it must
         never pass silently.
         """
         self.manager.save_manifest()

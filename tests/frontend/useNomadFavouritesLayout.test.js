@@ -43,9 +43,7 @@ describe("useNomadFavouritesLayout", () => {
     it("resets to a single default section", () => {
         const layout = useNomadFavouritesLayout();
         layout.resetDefaultSections();
-        expect(layout.sections.value).toEqual([
-            { id: "default", name: "nomadnet.favourites", collapsed: false },
-        ]);
+        expect(layout.sections.value).toEqual([{ id: "default", name: "nomadnet.favourites", collapsed: false }]);
         expect(layout.sectionOrder.value).toEqual(["default"]);
         expect(layout.favouritesBySection.value).toEqual({ default: [] });
     });

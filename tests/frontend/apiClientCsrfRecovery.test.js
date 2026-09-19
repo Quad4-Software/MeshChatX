@@ -14,7 +14,7 @@ describe("apiClient CSRF recovery", () => {
     });
 
     it("retries a mutating request once after refreshing a stale CSRF token", async () => {
-        // Oracle: after a backgrounded web tab, the in-memory CSRF token can
+        // Reference: after a backgrounded web tab, the in-memory CSRF token can
         // disagree with the cookie session. A single 403 CSRF response must
         // refresh the token and retry, not treat the call as an auth logout.
         const { setCsrfToken, getCsrfToken } = await import("../../meshchatx/src/frontend/js/csrfToken.js");

@@ -7,6 +7,7 @@ from aiohttp import web
 
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
     http_unexpected,
 )
 from meshchatx.src.backend.nomadnet_downloader import get_cached_active_link
@@ -21,7 +22,10 @@ def register_nomad_routes(routes, app):
         destination_hash = request.match_info.get("destination_hash", "")
 
         # convert destination hash to bytes
-        destination_hash = bytes.fromhex(destination_hash)
+        try:
+            destination_hash = bytes.fromhex(destination_hash)
+        except ValueError:
+            return http_bad_request("Invalid destination hash")
 
         # identify to existing active link
         link = get_cached_active_link(destination_hash)

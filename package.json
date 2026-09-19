@@ -104,7 +104,7 @@
         "jsdom": "^30.0.1",
         "knip": "^6.33.0",
         "lighthouse": "^13.4.1",
-        "micron-parser": "github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098",
+        "micron-parser": "github:RFnexus/micron-parser-js#ce24ce44adf804230a16520a9f79cd5f183c0bb5",
         "minimatch": ">=10.2.3",
         "prettier": "^3.9.6",
         "tailwindcss": "^4.3.3",
