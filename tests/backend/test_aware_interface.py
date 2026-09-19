@@ -42,8 +42,20 @@ def _load_module():
 
 @pytest.fixture(scope="module")
 def reticulum(tmp_path_factory):
-    """Interface.__init__ needs a live Reticulum for ingress defaults."""
+    """Interface.__init__ needs a live Reticulum for ingress defaults.
+
+    The config has no interfaces on purpose: the default AutoInterface would
+    bind the UDP discovery ports that other tests spawn subprocesses onto.
+    """
     config_dir = tmp_path_factory.mktemp("rns-aware")
+    (config_dir / "config").write_text(
+        "[reticulum]\n"
+        "enable_transport = no\n"
+        "share_instance = no\n"
+        "\n"
+        "[interfaces]\n",
+        encoding="utf-8",
+    )
     yield RNS.Reticulum(configdir=str(config_dir), loglevel=RNS.LOG_ERROR)
     # Reset the RNS singleton so later tests can init their own Reticulum.
     try:
