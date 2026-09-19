@@ -49,11 +49,7 @@ def reticulum(tmp_path_factory):
     """
     config_dir = tmp_path_factory.mktemp("rns-aware")
     (config_dir / "config").write_text(
-        "[reticulum]\n"
-        "enable_transport = no\n"
-        "share_instance = no\n"
-        "\n"
-        "[interfaces]\n",
+        "[reticulum]\nenable_transport = no\nshare_instance = no\n\n[interfaces]\n",
         encoding="utf-8",
     )
     yield RNS.Reticulum(configdir=str(config_dir), loglevel=RNS.LOG_ERROR)
