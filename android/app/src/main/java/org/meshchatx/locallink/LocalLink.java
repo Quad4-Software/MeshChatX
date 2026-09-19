@@ -67,6 +67,7 @@ public class LocalLink {
     private final WifiManager mWifiManager;
     private final ConnectivityManager mConnectivityManager;
 
+    @TargetApi(26)
     private WifiManager.LocalOnlyHotspotReservation mHotspotReservation;
     private String mHotspotSsid;
     private String mHotspotPassphrase;
@@ -183,6 +184,9 @@ public class LocalLink {
         if (mContext == null || mWifiManager == null) {
             throw new IllegalStateException("wifi manager unavailable");
         }
+        if (Build.VERSION.SDK_INT < 26) {
+            throw new IllegalStateException("local hotspot requires Android 8+");
+        }
         if (!hasNearbyWifiPermissions()) {
             throw new SecurityException("nearby wifi permission not granted");
         }
@@ -268,16 +272,17 @@ public class LocalLink {
     }
 
     public synchronized void stopHotspot() {
-        if (mHotspotReservation != null) {
-            try {
-                mHotspotReservation.close();
-            } catch (Exception e) {
-                Log.w(TAG, "hotspot close failed", e);
-            }
-            mHotspotReservation = null;
-            mHotspotSsid = null;
-            mHotspotPassphrase = null;
+        if (Build.VERSION.SDK_INT < 26 || mHotspotReservation == null) {
+            return;
         }
+        try {
+            mHotspotReservation.close();
+        } catch (Exception e) {
+            Log.w(TAG, "hotspot close failed", e);
+        }
+        mHotspotReservation = null;
+        mHotspotSsid = null;
+        mHotspotPassphrase = null;
     }
 
     public synchronized boolean isHotspotActive() {
