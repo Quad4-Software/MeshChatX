@@ -13,6 +13,7 @@ Applies when editing `meshchatx/src/frontend/**/*.{vue,js}`.
 - When adding user-visible strings, update `en.json` and the other maintained locale files under `meshchatx/src/frontend/locales/` with real translations (not English copies).
 - Sidebar unread pills live on nav entries in `coreNavEntries.js` and counters in the unread store (`js/stores/unreadStore.js`). Do not bring back a header notification bell for that job.
 - Do not use `_`-prefixed keys in Vue `data()` (`vue/no-reserved-keys`).
+- Identity-scoped persistence: localStorage state that belongs to an identity (drafts, ignore lists, per-room prefs) must be bucketed under the identity hash, and the identity key must be captured when the state is loaded, never re-read from the config store at save time. A deferred save (on room switch, route leave, unmount, or identity switch) that resolves the live identity can write one identity's data into another's bucket. `js/messages/useMessageDrafts.js` is the canonical pattern: `loadDraft` records `lastDraftIdentityKey`, and every `saveDraft` passes that captured key. Any new per-identity store needs the same load-time capture plus a regression test that switches identity between load and save.
 - File inputs: prefer broad `accept` for identity keys (`.bin,.key,.identity,application/octet-stream,*/*`). Database restore stays `.zip`.
 - Prefer existing MaterialDesignIcon / layout patterns over new design systems.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
