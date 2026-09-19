@@ -1691,7 +1691,7 @@ import {
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
-import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } from "../../js/relayLinkUtils.js";
+import { applyRelayShareLink, findRelayUriInContent, parseRelayUri } from "../../js/relayLinkUtils.js";
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import { useImageModal } from "../../js/messages/useImageModal.js";
@@ -2657,6 +2657,9 @@ export default {
                 onGeo: (geoText) => {
                     this.openGeoOnMap(geoText);
                 },
+                onRrcUrl: (uri) => {
+                    this.openRelayShareFromParsed(parseRelayUri(uri));
+                },
             });
         },
         async openGeoOnMap(geoText) {
@@ -3471,7 +3474,7 @@ export default {
 
             const relayUri = findRelayUriInContent(content);
             if (relayUri && !items.paperMessage && !items.mapLink) {
-                const parsed = parseMeshchatRelayUri(relayUri);
+                const parsed = parseRelayUri(relayUri);
                 if (parsed) {
                     let t = content.trim().replace(relayUri, "").trim();
                     t = t

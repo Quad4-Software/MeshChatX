@@ -574,7 +574,7 @@ import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
 import { shouldShowMultiSessionToast } from "../js/activeSessions.js";
 import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../js/networkRecovery.js";
 import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
-import { applyRelayShareLink, parseMeshchatRelayUri } from "../js/relayLinkUtils.js";
+import { applyRelayShareLink, parseRelayUri } from "../js/relayLinkUtils.js";
 import logoUrl from "../assets/images/logo.png";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed, clearMessagePanes } from "../js/browserLayoutStore";
 import { micronStorage } from "../js/MicronStorage";
@@ -2791,7 +2791,7 @@ export default {
             }
         },
         async openRelayShareLink(uri) {
-            const parsed = parseMeshchatRelayUri(uri);
+            const parsed = parseRelayUri(uri);
             if (!parsed) {
                 ToastUtils.error(this.$t("messages.relay_link_invalid"));
                 return;

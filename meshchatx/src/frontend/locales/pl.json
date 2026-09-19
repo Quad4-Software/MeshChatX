@@ -4202,7 +4202,20 @@
         "search_global_empty": "Przeszukaj historię wiadomości we wszystkich połączonych hubach i pokojach.",
         "search_global_none": "Brak pasujących wiadomości.",
         "search_placeholder": "Szukaj wiadomości...",
-        "search_results_count": "{count} wyników"
+        "search_results_count": "{count} wyników",
+        "scroll_to_bottom": "Przewiń na dół",
+        "chat_prefs": "Preferencje czatu",
+        "ctx_ignore_user": "Ignoruj użytkownika",
+        "ctx_unignore_user": "Przestań ignorować",
+        "ignore_added": "Wiadomości od {name} są teraz ukryte",
+        "ignore_removed": "Wiadomości od {name} są znowu widoczne",
+        "prefs_highlight_words": "Słowa wyróżniające",
+        "prefs_highlight_hint": "Pokazuje wyróżnienie wzmianki i licznik nieprzeczytanych, gdy pojawią się te słowa.",
+        "prefs_highlight_placeholder": "Dodaj słowo, np. znak wywoławczy",
+        "prefs_ignored": "Ignorowani użytkownicy",
+        "prefs_ignored_hint": "Ukrywane lokalnie w każdym pokoju. Kliknij wiadomość prawym przyciskiem myszy, aby kogoś zignorować.",
+        "prefs_ignored_empty": "Brak ignorowanych użytkowników",
+        "unignore": "Przestań ignorować"
     },
     "rncp": {
         "file_transfer": "Transfer plików",

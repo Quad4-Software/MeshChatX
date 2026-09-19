@@ -4202,7 +4202,20 @@
         "search_global_empty": "Search message history in every connected hub and room.",
         "search_global_none": "No matching messages.",
         "search_placeholder": "Search messages...",
-        "search_results_count": "{count} results"
+        "search_results_count": "{count} results",
+        "scroll_to_bottom": "Scroll to bottom",
+        "chat_prefs": "Chat preferences",
+        "ctx_ignore_user": "Ignore user",
+        "ctx_unignore_user": "Unignore user",
+        "ignore_added": "Messages from {name} are now hidden",
+        "ignore_removed": "Messages from {name} are visible again",
+        "prefs_highlight_words": "Highlight words",
+        "prefs_highlight_hint": "Show a mention highlight and unread badge when these words appear.",
+        "prefs_highlight_placeholder": "Add a word, for example a callsign",
+        "prefs_ignored": "Ignored users",
+        "prefs_ignored_hint": "Hidden locally in every room. Right-click a message to ignore someone.",
+        "prefs_ignored_empty": "No ignored users",
+        "unignore": "Unignore"
     },
     "rncp": {
         "file_transfer": "File Transfer",

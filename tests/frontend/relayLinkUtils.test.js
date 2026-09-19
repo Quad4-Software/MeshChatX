@@ -7,6 +7,8 @@ import {
     buildRelayShareMessage,
     findRelayUriInContent,
     parseMeshchatRelayUri,
+    parseRelayUri,
+    parseRrcRelayUri,
 } from "@/js/relayLinkUtils.js";
 
 const HUB = "00112233445566778899aabbccddeeff";
@@ -78,5 +80,50 @@ describe("relayLinkUtils", () => {
         await applyRelayShareLink({ hub: HUB, room: "", name: "", aspect: "rrc.hub" }, { api });
         expect(api.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB}/connect`);
         expect(api.post).not.toHaveBeenCalledWith("/api/v1/rrc/hubs", expect.anything());
+    });
+
+    describe("rrc:// short links", () => {
+        it("parses rrc://hub/room", () => {
+            const p = parseRrcRelayUri(`rrc://${HUB}/lobby`);
+            expect(p).not.toBeNull();
+            expect(p.hub).toBe(HUB);
+            expect(p.room).toBe("lobby");
+            expect(p.aspect).toBe("rrc.hub");
+        });
+
+        it("decodes URL-encoded room names", () => {
+            const p = parseRrcRelayUri(`rrc://${HUB}/ops%20desk`);
+            expect(p.room).toBe("ops desk");
+        });
+
+        it("keeps extra path segments inside the room name", () => {
+            const p = parseRrcRelayUri(`rrc://${HUB}/a/b`);
+            expect(p.room).toBe("a/b");
+        });
+
+        it("rejects invalid hubs, missing rooms, and other schemes", () => {
+            expect(parseRrcRelayUri("rrc://nothex/lobby")).toBeNull();
+            expect(parseRrcRelayUri(`rrc://${HUB}/`)).toBeNull();
+            expect(parseRrcRelayUri(`rrc://${HUB}`)).toBeNull();
+            expect(parseRrcRelayUri(`https://${HUB}/lobby`)).toBeNull();
+            expect(parseRrcRelayUri(`rrc://${HUB}/%zz`)).toBeNull();
+            expect(parseRrcRelayUri("")).toBeNull();
+        });
+
+        it("parseRelayUri accepts both forms", () => {
+            expect(parseRelayUri(`rrc://${HUB}/lobby`)?.room).toBe("lobby");
+            expect(parseRelayUri(`meshchatx://relay?hub=${HUB}&room=general`)?.room).toBe("general");
+            expect(parseRelayUri("meshchatx://relay?hub=bad")).toBeNull();
+        });
+
+        it("findRelayUriInContent detects rrc:// links and trims punctuation", () => {
+            expect(findRelayUriInContent(`join rrc://${HUB}/lobby.`)).toBe(`rrc://${HUB}/lobby`);
+            expect(findRelayUriInContent(`rrc://${HUB}/dev%20chat!`)).toBe(`rrc://${HUB}/dev%20chat`);
+        });
+
+        it("findRelayUriInContent ignores malformed rrc links", () => {
+            expect(findRelayUriInContent("rrc://short/lobby")).toBeNull();
+            expect(findRelayUriInContent("no links here")).toBeNull();
+        });
     });
 });

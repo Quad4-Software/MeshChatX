@@ -1,5 +1,6 @@
 import { useConfigStore } from "./stores/configStore.js";
 import Utils from "./Utils.js";
+import { parseRelayUri } from "./relayLinkUtils.js";
 
 function defaultNomadPagePath() {
     const p = useConfigStore().config?.nomad_default_page_path;
@@ -130,6 +131,52 @@ export default class LinkUtils {
     }
 
     /**
+     * Relay room deep links: meshchatx://relay?hub=&room= and the short
+     * rrc://<hub_hash>/<room> form. Rendered as in-app action links carrying
+     * the raw URI so the click handler can re-parse and join.
+     */
+    static renderRelayLinks(text) {
+        if (!text) return "";
+        const relayRegex = /(meshchatx|meshchat):\/\/relay\?[^\s<>"']+|rrc:\/\/[^\s<>"']+/gi;
+        return text.replace(relayRegex, (match) => {
+            let { core, suffix } = this.splitTrailingPunctuation(match);
+            // Placeholder tokens ([[IC_n_0]] etc.) must never reach an
+            // attribute value: the later restore pass would splice markup
+            // containing quotes into data-rrc-url.
+            const bracket = core.indexOf("[");
+            if (bracket >= 0) {
+                suffix = core.slice(bracket) + suffix;
+                core = core.slice(0, bracket);
+            }
+            if (!core) {
+                return match;
+            }
+            // Escaped entities adjacent to the URI (&#39; &quot;) carry no
+            // literal terminator char, so the match can swallow them; strip
+            // any trailing entity run before the &amp; fold. Single-entity
+            // matches applied in a loop keep the pattern linear.
+            const entityRe = /&[#a-zA-Z][\w]*;?$/;
+            let entityTail;
+            while ((entityTail = core.match(entityRe))) {
+                suffix = entityTail[0] + suffix;
+                core = core.slice(0, entityTail.index);
+            }
+            if (!core) {
+                return match;
+            }
+            // Input text is already HTML-escaped, so &amp; must be folded back
+            // before the URI can be parsed and stored.
+            const rawCore = core.replace(/&amp;/g, "&");
+            if (!parseRelayUri(rawCore)) {
+                return match;
+            }
+            const safeAttr = Utils.escapeHtml(rawCore);
+            const label = Utils.escapeHtml(rawCore);
+            return `<a href="#" class="rrc-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-rrc-url="${safeAttr}">${label}</a>${suffix}`;
+        });
+    }
+
+    /**
      * Basic URL detection for standard http/https links.
      */
     static renderStandardLinks(text) {
@@ -166,9 +213,10 @@ export default class LinkUtils {
     static renderAllLinks(text) {
         const { protectedText, anchors, nonce } = this.protectAnchors(text);
         let rendered = this.renderStandardLinks(protectedText);
-        // renderStandardLinks emits anchor markup whose attribute values can
-        // hold 32-hex tokens. Shield them so the reticulum pass cannot inject
-        // attributes into the generated anchors.
+        rendered = this.renderRelayLinks(rendered);
+        // renderStandardLinks / renderRelayLinks emit anchor markup whose
+        // attribute values can hold 32-hex tokens. Shield them so the
+        // reticulum pass cannot inject attributes into the generated anchors.
         const shielded = this.protectAnchors(rendered);
         rendered = this.renderReticulumLinks(shielded.protectedText);
         rendered = this.restoreAnchors(rendered, shielded.anchors, shielded.nonce);

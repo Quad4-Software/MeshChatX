@@ -250,6 +250,51 @@ describe("LinkUtils.js", () => {
         });
     });
 
+    describe("renderRelayLinks", () => {
+        const HUB = "00112233445566778899aabbccddeeff";
+
+        it("detects rrc://hub/room links", () => {
+            const result = LinkUtils.renderRelayLinks(`join rrc://${HUB}/lobby now`);
+            expect(result).toContain('class="rrc-link');
+            expect(result).toContain(`data-rrc-url="rrc://${HUB}/lobby"`);
+        });
+
+        it("detects meshchatx relay share links", () => {
+            const uri = `meshchatx://relay?hub=${HUB}&amp;room=general`;
+            const result = LinkUtils.renderRelayLinks(`see ${uri}`);
+            expect(result).toContain('class="rrc-link');
+            expect(result).toContain(`data-rrc-url="meshchatx://relay?hub=${HUB}&amp;room=general"`);
+        });
+
+        it("folds escaped ampersands before storing the uri", () => {
+            const result = LinkUtils.renderRelayLinks(`meshchatx://relay?hub=${HUB}&amp;room=general`);
+            // Attribute holds the escaped form; reading it back yields a real &.
+            const match = result.match(/data-rrc-url="([^"]+)"/);
+            expect(match).not.toBeNull();
+            expect(match[1]).toContain("&amp;room=general");
+            expect(match[1]).not.toContain("&amp;amp;");
+        });
+
+        it("skips invalid rrc and relay uris", () => {
+            expect(LinkUtils.renderRelayLinks("rrc://nothex/lobby")).not.toContain("rrc-link");
+            expect(LinkUtils.renderRelayLinks("meshchatx://relay?hub=bad")).not.toContain("rrc-link");
+            expect(LinkUtils.renderRelayLinks("rrc://" + HUB)).not.toContain("rrc-link");
+        });
+
+        it("trims trailing punctuation and escaped entities off the match", () => {
+            const result = LinkUtils.renderRelayLinks(`join rrc://${HUB}/lobby.`);
+            expect(result).toContain(`data-rrc-url="rrc://${HUB}/lobby"`);
+            const quoted = LinkUtils.renderRelayLinks(`join "rrc://${HUB}/lobby&quot;`);
+            expect(quoted).toContain(`data-rrc-url="rrc://${HUB}/lobby"`);
+        });
+
+        it("does not let the reticulum pass rewrite the hub hash inside anchors", () => {
+            const result = LinkUtils.renderAllLinks(`rrc://${HUB}/lobby`);
+            expect((result.match(/<a /g) || []).length).toBe(1);
+            expect(result).toContain("rrc-link");
+        });
+    });
+
     describe("httpUrlHrefOrNull", () => {
         it("returns canonical https href", () => {
             expect(LinkUtils.httpUrlHrefOrNull("https://example.com/path")).toBe("https://example.com/path");

@@ -4202,7 +4202,20 @@
         "search_global_empty": "Bağlı tüm hub ve odalardaki mesaj geçmişinde arayın.",
         "search_global_none": "Eşleşen mesaj yok.",
         "search_placeholder": "İletileri ara...",
-        "search_results_count": "{count} sonuç"
+        "search_results_count": "{count} sonuç",
+        "scroll_to_bottom": "Aşağı kaydır",
+        "chat_prefs": "Sohbet tercihleri",
+        "ctx_ignore_user": "Kullanıcıyı yok say",
+        "ctx_unignore_user": "Yok saymayı kaldır",
+        "ignore_added": "{name} kullanıcısının mesajları artık gizli",
+        "ignore_removed": "{name} kullanıcısının mesajları tekrar görünür",
+        "prefs_highlight_words": "Vurgu kelimeleri",
+        "prefs_highlight_hint": "Bu kelimeler geçtiğinde bahsetme vurgusu ve okunmamış rozeti gösterilir.",
+        "prefs_highlight_placeholder": "Kelime ekleyin, örneğin çağrı işareti",
+        "prefs_ignored": "Yok sayılan kullanıcılar",
+        "prefs_ignored_hint": "Tüm odalarda yerel olarak gizlenir. Birini yok saymak için mesaja sağ tıklayın.",
+        "prefs_ignored_empty": "Yok sayılan kullanıcı yok",
+        "unignore": "Yok saymayı kaldır"
     },
     "rncp": {
         "file_transfer": "Dosya Aktarımı",

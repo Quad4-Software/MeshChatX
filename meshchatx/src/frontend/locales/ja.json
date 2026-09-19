@@ -4202,7 +4202,20 @@
         "search_global_empty": "接続中のすべてのハブとルームのメッセージ履歴を検索します。",
         "search_global_none": "一致するメッセージはありません。",
         "search_placeholder": "メッセージを検索...",
-        "search_results_count": "{count}件の結果"
+        "search_results_count": "{count}件の結果",
+        "scroll_to_bottom": "一番下へスクロール",
+        "chat_prefs": "チャット設定",
+        "ctx_ignore_user": "ユーザーを無視",
+        "ctx_unignore_user": "無視を解除",
+        "ignore_added": "{name} のメッセージを非表示にしました",
+        "ignore_removed": "{name} のメッセージを再表示しました",
+        "prefs_highlight_words": "ハイライトワード",
+        "prefs_highlight_hint": "これらの単語が含まれると、メンションのハイライトと未読バッジが表示されます。",
+        "prefs_highlight_placeholder": "単語を追加（例: コールサイン）",
+        "prefs_ignored": "無視しているユーザー",
+        "prefs_ignored_hint": "すべてのルームでローカルに非表示になります。メッセージを右クリックしてユーザーを無視できます。",
+        "prefs_ignored_empty": "無視しているユーザーはいません",
+        "unignore": "無視を解除"
     },
     "rncp": {
         "file_transfer": "ファイル転送",

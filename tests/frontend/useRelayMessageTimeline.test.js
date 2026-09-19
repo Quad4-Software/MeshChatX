@@ -234,6 +234,42 @@ describe("useRelayMessageTimeline", () => {
         expect(window.api.get).not.toHaveBeenCalled();
     });
 
+    it("loadPreviousMessages excludes messages matching excludeMessage but keeps pagination", async () => {
+        window.api.get.mockResolvedValue({
+            data: { messages: [msg(1), msg(2, "spam", { src: "ignored" }), msg(3)], has_more: true },
+        });
+        const excludeMessage = vi.fn((m) => m.src === "ignored");
+        const tl = makeTimeline({ excludeMessage });
+        tl.messages.value = [msg(4)];
+        tl.hasMorePrevious.value = true;
+        await tl.loadPreviousMessages();
+        expect(tl.messages.value.map((m) => m.seq)).toEqual([1, 3, 4]);
+        // A fully filtered page still advances: has_more stays authoritative.
+        expect(tl.hasMorePrevious.value).toBe(true);
+    });
+
+    it("loadPreviousMessages continues paginating when an entire page is excluded", async () => {
+        window.api.get.mockResolvedValue({
+            data: { messages: [msg(1, "x", { src: "ignored" }), msg(2, "y", { src: "ignored" })], has_more: true },
+        });
+        const tl = makeTimeline({ excludeMessage: (m) => m.src === "ignored" });
+        tl.messages.value = [msg(5)];
+        tl.hasMorePrevious.value = true;
+        await tl.loadPreviousMessages();
+        expect(tl.messages.value.map((m) => m.seq)).toEqual([5]);
+        expect(tl.hasMorePrevious.value).toBe(true);
+    });
+
+    it("onMessagesScroll reports distance-to-bottom through onScrollState", () => {
+        const onScrollState = vi.fn();
+        const tl = makeTimeline({ onScrollState });
+        const el = { scrollTop: 900, scrollHeight: 1000, clientHeight: 200 };
+        tl.onMessagesScroll({ target: el });
+        expect(onScrollState).toHaveBeenCalledWith(el, -100);
+        tl.onMessagesScroll({ target: { scrollTop: 0, scrollHeight: 1000, clientHeight: 200 } });
+        expect(onScrollState).toHaveBeenLastCalledWith(expect.anything(), 800);
+    });
+
     it("presence groups toggle open and closed", () => {
         const tl = makeTimeline();
         expect(tl.isPresenceGroupExpanded("g1")).toBe(false);

@@ -98,4 +98,5 @@ export const STORAGE_KEYS = Object.freeze({
     TRANSLATE_TARGET_LANG: "meshchatx.translateTargetLang",
     UI_THEME: "meshchatx_ui_theme",
     MICRON_EDITOR_CONTENT: "micron_editor_content",
+    RRC_PREFS: "meshchatx.rrc.prefs",
 });

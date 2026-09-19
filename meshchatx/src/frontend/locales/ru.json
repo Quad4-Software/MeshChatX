@@ -4202,7 +4202,20 @@
         "search_global_empty": "Поиск по истории сообщений во всех подключённых хабах и комнатах.",
         "search_global_none": "Совпадений нет.",
         "search_placeholder": "Поиск сообщений...",
-        "search_results_count": "Результатов: {count}"
+        "search_results_count": "Результатов: {count}",
+        "scroll_to_bottom": "Прокрутить вниз",
+        "chat_prefs": "Настройки чата",
+        "ctx_ignore_user": "Игнорировать пользователя",
+        "ctx_unignore_user": "Прекратить игнорировать",
+        "ignore_added": "Сообщения от {name} теперь скрыты",
+        "ignore_removed": "Сообщения от {name} снова видны",
+        "prefs_highlight_words": "Слова для подсветки",
+        "prefs_highlight_hint": "Показывает подсветку упоминания и значок непрочитанных, когда встречаются эти слова.",
+        "prefs_highlight_placeholder": "Добавьте слово, например позывной",
+        "prefs_ignored": "Игнорируемые пользователи",
+        "prefs_ignored_hint": "Скрыты локально во всех комнатах. Нажмите правой кнопкой на сообщение, чтобы игнорировать пользователя.",
+        "prefs_ignored_empty": "Нет игнорируемых пользователей",
+        "unignore": "Прекратить игнорировать"
     },
     "rncp": {
         "file_transfer": "Передача файлов",

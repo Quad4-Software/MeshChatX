@@ -4202,7 +4202,20 @@
         "search_global_empty": "在所有已连接的枢纽和房间中搜索消息历史。",
         "search_global_none": "没有匹配的消息。",
         "search_placeholder": "搜索消息...",
-        "search_results_count": "{count} 条结果"
+        "search_results_count": "{count} 条结果",
+        "scroll_to_bottom": "滚动到底部",
+        "chat_prefs": "聊天偏好设置",
+        "ctx_ignore_user": "忽略用户",
+        "ctx_unignore_user": "取消忽略",
+        "ignore_added": "来自 {name} 的消息现在已隐藏",
+        "ignore_removed": "来自 {name} 的消息已恢复显示",
+        "prefs_highlight_words": "高亮词",
+        "prefs_highlight_hint": "当这些词出现时，显示提及高亮和未读徽章。",
+        "prefs_highlight_placeholder": "添加词语，例如呼号",
+        "prefs_ignored": "已忽略的用户",
+        "prefs_ignored_hint": "在所有房间中本地隐藏。右键点击消息即可忽略某人。",
+        "prefs_ignored_empty": "没有已忽略的用户",
+        "unignore": "取消忽略"
     },
     "rncp": {
         "file_transfer": "文件传输",

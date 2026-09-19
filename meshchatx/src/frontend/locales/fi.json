@@ -4202,7 +4202,20 @@
         "search_global_empty": "Hae viestihistoriasta kaikissa yhdistetyissä hubeissa ja huoneissa.",
         "search_global_none": "Ei osumia.",
         "search_placeholder": "Hae viesteistä...",
-        "search_results_count": "{count} tulosta"
+        "search_results_count": "{count} tulosta",
+        "scroll_to_bottom": "Vieritä alas",
+        "chat_prefs": "Keskustelun asetukset",
+        "ctx_ignore_user": "Estä käyttäjä",
+        "ctx_unignore_user": "Poista esto",
+        "ignore_added": "Käyttäjän {name} viestit piilotetaan nyt",
+        "ignore_removed": "Käyttäjän {name} viestit näkyvät jälleen",
+        "prefs_highlight_words": "Korostussanat",
+        "prefs_highlight_hint": "Näytä mainintakorostus ja lukemattomien merkki, kun nämä sanat esiintyvät.",
+        "prefs_highlight_placeholder": "Lisää sana, esimerkiksi kutsutunnus",
+        "prefs_ignored": "Estetyt käyttäjät",
+        "prefs_ignored_hint": "Piilotettu paikallisesti kaikissa huoneissa. Napsauta viestiä oikealla painikkeella estääksesi käyttäjän.",
+        "prefs_ignored_empty": "Ei estettyjä käyttäjiä",
+        "unignore": "Poista esto"
     },
     "rncp": {
         "file_transfer": "Tiedostonsiirto",
