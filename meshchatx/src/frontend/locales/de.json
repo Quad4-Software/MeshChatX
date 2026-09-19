@@ -4202,7 +4202,20 @@
         "search_global_empty": "Nachrichtenverlauf in allen verbundenen Hubs und Räumen durchsuchen.",
         "search_global_none": "Keine passenden Nachrichten.",
         "search_placeholder": "Nachrichten durchsuchen...",
-        "search_results_count": "{count} Ergebnisse"
+        "search_results_count": "{count} Ergebnisse",
+        "scroll_to_bottom": "Nach unten scrollen",
+        "chat_prefs": "Chat-Einstellungen",
+        "ctx_ignore_user": "Benutzer ignorieren",
+        "ctx_unignore_user": "Ignorieren aufheben",
+        "ignore_added": "Nachrichten von {name} werden jetzt ausgeblendet",
+        "ignore_removed": "Nachrichten von {name} werden wieder angezeigt",
+        "prefs_highlight_words": "Hervorhebungswörter",
+        "prefs_highlight_hint": "Zeigt eine Erwähnungs-Markierung und ein Ungelesen-Badge, wenn diese Wörter vorkommen.",
+        "prefs_highlight_placeholder": "Wort hinzufügen, z. B. ein Rufzeichen",
+        "prefs_ignored": "Ignorierte Benutzer",
+        "prefs_ignored_hint": "Lokal in allen Räumen ausgeblendet. Rechtsklick auf eine Nachricht, um jemanden zu ignorieren.",
+        "prefs_ignored_empty": "Keine ignorierten Benutzer",
+        "unignore": "Nicht mehr ignorieren"
     },
     "rncp": {
         "file_transfer": "Dateiübertragung",

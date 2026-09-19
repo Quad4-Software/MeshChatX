@@ -28,8 +28,10 @@ const MAX_RELAY_MESSAGES = 2000;
  * URL-encodes room names for API paths, options.prependTimelineCache delegates
  * to the host's _prependMessageTimelineCache (underscore-prefixed methods are
  * not proxied from setup state), options.reloadLatest re-anchors the window on
- * the newest page after the tail was trimmed, and options.t translates
- * presence group summary labels.
+ * the newest page after the tail was trimmed, options.excludeMessage hides
+ * locally ignored messages from older-page loads, options.onScrollState
+ * reports distance-to-bottom on every scroll for the new-messages pill, and
+ * options.t translates presence group summary labels.
  */
 export function useRelayMessageTimeline(options = {}) {
     const {
@@ -39,6 +41,8 @@ export function useRelayMessageTimeline(options = {}) {
         encodeRoom,
         prependTimelineCache,
         reloadLatest,
+        excludeMessage,
+        onScrollState,
         t,
     } = options;
 
@@ -133,11 +137,15 @@ export function useRelayMessageTimeline(options = {}) {
                 }
                 return;
             }
+            // Locally ignored peers never enter the display list, but the
+            // pagination window still tracks their seq numbers so history
+            // walks do not stall on a filtered page.
+            const visibleOlder = excludeMessage ? uniqueOlder.filter((m) => !excludeMessage(m)) : uniqueOlder;
             const scrollEl = getMessagesScrollElement?.() ?? null;
             const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
             const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
-            messages.value = [...uniqueOlder, ...messages.value];
-            prependTimelineCache?.(uniqueOlder);
+            messages.value = [...visibleOlder, ...messages.value];
+            prependTimelineCache?.(visibleOlder);
             // Trim after the anchor is restored: removed tail entries sit below
             // the viewport, so scrollTop stays valid.
             const trimTail = () => {
@@ -212,6 +220,7 @@ export function useRelayMessageTimeline(options = {}) {
             return;
         }
         const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        onScrollState?.(el, distanceToBottom);
         if (tailTrimmed.value && distanceToBottom <= LOAD_PREVIOUS_SCROLL_EDGE_PX && !reloadingLatest.value) {
             reloadingLatest.value = true;
             tailTrimmed.value = false;

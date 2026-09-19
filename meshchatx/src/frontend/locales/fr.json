@@ -4202,7 +4202,20 @@
         "search_global_empty": "Recherchez l'historique des messages dans tous les hubs et salons connectés.",
         "search_global_none": "Aucun message correspondant.",
         "search_placeholder": "Rechercher des messages...",
-        "search_results_count": "{count} résultats"
+        "search_results_count": "{count} résultats",
+        "scroll_to_bottom": "Défiler vers le bas",
+        "chat_prefs": "Préférences du chat",
+        "ctx_ignore_user": "Ignorer l'utilisateur",
+        "ctx_unignore_user": "Ne plus ignorer",
+        "ignore_added": "Les messages de {name} sont désormais masqués",
+        "ignore_removed": "Les messages de {name} sont à nouveau visibles",
+        "prefs_highlight_words": "Mots surlignés",
+        "prefs_highlight_hint": "Affiche la surbrillance de mention et le badge de non lus quand ces mots apparaissent.",
+        "prefs_highlight_placeholder": "Ajouter un mot, par exemple un indicatif",
+        "prefs_ignored": "Utilisateurs ignorés",
+        "prefs_ignored_hint": "Masqués localement dans tous les salons. Faites un clic droit sur un message pour ignorer quelqu'un.",
+        "prefs_ignored_empty": "Aucun utilisateur ignoré",
+        "unignore": "Ne plus ignorer"
     },
     "rncp": {
         "file_transfer": "Transfert de fichiers",

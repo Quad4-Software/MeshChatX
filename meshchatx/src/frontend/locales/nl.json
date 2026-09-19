@@ -4202,7 +4202,20 @@
         "search_global_empty": "Zoek in de berichtgeschiedenis van alle verbonden hubs en kamers.",
         "search_global_none": "Geen overeenkomende berichten.",
         "search_placeholder": "Berichten zoeken...",
-        "search_results_count": "{count} resultaten"
+        "search_results_count": "{count} resultaten",
+        "scroll_to_bottom": "Naar beneden scrollen",
+        "chat_prefs": "Chatvoorkeuren",
+        "ctx_ignore_user": "Gebruiker negeren",
+        "ctx_unignore_user": "Negeren opheffen",
+        "ignore_added": "Berichten van {name} worden nu verborgen",
+        "ignore_removed": "Berichten van {name} zijn weer zichtbaar",
+        "prefs_highlight_words": "Markeerwoorden",
+        "prefs_highlight_hint": "Toont een vermeldingsmarkering en een ongelezen-badge wanneer deze woorden voorkomen.",
+        "prefs_highlight_placeholder": "Voeg een woord toe, bijvoorbeeld een roepnaam",
+        "prefs_ignored": "Genegeerde gebruikers",
+        "prefs_ignored_hint": "Lokaal verborgen in elke kamer. Klik met de rechtermuisknop op een bericht om iemand te negeren.",
+        "prefs_ignored_empty": "Geen genegeerde gebruikers",
+        "unignore": "Negeren opheffen"
     },
     "rncp": {
         "file_transfer": "Bestandsoverdracht",

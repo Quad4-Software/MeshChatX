@@ -4,19 +4,39 @@
  * Offline-friendly relay chat deep links:
  * meshchatx://relay?hub=&room=&name=&aspect=
  * (meshchat://relay is accepted as an alias.)
+ * rrc://<hub_hash>/<room> is the short paste-friendly form.
  */
 
 import { apiPath } from "./constants.js";
 
 const RELAY_URI_IN_TEXT_RE = /(?:meshchatx|meshchat):\/\/relay\?[^\s<>]*/gi;
+const RRC_URI_IN_TEXT_RE = /rrc:\/\/[^\s<>]+/gi;
 const HUB_HASH_RE = /^[a-fA-F0-9]{32}$/;
+
+function trimUriTrailingPunctuation(uri) {
+    let core = uri;
+    while (core.length > 0 && /[.,!?;:)\]]/.test(core.at(-1))) {
+        core = core.slice(0, -1);
+    }
+    return core;
+}
 
 export function findRelayUriInContent(text) {
     if (!text || typeof text !== "string") {
         return null;
     }
-    const matches = text.match(RELAY_URI_IN_TEXT_RE);
-    return matches && matches.length ? matches[0] : null;
+    const meshMatches = text.match(RELAY_URI_IN_TEXT_RE);
+    if (meshMatches && meshMatches.length) {
+        return meshMatches[0];
+    }
+    const rrcMatches = text.match(RRC_URI_IN_TEXT_RE);
+    if (rrcMatches && rrcMatches.length) {
+        const candidate = trimUriTrailingPunctuation(rrcMatches[0]);
+        if (parseRrcRelayUri(candidate)) {
+            return candidate;
+        }
+    }
+    return null;
 }
 
 export function parseMeshchatRelayUri(uri) {
@@ -50,6 +70,59 @@ export function parseMeshchatRelayUri(uri) {
     } catch {
         return null;
     }
+}
+
+/**
+ * Parse the short paste form rrc://<hub_hash>/<room>.
+ * Room names are URL-decoded; names with slashes stay ambiguous and only the
+ * first path segment boundary separates hub from room.
+ */
+export function parseRrcRelayUri(uri) {
+    if (!uri || typeof uri !== "string") {
+        return null;
+    }
+    const s = uri.trim();
+    if (!/^rrc:\/\//i.test(s)) {
+        return null;
+    }
+    try {
+        const u = new URL(s);
+        const hub = String(u.host || "")
+            .trim()
+            .toLowerCase();
+        if (!HUB_HASH_RE.test(hub)) {
+            return null;
+        }
+        let room = "";
+        try {
+            room = decodeURIComponent(u.pathname.replace(/^\/+/, "")).trim();
+        } catch {
+            return null;
+        }
+        if (!room) {
+            return null;
+        }
+        return {
+            hub,
+            room,
+            name: "",
+            aspect: "rrc.hub",
+            raw: s,
+        };
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Accepts every supported relay URI form and returns the shared
+ * { hub, room, name, aspect, raw } shape.
+ */
+export function parseRelayUri(uri) {
+    if (uri && /^rrc:\/\//i.test(String(uri).trim())) {
+        return parseRrcRelayUri(uri);
+    }
+    return parseMeshchatRelayUri(uri);
 }
 
 export function buildMeshchatRelayUri({ hub, room = "", name = "", aspect = "" } = {}) {

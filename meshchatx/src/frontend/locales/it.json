@@ -4202,7 +4202,20 @@
         "search_global_empty": "Cerca nella cronologia dei messaggi di tutti gli hub e le stanze connessi.",
         "search_global_none": "Nessun messaggio corrispondente.",
         "search_placeholder": "Cerca messaggi...",
-        "search_results_count": "{count} risultati"
+        "search_results_count": "{count} risultati",
+        "scroll_to_bottom": "Scorri in basso",
+        "chat_prefs": "Preferenze chat",
+        "ctx_ignore_user": "Ignora utente",
+        "ctx_unignore_user": "Non ignorare più",
+        "ignore_added": "I messaggi di {name} ora sono nascosti",
+        "ignore_removed": "I messaggi di {name} sono di nuovo visibili",
+        "prefs_highlight_words": "Parole evidenziate",
+        "prefs_highlight_hint": "Mostra l'evidenziazione delle menzioni e il badge dei non letti quando compaiono queste parole.",
+        "prefs_highlight_placeholder": "Aggiungi una parola, ad esempio un nominativo",
+        "prefs_ignored": "Utenti ignorati",
+        "prefs_ignored_hint": "Nascosti localmente in ogni stanza. Fai clic con il tasto destro su un messaggio per ignorare qualcuno.",
+        "prefs_ignored_empty": "Nessun utente ignorato",
+        "unignore": "Non ignorare più"
     },
     "rncp": {
         "file_transfer": "Trasferimento File",
