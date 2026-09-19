@@ -112,6 +112,8 @@ storage/identities/<identity_hash>/
 
 Shared: Reticulum config `~/.reticulum` (`--reticulum-config-dir` / `MESHCHAT_RETICULUM_CONFIG_DIR`). Interfaces live with Reticulum, not only in the identity DB.
 
+Frontend per-identity state uses the same bucketing idea in localStorage: stores like `useMessageDrafts` and `relayPrefsStore` keep a `{ [identity_hash]: {...} }` root under one `STORAGE_KEYS` entry. The identity key is captured at load time, so a deferred save can never land in a switched identity's bucket. Rule details: `.agents/conventions/frontend.md`.
+
 ### Key restore vs database restore
 
 Do not conflate these.
@@ -262,7 +264,7 @@ Flow: `CONTRIBUTING.md`. Generative AI: disclose and human-review. No unreviewed
 | Auth / CSRF / WS              | No new unauthenticated mutators, no sensitive settings over open WS                                          |
 | Plugins                       | Permissions declared, consent preserved, signatures not bypassed                                             |
 | Android bridges               | MIME map, storage paths, WebView nav guards                                                                  |
-| Identity switch               | No cross-identity leakage via caches, routers, globals                                                       |
+| Identity switch               | No cross-identity leakage via caches, routers, globals, or localStorage buckets                              |
 | Migrations                    | Schema version bump and upgrade path tested                                                                  |
 
 ## Product docs
