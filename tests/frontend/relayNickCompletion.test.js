@@ -110,4 +110,17 @@ describe("relayNickCompletionStep", () => {
         expect(r.text).toBe("@vclv:  tail");
         expect(r.caret).toBe("@vclv: ".length);
     });
+
+    it("consumes the whole word when the caret sits mid-word", () => {
+        const r = step("vclv", NAMES, null, false, 3);
+        // vc|lv must not become "@vclv lv"
+        expect(r.text).toBe("@vclv: ");
+        expect(r.caret).toBe(r.text.length);
+    });
+
+    it("does not force a match when the full word under the caret fits nobody", () => {
+        // caret inside "vclvx" should not complete against the "vcl" prefix
+        const r = step("vclvx", NAMES, null, false, 3);
+        expect(r).toBeNull();
+    });
 });

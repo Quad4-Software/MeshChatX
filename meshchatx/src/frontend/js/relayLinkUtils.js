@@ -15,7 +15,9 @@ const HUB_HASH_RE = /^[a-fA-F0-9]{32}$/;
 
 function trimUriTrailingPunctuation(uri) {
     let core = uri;
-    while (core.length > 0 && /[.,!?;:)\]]/.test(core.at(-1))) {
+    // Quotes matter: a pasted link inside quotes would otherwise join a room
+    // whose name ends in a stray quote character.
+    while (core.length > 0 && /[.,!?;:)\]"']/.test(core.at(-1))) {
         core = core.slice(0, -1);
     }
     return core;

@@ -29,9 +29,10 @@ const MAX_RELAY_MESSAGES = 2000;
  * to the host's _prependMessageTimelineCache (underscore-prefixed methods are
  * not proxied from setup state), options.reloadLatest re-anchors the window on
  * the newest page after the tail was trimmed, options.excludeMessage hides
- * locally ignored messages from older-page loads, options.onScrollState
- * reports distance-to-bottom on every scroll for the new-messages pill, and
- * options.t translates presence group summary labels.
+ * locally ignored messages from older-page loads, options.decorateMessages
+ * applies client-side flags (like custom highlight words) to older pages,
+ * options.onScrollState reports distance-to-bottom on every scroll for the
+ * new-messages pill, and options.t translates presence group summary labels.
  */
 export function useRelayMessageTimeline(options = {}) {
     const {
@@ -42,6 +43,7 @@ export function useRelayMessageTimeline(options = {}) {
         prependTimelineCache,
         reloadLatest,
         excludeMessage,
+        decorateMessages,
         onScrollState,
         t,
     } = options;
@@ -141,6 +143,7 @@ export function useRelayMessageTimeline(options = {}) {
             // pagination window still tracks their seq numbers so history
             // walks do not stall on a filtered page.
             const visibleOlder = excludeMessage ? uniqueOlder.filter((m) => !excludeMessage(m)) : uniqueOlder;
+            decorateMessages?.(visibleOlder);
             const scrollEl = getMessagesScrollElement?.() ?? null;
             const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
             const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;

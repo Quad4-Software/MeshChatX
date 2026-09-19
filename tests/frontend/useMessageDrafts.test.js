@@ -71,4 +71,24 @@ describe("useMessageDrafts", () => {
         d.loadDraft("peer1");
         expect(text).toBe("keep");
     });
+
+    it("loadDraft records the loading identity so later saves stay in its bucket", () => {
+        let identity = "idA";
+        let text = "";
+        const d = useMessageDrafts({
+            getIdentityKey: () => identity,
+            getNewMessageText: () => text,
+            setDraftText: (v) => (text = v),
+        });
+        d.loadDraft("peer1");
+        expect(d.lastDraftIdentityKey.value).toBe("idA");
+        // Identity switches after the load: a save keyed off
+        // lastDraftIdentityKey must write the old identity's bucket, not
+        // silently leak the draft into the new identity's bucket.
+        text = "typed under idA";
+        identity = "idB";
+        d.saveDraft("peer1", d.lastDraftIdentityKey.value);
+        expect(stored().idA.peer1).toBe("typed under idA");
+        expect(stored().idB).toBeUndefined();
+    });
 });

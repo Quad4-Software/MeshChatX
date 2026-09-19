@@ -1723,6 +1723,7 @@ export default {
                 prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
                 reloadLatest: () => inst?.proxy.selectRoom(inst?.proxy.selectedHubHash, inst?.proxy.selectedRoom),
                 excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
+                decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
                 onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),
                 t: (...args) => inst?.proxy.$t(...args),
             }),
@@ -1822,6 +1823,7 @@ export default {
             nickCycle: null,
             ignoredPeers: [],
             highlightWords: [],
+            localMentionRooms: new Map(),
             showChatPrefs: false,
             highlightWordDraft: "",
             joinRoomName: "",
@@ -2189,13 +2191,14 @@ export default {
             if (!exists) {
                 this.highlightWords = [...this.highlightWords, word];
                 this.persistRelayPrefs();
-                this.applyLocalHighlightFlags(this.messages);
+                this.refreshHighlightFlags();
             }
             this.highlightWordDraft = "";
         },
         removeHighlightWord(word) {
             this.highlightWords = this.highlightWords.filter((w) => w !== word);
             this.persistRelayPrefs();
+            this.refreshHighlightFlags();
         },
         matchesHighlightWords(text) {
             return relayTextMatchesWords(text, this.highlightWords);
@@ -2213,11 +2216,29 @@ export default {
                 }
                 if (this.matchesHighlightWords(msg.text)) {
                     msg.mention = true;
+                    // Track locally set flags so removing a word can undo them
+                    // without touching server-side mention flags.
+                    msg.localMention = true;
                 }
             }
         },
+        clearLocalHighlightFlags(msgs) {
+            if (!Array.isArray(msgs)) {
+                return;
+            }
+            for (const msg of msgs) {
+                if (msg?.localMention) {
+                    msg.mention = false;
+                    delete msg.localMention;
+                }
+            }
+        },
+        refreshHighlightFlags() {
+            this.clearLocalHighlightFlags(this.messages);
+            this.applyLocalHighlightFlags(this.messages);
+        },
         shouldBumpRoomMention(msg) {
-            if (!msg || msg.kind !== "msg" || msg.mention) {
+            if (!msg || (msg.kind !== "msg" && msg.kind !== "action") || msg.mention) {
                 return false;
             }
             if (this.isOwnRelayMessage(msg) || this.isIgnoredMsg(msg)) {
@@ -2226,25 +2247,56 @@ export default {
             return this.matchesHighlightWords(msg.text);
         },
         flagLocalRoomMention(hubHash, room) {
-            const hub = this.hubs.find((h) => h.hub_hash === hubHash);
-            if (!hub || !room) {
+            if (!hubHash || !room) {
                 return;
             }
-            if (!Array.isArray(hub.mention_rooms)) {
-                hub.mention_rooms = [];
+            let rooms = this.localMentionRooms.get(hubHash);
+            if (!rooms) {
+                rooms = new Set();
+                this.localMentionRooms.set(hubHash, rooms);
             }
-            if (!hub.mention_rooms.includes(room)) {
-                hub.mention_rooms = [...hub.mention_rooms, room];
+            rooms.add(room);
+            this.applyLocalMentionRooms();
+        },
+        applyLocalMentionRooms() {
+            // Custom highlight words are client-side, so the server never sets
+            // mention_rooms for them. Reapply our local flags after every hub
+            // refresh or the next fetchHubs response would silently drop them.
+            for (const [hubHash, rooms] of this.localMentionRooms) {
+                const hub = this.hubs.find((h) => h.hub_hash === hubHash);
+                if (!hub) {
+                    continue;
+                }
+                if (!Array.isArray(hub.mention_rooms)) {
+                    hub.mention_rooms = [];
+                }
+                for (const room of rooms) {
+                    if (!hub.mention_rooms.includes(room)) {
+                        hub.mention_rooms = [...hub.mention_rooms, room];
+                    }
+                }
             }
             this.updateUnreadBadge();
         },
-        onIdentitySwitched() {
+        clearLocalRoomMentionFlag(hubHash, room) {
+            const rooms = this.localMentionRooms.get(hubHash);
+            if (rooms) {
+                rooms.delete(room);
+                if (rooms.size === 0) {
+                    this.localMentionRooms.delete(hubHash);
+                }
+            }
+        },
+        onIdentitySwitched(json) {
             // Invalidate in-flight selectRoom/softResync work first so a stale
             // response cannot merge old-identity messages, POST a read receipt
             // as the new identity, or overwrite the saved layout.
             this.roomSelectSequence += 1;
             this.saveCurrentRoomDraft();
-            this.lastDraftIdentityKey = this._draftIdentityKey();
+            this.lastDraftIdentityKey =
+                typeof json?.identity_hash === "string" && json.identity_hash
+                    ? json.identity_hash
+                    : this._draftIdentityKey();
             this.hubs = [];
             this.serverHubs = [];
             this.discovered = [];
@@ -2259,6 +2311,7 @@ export default {
             this.nickCycle = null;
             this.relayAtBottom = true;
             this.newMessagesBelow = 0;
+            this.localMentionRooms = new Map();
             this.loadRelayPrefs();
             this.expandedHubs = {};
             this.availableRoomsExpanded = {};
@@ -3261,7 +3314,7 @@ export default {
                     this.selectedHubHash = this.hubs[0].hub_hash;
                     this.expandedHubs[this.hubs[0].hub_hash] = true;
                 }
-                this.updateUnreadBadge();
+                this.applyLocalMentionRooms();
             } catch {
                 // relay chat may be unavailable for this identity
             }
@@ -3339,6 +3392,7 @@ export default {
             }
         },
         clearLocalRoomUnread(hubHash, room) {
+            this.clearLocalRoomMentionFlag(hubHash, room);
             const hub = this.hubs.find((h) => h.hub_hash === hubHash);
             if (!hub) {
                 return;
@@ -3423,10 +3477,14 @@ export default {
             }
             event.preventDefault();
             const el = event.target;
-            const caret = typeof el?.selectionStart === "number" ? el.selectionStart : this.composer.length;
+            // The caret indexes the DOM value; prefer it so a stale v-model
+            // sync cannot complete against a different string than the one
+            // the caret points into.
+            const text = typeof el?.value === "string" ? el.value : this.composer;
+            const caret = typeof el?.selectionStart === "number" ? el.selectionStart : text.length;
             const names = this.members.map((m) => m?.name).filter(Boolean);
             const step = relayNickCompletionStep({
-                text: this.composer,
+                text,
                 caret,
                 names,
                 cycle: this.nickCycle,
@@ -4044,7 +4102,7 @@ export default {
                 // Chat is already open: dismiss unread/mention badge without waiting
                 // for a later hub list refresh race.
                 this.markRoomRead(json.hub_hash, json.room);
-            } else if (json.message && json.message.kind === "msg") {
+            } else if (json.message && (json.message.kind === "msg" || json.message.kind === "action")) {
                 const ignored = this.isIgnoredMsg(json.message);
                 const bump = !ignored && this.shouldBumpRoomMention(json.message);
                 if (!ignored) {

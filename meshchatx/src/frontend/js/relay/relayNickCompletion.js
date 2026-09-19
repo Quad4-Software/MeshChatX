@@ -20,10 +20,16 @@ function completionToken(text, caret) {
     while (start > 0 && !/\s/.test(text[start - 1])) {
         start -= 1;
     }
+    // A caret in the middle of a word should complete the whole word, not
+    // orphan the characters after it (car|ol must not become "@carol ol").
+    let end = caret;
+    while (end < text.length && !/\s/.test(text[end])) {
+        end += 1;
+    }
     return {
         start,
-        end: caret,
-        token: text.slice(start, caret),
+        end,
+        token: text.slice(start, end),
         atLineStart: start === 0,
     };
 }

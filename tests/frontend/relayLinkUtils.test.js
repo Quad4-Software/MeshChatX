@@ -121,6 +121,11 @@ describe("relayLinkUtils", () => {
             expect(findRelayUriInContent(`rrc://${HUB}/dev%20chat!`)).toBe(`rrc://${HUB}/dev%20chat`);
         });
 
+        it("findRelayUriInContent trims trailing quotes so the room stays clean", () => {
+            expect(findRelayUriInContent(`try "rrc://${HUB}/lobby" today`)).toBe(`rrc://${HUB}/lobby`);
+            expect(findRelayUriInContent(`try 'rrc://${HUB}/lobby' today`)).toBe(`rrc://${HUB}/lobby`);
+        });
+
         it("findRelayUriInContent ignores malformed rrc links", () => {
             expect(findRelayUriInContent("rrc://short/lobby")).toBeNull();
             expect(findRelayUriInContent("no links here")).toBeNull();
