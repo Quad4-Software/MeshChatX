@@ -69,10 +69,13 @@ describe("Interface.vue", () => {
         expect(desc.classes()).toContain("min-w-0");
     });
 
-    it("has responsive layout classes for stacking on small screens", () => {
+    it("keeps icon, content and actions in one flex row without a mobile spacer", () => {
         const wrapper = mountInterface();
-        const outer = wrapper.find(".flex.flex-col.sm\\:flex-row");
-        expect(outer.exists()).toBe(true);
+        const row = wrapper.find(".flex.gap-4.min-w-0.items-start");
+        expect(row.exists()).toBe(true);
+        // The old pt-11 spacer reserved dead space for absolute actions on
+        // mobile. The row must not carry it anymore.
+        expect(row.classes()).not.toContain("pt-11");
     });
 
     it("renders without overflow when given very long name and description", () => {
@@ -93,13 +96,9 @@ describe("Interface.vue", () => {
 
     it("action buttons and dropdown have shrink-0 to prevent squashing", () => {
         const wrapper = mountInterface();
-        const actionsCol = wrapper.find(
-            ".absolute.top-0.right-0.z-20.flex.flex-row.items-center.gap-1.sm\\:static.sm\\:z-auto.sm\\:ml-auto.sm\\:flex.sm\\:flex-row.sm\\:gap-2.sm\\:items-center.sm\\:shrink-0.sm\\:justify-end"
-        );
+        const actionsCol = wrapper.find(".z-20.flex.shrink-0.flex-row.items-start.gap-1");
         expect(actionsCol.exists()).toBe(true);
-        expect(actionsCol.classes()).toContain("absolute");
-        expect(actionsCol.classes()).toContain("sm:static");
-        expect(actionsCol.classes()).toContain("sm:shrink-0");
+        expect(actionsCol.classes()).toContain("shrink-0");
         const btn = wrapper.find('button[title="interface.disable"]');
         expect(btn.classes()).toContain("shrink-0");
         const dropdown = wrapper.find(".relative.z-50.shrink-0");
