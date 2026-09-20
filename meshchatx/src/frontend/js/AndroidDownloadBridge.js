@@ -20,7 +20,7 @@ function call(method, ...args) {
     return undefined;
 }
 
-export const AndroidDownloadBridge = {
+const AndroidDownloadBridge = {
     isAvailable() {
         return bridge() != null;
     },
