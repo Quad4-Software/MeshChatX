@@ -59,6 +59,26 @@ describe("themeEngine", () => {
         expect(accentDerivativeVars("#ff0000", true)["--mc-accent"]).not.toBe("#ff0000");
     });
 
+    it("derives per-theme message bubble colors", () => {
+        const defaultLight = buildThemeVariableOverrides({}, "light");
+        expect(defaultLight["--mc-bubble-outbound"]).toBe("#0284c7");
+        expect(defaultLight["--mc-bubble-failed"]).toBe("#dc2626");
+        expect(defaultLight["--mc-bubble-waiting"]).toBe("#e6e8eb");
+        expect(defaultLight["--mc-bubble-waiting-text"]).toBe("#111827");
+
+        const nordLight = buildThemeVariableOverrides({ theme_preset: "nord" }, "light");
+        expect(nordLight["--mc-bubble-outbound"]).toBe("#5e81ac");
+        expect(nordLight["--mc-bubble-failed"]).toBe("#bf616a");
+
+        const nordDark = buildThemeVariableOverrides({ theme_preset: "nord" }, "dark");
+        expect(nordDark["--mc-bubble-outbound"]).toBe("#88c0d0");
+        expect(nordDark["--mc-bubble-waiting"]).not.toBe(defaultLight["--mc-bubble-waiting"]);
+        expect(nordDark["--mc-bubble-waiting-text"]).toBe("#eceff4");
+
+        const accent = buildThemeVariableOverrides({ accent_color: "#ff0000" }, "light");
+        expect(accent["--mc-bubble-outbound"]).toBe("#ff0000");
+    });
+
     it("applies custom canvas and surface colors only for custom preset", () => {
         const custom = buildThemeVariableOverrides(
             {

@@ -18,14 +18,14 @@
                 @click="isVoicemailSettingsExpanded = !isVoicemailSettingsExpanded"
             >
                 <div class="flex items-center gap-2">
-                    <MaterialDesignIcon icon-name="cog" class="size-5 text-blue-500" />
+                    <MaterialDesignIcon icon-name="cog" class="size-5 text-sem-accent" />
                     <h3 class="text-sm font-bold text-sem-fg uppercase tracking-wider">
                         {{ $t("call.voicemail_settings") }}
                     </h3>
                 </div>
                 <MaterialDesignIcon
                     :icon-name="isVoicemailSettingsExpanded ? 'chevron-up' : 'chevron-down'"
-                    class="size-5 text-gray-400"
+                    class="size-5 text-sem-fg-muted"
                 />
             </button>
 
@@ -33,12 +33,15 @@
                 <!-- Status Banner -->
                 <div
                     v-if="!voicemailStatus.has_espeak"
-                    class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-3 items-start"
+                    class="p-4 bg-sem-warning/10 border border-sem-warning/30 rounded-lg flex gap-3 items-start"
                 >
-                    <MaterialDesignIcon icon-name="alert" class="size-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <div class="text-xs text-amber-800 dark:text-amber-200">
-                        <p class="font-bold mb-1">Dependencies Missing</p>
-                        <p>Voicemail requires `espeak-ng` to generate greetings. Please install it on your system.</p>
+                    <MaterialDesignIcon icon-name="alert" class="size-5 text-sem-warning shrink-0" />
+                    <div class="text-xs text-sem-fg-secondary">
+                        <p class="font-bold mb-1">eSpeak NG not installed</p>
+                        <p>
+                            Text-to-speech greeting generation is unavailable. You can still record a greeting or upload
+                            an audio file below.
+                        </p>
                     </div>
                 </div>
 
@@ -49,9 +52,8 @@
                         <div class="text-xs text-sem-fg-muted">Accept calls automatically and record messages</div>
                     </div>
                     <button
-                        :disabled="!voicemailStatus.has_espeak"
                         class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-                        :class="config.voicemail_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-zinc-700'"
+                        :class="config.voicemail_enabled ? 'bg-sem-action-primary' : 'bg-sem-surface-muted'"
                         @click="$emit('update-config', { voicemail_enabled: !config.voicemail_enabled })"
                     >
                         <span
@@ -69,13 +71,16 @@
                     <textarea
                         :value="config.voicemail_greeting"
                         rows="3"
-                        class="block w-full rounded-lg border-0 py-2 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-zinc-900"
+                        class="block w-full rounded-lg border-0 py-2 text-sem-fg shadow-xs ring-1 ring-inset ring-sem-border placeholder:text-sem-fg-muted focus:ring-2 focus:ring-inset focus:ring-sem-focus sm:text-sm sm:leading-6 bg-sem-surface"
                         :placeholder="$t('call.enter_greeting_text')"
                         @input="$emit('patch-config', { voicemail_greeting: $event.target.value })"
                     ></textarea>
 
                     <!-- TTS Settings -->
-                    <div class="grid grid-cols-2 gap-3 mt-2">
+                    <div
+                        class="grid grid-cols-2 gap-3 mt-2"
+                        :class="{ 'opacity-50 pointer-events-none': !voicemailStatus.has_espeak }"
+                    >
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-tighter">{{
                                 $t("call.tts_speed")
@@ -85,7 +90,7 @@
                                 type="number"
                                 min="80"
                                 max="450"
-                                class="block w-full rounded-lg border-0 py-1 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-1 text-sem-fg shadow-xs ring-1 ring-inset ring-sem-border focus:ring-2 focus:ring-inset focus:ring-sem-focus text-xs bg-sem-surface"
                                 @change="
                                     $emit('update-config', {
                                         voicemail_tts_speed: Number($event.target.value),
@@ -102,7 +107,7 @@
                                 type="number"
                                 min="0"
                                 max="99"
-                                class="block w-full rounded-lg border-0 py-1 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-1 text-sem-fg shadow-xs ring-1 ring-inset ring-sem-border focus:ring-2 focus:ring-inset focus:ring-sem-focus text-xs bg-sem-surface"
                                 @change="
                                     $emit('update-config', {
                                         voicemail_tts_pitch: Number($event.target.value),
@@ -119,7 +124,7 @@
                                 type="number"
                                 min="0"
                                 max="100"
-                                class="block w-full rounded-lg border-0 py-1 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-1 text-sem-fg shadow-xs ring-1 ring-inset ring-sem-border focus:ring-2 focus:ring-inset focus:ring-sem-focus text-xs bg-sem-surface"
                                 @change="
                                     $emit('update-config', {
                                         voicemail_tts_word_gap: Number($event.target.value),
@@ -134,7 +139,7 @@
                             <input
                                 :value="config.voicemail_tts_voice"
                                 type="text"
-                                class="block w-full rounded-lg border-0 py-1 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-1 text-sem-fg shadow-xs ring-1 ring-inset ring-sem-border focus:ring-2 focus:ring-inset focus:ring-sem-focus text-xs bg-sem-surface"
                                 @change="$emit('update-config', { voicemail_tts_voice: $event.target.value })"
                             />
                         </div>
@@ -147,7 +152,8 @@
                         <div class="flex gap-2">
                             <button
                                 :disabled="!voicemailStatus.has_espeak || isGeneratingGreeting"
-                                class="text-[10px] bg-sem-surface-muted text-sem-fg-muted px-3 py-1 rounded-full font-bold hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                                :title="!voicemailStatus.has_espeak ? 'Requires eSpeak NG to be installed' : ''"
+                                class="text-[10px] bg-sem-surface-muted text-sem-fg-muted px-3 py-1 rounded-full font-bold hover:bg-sem-surface-raised transition-colors disabled:opacity-50"
                                 @click="$emit('save-and-generate')"
                             >
                                 {{ isGeneratingGreeting ? "Generating..." : "Save & Generate" }}
@@ -171,7 +177,7 @@
                         />
                         <button
                             :disabled="isUploadingGreeting || voicemailStatus.is_greeting_recording"
-                            class="text-xs bg-sem-surface-muted text-sem-fg-muted px-4 py-2 rounded-lg font-bold hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors disabled:opacity-50 flex items-center gap-2"
+                            class="text-xs bg-sem-surface-muted text-sem-fg-muted px-4 py-2 rounded-lg font-bold hover:bg-sem-surface-raised transition-colors disabled:opacity-50 flex items-center gap-2"
                             @click="$refs.greetingUpload.click()"
                         >
                             <MaterialDesignIcon icon-name="upload" class="size-4" />
@@ -181,8 +187,8 @@
                             class="text-xs px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2"
                             :class="
                                 voicemailStatus.is_greeting_recording
-                                    ? 'bg-red-500 text-white animate-pulse'
-                                    : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted'
+                                    ? 'bg-sem-action-danger text-sem-action-danger-text animate-pulse'
+                                    : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-sem-surface-raised'
                             "
                             @click="
                                 voicemailStatus.is_greeting_recording
@@ -199,14 +205,14 @@
 
                         <div v-if="voicemailStatus.has_greeting" class="flex items-center gap-2">
                             <button
-                                class="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center gap-2"
+                                class="text-xs bg-sem-danger/10 text-sem-danger px-4 py-2 rounded-lg font-bold hover:bg-sem-danger/20 transition-colors flex items-center gap-2"
                                 @click="$emit('delete-greeting')"
                             >
                                 <MaterialDesignIcon icon-name="delete" class="size-4" />
                                 Remove Greeting
                             </button>
                             <button
-                                class="text-xs bg-blue-100 dark:bg-blue-900/30 text-sem-accent px-4 py-2 rounded-lg font-bold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-2"
+                                class="text-xs bg-sem-info/10 text-sem-accent px-4 py-2 rounded-lg font-bold hover:bg-sem-info/20 transition-colors flex items-center gap-2"
                                 @click="$emit('play-greeting')"
                             >
                                 <MaterialDesignIcon :icon-name="isPlayingGreeting ? 'stop' : 'play'" class="size-4" />
@@ -233,7 +239,7 @@
                             type="number"
                             min="1"
                             max="120"
-                            class="block w-full rounded-lg border-0 py-1.5 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            class="block w-full rounded-lg border-0 py-1.5 text-sem-fg shadow-xs ring-1 ring-inset ring-sem-border focus:ring-2 focus:ring-inset focus:ring-sem-focus sm:text-sm bg-sem-surface"
                             @change="
                                 $emit('update-config', {
                                     voicemail_auto_answer_delay_seconds: Number($event.target.value),
@@ -250,7 +256,7 @@
                             type="number"
                             min="5"
                             max="600"
-                            class="block w-full rounded-lg border-0 py-1.5 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            class="block w-full rounded-lg border-0 py-1.5 text-sem-fg shadow-xs ring-1 ring-inset ring-sem-border focus:ring-2 focus:ring-inset focus:ring-sem-focus sm:text-sm bg-sem-surface"
                             @change="
                                 $emit('update-config', {
                                     voicemail_max_recording_seconds: Number($event.target.value),
@@ -263,8 +269,8 @@
         </div>
 
         <div v-if="voicemails.length === 0" class="my-auto text-center">
-            <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
-                <MaterialDesignIcon icon-name="voicemail" class="size-12 text-gray-400" />
+            <div class="bg-sem-surface-muted p-6 rounded-full inline-block mb-4">
+                <MaterialDesignIcon icon-name="voicemail" class="size-12 text-sem-fg-muted" />
             </div>
             <h3 class="text-lg font-medium text-sem-fg">No Voicemails</h3>
             <p class="text-sem-fg-muted">When people leave you messages, they'll show up here.</p>
@@ -274,9 +280,7 @@
             <div class="border-b border-sem-border overflow-hidden">
                 <div class="px-4 py-3 border-b border-sem-border flex justify-between items-center">
                     <h3 class="text-sm font-bold text-sem-fg uppercase tracking-wider">Voicemail Inbox</h3>
-                    <span
-                        class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase"
-                    >
+                    <span class="text-[10px] bg-sem-info/10 text-sem-info px-2 py-0.5 rounded-full font-bold uppercase">
                         {{ voicemails.length }} Messages
                     </span>
                 </div>
@@ -285,7 +289,7 @@
                         v-for="voicemail in voicemails"
                         :key="voicemail.id"
                         class="px-4 py-4 hover:bg-sem-surface-muted/50 transition-colors"
-                        :class="{ 'bg-blue-50/50 dark:bg-blue-900/10': !voicemail.is_read }"
+                        :class="{ 'bg-sem-info/5': !voicemail.is_read }"
                     >
                         <div class="flex items-start space-x-4">
                             <!-- Icon / Play/Pause Button -->
@@ -311,7 +315,7 @@
                                         </p>
                                         <span
                                             v-if="!voicemail.is_read"
-                                            class="ml-2 shrink-0 size-2 inline-block rounded-full bg-blue-500"
+                                            class="ml-2 shrink-0 size-2 inline-block rounded-full bg-sem-info"
                                         ></span>
                                     </div>
                                     <span class="text-[10px] text-sem-fg-muted font-mono shrink-0">
@@ -325,7 +329,7 @@
                                         {{ formatDuration(voicemail.duration_seconds) }}
                                     </span>
                                     <span
-                                        class="opacity-60 font-mono text-[10px] truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                        class="opacity-60 font-mono text-[10px] truncate cursor-pointer hover:text-sem-accent transition-colors"
                                         :title="voicemail.remote_identity_hash"
                                         @click.stop="$emit('copy-hash', voicemail.remote_identity_hash)"
                                         >{{ formatDestinationHash(voicemail.remote_identity_hash) }}</span
@@ -342,7 +346,7 @@
                                 <div class="flex items-center gap-4">
                                     <button
                                         type="button"
-                                        class="text-[10px] flex items-center gap-1 text-gray-500 hover:text-blue-500 font-bold uppercase tracking-wider transition-colors"
+                                        class="text-[10px] flex items-center gap-1 text-sem-fg-muted hover:text-sem-accent font-bold uppercase tracking-wider transition-colors"
                                         @click="
                                             $emit(
                                                 'call-back',
@@ -358,14 +362,14 @@
                                     <a
                                         :href="`/api/v1/telephone/voicemails/${voicemail.id}/audio`"
                                         :download="`voicemail_${voicemail.id}.opus`"
-                                        class="text-[10px] flex items-center gap-1 text-gray-500 hover:text-blue-500 font-bold uppercase tracking-wider transition-colors"
+                                        class="text-[10px] flex items-center gap-1 text-sem-fg-muted hover:text-sem-accent font-bold uppercase tracking-wider transition-colors"
                                     >
                                         <MaterialDesignIcon icon-name="download" class="size-3" />
                                         Download
                                     </a>
                                     <button
                                         type="button"
-                                        class="text-[10px] flex items-center gap-1 text-red-500 hover:text-red-600 font-bold uppercase tracking-wider transition-colors"
+                                        class="text-[10px] flex items-center gap-1 text-sem-danger hover:text-sem-danger font-bold uppercase tracking-wider transition-colors"
                                         @click="$emit('delete', voicemail.id)"
                                     >
                                         <MaterialDesignIcon icon-name="delete" class="size-3" />

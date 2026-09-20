@@ -29,6 +29,13 @@
                     <slot name="items" />
                 </div>
             </Transition>
+            <div
+                v-if="isShowingMenu && caretStyle"
+                class="dropdown-caret fixed z-200 border-sem-border"
+                :class="dropdownPosition?.opensUp ? 'border-b border-r' : 'border-t border-l'"
+                :style="caretStyle"
+                aria-hidden="true"
+            ></div>
         </Teleport>
     </div>
 </template>
@@ -42,6 +49,7 @@ export default {
         return {
             isShowingMenu: false,
             dropdownPosition: null,
+            caretStyle: null,
         };
     },
     computed: {
@@ -77,6 +85,7 @@ export default {
         hideMenu() {
             this.isShowingMenu = false;
             this.dropdownPosition = null;
+            this.caretStyle = null;
         },
         onClickOutsideMenu() {
             if (this.isShowingMenu) {
@@ -95,9 +104,10 @@ export default {
 
                 const spaceBelow = window.innerHeight - buttonRect.bottom - 4;
                 const spaceAbove = buttonRect.top - 8;
-                let y = spaceBelow >= spaceAbove ? buttonRect.bottom + 4 : Math.max(8, buttonRect.top - 200 - 4);
+                const opensUp = spaceAbove > spaceBelow;
+                const y = opensUp ? Math.max(8, buttonRect.top - 200 - 4) : buttonRect.bottom + 4;
 
-                this.dropdownPosition = { x, y, maxHeight: null };
+                this.dropdownPosition = { x, y, maxHeight: null, opensUp };
                 this.$nextTick(() => {
                     const panel = this.$refs.dropdownPanel;
                     if (!panel) return;
@@ -108,7 +118,13 @@ export default {
                         rect.width,
                         rect.height
                     );
-                    this.dropdownPosition = { x: left, y: top, maxHeight };
+                    this.dropdownPosition = { x: left, y: top, maxHeight, opensUp };
+                    const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+                    const caretX = Math.min(Math.max(buttonCenterX, left + 12), left + rect.width - 12);
+                    this.caretStyle = {
+                        left: `${caretX - 5}px`,
+                        top: opensUp ? `${top + rect.height - 5}px` : `${top - 5}px`,
+                    };
                 });
             });
         },

@@ -539,6 +539,10 @@ jobs:
                   # SKIP is fine where the platform or runner lacks support.
                   grep -E '^\[(OK|SKIP)\][[:space:]]+AppContainer Launch' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+HTTP Server Security' self-check-out.txt
+                  # On macOS/Windows the epoll degradation must rebind
+                  # BackboneClientInterface to TCPClientInterface; on Linux it
+                  # must be left alone. Both states print OK.
+                  grep -E '^\[OK\][[:space:]]+RNS Backbone Fallback' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+Umsgpack Roundtrip' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+LXST Telephony' self-check-out.txt
                   # The bundled win_amd64 opusfile/opus DLLs access-violate in

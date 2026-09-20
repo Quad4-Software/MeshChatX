@@ -239,6 +239,9 @@ function createShellRuntime(options) {
         if (!response || !response.ok) {
             return;
         }
+        if (!request || request.method !== "GET") {
+            return;
+        }
         const cache = await cachesApi.open(cacheName);
         await cache.put(request, response);
     }
@@ -278,7 +281,7 @@ function createShellRuntime(options) {
         const cached = await cache.match(request);
         const networkPromise = fetchFn(request)
             .then((response) => {
-                if (response && response.ok) {
+                if (response && response.ok && request.method === "GET") {
                     void cache.put(request, response.clone());
                 }
                 return response;

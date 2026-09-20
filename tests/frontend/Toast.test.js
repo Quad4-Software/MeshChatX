@@ -161,6 +161,83 @@ describe("Toast.vue", () => {
         expect(wrapper.text()).not.toContain("Swipe me");
     });
 
+    it("renders an action button and runs the handler on click", async () => {
+        const handler = vi.fn();
+        GlobalEmitter.emit("toast", {
+            message: "No node",
+            type: "error",
+            duration: 0,
+            action: { label: "Configure", handler },
+        });
+        await wrapper.vm.$nextTick();
+
+        const actionButton = wrapper.findAll("button").find((b) => b.text().includes("Configure"));
+        expect(actionButton).toBeTruthy();
+        await actionButton.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        expect(handler).toHaveBeenCalledOnce();
+        expect(wrapper.text()).not.toContain("No node");
+    });
+
+    it("dismisses the toast even when the action handler throws", async () => {
+        const handler = vi.fn(() => {
+            throw new Error("boom");
+        });
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        GlobalEmitter.emit("toast", {
+            message: "No node",
+            type: "error",
+            duration: 0,
+            action: { label: "Configure", handler },
+        });
+        await wrapper.vm.$nextTick();
+        const actionButton = wrapper.findAll("button").find((b) => b.text().includes("Configure"));
+        await actionButton.trigger("click");
+        expect(handler).toHaveBeenCalledOnce();
+        // Toast still dismisses even though the handler threw.
+        expect(wrapper.text()).not.toContain("No node");
+        consoleSpy.mockRestore();
+    });
+
+    it("shows only one toast at a time on mobile viewports", async () => {
+        const originalMm = window.matchMedia;
+        window.matchMedia = vi.fn((q) => ({
+            matches: q.includes("max-width"),
+            media: q,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+        }));
+
+        GlobalEmitter.emit("toast", { message: "First", type: "info", duration: 0 });
+        await wrapper.vm.$nextTick();
+        GlobalEmitter.emit("toast", { message: "Second", type: "error", duration: 0 });
+        await wrapper.vm.$nextTick();
+
+        const toasts = wrapper.findAll(".pointer-events-auto");
+        expect(toasts.length).toBe(1);
+        expect(wrapper.text()).toContain("Second");
+        expect(wrapper.text()).not.toContain("First");
+        window.matchMedia = originalMm;
+    });
+
+    it("stacks toasts on desktop viewports", async () => {
+        const originalMm = window.matchMedia;
+        window.matchMedia = vi.fn((q) => ({
+            matches: false,
+            media: q,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+        }));
+
+        GlobalEmitter.emit("toast", { message: "One", type: "info", duration: 0 });
+        GlobalEmitter.emit("toast", { message: "Two", type: "info", duration: 0 });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.findAll(".pointer-events-auto").length).toBe(2);
+        window.matchMedia = originalMm;
+    });
+
     it("snaps toast back when swipe is below threshold", async () => {
         GlobalEmitter.emit("toast", { message: "Stay", duration: 0 });
         await wrapper.vm.$nextTick();

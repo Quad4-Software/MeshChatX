@@ -120,36 +120,22 @@
                                 <MaterialDesignIcon icon-name="magnify" class="w-5 h-5" />
                             </button>
                             <button
-                                v-if="rrcEnabled"
+                                v-for="item in topNavItems"
+                                :key="item.id"
                                 type="button"
                                 class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                :title="$t('app.relay_chat')"
-                                :aria-label="$t('app.relay_chat')"
-                                data-testid="header-relay-chat"
-                                @click="$router.push({ name: 'relay-chat' })"
+                                :class="{ 'text-sem-accent': $route.name === item.route?.name }"
+                                :title="$t(item.labelKey)"
+                                :aria-label="$t(item.labelKey)"
+                                :data-testid="`header-nav-${item.id}`"
+                                @click="$router.push(item.route)"
                             >
-                                <MaterialDesignIcon icon-name="forum" class="w-5 h-5" />
+                                <MaterialDesignIcon :icon-name="item.icon" class="w-5 h-5" />
                                 <span
-                                    v-if="relayChatUnreadCount > 0"
-                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                    v-if="navBadgeCount(item) > 0"
+                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sem-action-danger px-1 text-[10px] font-bold leading-none text-sem-action-danger-text"
                                 >
-                                    {{ relayChatUnreadCount > 99 ? "99+" : relayChatUnreadCount }}
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                :title="$t('app.audio_calls')"
-                                :aria-label="$t('app.audio_calls')"
-                                data-testid="header-telephone"
-                                @click="$router.push({ name: 'call' })"
-                            >
-                                <MaterialDesignIcon icon-name="phone" class="w-5 h-5" />
-                                <span
-                                    v-if="missedCallsCount > 0"
-                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
-                                >
-                                    {{ missedCallsCount > 99 ? "99+" : missedCallsCount }}
+                                    {{ navBadgeText(item) }}
                                 </span>
                             </button>
                             <button
@@ -570,6 +556,7 @@ import { postRequestPath } from "../js/reticulumPathfinding.js";
 import { fetchCsrfToken } from "../js/csrfToken.js";
 import ToneGenerator from "../js/ToneGenerator";
 import { listNavItems } from "../js/registries/navRegistry.js";
+import { orderedTopNavItems, topNavLayoutState } from "../js/appTopNavLayout.js";
 import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
 import { shouldShowMultiSessionToast } from "../js/activeSessions.js";
 import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../js/networkRecovery.js";
@@ -797,6 +784,10 @@ export default {
         },
         rawVisibleNavItems() {
             return listNavItems().filter((item) => this.isNavItemVisible(item));
+        },
+        topNavItems() {
+            void topNavLayoutState.itemIds;
+            return orderedTopNavItems(this.rawVisibleNavItems, topNavLayoutState.itemIds);
         },
         activeNavLayout() {
             if (this.isSidebarNavEditing && this.sidebarNavLayoutDraft) {
@@ -1079,6 +1070,24 @@ export default {
                 return this.rrcEnabled;
             }
             return true;
+        },
+        navBadgeCount(item) {
+            const source = item?.badge?.source;
+            if (source === "unreadConversationsCount") {
+                return this.unreadConversationsCount;
+            }
+            if (source === "relayChatUnreadCount") {
+                return this.relayChatUnreadCount;
+            }
+            if (source === "missedCallsCount") {
+                return this.missedCallsCount;
+            }
+            return 0;
+        },
+        navBadgeText(item) {
+            const count = this.navBadgeCount(item);
+            const cap = item?.badge?.cap ?? 99;
+            return count > cap ? `${cap}+` : String(count);
         },
         enterSidebarNavEdit() {
             if (this.isSidebarCollapsed || this.isSidebarNavEditing) {
@@ -2312,7 +2321,14 @@ export default {
                 this.userInitiatedPropagationSync = false;
                 const errorMessage =
                     e.response?.data?.message ?? e.response?.data?.error ?? this.$t("app.sync_error_generic");
-                ToastUtils.error(errorMessage);
+                if (e.response?.data?.code === "propagation_node_not_configured") {
+                    ToastUtils.show(errorMessage, "error", 8000, "propagation-node-not-configured", {
+                        label: this.$t("common.configure"),
+                        handler: () => this.$router.push({ name: "propagation-nodes" }),
+                    });
+                } else {
+                    ToastUtils.error(errorMessage);
+                }
                 return;
             }
 

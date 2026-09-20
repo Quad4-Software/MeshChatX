@@ -152,19 +152,24 @@
                                 <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
                                 <span class="text-[10px] font-bold uppercase">{{ currentLang }}</span>
                             </button>
-                            <div
-                                v-if="showLanguages"
-                                class="absolute left-0 top-full mt-1 bg-sem-surface border border-sem-border rounded-lg shadow-xl p-1 min-w-[120px] z-20"
-                            >
-                                <button
-                                    v-for="lang in allLanguages"
-                                    :key="lang.code"
-                                    class="flex items-center w-full px-3 py-2 text-[10px] font-bold uppercase hover:bg-sem-surface-muted rounded-md transition-colors"
-                                    :class="lang.code === currentLang ? 'text-blue-500' : 'text-sem-fg-muted'"
-                                    @click="setLanguage(lang.code)"
+                            <div v-if="showLanguages" class="absolute left-0 top-full mt-1 z-20">
+                                <div
+                                    class="dropdown-caret pointer-events-none absolute -top-[4px] left-4 border-t border-l border-sem-border"
+                                    aria-hidden="true"
+                                ></div>
+                                <div
+                                    class="bg-sem-surface border border-sem-border rounded-lg shadow-xl p-1 min-w-[120px]"
                                 >
-                                    {{ lang.name }} ({{ lang.code }})
-                                </button>
+                                    <button
+                                        v-for="lang in allLanguages"
+                                        :key="lang.code"
+                                        class="flex items-center w-full px-3 py-2 text-[10px] font-bold uppercase hover:bg-sem-surface-muted rounded-md transition-colors"
+                                        :class="lang.code === currentLang ? 'text-sem-accent' : 'text-sem-fg-muted'"
+                                        @click="setLanguage(lang.code)"
+                                    >
+                                        {{ lang.name }} ({{ lang.code }})
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -289,7 +294,7 @@
             <!-- Main content column -->
             <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                 <!-- Mobile controls -->
-                <div class="lg:hidden p-3 border-b border-sem-border bg-sem-surface space-y-2 shrink-0 z-20">
+                <div class="lg:hidden p-2 border-b border-sem-border bg-sem-surface space-y-2 shrink-0 z-20">
                     <div class="flex items-center gap-2">
                         <RouterLink
                             to="/tools"
@@ -297,12 +302,37 @@
                             :aria-label="$t('tools.back_to_tools')"
                         >
                             <MaterialDesignIcon icon-name="chevron-left" class="size-6 shrink-0" />
-                            <span class="hidden sm:inline truncate max-w-[8rem]">{{ $t("app.tools") }}</span>
                         </RouterLink>
-                        <div class="flex items-center gap-1 ml-auto shrink-0">
+                        <div class="flex bg-sem-surface-muted p-0.5 rounded-lg flex-1 min-w-0">
+                            <button
+                                class="flex-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5 min-w-0"
+                                :class="
+                                    activeTab === 'meshchatx'
+                                        ? 'bg-sem-surface text-sem-accent shadow-xs'
+                                        : 'text-sem-fg-muted hover:text-sem-fg'
+                                "
+                                @click="activeTab = 'meshchatx'"
+                            >
+                                <img :src="meshchatxLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
+                                <span class="truncate">{{ $t("docs.tab_meshchatx") }}</span>
+                            </button>
+                            <button
+                                class="flex-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5 min-w-0"
+                                :class="
+                                    activeTab === 'reticulum'
+                                        ? 'bg-sem-surface text-sem-accent shadow-xs'
+                                        : 'text-sem-fg-muted hover:text-sem-fg'
+                                "
+                                @click="activeTab = 'reticulum'"
+                            >
+                                <img :src="reticulumLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
+                                <span class="truncate">{{ $t("docs.tab_reticulum") }}</span>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
                             <button
                                 v-if="status.has_docs || status.has_meshchatx_docs"
-                                class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
+                                class="p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors"
                                 title="Export all documentation as ZIP"
                                 @click="exportDocs"
                             >
@@ -310,7 +340,7 @@
                             </button>
                             <label
                                 :class="{ 'opacity-50 pointer-events-none': status.status === 'extracting' }"
-                                class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors cursor-pointer"
+                                class="p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors cursor-pointer"
                                 :title="$t('docs.btn_upload')"
                             >
                                 <MaterialDesignIcon
@@ -329,62 +359,52 @@
                         </div>
                     </div>
 
-                    <div class="flex bg-sem-surface-muted p-0.5 rounded-lg w-full">
-                        <button
-                            class="flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
-                            :class="
-                                activeTab === 'meshchatx'
-                                    ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                            "
-                            @click="activeTab = 'meshchatx'"
-                        >
-                            <img :src="meshchatxLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
-                            {{ $t("docs.tab_meshchatx") }}
-                        </button>
-                        <button
-                            class="flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
-                            :class="
-                                activeTab === 'reticulum'
-                                    ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                            "
-                            @click="activeTab = 'reticulum'"
-                        >
-                            <img :src="reticulumLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
-                            {{ $t("docs.tab_reticulum") }}
-                        </button>
-                    </div>
-
-                    <div v-if="status.has_docs || status.has_meshchatx_docs" class="w-full">
+                    <div v-if="status.has_docs || status.has_meshchatx_docs" class="flex items-center gap-2">
                         <SearchInput
                             v-model="searchQuery"
                             compact
+                            class="flex-1 min-w-0"
                             :placeholder="$t('docs.search_placeholder_mobile')"
                             :loading="isSearching"
                             @update:model-value="debounceSearch"
                             @clear="clearSearch"
                         />
-                    </div>
-
-                    <div
-                        v-if="activeTab === 'meshchatx' && !searchQuery && visibleDocSections.length"
-                        class="space-y-2"
-                    >
-                        <label class="text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted">{{
-                            $t("docs.sections_title")
-                        }}</label>
-                        <select
-                            v-model="selectedDocPath"
-                            class="w-full bg-sem-surface-muted border border-sem-border rounded-xl text-xs font-medium p-2.5 text-sem-fg"
-                            @change="selectDoc(selectedDocPath)"
-                        >
-                            <optgroup v-for="section in visibleDocSections" :key="section.id" :label="section.title">
-                                <option v-for="item in section.items" :key="item.path" :value="item.path">
-                                    {{ item.title }}
-                                </option>
-                            </optgroup>
-                        </select>
+                        <DropDownMenu v-if="activeTab === 'meshchatx' && !searchQuery && visibleDocSections.length">
+                            <template #button>
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-sem-border bg-sem-surface-muted px-2.5 py-1.5 text-xs font-medium text-sem-fg max-w-[10rem]"
+                                    :title="$t('docs.sections_title')"
+                                >
+                                    <span class="truncate">{{ selectedDocTitle || $t("docs.select_doc") }}</span>
+                                    <MaterialDesignIcon icon-name="chevron-down" class="w-4 h-4 shrink-0" />
+                                </button>
+                            </template>
+                            <template #items>
+                                <div class="max-h-80 overflow-y-auto">
+                                    <template v-for="section in visibleDocSections" :key="section.id">
+                                        <div
+                                            class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted"
+                                        >
+                                            {{ section.title }}
+                                        </div>
+                                        <DropDownMenuItem
+                                            v-for="item in section.items"
+                                            :key="item.path"
+                                            @click="selectDoc(item.path)"
+                                        >
+                                            <span
+                                                class="truncate text-xs"
+                                                :class="
+                                                    selectedDocPath === item.path ? 'font-semibold text-sem-accent' : ''
+                                                "
+                                                >{{ item.title }}</span
+                                            >
+                                        </DropDownMenuItem>
+                                    </template>
+                                </div>
+                            </template>
+                        </DropDownMenu>
                     </div>
                 </div>
 
@@ -657,6 +677,8 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
+import DropDownMenu from "../DropDownMenu.vue";
+import DropDownMenuItem from "../DropDownMenuItem.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import { apiPath } from "../../js/constants.js";
@@ -668,6 +690,8 @@ export default {
     components: {
         MaterialDesignIcon,
         SearchInput,
+        DropDownMenu,
+        DropDownMenuItem,
     },
     data() {
         return {
@@ -722,6 +746,16 @@ export default {
     computed: {
         currentLang() {
             return this.reticulumDocsLang;
+        },
+        selectedDocTitle() {
+            for (const section of this.visibleDocSections || []) {
+                for (const item of section.items || []) {
+                    if (item.path === this.selectedDocPath) {
+                        return item.title;
+                    }
+                }
+            }
+            return null;
         },
         localDocsUrl() {
             let path;

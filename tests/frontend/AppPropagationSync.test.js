@@ -8,6 +8,7 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
         error: vi.fn(),
         loading: vi.fn(),
         dismiss: vi.fn(),
+        show: vi.fn(),
     },
 }));
 
@@ -275,6 +276,44 @@ describe("App propagation sync", () => {
         expect(syncCalled).toBe(true);
         expect(ToastUtils.success).toHaveBeenCalled();
         expect(ToastUtils.error).not.toHaveBeenCalled();
+    });
+
+    it("shows a configure action when sync fails with propagation_node_not_configured", async () => {
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/lxmf/propagation-node/sync") {
+                return Promise.reject(
+                    Object.assign(new Error("HTTP 400"), {
+                        response: {
+                            status: 400,
+                            data: {
+                                error: "A propagation node must be configured to sync messages.",
+                                code: "propagation_node_not_configured",
+                            },
+                        },
+                    })
+                );
+            }
+            return Promise.resolve({ data: { message: "ok" } });
+        });
+
+        const ctx = makeSyncContext(axiosMock);
+        ctx.$router = { push: vi.fn() };
+
+        await App.methods.syncPropagationNode.call(ctx);
+
+        expect(ctx.userInitiatedPropagationSync).toBe(false);
+        expect(ToastUtils.show).toHaveBeenCalledWith(
+            "A propagation node must be configured to sync messages.",
+            "error",
+            8000,
+            "propagation-node-not-configured",
+            expect.objectContaining({ label: "common.configure" })
+        );
+        expect(ToastUtils.error).not.toHaveBeenCalled();
+
+        const action = ToastUtils.show.mock.calls[0][4];
+        action.handler();
+        expect(ctx.$router.push).toHaveBeenCalledWith({ name: "propagation-nodes" });
     });
 
     it("clears stuck userInitiatedPropagationSync when status returns idle after background", async () => {

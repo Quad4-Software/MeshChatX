@@ -1160,7 +1160,11 @@
                         />
 
                         <!-- Location (map & coordinates) -->
-                        <section v-show="showSection('location')" class="settings-section break-inside-avoid">
+                        <section
+                            v-show="showSection('location')"
+                            data-settings-section="location"
+                            class="settings-section break-inside-avoid"
+                        >
                             <header class="settings-section__header">
                                 <div>
                                     <div class="settings-section__eyebrow">{{ $t("app.settings_map_eyebrow") }}</div>
@@ -1182,6 +1186,9 @@
                                     >
                                         <option value="disabled">{{ $t("app.location_source_disabled") }}</option>
                                         <option value="browser">{{ $t("app.location_source_browser") }}</option>
+                                        <option v-if="isAndroidLocationSourceAvailable" value="android">
+                                            {{ $t("app.location_source_android") }}
+                                        </option>
                                         <option value="manual">{{ $t("app.location_source_manual") }}</option>
                                     </select>
                                     <div v-if="config.location_source === 'disabled'" class="text-xs text-sem-fg-muted">
@@ -1189,6 +1196,9 @@
                                     </div>
                                     <div v-if="config.location_source === 'browser'" class="text-xs text-sem-fg-muted">
                                         {{ $t("app.location_source_browser_desc") }}
+                                    </div>
+                                    <div v-if="config.location_source === 'android'" class="text-xs text-sem-fg-muted">
+                                        {{ $t("app.location_source_android_desc") }}
                                     </div>
                                     <div v-if="config.location_source === 'manual'" class="text-xs text-sem-fg-muted">
                                         {{ $t("app.location_source_manual_desc") }}
@@ -3031,7 +3041,11 @@
                             </div>
                         </section>
 
-                        <section class="settings-section break-inside-avoid">
+                        <section
+                            v-show="showSection('reticulumStack')"
+                            data-settings-section="reticulumStack"
+                            class="settings-section break-inside-avoid"
+                        >
                             <header class="settings-section__header">
                                 <div>
                                     <div class="settings-section__eyebrow">{{ $t("app.system") }}</div>
@@ -3202,6 +3216,7 @@ import {
 } from "../../js/settings/settingsTabs.js";
 import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
+import { isAndroidLocationSupported } from "../../js/androidLocation.js";
 import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
 import { getMicronWasmRuntimeOverride } from "../../js/MicronWasmRuntimeOverride.js";
 import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT } from "../../js/micronWasmVersion.js";
@@ -3632,6 +3647,14 @@ export default {
                 window.MeshChatXAndroid.getPlatform() === "android"
             );
         },
+        isAndroidLocationSourceAvailable() {
+            return isAndroidLocationSupported();
+        },
+    },
+    watch: {
+        "$route.query"() {
+            this.applyRouteTarget();
+        },
     },
     beforeUnmount() {
         // stop listening for websocket events
@@ -3680,6 +3703,7 @@ export default {
         } catch {
             /* ignore */
         }
+        this.applyRouteTarget();
     },
     methods: {
         onIdentitySwitched() {
@@ -3993,6 +4017,26 @@ export default {
             }
             const tab = SETTINGS_TABS.find((entry) => entry.id === this.effectiveSettingsTab);
             return Boolean(tab && tab.sections.includes(sectionKey));
+        },
+        applyRouteTarget() {
+            const requestedSection = this.$route?.query?.section;
+            const requestedTab = this.$route?.query?.tab;
+            if (typeof requestedSection === "string" && requestedSection) {
+                const tab = SETTINGS_TABS.find((entry) => entry.sections.includes(requestedSection));
+                if (tab) {
+                    this.selectSettingsTab(tab.id);
+                }
+                this.$nextTick(() => {
+                    const el = document.querySelector(`[data-settings-section="${requestedSection}"]`);
+                    if (el && typeof el.scrollIntoView === "function") {
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                });
+                return;
+            }
+            if (typeof requestedTab === "string" && requestedTab) {
+                this.selectSettingsTab(requestedTab);
+            }
         },
         selectSettingsTab(tabId) {
             const normalized = normalizeSettingsTabId(tabId);

@@ -5,6 +5,13 @@
         <slot name="header" />
         <slot />
     </div>
+    <div
+        v-if="show && caretStyle"
+        class="dropdown-caret fixed z-300 border-sem-border"
+        :class="caretBorderClass"
+        :style="caretStyle"
+        aria-hidden="true"
+    ></div>
 </template>
 
 <script>
@@ -37,6 +44,8 @@ export default {
             adjustedTop: 0,
             panelMaxHeight: null,
             repositionRaf: null,
+            caretStyle: null,
+            caretBorderClass: "border-t border-l",
         };
     },
     computed: {
@@ -59,11 +68,13 @@ export default {
                 this.cancelReposition();
                 if (!visible) {
                     this.panelMaxHeight = null;
+                    this.caretStyle = null;
                     return;
                 }
                 this.adjustedLeft = this.x;
                 this.adjustedTop = this.y;
                 this.panelMaxHeight = null;
+                this.caretStyle = null;
                 this.scheduleReposition();
             },
         },
@@ -114,6 +125,36 @@ export default {
             this.adjustedLeft = left;
             this.adjustedTop = top;
             this.panelMaxHeight = maxHeight;
+            this.updateCaret(left, top, rect.width, rect.height);
+        },
+        updateCaret(left, top, width, height) {
+            const ox = this.x;
+            const oy = this.y;
+            const insideX = ox > left + 4 && ox < left + width - 4;
+            const insideY = oy > top + 4 && oy < top + height - 4;
+            if (insideX && insideY) {
+                this.caretStyle = null;
+                return;
+            }
+            const size = 5;
+            const margin = 12;
+            if (oy <= top) {
+                const cx = Math.min(Math.max(ox, left + margin), left + width - margin);
+                this.caretStyle = { left: `${cx - size}px`, top: `${top - size}px` };
+                this.caretBorderClass = "border-t border-l";
+            } else if (oy >= top + height) {
+                const cx = Math.min(Math.max(ox, left + margin), left + width - margin);
+                this.caretStyle = { left: `${cx - size}px`, top: `${top + height - size}px` };
+                this.caretBorderClass = "border-b border-r";
+            } else if (ox <= left) {
+                const cy = Math.min(Math.max(oy, top + margin), top + height - margin);
+                this.caretStyle = { left: `${left - size}px`, top: `${cy - size}px` };
+                this.caretBorderClass = "border-b border-l";
+            } else {
+                const cy = Math.min(Math.max(oy, top + margin), top + height - margin);
+                this.caretStyle = { left: `${left + width - size}px`, top: `${cy - size}px` };
+                this.caretBorderClass = "border-t border-r";
+            }
         },
     },
 };

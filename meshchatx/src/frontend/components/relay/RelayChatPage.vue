@@ -23,46 +23,19 @@
                     type="button"
                     role="tab"
                     :aria-selected="view === tab.id"
+                    :aria-label="ICON_ONLY_TAB_IDS.has(tab.id) ? $t(tab.label) : undefined"
+                    :title="ICON_ONLY_TAB_IDS.has(tab.id) ? $t(tab.label) : undefined"
                     class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-sm transition-colors shrink-0"
-                    :class="[
+                    :class="
                         view === tab.id
                             ? 'bg-sem-canvas text-sem-fg font-medium'
-                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30',
-                        OVERFLOW_TAB_IDS.has(tab.id) ? 'hidden md:inline-flex' : '',
-                    ]"
+                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30'
+                    "
                     @click="selectView(tab.id)"
                 >
                     <MaterialDesignIcon :icon-name="tab.icon" class="size-4 shrink-0 opacity-70" />
-                    <span>{{ $t(tab.label) }}</span>
+                    <span :class="{ 'hidden md:inline': ICON_ONLY_TAB_IDS.has(tab.id) }">{{ $t(tab.label) }}</span>
                 </button>
-
-                <!-- mobile overflow: host and bots move here so the bar never scrolls -->
-                <DropDownMenu v-if="overflowTabs.length > 0" class="md:hidden shrink-0">
-                    <template #button>
-                        <button
-                            type="button"
-                            role="tab"
-                            :aria-selected="isOverflowView"
-                            :aria-label="$t('messages.more_actions')"
-                            :title="$t('messages.more_actions')"
-                            class="inline-flex h-9 items-center gap-1.5 px-3 border-r border-sem-border text-sm transition-colors"
-                            :class="
-                                isOverflowView
-                                    ? 'bg-sem-canvas text-sem-fg font-medium'
-                                    : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30'
-                            "
-                        >
-                            <MaterialDesignIcon :icon-name="overflowViewIcon" class="size-4 shrink-0 opacity-70" />
-                            <span v-if="overflowViewTab">{{ $t(overflowViewTab.label) }}</span>
-                        </button>
-                    </template>
-                    <template #items>
-                        <DropDownMenuItem v-for="tab in overflowTabs" :key="tab.id" @click="selectView(tab.id)">
-                            <MaterialDesignIcon :icon-name="tab.icon" class="size-5" />
-                            <span>{{ $t(tab.label) }}</span>
-                        </DropDownMenuItem>
-                    </template>
-                </DropDownMenu>
             </div>
 
             <!-- connect view -->
@@ -412,32 +385,6 @@
                         <div class="flex items-center gap-1.5 shrink-0">
                             <button
                                 type="button"
-                                :class="btnIcon"
-                                :title="$t('relay_chat.search_messages')"
-                                @click="showSearch = !showSearch"
-                            >
-                                <MaterialDesignIcon icon-name="magnify" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
-                                :class="btnIcon"
-                                :title="$t('relay_chat.chat_prefs')"
-                                @click="openChatPrefs"
-                            >
-                                <MaterialDesignIcon icon-name="tune-variant" class="size-5" />
-                            </button>
-                            <button
-                                v-if="smUp"
-                                type="button"
-                                data-testid="relay-popout"
-                                :class="btnIcon"
-                                :title="$t('relay_chat.popout_channel')"
-                                @click="popoutChannel"
-                            >
-                                <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
                                 :title="showMembers ? $t('relay_chat.hide_members') : $t('relay_chat.show_members')"
                                 class="inline-flex items-center gap-1 rounded-lg border px-2 py-1.5 text-sm font-medium transition"
                                 :class="
@@ -450,22 +397,80 @@
                                 <MaterialDesignIcon icon-name="account-group" class="size-5" />
                                 <span class="text-xs font-semibold">{{ onlineMembers.length }}</span>
                             </button>
-                            <button
-                                type="button"
-                                :class="btnIcon"
-                                :title="$t('relay_chat.clear_messages')"
-                                @click="clearMessages"
-                            >
-                                <MaterialDesignIcon icon-name="broom" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
-                                :class="btnDanger"
-                                :title="$t('relay_chat.leave_room')"
-                                @click="leaveRoom"
-                            >
-                                <MaterialDesignIcon icon-name="exit-to-app" class="size-5" />
-                            </button>
+                            <div class="hidden md:contents">
+                                <button
+                                    type="button"
+                                    :class="btnIcon"
+                                    :title="$t('relay_chat.search_messages')"
+                                    @click="showSearch = !showSearch"
+                                >
+                                    <MaterialDesignIcon icon-name="magnify" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="btnIcon"
+                                    :title="$t('relay_chat.chat_prefs')"
+                                    @click="openChatPrefs"
+                                >
+                                    <MaterialDesignIcon icon-name="tune-variant" class="size-5" />
+                                </button>
+                                <button
+                                    v-if="smUp"
+                                    type="button"
+                                    data-testid="relay-popout"
+                                    :class="btnIcon"
+                                    :title="$t('relay_chat.popout_channel')"
+                                    @click="popoutChannel"
+                                >
+                                    <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="btnIcon"
+                                    :title="$t('relay_chat.clear_messages')"
+                                    @click="clearMessages"
+                                >
+                                    <MaterialDesignIcon icon-name="broom" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="btnDanger"
+                                    :title="$t('relay_chat.leave_room')"
+                                    @click="leaveRoom"
+                                >
+                                    <MaterialDesignIcon icon-name="exit-to-app" class="size-5" />
+                                </button>
+                            </div>
+                            <DropDownMenu class="md:hidden shrink-0">
+                                <template #button>
+                                    <button
+                                        type="button"
+                                        :class="btnIcon"
+                                        :title="$t('messages.more_actions')"
+                                        :aria-label="$t('messages.more_actions')"
+                                    >
+                                        <MaterialDesignIcon icon-name="dots-horizontal" class="size-5" />
+                                    </button>
+                                </template>
+                                <template #items>
+                                    <DropDownMenuItem @click="showSearch = !showSearch">
+                                        <MaterialDesignIcon icon-name="magnify" class="size-5" />
+                                        <span>{{ $t("relay_chat.search_messages") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem @click="openChatPrefs">
+                                        <MaterialDesignIcon icon-name="tune-variant" class="size-5" />
+                                        <span>{{ $t("relay_chat.chat_prefs") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem @click="clearMessages">
+                                        <MaterialDesignIcon icon-name="broom" class="size-5" />
+                                        <span>{{ $t("relay_chat.clear_messages") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem @click="leaveRoom">
+                                        <MaterialDesignIcon icon-name="exit-to-app" class="size-5" />
+                                        <span>{{ $t("relay_chat.leave_room") }}</span>
+                                    </DropDownMenuItem>
+                                </template>
+                            </DropDownMenu>
                         </div>
                     </div>
 
@@ -1353,6 +1358,16 @@
                                 <span class="font-medium text-sem-fg">{{ $t("relay_chat.auto_who") }}</span>
                             </span>
                         </label>
+                        <div>
+                            <button
+                                type="button"
+                                class="text-xs text-sem-accent hover:underline"
+                                :disabled="applyingOptionsToAllHubs"
+                                @click="applyOptionsToAllHubs"
+                            >
+                                {{ $t("relay_chat.apply_auto_options_all_hubs") }}
+                            </button>
+                        </div>
                         <div class="space-y-1.5">
                             <label class="block text-sm font-semibold text-sem-fg-secondary">{{
                                 $t("relay_chat.nickname")
@@ -1383,6 +1398,19 @@
                 <div class="w-full max-w-md rounded-2xl border border-sem-border-card bg-sem-surface p-5 shadow-xl">
                     <h2 class="mb-4 text-lg font-semibold">{{ $t("relay_chat.chat_prefs") }}</h2>
                     <div class="space-y-5">
+                        <label class="setting-toggle flex items-start gap-3">
+                            <Toggle
+                                id="rrc-hide-join-part"
+                                :model-value="hideJoinPart"
+                                @update:model-value="setHideJoinPart"
+                            />
+                            <span class="min-w-0 text-sm">
+                                <span class="font-medium text-sem-fg">{{ $t("relay_chat.prefs_hide_join_part") }}</span>
+                                <span class="block text-xs text-sem-fg-muted">{{
+                                    $t("relay_chat.prefs_hide_join_part_hint")
+                                }}</span>
+                            </span>
+                        </label>
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-sem-fg-secondary">{{
                                 $t("relay_chat.prefs_highlight_words")
@@ -1581,6 +1609,7 @@ import { filterRelayMembers, filterRelayMessages } from "../../js/relayMessageSe
 import { copyTextToClipboard } from "../../js/clipboardUtils.js";
 import {
     buildRelayMessageTimeline,
+    isRelayPeerJoinPartMessage,
     mergeRelayMessages,
     relayMessageKey,
     prependRelayMessageTimeline,
@@ -1642,9 +1671,9 @@ const BTN_DANGER_SM =
     "inline-flex items-center justify-center rounded-lg border border-sem-border bg-sem-canvas p-1.5 text-sem-fg transition hover:border-sem-danger hover:text-sem-danger hover:bg-sem-danger/10";
 
 const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
-// Below md these collapse into the overflow menu so the tab bar never
-// scrolls horizontally on phones. Chat and Discovery stay pinned.
-const OVERFLOW_TAB_IDS = new Set(["host", "bots", "search"]);
+// Below md these render icon-only so the tab bar never scrolls
+// horizontally on phones.
+const ICON_ONLY_TAB_IDS = new Set(["bots", "search"]);
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
@@ -1722,8 +1751,9 @@ export default {
                 encodeRoom: (room) => inst?.proxy.encodeRoom(room),
                 prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
                 reloadLatest: () => inst?.proxy.selectRoom(inst?.proxy.selectedHubHash, inst?.proxy.selectedRoom),
-                excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
+                excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg) || inst?.proxy.isHiddenPresenceMessage(msg),
                 decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
+                buildTimelineOptions: () => ({ hideJoinPart: inst?.proxy.hideJoinPart === true }),
                 onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),
                 t: (...args) => inst?.proxy.$t(...args),
             }),
@@ -1744,7 +1774,7 @@ export default {
             RELAY_HOST_MODAL_PANEL_COMPACT,
             btnPrimary: BTN_PRIMARY,
             btnSecondary: BTN_SECONDARY,
-            OVERFLOW_TAB_IDS,
+            ICON_ONLY_TAB_IDS,
             btnIcon: BTN_ICON,
             btnIconSm: BTN_ICON_SM,
             btnDanger: BTN_DANGER,
@@ -1823,6 +1853,8 @@ export default {
             nickCycle: null,
             ignoredPeers: [],
             highlightWords: [],
+            hideJoinPart: false,
+            applyingOptionsToAllHubs: false,
             localMentionRooms: new Map(),
             showChatPrefs: false,
             highlightWordDraft: "",
@@ -1857,18 +1889,6 @@ export default {
         };
     },
     computed: {
-        overflowTabs() {
-            return this.tabs.filter((tab) => OVERFLOW_TAB_IDS.has(tab.id));
-        },
-        overflowViewTab() {
-            return this.overflowTabs.find((tab) => tab.id === this.view) || null;
-        },
-        isOverflowView() {
-            return this.overflowViewTab !== null;
-        },
-        overflowViewIcon() {
-            return this.overflowViewTab?.icon || "dots-horizontal";
-        },
         rrcEnabled() {
             return useConfigStore().config?.rrc_enabled !== false;
         },
@@ -2062,7 +2082,9 @@ export default {
             this.messageTimelineCacheSignature = "";
         },
         _rebuildMessageTimelineCache() {
-            this.messageTimelineCache = buildRelayMessageTimeline(this.messages);
+            this.messageTimelineCache = buildRelayMessageTimeline(this.messages, {
+                hideJoinPart: this.hideJoinPart,
+            });
             this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
         },
         _prependMessageTimelineCache(prependedMessages) {
@@ -2106,12 +2128,22 @@ export default {
             const prefs = loadRelayPrefs(this._scopedIdentityKey());
             this.ignoredPeers = prefs.ignored;
             this.highlightWords = prefs.highlightWords;
+            this.hideJoinPart = prefs.hideJoinPart === true;
         },
         persistRelayPrefs() {
             saveRelayPrefs(this._scopedIdentityKey(), {
                 ignored: this.ignoredPeers,
                 highlightWords: this.highlightWords,
+                hideJoinPart: this.hideJoinPart,
             });
+        },
+        isHiddenPresenceMessage(msg) {
+            return this.hideJoinPart && isRelayPeerJoinPartMessage(msg);
+        },
+        setHideJoinPart(value) {
+            this.hideJoinPart = value === true;
+            this.persistRelayPrefs();
+            this._invalidateMessageTimelineCache();
         },
         isOwnRelayMessage(msg) {
             const own = useConfigStore().config?.identity_hash;
@@ -3800,6 +3832,25 @@ export default {
                 await this.fetchHubs();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            }
+        },
+        async applyOptionsToAllHubs() {
+            if (this.applyingOptionsToAllHubs) {
+                return;
+            }
+            this.applyingOptionsToAllHubs = true;
+            try {
+                await window.api.post(apiPath("/rrc/hubs/options"), {
+                    auto_reconnect: this.settingsForm.auto_reconnect,
+                    auto_list: this.settingsForm.auto_list,
+                    auto_who: this.settingsForm.auto_who,
+                });
+                ToastUtils.success(this.$t("relay_chat.auto_options_applied_all_hubs"));
+                await this.fetchHubs();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            } finally {
+                this.applyingOptionsToAllHubs = false;
             }
         },
         isHubAdded(destinationHash) {

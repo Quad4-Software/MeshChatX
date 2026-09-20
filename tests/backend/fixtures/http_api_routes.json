@@ -1169,6 +1169,18 @@
             "path": "/api/v1/reticulum/config/reset"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/reticulum/config/versions"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/reticulum/config/versions/{version_id}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/config/versions/{version_id}/restore"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/reticulum/disable-transport"
         },
@@ -1407,6 +1419,10 @@
         {
             "method": "POST",
             "path": "/api/v1/rrc/hubs"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/options"
         },
         {
             "method": "PUT",

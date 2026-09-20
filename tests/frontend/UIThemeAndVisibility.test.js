@@ -8,6 +8,8 @@ import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import ConfirmDialog from "../../meshchatx/src/frontend/components/ConfirmDialog.vue";
 import ChangelogModal from "../../meshchatx/src/frontend/components/ChangelogModal.vue";
 import LanguageSelector from "../../meshchatx/src/frontend/components/LanguageSelector.vue";
+import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
+import { resetTopNavItemIds, saveTopNavItemIds } from "../../meshchatx/src/frontend/js/appTopNavLayout.js";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
@@ -88,10 +90,12 @@ function createDefaultApiMock() {
 }
 
 beforeEach(() => {
+    registerCoreContributions();
     document.documentElement.classList.remove("dark");
     window.api = createDefaultApiMock();
     useConfigStore().activeCallTab = null;
     useConfigStore().config = {};
+    resetTopNavItemIds();
 });
 
 afterEach(async () => {
@@ -617,21 +621,26 @@ describe("Conditional Rendering", () => {
             },
         });
 
-        const relay = wrapper.find('[data-testid="header-relay-chat"]');
-        const telephone = wrapper.find('[data-testid="header-telephone"]');
+        const relay = wrapper.find('[data-testid="header-nav-relay-chat"]');
+        const telephone = wrapper.find('[data-testid="header-nav-call"]');
+        const nomad = wrapper.find('[data-testid="header-nav-nomadnetwork"]');
         const compose = wrapper.find('[data-testid="header-compose"]');
         expect(relay.exists()).toBe(true);
         expect(telephone.exists()).toBe(true);
+        expect(nomad.exists()).toBe(true);
         expect(compose.exists()).toBe(true);
         expect(relay.classes().join(" ")).not.toContain("hidden");
         expect(telephone.classes().join(" ")).not.toContain("hidden");
         expect(relay.attributes("title")).toBe("app.relay_chat");
         expect(telephone.attributes("title")).toBe("app.audio_calls");
+        expect(nomad.attributes("title")).toBe("app.nomad_network");
 
         await relay.trigger("click");
         expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ name: "relay-chat" });
         await telephone.trigger("click");
         expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ name: "call" });
+        await nomad.trigger("click");
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ name: "nomadnetwork" });
     });
 
     it("App header omits relay chat when RRC is disabled", async () => {
@@ -657,11 +666,45 @@ describe("Conditional Rendering", () => {
                 },
             });
 
-            expect(wrapper.find('[data-testid="header-relay-chat"]').exists()).toBe(false);
-            expect(wrapper.find('[data-testid="header-telephone"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="header-nav-relay-chat"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="header-nav-call"]').exists()).toBe(true);
         } finally {
             delete useConfigStore().config.rrc_enabled;
         }
+    });
+
+    it("App header honors a customized top nav layout", async () => {
+        saveTopNavItemIds(["map", "messages"]);
+        const wrapper = mountTracked(App, {
+            global: {
+                stubs: {
+                    RouterView: { template: "<div>Router View</div>" },
+                    RouterLink: createRouterLinkStub(),
+                    MaterialDesignIcon: { template: '<div data-icon-name="{{ iconName }}"></div>' },
+                    LanguageSelector: { template: "<div></div>" },
+                    SidebarLink: {
+                        template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
+                        props: ["to", "isCollapsed"],
+                    },
+                },
+                mocks: {
+                    $route: { name: "messages", meta: {}, query: {} },
+                    $router: { push: vi.fn() },
+                    $t: (key) => key,
+                },
+            },
+        });
+
+        const ids = wrapper
+            .findAll("[data-testid^='header-nav-']")
+            .map((b) => b.attributes("data-testid").replace("header-nav-", ""));
+        expect(ids).toEqual(["map", "messages"]);
+        expect(wrapper.find('[data-testid="header-nav-call"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="header-nav-nomadnetwork"]').exists()).toBe(false);
+
+        resetTopNavItemIds();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('[data-testid="header-nav-nomadnetwork"]').exists()).toBe(true);
     });
 });
 

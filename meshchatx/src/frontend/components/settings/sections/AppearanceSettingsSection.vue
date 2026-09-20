@@ -137,6 +137,65 @@
             </div>
 
             <div class="space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="text-sm font-medium text-sem-fg">
+                        {{ $t("app.top_nav_buttons") }}
+                    </div>
+                    <button
+                        type="button"
+                        class="text-xs font-semibold text-sem-accent hover:underline"
+                        @click="resetTopNav"
+                    >
+                        {{ $t("app.top_nav_reset") }}
+                    </button>
+                </div>
+                <p class="text-xs text-sem-fg-muted">
+                    {{ $t("app.top_nav_description") }}
+                </p>
+                <ul class="divide-y divide-sem-border rounded-xl border border-sem-border overflow-hidden">
+                    <li
+                        v-for="row in topNavEditorRows"
+                        :key="row.item.id"
+                        class="flex items-center gap-2 px-3 py-2"
+                        :class="row.pinned ? 'bg-sem-surface' : 'bg-sem-surface-muted/40 opacity-60'"
+                        :data-testid="`topnav-row-${row.item.id}`"
+                    >
+                        <input
+                            type="checkbox"
+                            class="size-4 shrink-0 accent-sem-accent"
+                            :checked="row.pinned"
+                            :aria-label="$t(row.item.labelKey)"
+                            @change="toggleTopNavItem(row.item.id)"
+                        />
+                        <MaterialDesignIcon :icon-name="row.item.icon" class="size-4 shrink-0 text-sem-fg-muted" />
+                        <span class="flex-1 min-w-0 truncate text-sm text-sem-fg">{{ $t(row.item.labelKey) }}</span>
+                        <button
+                            v-if="row.pinned"
+                            type="button"
+                            class="p-1 rounded-md text-sem-fg-muted hover:bg-sem-surface-muted disabled:opacity-30"
+                            :disabled="row.pinnedIndex === 0"
+                            :title="$t('app.nav_move_up')"
+                            :aria-label="$t('app.nav_move_up')"
+                            @click="moveTopNavItem(row.item.id, -1)"
+                        >
+                            <MaterialDesignIcon icon-name="chevron-up" class="size-4" />
+                        </button>
+                        <button
+                            v-if="row.pinned"
+                            type="button"
+                            class="p-1 rounded-md text-sem-fg-muted hover:bg-sem-surface-muted disabled:opacity-30"
+                            :disabled="row.pinnedIndex === topNavPinnedCount - 1"
+                            :title="$t('app.nav_move_down')"
+                            :aria-label="$t('app.nav_move_down')"
+                            @click="moveTopNavItem(row.item.id, 1)"
+                        >
+                            <MaterialDesignIcon icon-name="chevron-down" class="size-4" />
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="space-y-2">
                 <div class="flex items-center justify-between">
                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {{ $t("app.message_font_size") }}
@@ -353,18 +412,21 @@
                         </div>
                         <div class="flex gap-2">
                             <input
-                                :value="config.message_outbound_bubble_color"
+                                :value="bubbleColorInputValue('outbound')"
                                 type="color"
                                 class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
                                 @input="onBubbleColorInput('outbound', $event)"
                             />
                             <input
-                                :value="config.message_outbound_bubble_color"
+                                :value="bubbleColorInputValue('outbound')"
                                 type="text"
                                 class="input-field monospace-field flex-1"
                                 @input="onBubbleColorInput('outbound', $event)"
                             />
                         </div>
+                        <p v-if="isThemeBubbleColor('outbound')" class="text-[11px] text-sem-fg-muted">
+                            {{ $t("settings.inbound_bubble_default_hint") }}
+                        </p>
                     </div>
 
                     <div class="space-y-2">
@@ -373,18 +435,21 @@
                         </div>
                         <div class="flex gap-2">
                             <input
-                                :value="config.message_failed_bubble_color"
+                                :value="bubbleColorInputValue('failed')"
                                 type="color"
                                 class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
                                 @input="onBubbleColorInput('failed', $event)"
                             />
                             <input
-                                :value="config.message_failed_bubble_color"
+                                :value="bubbleColorInputValue('failed')"
                                 type="text"
                                 class="input-field monospace-field flex-1"
                                 @input="onBubbleColorInput('failed', $event)"
                             />
                         </div>
+                        <p v-if="isThemeBubbleColor('failed')" class="text-[11px] text-sem-fg-muted">
+                            {{ $t("settings.inbound_bubble_default_hint") }}
+                        </p>
                     </div>
 
                     <div class="space-y-2">
@@ -393,18 +458,21 @@
                         </div>
                         <div class="flex gap-2">
                             <input
-                                :value="config.message_waiting_bubble_color"
+                                :value="bubbleColorInputValue('waiting')"
                                 type="color"
                                 class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
                                 @input="onBubbleColorInput('waiting', $event)"
                             />
                             <input
-                                :value="config.message_waiting_bubble_color"
+                                :value="bubbleColorInputValue('waiting')"
                                 type="text"
                                 class="input-field monospace-field flex-1"
                                 @input="onBubbleColorInput('waiting', $event)"
                             />
                         </div>
+                        <p v-if="isThemeBubbleColor('waiting')" class="text-[11px] text-sem-fg-muted">
+                            {{ $t("settings.inbound_bubble_default_hint") }}
+                        </p>
                     </div>
                 </div>
 
@@ -461,7 +529,21 @@
 import Toggle from "../../forms/Toggle.vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import ThemePresetPicker from "../ThemePresetPicker.vue";
-import { THEME_PRESET_CATALOG, normalizeThemePreset } from "../../../theme/themeEngine.js";
+import {
+    THEME_PRESET_CATALOG,
+    buildThemeVariableOverrides,
+    normalizeThemePreset,
+    resolveEffectiveTheme,
+    systemPrefersDark,
+} from "../../../theme/themeEngine.js";
+import { MESHCHAT_THEME_VARIABLES_DARK, MESHCHAT_THEME_VARIABLES_LIGHT } from "../../../theme/designTokens.js";
+import { listNavItems } from "../../../js/registries/navRegistry.js";
+import {
+    resolveTopNavItemIds,
+    resetTopNavItemIds,
+    saveTopNavItemIds,
+    topNavLayoutState,
+} from "../../../js/appTopNavLayout.js";
 
 export default {
     name: "AppearanceSettingsSection",
@@ -539,6 +621,40 @@ export default {
         customSurfaceInput() {
             return this.config?.custom_surface_color || "#ffffff";
         },
+        topNavIds() {
+            return resolveTopNavItemIds(topNavLayoutState.itemIds);
+        },
+        topNavEditorRows() {
+            const pinnedIds = this.topNavIds;
+            const allItems = listNavItems();
+            const byId = new Map(allItems.map((item) => [item.id, item]));
+            const rows = [];
+            for (const id of pinnedIds) {
+                const item = byId.get(id);
+                if (item) {
+                    rows.push({ item, pinned: true, pinnedIndex: rows.length });
+                }
+            }
+            for (const item of allItems) {
+                if (!pinnedIds.includes(item.id)) {
+                    rows.push({ item, pinned: false, pinnedIndex: -1 });
+                }
+            }
+            return rows;
+        },
+        topNavPinnedCount() {
+            return this.topNavEditorRows.filter((row) => row.pinned).length;
+        },
+        resolvedBubbleColors() {
+            const mode = resolveEffectiveTheme(this.config?.theme, systemPrefersDark());
+            const base = mode === "dark" ? MESHCHAT_THEME_VARIABLES_DARK : MESHCHAT_THEME_VARIABLES_LIGHT;
+            const resolved = { ...base, ...buildThemeVariableOverrides(this.config, mode) };
+            return {
+                outbound: resolved["--mc-bubble-outbound"],
+                failed: resolved["--mc-bubble-failed"],
+                waiting: resolved["--mc-bubble-waiting"],
+            };
+        },
     },
     methods: {
         emitField(key, value, eventName, eventArg) {
@@ -607,11 +723,60 @@ export default {
         onBubbleColorInput(type, event) {
             this.emitField(`message_${type}_bubble_color`, event.target.value, "bubble-color-change", type);
         },
+        isThemeBubbleColor(type) {
+            const raw = this.config?.[`message_${type}_bubble_color`];
+            const hex = String(raw ?? "")
+                .trim()
+                .toLowerCase();
+            if (hex === "") {
+                return true;
+            }
+            if (type === "outbound") {
+                return hex === "#4f46e5";
+            }
+            if (type === "failed") {
+                return hex === "#ef4444" || hex === "#dc2626";
+            }
+            if (type === "waiting") {
+                return hex === "#e5e7eb" || hex === "#3f3f46";
+            }
+            return false;
+        },
+        bubbleColorInputValue(type) {
+            if (this.isThemeBubbleColor(type)) {
+                return this.resolvedBubbleColors[type] || "#000000";
+            }
+            return String(this.config?.[`message_${type}_bubble_color`] ?? "").trim();
+        },
         onInboundBubbleReset() {
             this.emitField("message_inbound_bubble_color", null, "bubble-color-change", "inbound");
         },
         onInboundBubbleCustomize() {
             this.emitField("message_inbound_bubble_color", "#ffffff", "bubble-color-change", "inbound");
+        },
+        toggleTopNavItem(id) {
+            const ids = [...this.topNavIds];
+            const index = ids.indexOf(id);
+            if (index >= 0) {
+                ids.splice(index, 1);
+            } else {
+                ids.push(id);
+            }
+            saveTopNavItemIds(ids);
+        },
+        moveTopNavItem(id, delta) {
+            const ids = [...this.topNavIds];
+            const index = ids.indexOf(id);
+            const target = index + delta;
+            if (index < 0 || target < 0 || target >= ids.length) {
+                return;
+            }
+            ids.splice(index, 1);
+            ids.splice(target, 0, id);
+            saveTopNavItemIds(ids);
+        },
+        resetTopNav() {
+            resetTopNavItemIds();
         },
     },
 };

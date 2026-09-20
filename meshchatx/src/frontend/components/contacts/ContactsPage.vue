@@ -128,7 +128,7 @@
                                 >
                                     <button
                                         type="button"
-                                        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-accent transition-colors"
                                         :title="$t('contacts.send_message')"
                                         @click.stop="openConversation(contact)"
                                     >
@@ -217,7 +217,7 @@
                             >
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-accent transition-colors"
                                     :title="$t('contacts.send_message')"
                                     @click.stop="openConversation(contact)"
                                 >
@@ -258,7 +258,7 @@
 
         <button
             type="button"
-            class="sm:hidden fixed bottom-5 right-4 z-180 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+            class="sm:hidden fixed bottom-5 right-4 z-180 flex h-14 w-14 items-center justify-center rounded-full bg-sem-action-primary text-sem-action-primary-text shadow-lg ring-1 ring-sem-border transition active:scale-95 hover:bg-sem-action-primary-hover"
             :title="$t('contacts.add_contact')"
             @click="openAddDialog"
         >
@@ -336,7 +336,7 @@
                             <button
                                 v-if="cameraSupported"
                                 type="button"
-                                class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-8 h-8 rounded-lg text-sem-fg-muted hover:text-sem-accent hover:bg-sem-surface-raised transition"
                                 :title="$t('contacts.scan_qr')"
                                 @click="openScannerDialog"
                             >
@@ -1060,18 +1060,18 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .glass-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-sem-border rounded-2xl shadow-xs p-4;
+    @apply bg-sem-glass backdrop-blur-sm border border-sem-border rounded-2xl shadow-xs p-4;
 }
 
 .input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-900/80 border border-sem-border text-sm rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-sem-surface border border-sem-border text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-accent block w-full p-2.5 text-sem-fg transition;
 }
 
 .primary-chip {
-    @apply inline-flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-semibold transition disabled:opacity-60;
+    @apply inline-flex items-center gap-1 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text px-3 py-2 text-xs font-semibold transition disabled:opacity-60;
 }
 
 .secondary-chip {
-    @apply inline-flex items-center gap-1 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 hover:bg-sem-surface-muted text-sem-fg-secondary px-3 py-2 text-xs font-semibold transition;
+    @apply inline-flex items-center gap-1 rounded-xl bg-sem-surface-muted hover:bg-sem-surface-raised text-sem-fg-secondary px-3 py-2 text-xs font-semibold transition;
 }
 </style>

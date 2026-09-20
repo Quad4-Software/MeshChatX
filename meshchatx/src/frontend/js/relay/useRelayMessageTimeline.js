@@ -44,9 +44,12 @@ export function useRelayMessageTimeline(options = {}) {
         reloadLatest,
         excludeMessage,
         decorateMessages,
+        buildTimelineOptions,
         onScrollState,
         t,
     } = options;
+
+    const getTimelineOptions = () => (typeof buildTimelineOptions === "function" ? buildTimelineOptions() : {});
 
     const messages = ref([]);
     const messageTimelineCache = ref(null);
@@ -64,7 +67,7 @@ export function useRelayMessageTimeline(options = {}) {
         if (messageTimelineCache.value !== null) {
             return messageTimelineCache.value;
         }
-        return buildRelayMessageTimeline(messages.value);
+        return buildRelayMessageTimeline(messages.value, getTimelineOptions());
     });
 
     const messageKeySet = computed(() => {
@@ -99,7 +102,7 @@ export function useRelayMessageTimeline(options = {}) {
             }
             const sig = relayMessageTimelineSignature(msgs);
             if (messageTimelineCache.value === null || messageTimelineCacheSignature.value !== sig) {
-                messageTimelineCache.value = buildRelayMessageTimeline(msgs);
+                messageTimelineCache.value = buildRelayMessageTimeline(msgs, getTimelineOptions());
                 messageTimelineCacheSignature.value = sig;
             }
         },

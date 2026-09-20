@@ -46,79 +46,85 @@
                     <div
                         v-if="showPublishMenu"
                         v-click-outside="() => (showPublishMenu = false)"
-                        class="absolute right-0 top-full mt-1 w-72 bg-sem-surface rounded-xl shadow-xl border border-sem-border z-50 py-2"
+                        class="absolute right-0 top-full mt-1 w-72 z-50"
                     >
-                        <div class="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-sem-fg-muted">
-                            {{ $t("tools.micron_editor.publish_to_mesh_server") }}
-                        </div>
-                        <div v-if="pageNodes.length === 0" class="px-3 py-2 text-xs text-sem-fg-muted space-y-2">
-                            <div>{{ $t("tools.micron_editor.publish_no_servers") }}</div>
-                            <button
-                                type="button"
-                                class="w-full text-left rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
-                                :disabled="publishBusy"
-                                @click="createMeshServerAndPublish"
-                            >
-                                {{ $t("tools.micron_editor.publish_create_and_publish") }}
-                            </button>
-                            <router-link
-                                to="/mesh-server"
-                                class="inline-block text-sem-accent hover:underline"
-                                @click="showPublishMenu = false"
-                            >
-                                {{ $t("tools.micron_editor.publish_manage_servers") }}
-                            </router-link>
-                        </div>
-                        <template v-else>
-                            <button
-                                v-for="pn in pageNodes"
-                                :key="pn.node_id"
-                                type="button"
-                                class="w-full text-left px-3 py-2 text-sm hover:bg-sem-surface-muted flex items-center gap-2 transition-colors disabled:opacity-50"
-                                :disabled="publishBusy"
-                                @click="publishToNode(pn)"
-                            >
-                                <div
-                                    class="w-2 h-2 rounded-full shrink-0"
-                                    :class="pn.running ? 'bg-sem-success' : 'bg-sem-fg-muted'"
-                                ></div>
-                                <span class="truncate text-sem-fg">{{ pn.name }}</span>
-                                <span v-if="!pn.running" class="ml-auto text-[10px] text-sem-fg-muted shrink-0">{{
-                                    $t("tools.micron_editor.publish_will_start")
-                                }}</span>
-                            </button>
-                            <div class="border-t border-sem-border mt-1 pt-1">
+                        <div
+                            class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                            aria-hidden="true"
+                        ></div>
+                        <div class="bg-sem-surface rounded-xl shadow-xl border border-sem-border py-2">
+                            <div class="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-sem-fg-muted">
+                                {{ $t("tools.micron_editor.publish_to_mesh_server") }}
+                            </div>
+                            <div v-if="pageNodes.length === 0" class="px-3 py-2 text-xs text-sem-fg-muted space-y-2">
+                                <div>{{ $t("tools.micron_editor.publish_no_servers") }}</div>
                                 <button
                                     type="button"
-                                    class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                                    class="w-full text-left rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
                                     :disabled="publishBusy"
                                     @click="createMeshServerAndPublish"
                                 >
                                     {{ $t("tools.micron_editor.publish_create_and_publish") }}
                                 </button>
+                                <router-link
+                                    to="/mesh-server"
+                                    class="inline-block text-sem-accent hover:underline"
+                                    @click="showPublishMenu = false"
+                                >
+                                    {{ $t("tools.micron_editor.publish_manage_servers") }}
+                                </router-link>
+                            </div>
+                            <template v-else>
+                                <button
+                                    v-for="pn in pageNodes"
+                                    :key="pn.node_id"
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 text-sm hover:bg-sem-surface-muted flex items-center gap-2 transition-colors disabled:opacity-50"
+                                    :disabled="publishBusy"
+                                    @click="publishToNode(pn)"
+                                >
+                                    <div
+                                        class="w-2 h-2 rounded-full shrink-0"
+                                        :class="pn.running ? 'bg-sem-success' : 'bg-sem-fg-muted'"
+                                    ></div>
+                                    <span class="truncate text-sem-fg">{{ pn.name }}</span>
+                                    <span v-if="!pn.running" class="ml-auto text-[10px] text-sem-fg-muted shrink-0">{{
+                                        $t("tools.micron_editor.publish_will_start")
+                                    }}</span>
+                                </button>
+                                <div class="border-t border-sem-border mt-1 pt-1">
+                                    <button
+                                        type="button"
+                                        class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                                        :disabled="publishBusy"
+                                        @click="createMeshServerAndPublish"
+                                    >
+                                        {{ $t("tools.micron_editor.publish_create_and_publish") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                                        :disabled="publishBusy"
+                                        @click="openPublishSite"
+                                    >
+                                        {{ $t("tools.micron_editor.publish_site") }}
+                                    </button>
+                                </div>
+                            </template>
+                            <div v-if="lastPublished?.destinationHash" class="border-t border-sem-border mt-1 pt-1">
                                 <button
                                     type="button"
-                                    class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
-                                    :disabled="publishBusy"
-                                    @click="openPublishSite"
+                                    class="w-full text-left px-3 py-2 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-sem-surface-muted transition-colors flex items-center gap-2"
+                                    @click="openPublishedInNomadNet"
                                 >
-                                    {{ $t("tools.micron_editor.publish_site") }}
+                                    <MaterialDesignIcon icon-name="web" class="w-3.5 h-3.5" />
+                                    <span class="truncate">{{
+                                        $t("tools.micron_editor.publish_open_in_nomadnet", {
+                                            page: lastPublished.pageName,
+                                        })
+                                    }}</span>
                                 </button>
                             </div>
-                        </template>
-                        <div v-if="lastPublished?.destinationHash" class="border-t border-sem-border mt-1 pt-1">
-                            <button
-                                type="button"
-                                class="w-full text-left px-3 py-2 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-sem-surface-muted transition-colors flex items-center gap-2"
-                                @click="openPublishedInNomadNet"
-                            >
-                                <MaterialDesignIcon icon-name="web" class="w-3.5 h-3.5" />
-                                <span class="truncate">{{
-                                    $t("tools.micron_editor.publish_open_in_nomadnet", {
-                                        page: lastPublished.pageName,
-                                    })
-                                }}</span>
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -264,6 +270,7 @@ import MicronParser from "../../js/MicronParser.js";
 import { micronStorage } from "../../js/MicronStorage";
 import { preloadNomadMicronWasm, isMicronWasmBundled } from "../../js/MicronWasmLoader";
 import DialogUtils from "../../js/DialogUtils";
+import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
 import LinkUtils from "../../js/LinkUtils.js";
 import Utils from "../../js/Utils";
@@ -1494,14 +1501,8 @@ ${b}=
         downloadFile() {
             const content = this.tabs[this.activeTabIndex].content;
             const blob = new Blob([content], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${this.tabs[this.activeTabIndex].name.replace(/\s+/g, "_")}.mu`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const name = `${this.tabs[this.activeTabIndex].name.replace(/\s+/g, "_")}.mu`;
+            DownloadUtils.downloadFile(name, blob);
         },
     },
 };

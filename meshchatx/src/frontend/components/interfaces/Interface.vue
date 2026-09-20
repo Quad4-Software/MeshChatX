@@ -5,18 +5,18 @@
         class="interface-card min-w-0 transition-all duration-300"
         :class="{
             'opacity-60 grayscale-[0.5]': !isInterfaceEnabled(iface) || iface._restart_required || !isReticulumRunning,
-            'border-amber-500 ring-amber-500 ring-2':
+            'border-sem-warning ring-sem-warning ring-2':
                 iface._restart_required && showRestartBanner && isReticulumRunning,
         }"
     >
-        <div class="flex flex-col sm:flex-row gap-4 sm:items-start relative pt-11 sm:pt-0">
+        <div class="relative">
             <!-- Offline Overlay -->
             <div
                 v-if="!isReticulumRunning"
-                class="absolute inset-0 z-10 flex items-center justify-center bg-white/20 dark:bg-zinc-900/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
+                class="absolute inset-0 z-10 flex items-center justify-center bg-sem-surface/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
             >
                 <div
-                    class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+                    class="bg-sem-danger/90 text-sem-action-danger-text px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                 >
                     <MaterialDesignIcon icon-name="lan-disconnect" class="w-3.5 h-3.5" />
                     <span>Reticulum Offline</span>
@@ -26,17 +26,17 @@
             <!-- Restart Required Overlay -->
             <div
                 v-if="isReticulumRunning && iface._restart_required"
-                class="absolute inset-0 z-10 flex items-center justify-center bg-white/20 dark:bg-zinc-900/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
+                class="absolute inset-0 z-10 flex items-center justify-center bg-sem-surface/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
             >
                 <div
-                    class="bg-amber-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+                    class="bg-sem-warning/90 text-sem-action-warning-text px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                 >
                     <MaterialDesignIcon icon-name="restart" class="w-3.5 h-3.5" />
                     <span>{{ $t("interfaces.restart_required") }}</span>
                 </div>
             </div>
 
-            <div class="flex gap-4 min-w-0 flex-1 sm:flex-initial">
+            <div class="flex gap-4 min-w-0 items-start">
                 <div class="interface-card__icon shrink-0">
                     <MaterialDesignIcon :icon-name="iconName" class="w-6 h-6" />
                 </div>
@@ -81,12 +81,12 @@
                         >
                     </div>
                     <div v-if="iface._stats?.ifac_signature" class="ifac-line">
-                        <span class="text-emerald-500 font-semibold">{{ iface._stats.ifac_size * 8 }}-bit IFAC</span>
+                        <span class="text-sem-success font-semibold">{{ iface._stats.ifac_size * 8 }}-bit IFAC</span>
                         <span v-if="iface._stats?.ifac_netname">• {{ iface._stats.ifac_netname }}</span>
                         <span>•</span>
                         <button
                             type="button"
-                            class="text-blue-500 hover:underline"
+                            class="text-sem-accent hover:underline"
                             @click="onIFACSignatureClick(iface._stats.ifac_signature)"
                         >
                             <span class="font-mono">{{ iface._stats.ifac_signature.slice(0, 8) }}</span
@@ -94,61 +94,63 @@
                         </button>
                     </div>
                 </div>
-            </div>
-            <div
-                class="absolute top-0 right-0 z-20 flex flex-row items-center gap-1 sm:static sm:z-auto sm:ml-auto sm:flex sm:flex-row sm:gap-2 sm:items-center sm:shrink-0 sm:justify-end"
-            >
-                <button
-                    v-if="isInterfaceEnabled(iface)"
-                    type="button"
-                    class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                    :title="$t('interface.disable')"
-                    @click="disableInterface"
-                >
-                    <MaterialDesignIcon icon-name="power" class="w-5 h-5 sm:w-4 sm:h-4" />
-                    <span class="hidden sm:inline sm:ml-1.5 text-xs font-semibold">{{ $t("interface.disable") }}</span>
-                </button>
-                <button
-                    v-else
-                    type="button"
-                    class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-green-600 dark:text-green-400 hover:bg-sem-surface-muted transition-colors"
-                    :title="$t('interface.enable')"
-                    @click="enableInterface"
-                >
-                    <MaterialDesignIcon icon-name="power" class="w-5 h-5 sm:w-4 sm:h-4" />
-                    <span class="hidden sm:inline sm:ml-1.5 text-xs font-semibold">{{ $t("interface.enable") }}</span>
-                </button>
-                <div class="relative z-50 shrink-0">
-                    <DropDownMenu>
-                        <template #button>
-                            <IconButton>
-                                <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
-                            </IconButton>
-                        </template>
-                        <template #items>
-                            <div class="max-h-60 overflow-auto py-1 space-y-1">
-                                <DropDownMenuItem @click="editInterface">
-                                    <MaterialDesignIcon icon-name="pencil" class="w-5 h-5" />
-                                    <span>{{ $t("interface.edit_interface") }}</span>
-                                </DropDownMenuItem>
-                                <DropDownMenuItem @click="exportInterface">
-                                    <MaterialDesignIcon icon-name="export" class="w-5 h-5" />
-                                    <span>{{ $t("interface.export_interface") }}</span>
-                                </DropDownMenuItem>
-                                <DropDownMenuItem @click="deleteInterface">
-                                    <MaterialDesignIcon icon-name="trash-can" class="w-5 h-5 text-red-500" />
-                                    <span class="text-red-500">{{ $t("interface.delete_interface") }}</span>
-                                </DropDownMenuItem>
-                            </div>
-                        </template>
-                    </DropDownMenu>
+                <div class="z-20 flex shrink-0 flex-row items-start gap-1 sm:items-center sm:gap-2">
+                    <button
+                        v-if="isInterfaceEnabled(iface)"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                        :title="$t('interface.disable')"
+                        @click="disableInterface"
+                    >
+                        <MaterialDesignIcon icon-name="power" class="w-5 h-5 sm:w-4 sm:h-4" />
+                        <span class="hidden sm:inline sm:ml-1.5 text-xs font-semibold">{{
+                            $t("interface.disable")
+                        }}</span>
+                    </button>
+                    <button
+                        v-else
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-sem-success hover:bg-sem-surface-muted transition-colors"
+                        :title="$t('interface.enable')"
+                        @click="enableInterface"
+                    >
+                        <MaterialDesignIcon icon-name="power" class="w-5 h-5 sm:w-4 sm:h-4" />
+                        <span class="hidden sm:inline sm:ml-1.5 text-xs font-semibold">{{
+                            $t("interface.enable")
+                        }}</span>
+                    </button>
+                    <div class="relative z-50 shrink-0">
+                        <DropDownMenu>
+                            <template #button>
+                                <IconButton>
+                                    <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
+                                </IconButton>
+                            </template>
+                            <template #items>
+                                <div class="max-h-60 overflow-auto py-1 space-y-1">
+                                    <DropDownMenuItem @click="editInterface">
+                                        <MaterialDesignIcon icon-name="pencil" class="w-5 h-5" />
+                                        <span>{{ $t("interface.edit_interface") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem @click="exportInterface">
+                                        <MaterialDesignIcon icon-name="export" class="w-5 h-5" />
+                                        <span>{{ $t("interface.export_interface") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem @click="deleteInterface">
+                                        <MaterialDesignIcon icon-name="trash-can" class="w-5 h-5 text-sem-danger" />
+                                        <span class="text-sem-danger">{{ $t("interface.delete_interface") }}</span>
+                                    </DropDownMenuItem>
+                                </div>
+                            </template>
+                        </DropDownMenu>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div
             v-if="['UDPInterface', 'RNodeInterface'].includes(iface.type)"
-            class="mt-4 grid gap-2 text-sm text-gray-700 dark:text-gray-300"
+            class="mt-4 grid gap-2 text-sm text-sem-fg-secondary"
         >
             <div v-if="iface.type === 'UDPInterface'" class="detail-grid">
                 <div>
@@ -299,8 +301,8 @@ export default {
         },
         statusChipClass() {
             return this.isInterfaceEnabled(this.iface)
-                ? "inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-semibold"
-                : "inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-semibold";
+                ? "inline-flex items-center rounded-full bg-sem-success/15 text-sem-success px-2 py-0.5 text-xs font-semibold"
+                : "inline-flex items-center rounded-full bg-sem-danger/15 text-sem-danger px-2 py-0.5 text-xs font-semibold";
         },
         ifaceLinkStatusKey() {
             const v = this.normalizedIfaceLinkUp;
@@ -317,12 +319,12 @@ export default {
         ifaceLinkStatusChipClass() {
             const key = this.ifaceLinkStatusKey;
             if (key === "up") {
-                return "inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/45 dark:text-emerald-100 px-2 py-0.5 text-xs font-semibold";
+                return "inline-flex items-center rounded-full bg-sem-success/15 text-sem-success px-2 py-0.5 text-xs font-semibold";
             }
             if (key === "down") {
-                return "inline-flex items-center rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100 px-2 py-0.5 text-xs font-semibold";
+                return "inline-flex items-center rounded-full bg-sem-warning/15 text-sem-warning px-2 py-0.5 text-xs font-semibold";
             }
-            return "inline-flex items-center rounded-full bg-gray-100 text-gray-700 dark:bg-zinc-800 text-sem-fg-muted px-2 py-0.5 text-xs font-semibold";
+            return "inline-flex items-center rounded-full bg-sem-surface-muted text-sem-fg-muted px-2 py-0.5 text-xs font-semibold";
         },
         normalizedIfaceLinkUp() {
             if (!this.isReticulumRunning || !this.isInterfaceEnabled(this.iface)) {
@@ -414,26 +416,26 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .interface-card {
-    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-sem-border rounded-3xl shadow-lg p-4 space-y-3 hover:z-10 min-w-0;
+    @apply relative bg-sem-surface/90 backdrop-blur-sm border border-sem-border rounded-3xl shadow-lg p-4 space-y-3 hover:z-10 min-w-0;
     overflow: visible;
 }
 .interface-card__icon {
-    @apply w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-200 flex items-center justify-center;
+    @apply w-12 h-12 rounded-2xl bg-sem-accent/10 text-sem-accent flex items-center justify-center;
 }
 .type-chip {
-    @apply inline-flex items-center rounded-full bg-sem-surface-muted px-2 py-0.5 text-xs font-semibold text-gray-600 dark:text-gray-200;
+    @apply inline-flex items-center rounded-full bg-sem-surface-muted px-2 py-0.5 text-xs font-semibold text-sem-fg-secondary;
 }
 .stat-chip {
     @apply inline-flex items-center rounded-full border border-sem-border px-2 py-0.5;
 }
 .stat-chip--zero-traffic {
-    @apply border-red-400 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/50 dark:text-red-200 font-semibold;
+    @apply border-sem-danger/60 bg-sem-danger/10 text-sem-danger font-semibold;
 }
 .ifac-line {
     @apply text-xs flex flex-wrap items-center gap-1;
 }
 .discoverable-chip {
-    @apply inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-xs font-semibold dark:bg-blue-900/50 dark:text-blue-200;
+    @apply inline-flex items-center rounded-full bg-sem-info/15 text-sem-info px-2 py-0.5 text-xs font-semibold;
 }
 .detail-grid {
     @apply grid gap-3 sm:grid-cols-2;

@@ -74,6 +74,11 @@ export const MESHCHAT_THEME_VARIABLES_LIGHT = {
     "--mc-success": "#16a34a",
     "--mc-warning": "#f97316",
     "--mc-error": "#dc2626",
+    "--mc-bubble-outbound": "#0284c7",
+    "--mc-bubble-failed": "#dc2626",
+    "--mc-bubble-failed-text": "#ffffff",
+    "--mc-bubble-waiting": "#e5e7eb",
+    "--mc-bubble-waiting-text": "#1f2937",
 };
 
 /** @type {Record<string, string>} */
@@ -144,6 +149,11 @@ export const MESHCHAT_THEME_VARIABLES_DARK = {
     "--mc-success": "#34d399",
     "--mc-warning": "#fb923c",
     "--mc-error": "#f87171",
+    "--mc-bubble-outbound": "#38bdf8",
+    "--mc-bubble-failed": "#f87171",
+    "--mc-bubble-failed-text": "#18181b",
+    "--mc-bubble-waiting": "#3f3f46",
+    "--mc-bubble-waiting-text": "#e4e4e7",
 };
 
 /**
@@ -186,6 +196,11 @@ export function tailwindSemanticColorExtend() {
         success: "var(--mc-success)",
         warning: "var(--mc-warning)",
         danger: "var(--mc-error)",
+        "bubble-outbound": "var(--mc-bubble-outbound)",
+        "bubble-failed": "var(--mc-bubble-failed)",
+        "bubble-failed-text": "var(--mc-bubble-failed-text)",
+        "bubble-waiting": "var(--mc-bubble-waiting)",
+        "bubble-waiting-text": "var(--mc-bubble-waiting-text)",
         "focus-border": "var(--mc-focus-border)",
         "file-input-bg": "var(--mc-file-input-bg)",
         "file-input-text": "var(--mc-file-input-text)",

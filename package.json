@@ -43,6 +43,7 @@
         "test:e2e:install": "playwright install chromium",
         "pretest:ui:pages": "playwright install chromium",
         "test:ui:pages": "playwright test --config playwright.ui.config.js tests/ui/pages.smoke.spec.js",
+        "test:ui:screenshots": "playwright test --config playwright.screenshots.config.js",
         "test:ui:lighthouse": "playwright test --config playwright.lighthouse.config.js",
         "test:ui:lighthouse:ci": "MESHCHAT_UI_CI=1 playwright test --config playwright.lighthouse.config.js",
         "test:ui:all": "playwright test --config playwright.ui.config.js",

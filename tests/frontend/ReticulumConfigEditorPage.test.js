@@ -192,4 +192,95 @@ describe("ReticulumConfigEditorPage.vue", () => {
         await flushPromises();
         expect(wrapper.vm.content).toBe("");
     });
+
+    it("loads versions when the versions panel is toggled", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions") {
+                return Promise.resolve({
+                    data: {
+                        versions: [
+                            {
+                                id: "20250101T000000-abcdef12",
+                                created_at: "2025-01-01T00:00:00Z",
+                                label: "before save",
+                                size: 120,
+                            },
+                        ],
+                    },
+                });
+            }
+            return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
+        });
+        const wrapper = mountPage();
+        await flushPromises();
+
+        expect(wrapper.vm.showVersions).toBe(false);
+        await wrapper.vm.toggleVersions();
+        await flushPromises();
+
+        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/reticulum/config/versions");
+        expect(wrapper.vm.versions).toHaveLength(1);
+        expect(wrapper.text()).toContain("before save");
+    });
+
+    it("previews a version into the editor without saving", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions") {
+                return Promise.resolve({
+                    data: { versions: [{ id: "v1", created_at: "", label: "x", size: 1 }] },
+                });
+            }
+            if (url === "/api/v1/reticulum/config/versions/v1") {
+                return Promise.resolve({ data: { version: { content: DEFAULT_CONFIG } } });
+            }
+            return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
+        });
+        const wrapper = mountPage();
+        await flushPromises();
+        await wrapper.vm.toggleVersions();
+        await flushPromises();
+
+        await wrapper.vm.previewVersion({ id: "v1" });
+        await flushPromises();
+
+        expect(wrapper.vm.content).toBe(DEFAULT_CONFIG);
+        expect(wrapper.vm.isDirty).toBe(true);
+        expect(axiosMock.put).not.toHaveBeenCalled();
+    });
+
+    it("restores a version after confirmation and marks restart pending", async () => {
+        DialogUtils.confirm.mockResolvedValue(true);
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions/v1/restore") {
+                return Promise.resolve({
+                    data: { message: "Reticulum config restored", content: DEFAULT_CONFIG, path: CONFIG_PATH },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await flushPromises();
+
+        await wrapper.vm.restoreVersion({ id: "v1" });
+        await flushPromises();
+
+        expect(DialogUtils.confirm).toHaveBeenCalled();
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1/restore");
+        expect(wrapper.vm.content).toBe(DEFAULT_CONFIG);
+        expect(wrapper.vm.isDirty).toBe(false);
+        expect(wrapper.vm.hasSavedChanges).toBe(true);
+        expect(useInterfaceChangesStore().hasPendingInterfaceChanges).toBe(true);
+    });
+
+    it("does not restore a version when the user cancels", async () => {
+        DialogUtils.confirm.mockResolvedValue(false);
+        const wrapper = mountPage();
+        await flushPromises();
+
+        await wrapper.vm.restoreVersion({ id: "v1" });
+        await flushPromises();
+
+        expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1/restore");
+        expect(wrapper.vm.content).toBe(SAMPLE_CONFIG);
+    });
 });
