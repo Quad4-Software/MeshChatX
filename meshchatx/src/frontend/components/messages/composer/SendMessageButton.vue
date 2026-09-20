@@ -105,56 +105,64 @@
             <div
                 v-if="isShowingMenu"
                 v-click-outside="hideMenu"
-                class="absolute bottom-full right-0 mb-1 z-10 rounded-xl bg-sem-surface shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden overflow-hidden min-w-[200px]"
+                class="absolute bottom-full right-0 mb-1 z-10 focus:outline-hidden"
             >
-                <div class="py-1">
-                    <button
-                        type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap border-b border-sem-border"
-                        @click="setDeliveryMethod(null)"
-                    >
-                        {{ $t("messages.send_automatically") }}
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                        @click="setDeliveryMethod('direct')"
-                    >
-                        {{ $t("messages.send_over_direct_link") }}
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                        @click="setDeliveryMethod('opportunistic')"
-                    >
-                        {{ $t("messages.send_opportunistically") }}
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                        @click="setDeliveryMethod('propagated')"
-                    >
-                        {{ $t("messages.send_to_propagation_node") }}
-                    </button>
-                    <div class="border-t border-sem-border text-[11px] font-medium text-sem-fg-muted px-4 pt-2 pb-1">
-                        {{ $t("messages.send_menu_more_label") }}
+                <div
+                    class="dropdown-caret pointer-events-none absolute -bottom-[4px] right-4 border-b border-r border-sem-border"
+                    aria-hidden="true"
+                ></div>
+                <div class="rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border overflow-hidden min-w-[200px]">
+                    <div class="py-1">
+                        <button
+                            type="button"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap border-b border-sem-border"
+                            @click="setDeliveryMethod(null)"
+                        >
+                            {{ $t("messages.send_automatically") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
+                            @click="setDeliveryMethod('direct')"
+                        >
+                            {{ $t("messages.send_over_direct_link") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
+                            @click="setDeliveryMethod('opportunistic')"
+                        >
+                            {{ $t("messages.send_opportunistically") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
+                            @click="setDeliveryMethod('propagated')"
+                        >
+                            {{ $t("messages.send_to_propagation_node") }}
+                        </button>
+                        <div
+                            class="border-t border-sem-border text-[11px] font-medium text-sem-fg-muted px-4 pt-2 pb-1"
+                        >
+                            {{ $t("messages.send_menu_more_label") }}
+                        </div>
+                        <button
+                            type="button"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
+                            :disabled="!canOpenSendMenu"
+                            @click="emitCommandOrRequest"
+                        >
+                            {{ $t("messages.send_menu_telemetry_request") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
+                            :disabled="!canSendMessage"
+                            @click="emitPaperCompose"
+                        >
+                            {{ $t("messages.send_menu_paper_compose") }}
+                        </button>
                     </div>
-                    <button
-                        type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                        :disabled="!canOpenSendMenu"
-                        @click="emitCommandOrRequest"
-                    >
-                        {{ $t("messages.send_menu_telemetry_request") }}
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                        :disabled="!canSendMessage"
-                        @click="emitPaperCompose"
-                    >
-                        {{ $t("messages.send_menu_paper_compose") }}
-                    </button>
                 </div>
             </div>
         </Transition>
