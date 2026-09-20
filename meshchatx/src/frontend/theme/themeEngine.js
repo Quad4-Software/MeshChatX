@@ -224,6 +224,7 @@ export const THEME_PRESETS = {
     },
     high_contrast: {
         light: {
+            "--mc-bubble-failed": "#b91c1c",
             "--mc-text": "#000000",
             "--mc-text-secondary": "#000000",
             "--mc-text-muted": "#374151",
@@ -232,6 +233,7 @@ export const THEME_PRESETS = {
             "--mc-border-strong": "#000000",
         },
         dark: {
+            "--mc-bubble-failed": "#ff5252",
             "--mc-text": "#ffffff",
             "--mc-text-secondary": "#ffffff",
             "--mc-text-muted": "#d4d4d8",
@@ -261,6 +263,7 @@ export const THEME_PRESETS = {
     },
     solarized: {
         light: {
+            "--mc-bubble-failed": "#dc322f",
             "--mc-canvas": "#fdf6e3",
             "--mc-surface": "#eee8d5",
             "--mc-border": "#93a1a1",
@@ -273,6 +276,7 @@ export const THEME_PRESETS = {
             "--mc-action-primary-hover": "#2aa198",
         },
         dark: {
+            "--mc-bubble-failed": "#dc322f",
             "--mc-canvas": "#002b36",
             "--mc-surface": "#073642",
             "--mc-border": "#586e75",
@@ -287,6 +291,7 @@ export const THEME_PRESETS = {
     },
     nord: {
         light: {
+            "--mc-bubble-failed": "#bf616a",
             "--mc-canvas": "#eceff4",
             "--mc-surface": "#e5e9f0",
             "--mc-border": "#d8dee9",
@@ -300,6 +305,7 @@ export const THEME_PRESETS = {
             "--mc-action-primary-hover": "#81a1c1",
         },
         dark: {
+            "--mc-bubble-failed": "#bf616a",
             "--mc-canvas": "#2e3440",
             "--mc-surface": "#3b4252",
             "--mc-border": "#4c566a",
@@ -316,6 +322,7 @@ export const THEME_PRESETS = {
     },
     gruvbox: {
         light: {
+            "--mc-bubble-failed": "#cc241d",
             "--mc-canvas": "#fbf1c7",
             "--mc-surface": "#ebdbb2",
             "--mc-border": "#d5c4a1",
@@ -329,6 +336,7 @@ export const THEME_PRESETS = {
             "--mc-action-primary-hover": "#076678",
         },
         dark: {
+            "--mc-bubble-failed": "#fb4934",
             "--mc-canvas": "#282828",
             "--mc-surface": "#3c3836",
             "--mc-border": "#504945",
@@ -345,6 +353,7 @@ export const THEME_PRESETS = {
     },
     catppuccin: {
         light: {
+            "--mc-bubble-failed": "#d20f39",
             "--mc-canvas": "#eff1f5",
             "--mc-surface": "#e6e9ef",
             "--mc-border": "#ccd0da",
@@ -358,6 +367,7 @@ export const THEME_PRESETS = {
             "--mc-action-primary-hover": "#0284c7",
         },
         dark: {
+            "--mc-bubble-failed": "#f38ba8",
             "--mc-canvas": "#1e1e2e",
             "--mc-surface": "#313244",
             "--mc-border": "#45475a",
@@ -374,6 +384,7 @@ export const THEME_PRESETS = {
     },
     dracula: {
         light: {
+            "--mc-bubble-failed": "#ff5555",
             "--mc-canvas": "#f8f8f2",
             "--mc-surface": "#ffffff",
             "--mc-border": "#e2e2dc",
@@ -387,6 +398,7 @@ export const THEME_PRESETS = {
             "--mc-action-primary-hover": "#6c5ce7",
         },
         dark: {
+            "--mc-bubble-failed": "#ff5555",
             "--mc-canvas": "#282a36",
             "--mc-surface": "#44475a",
             "--mc-border": "#6272a4",
@@ -403,6 +415,7 @@ export const THEME_PRESETS = {
     },
     rose_pine: {
         light: {
+            "--mc-bubble-failed": "#b4637a",
             "--mc-canvas": "#faf4ed",
             "--mc-surface": "#fffaf3",
             "--mc-border": "#dfdad9",
@@ -416,6 +429,7 @@ export const THEME_PRESETS = {
             "--mc-action-primary-hover": "#56949f",
         },
         dark: {
+            "--mc-bubble-failed": "#eb6f92",
             "--mc-canvas": "#191724",
             "--mc-surface": "#1f1d2e",
             "--mc-border": "#403d52",
@@ -519,6 +533,7 @@ export const THEME_PRESETS = {
     },
     tokyo: {
         light: {
+            "--mc-bubble-failed": "#f52a65",
             "--mc-canvas": "#e6e7ea",
             "--mc-surface": "#d5d6db",
             "--mc-border": "#c0c2ca",
@@ -532,6 +547,7 @@ export const THEME_PRESETS = {
             "--mc-action-primary-hover": "#188092",
         },
         dark: {
+            "--mc-bubble-failed": "#f7768e",
             "--mc-canvas": "#1a1b26",
             "--mc-surface": "#24283b",
             "--mc-border": "#414868",
@@ -548,6 +564,7 @@ export const THEME_PRESETS = {
     },
     atom_one: {
         light: {
+            "--mc-bubble-failed": "#e45649",
             "--mc-canvas": "#fafafa",
             "--mc-surface": "#ffffff",
             "--mc-border": "#e5e5e6",
@@ -561,6 +578,7 @@ export const THEME_PRESETS = {
             "--mc-action-primary-hover": "#0184bc",
         },
         dark: {
+            "--mc-bubble-failed": "#e06c75",
             "--mc-canvas": "#282c34",
             "--mc-surface": "#21252b",
             "--mc-border": "#3e4451",
@@ -577,6 +595,7 @@ export const THEME_PRESETS = {
     },
     neo_brutalist: {
         light: {
+            "--mc-bubble-failed": "#ff5252",
             "--mc-canvas": "#f7f7f5",
             "--mc-surface": "#fafafa",
             "--mc-border": "#464b54",
@@ -594,6 +613,7 @@ export const THEME_PRESETS = {
             "--mc-address-action-hover-border": "#8080c0",
         },
         dark: {
+            "--mc-bubble-failed": "#ff6b6b",
             "--mc-canvas": "#18191b",
             "--mc-surface": "#222428",
             "--mc-border": "#464b54",
@@ -683,6 +703,27 @@ export function buildThemeVariableOverrides(config, effectiveMode) {
     const accent = normalizeOptionalHexColor(config?.accent_color);
     if (accent) {
         Object.assign(overrides, accentDerivativeVars(accent, effectiveMode === "dark"));
+    }
+
+    const base = effectiveMode === "dark" ? MESHCHAT_THEME_VARIABLES_DARK : MESHCHAT_THEME_VARIABLES_LIGHT;
+    const resolved = { ...base, ...overrides };
+
+    // Message bubble colors follow the theme unless the preset sets its own.
+    if (overrides["--mc-bubble-outbound"] == null) {
+        overrides["--mc-bubble-outbound"] = overrides["--mc-accent"] ?? resolved["--mc-info"];
+    }
+    if (overrides["--mc-bubble-failed"] == null) {
+        overrides["--mc-bubble-failed"] = resolved["--mc-error"];
+    }
+    if (overrides["--mc-bubble-failed-text"] == null) {
+        overrides["--mc-bubble-failed-text"] = actionTextForFill(overrides["--mc-bubble-failed"]);
+    }
+    if (overrides["--mc-bubble-waiting"] == null) {
+        const isDark = effectiveMode === "dark";
+        overrides["--mc-bubble-waiting"] = mixHex(resolved["--mc-canvas"], resolved["--mc-text"], isDark ? 0.25 : 0.08);
+    }
+    if (overrides["--mc-bubble-waiting-text"] == null) {
+        overrides["--mc-bubble-waiting-text"] = resolved["--mc-text"];
     }
 
     return overrides;
