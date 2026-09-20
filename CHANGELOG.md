@@ -27,6 +27,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Windows desktop: the AppContainer child no longer dies at loader init (0xC0000142) when the LPAC token lacks window station access. A failed sandbox still falls back to an unsandboxed backend in auto mode.
+- Desktop: a crashed renderer now offers relaunch, relaunch without GPU acceleration, or quit instead of leaving a dead window. Crash minidumps are kept locally under the Crashpad folder, and GPU process deaths are logged.
 - Packaged builds: `.gitkeep` placeholders are no longer hashed into `backend-manifest.json`, so a dropped marker cannot block onboarding.
 - Relay chat: hosted hub announce intervals show hours and days, and accept values like "6h" or "1d".
 - Messages: reopening a conversation no longer shows a stale first page that misses messages sent while the pane was closed.
