@@ -64,6 +64,7 @@ All notable changes to this project will be documented in this file.
 - Popup menus show a caret pointing back at the button that opened them.
 - Mobile shows one toast at a time, and settings sections collapse to icon buttons on small screens.
 - Service worker: HEAD probes on hashed assets no longer reject the fetch, fixing the emoji picker data load.
+- Windows: the AppContainer backend sandbox is off by default again after loader-init crashes on some systems. Set MESHCHAT_APPCONTAINER=1 to require it, or auto to enable it with an unsandboxed fallback.
 
 ### Changed
 
