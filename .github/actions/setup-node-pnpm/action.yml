@@ -24,6 +24,15 @@ runs:
           with:
               node-version: ${{ inputs.node-version }}
 
+        - name: Cache corepack downloads
+          uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+          with:
+              path: |
+                  ~/.cache/node/corepack
+                  ~/Library/Caches/node/corepack
+                  ~/AppData/Local/node/corepack
+              key: corepack-${{ runner.os }}-${{ inputs.node-version }}-pnpm-${{ inputs.pnpm-version }}
+
         - name: Enable pnpm (corepack)
           shell: bash
           run: |
