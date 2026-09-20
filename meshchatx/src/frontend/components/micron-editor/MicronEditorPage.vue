@@ -264,6 +264,7 @@ import MicronParser from "../../js/MicronParser.js";
 import { micronStorage } from "../../js/MicronStorage";
 import { preloadNomadMicronWasm, isMicronWasmBundled } from "../../js/MicronWasmLoader";
 import DialogUtils from "../../js/DialogUtils";
+import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
 import LinkUtils from "../../js/LinkUtils.js";
 import Utils from "../../js/Utils";
@@ -1494,14 +1495,8 @@ ${b}=
         downloadFile() {
             const content = this.tabs[this.activeTabIndex].content;
             const blob = new Blob([content], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${this.tabs[this.activeTabIndex].name.replace(/\s+/g, "_")}.mu`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const name = `${this.tabs[this.activeTabIndex].name.replace(/\s+/g, "_")}.mu`;
+            DownloadUtils.downloadFile(name, blob);
         },
     },
 };

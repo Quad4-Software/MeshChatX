@@ -5,8 +5,6 @@ import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -22,7 +20,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.content.IntentFilter;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
@@ -62,10 +59,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -653,6 +648,9 @@ public class MainActivity extends AppCompatActivity {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             addIfMissing(missingPermissions, Manifest.permission.POST_NOTIFICATIONS);
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            addIfMissing(missingPermissions, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
         if (!missingPermissions.isEmpty()) {
             for (String permission : missingPermissions) {
@@ -1476,6 +1474,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchAndPersistWebViewDownload(String url, String fileName) {
+        Context appContext = getApplicationContext();
+        String notifId = "webview:" + fileName;
+        String wakeTag = "webview-dl:" + fileName;
+        MeshChatWakeLock.acquire(appContext, wakeTag);
+        File tempFile = null;
         try {
             Request.Builder builder = new Request.Builder().url(url);
             String cookie = CookieManager.getInstance().getCookie(url);
@@ -1484,80 +1487,55 @@ public class MainActivity extends AppCompatActivity {
             }
             try (Response response = LocalhostTrustOkHttpClient.get().newCall(builder.build()).execute()) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    runOnUiThread(
-                        () ->
-                            Toast.makeText(
-                                this,
-                                "Download failed: HTTP " + response.code(),
-                                Toast.LENGTH_LONG
-                            ).show()
-                    );
+                    DownloadNotifications.showFailed(appContext, notifId, fileName);
+                    showDownloadToast("Download failed: HTTP " + response.code());
                     return;
                 }
-                byte[] data = response.body().bytes();
-                runOnUiThread(
-                    () -> {
-                        try {
-                            persistMeshchatDownload(fileName, data);
-                        } catch (IOException e) {
-                            Toast.makeText(
-                                this,
-                                "Save failed: " + e.getMessage(),
-                                Toast.LENGTH_LONG
-                            ).show();
+                DownloadNotifications.showProgress(appContext, notifId, fileName, 0);
+                long total = response.body().contentLength();
+                tempFile = File.createTempFile("mcx-webview-", ".part", appContext.getCacheDir());
+                try (java.io.InputStream in = response.body().byteStream();
+                     FileOutputStream out = new FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[64 * 1024];
+                    long written = 0;
+                    int lastPercent = 0;
+                    int read;
+                    while ((read = in.read(buffer)) >= 0) {
+                        out.write(buffer, 0, read);
+                        written += read;
+                        if (total > 0) {
+                            int percent = (int) (written * 100 / total);
+                            if (percent != lastPercent) {
+                                lastPercent = percent;
+                                DownloadNotifications.showProgress(appContext, notifId, fileName, percent);
+                            }
                         }
                     }
-                );
+                }
+                Uri saved = MeshchatDownloads.persist(appContext, fileName, tempFile);
+                DownloadNotifications.showFinished(appContext, notifId, fileName, saved);
+                showDownloadToast(getString(R.string.download_saved_meshchatx, fileName));
             }
         } catch (Exception e) {
-            runOnUiThread(
-                () -> Toast.makeText(this, "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
-            );
+            DownloadNotifications.showFailed(appContext, notifId, fileName);
+            showDownloadToast("Download failed: " + e.getMessage());
+        } finally {
+            if (tempFile != null) {
+                tempFile.delete();
+            }
+            MeshChatWakeLock.release(wakeTag);
         }
     }
 
-    void persistMeshchatDownload(String fileName, byte[] data) throws IOException {
-        String safe = MeshchatDownloadUtils.sanitizeFileName(fileName);
-        ContentResolver resolver = getContentResolver();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.MediaColumns.DISPLAY_NAME, safe);
-            String mime = URLConnection.guessContentTypeFromName(safe);
-            if (mime == null) {
-                mime = "application/octet-stream";
-            }
-            values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
-            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-            values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) {
-                throw new IOException("MediaStore insert failed");
-            }
-            try (OutputStream out = resolver.openOutputStream(uri)) {
-                if (out == null) {
-                    throw new IOException("openOutputStream failed");
-                }
-                out.write(data);
-            }
-            values.clear();
-            values.put(MediaStore.MediaColumns.IS_PENDING, 0);
-            resolver.update(uri, values, null, null);
-            Toast.makeText(this, getString(R.string.download_saved_meshchatx, safe), Toast.LENGTH_LONG).show();
-        } else {
-            File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-            if (dir == null) {
-                throw new IOException("no download directory");
-            }
-            if (!dir.exists() && !dir.mkdirs()) {
-                throw new IOException("mkdirs failed");
-            }
-            File target = new File(dir, safe);
-            try (FileOutputStream fos = new FileOutputStream(target)) {
-                fos.write(data);
-            }
-            Toast.makeText(this, getString(R.string.download_saved_app_files, target.getAbsolutePath()), Toast.LENGTH_LONG)
-                .show();
+    private void showDownloadToast(String message) {
+        if (isFinishing() || isDestroyed()) {
+            return;
         }
+        runOnUiThread(() -> {
+            if (!isFinishing() && !isDestroyed()) {
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private static class MeshChatXAndroidBridge {
@@ -1567,25 +1545,136 @@ public class MainActivity extends AppCompatActivity {
             this.activity = activity;
         }
 
+        private Context appContext() {
+            Context appContext = MeshChatApplication.getAppContext();
+            return appContext != null ? appContext : activity.getApplicationContext();
+        }
+
+        private void persistAndNotify(String downloadId, String fileName, byte[] raw) {
+            Context context = appContext();
+            String notifId = downloadId != null ? downloadId : "save:" + fileName;
+            String wakeTag = "save:" + notifId;
+            MeshChatWakeLock.acquire(context, wakeTag);
+            try {
+                Uri uri = MeshchatDownloads.persist(context, fileName, raw);
+                DownloadNotifications.showFinished(context, notifId, fileName, uri);
+                activity.showDownloadToast(
+                    activity.getString(R.string.download_saved_meshchatx, fileName)
+                );
+            } catch (IOException | RuntimeException e) {
+                DownloadNotifications.showFailed(context, notifId, fileName);
+                activity.showDownloadToast("Save failed: " + e.getMessage());
+            } finally {
+                MeshChatWakeLock.release(wakeTag);
+            }
+        }
+
         @JavascriptInterface
         public void saveDownload(String fileName, String base64Data) {
+            saveDownloadWithId(null, fileName, base64Data);
+        }
+
+        @JavascriptInterface
+        public void saveDownloadWithId(String downloadId, String fileName, String base64Data) {
             if (base64Data == null) {
                 return;
             }
-            activity.runOnUiThread(() -> {
-                try {
-                    byte[] raw = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT);
-                    if (raw.length == 0) {
-                        Toast.makeText(activity, "Empty file", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    activity.persistMeshchatDownload(fileName, raw);
-                } catch (IllegalArgumentException e) {
-                    Toast.makeText(activity, "Invalid download data", Toast.LENGTH_LONG).show();
-                } catch (IOException e) {
-                    Toast.makeText(activity, "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            });
+            // Bridge calls run on the JavaBridge thread, not the UI thread, so
+            // decode and persist inline. Safe if the Activity is already gone.
+            byte[] raw;
+            try {
+                raw = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT);
+            } catch (IllegalArgumentException e) {
+                activity.showDownloadToast("Invalid download data");
+                return;
+            }
+            if (raw.length == 0) {
+                activity.showDownloadToast("Empty file");
+                return;
+            }
+            persistAndNotify(downloadId, fileName, raw);
+        }
+
+        @JavascriptInterface
+        public String saveDownloadBegin(String fileName) {
+            try {
+                return MeshchatDownloads.begin(appContext(), fileName);
+            } catch (IOException e) {
+                return null;
+            }
+        }
+
+        @JavascriptInterface
+        public boolean saveDownloadAppend(String saveId, String base64Data) {
+            try {
+                MeshchatDownloads.append(saveId, base64Data);
+                return true;
+            } catch (IOException | IllegalArgumentException e) {
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public boolean saveDownloadFinish(String saveId) {
+            return saveDownloadFinishWithId(saveId, null);
+        }
+
+        @JavascriptInterface
+        public boolean saveDownloadFinishWithId(String saveId, String downloadId) {
+            Context context = appContext();
+            String wakeTag = "save:" + saveId;
+            MeshChatWakeLock.acquire(context, wakeTag);
+            String pendingName = MeshchatDownloads.fileNameFor(saveId);
+            try {
+                MeshchatDownloads.FinishedSave saved = MeshchatDownloads.finish(context, saveId);
+                String fileName = saved.fileName;
+                String notifId = downloadId != null ? downloadId : "save:" + fileName;
+                DownloadNotifications.showFinished(context, notifId, fileName, saved.uri);
+                activity.showDownloadToast(
+                    activity.getString(R.string.download_saved_meshchatx, fileName)
+                );
+                return true;
+            } catch (IOException e) {
+                DownloadNotifications.showFailed(
+                    context,
+                    downloadId != null ? downloadId : "save:" + saveId,
+                    pendingName != null ? pendingName : "download"
+                );
+                activity.showDownloadToast("Save failed: " + e.getMessage());
+                return false;
+            } finally {
+                MeshChatWakeLock.release(wakeTag);
+            }
+        }
+
+        @JavascriptInterface
+        public void saveDownloadAbort(String saveId) {
+            MeshchatDownloads.abort(saveId);
+        }
+
+        @JavascriptInterface
+        public void downloadSessionStart(String sessionId) {
+            MeshChatWakeLock.acquire(appContext(), "session:" + sessionId);
+        }
+
+        @JavascriptInterface
+        public void downloadSessionEnd(String sessionId) {
+            MeshChatWakeLock.release("session:" + sessionId);
+        }
+
+        @JavascriptInterface
+        public void showDownloadProgress(String downloadId, String fileName, int percent) {
+            DownloadNotifications.showProgress(appContext(), downloadId, fileName, percent);
+        }
+
+        @JavascriptInterface
+        public void downloadFailed(String downloadId, String fileName) {
+            DownloadNotifications.showFailed(appContext(), downloadId, fileName);
+        }
+
+        @JavascriptInterface
+        public void cancelDownloadNotification(String downloadId) {
+            DownloadNotifications.cancel(appContext(), downloadId);
         }
 
         @JavascriptInterface
