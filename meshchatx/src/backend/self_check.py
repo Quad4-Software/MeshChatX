@@ -64,6 +64,7 @@ SELF_CHECK_LABELS = {
     "unicode_path_good": "Unicode Path I/O       ",
     "rnode_support_good": "RNode Support Module   ",
     "bot_launcher_good": "Bot Launcher Argv      ",
+    "backbone_patch_good": "RNS Backbone Fallback  ",
     "http_status_good": "HTTP /api/v1/status    ",
     "http_app_info_good": "HTTP /api/v1/app/info  ",
     "http_config_good": "HTTP /api/v1/config    ",
@@ -351,6 +352,44 @@ def check_fs_sandbox() -> dict[str, str]:
         return _status(False, f"exchange roots check failed: {exc}")
 
     return _status(True)
+
+
+def check_rns_backbone_patch() -> dict[str, str]:
+    """Verify the backbone epoll degradation is correct for this platform.
+
+    RNS 1.5.4's BackboneClientInterface needs the Linux epoll loop. On
+    macOS and Windows the patch must rebind it to TCPClientInterface or
+    every backbone client connection retries forever; on Linux and
+    Android it must be left alone.
+    """
+    try:
+        from meshchatx.src.backend.rns_backbone_patch import (
+            _epoll_supported,
+            install_rns_backbone_patches,
+        )
+    except Exception as exc:
+        return _status(False, f"rns_backbone_patch unavailable: {exc}")
+    try:
+        epoll = _epoll_supported()
+        applied = install_rns_backbone_patches()
+        if epoll:
+            if applied:
+                return _status(
+                    False,
+                    "epoll available but BackboneClientInterface was degraded",
+                )
+            return _status(True)
+        from RNS.Interfaces import BackboneInterface as backbone_module
+        from RNS.Interfaces import TCPInterface as tcp_module
+
+        if backbone_module.BackboneClientInterface is not tcp_module.TCPClientInterface:
+            return _status(
+                False,
+                "no epoll but BackboneClientInterface is not TCPClientInterface",
+            )
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"backbone patch probe failed: {exc}")
 
 
 def check_appcontainer_launch() -> dict[str, str]:

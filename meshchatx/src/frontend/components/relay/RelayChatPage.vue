@@ -1353,6 +1353,16 @@
                                 <span class="font-medium text-sem-fg">{{ $t("relay_chat.auto_who") }}</span>
                             </span>
                         </label>
+                        <div>
+                            <button
+                                type="button"
+                                class="text-xs text-sem-accent hover:underline"
+                                :disabled="applyingOptionsToAllHubs"
+                                @click="applyOptionsToAllHubs"
+                            >
+                                {{ $t("relay_chat.apply_auto_options_all_hubs") }}
+                            </button>
+                        </div>
                         <div class="space-y-1.5">
                             <label class="block text-sm font-semibold text-sem-fg-secondary">{{
                                 $t("relay_chat.nickname")
@@ -1383,6 +1393,19 @@
                 <div class="w-full max-w-md rounded-2xl border border-sem-border-card bg-sem-surface p-5 shadow-xl">
                     <h2 class="mb-4 text-lg font-semibold">{{ $t("relay_chat.chat_prefs") }}</h2>
                     <div class="space-y-5">
+                        <label class="setting-toggle flex items-start gap-3">
+                            <Toggle
+                                id="rrc-hide-join-part"
+                                :model-value="hideJoinPart"
+                                @update:model-value="setHideJoinPart"
+                            />
+                            <span class="min-w-0 text-sm">
+                                <span class="font-medium text-sem-fg">{{ $t("relay_chat.prefs_hide_join_part") }}</span>
+                                <span class="block text-xs text-sem-fg-muted">{{
+                                    $t("relay_chat.prefs_hide_join_part_hint")
+                                }}</span>
+                            </span>
+                        </label>
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-sem-fg-secondary">{{
                                 $t("relay_chat.prefs_highlight_words")
@@ -1581,6 +1604,7 @@ import { filterRelayMembers, filterRelayMessages } from "../../js/relayMessageSe
 import { copyTextToClipboard } from "../../js/clipboardUtils.js";
 import {
     buildRelayMessageTimeline,
+    isRelayPeerJoinPartMessage,
     mergeRelayMessages,
     relayMessageKey,
     prependRelayMessageTimeline,
@@ -1722,8 +1746,10 @@ export default {
                 encodeRoom: (room) => inst?.proxy.encodeRoom(room),
                 prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
                 reloadLatest: () => inst?.proxy.selectRoom(inst?.proxy.selectedHubHash, inst?.proxy.selectedRoom),
-                excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
+                excludeMessage: (msg) =>
+                    inst?.proxy.isIgnoredMsg(msg) || inst?.proxy.isHiddenPresenceMessage(msg),
                 decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
+                buildTimelineOptions: () => ({ hideJoinPart: inst?.proxy.hideJoinPart === true }),
                 onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),
                 t: (...args) => inst?.proxy.$t(...args),
             }),
@@ -1823,6 +1849,8 @@ export default {
             nickCycle: null,
             ignoredPeers: [],
             highlightWords: [],
+            hideJoinPart: false,
+            applyingOptionsToAllHubs: false,
             localMentionRooms: new Map(),
             showChatPrefs: false,
             highlightWordDraft: "",
@@ -2062,7 +2090,9 @@ export default {
             this.messageTimelineCacheSignature = "";
         },
         _rebuildMessageTimelineCache() {
-            this.messageTimelineCache = buildRelayMessageTimeline(this.messages);
+            this.messageTimelineCache = buildRelayMessageTimeline(this.messages, {
+                hideJoinPart: this.hideJoinPart,
+            });
             this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
         },
         _prependMessageTimelineCache(prependedMessages) {
@@ -2106,12 +2136,22 @@ export default {
             const prefs = loadRelayPrefs(this._scopedIdentityKey());
             this.ignoredPeers = prefs.ignored;
             this.highlightWords = prefs.highlightWords;
+            this.hideJoinPart = prefs.hideJoinPart === true;
         },
         persistRelayPrefs() {
             saveRelayPrefs(this._scopedIdentityKey(), {
                 ignored: this.ignoredPeers,
                 highlightWords: this.highlightWords,
+                hideJoinPart: this.hideJoinPart,
             });
+        },
+        isHiddenPresenceMessage(msg) {
+            return this.hideJoinPart && isRelayPeerJoinPartMessage(msg);
+        },
+        setHideJoinPart(value) {
+            this.hideJoinPart = value === true;
+            this.persistRelayPrefs();
+            this._invalidateMessageTimelineCache();
         },
         isOwnRelayMessage(msg) {
             const own = useConfigStore().config?.identity_hash;
@@ -3800,6 +3840,25 @@ export default {
                 await this.fetchHubs();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            }
+        },
+        async applyOptionsToAllHubs() {
+            if (this.applyingOptionsToAllHubs) {
+                return;
+            }
+            this.applyingOptionsToAllHubs = true;
+            try {
+                await window.api.post(apiPath("/rrc/hubs/options"), {
+                    auto_reconnect: this.settingsForm.auto_reconnect,
+                    auto_list: this.settingsForm.auto_list,
+                    auto_who: this.settingsForm.auto_who,
+                });
+                ToastUtils.success(this.$t("relay_chat.auto_options_applied_all_hubs"));
+                await this.fetchHubs();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            } finally {
+                this.applyingOptionsToAllHubs = false;
             }
         },
         isHubAdded(destinationHash) {

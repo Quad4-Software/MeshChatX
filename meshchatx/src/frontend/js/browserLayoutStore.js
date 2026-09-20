@@ -1,4 +1,5 @@
 const NOMAD_TABS_KEY = "meshchatx.nomadnet.tabs";
+const NOMAD_ANNOUNCES_SORT_KEY = "meshchatx.nomadnet.announces.sort";
 const MAP_TABS_KEY = "meshchatx.map.tabs";
 const MESSAGE_PANES_KEY = "meshchatx.messages.panes";
 const RNSH_LAYOUT_KEY = "meshchatx.rnsh.layout";
@@ -69,6 +70,30 @@ export function loadNomadTabs() {
  */
 export function saveNomadTabs(state) {
     writeJson(NOMAD_TABS_KEY, state);
+}
+
+const NOMAD_ANNOUNCES_SORTS = new Set(["last_announced", "name", "most_announced", "newest_discovered"]);
+
+/**
+ * Load the persisted NomadNet announces sort mode.
+ *
+ * @returns {string} sort mode, or "last_announced" when unset/invalid
+ */
+export function loadNomadAnnouncesSort() {
+    const saved = readJson(NOMAD_ANNOUNCES_SORT_KEY);
+    return NOMAD_ANNOUNCES_SORTS.has(saved) ? saved : "last_announced";
+}
+
+/**
+ * Persist the NomadNet announces sort mode.
+ *
+ * @param {string} sort sort mode
+ */
+export function saveNomadAnnouncesSort(sort) {
+    if (!NOMAD_ANNOUNCES_SORTS.has(sort)) {
+        return;
+    }
+    writeJson(NOMAD_ANNOUNCES_SORT_KEY, sort);
 }
 
 /**

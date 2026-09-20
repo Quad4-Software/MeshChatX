@@ -171,6 +171,36 @@ describe("useNomadNodesList", () => {
         await Promise.all([first, second]);
     });
 
+    it("merges slim live announces without losing first-seen or count", () => {
+        const list = useNomadNodesList();
+        const hash = "c".repeat(32);
+        list.updateNodeFromAnnounce({
+            destination_hash: hash,
+            display_name: "Node",
+            created_at: "2025-01-01 00:00:00",
+            updated_at: "2025-01-01 00:00:00",
+            announce_count: 3,
+        });
+        // a live announce broadcast has no created_at/announce_count
+        list.updateNodeFromAnnounce({
+            destination_hash: hash,
+            display_name: "Node",
+            updated_at: "2025-01-02 00:00:00",
+        });
+        const node = list.nodes.value[hash];
+        expect(node.created_at).toBe("2025-01-01 00:00:00");
+        expect(node.announce_count).toBe(4);
+        expect(node.updated_at).toBe("2025-01-02 00:00:00");
+    });
+
+    it("respects announce_count supplied by a fetched row over the cached bump", () => {
+        const list = useNomadNodesList();
+        const hash = "d".repeat(32);
+        list.updateNodeFromAnnounce({ destination_hash: hash, announce_count: 2 });
+        list.updateNodeFromAnnounce({ destination_hash: hash, announce_count: 9 });
+        expect(list.nodes.value[hash].announce_count).toBe(9);
+    });
+
     it("swallows cancel errors and logs other failures", async () => {
         const list = useNomadNodesList();
         api.isCancel.mockReturnValueOnce(true);

@@ -221,10 +221,19 @@ export function createApiClient(options = {}) {
 
         if (!response.ok) {
             const errData = await parseErrorBody(response);
-            const err = Object.assign(new Error(`HTTP ${response.status}`), {
-                name: "HttpError",
-                response: { status: response.status, data: errData },
-            });
+            const detail =
+                errData && typeof errData === "object"
+                    ? errData.error || errData.message
+                    : typeof errData === "string"
+                      ? errData
+                      : null;
+            const err = Object.assign(
+                new Error(typeof detail === "string" && detail ? detail : `HTTP ${response.status}`),
+                {
+                    name: "HttpError",
+                    response: { status: response.status, data: errData },
+                }
+            );
 
             const mutating = method !== "GET" && method !== "HEAD" && path.startsWith("/api/");
             if (mutating && !csrfRetry && isCsrfRejection(response.status, errData)) {
