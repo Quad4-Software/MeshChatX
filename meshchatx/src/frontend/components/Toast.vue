@@ -54,6 +54,14 @@
                     >
                         <li v-for="(line, index) in toast.details" :key="index">{{ line }}</li>
                     </ul>
+                    <button
+                        v-if="toast.action && toast.action.label"
+                        type="button"
+                        class="mt-2 inline-flex min-h-[36px] items-center rounded-lg border border-sem-border px-3 text-xs font-bold text-sem-accent transition-colors hover:bg-sem-surface-raised"
+                        @click="runAction(toast)"
+                    >
+                        {{ toastMessage(toast.action.label) }}
+                    </button>
                 </div>
 
                 <!-- close button -->
@@ -116,6 +124,24 @@ export default {
             }
             return message;
         },
+        isMobileViewport() {
+            try {
+                return window.matchMedia("(max-width: 639px)").matches;
+            } catch {
+                return false;
+            }
+        },
+        runAction(toast) {
+            const handler = toast?.action?.handler;
+            this.remove(toast.id);
+            if (typeof handler === "function") {
+                try {
+                    handler();
+                } catch (e) {
+                    console.error("toast action failed", e);
+                }
+            }
+        },
         add(toast) {
             // Generate a stable key for unkeyed toasts so identical messages do not
             // stack into a tower when a retry loop, poll, or watchdog fires repeatedly.
@@ -139,6 +165,7 @@ export default {
                 existingToast.type = toast.type || "info";
                 existingToast.duration = toast.duration !== undefined ? toast.duration : 5000;
                 existingToast.details = Array.isArray(toast.details) ? toast.details : [];
+                existingToast.action = toast.action || null;
 
                 if (existingToast.duration > 0) {
                     existingToast.timer = setTimeout(() => {
@@ -159,6 +186,7 @@ export default {
                 type: toast.type || "info",
                 duration: toast.duration !== undefined ? toast.duration : 5000,
                 timer: null,
+                action: toast.action || null,
                 _swipeX: 0,
                 _swiping: false,
                 swipeClass: "",
@@ -168,6 +196,14 @@ export default {
                 newToast.timer = setTimeout(() => {
                     this.remove(id);
                 }, newToast.duration);
+            }
+
+            // Mobile shows a single toast at a time. Evict older entries so the
+            // newest message replaces the current one instead of stacking.
+            if (this.isMobileViewport()) {
+                for (const existing of [...this.toasts]) {
+                    this.remove(existing.id);
+                }
             }
 
             this.toasts.push(newToast);
