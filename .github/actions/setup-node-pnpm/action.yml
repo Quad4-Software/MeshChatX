@@ -26,7 +26,17 @@ runs:
 
         - name: Enable pnpm (corepack)
           shell: bash
-          run: corepack enable && corepack prepare "pnpm@${{ inputs.pnpm-version }}" --activate
+          run: |
+              set -euo pipefail
+              corepack enable
+              for attempt in 1 2 3; do
+                  if corepack prepare "pnpm@${{ inputs.pnpm-version }}" --activate; then
+                      exit 0
+                  fi
+                  echo "corepack prepare failed (attempt $attempt of 3); retrying"
+                  sleep $((attempt * 5))
+              done
+              exit 1
 
         - name: Verify Node.js version
           shell: bash
