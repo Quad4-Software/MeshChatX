@@ -202,7 +202,7 @@ class _PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY(ctypes.Structure):
 _appcontainer_support_cached: bool | None = None
 
 
-def _env_override() -> bool | None:
+def _env_override() -> bool | str | None:
     raw = env_str(ENV_VAR)
     if raw is None:
         return None
@@ -211,6 +211,8 @@ def _env_override() -> bool | None:
         return False
     if val in ("true", "1", "yes", "on"):
         return True
+    if val == "auto":
+        return "auto"
     return None
 
 
@@ -272,15 +274,15 @@ def appcontainer_requested() -> bool:
     if sys.platform != "win32":
         return False
     override = _env_override()
-    if override is False:
-        return False
     if override is True:
         return True
-    return appcontainer_supported()
+    if override == "auto":
+        return appcontainer_supported()
+    return False
 
 
 def appcontainer_auto_enabled() -> bool:
-    return appcontainer_requested() and _env_override() is None
+    return appcontainer_requested() and _env_override() == "auto"
 
 
 def appcontainer_disabled_by_env() -> bool:
@@ -1128,18 +1130,26 @@ def launch_backend_sandboxed(
 ) -> LaunchResult:
     """Grant ACLs, launch into AppContainer, wait, revoke ACLs.
 
-    Auto mode (forced=False): use AppContainer when it is supported and fall back
-    to unsandboxed when setup fails.
+    The sandbox is off by default. Auto mode (MESHCHAT_APPCONTAINER=auto,
+    forced=False): use AppContainer when it is supported and fall back to
+    unsandboxed when setup fails.
     Forced mode: return error without fallback.
     """
     if forced is None:
         forced = appcontainer_forced()
 
     if not forced and not appcontainer_requested():
-        logger.info(
-            "AppContainer disabled by %s; running backend unsandboxed",
-            ENV_VAR,
-        )
+        if appcontainer_disabled_by_env():
+            logger.info(
+                "AppContainer disabled by %s; running backend unsandboxed",
+                ENV_VAR,
+            )
+        elif _env_override() == "auto":
+            logger.warning(
+                "AppContainer APIs are unavailable; running backend unsandboxed",
+            )
+        else:
+            logger.info("AppContainer off by default; running backend unsandboxed")
         return _run_unsandboxed_child(exe, args, env=env)
 
     if not forced and not appcontainer_supported():
