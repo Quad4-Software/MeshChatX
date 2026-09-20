@@ -2,7 +2,10 @@
 
 import { ref } from "vue";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { useNomadFavouritesLayout } from "../../meshchatx/src/frontend/js/nomadnet/useNomadFavouritesLayout.js";
+import {
+    _resetNomadFavouritesLayoutSharedStateForTests,
+    useNomadFavouritesLayout,
+} from "../../meshchatx/src/frontend/js/nomadnet/useNomadFavouritesLayout.js";
 import DialogUtils from "../../meshchatx/src/frontend/js/DialogUtils.js";
 import { _resetNomadFavouritesLayoutSaveStateForTests } from "../../meshchatx/src/frontend/js/nomadFavouritesLayoutStore.js";
 
@@ -22,6 +25,7 @@ describe("useNomadFavouritesLayout", () => {
 
     beforeEach(() => {
         _resetNomadFavouritesLayoutSaveStateForTests();
+        _resetNomadFavouritesLayoutSharedStateForTests();
         axiosMock = {
             get: vi.fn().mockResolvedValue({ data: { layout: null } }),
             put: vi.fn().mockImplementation((_url, body) => Promise.resolve({ data: body || {} })),
@@ -38,6 +42,7 @@ describe("useNomadFavouritesLayout", () => {
         delete window.api;
         vi.unstubAllGlobals();
         _resetNomadFavouritesLayoutSaveStateForTests();
+        _resetNomadFavouritesLayoutSharedStateForTests();
     });
 
     it("resets to a single default section", () => {
@@ -275,5 +280,24 @@ describe("useNomadFavouritesLayout", () => {
         resolveGet({ data: { layout: { sections: [], sectionOrder: [], favouritesBySection: {} } } });
         await reload;
         expect(layout.favouritesBySection.value.default).toEqual([favouriteA.destination_hash]);
+    });
+
+    it("shares one layout across instances so tabs cannot diverge", () => {
+        const tabA = useNomadFavouritesLayout();
+        const tabB = useNomadFavouritesLayout();
+        expect(tabA.sections).toBe(tabB.sections);
+        expect(tabB.favouritesBySection).toBe(tabA.favouritesBySection);
+        tabA.resetDefaultSections();
+        tabA.moveFavouritesToSection([favouriteA.destination_hash], "default");
+        expect(tabB.favouritesBySection.value.default).toEqual([favouriteA.destination_hash]);
+    });
+
+    it("keeps search and drag state per instance", () => {
+        const tabA = useNomadFavouritesLayout();
+        const tabB = useNomadFavouritesLayout();
+        tabA.favouritesSearchTerm.value = "node";
+        tabA.draggingFavouriteHashes.value = ["x"];
+        expect(tabB.favouritesSearchTerm.value).toBe("");
+        expect(tabB.draggingFavouriteHashes.value).toEqual([]);
     });
 });

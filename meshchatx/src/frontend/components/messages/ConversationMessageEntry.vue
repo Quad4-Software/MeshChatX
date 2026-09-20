@@ -1121,7 +1121,7 @@
                     <div v-if="chatItem.lxmf_message.fields?.telemetry" class="pb-1 mt-1 space-y-2">
                         <div class="flex flex-wrap gap-2">
                             <button
-                                v-if="chatItem.lxmf_message.fields.telemetry.location"
+                                v-if="telemetryLocationCoords(chatItem.lxmf_message.fields.telemetry.location)"
                                 type="button"
                                 class="flex items-center gap-2 border border-sem-border/60 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="
@@ -1137,8 +1137,11 @@
                                         Location
                                     </div>
                                     <div class="text-[9px] font-mono opacity-70">
-                                        {{ chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(6) }},
-                                        {{ chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(6) }}
+                                        {{
+                                            formatTelemetryLocationCoords(
+                                                chatItem.lxmf_message.fields.telemetry.location
+                                            )
+                                        }}
                                     </div>
                                 </div>
                             </button>
@@ -1415,6 +1418,10 @@ import MessageReactionsOverlay from "./MessageReactionsOverlay.vue";
 import StickerView from "../stickers/StickerView.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import { isAnimatedRasterType } from "../../js/inViewObserver.js";
+import {
+    formatTelemetryLocationCoords,
+    telemetryLocationCoords,
+} from "../../js/lxmfTelemetryLocation.js";
 
 export default {
     name: "ConversationMessageEntry",
@@ -1451,6 +1458,8 @@ export default {
     },
     methods: {
         isAnimatedRasterType,
+        telemetryLocationCoords,
+        formatTelemetryLocationCoords,
     },
 };
 </script>

@@ -518,6 +518,17 @@
                             </span>
                         </button>
                     </div>
+                    <select
+                        :value="announcesSort"
+                        class="input-field w-full min-w-0 rounded-none text-xs py-1"
+                        :title="$t('nomadnet.sort_announces')"
+                        @change="onAnnouncesSortChange"
+                    >
+                        <option value="last_announced">{{ $t("nomadnet.sort_last_announced") }}</option>
+                        <option value="newest_discovered">{{ $t("nomadnet.sort_newest_discovered") }}</option>
+                        <option value="most_announced">{{ $t("nomadnet.sort_most_announced") }}</option>
+                        <option value="name">{{ $t("nomadnet.sort_name") }}</option>
+                    </select>
                     <div
                         v-if="announcesSelectionMode"
                         class="flex flex-col gap-2 px-2 py-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg"
@@ -843,6 +854,7 @@ import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import { isUnknownNodeDisplayName } from "../../js/nomadUnknownNodeName.js";
 import { useNomadFavouritesLayout } from "../../js/nomadnet/useNomadFavouritesLayout.js";
+import { loadNomadAnnouncesSort, saveNomadAnnouncesSort } from "../../js/browserLayoutStore.js";
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
 import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
@@ -928,6 +940,7 @@ export default {
     data() {
         return {
             tab: lastSidebarTab,
+            announcesSort: loadNomadAnnouncesSort(),
             mobileUrlInput: "",
             favouritesSelectionMode: false,
             announcesSelectionMode: false,
@@ -988,9 +1001,40 @@ export default {
             timedNodes.sort((a, b) => b.t - a.t);
             return timedNodes.map((entry) => entry.node);
         },
+        nodesOrderedByAnnounceSort() {
+            if (this.announcesSort === "last_announced") {
+                return this.nodesOrderedByLatestAnnounce;
+            }
+            const nodes = Object.values(this.nodes);
+            const keyed = nodes.map((node) => {
+                if (node._created_at_ts === undefined) {
+                    const ts = new Date(node.created_at || node.updated_at).getTime();
+                    node._created_at_ts = Number.isFinite(ts) ? ts : 0;
+                }
+                return node;
+            });
+            if (this.announcesSort === "name") {
+                keyed.sort((a, b) =>
+                    (a.custom_display_name || a.display_name || "").localeCompare(
+                        b.custom_display_name || b.display_name || ""
+                    )
+                );
+            } else if (this.announcesSort === "most_announced") {
+                keyed.sort(
+                    (a, b) =>
+                        (Number(b.announce_count) || 0) - (Number(a.announce_count) || 0) ||
+                        b._created_at_ts - a._created_at_ts
+                );
+            } else {
+                // newest_discovered: first-seen wins, so a re-announce of a
+                // known node does not jump back to the top.
+                keyed.sort((a, b) => b._created_at_ts - a._created_at_ts);
+            }
+            return keyed;
+        },
         searchedNodes() {
             const search = (this.nodesSearchTerm || "").toLowerCase();
-            const ordered = this.nodesOrderedByLatestAnnounce;
+            const ordered = this.nodesOrderedByAnnounceSort;
             if (!search) {
                 return ordered;
             }
@@ -1056,6 +1100,10 @@ export default {
             if (!this.announcesSelectionMode) {
                 this.selectedAnnounceHashes = [];
             }
+        },
+        onAnnouncesSortChange(event) {
+            this.announcesSort = event.target.value;
+            saveNomadAnnouncesSort(this.announcesSort);
         },
         exitFavouritesSelectionMode() {
             this.favouritesSelectionMode = false;

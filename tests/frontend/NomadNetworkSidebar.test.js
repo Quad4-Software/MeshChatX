@@ -4,6 +4,7 @@ import NomadNetworkSidebar from "@/components/nomadnetwork/NomadNetworkSidebar.v
 import DialogUtils from "@/js/DialogUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import { _resetNomadFavouritesLayoutSaveStateForTests } from "@/js/nomadFavouritesLayoutStore.js";
+import { _resetNomadFavouritesLayoutSharedStateForTests } from "@/js/nomadnet/useNomadFavouritesLayout.js";
 import { useConfigStore } from "@/js/stores/configStore.js";
 import { useIdentityStore } from "@/js/stores/identityStore.js";
 
@@ -31,6 +32,7 @@ describe("NomadNetworkSidebar.vue", () => {
 
     beforeEach(() => {
         _resetNomadFavouritesLayoutSaveStateForTests();
+        _resetNomadFavouritesLayoutSharedStateForTests();
         axiosMock = {
             get: vi.fn().mockResolvedValue({ data: { layout: null } }),
             put: vi.fn().mockImplementation((_url, body) => Promise.resolve({ data: body || {} })),
@@ -53,6 +55,7 @@ describe("NomadNetworkSidebar.vue", () => {
         delete window.api;
         vi.unstubAllGlobals();
         _resetNomadFavouritesLayoutSaveStateForTests();
+        _resetNomadFavouritesLayoutSharedStateForTests();
     });
 
     const mountSidebar = (overrides = {}) =>

@@ -636,7 +636,19 @@ export default {
         async onComposeNewMessage(destinationHash) {
             if (destinationHash == null) {
                 if (this.selectedPeer) {
-                    return;
+                    // A popout window is bound to one conversation - leave it alone.
+                    if (this.isPopoutMode) {
+                        return;
+                    }
+                    // Header Compose used to silently no-op while a chat was open.
+                    // Surface an empty pane on wide multi-pane layouts, otherwise
+                    // close the open conversation so the compose form shows.
+                    if (this.canAddPane) {
+                        this.addPane();
+                        this.syncRouteToFocusedPane();
+                    } else {
+                        this.onCloseConversationViewer();
+                    }
                 }
                 this.$nextTick(() => {
                     const composeInput = document.getElementById("compose-input");

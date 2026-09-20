@@ -44,6 +44,7 @@ H_NICK = "n"
 H_TEXT = "t"
 H_TS = "ts"
 H_MENTION = "m"
+H_EVENT = "e"
 
 
 class RRCHub:
@@ -828,6 +829,7 @@ class RRCHub:
             H_TEXT: msg.text if isinstance(msg.text, str) else "",
             H_TS: int(msg.ts) if isinstance(msg.ts, int) else proto.now_ms(),
             H_MENTION: bool(getattr(msg, "mention", False)),
+            H_EVENT: getattr(msg, "event", None),
         }
 
     def _msg_from_entry(self, room, entry):
@@ -844,6 +846,8 @@ class RRCHub:
             entry.get(H_TS) if isinstance(entry.get(H_TS), int) else 0,
         )
         m.mention = bool(entry.get(H_MENTION, False))
+        event = entry.get(H_EVENT)
+        m.event = event if isinstance(event, str) and event else None
         return m
 
     def _persistable_room(self, room):
@@ -973,10 +977,11 @@ class RRCHub:
         self._append_history(msg.room, msg)
         self._clean_history()
 
-    def _record_system(self, room, text):
+    def _record_system(self, room, text, event=None):
         if not room:
             return
         msg = proto.RRCMessage("system", room, None, None, text, proto.now_ms())
+        msg.event = event if isinstance(event, str) and event else None
         cap = self._per_room_cap()
         with self._lock:
             msg.seq = self._next_seq()
@@ -1016,9 +1021,12 @@ class RRCHub:
                 if cap is not None and len(buf) > cap:
                     del buf[: len(buf) - cap]
                 if target_room != self.manager.active_room_for(self):
-                    # After kick/rollback the room is already removed from
-                    # self.rooms. Do not re-bump unread from the ERROR notice.
-                    if target_room in self.rooms:
+                    # Informational notices (MOTD, WHO replies, room lists, and
+                    # join/part chatter on hubs that send it as NOTICE) must not
+                    # light the unread badge. Errors still do, so kicks and bad
+                    # keys surface. After kick/rollback the room is already
+                    # removed from self.rooms, so guard on membership.
+                    if msg.kind == "error" and target_room in self.rooms:
                         self._bump_unread(target_room)
             self.manager._notify_messages(self, msg)
         if target_room:
@@ -1172,7 +1180,7 @@ class RRCHub:
             ):
                 joiner = body_hashes[0]
             if joiner is not None:
-                self._record_system(r, self.display_name_for(joiner) + " joined")
+                self._record_system(r, self.display_name_for(joiner) + " joined", event="join")
         self.manager._notify_change(self)
 
     def _handle_parted(self, env):
@@ -1220,7 +1228,7 @@ class RRCHub:
             ):
                 parter = body_hashes[0]
             if parter is not None:
-                self._record_system(r, self.display_name_for(parter) + " left")
+                self._record_system(r, self.display_name_for(parter) + " left", event="part")
         self.manager._notify_change(self)
 
     def _handle_chat(self, env, kind):

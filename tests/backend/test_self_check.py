@@ -169,6 +169,22 @@ def test_check_bot_launcher_ok():
     assert self_check.check_bot_launcher()["status"] == "ok"
 
 
+def test_check_rns_backbone_patch_ok():
+    result = self_check.check_rns_backbone_patch()
+    assert result["status"] == "ok", result.get("reason")
+
+
+def test_check_rns_backbone_patch_flags_wrong_state(monkeypatch):
+    from meshchatx.src.backend import rns_backbone_patch
+
+    monkeypatch.setattr(rns_backbone_patch, "_PATCHED", False)
+    monkeypatch.setattr(rns_backbone_patch, "_epoll_supported", lambda: True)
+    monkeypatch.setattr(rns_backbone_patch, "install_rns_backbone_patches", lambda: True)
+    result = self_check.check_rns_backbone_patch()
+    assert result["status"] == "failed"
+    assert "epoll" in result["reason"]
+
+
 def test_check_umsgpack_roundtrip_ok():
     result = self_check.check_umsgpack_roundtrip()
     assert result["status"] == "ok", result.get("reason")

@@ -7,6 +7,7 @@ import DialogUtils from "../DialogUtils.js";
 import GlobalEmitter from "../GlobalEmitter.js";
 import { EMITTER_EVENTS } from "../constants.js";
 import {
+    NOMAD_FAVOURITES_LAYOUT_KEY,
     clearLocalNomadFavouritesLayout,
     loadNomadFavouritesLayout,
     readLocalNomadFavouritesLayout,
@@ -19,19 +20,183 @@ import {
  * and debounced save, favourites drag state, and inline section rename
  * state.
  *
+ * The layout itself (sections, order, membership) is module-level shared
+ * state: every NomadNet browser tab mounts its own sidebar, and per-tab
+ * copies raced each other's debounced saves, so a stale tab could
+ * overwrite edits made in another tab. One shared copy means one save
+ * path and every tab renders the same layout. A storage listener keeps
+ * separate windows in sync through the localStorage cache.
+ *
+ * Per-instance state (search term, rename editing, drag state) stays
+ * inside the composable so each sidebar keeps its own UI context.
+ *
  * options.t mirrors the host $t for translated default section names and
  * prompts. options.getFavourites returns the host favourites prop so the
  * layout can reconcile membership against the live list.
  */
+
+const defaultSectionId = ref("default");
+const sections = ref([]);
+const sectionOrder = ref([]);
+const favouritesBySection = ref({});
+const favouriteLayoutLoadGen = ref(0);
+
+let layoutPersistTimer = null;
+let mountedSidebarCount = 0;
+let sharedLayoutHydrated = false;
+let sharedLayoutImportedHandler = null;
+let sharedIdentitySwitchedHandler = null;
+let sharedStorageHandler = null;
+let activeT = (key) => key;
+const ensureCallbacks = new Set();
+
+function runEnsureCallbacks() {
+    for (const ensure of ensureCallbacks) {
+        ensure();
+    }
+}
+
+function buildDefaultSection() {
+    return {
+        id: defaultSectionId.value,
+        name: activeT("nomadnet.favourites"),
+        collapsed: false,
+    };
+}
+
+function resetDefaultSections() {
+    const defaultSection = buildDefaultSection();
+    sections.value = [defaultSection];
+    sectionOrder.value = [defaultSection.id];
+    favouritesBySection.value = { [defaultSection.id]: [] };
+}
+
+function applyFavouriteLayout(layout) {
+    if (!layout) {
+        if (sections.value.length === 0) {
+            resetDefaultSections();
+        }
+        return;
+    }
+    sections.value = layout.sections || [];
+    sectionOrder.value =
+        layout.sectionOrder || (layout.sections ? layout.sections.map((section) => section.id) : sectionOrder.value);
+    favouritesBySection.value = layout.favouritesBySection || {};
+    if (sections.value.length === 0) {
+        resetDefaultSections();
+    }
+}
+
+async function reloadFavouriteLayoutFromStore() {
+    const gen = ++favouriteLayoutLoadGen.value;
+    const layout = await loadNomadFavouritesLayout(window.api);
+    if (gen !== favouriteLayoutLoadGen.value) {
+        return;
+    }
+    applyFavouriteLayout(layout);
+    runEnsureCallbacks();
+}
+
+function persistFavouriteLayout(options = {}) {
+    // User-driven saves invalidate in-flight remote loads so they cannot clobber edits.
+    // Reconciliation persists (fromEnsure) must not, or the first hydrate is discarded.
+    if (!options.fromEnsure) {
+        favouriteLayoutLoadGen.value += 1;
+    }
+    const layout = {
+        sections: sections.value,
+        sectionOrder: sectionOrder.value,
+        favouritesBySection: favouritesBySection.value,
+    };
+    const flush = () => {
+        layoutPersistTimer = null;
+        if (typeof window === "undefined" || !window.api) {
+            return undefined;
+        }
+        return saveNomadFavouritesLayout(window.api, layout);
+    };
+    if (options.immediate) {
+        if (layoutPersistTimer) {
+            clearTimeout(layoutPersistTimer);
+            layoutPersistTimer = null;
+        }
+        return flush();
+    }
+    if (layoutPersistTimer) {
+        clearTimeout(layoutPersistTimer);
+    }
+    layoutPersistTimer = setTimeout(() => {
+        void flush();
+    }, 250);
+    return undefined;
+}
+
+function registerSharedListeners() {
+    if (!sharedLayoutImportedHandler) {
+        sharedLayoutImportedHandler = () => {
+            void reloadFavouriteLayoutFromStore();
+        };
+        GlobalEmitter.on(EMITTER_EVENTS.NOMADNET_FAVOURITES_LAYOUT_IMPORTED, sharedLayoutImportedHandler);
+    }
+    if (!sharedIdentitySwitchedHandler) {
+        sharedIdentitySwitchedHandler = () => {
+            clearLocalNomadFavouritesLayout();
+            resetDefaultSections();
+            void reloadFavouriteLayoutFromStore();
+        };
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, sharedIdentitySwitchedHandler);
+    }
+    // Another window wrote the cached layout. Adopt it unless this window has
+    // pending unsaved edits, which win within the debounce window.
+    if (!sharedStorageHandler && typeof window !== "undefined") {
+        sharedStorageHandler = (event) => {
+            if (event.key !== NOMAD_FAVOURITES_LAYOUT_KEY || layoutPersistTimer) {
+                return;
+            }
+            applyFavouriteLayout(readLocalNomadFavouritesLayout());
+            runEnsureCallbacks();
+        };
+        window.addEventListener("storage", sharedStorageHandler);
+    }
+}
+
+function unregisterSharedListeners() {
+    if (sharedLayoutImportedHandler) {
+        GlobalEmitter.off(EMITTER_EVENTS.NOMADNET_FAVOURITES_LAYOUT_IMPORTED, sharedLayoutImportedHandler);
+        sharedLayoutImportedHandler = null;
+    }
+    if (sharedIdentitySwitchedHandler) {
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, sharedIdentitySwitchedHandler);
+        sharedIdentitySwitchedHandler = null;
+    }
+    if (sharedStorageHandler && typeof window !== "undefined") {
+        window.removeEventListener("storage", sharedStorageHandler);
+        sharedStorageHandler = null;
+    }
+}
+
+/** Test helper: reset shared layout state between cases. */
+export function _resetNomadFavouritesLayoutSharedStateForTests() {
+    sections.value = [];
+    sectionOrder.value = [];
+    favouritesBySection.value = {};
+    favouriteLayoutLoadGen.value = 0;
+    defaultSectionId.value = "default";
+    if (layoutPersistTimer) {
+        clearTimeout(layoutPersistTimer);
+        layoutPersistTimer = null;
+    }
+    mountedSidebarCount = 0;
+    sharedLayoutHydrated = false;
+    ensureCallbacks.clear();
+    unregisterSharedListeners();
+    activeT = (key) => key;
+}
+
 export function useNomadFavouritesLayout(options = {}) {
     const { t = (key) => key, getFavourites = () => [] } = options;
 
     const favouritesSearchTerm = ref("");
-    const defaultSectionId = ref("default");
-    const sections = ref([]);
-    const sectionOrder = ref([]);
-    const favouritesBySection = ref({});
-    const favouriteLayoutLoadGen = ref(0);
     const editingSectionId = ref(null);
     const editingSectionName = ref("");
     const draggingFavouriteHash = ref(null);
@@ -40,10 +205,6 @@ export function useNomadFavouritesLayout(options = {}) {
     const dragOverSectionId = ref(null);
     const draggingSectionId = ref(null);
     const draggingSectionOverId = ref(null);
-
-    let layoutPersistTimer = null;
-    let onLayoutImported = null;
-    let onIdentitySwitched = null;
 
     const orderedSections = computed(() => {
         const map = {};
@@ -107,33 +268,6 @@ export function useNomadFavouritesLayout(options = {}) {
         return out;
     });
 
-    function applyFavouriteLayout(layout) {
-        if (!layout) {
-            if (sections.value.length === 0) {
-                resetDefaultSections();
-            }
-            return;
-        }
-        sections.value = layout.sections || [];
-        sectionOrder.value =
-            layout.sectionOrder ||
-            (layout.sections ? layout.sections.map((section) => section.id) : sectionOrder.value);
-        favouritesBySection.value = layout.favouritesBySection || {};
-        if (sections.value.length === 0) {
-            resetDefaultSections();
-        }
-    }
-
-    async function reloadFavouriteLayoutFromStore() {
-        const gen = ++favouriteLayoutLoadGen.value;
-        const layout = await loadNomadFavouritesLayout(window.api);
-        if (gen !== favouriteLayoutLoadGen.value) {
-            return;
-        }
-        applyFavouriteLayout(layout);
-        ensureFavouriteLayout();
-    }
-
     function loadFavouriteLayout() {
         void reloadFavouriteLayoutFromStore();
     }
@@ -143,55 +277,6 @@ export function useNomadFavouritesLayout(options = {}) {
         const matchesCustomDisplayName = favourite.custom_display_name?.toLowerCase()?.includes(searchTerm) === true;
         const matchesDestinationHash = favourite.destination_hash.toLowerCase().includes(searchTerm);
         return matchesDisplayName || matchesCustomDisplayName || matchesDestinationHash;
-    }
-
-    function buildDefaultSection() {
-        return {
-            id: defaultSectionId.value,
-            name: t("nomadnet.favourites"),
-            collapsed: false,
-        };
-    }
-
-    function resetDefaultSections() {
-        const defaultSection = buildDefaultSection();
-        sections.value = [defaultSection];
-        sectionOrder.value = [defaultSection.id];
-        favouritesBySection.value = { [defaultSection.id]: [] };
-    }
-
-    function persistFavouriteLayout(options = {}) {
-        // User-driven saves invalidate in-flight remote loads so they cannot clobber edits.
-        // Reconciliation persists (fromEnsure) must not, or the first hydrate is discarded.
-        if (!options.fromEnsure) {
-            favouriteLayoutLoadGen.value += 1;
-        }
-        const layout = {
-            sections: sections.value,
-            sectionOrder: sectionOrder.value,
-            favouritesBySection: favouritesBySection.value,
-        };
-        const flush = () => {
-            layoutPersistTimer = null;
-            if (typeof window === "undefined" || !window.api) {
-                return undefined;
-            }
-            return saveNomadFavouritesLayout(window.api, layout);
-        };
-        if (options.immediate) {
-            if (layoutPersistTimer) {
-                clearTimeout(layoutPersistTimer);
-                layoutPersistTimer = null;
-            }
-            return flush();
-        }
-        if (layoutPersistTimer) {
-            clearTimeout(layoutPersistTimer);
-        }
-        layoutPersistTimer = setTimeout(() => {
-            void flush();
-        }, 250);
-        return undefined;
     }
 
     function ensureFavouriteLayout() {
@@ -343,33 +428,32 @@ export function useNomadFavouritesLayout(options = {}) {
 
     if (getCurrentInstance()) {
         onMounted(() => {
-            // Paint immediately from local cache/defaults, then hydrate from the identity DB.
-            applyFavouriteLayout(readLocalNomadFavouritesLayout());
+            activeT = t;
+            mountedSidebarCount += 1;
+            if (!sharedLayoutHydrated) {
+                // Paint immediately from local cache/defaults, then hydrate from the identity DB.
+                sharedLayoutHydrated = true;
+                applyFavouriteLayout(readLocalNomadFavouritesLayout());
+                void reloadFavouriteLayoutFromStore();
+            }
             ensureFavouriteLayout();
-            reloadFavouriteLayoutFromStore();
-            onLayoutImported = () => {
-                reloadFavouriteLayoutFromStore();
-            };
-            GlobalEmitter.on(EMITTER_EVENTS.NOMADNET_FAVOURITES_LAYOUT_IMPORTED, onLayoutImported);
-            onIdentitySwitched = () => {
-                clearLocalNomadFavouritesLayout();
-                resetDefaultSections();
-                reloadFavouriteLayoutFromStore();
-            };
-            GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, onIdentitySwitched);
+            ensureCallbacks.add(ensureFavouriteLayout);
+            registerSharedListeners();
         });
         onUnmounted(() => {
+            ensureCallbacks.delete(ensureFavouriteLayout);
+            mountedSidebarCount -= 1;
+            if (mountedSidebarCount > 0) {
+                return;
+            }
+            mountedSidebarCount = 0;
+            sharedLayoutHydrated = false;
             if (layoutPersistTimer) {
                 clearTimeout(layoutPersistTimer);
                 layoutPersistTimer = null;
                 persistFavouriteLayout({ immediate: true });
             }
-            if (onLayoutImported) {
-                GlobalEmitter.off(EMITTER_EVENTS.NOMADNET_FAVOURITES_LAYOUT_IMPORTED, onLayoutImported);
-            }
-            if (onIdentitySwitched) {
-                GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, onIdentitySwitched);
-            }
+            unregisterSharedListeners();
         });
     }
 

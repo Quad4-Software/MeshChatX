@@ -23,7 +23,25 @@ export function useNomadNodesList() {
     const nodesListAbortController = ref(null);
 
     function updateNodeFromAnnounce(announce) {
-        nodes.value[announce.destination_hash] = announce;
+        const existing = nodes.value[announce.destination_hash];
+        if (!existing) {
+            nodes.value[announce.destination_hash] = announce;
+            return;
+        }
+        // Live announce broadcasts are slim: keep the stored first-seen
+        // timestamp and bump the heard count so sorting stays correct
+        // without a refetch. A fetched row carries its own announce_count.
+        const merged = {
+            ...announce,
+            created_at: announce.created_at || existing.created_at,
+            announce_count:
+                announce.announce_count !== undefined && announce.announce_count !== null
+                    ? announce.announce_count
+                    : (Number(existing.announce_count) || 0) + 1,
+        };
+        delete merged._updated_at_ts;
+        delete merged._created_at_ts;
+        nodes.value[announce.destination_hash] = merged;
     }
 
     async function getNomadnetworkNodeAnnounces(append = false) {

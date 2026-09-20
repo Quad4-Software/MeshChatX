@@ -2302,6 +2302,11 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import Toggle from "./forms/Toggle.vue";
 import TutorialPrivacyStep from "./TutorialPrivacyStep.vue";
 
+// Bootstrap adds run sequentially and each one churns the Reticulum stack;
+// cap how many onboarding can pick so a huge discovery list cannot
+// soft-lock the tutorial.
+const MAX_BOOTSTRAP_SELECTIONS = 10;
+
 export default {
     name: "TutorialModal",
     components: {
@@ -2792,6 +2797,12 @@ export default {
             if (idx >= 0) {
                 this.selectedBootstrapKeys.splice(idx, 1);
             } else {
+                if (this.selectedBootstrapKeys.length >= MAX_BOOTSTRAP_SELECTIONS) {
+                    ToastUtils.warning(
+                        this.$t("tutorial.bootstrap_selection_limit", { count: MAX_BOOTSTRAP_SELECTIONS })
+                    );
+                    return;
+                }
                 this.selectedBootstrapKeys.push(key);
             }
         },
@@ -3031,8 +3042,11 @@ export default {
                 return;
             }
             this.addingBootstraps = true;
+            // Adding interfaces is sequential and each add churns the
+            // Reticulum stack; a huge selection would soft-lock onboarding.
+            const selectedKeys = this.selectedBootstrapKeys.slice(0, MAX_BOOTSTRAP_SELECTIONS);
             const items = [];
-            for (const key of this.selectedBootstrapKeys) {
+            for (const key of selectedKeys) {
                 if (this.addedBootstrapKeys.includes(key)) continue;
                 if (key.startsWith("comm:")) {
                     const iface = this.communityInterfaces.find((c) => `comm:${c.name}` === key);
