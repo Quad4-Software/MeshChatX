@@ -105,7 +105,9 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             const src = readSource("android/app/src/main/java/com/meshchatx/MainActivity.java");
             expect(src).toContain("setDownloadListener");
             expect(src).toContain("saveDownload");
-            expect(src).toContain("persistMeshchatDownload");
+            expect(src).toContain("saveDownloadBegin");
+            expect(src).toContain("saveDownloadAppend");
+            expect(src).toContain("saveDownloadFinish");
             expect(src).toContain("MeshChatXAndroidBridge");
         });
 
