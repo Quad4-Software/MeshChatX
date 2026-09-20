@@ -11,6 +11,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.hardware.usb.UsbManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Build;
@@ -90,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int RNODE_BLUETOOTH_PERMISSION_REQUEST_CODE = 1004;
     private static final int WEBVIEW_GEOLOCATION_PERMISSION_REQUEST_CODE = 1006;
     private static final int NEARBY_WIFI_PERMISSION_REQUEST_CODE = 1007;
+    private static final int BRIDGE_LOCATION_PERMISSION_REQUEST_CODE = 1008;
     private static final String PREFS_NAME = "meshchatx";
     private static final String PREF_BATTERY_OPT_REQUESTED = "battery_opt_requested";
     private static final int MAX_CONNECTION_ATTEMPTS = 120;
@@ -931,6 +934,35 @@ public class MainActivity extends AppCompatActivity {
             }
             return;
         }
+        if (requestCode == BRIDGE_LOCATION_PERMISSION_REQUEST_CODE) {
+            boolean granted = false;
+            if (grantResults != null) {
+                for (int result : grantResults) {
+                    if (result == PackageManager.PERMISSION_GRANTED) {
+                        granted = true;
+                        break;
+                    }
+                }
+            }
+            final boolean ok = granted;
+            if (!ok) {
+                Toast.makeText(
+                    this,
+                    "Location blocked. Enable it in app settings.",
+                    Toast.LENGTH_LONG
+                ).show();
+            }
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('meshchatx-android-permission',"
+                        + "{detail:{group:'location',granted:"
+                        + ok
+                        + "}}));",
+                    null
+                );
+            }
+            return;
+        }
         if (requestCode != RUNTIME_PERMISSIONS_REQUEST_CODE) {
             return;
         }
@@ -1688,6 +1720,145 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public String getPlatform() {
             return "android";
+        }
+
+        @JavascriptInterface
+        public boolean isLocationPermissionGranted() {
+            Context context = appContext();
+            return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void requestLocationPermission() {
+            activity.runOnUiThread(
+                () ->
+                    ActivityCompat.requestPermissions(
+                        activity,
+                        new String[] {
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        },
+                        BRIDGE_LOCATION_PERMISSION_REQUEST_CODE
+                    )
+            );
+        }
+
+        @JavascriptInterface
+        public String getLastKnownLocation() {
+            if (!isLocationPermissionGranted()) {
+                return null;
+            }
+            try {
+                LocationManager manager =
+                    (LocationManager) appContext().getSystemService(Context.LOCATION_SERVICE);
+                if (manager == null) {
+                    return null;
+                }
+                Location best = null;
+                String[] providers = {
+                    LocationManager.GPS_PROVIDER,
+                    LocationManager.NETWORK_PROVIDER,
+                    LocationManager.PASSIVE_PROVIDER,
+                };
+                for (String provider : providers) {
+                    try {
+                        Location location = manager.getLastKnownLocation(provider);
+                        if (location != null && (best == null || location.getTime() > best.getTime())) {
+                            best = location;
+                        }
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+                return best == null ? null : locationToJson(best);
+            } catch (RuntimeException e) {
+                return null;
+            }
+        }
+
+        @JavascriptInterface
+        public void requestFreshLocation() {
+            if (!isLocationPermissionGranted()) {
+                dispatchLocationError("permission_denied");
+                return;
+            }
+            activity.runOnUiThread(
+                () -> {
+                    try {
+                        LocationManager manager =
+                            (LocationManager) appContext().getSystemService(Context.LOCATION_SERVICE);
+                        if (manager == null) {
+                            dispatchLocationError("unavailable");
+                            return;
+                        }
+                        boolean hasGps = manager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                        boolean hasNetwork = manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+                        if (!hasGps && !hasNetwork) {
+                            dispatchLocationError("location_disabled");
+                            return;
+                        }
+                        String provider = hasGps ? LocationManager.GPS_PROVIDER : LocationManager.NETWORK_PROVIDER;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            manager.getCurrentLocation(
+                                provider, null, activity.getMainExecutor(), this::dispatchLocationResult
+                            );
+                        } else {
+                            manager.requestSingleUpdate(
+                                provider, this::dispatchLocationResult, Looper.getMainLooper()
+                            );
+                        }
+                    } catch (RuntimeException e) {
+                        dispatchLocationError("unavailable");
+                    }
+                }
+            );
+        }
+
+        private static String locationToJson(Location location) {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("latitude", location.getLatitude());
+                o.put("longitude", location.getLongitude());
+                o.put("altitude", location.hasAltitude() ? location.getAltitude() : 0);
+                o.put("accuracy", location.hasAccuracy() ? location.getAccuracy() : 0);
+                o.put("speed", location.hasSpeed() ? location.getSpeed() : 0);
+                o.put("bearing", location.hasBearing() ? location.getBearing() : 0);
+                o.put("time", location.getTime());
+                return o.toString();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        private void dispatchLocationResult(Location location) {
+            String detail = location == null ? null : locationToJson(location);
+            if (detail == null) {
+                dispatchLocationError("unavailable");
+                return;
+            }
+            dispatchLocationScript("{detail:" + detail + "}");
+        }
+
+        private void dispatchLocationError(String code) {
+            dispatchLocationScript("{detail:{error:" + JSONObject.quote(code) + "}}");
+        }
+
+        private void dispatchLocationScript(String detailLiteral) {
+            WebView view = activity.webView;
+            if (view == null) {
+                return;
+            }
+            activity.runOnUiThread(
+                () ->
+                    view.evaluateJavascript(
+                        "window.dispatchEvent(new CustomEvent('meshchatx-android-location',"
+                            + detailLiteral
+                            + "));",
+                        null
+                    )
+            );
         }
 
         @JavascriptInterface
