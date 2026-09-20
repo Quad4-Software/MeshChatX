@@ -469,12 +469,101 @@
                                 v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
                                 class="relative flex-1 min-w-0"
                             >
+                                <!-- mobile: attachments button inside the input, left side -->
+                                <div
+                                    v-click-outside="closeMobileAttachmentMenu"
+                                    class="absolute left-1 top-1/2 -translate-y-1/2 z-10 sm:hidden"
+                                >
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
+                                        :title="$t('messages.attachments')"
+                                        @click.stop="toggleMobileAttachmentMenu"
+                                    >
+                                        <MaterialDesignIcon icon-name="paperclip" class="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div
+                                    v-if="showMobileAttachmentMenu"
+                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] rounded-xl border border-sem-border bg-sem-surface shadow-lg sm:hidden"
+                                >
+                                    <div
+                                        class="absolute -bottom-[5px] left-4 w-2.5 h-2.5 rotate-45 bg-sem-surface border-b border-r border-sem-border"
+                                        aria-hidden="true"
+                                    ></div>
+                                    <div class="overflow-hidden rounded-xl">
+                                        <button
+                                            type="button"
+                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                            @click="mobileImageQualityOpen = !mobileImageQualityOpen"
+                                        >
+                                            <MaterialDesignIcon icon-name="image-plus" class="size-4" />
+                                            <span class="flex-1 text-left">{{ $t("messages.add_image") }}</span>
+                                            <MaterialDesignIcon
+                                                :icon-name="mobileImageQualityOpen ? 'chevron-up' : 'chevron-down'"
+                                                class="size-4 text-sem-fg-muted"
+                                            />
+                                        </button>
+                                        <div v-if="mobileImageQualityOpen" class="border-t border-sem-border/50">
+                                            <button
+                                                v-for="quality in ['low', 'medium', 'high', 'original']"
+                                                :key="quality"
+                                                type="button"
+                                                class="w-full text-left pl-9 pr-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                                @click="onMobileAttachImageQuality(quality)"
+                                            >
+                                                {{ $t(`messages.image_quality_${quality}`) }}
+                                            </button>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                            @click="onMobileAttachVideo"
+                                        >
+                                            <MaterialDesignIcon icon-name="video-plus" class="size-4" />
+                                            {{ $t("messages.add_video") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                            @click="onMobileShareLocation"
+                                        >
+                                            <MaterialDesignIcon icon-name="map-marker" class="size-4" />
+                                            {{ $t("messages.share_location") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                            @click="onMobileRequestLocation"
+                                        >
+                                            <MaterialDesignIcon icon-name="map-marker-question" class="size-4" />
+                                            {{ $t("messages.request_location") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                            @click="onMobileAttachFiles"
+                                        >
+                                            <MaterialDesignIcon icon-name="file-plus" class="size-4" />
+                                            {{ $t("messages.add_files") }}
+                                        </button>
+                                        <button
+                                            v-if="hasTranslator && newMessageText"
+                                            type="button"
+                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                            @click="onMobileTranslate"
+                                        >
+                                            <MaterialDesignIcon icon-name="translate" class="size-4" />
+                                            {{ $t("translator.translate") }}
+                                        </button>
+                                    </div>
+                                </div>
                                 <textarea
                                     id="message-input"
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full min-w-0 pl-3 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-sem-fg-muted min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full min-w-0 pl-11 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-sem-fg-muted min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="composeInputPlaceholder"
@@ -507,9 +596,14 @@
                                 </div>
                                 <div
                                     v-if="isStickerPickerOpen"
+                                    class="dropdown-caret pointer-events-none absolute bottom-[calc(100%+3px)] right-5 z-50 border-b border-r border-sem-border"
+                                    aria-hidden="true"
+                                ></div>
+                                <div
+                                    v-if="isStickerPickerOpen"
                                     class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-sem-border bg-sem-surface shadow-xl overflow-hidden"
                                     :class="{
-                                        'ring-2 ring-sem-focus/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
+                                        'ring-2 ring-sem-focus/50 ring-offset-2 ring-offset-sem-surface':
                                             (stickerDropActive && emojiStickerTab === 'stickers') ||
                                             (gifDropActive && emojiStickerTab === 'gifs'),
                                     }"
@@ -816,13 +910,13 @@
                             </p>
                         </div>
 
-                        <!-- action button -->
-                        <div class="flex flex-wrap gap-2 items-center mt-2">
+                        <!-- action button (desktop; mobile uses the paperclip menu next to the input) -->
+                        <div class="hidden sm:flex flex-wrap gap-2 items-center mt-2">
                             <button type="button" class="attachment-action-button" @click="addFilesToMessage">
                                 <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
                                 <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
                             </button>
-                            <AddImageButton @add-image="onImageSelected" />
+                            <AddImageButton ref="add-image-button" @add-image="onImageSelected" />
                             <div v-click-outside="closeLocationActionMenu" class="relative">
                                 <button
                                     type="button"
@@ -858,7 +952,7 @@
                                 type="button"
                                 class="attachment-action-button"
                                 :class="{
-                                    'ring-1 ring-indigo-400/60 dark:ring-indigo-500/40':
+                                    'ring-1 ring-sem-info/60':
                                         translateTargetBarOpen && translateTargetModalContext?.type === 'compose',
                                 }"
                                 :title="$t('translator.translate')"
@@ -875,6 +969,8 @@
 
         <!-- hidden file input for selecting files -->
         <input ref="file-input" type="file" multiple style="display: none" @change="onFileInputChange" />
+        <!-- hidden video input for the mobile attachments menu -->
+        <input ref="video-input" type="file" accept="video/*" style="display: none" @change="onFileInputChange" />
 
         <!-- Message Context Menu (Teleport to body to avoid overflow clipping) -->
         <Teleport to="body">
@@ -1379,7 +1475,7 @@
                                         :class="
                                             rawMessageData.state === 'delivered'
                                                 ? 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400'
-                                                : 'bg-sem-info/5 text-sem-info ring-blue-700/10 dark:bg-blue-900/30 dark:text-sem-info'
+                                                : 'bg-sem-info/5 text-sem-info ring-sem-info/10 dark:bg-sem-info/15'
                                         "
                                     >
                                         {{ rawMessageData.state }}
@@ -1691,6 +1787,7 @@ import {
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
+import { getAndroidPosition, isAndroidLocationSupported } from "../../js/androidLocation.js";
 import { applyRelayShareLink, findRelayUriInContent, parseRelayUri } from "../../js/relayLinkUtils.js";
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
@@ -1827,6 +1924,8 @@ export default {
             newMessageFiles: [],
             pendingSendAsCommandOrRequest: false,
             showLocationActionMenu: false,
+            showMobileAttachmentMenu: false,
+            mobileImageQualityOpen: false,
             isTranslatingMessage: false,
             autoScrollOnNewMessage: true,
             composeAddress: "",
@@ -1992,11 +2091,29 @@ export default {
             }
             return String(c).trim().toLowerCase() === "#4f46e5";
         },
+        usesThemeFailedBubbleColor() {
+            const c = useConfigStore().config?.message_failed_bubble_color;
+            if (c == null || String(c).trim() === "") {
+                return true;
+            }
+            const hex = String(c).trim().toLowerCase();
+            return hex === "#ef4444" || hex === "#dc2626";
+        },
+        usesThemeWaitingBubbleColor() {
+            const c = useConfigStore().config?.message_waiting_bubble_color;
+            if (c == null || String(c).trim() === "") {
+                return true;
+            }
+            const hex = String(c).trim().toLowerCase();
+            return hex === "#e5e7eb" || hex === "#3f3f46";
+        },
         bubbleStyles() {
             void useConfigStore().detailedOutboundSendStatus;
             void useConfigStore().messageTimestampGroupingEnabled;
             void this.sendStatusUiMs;
             void this.usesThemeOutboundBubbleColor;
+            void this.usesThemeFailedBubbleColor;
+            void this.usesThemeWaitingBubbleColor;
             void useConfigStore().config?.theme;
             const useThemeOutbound = this.usesThemeOutboundBubbleColor;
             return (chatItem) => {
@@ -2006,11 +2123,22 @@ export default {
                 const isFailed = ["cancelled", "failed"].includes(m.state);
 
                 if (isFailed) {
-                    const color = cfg?.message_failed_bubble_color || "#ef4444";
-                    styles["background-color"] = color;
-                    styles["color"] = "#ffffff";
+                    if (this.usesThemeFailedBubbleColor) {
+                        styles["background-color"] = "var(--mc-bubble-failed)";
+                        styles["color"] = "var(--mc-bubble-failed-text)";
+                    } else {
+                        const color = cfg?.message_failed_bubble_color || "#ef4444";
+                        styles["background-color"] = color;
+                        styles["color"] = "#ffffff";
+                    }
                 } else if (chatItem.is_outbound) {
                     if (chatItem.lxmf_message?._pendingPathfinding) {
+                        if (this.usesThemeWaitingBubbleColor) {
+                            styles["background-color"] = "var(--mc-bubble-waiting)";
+                            styles["color"] = "var(--mc-bubble-waiting-text)";
+                            styles["border"] = "1px solid var(--mc-border)";
+                            return styles;
+                        }
                         const raw = cfg?.message_waiting_bubble_color;
                         let hex = raw != null && String(raw).trim() !== "" ? String(raw).trim() : "#e5e7eb";
                         if (cfg?.theme === "dark" && /^#e5e7eb$/i.test(hex)) {
@@ -3418,12 +3546,19 @@ export default {
             // Parse contact: Contact: ivan <ca314c30b27eacec5f6ca6ac504e94c9> [LXMF: ...] [LXST: ...]
             const contactMatch = content.match(
                 // eslint-disable-next-line security/detect-unsafe-regex -- bounded pattern, single-line contact header
-                /^Contact:\s+(.+?)\s+<([a-fA-F0-9]{32})>(?:\s+\[LXMF:\s+([a-fA-F0-9]{32})\])?(?:\s+\[LXST:\s+([a-fA-F0-9]{32})\])?/i
+                /^Contact:\s+(.+?)\s+<([a-fA-F0-9]{32})>(?:\s+\[LXMF:\s+([a-fA-F0-9]{32})\])?(?:\s+\[LXST:\s+([a-fA-F0-9]{32})\])?(?:\s+\[ICON:\s*([a-zA-Z0-9_-]+)(?:;(#?[0-9a-fA-F]{3,8}))?(?:;(#?[0-9a-fA-F]{3,8}))?\])?/i
             );
             if (contactMatch) {
                 const contactHash = contactMatch[2];
                 const lxmfAddress = contactMatch[3];
                 const lxstAddress = contactMatch[4];
+                const embeddedIcon = contactMatch[5]
+                    ? {
+                          icon_name: contactMatch[5],
+                          foreground_colour: contactMatch[6] || "",
+                          background_colour: contactMatch[7] || "",
+                      }
+                    : null;
 
                 // try to find enriched info from existing conversations/peers
                 const existing = this.conversations.find(
@@ -3439,8 +3574,13 @@ export default {
                     lxmf_address: lxmfAddress,
                     lxst_address: lxstAddress,
                     custom_image: existing?.contact_image,
-                    lxmf_user_icon: existing?.lxmf_user_icon,
+                    lxmf_user_icon: existing?.lxmf_user_icon || embeddedIcon,
                 };
+                // if the message is only the contact payload, hide the raw text
+                // so it does not render above the contact card.
+                if (content.trim() === contactMatch[0].trim()) {
+                    items.isOnlyContact = true;
+                }
             }
 
             // Parse paper message link
@@ -3490,7 +3630,7 @@ export default {
 
             return items;
         },
-        async addContact(name, hash, lxmf_address = null, lxst_address = null) {
+        async addContact(name, hash, lxmf_address = null, lxst_address = null, icon = null) {
             try {
                 // Check if contact already exists
                 const checkResponse = await window.api.get(apiPath(`/telephone/contacts/check/${hash}`));
@@ -3504,6 +3644,7 @@ export default {
                     remote_identity_hash: hash,
                     lxmf_address: lxmf_address,
                     lxst_address: lxst_address,
+                    icon: icon,
                 });
                 ToastUtils.success(`Added ${name} to contacts`);
             } catch (e) {
@@ -5173,7 +5314,7 @@ export default {
             if (!this.usesThemeOutboundBubbleColor) {
                 return "shadow-xs";
             }
-            return "shadow-xs bg-sky-100 text-slate-900 border border-sem-info/20/90 dark:bg-sky-950/45 dark:text-sky-50 dark:border-sky-800/55";
+            return "shadow-xs bg-sem-bubble-outbound/10 text-sem-fg border border-sem-bubble-outbound/25 dark:bg-sem-bubble-outbound/15";
         },
         outboundBubbleFooterTimeClass(chatItem) {
             if (!chatItem.is_outbound) {
@@ -5183,7 +5324,7 @@ export default {
                 return "text-sem-fg-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-700/90 dark:text-sky-200/85";
+                return "text-sem-bubble-outbound";
             }
             return "text-white";
         },
@@ -5192,7 +5333,7 @@ export default {
                 return "text-sem-fg-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-700 dark:text-sky-300";
+                return "text-sem-bubble-outbound";
             }
             return "text-white";
         },
@@ -5204,7 +5345,7 @@ export default {
                 return "text-sem-fg";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sem-info dark:text-sky-200";
+                return "text-sem-bubble-outbound";
             }
             return "text-white/80";
         },
@@ -5216,25 +5357,25 @@ export default {
                 return "text-sem-fg-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sem-info dark:text-sky-200";
+                return "text-sem-bubble-outbound";
             }
             return "text-white";
         },
         outboundBubbleDeliveredIconClass(chatItem) {
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-600 dark:text-sky-400";
+                return "text-sem-bubble-outbound";
             }
-            return "text-blue-300";
+            return "text-white/85";
         },
         outboundBubbleSentCheckIconClass(chatItem) {
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-700 dark:text-sky-300";
+                return "text-sem-bubble-outbound";
             }
             return "text-white";
         },
         outboundBubblePendingCheckIconClass(chatItem) {
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-700 dark:text-sky-300 opacity-50";
+                return "text-sem-bubble-outbound opacity-50";
             }
             return "text-white opacity-50";
         },
@@ -5243,7 +5384,7 @@ export default {
                 return "";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "bg-sky-900/10 text-sky-900 border-sky-300/45 hover:bg-sky-900/14 dark:bg-sem-surface/10 dark:text-sky-50 dark:border-sky-700/45 dark:hover:bg-sem-surface/15";
+                return "bg-sem-bubble-outbound/10 text-sem-fg border-sem-bubble-outbound/30 hover:bg-sem-bubble-outbound/15";
             }
             return "bg-sem-surface/20 text-white border-white/20 hover:bg-sem-surface/30";
         },
@@ -5252,7 +5393,7 @@ export default {
                 return "";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sem-info/75 dark:text-sky-200/75";
+                return "text-sem-bubble-outbound/75";
             }
             return "text-white/60";
         },
@@ -5261,7 +5402,7 @@ export default {
                 return "border-sem-border bg-sem-surface-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "border-sem-info/20/70 dark:border-sky-800/50 bg-sem-info/5/40 dark:bg-sky-950/35";
+                return "border-sem-bubble-outbound/20 bg-sem-bubble-outbound/5";
             }
             return "border-white/20 bg-sem-surface/10";
         },
@@ -5270,7 +5411,7 @@ export default {
                 return "text-sem-fg-muted hover:text-sem-fg";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "text-sky-700/90 dark:text-sky-200/85";
+                return "text-sem-bubble-outbound";
             }
             return "text-white/90 hover:text-white";
         },
@@ -5279,7 +5420,7 @@ export default {
                 return "hover:bg-sem-surface-muted hover:bg-sem-surface-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
-                return "hover:bg-sky-900/10 dark:hover:bg-sem-canvas/10";
+                return "hover:bg-sem-bubble-outbound/10";
             }
             return "hover:bg-sem-surface/20";
         },
@@ -5676,6 +5817,14 @@ export default {
             let sharedString = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
             if (contact.lxmf_address) sharedString += ` [LXMF: ${contact.lxmf_address}]`;
             if (contact.lxst_address) sharedString += ` [LXST: ${contact.lxst_address}]`;
+            const icon = this.lxmfContactResolvedIcon(contact);
+            if (icon.iconName) {
+                // Hex colours only; anything else is dropped rather than sent.
+                const hex = (v) => (/^#[0-9a-f]{3,8}$/i.test(String(v || "").trim()) ? String(v).trim() : "");
+                const fg = hex(icon.foreground);
+                const bg = hex(icon.background);
+                sharedString += ` [ICON: ${icon.iconName}${fg ? `;${fg}` : ""}${bg ? `;${bg}` : ""}]`;
+            }
             this.newMessageText = sharedString;
             this.isShareContactModalOpen = false;
             this.sendMessage();
@@ -6155,11 +6304,20 @@ export default {
                 await this.retrySendingMessage(item);
             }
         },
+        locationSettingsToastAction() {
+            return {
+                label: this.$t("common.configure"),
+                handler: () => this.$router.push({ name: "settings", query: { section: "location" } }),
+            };
+        },
         async shareLocation() {
             const toastKey = "location_share";
             try {
                 if (this.config?.location_source === "disabled") {
-                    ToastUtils.error(this.$t("messages.location_disabled"), 5000, toastKey);
+                    ToastUtils.show(this.$t("messages.location_disabled"), "error", 8000, toastKey, {
+                        label: this.$t("common.configure"),
+                        handler: () => this.$router.push({ name: "settings", query: { section: "location" } }),
+                    });
                     return;
                 }
 
@@ -6187,6 +6345,43 @@ export default {
                     return;
                 }
 
+                if (this.config?.location_source === "android") {
+                    if (!isAndroidLocationSupported()) {
+                        ToastUtils.show(
+                            this.$t("messages.location_android_unavailable"),
+                            "error",
+                            8000,
+                            toastKey,
+                            this.locationSettingsToastAction()
+                        );
+                        return;
+                    }
+                    ToastUtils.loading(this.$t("messages.fetching_location"), 0, toastKey);
+                    try {
+                        const pos = await getAndroidPosition();
+                        this.newMessageTelemetry = {
+                            latitude: pos.latitude,
+                            longitude: pos.longitude,
+                            altitude: pos.altitude || 0,
+                            speed: (pos.speed || 0) * 3.6, // m/s to km/h
+                            bearing: pos.bearing || 0,
+                            accuracy: pos.accuracy || 0,
+                            last_update: Math.floor(pos.time ? pos.time / 1000 : Date.now() / 1000),
+                        };
+                        this.sendMessage();
+                        ToastUtils.success(this.$t("messages.location_sent"), 3000, toastKey);
+                    } catch (err) {
+                        const key =
+                            err?.code === "permission_denied"
+                                ? "messages.location_permission_denied"
+                                : err?.code === "location_disabled"
+                                  ? "messages.location_service_off"
+                                  : "messages.location_failed";
+                        ToastUtils.show(this.$t(key), "error", 8000, toastKey, this.locationSettingsToastAction());
+                    }
+                    return;
+                }
+
                 if (!navigator.geolocation) {
                     DialogUtils.alert(this.$t("map.geolocation_not_supported"));
                     return;
@@ -6208,11 +6403,13 @@ export default {
                         this.sendMessage();
                         ToastUtils.success(this.$t("messages.location_sent"), 3000, toastKey);
                     },
-                    (error) => {
-                        ToastUtils.error(
-                            `Failed to get location: ${error.message}. Try setting location manually in Settings.`,
-                            5000,
-                            toastKey
+                    () => {
+                        ToastUtils.show(
+                            this.$t("messages.location_failed"),
+                            "error",
+                            8000,
+                            toastKey,
+                            this.locationSettingsToastAction()
                         );
                     },
                     {
@@ -6320,6 +6517,40 @@ export default {
         },
         closeLocationActionMenu() {
             this.showLocationActionMenu = false;
+        },
+        toggleMobileAttachmentMenu() {
+            this.showMobileAttachmentMenu = !this.showMobileAttachmentMenu;
+            if (!this.showMobileAttachmentMenu) {
+                this.mobileImageQualityOpen = false;
+            }
+        },
+        closeMobileAttachmentMenu() {
+            this.showMobileAttachmentMenu = false;
+            this.mobileImageQualityOpen = false;
+        },
+        onMobileAttachImageQuality(quality) {
+            this.closeMobileAttachmentMenu();
+            this.$refs["add-image-button"].addImage(quality);
+        },
+        onMobileAttachVideo() {
+            this.closeMobileAttachmentMenu();
+            this.$refs["video-input"].click();
+        },
+        onMobileAttachFiles() {
+            this.closeMobileAttachmentMenu();
+            this.addFilesToMessage();
+        },
+        onMobileShareLocation() {
+            this.closeMobileAttachmentMenu();
+            this.selectSendLocation();
+        },
+        onMobileRequestLocation() {
+            this.closeMobileAttachmentMenu();
+            this.selectRequestLocation();
+        },
+        onMobileTranslate() {
+            this.closeMobileAttachmentMenu();
+            this.toggleComposeTranslateTargetBar();
         },
         async selectSendLocation() {
             this.closeLocationActionMenu();
@@ -6639,7 +6870,7 @@ export default {
                     this.newMessageFiles.push(file);
                 }
             }
-            this.clearFileInput();
+            event.target.value = null;
         },
         clearFileInput: function () {
             this.$refs["file-input"].value = null;
