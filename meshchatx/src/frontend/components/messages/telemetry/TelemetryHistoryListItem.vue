@@ -52,10 +52,7 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
-import {
-    formatTelemetryLocationCoords,
-    telemetryLocationCoords,
-} from "../../../js/lxmfTelemetryLocation.js";
+import { formatTelemetryLocationCoords, telemetryLocationCoords } from "../../../js/lxmfTelemetryLocation.js";
 
 export default {
     name: "TelemetryHistoryListItem",

@@ -1418,10 +1418,7 @@ import MessageReactionsOverlay from "./MessageReactionsOverlay.vue";
 import StickerView from "../stickers/StickerView.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import { isAnimatedRasterType } from "../../js/inViewObserver.js";
-import {
-    formatTelemetryLocationCoords,
-    telemetryLocationCoords,
-} from "../../js/lxmfTelemetryLocation.js";
+import { formatTelemetryLocationCoords, telemetryLocationCoords } from "../../js/lxmfTelemetryLocation.js";
 
 export default {
     name: "ConversationMessageEntry",

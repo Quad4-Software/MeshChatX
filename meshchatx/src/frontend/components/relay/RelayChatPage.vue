@@ -1746,8 +1746,7 @@ export default {
                 encodeRoom: (room) => inst?.proxy.encodeRoom(room),
                 prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
                 reloadLatest: () => inst?.proxy.selectRoom(inst?.proxy.selectedHubHash, inst?.proxy.selectedRoom),
-                excludeMessage: (msg) =>
-                    inst?.proxy.isIgnoredMsg(msg) || inst?.proxy.isHiddenPresenceMessage(msg),
+                excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg) || inst?.proxy.isHiddenPresenceMessage(msg),
                 decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
                 buildTimelineOptions: () => ({ hideJoinPart: inst?.proxy.hideJoinPart === true }),
                 onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),

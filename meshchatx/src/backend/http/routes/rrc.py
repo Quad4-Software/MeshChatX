@@ -135,8 +135,10 @@ def register_rrc_routes(routes, app):
 
     @routes.post(API_V1_PREFIX + "/rrc/hubs/options")
     async def rrc_hubs_apply_options(request):
-        """Apply shared hub options (auto_reconnect, auto_list, auto_who) to
-        every configured hub at once."""
+        """Apply shared hub options to every configured hub at once.
+
+        Handles auto_reconnect, auto_list, and auto_who keys from the request body.
+        """
         manager, error = _rrc_require_manager()
         if error is not None:
             return error
