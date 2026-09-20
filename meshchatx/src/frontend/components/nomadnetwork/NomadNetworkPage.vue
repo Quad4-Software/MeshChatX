@@ -822,6 +822,7 @@ import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
 import NomadCrashTab from "./NomadCrashTab.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
+import AndroidDownloadBridge from "../../js/AndroidDownloadBridge";
 import ToastUtils from "../../js/ToastUtils";
 import { openAppContextMenuUnlessTextSelection } from "../../js/contextMenuUtils.js";
 import { getDestinationPath, runDestinationPathFinder } from "../../js/reticulumPathfinding.js";
@@ -2156,6 +2157,12 @@ export default {
                         }
                         this.nomadnetFileDownloadCallbacks[fileCallbackKey].downloadId = downloadId;
                         this.currentFileDownloadId = downloadId;
+                        AndroidDownloadBridge.sessionStart(downloadId);
+                        AndroidDownloadBridge.notifyProgress(
+                            downloadId,
+                            this.nomadDownloadFileName(nomadnetFileDownload),
+                            0
+                        );
                         return;
                     }
 
@@ -2178,8 +2185,10 @@ export default {
                     if (nomadnetFileDownload.status === "success" && nomadnetFileDownloadCallback.onSuccessCallback) {
                         nomadnetFileDownloadCallback.onSuccessCallback(
                             nomadnetFileDownload.file_name,
-                            nomadnetFileDownload.file_bytes
+                            nomadnetFileDownload.file_bytes,
+                            downloadId
                         );
+                        AndroidDownloadBridge.sessionEnd(downloadId);
                         delete this.nomadnetFileDownloadCallbacks[getNomadnetFileDownloadCallbackKey];
                         this.currentFileDownloadId = null;
                         return;
@@ -2187,6 +2196,11 @@ export default {
 
                     // handle failure
                     if (nomadnetFileDownload.status === "failure" && nomadnetFileDownloadCallback.onFailureCallback) {
+                        AndroidDownloadBridge.notifyFailed(
+                            downloadId,
+                            this.nomadDownloadFileName(nomadnetFileDownload)
+                        );
+                        AndroidDownloadBridge.sessionEnd(downloadId);
                         nomadnetFileDownloadCallback.onFailureCallback(nomadnetFileDownload.failure_reason);
                         delete this.nomadnetFileDownloadCallbacks[getNomadnetFileDownloadCallbackKey];
                         delete this.nomadFileDownloadChunkBuffers[downloadId];
@@ -2197,6 +2211,11 @@ export default {
                     // handle progress
                     if (nomadnetFileDownload.status === "progress" && nomadnetFileDownloadCallback.onProgressCallback) {
                         nomadnetFileDownloadCallback.onProgressCallback(nomadnetFileDownload.progress);
+                        AndroidDownloadBridge.notifyProgress(
+                            downloadId,
+                            this.nomadDownloadFileName(nomadnetFileDownload),
+                            nomadnetFileDownload.progress * 100
+                        );
                         return;
                     }
 
@@ -2208,6 +2227,8 @@ export default {
                     delete this.nomadPageDownloadChunkBuffers[downloadId];
                     delete this.nomadFileDownloadChunkBuffers[downloadId];
                     this.purgeDownloadCallbacksForId(downloadId);
+                    AndroidDownloadBridge.cancelNotification(downloadId);
+                    AndroidDownloadBridge.sessionEnd(downloadId);
 
                     // clear page download if it matches
                     if (this.currentPageDownloadId === downloadId) {
@@ -3615,7 +3636,7 @@ export default {
                         destinationHash,
                         filePath,
                         fileData,
-                        (fileName, fileBytesBase64) => {
+                        (fileName, fileBytesBase64, downloadId) => {
                             // Calculate final download speed based on actual file size
                             if (this.nodeFileDownloadStartTime) {
                                 const totalTime = (Date.now() - this.nodeFileDownloadStartTime) / 1000; // seconds
@@ -3629,7 +3650,7 @@ export default {
                             this.isDownloadingNodeFile = false;
 
                             // download file to browser
-                            this.downloadFileFromBase64(fileName, fileBytesBase64);
+                            this.downloadFileFromBase64(fileName, fileBytesBase64, downloadId);
 
                             // Clear speed after a moment
                             setTimeout(() => {
@@ -3694,8 +3715,19 @@ export default {
             // unsupported url
             ToastUtils.warning(this.$t("nomadnet.unsupported_url") + url);
         },
-        downloadFileFromBase64: async function (fileName, fileBytesBase64) {
-            DownloadUtils.downloadFromBase64(fileName, fileBytesBase64);
+        nomadDownloadFileName(nomadnetFileDownload) {
+            const fromName = nomadnetFileDownload?.file_name;
+            if (typeof fromName === "string" && fromName) {
+                return fromName;
+            }
+            const path = nomadnetFileDownload?.file_path;
+            if (typeof path === "string" && path) {
+                return path.split("/").pop() || path;
+            }
+            return "download";
+        },
+        downloadFileFromBase64: async function (fileName, fileBytesBase64, downloadId) {
+            DownloadUtils.downloadFromBase64(fileName, fileBytesBase64, { downloadId });
         },
         formatBytesPerSecond: function (bytesPerSecond) {
             return Utils.formatBytesPerSecond(bytesPerSecond);
