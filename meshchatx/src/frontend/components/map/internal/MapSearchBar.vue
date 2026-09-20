@@ -32,25 +32,28 @@
             </button>
         </div>
 
-        <div
-            v-if="showResults && (results.length > 0 || error)"
-            class="absolute top-full left-0 right-0 mt-2 bg-sem-surface rounded-xl shadow-2xl border-0 overflow-y-auto z-40 max-h-64"
-        >
-            <div v-if="error" class="p-4 text-sm text-red-500 flex items-center gap-2">
-                <MaterialDesignIcon icon-name="alert-circle" class="size-4" />
-                {{ error }}
-            </div>
-            <button
-                v-for="(result, index) in results"
-                :key="index"
-                class="w-full px-4 py-3 text-left hover:bg-sem-surface-muted/50 border-b border-gray-100/50 dark:border-zinc-800/50 last:border-b-0 transition-all"
-                @click="$emit('select', result)"
-            >
-                <div class="font-bold text-sem-fg text-sm">{{ result.display_name }}</div>
-                <div class="text-[10px] text-sem-fg-muted mt-0.5 font-bold uppercase tracking-wider">
-                    {{ result.type }}
+        <div v-if="showResults && (results.length > 0 || error)" class="absolute top-full left-0 right-0 mt-2 z-40">
+            <div
+                class="dropdown-caret pointer-events-none absolute -top-[4px] right-9 border-t border-l border-sem-border"
+                aria-hidden="true"
+            ></div>
+            <div class="bg-sem-surface rounded-xl shadow-2xl border border-sem-border overflow-y-auto max-h-64">
+                <div v-if="error" class="p-4 text-sm text-red-500 flex items-center gap-2">
+                    <MaterialDesignIcon icon-name="alert-circle" class="size-4" />
+                    {{ error }}
                 </div>
-            </button>
+                <button
+                    v-for="(result, index) in results"
+                    :key="index"
+                    class="w-full px-4 py-3 text-left hover:bg-sem-surface-muted/50 border-b border-gray-100/50 dark:border-zinc-800/50 last:border-b-0 transition-all"
+                    @click="$emit('select', result)"
+                >
+                    <div class="font-bold text-sem-fg text-sm">{{ result.display_name }}</div>
+                    <div class="text-[10px] text-sem-fg-muted mt-0.5 font-bold uppercase tracking-wider">
+                        {{ result.type }}
+                    </div>
+                </button>
+            </div>
         </div>
     </div>
 </template>

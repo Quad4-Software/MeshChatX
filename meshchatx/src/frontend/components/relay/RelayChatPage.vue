@@ -23,46 +23,19 @@
                     type="button"
                     role="tab"
                     :aria-selected="view === tab.id"
-                    class="items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-sm transition-colors shrink-0"
-                    :class="[
+                    :aria-label="ICON_ONLY_TAB_IDS.has(tab.id) ? $t(tab.label) : undefined"
+                    :title="ICON_ONLY_TAB_IDS.has(tab.id) ? $t(tab.label) : undefined"
+                    class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-sm transition-colors shrink-0"
+                    :class="
                         view === tab.id
                             ? 'bg-sem-canvas text-sem-fg font-medium'
-                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30',
-                        OVERFLOW_TAB_IDS.has(tab.id) ? 'hidden md:inline-flex' : 'inline-flex',
-                    ]"
+                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30'
+                    "
                     @click="selectView(tab.id)"
                 >
                     <MaterialDesignIcon :icon-name="tab.icon" class="size-4 shrink-0 opacity-70" />
-                    <span>{{ $t(tab.label) }}</span>
+                    <span :class="{ 'hidden md:inline': ICON_ONLY_TAB_IDS.has(tab.id) }">{{ $t(tab.label) }}</span>
                 </button>
-
-                <!-- mobile overflow: host and bots move here so the bar never scrolls -->
-                <DropDownMenu v-if="overflowTabs.length > 0" class="md:hidden shrink-0">
-                    <template #button>
-                        <button
-                            type="button"
-                            role="tab"
-                            :aria-selected="isOverflowView"
-                            :aria-label="$t('messages.more_actions')"
-                            :title="$t('messages.more_actions')"
-                            class="inline-flex h-9 items-center gap-1.5 px-3 border-r border-sem-border text-sm transition-colors"
-                            :class="
-                                isOverflowView
-                                    ? 'bg-sem-canvas text-sem-fg font-medium'
-                                    : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30'
-                            "
-                        >
-                            <MaterialDesignIcon :icon-name="overflowViewIcon" class="size-4 shrink-0 opacity-70" />
-                            <span v-if="overflowViewTab">{{ $t(overflowViewTab.label) }}</span>
-                        </button>
-                    </template>
-                    <template #items>
-                        <DropDownMenuItem v-for="tab in overflowTabs" :key="tab.id" @click="selectView(tab.id)">
-                            <MaterialDesignIcon :icon-name="tab.icon" class="size-5" />
-                            <span>{{ $t(tab.label) }}</span>
-                        </DropDownMenuItem>
-                    </template>
-                </DropDownMenu>
             </div>
 
             <!-- connect view -->
@@ -412,32 +385,6 @@
                         <div class="flex items-center gap-1.5 shrink-0">
                             <button
                                 type="button"
-                                :class="btnIcon"
-                                :title="$t('relay_chat.search_messages')"
-                                @click="showSearch = !showSearch"
-                            >
-                                <MaterialDesignIcon icon-name="magnify" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
-                                :class="btnIcon"
-                                :title="$t('relay_chat.chat_prefs')"
-                                @click="openChatPrefs"
-                            >
-                                <MaterialDesignIcon icon-name="tune-variant" class="size-5" />
-                            </button>
-                            <button
-                                v-if="smUp"
-                                type="button"
-                                data-testid="relay-popout"
-                                :class="btnIcon"
-                                :title="$t('relay_chat.popout_channel')"
-                                @click="popoutChannel"
-                            >
-                                <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
                                 :title="showMembers ? $t('relay_chat.hide_members') : $t('relay_chat.show_members')"
                                 class="inline-flex items-center gap-1 rounded-lg border px-2 py-1.5 text-sm font-medium transition"
                                 :class="
@@ -450,22 +397,80 @@
                                 <MaterialDesignIcon icon-name="account-group" class="size-5" />
                                 <span class="text-xs font-semibold">{{ onlineMembers.length }}</span>
                             </button>
-                            <button
-                                type="button"
-                                :class="btnIcon"
-                                :title="$t('relay_chat.clear_messages')"
-                                @click="clearMessages"
-                            >
-                                <MaterialDesignIcon icon-name="broom" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
-                                :class="btnDanger"
-                                :title="$t('relay_chat.leave_room')"
-                                @click="leaveRoom"
-                            >
-                                <MaterialDesignIcon icon-name="exit-to-app" class="size-5" />
-                            </button>
+                            <div class="hidden md:contents">
+                                <button
+                                    type="button"
+                                    :class="btnIcon"
+                                    :title="$t('relay_chat.search_messages')"
+                                    @click="showSearch = !showSearch"
+                                >
+                                    <MaterialDesignIcon icon-name="magnify" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="btnIcon"
+                                    :title="$t('relay_chat.chat_prefs')"
+                                    @click="openChatPrefs"
+                                >
+                                    <MaterialDesignIcon icon-name="tune-variant" class="size-5" />
+                                </button>
+                                <button
+                                    v-if="smUp"
+                                    type="button"
+                                    data-testid="relay-popout"
+                                    :class="btnIcon"
+                                    :title="$t('relay_chat.popout_channel')"
+                                    @click="popoutChannel"
+                                >
+                                    <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="btnIcon"
+                                    :title="$t('relay_chat.clear_messages')"
+                                    @click="clearMessages"
+                                >
+                                    <MaterialDesignIcon icon-name="broom" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="btnDanger"
+                                    :title="$t('relay_chat.leave_room')"
+                                    @click="leaveRoom"
+                                >
+                                    <MaterialDesignIcon icon-name="exit-to-app" class="size-5" />
+                                </button>
+                            </div>
+                            <DropDownMenu class="md:hidden shrink-0">
+                                <template #button>
+                                    <button
+                                        type="button"
+                                        :class="btnIcon"
+                                        :title="$t('messages.more_actions')"
+                                        :aria-label="$t('messages.more_actions')"
+                                    >
+                                        <MaterialDesignIcon icon-name="dots-horizontal" class="size-5" />
+                                    </button>
+                                </template>
+                                <template #items>
+                                    <DropDownMenuItem @click="showSearch = !showSearch">
+                                        <MaterialDesignIcon icon-name="magnify" class="size-5" />
+                                        <span>{{ $t("relay_chat.search_messages") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem @click="openChatPrefs">
+                                        <MaterialDesignIcon icon-name="tune-variant" class="size-5" />
+                                        <span>{{ $t("relay_chat.chat_prefs") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem @click="clearMessages">
+                                        <MaterialDesignIcon icon-name="broom" class="size-5" />
+                                        <span>{{ $t("relay_chat.clear_messages") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem @click="leaveRoom">
+                                        <MaterialDesignIcon icon-name="exit-to-app" class="size-5" />
+                                        <span>{{ $t("relay_chat.leave_room") }}</span>
+                                    </DropDownMenuItem>
+                                </template>
+                            </DropDownMenu>
                         </div>
                     </div>
 
@@ -1666,9 +1671,9 @@ const BTN_DANGER_SM =
     "inline-flex items-center justify-center rounded-lg border border-sem-border bg-sem-canvas p-1.5 text-sem-fg transition hover:border-sem-danger hover:text-sem-danger hover:bg-sem-danger/10";
 
 const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
-// Below md these collapse into the overflow menu so the tab bar never
-// scrolls horizontally on phones. Chat and Discovery stay pinned.
-const OVERFLOW_TAB_IDS = new Set(["host", "bots", "search"]);
+// Below md these render icon-only so the tab bar never scrolls
+// horizontally on phones.
+const ICON_ONLY_TAB_IDS = new Set(["bots", "search"]);
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
@@ -1769,7 +1774,7 @@ export default {
             RELAY_HOST_MODAL_PANEL_COMPACT,
             btnPrimary: BTN_PRIMARY,
             btnSecondary: BTN_SECONDARY,
-            OVERFLOW_TAB_IDS,
+            ICON_ONLY_TAB_IDS,
             btnIcon: BTN_ICON,
             btnIconSm: BTN_ICON_SM,
             btnDanger: BTN_DANGER,
@@ -1884,18 +1889,6 @@ export default {
         };
     },
     computed: {
-        overflowTabs() {
-            return this.tabs.filter((tab) => OVERFLOW_TAB_IDS.has(tab.id));
-        },
-        overflowViewTab() {
-            return this.overflowTabs.find((tab) => tab.id === this.view) || null;
-        },
-        isOverflowView() {
-            return this.overflowViewTab !== null;
-        },
-        overflowViewIcon() {
-            return this.overflowViewTab?.icon || "dots-horizontal";
-        },
         rrcEnabled() {
             return useConfigStore().config?.rrc_enabled !== false;
         },
