@@ -1746,6 +1746,7 @@ public class MainActivity extends AppCompatActivity {
             );
         }
 
+        @SuppressLint("MissingPermission")
         @JavascriptInterface
         public String getLastKnownLocation() {
             if (!isLocationPermissionGranted()) {
@@ -1778,6 +1779,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        @SuppressLint("MissingPermission")
         @JavascriptInterface
         public void requestFreshLocation() {
             if (!isLocationPermissionGranted()) {

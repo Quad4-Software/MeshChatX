@@ -179,7 +179,9 @@ def test_check_rns_backbone_patch_flags_wrong_state(monkeypatch):
 
     monkeypatch.setattr(rns_backbone_patch, "_PATCHED", False)
     monkeypatch.setattr(rns_backbone_patch, "_epoll_supported", lambda: True)
-    monkeypatch.setattr(rns_backbone_patch, "install_rns_backbone_patches", lambda: True)
+    monkeypatch.setattr(
+        rns_backbone_patch, "install_rns_backbone_patches", lambda: True
+    )
     result = self_check.check_rns_backbone_patch()
     assert result["status"] == "failed"
     assert "epoll" in result["reason"]
