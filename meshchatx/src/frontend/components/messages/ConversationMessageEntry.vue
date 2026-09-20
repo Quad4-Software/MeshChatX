@@ -648,6 +648,7 @@
                             !parsedItems?.isOnlyPaperMessage &&
                             !parsedItems?.isOnlyMapLink &&
                             !parsedItems?.isOnlyRelayLink &&
+                            !parsedItems?.isOnlyContact &&
                             !cv.shouldHideAutoImageCaption(chatItem) &&
                             cv.isMessageBodyTooLargeForDisplay(chatItem)
                         "
@@ -682,14 +683,12 @@
                             !parsedItems?.isOnlyPaperMessage &&
                             !parsedItems?.isOnlyMapLink &&
                             !parsedItems?.isOnlyRelayLink &&
+                            !parsedItems?.isOnlyContact &&
                             !cv.shouldHideAutoImageCaption(chatItem)
                         "
                         class="min-w-0"
                     >
-                        <div
-                            v-if="bubbleVm.kind === 'loading'"
-                            class="text-sm text-sem-info/90 dark:text-indigo-300 py-0.5"
-                        >
+                        <div v-if="bubbleVm.kind === 'loading'" class="text-sm text-sem-info/90 py-0.5">
                             {{ $t("messages.translating_message") }}
                         </div>
                         <div v-else>
@@ -809,6 +808,18 @@
                                 <span class="text-sm font-bold">Contact Shared</span>
                             </div>
                             <div class="flex items-center gap-3">
+                                <LxmfUserIcon
+                                    v-if="parsedItems.contact.lxmf_user_icon || parsedItems.contact.custom_image"
+                                    :custom-image="parsedItems.contact.custom_image || ''"
+                                    :icon-name="parsedItems.contact.lxmf_user_icon?.icon_name || ''"
+                                    :icon-foreground-colour="
+                                        parsedItems.contact.lxmf_user_icon?.foreground_colour || ''
+                                    "
+                                    :icon-background-colour="
+                                        parsedItems.contact.lxmf_user_icon?.background_colour || ''
+                                    "
+                                    icon-class="size-9"
+                                />
                                 <div class="flex-1 min-w-0">
                                     <div
                                         class="text-sm font-bold truncate"
@@ -871,7 +882,8 @@
                                         parsedItems.contact.name,
                                         parsedItems.contact.hash,
                                         parsedItems.contact.lxmf_address,
-                                        parsedItems.contact.lxst_address
+                                        parsedItems.contact.lxst_address,
+                                        parsedItems.contact.lxmf_user_icon
                                     )
                                 "
                             >
@@ -970,7 +982,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-sem-surface border border-sem-info/20 dark:border-sky-800 text-sem-info dark:text-sky-200 rounded-lg text-xs font-bold"
+                                class="w-full py-2 bg-sem-surface border border-sem-info/20 text-sem-info rounded-lg text-xs font-bold"
                                 @click="cv.copyMapShareUri(parsedItems.mapLink.uri)"
                             >
                                 {{ $t("messages.map_link_copy_uri") }}
@@ -1037,7 +1049,7 @@
                         >
                             <div class="flex items-center gap-2">
                                 <div
-                                    class="size-4 border-2 border-sem-accent/20 border-t-blue-500 rounded-full animate-spin"
+                                    class="size-4 border-2 border-sem-accent/20 border-t-sem-accent rounded-full animate-spin"
                                 ></div>
                                 <span class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider">{{
                                     $t("messages.downloading")
@@ -1412,6 +1424,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
 import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
 import OutboundTransferProgressFooter from "./outbound/OutboundTransferProgressFooter.vue";
 import MessageReactionsOverlay from "./MessageReactionsOverlay.vue";
@@ -1424,6 +1437,7 @@ export default {
     name: "ConversationMessageEntry",
     components: {
         MaterialDesignIcon,
+        LxmfUserIcon,
         AudioWaveformPlayer,
         OutboundTransferProgressFooter,
         MessageReactionsOverlay,
