@@ -23,12 +23,12 @@
                     type="button"
                     role="tab"
                     :aria-selected="view === tab.id"
-                    class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-sm transition-colors shrink-0"
+                    class="items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-sm transition-colors shrink-0"
                     :class="[
                         view === tab.id
                             ? 'bg-sem-canvas text-sem-fg font-medium'
                             : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30',
-                        OVERFLOW_TAB_IDS.has(tab.id) ? 'hidden md:inline-flex' : '',
+                        OVERFLOW_TAB_IDS.has(tab.id) ? 'hidden md:inline-flex' : 'inline-flex',
                     ]"
                     @click="selectView(tab.id)"
                 >
