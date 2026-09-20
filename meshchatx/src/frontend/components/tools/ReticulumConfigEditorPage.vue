@@ -15,7 +15,17 @@
                 </button>
                 <button
                     type="button"
-                    class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                    class="secondary-chip py-1! px-3!"
+                    :class="{ 'ring-1 ring-sem-accent/40': showVersions }"
+                    :disabled="loading"
+                    @click="toggleVersions"
+                >
+                    <MaterialDesignIcon icon-name="history" class="w-3.5 h-3.5" />
+                    <span class="hidden sm:inline">{{ $t("tools.reticulum_config_editor.versions") }}</span>
+                </button>
+                <button
+                    type="button"
+                    class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/10!"
                     :disabled="loading || resetting"
                     @click="restoreDefaults"
                 >
@@ -54,22 +64,22 @@
                 </p>
                 <div
                     v-if="showRestartReminder"
-                    class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center shrink-0"
+                    class="bg-sem-warning/15 text-sem-fg border border-sem-warning/40 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center shrink-0"
                 >
                     <div class="flex items-center gap-3">
-                        <MaterialDesignIcon icon-name="alert" class="w-6 h-6" />
+                        <MaterialDesignIcon icon-name="alert" class="w-6 h-6 text-sem-warning" />
                         <div>
                             <div class="text-lg font-semibold">
                                 {{ $t("tools.reticulum_config_editor.restart_required") }}
                             </div>
-                            <div class="text-sm">
+                            <div class="text-sm text-sem-fg-secondary">
                                 {{ $t("tools.reticulum_config_editor.restart_description") }}
                             </div>
                         </div>
                     </div>
                     <button
                         type="button"
-                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-xs disabled:opacity-50"
+                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-sem-action-warning px-4 py-1.5 text-sm font-bold text-sem-action-warning-text hover:bg-sem-action-warning-hover transition shadow-xs disabled:opacity-50"
                         :disabled="reloadingRns"
                         :class="reloadingRns ? '' : 'animate-pulse motion-reduce:animate-none'"
                         @click="reloadRns"
@@ -77,6 +87,61 @@
                         <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
                         {{ reloadingRns ? $t("app.reloading_rns") : $t("tools.reticulum_config_editor.restart_now") }}
                     </button>
+                </div>
+
+                <div
+                    v-if="showVersions"
+                    class="rounded-xl border border-sem-border bg-sem-surface shrink-0 max-h-56 overflow-y-auto"
+                >
+                    <div
+                        class="flex items-center gap-1.5 px-3 py-2 border-b border-sem-border bg-sem-surface-muted/60 text-xs font-semibold text-sem-fg-secondary"
+                    >
+                        <MaterialDesignIcon icon-name="history" class="w-3.5 h-3.5" />
+                        {{ $t("tools.reticulum_config_editor.versions") }}
+                    </div>
+                    <div v-if="versionsLoading" class="px-3 py-3 text-xs text-sem-fg-muted">
+                        {{ $t("tools.reticulum_config_editor.loading") }}
+                    </div>
+                    <div v-else-if="!versions.length" class="px-3 py-3 text-xs text-sem-fg-muted">
+                        {{ $t("tools.reticulum_config_editor.versions_empty") }}
+                    </div>
+                    <ul v-else class="divide-y divide-sem-border">
+                        <li
+                            v-for="version in versions"
+                            :key="version.id"
+                            class="flex items-center gap-2 px-3 py-2 text-xs"
+                        >
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-sem-fg truncate">
+                                    {{ formatVersionTime(version.created_at) }}
+                                </div>
+                                <div class="text-sem-fg-muted truncate">
+                                    {{ version.label || version.id }}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                class="secondary-chip py-1! px-2!"
+                                :disabled="restoringVersionId != null"
+                                @click="previewVersion(version)"
+                            >
+                                {{ $t("tools.reticulum_config_editor.preview") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary-chip py-1! px-2!"
+                                :disabled="restoringVersionId != null"
+                                @click="restoreVersion(version)"
+                            >
+                                <MaterialDesignIcon
+                                    v-if="restoringVersionId === version.id"
+                                    icon-name="loading"
+                                    class="w-3.5 h-3.5 animate-spin"
+                                />
+                                {{ $t("tools.reticulum_config_editor.restore_version") }}
+                            </button>
+                        </li>
+                    </ul>
                 </div>
 
                 <div
@@ -89,7 +154,7 @@
                             <MaterialDesignIcon icon-name="information-outline" class="w-3.5 h-3.5" />
                             {{ $t("tools.reticulum_config_editor.info") }}
                         </span>
-                        <span v-if="isDirty" class="text-amber-600 dark:text-amber-400 font-semibold">
+                        <span v-if="isDirty" class="text-sem-warning font-semibold">
                             {{ $t("tools.reticulum_config_editor.unsaved") }}
                         </span>
                     </div>
@@ -146,6 +211,10 @@ export default {
             resetting: false,
             reloadingRns: false,
             hasSavedChanges: false,
+            showVersions: false,
+            versions: [],
+            versionsLoading: false,
+            restoringVersionId: null,
         };
     },
     computed: {
@@ -237,6 +306,69 @@ export default {
             } finally {
                 ToastUtils.dismiss("rns-config-reload");
                 this.reloadingRns = false;
+            }
+        },
+        async toggleVersions() {
+            this.showVersions = !this.showVersions;
+            if (this.showVersions) {
+                await this.loadVersions();
+            }
+        },
+        async loadVersions() {
+            if (this.versionsLoading) return;
+            try {
+                this.versionsLoading = true;
+                const response = await window.api.get(apiPath("/reticulum/config/versions"));
+                this.versions = Array.isArray(response.data?.versions) ? response.data.versions : [];
+            } catch (e) {
+                this.versions = [];
+                ToastUtils.error(e.response?.data?.error || this.$t("tools.reticulum_config_editor.failed_versions"));
+            } finally {
+                this.versionsLoading = false;
+            }
+        },
+        formatVersionTime(iso) {
+            const date = new Date(iso);
+            if (Number.isNaN(date.getTime())) {
+                return iso || "";
+            }
+            return date.toLocaleString();
+        },
+        async previewVersion(version) {
+            try {
+                const response = await window.api.get(
+                    apiPath(`/reticulum/config/versions/${encodeURIComponent(version.id)}`)
+                );
+                const content = response.data?.version?.content;
+                if (typeof content === "string") {
+                    this.content = content;
+                }
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.error || this.$t("tools.reticulum_config_editor.failed_versions"));
+            }
+        },
+        async restoreVersion(version) {
+            if (this.restoringVersionId != null) return;
+            const confirmed = await DialogUtils.confirm(
+                this.$t("tools.reticulum_config_editor.confirm_restore_version")
+            );
+            if (!confirmed) return;
+            try {
+                this.restoringVersionId = version.id;
+                const response = await window.api.post(
+                    apiPath(`/reticulum/config/versions/${encodeURIComponent(version.id)}/restore`)
+                );
+                this.content = response.data.content || "";
+                this.originalContent = this.content;
+                this.configPath = response.data.path || this.configPath;
+                this.hasSavedChanges = true;
+                useInterfaceChangesStore().hasPendingInterfaceChanges = true;
+                ToastUtils.success(response.data.message || this.$t("tools.reticulum_config_editor.restored"));
+                await this.loadVersions();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.error || this.$t("tools.reticulum_config_editor.failed_restore"));
+            } finally {
+                this.restoringVersionId = null;
             }
         },
         insertTab(event) {
