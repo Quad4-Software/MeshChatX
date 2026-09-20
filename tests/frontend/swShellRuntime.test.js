@@ -205,6 +205,48 @@ describe("swShellRuntime reference / race / leak", () => {
         });
     });
 
+    it("edge: HEAD asset requests resolve without writing to cache", async () => {
+        const caches = new MemoryCacheStorage();
+        const cacheName = cacheNameForBuild("head");
+        const assetUrl = `${ORIGIN}/assets/data-abc.json`;
+        const fetchFn = vi.fn(async () => okResponse("{}"));
+        const runtime = createShellRuntime({ caches, fetch: fetchFn, cacheName, origin: ORIGIN });
+
+        const headReq = makeRequest(assetUrl, { method: "HEAD" });
+        const response = await runtime.resolveFetch(headReq);
+        expect(response.status).toBe(200);
+        expect(fetchFn).toHaveBeenCalledTimes(1);
+        expect(caches.allUrls()).toEqual([]);
+    });
+
+    it("edge: HEAD asset requests can be served from a cached GET entry", async () => {
+        const caches = new MemoryCacheStorage();
+        const cacheName = cacheNameForBuild("head-hit");
+        const assetUrl = `${ORIGIN}/assets/data-abc.json`;
+        await (await caches.open(cacheName)).put(makeRequest(assetUrl), okResponse("cached-json"));
+        const fetchFn = vi.fn(async () => okResponse("{}"));
+        const runtime = createShellRuntime({ caches, fetch: fetchFn, cacheName, origin: ORIGIN });
+
+        const response = await runtime.resolveFetch(makeRequest(assetUrl, { method: "HEAD" }));
+        expect(await response.text()).toBe("cached-json");
+        expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it("edge: HEAD shell-helper requests skip the revalidate write", async () => {
+        const caches = new MemoryCacheStorage();
+        const cacheName = cacheNameForBuild("head-swr");
+        const url = `${ORIGIN}/manifest.json`;
+        const fetchFn = vi.fn(async () => okResponse("{}"));
+        const runtime = createShellRuntime({ caches, fetch: fetchFn, cacheName, origin: ORIGIN });
+
+        const response = await runtime.staleWhileRevalidate(makeRequest(url, { method: "HEAD" }));
+        expect(response.status).toBe(200);
+        await vi.waitFor(() => {
+            expect(fetchFn).toHaveBeenCalledTimes(1);
+        });
+        expect(caches.allUrls()).toEqual([]);
+    });
+
     it("leak reference: findForbiddenCachedUrls catches api and ws entries", () => {
         expect(
             findForbiddenCachedUrls([
