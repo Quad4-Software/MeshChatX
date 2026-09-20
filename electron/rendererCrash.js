@@ -10,6 +10,13 @@ const BUTTON_RELAUNCH_NO_GPU = 1;
 const BUTTON_OPEN_DUMPS = 2;
 const BUTTON_QUIT = 3;
 
+// A GPU process that crashes this many times inside the window is in a
+// crash loop and takes the renderers down with it (the renderer then dies
+// with the same exit code). Hardware acceleration is disabled and the app
+// relaunches once instead of leaving the window dead.
+const GPU_STORM_THRESHOLD = 3;
+const GPU_STORM_WINDOW_MS = 20000;
+
 function disableGpuMarkerPath(storageDir) {
     return path.join(storageDir, "disable-gpu");
 }
@@ -40,11 +47,81 @@ function createRendererCrashHandler(deps) {
         isQuiting,
         getStorageDir,
         getCrashDumpsDir,
+        isHardwareAccelerationEnabled = () => true,
+        now = () => Date.now(),
         defer = (fn) => setImmediate(fn),
         showMessageBox = (parent, options) => dialog.showMessageBox(parent, options),
     } = deps;
 
     let handling = false;
+    let gpuCrashTimes = [];
+    let gpuAutoRecovering = false;
+
+    function disableGpuMarkerExists() {
+        try {
+            return fs.existsSync(disableGpuMarkerPath(getStorageDir()));
+        } catch {
+            return false;
+        }
+    }
+
+    function gpuAccelerationActive() {
+        try {
+            return Boolean(isHardwareAccelerationEnabled());
+        } catch {
+            return false;
+        }
+    }
+
+    function gpuCrashRecoveryAvailable() {
+        // No window means headless mode, and an existing marker means the
+        // fallback was already attempted; relaunching again would loop.
+        const win = getMainWindow();
+        if (!win || win.isDestroyed() || isQuiting()) {
+            return false;
+        }
+        return gpuAccelerationActive() && !disableGpuMarkerExists();
+    }
+
+    function gpuStormActive() {
+        const nowTs = now();
+        gpuCrashTimes = gpuCrashTimes.filter((t) => nowTs - t <= GPU_STORM_WINDOW_MS);
+        return gpuCrashTimes.length >= GPU_STORM_THRESHOLD;
+    }
+
+    function autoRecoverGpu(source) {
+        if (gpuAutoRecovering) {
+            return;
+        }
+        gpuAutoRecovering = true;
+        try {
+            writeDisableGpuMarker(getStorageDir());
+        } catch (error) {
+            log(`Failed to write disable-gpu marker: ${error && error.message ? error.message : error}`);
+        }
+        log(
+            `GPU process crashed ${gpuCrashTimes.length} times in ${GPU_STORM_WINDOW_MS / 1000}s (${source}); ` +
+                "disabling hardware acceleration and relaunching"
+        );
+        deps.relaunch();
+    }
+
+    function handleChildProcessGone(details) {
+        if (!details || details.type !== "GPU" || details.reason !== "crashed") {
+            return;
+        }
+        // Count crashes even before the window exists so a startup storm is
+        // already detected when the first renderer dies.
+        if (!gpuAccelerationActive() || disableGpuMarkerExists()) {
+            return;
+        }
+        const nowTs = now();
+        gpuCrashTimes = gpuCrashTimes.filter((t) => nowTs - t <= GPU_STORM_WINDOW_MS);
+        gpuCrashTimes.push(nowTs);
+        if (gpuStormActive() && gpuCrashRecoveryAvailable()) {
+            autoRecoverGpu("child-process-gone");
+        }
+    }
 
     function isRecoverableCrash(webContents, details) {
         if (!webContents || isQuiting()) {
@@ -120,7 +197,13 @@ function createRendererCrashHandler(deps) {
     }
 
     function handle(webContents, details) {
-        if (handling || !isRecoverableCrash(webContents, details)) {
+        if (handling || gpuAutoRecovering || !isRecoverableCrash(webContents, details)) {
+            return;
+        }
+        // The renderer died while the GPU process was crash-looping. Skip the
+        // dialog and fall back to software rendering directly.
+        if (gpuStormActive() && gpuCrashRecoveryAvailable()) {
+            defer(() => autoRecoverGpu("render-process-gone"));
             return;
         }
         handling = true;
@@ -139,7 +222,7 @@ function createRendererCrashHandler(deps) {
         });
     }
 
-    return { handle, isRecoverableCrash };
+    return { handle, handleChildProcessGone, isRecoverableCrash };
 }
 
 module.exports = {
@@ -147,4 +230,6 @@ module.exports = {
     disableGpuMarkerPath,
     describeExitCode,
     RECOVERABLE_REASONS,
+    GPU_STORM_THRESHOLD,
+    GPU_STORM_WINDOW_MS,
 };

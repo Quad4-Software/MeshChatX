@@ -1278,6 +1278,7 @@ app.on("child-process-gone", (_event, details) => {
     log(
         `child-process-gone: type=${details && details.type} reason=${details && details.reason} exitCode=${details && details.exitCode}`
     );
+    rendererCrashHandler.handleChildProcessGone(details);
 });
 
 const rendererCrashHandler = createRendererCrashHandler({
@@ -1287,6 +1288,7 @@ const rendererCrashHandler = createRendererCrashHandler({
     getMainWindow: () => mainWindow,
     isQuiting: () => quitInitiated || isQuiting,
     getStorageDir: () => getDefaultStorageDir(),
+    isHardwareAccelerationEnabled: () => app.isHardwareAccelerationEnabled(),
     getCrashDumpsDir: () => {
         try {
             return crashReporter.getCrashesDirectory();

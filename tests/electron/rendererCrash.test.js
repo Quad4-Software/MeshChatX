@@ -18,6 +18,8 @@ function createFixture(overrides = {}) {
         win,
         webContents,
         quiting: false,
+        hwAccel: true,
+        nowTs: 1000000,
         openedPaths: [],
         relaunches: 0,
         quits: 0,
@@ -39,6 +41,8 @@ function createFixture(overrides = {}) {
         isQuiting: () => state.quiting,
         getStorageDir: () => state.storageDir,
         getCrashDumpsDir: () => state.dumpsDir,
+        isHardwareAccelerationEnabled: () => state.hwAccel,
+        now: () => state.nowTs,
         defer: (fn) => fn(),
         relaunch: () => {
             state.relaunches += 1;
@@ -142,6 +146,83 @@ describe("electron/rendererCrash", () => {
         release({ response: 3 });
         await flush();
         expect(state.quits).toBe(1);
+    });
+
+    it("auto-disables GPU and relaunches after a GPU crash storm", async () => {
+        const { state, handler } = createFixture();
+        try {
+            for (let i = 0; i < 2; i += 1) {
+                handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: -2147483645 });
+            }
+            expect(state.relaunches).toBe(0);
+            handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: -2147483645 });
+            expect(fs.existsSync(disableGpuMarkerPath(state.storageDir))).toBe(true);
+            expect(state.relaunches).toBe(1);
+            // A renderer crash during the storm must not also open the dialog
+            handler.handle(state.webContents, { reason: "crashed", exitCode: -2147483645 });
+            await flush();
+            expect(state.relaunches).toBe(1);
+        } finally {
+            fs.rmSync(state.storageDir, { recursive: true, force: true });
+        }
+    });
+
+    it("ignores non-GPU and non-crash child process exits", () => {
+        const { state, handler } = createFixture();
+        for (let i = 0; i < 5; i += 1) {
+            handler.handleChildProcessGone({ type: "Utility", reason: "crashed", exitCode: 1 });
+            handler.handleChildProcessGone({ type: "GPU", reason: "clean-exit", exitCode: 0 });
+        }
+        expect(state.relaunches).toBe(0);
+    });
+
+    it("does not auto-recover when GPU acceleration is already off", () => {
+        const { state, handler } = createFixture();
+        state.hwAccel = false;
+        for (let i = 0; i < 5; i += 1) {
+            handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+        }
+        expect(state.relaunches).toBe(0);
+    });
+
+    it("does not auto-recover when the disable-gpu marker already exists", () => {
+        const { state, handler } = createFixture();
+        try {
+            fs.writeFileSync(disableGpuMarkerPath(state.storageDir), "manual\n");
+            for (let i = 0; i < 5; i += 1) {
+                handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+            }
+            expect(state.relaunches).toBe(0);
+        } finally {
+            fs.rmSync(state.storageDir, { recursive: true, force: true });
+        }
+    });
+
+    it("does not auto-recover without a main window or while quitting", () => {
+        const { state, handler } = createFixture();
+        state.win = null;
+        for (let i = 0; i < 5; i += 1) {
+            handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+        }
+        expect(state.relaunches).toBe(0);
+        state.win = { webContents: state.webContents, isDestroyed: () => false };
+        state.quiting = true;
+        for (let i = 0; i < 5; i += 1) {
+            handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+        }
+        expect(state.relaunches).toBe(0);
+    });
+
+    it("only counts GPU crashes inside the storm window", () => {
+        const { state, handler } = createFixture();
+        handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+        handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+        state.nowTs += 21000;
+        handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+        expect(state.relaunches).toBe(0);
+        handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+        handler.handleChildProcessGone({ type: "GPU", reason: "crashed", exitCode: 1 });
+        expect(state.relaunches).toBe(1);
     });
 
     it("formats signed exit codes as hex", () => {
