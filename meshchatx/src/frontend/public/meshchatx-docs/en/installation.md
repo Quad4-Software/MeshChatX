@@ -364,7 +364,7 @@ Common flags and environment variables:
 | (env only)                 | MESHCHAT_TRUSTED_PROXIES                | none                 | Proxy IPs/CIDRs allowed to supply X-Forwarded-* headers (see reverse proxy section)    |
 | (env only)                 | MESHCHAT_LANDLOCK                       | auto                 | Linux filesystem sandbox: 1/0 to force on or off                                       |
 | (env only)                 | MESHCHAT_SECCOMP                        | auto                 | Linux seccomp syscall filter: 1/0 to force on or off                                   |
-| (env only)                 | MESHCHAT_APPCONTAINER                   | auto                 | Windows AppContainer sandbox: 1/0 to force on or off                                   |
+| (env only)                 | MESHCHAT_APPCONTAINER                   | off                  | Windows AppContainer sandbox: 1 forces on, 0 forces off, auto enables with fallback    |
 | (env only)                 | MESHCHAT_FORCE_WEB_AUDIO                | false                | Force browser-side call audio (no host audio device)                                   |
 | (env only)                 | MESHCHAT_EXPERIMENTAL_WEBTRANSPORT      | false                | Enable the experimental WebTransport live channel                                      |
 | (env only)                 | MESHCHAT_LIBCODEC2_PATH                 | auto                 | Explicit libcodec2 shared library path                                                 |
