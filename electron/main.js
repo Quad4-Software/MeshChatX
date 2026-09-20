@@ -13,6 +13,7 @@ const {
     session,
     clipboard,
     nativeTheme,
+    crashReporter,
 } = require("electron");
 const electronPrompt = require("electron-prompt");
 const fs = require("fs");
@@ -56,6 +57,7 @@ const {
 } = require("./desktopPrivacySettings");
 const { getLogsDir } = require("./backendCrashReport");
 const { installBrokenPipeGuards, createMainProcessLogger } = require("./safeConsole");
+const { createRendererCrashHandler } = require("./rendererCrash");
 
 function resolvePreloadScriptPath() {
     const bundled = path.join(__dirname, "preload.bundle.js");
@@ -66,6 +68,14 @@ function resolvePreloadScriptPath() {
 }
 
 installBrokenPipeGuards(process);
+
+// Capture local minidumps for renderer/GPU crashes (uploadToServer: false
+// keeps them on disk under the Crashpad directory; nothing is uploaded).
+try {
+    crashReporter.start({ uploadToServer: false });
+} catch (error) {
+    console.error(`Failed to start crash reporter: ${error && error.message ? error.message : error}`);
+}
 
 const mainProcessLogger = createMainProcessLogger({
     getLogsDir: () => getLogsDir(getDefaultStorageDir()),
@@ -391,39 +401,34 @@ trustedIpcHandle("prompt", async (event, message, defaultValue = "") => {
     });
 });
 
-// allow relaunching app via ipc
-trustedIpcHandle("relaunch", () => {
+function buildRelaunchOptions(extraArgs = []) {
     const relaunchOptions = {};
+    if (extraArgs.length > 0) {
+        relaunchOptions.args = process.argv.slice(1).concat(extraArgs);
+    }
     if (!process.defaultApp && process.platform === "linux" && process.env.APPIMAGE) {
         relaunchOptions.execPath = process.env.APPIMAGE;
     }
-    app.relaunch(relaunchOptions);
+    return relaunchOptions;
+}
+
+function relaunchApp(extraArgs = []) {
+    app.relaunch(buildRelaunchOptions(extraArgs));
     isQuiting = true;
     quit();
+}
+
+// allow relaunching app via ipc
+trustedIpcHandle("relaunch", () => {
+    relaunchApp();
 });
 
 trustedIpcHandle("relaunch-emergency", () => {
-    const relaunchOptions = {
-        args: process.argv.slice(1).concat(["--emergency"]),
-    };
-    if (!process.defaultApp && process.platform === "linux" && process.env.APPIMAGE) {
-        relaunchOptions.execPath = process.env.APPIMAGE;
-    }
-    app.relaunch(relaunchOptions);
-    isQuiting = true;
-    quit();
+    relaunchApp(["--emergency"]);
 });
 
 trustedIpcHandle("relaunch-auto-recover", () => {
-    const relaunchOptions = {
-        args: process.argv.slice(1).concat(["--auto-recover"]),
-    };
-    if (!process.defaultApp && process.platform === "linux" && process.env.APPIMAGE) {
-        relaunchOptions.execPath = process.env.APPIMAGE;
-    }
-    app.relaunch(relaunchOptions);
-    isQuiting = true;
-    quit();
+    relaunchApp(["--auto-recover"]);
 });
 
 trustedIpcHandle("shutdown", () => {
@@ -1139,6 +1144,7 @@ app.whenReady().then(async () => {
         });
         mainWindow.webContents.on("render-process-gone", (_event, details) => {
             log(`Renderer process crashed: ${formatRenderProcessGoneDetails(details)}`);
+            rendererCrashHandler.handle(mainWindow.webContents, details);
         });
         mainWindow.webContents.on("unresponsive", () => {
             log("Renderer process became unresponsive.");
@@ -1263,6 +1269,36 @@ app.whenReady().then(async () => {
 app.on("render-process-gone", (_event, webContents, details) => {
     const wcId = webContents ? webContents.id : "unknown";
     log(`render-process-gone for webContents ${wcId}: ${formatRenderProcessGoneDetails(details)}`);
+});
+
+// Log GPU/utility/sandbox-helper process deaths. Renderer STATUS_BREAKPOINT
+// crashes often coincide with a GPU process die-and-restart cycle, so this
+// gives the log enough context to tell them apart.
+app.on("child-process-gone", (_event, details) => {
+    log(
+        `child-process-gone: type=${details && details.type} reason=${details && details.reason} exitCode=${details && details.exitCode}`
+    );
+});
+
+const rendererCrashHandler = createRendererCrashHandler({
+    dialog,
+    shell,
+    log: (message) => log(message),
+    getMainWindow: () => mainWindow,
+    isQuiting: () => quitInitiated || isQuiting,
+    getStorageDir: () => getDefaultStorageDir(),
+    getCrashDumpsDir: () => {
+        try {
+            return crashReporter.getCrashesDirectory();
+        } catch {
+            return path.join(app.getPath("userData"), "Crashpad");
+        }
+    },
+    relaunch: () => relaunchApp(),
+    requestQuit: () => {
+        isQuiting = true;
+        quit();
+    },
 });
 
 // Track if quit has been initiated to prevent recursion
