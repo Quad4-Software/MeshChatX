@@ -35,6 +35,7 @@
             <!-- node -->
             <div
                 v-if="selectedNode"
+                ref="nodeViewerRoot"
                 class="flex flex-col h-full min-h-0 bg-sem-surface overflow-hidden sm:m-0 sm:border-0 relative"
             >
                 <!-- banished overlay -->
@@ -201,10 +202,11 @@
                         </ClickPopover>
                     </div>
 
-                    <!-- archive button -->
+                    <!-- archive button (mobile gets it in the overflow menu) -->
                     <div
                         v-if="!isPrivate && (pageArchives.length > 0 || nodePageContent)"
-                        class="my-auto shrink-0 relative"
+                        ref="archiveAnchorDesktop"
+                        class="my-auto shrink-0 hidden lg:block"
                     >
                         <IconButton
                             class="nomad-icon-btn text-sem-fg-muted"
@@ -214,44 +216,6 @@
                         >
                             <MaterialDesignIcon icon-name="archive" class="size-5" />
                         </IconButton>
-                        <!-- archive dropdown -->
-                        <div
-                            v-if="isArchiveDropdownOpen"
-                            class="absolute right-0 mt-2 w-64 bg-sem-surface border border-sem-border rounded-lg shadow-lg z-50 overflow-hidden"
-                        >
-                            <div
-                                class="p-2 border-b border-sem-border font-semibold text-xs text-sem-fg-muted uppercase tracking-wider flex justify-between items-center"
-                            >
-                                <span>{{ $t("nomadnet.page_archives") }}</span>
-                                <button
-                                    v-if="nodePageContent"
-                                    :title="$t('nomadnet.archive_current_version')"
-                                    class="text-blue-500 hover:text-sem-accent dark:hover:text-blue-300"
-                                    @click.stop="manualArchive"
-                                >
-                                    <MaterialDesignIcon icon-name="plus" class="size-5" />
-                                </button>
-                            </div>
-                            <div class="max-h-64 overflow-y-auto">
-                                <div v-if="pageArchives.length === 0" class="p-3 text-sm text-sem-fg-muted text-center">
-                                    {{ $t("nomadnet.no_archives_for_this_page") }}
-                                </div>
-                                <div
-                                    v-for="archive in pageArchives"
-                                    v-else
-                                    :key="archive.id"
-                                    class="p-2 hover:bg-sem-surface-muted cursor-pointer border-b last:border-b-0 border-sem-border"
-                                    @click="loadArchivedPage(archive.id)"
-                                >
-                                    <div class="text-sm font-medium dark:text-gray-200">
-                                        {{ formatDate(archive.created_at) }}
-                                    </div>
-                                    <div class="text-xs text-sem-fg-muted truncate">
-                                        {{ archive.hash.substring(0, 16) }}...
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <IconButton
@@ -384,47 +348,63 @@
                         </IconButton>
                     </div>
 
-                    <DropDownMenu class="shrink-0 lg:hidden">
-                        <template #button>
-                            <IconButton :title="$t('messages.more_actions')" class="nomad-icon-btn text-sem-fg-muted">
-                                <MaterialDesignIcon icon-name="dots-horizontal" class="size-5" />
-                            </IconButton>
-                        </template>
-                        <template #items>
-                            <DropDownMenuItem @click="toggleNodePageSource">
-                                <MaterialDesignIcon icon-name="code-tags" class="size-5" />
-                                <span>{{
-                                    isShowingNodePageSource ? $t("nomadnet.hide_source") : $t("app.toggle_source")
-                                }}</span>
-                            </DropDownMenuItem>
-                            <DropDownMenuItem v-if="selectedNode" @click="runPathFinderQuickRequest">
-                                <MaterialDesignIcon icon-name="map-marker-path" class="size-5" />
-                                <span>{{ $t("nomadnet.path_finder_quick_request") }}</span>
-                            </DropDownMenuItem>
-                            <DropDownMenuItem v-if="selectedNode" @click="runPathFinderForceFind">
-                                <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
-                                <span>{{ $t("nomadnet.path_finder_force_find") }}</span>
-                            </DropDownMenuItem>
-                            <DropDownMenuItem v-if="selectedNode" @click="runPathFinderDropAndRequest">
-                                <MaterialDesignIcon icon-name="reload-alert" class="size-5" />
-                                <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
-                            </DropDownMenuItem>
-                            <DropDownMenuItem
-                                v-if="showMicronRendererInMobileMenu"
-                                @click="applyNomadMicronDefaultEngine('js')"
-                            >
-                                <MaterialDesignIcon icon-name="language-javascript" class="size-5" />
-                                <span>{{ $t("nomadnet.renderer_menu_js") }}</span>
-                            </DropDownMenuItem>
-                            <DropDownMenuItem
-                                v-if="showMicronRendererInMobileMenu"
-                                @click="applyNomadMicronDefaultEngine('wasm')"
-                            >
-                                <MaterialDesignIcon icon-name="memory" class="size-5" />
-                                <span>{{ $t("nomadnet.renderer_menu_wasm") }}</span>
-                            </DropDownMenuItem>
-                        </template>
-                    </DropDownMenu>
+                    <div ref="archiveAnchorMobile" class="shrink-0 lg:hidden">
+                        <DropDownMenu class="shrink-0">
+                            <template #button>
+                                <IconButton
+                                    :title="$t('messages.more_actions')"
+                                    class="nomad-icon-btn text-sem-fg-muted"
+                                >
+                                    <MaterialDesignIcon icon-name="dots-horizontal" class="size-5" />
+                                </IconButton>
+                            </template>
+                            <template #items>
+                                <DropDownMenuItem @click="reloadNodePage">
+                                    <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                                    <span>{{ $t("common.refresh") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem
+                                    v-if="!isPrivate && (pageArchives.length > 0 || nodePageContent)"
+                                    @click="toggleArchiveDropdown"
+                                >
+                                    <MaterialDesignIcon icon-name="archive" class="size-5" />
+                                    <span>{{ $t("app.archives") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem @click="toggleNodePageSource">
+                                    <MaterialDesignIcon icon-name="code-tags" class="size-5" />
+                                    <span>{{
+                                        isShowingNodePageSource ? $t("nomadnet.hide_source") : $t("app.toggle_source")
+                                    }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem v-if="selectedNode" @click="runPathFinderQuickRequest">
+                                    <MaterialDesignIcon icon-name="map-marker-path" class="size-5" />
+                                    <span>{{ $t("nomadnet.path_finder_quick_request") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem v-if="selectedNode" @click="runPathFinderForceFind">
+                                    <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                                    <span>{{ $t("nomadnet.path_finder_force_find") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem v-if="selectedNode" @click="runPathFinderDropAndRequest">
+                                    <MaterialDesignIcon icon-name="reload-alert" class="size-5" />
+                                    <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem
+                                    v-if="showMicronRendererInMobileMenu"
+                                    @click="applyNomadMicronDefaultEngine('js')"
+                                >
+                                    <MaterialDesignIcon icon-name="language-javascript" class="size-5" />
+                                    <span>{{ $t("nomadnet.renderer_menu_js") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem
+                                    v-if="showMicronRendererInMobileMenu"
+                                    @click="applyNomadMicronDefaultEngine('wasm')"
+                                >
+                                    <MaterialDesignIcon icon-name="memory" class="size-5" />
+                                    <span>{{ $t("nomadnet.renderer_menu_wasm") }}</span>
+                                </DropDownMenuItem>
+                            </template>
+                        </DropDownMenu>
+                    </div>
 
                     <IconButton
                         class="nomad-icon-btn shrink-0 text-sem-fg-muted lg:hidden"
@@ -446,7 +426,11 @@
                     >
                         <MaterialDesignIcon icon-name="home" class="size-5" />
                     </IconButton>
-                    <IconButton class="nomad-icon-btn shrink-0" :title="$t('common.refresh')" @click="reloadNodePage">
+                    <IconButton
+                        class="nomad-icon-btn hidden lg:inline-flex shrink-0"
+                        :title="$t('common.refresh')"
+                        @click="reloadNodePage"
+                    >
                         <MaterialDesignIcon icon-name="refresh" class="size-5" />
                     </IconButton>
                     <IconButton
@@ -475,7 +459,7 @@
                         />
                     </div>
                     <IconButton
-                        class="nomad-icon-btn shrink-0"
+                        class="nomad-icon-btn hidden lg:inline-flex shrink-0"
                         :title="$t('nomadnet.nav_go')"
                         @click="onNodePageUrlClick(nodePagePathUrlInput)"
                     >
@@ -483,42 +467,84 @@
                     </IconButton>
 
                     <!-- path ops stay in the mobile ⋯ menu; below xl they
-                         would squeeze the URL input on narrow screens -->
-                    <DropDownMenu v-if="selectedNode" class="shrink-0 hidden xl:inline-block">
-                        <template #button>
-                            <IconButton
-                                :title="$t('nomadnet.path_finder')"
-                                class="nomad-icon-btn text-sem-accent"
-                                :disabled="pathfinderInProgress"
-                            >
-                                <MaterialDesignIcon
-                                    :icon-name="pathfinderInProgress ? 'loading' : 'map-marker-path'"
-                                    :class="['w-5 h-5', pathfinderInProgress ? 'animate-spin' : '']"
-                                />
-                            </IconButton>
-                        </template>
-                        <template #items>
-                            <DropDownMenuItem @click="runPathFinderQuickRequest">
-                                <MaterialDesignIcon icon-name="flash" class="size-5" />
-                                <span>{{ $t("nomadnet.path_finder_quick_request") }}</span>
-                            </DropDownMenuItem>
-                            <DropDownMenuItem @click="runPathFinderForceFind">
-                                <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
-                                <span>{{ $t("nomadnet.path_finder_force_find") }}</span>
-                            </DropDownMenuItem>
-                            <DropDownMenuItem @click="runPathFinderDropAndRequest">
-                                <MaterialDesignIcon icon-name="reload-alert" class="size-5" />
-                                <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
-                            </DropDownMenuItem>
-                            <DropDownMenuItem
-                                v-if="!isPrivate && (hasArchivesForCurrentPage || pageArchives.length > 0)"
-                                @click="loadLatestArchiveSnapshot"
-                            >
-                                <MaterialDesignIcon icon-name="archive-clock" class="size-5" />
-                                <span>{{ $t("nomadnet.path_finder_load_archive") }}</span>
-                            </DropDownMenuItem>
-                        </template>
-                    </DropDownMenu>
+                         would squeeze the URL input on narrow screens.
+                         The wrapper carries hidden: DropDownMenu's own
+                         inline-block would win over it otherwise. -->
+                    <div v-if="selectedNode" class="hidden xl:block shrink-0">
+                        <DropDownMenu class="shrink-0">
+                            <template #button>
+                                <IconButton
+                                    :title="$t('nomadnet.path_finder')"
+                                    class="nomad-icon-btn text-sem-accent"
+                                    :disabled="pathfinderInProgress"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="pathfinderInProgress ? 'loading' : 'map-marker-path'"
+                                        :class="['w-5 h-5', pathfinderInProgress ? 'animate-spin' : '']"
+                                    />
+                                </IconButton>
+                            </template>
+                            <template #items>
+                                <DropDownMenuItem @click="runPathFinderQuickRequest">
+                                    <MaterialDesignIcon icon-name="flash" class="size-5" />
+                                    <span>{{ $t("nomadnet.path_finder_quick_request") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem @click="runPathFinderForceFind">
+                                    <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                                    <span>{{ $t("nomadnet.path_finder_force_find") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem @click="runPathFinderDropAndRequest">
+                                    <MaterialDesignIcon icon-name="reload-alert" class="size-5" />
+                                    <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
+                                </DropDownMenuItem>
+                                <DropDownMenuItem
+                                    v-if="!isPrivate && (hasArchivesForCurrentPage || pageArchives.length > 0)"
+                                    @click="loadLatestArchiveSnapshot"
+                                >
+                                    <MaterialDesignIcon icon-name="archive-clock" class="size-5" />
+                                    <span>{{ $t("nomadnet.path_finder_load_archive") }}</span>
+                                </DropDownMenuItem>
+                            </template>
+                        </DropDownMenu>
+                    </div>
+                </div>
+
+                <!-- archive dropdown: anchored to whichever toggle is visible -->
+                <div
+                    v-if="isArchiveDropdownOpen"
+                    class="absolute w-64 bg-sem-surface border border-sem-border rounded-lg shadow-lg z-50 overflow-hidden"
+                    :style="archiveDropdownStyle"
+                >
+                    <div
+                        class="p-2 border-b border-sem-border font-semibold text-xs text-sem-fg-muted uppercase tracking-wider flex justify-between items-center"
+                    >
+                        <span>{{ $t("nomadnet.page_archives") }}</span>
+                        <button
+                            v-if="nodePageContent"
+                            :title="$t('nomadnet.archive_current_version')"
+                            class="text-blue-500 hover:text-sem-accent dark:hover:text-blue-300"
+                            @click.stop="manualArchive"
+                        >
+                            <MaterialDesignIcon icon-name="plus" class="size-5" />
+                        </button>
+                    </div>
+                    <div class="max-h-64 overflow-y-auto">
+                        <div v-if="pageArchives.length === 0" class="p-3 text-sm text-sem-fg-muted text-center">
+                            {{ $t("nomadnet.no_archives_for_this_page") }}
+                        </div>
+                        <div
+                            v-for="archive in pageArchives"
+                            v-else
+                            :key="archive.id"
+                            class="p-2 hover:bg-sem-surface-muted cursor-pointer border-b last:border-b-0 border-sem-border"
+                            @click="loadArchivedPage(archive.id)"
+                        >
+                            <div class="text-sm font-medium dark:text-gray-200">
+                                {{ formatDate(archive.created_at) }}
+                            </div>
+                            <div class="text-xs text-sem-fg-muted truncate">{{ archive.hash.substring(0, 16) }}...</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- page content: capture-phase clicks so <a href> is handled before browser default navigation -->
@@ -534,7 +560,52 @@
                     @click.capture="onElementClick"
                     @auxclick.capture="onElementClick"
                     @contextmenu="onPageContextMenu"
+                    @touchstart.passive="onNodeContainerTouchStart"
+                    @touchmove.passive="onNodeContainerTouchMove"
+                    @touchend="onNodeContainerTouchEnd"
+                    @touchcancel="onNodeContainerTouchEnd"
                 >
+                    <!-- pull-to-refresh indicator -->
+                    <div
+                        v-if="navPullDistance > 8"
+                        class="pointer-events-none absolute inset-x-0 top-2 z-20 flex justify-center"
+                    >
+                        <div
+                            class="flex size-9 items-center justify-center rounded-full border border-sem-border bg-sem-surface shadow-md"
+                            :style="{
+                                opacity: Math.min(1, navPullDistance / NAV_PULL_TRIGGER_PX),
+                                transform: `scale(${0.6 + 0.4 * Math.min(1, navPullDistance / NAV_PULL_TRIGGER_PX)})`,
+                            }"
+                        >
+                            <MaterialDesignIcon
+                                icon-name="refresh"
+                                class="size-5"
+                                :class="[
+                                    navPullDistance >= NAV_PULL_TRIGGER_PX
+                                        ? 'animate-spin text-sem-accent'
+                                        : 'text-sem-fg',
+                                ]"
+                            />
+                        </div>
+                    </div>
+                    <!-- edge swipe-back indicator -->
+                    <div v-if="navSwipeBackDistance > 8" class="pointer-events-none absolute left-0 top-1/2 z-20">
+                        <div
+                            class="flex size-9 items-center justify-center rounded-full border shadow-md"
+                            :class="
+                                navSwipeBackDistance >= NAV_SWIPE_BACK_TRIGGER_PX
+                                    ? 'border-sem-accent bg-sem-surface text-sem-accent'
+                                    : 'border-sem-border bg-sem-surface text-sem-fg'
+                            "
+                            :style="{
+                                opacity: Math.min(1, navSwipeBackDistance / NAV_SWIPE_BACK_TRIGGER_PX),
+                                transform: `translate(${Math.min(navSwipeBackDistance * 0.5, 56) - 44}px, -50%)`,
+                            }"
+                        >
+                            <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
+                        </div>
+                    </div>
+
                     <!-- archived version notice -->
                     <div
                         v-if="isShowingArchivedVersion"
@@ -847,6 +918,12 @@ import { useNomadNodesList } from "../../js/nomadnet/useNomadNodesList.js";
 // Bounds the per-tab page content cache. Least recently viewed pages evict first.
 const NODE_PAGE_CACHE_MAX = 50;
 
+// Touch gesture thresholds for the page container: pull-down refresh and
+// left-edge swipe back. Distances in CSS px.
+const NAV_SWIPE_EDGE_PX = 40;
+const NAV_SWIPE_BACK_TRIGGER_PX = 64;
+const NAV_PULL_TRIGGER_PX = 72;
+
 export default {
     name: "NomadNetworkPage",
     components: {
@@ -941,6 +1018,15 @@ export default {
 
             pageArchives: [],
             isArchiveDropdownOpen: false,
+            archiveDropdownStyle: {},
+            navTouchStartX: 0,
+            navTouchStartY: 0,
+            navTouchStartScrollTop: 0,
+            navSwipeEdgeActive: false,
+            navSwipeBackDistance: 0,
+            navPullDistance: 0,
+            NAV_SWIPE_BACK_TRIGGER_PX,
+            NAV_PULL_TRIGGER_PX,
             isLoadingArchives: false,
             hasArchivesForCurrentPage: false,
             isShowingArchivedVersion: false,
@@ -3870,7 +3956,64 @@ export default {
             this.isArchiveDropdownOpen = !this.isArchiveDropdownOpen;
             if (this.isArchiveDropdownOpen) {
                 this.fetchArchives();
+                this.$nextTick(() => this.positionArchiveDropdown());
             }
+        },
+        positionArchiveDropdown() {
+            const viewer = this.$refs.nodeViewerRoot;
+            const anchor = [this.$refs.archiveAnchorMobile, this.$refs.archiveAnchorDesktop].find(
+                (el) => el && el.offsetParent !== null
+            );
+            if (!viewer || !anchor) {
+                return;
+            }
+            const viewerRect = viewer.getBoundingClientRect();
+            const anchorRect = anchor.getBoundingClientRect();
+            this.archiveDropdownStyle = {
+                top: `${anchorRect.bottom - viewerRect.top + 4}px`,
+                right: `${Math.max(8, viewerRect.right - anchorRect.right)}px`,
+            };
+        },
+        onNodeContainerTouchStart(e) {
+            const touch = e.touches[0];
+            if (!touch) {
+                return;
+            }
+            const el = e.currentTarget;
+            this.navTouchStartX = touch.clientX;
+            this.navTouchStartY = touch.clientY;
+            this.navTouchStartScrollTop = el.scrollTop;
+            this.navSwipeEdgeActive = touch.clientX - el.getBoundingClientRect().left <= NAV_SWIPE_EDGE_PX;
+            this.navSwipeBackDistance = 0;
+            this.navPullDistance = 0;
+        },
+        onNodeContainerTouchMove(e) {
+            const touch = e.touches[0];
+            if (!touch) {
+                return;
+            }
+            const dx = touch.clientX - this.navTouchStartX;
+            const dy = touch.clientY - this.navTouchStartY;
+            if (this.navSwipeEdgeActive && dx > 0 && dx > Math.abs(dy) && this.nodePagePathHistory.length > 0) {
+                this.navSwipeBackDistance = Math.min(dx, 140);
+                this.navPullDistance = 0;
+                return;
+            }
+            const el = e.currentTarget;
+            if (this.navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx)) {
+                this.navPullDistance = Math.min(dy, 160);
+                this.navSwipeBackDistance = 0;
+            }
+        },
+        onNodeContainerTouchEnd() {
+            if (this.navSwipeBackDistance >= NAV_SWIPE_BACK_TRIGGER_PX) {
+                this.loadPreviousNodePage();
+            } else if (this.navPullDistance >= NAV_PULL_TRIGGER_PX) {
+                this.reloadNodePage();
+            }
+            this.navSwipeEdgeActive = false;
+            this.navSwipeBackDistance = 0;
+            this.navPullDistance = 0;
         },
         fetchArchives() {
             if (this.isPrivate) {
