@@ -7,7 +7,7 @@ import { STORAGE_KEYS } from "../constants.js";
  * highlight words. Both live under a per-identity bucket so entries written
  * under one identity never leak into another identity's view.
  *
- * Shape: { [identityKey]: { ignored: [{hash, name}], highlightWords: [str] } }
+ * Shape: { [identityKey]: { ignored: [{hash, name}], highlightWords: [str], hideJoinPart: bool } }
  * hash entries hold the lowercase peer identity hash, name entries the nick
  * as a fallback for messages that arrive without a src.
  */
@@ -34,10 +34,11 @@ function writeRoot(root) {
 }
 
 function normalizeBucket(bucket) {
-    const out = { ignored: [], highlightWords: [] };
+    const out = { ignored: [], highlightWords: [], hideJoinPart: false };
     if (!bucket || typeof bucket !== "object" || Array.isArray(bucket)) {
         return out;
     }
+    out.hideJoinPart = bucket.hideJoinPart === true;
     if (Array.isArray(bucket.ignored)) {
         for (const entry of bucket.ignored) {
             if (!entry || typeof entry !== "object") {
@@ -65,10 +66,15 @@ export function loadRelayPrefs(identityKey = "_") {
     return normalizeBucket(readRoot()[key]);
 }
 
-export function saveRelayPrefs(identityKey, { ignored, highlightWords } = {}) {
+export function saveRelayPrefs(identityKey, { ignored, highlightWords, hideJoinPart } = {}) {
     const key = typeof identityKey === "string" && identityKey ? identityKey : "_";
     const root = readRoot();
-    const bucket = normalizeBucket({ ignored, highlightWords });
+    const previous = normalizeBucket(root[key]);
+    const bucket = normalizeBucket({
+        ignored,
+        highlightWords,
+        hideJoinPart: hideJoinPart === undefined ? previous.hideJoinPart : hideJoinPart,
+    });
     bucket.ignored = bucket.ignored.slice(0, MAX_IGNORED);
     bucket.highlightWords = bucket.highlightWords.slice(0, MAX_WORDS).map((w) => w.slice(0, MAX_WORD_LEN));
     root[key] = bucket;

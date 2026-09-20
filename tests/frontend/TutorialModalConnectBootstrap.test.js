@@ -391,4 +391,28 @@ describe("TutorialModal connect/bootstrap adversarial references", () => {
         expect(wrapper.vm.finishingTutorial).toBe(false);
         wrapper.unmount();
     });
+
+    it("H14: bootstrap selection is capped so a huge list cannot soft-lock onboarding", async () => {
+        const wrapper = await mountTutorial(tcpCommunity(15));
+        wrapper.vm.communityInterfaces = tcpCommunity(15);
+        wrapper.vm.currentStep = 4;
+        for (let i = 1; i <= 15; i++) {
+            wrapper.vm.toggleBootstrap(`comm:Node ${i}`);
+        }
+        expect(wrapper.vm.selectedBootstrapKeys.length).toBe(10);
+        expect(ToastUtils.warning).toHaveBeenCalled();
+        wrapper.unmount();
+    });
+
+    it("H15: confirmBootstraps never adds more than the selection cap", async () => {
+        const wrapper = await mountTutorial(tcpCommunity(15));
+        wrapper.vm.communityInterfaces = tcpCommunity(15);
+        wrapper.vm.currentStep = 4;
+        // keys could be seeded programmatically past the toggle cap
+        wrapper.vm.selectedBootstrapKeys = Array.from({ length: 15 }, (_, i) => `comm:Node ${i + 1}`);
+        await wrapper.vm.confirmBootstraps();
+        const addCalls = axiosMock.post.mock.calls.filter(([url]) => url === "/api/v1/reticulum/interfaces/add");
+        expect(addCalls.length).toBe(10);
+        wrapper.unmount();
+    });
 });

@@ -17,6 +17,7 @@ public class MeshChatApplication extends PyApplication {
     public static final String CHANNEL_ID_MESSAGES = "meshchatx_messages";
     public static final String CHANNEL_ID_BACKGROUND = "meshchatx_background";
     public static final String CHANNEL_ID_CALLS = "meshchatx_calls";
+    public static final String CHANNEL_ID_DOWNLOADS = "meshchatx_downloads";
 
     private static volatile Context appContext;
 
@@ -119,6 +120,14 @@ public class MeshChatApplication extends PyApplication {
         );
         messages.setDescription(getString(R.string.notification_channel_messages_desc));
         nm.createNotificationChannel(messages);
+
+        NotificationChannel downloads = new NotificationChannel(
+            CHANNEL_ID_DOWNLOADS,
+            getString(R.string.notification_channel_downloads_name),
+            NotificationManager.IMPORTANCE_LOW
+        );
+        downloads.setDescription(getString(R.string.notification_channel_downloads_desc));
+        nm.createNotificationChannel(downloads);
 
         Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
         if (ringUri == null) {

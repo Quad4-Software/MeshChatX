@@ -101,7 +101,9 @@ function main() {
         process.exit(1);
     }
     const execOut = path.join(OUT_DIR, EXEC_NAME);
+    fs.rmSync(execOut, { force: true });
     fs.copyFileSync(execSrc, execOut);
+    fs.chmodSync(execOut, 0o644);
 
     const wasmBuf = fs.readFileSync(wasmOut);
     const execBuf = fs.readFileSync(execOut);

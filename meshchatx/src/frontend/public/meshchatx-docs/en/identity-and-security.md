@@ -93,6 +93,8 @@ app_security_settings can restrict which client IPs may use the web UI. Combine 
 
 Privacy mode does not disable Reticulum mesh traffic. It limits clearnet fetches from the app itself.
 
+External links are a different surface. When you open an http(s) link in the UI, the Electron and Android shells hand it to the system browser. Privacy mode does not block that hand-off; the flag governs what the app fetches, not which links you choose to open.
+
 ## Linux sandboxing
 
 On Linux, MeshChatX can enable two complementary in-process sandboxes when supported:

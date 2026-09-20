@@ -26,6 +26,9 @@ export class MemoryCache {
     }
 
     async put(request, response) {
+        if (request && typeof request === "object" && request.method && request.method !== "GET") {
+            throw new TypeError(`Request method '${request.method}' is unsupported`);
+        }
         this.map.set(requestKey(request), response.clone());
     }
 

@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 - Android satellite readiness: the app declares constrained-data optimization so the OS can route mesh traffic on a satellite attach. Nearby shows satellite state and a low-bandwidth hint.
 - OIDC sign-on for the web UI (Authentik, Keycloak, Pocket ID, and compatible providers) via Authorization Code + PKCE. Set it under Settings, Authentication, or with MESHCHAT_OIDC_* variables. OIDC can require login without a local password.
 - UI heap-profile spec fails CI if a catalog page leaves listeners, timers, or heap above baseline after unmount.
+- Android GPS location source shares your position through the native LocationManager bridge, so location works even when the WebView geolocation API fails. Pick it under Settings, Location.
+- Top navigation bar is customizable. Pin, reorder, or remove section buttons under Settings, Appearance, and NomadNet joins the default set.
+- Reticulum config editor keeps versioned snapshots on every save and can restore an older config.
+- Contact shares carry the display name and LXMF icon (name plus colors), so the card renders like a real contact.
+- Toasts can carry an action button. Errors like a missing propagation node or disabled location now offer a Configure shortcut that jumps to the right settings section.
+- Screenshot tooling: `task screenshots` captures desktop and mobile views of every page with seeded demo data.
 
 ### Security
 
@@ -46,12 +52,25 @@ All notable changes to this project will be documented in this file.
 - Frontend lifecycle: live transport cleans up sockets on destroy and mid-connect mode changes, failed WASM injections can be retried, and a stale NomadNet started event cannot resurrect a cancelled download.
 - Boot: the splash waits for the initial route chunk (4 second cap) before fading, so the shell does not jump onto an empty view.
 - NomadNet: page images no longer stick on Loading when a burst of file downloads was rate-limited. Errors now fail the matching download.
+- Themes: outbound, failed, and waiting message bubbles now take their colors from the active theme instead of a fixed blue. Settings pickers show the theme-resolved color until you override it.
+- Settings: the Reticulum Stack panel no longer leaks into Simple mode or unrelated tabs.
+- Android: location sharing no longer fails when browser geolocation is unavailable. Native GPS is used when selected, with a clear prompt when permission is missing.
+- Messages: shared contacts no longer show the raw payload above the card, and the mobile composer moves attachments into the input with a tidy picker.
+- Relay chat: search, cleanup, options, and leave collapse into a menu on mobile so the members button still fits.
+- Interface cards no longer leave a gap above the title on mobile, and the map info chip no longer touches the zoom controls.
+- Map: switching between online and offline no longer flashes a blank map, offline uses cached tiles when present, and the last view is restored on restart.
+- Voicemail works without espeak: record or upload a greeting even when text-to-speech is unavailable.
+- LXMFy bots get their configured icon colors seeded up front instead of showing a white avatar until first reply.
+- Popup menus show a caret pointing back at the button that opened them.
+- Mobile shows one toast at a time, and settings sections collapse to icon buttons on small screens.
+- Service worker: HEAD probes on hashed assets no longer reject the fetch, fixing the emoji picker data load.
 
 ### Changed
 
 - Install docs cover reverse proxies, Kubernetes, and previously undocumented flags and MESHCHAT_* variables.
 - Long sessions bound per-view state (announces, map markers, NomadNet pages, MiniChat, toasts) and clean up timers and streams on unmount.
 - Bump rns to 1.5.4 and lxst to 0.5.3.
+- Hardcoded palette colors across calls, contacts, toasts, voice notes, and docs controls now use semantic theme tokens that follow the active theme.
 - Headless self-check gains a Windows AppContainer launch probe so loader-init failures show up in `--self-check` and CI.
 - CI checks the packaged Electron backend tree against `backend-manifest.json` before staging is pruned.
 

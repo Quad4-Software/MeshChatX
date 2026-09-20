@@ -32,9 +32,12 @@
                 'settings-nav__tab--empty': isSearchEmpty(tab.id),
             }"
             :aria-current="tab.id === activeTab ? 'page' : undefined"
+            :title="$t(tab.labelKey)"
+            :aria-label="$t(tab.labelKey)"
             :disabled="isSearchEmpty(tab.id)"
             @click="onTabClick(tab.id)"
         >
+            <MaterialDesignIcon v-if="tab.icon" :icon-name="tab.icon" class="settings-nav__icon" />
             <span class="settings-nav__label-row">
                 <span class="settings-nav__label">{{ $t(tab.labelKey) }}</span>
                 <span v-if="searchActive" class="settings-nav__count">{{ matchCount(tab.id) }}</span>
@@ -45,10 +48,14 @@
 </template>
 
 <script>
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import { SETTINGS_TABS, isAdvancedSettingsSection } from "../../js/settings/settingsTabs.js";
 
 export default {
     name: "SettingsNav",
+    components: {
+        MaterialDesignIcon,
+    },
     props: {
         activeTab: {
             type: String,
@@ -119,6 +126,7 @@ export default {
 .settings-nav__tab {
     @apply flex flex-col items-start gap-0.5 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors shrink-0 lg:w-full;
     @apply text-sem-fg-muted hover:bg-sem-surface-muted;
+    @apply max-lg:items-center max-lg:justify-center max-lg:px-2.5;
 }
 
 .settings-nav__tab--active {
@@ -129,12 +137,16 @@ export default {
     @apply opacity-40 pointer-events-none;
 }
 
+.settings-nav__icon {
+    @apply size-5 lg:hidden;
+}
+
 .settings-nav__label-row {
-    @apply flex items-center gap-2 w-full min-w-0;
+    @apply flex items-center gap-2 w-full min-w-0 max-lg:w-auto;
 }
 
 .settings-nav__label {
-    @apply text-sm font-semibold leading-tight min-w-0 truncate;
+    @apply text-sm font-semibold leading-tight min-w-0 truncate max-lg:hidden;
 }
 
 .settings-nav__count {

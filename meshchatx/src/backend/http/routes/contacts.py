@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from aiohttp import web
 
@@ -126,6 +127,7 @@ def register_contacts_routes(routes, app):
         preferred_ringtone_id = data.get("preferred_ringtone_id")
         custom_image = data.get("custom_image")
         is_telemetry_trusted = data.get("is_telemetry_trusted", 0)
+        icon = data.get("icon")
 
         if not name:
             return http_bad_request("Name is required")
@@ -201,6 +203,30 @@ def register_contacts_routes(routes, app):
             custom_image=custom_image,
             is_telemetry_trusted=is_telemetry_trusted,
         )
+        if isinstance(icon, dict) and lxmf_address:
+            try:
+                icon_name = str(icon.get("icon_name") or "").strip()
+                fg = str(icon.get("foreground_colour") or "").strip()
+                bg = str(icon.get("background_colour") or "").strip()
+
+                def hex_ok(v):
+                    return not v or re.fullmatch(
+                        r"#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})", v
+                    )
+
+                if (
+                    re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", icon_name)
+                    and hex_ok(fg)
+                    and hex_ok(bg)
+                ):
+                    app.database.misc.update_lxmf_user_icon(
+                        lxmf_address,
+                        icon_name=icon_name,
+                        foreground_colour=fg or None,
+                        background_colour=bg or None,
+                    )
+            except Exception:
+                pass
         app.sync_telephone_call_policy()
         return web.json_response({"message": "Contact added"})
 

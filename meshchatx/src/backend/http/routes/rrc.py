@@ -133,6 +133,35 @@ def register_rrc_routes(routes, app):
             return http_bad_request("Invalid hub order")
         return web.json_response(manager.to_dict())
 
+    @routes.post(API_V1_PREFIX + "/rrc/hubs/options")
+    async def rrc_hubs_apply_options(request):
+        """Apply shared hub options to every configured hub at once.
+
+        Handles auto_reconnect, auto_list, and auto_who keys from the request body.
+        """
+        manager, error = _rrc_require_manager()
+        if error is not None:
+            return error
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        applied = {}
+        for key in ("auto_reconnect", "auto_list", "auto_who"):
+            if key in data:
+                applied[key] = bool(data[key])
+        if not applied:
+            return http_bad_request("No hub options supplied")
+        for hub in list(manager.hubs):
+            if "auto_reconnect" in applied:
+                hub.set_auto_reconnect(applied["auto_reconnect"], save=False)
+            if "auto_list" in applied:
+                hub.set_auto_list(applied["auto_list"], save=False)
+            if "auto_who" in applied:
+                hub.set_auto_who(applied["auto_who"], save=False)
+        manager.save()
+        return web.json_response(manager.to_dict())
+
     @routes.put(API_V1_PREFIX + "/rrc/hubs/{hub_hash}/rooms/order")
     async def rrc_hub_rooms_reorder(request):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))

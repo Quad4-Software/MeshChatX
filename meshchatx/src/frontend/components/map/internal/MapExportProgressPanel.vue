@@ -62,6 +62,7 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import AndroidDownloadBridge from "../../../js/AndroidDownloadBridge";
 
 export default {
     name: "MapExportProgressPanel",
@@ -71,5 +72,39 @@ export default {
         exportId: { type: [String, Number], default: null },
     },
     emits: ["dismiss", "cancel", "show-offline-maps"],
+    computed: {
+        notificationId() {
+            return `map-export-${this.exportId}`;
+        },
+        notificationName() {
+            return this.$t("map.exporting");
+        },
+    },
+    watch: {
+        "status.progress"(progress) {
+            if (this.status.status !== "completed" && this.status.status !== "failed") {
+                AndroidDownloadBridge.notifyProgress(this.notificationId, this.notificationName, progress);
+            }
+        },
+        "status.status"(status) {
+            if (status === "completed") {
+                AndroidDownloadBridge.cancelNotification(this.notificationId);
+                AndroidDownloadBridge.sessionEnd(this.notificationId);
+            } else if (status === "failed") {
+                AndroidDownloadBridge.notifyFailed(this.notificationId, this.notificationName);
+                AndroidDownloadBridge.sessionEnd(this.notificationId);
+            }
+        },
+    },
+    mounted() {
+        AndroidDownloadBridge.sessionStart(this.notificationId);
+        if (this.status.status !== "completed" && this.status.status !== "failed") {
+            AndroidDownloadBridge.notifyProgress(this.notificationId, this.notificationName, this.status.progress);
+        }
+    },
+    unmounted() {
+        AndroidDownloadBridge.cancelNotification(this.notificationId);
+        AndroidDownloadBridge.sessionEnd(this.notificationId);
+    },
 };
 </script>

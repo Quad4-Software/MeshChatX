@@ -28,6 +28,28 @@ public class MeshchatDownloadUtilsTest {
         Assert.assertEquals(120, MeshchatDownloadUtils.sanitizeFileName(raw).length());
     }
 
+    @Test
+    public void notificationIdFor_isStablePerId() {
+        int first = MeshchatDownloadUtils.notificationIdFor("dl-1");
+        Assert.assertEquals(first, MeshchatDownloadUtils.notificationIdFor("dl-1"));
+    }
+
+    @Test
+    public void notificationIdFor_differsAcrossIds() {
+        Assert.assertNotEquals(
+            MeshchatDownloadUtils.notificationIdFor("dl-a"),
+            MeshchatDownloadUtils.notificationIdFor("dl-b")
+        );
+    }
+
+    @Test
+    public void notificationIdFor_handlesNull() {
+        Assert.assertEquals(
+            MeshchatDownloadUtils.notificationIdFor(null),
+            MeshchatDownloadUtils.notificationIdFor(null)
+        );
+    }
+
     private static String repeat(char c, int n) {
         char[] buf = new char[n];
         java.util.Arrays.fill(buf, c);

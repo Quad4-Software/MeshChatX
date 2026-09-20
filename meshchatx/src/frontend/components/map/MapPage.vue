@@ -600,7 +600,7 @@
 
             <!-- bottom-right chrome row: scale line sits left of the attribution chip so they can never overlap. On small screens only the attribution shows, above the zoom pill -->
             <div
-                class="absolute bottom-4 right-4 z-10 flex items-end justify-end gap-2 pointer-events-none max-sm:bottom-[5.5rem] max-sm:right-3"
+                class="absolute bottom-4 right-4 z-10 flex items-end justify-end gap-2 pointer-events-none max-sm:bottom-[6.25rem] max-sm:right-3"
             >
                 <div
                     v-show="!isMobileScreen"
@@ -1189,6 +1189,7 @@ import MapSaveDrawingModal from "./internal/MapSaveDrawingModal.vue";
 import MapLoadDrawingModal from "./internal/MapLoadDrawingModal.vue";
 import MapMobileNoteModal from "./internal/MapMobileNoteModal.vue";
 import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.js";
+import { getAndroidPosition } from "../../js/androidLocation.js";
 import { readGeoJsonToFeatures, writeFeaturesToGeoJson } from "../../js/mapExchange/geoJsonCodec.js";
 import { readKmlToFeatures, writeFeaturesToKml } from "../../js/mapExchange/kmlCodec.js";
 import { readKmzToFeatures, writeFeaturesToKmzBlob } from "../../js/mapExchange/kmzCodec.js";
@@ -1726,6 +1727,15 @@ export default {
             }
         }, 30000);
         GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
+
+        // Flush pending debounced map state when the page is hidden or killed so the
+        // last view survives an app restart (beforeUnmount never runs on process kill).
+        this._onPageHideFlush = () => this.flushPendingMapStateSave();
+        this._onVisibilityFlush = () => {
+            if (document.visibilityState === "hidden") this.flushPendingMapStateSave();
+        };
+        window.addEventListener("pagehide", this._onPageHideFlush);
+        document.addEventListener("visibilitychange", this._onVisibilityFlush);
     },
     beforeUnmount() {
         GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
@@ -1736,15 +1746,9 @@ export default {
             GlobalEmitter.off(EMITTER_EVENTS.CONFIG_UPDATED, this.onConfigUpdatedExternally);
         }
         document.removeEventListener("click", this.handleGlobalClick);
-        if (this._saveStateTimer) {
-            clearTimeout(this._saveStateTimer);
-            this._saveStateTimer = null;
-        }
-        if (this._pendingSaveResolvers && this._pendingSaveResolvers.length > 0) {
-            const pending = this._pendingSaveResolvers.slice();
-            this._pendingSaveResolvers = [];
-            this.saveMapStateImmediate().then(() => pending.forEach((p) => p.resolve()));
-        }
+        window.removeEventListener("pagehide", this._onPageHideFlush);
+        document.removeEventListener("visibilitychange", this._onVisibilityFlush);
+        this.flushPendingMapStateSave();
         if (this.reloadInterval) clearInterval(this.reloadInterval);
         if (this._prefetchTimer) {
             clearTimeout(this._prefetchTimer);
@@ -1803,6 +1807,21 @@ export default {
                 return;
             }
             this.mapViewRotationRad = view.getRotation();
+        },
+        flushPendingMapStateSave() {
+            if (this._saveStateTimer) {
+                clearTimeout(this._saveStateTimer);
+                this._saveStateTimer = null;
+            }
+            if (!this._pendingSaveResolvers || this._pendingSaveResolvers.length === 0) {
+                return;
+            }
+            const pending = this._pendingSaveResolvers.slice();
+            this._pendingSaveResolvers = [];
+            this.saveMapStateImmediate().then(
+                () => pending.forEach((p) => p.resolve()),
+                (e) => pending.forEach((p) => p.reject(e))
+            );
         },
         saveMapState() {
             if (!this._pendingSaveResolvers) {
@@ -2890,12 +2909,14 @@ export default {
 
             if (isOffline) {
                 source.setTileLoadFunction(async (tile, src) => {
+                    // Cached tiles first: offline view should render instantly
+                    // from whatever was cached instead of waiting on a fetch.
+                    if (await this.tryApplyCachedTileForOfflineView(tile, src)) return;
                     const result = await fetchTileBlobWithRetry(src, { credentials: "omit" }, {});
                     if (result.ok) {
                         await this.fastApplyBlobToTile(tile, result.blob);
                         return;
                     }
-                    if (await this.tryApplyCachedTileForOfflineView(tile, src)) return;
                     await this.applyRasterPlaceholderTile(tile, "dark");
                 });
             } else {
@@ -3046,22 +3067,24 @@ export default {
         },
         async updateMapSource() {
             if (!this.map) return;
+            // Build the replacement while the old base layer stays visible so
+            // toggling online/offline does not flash an empty canvas.
+            const newBaseLayer = await this.buildBaseMapLayer();
             const layers = this.map.getLayers();
-
-            // Find and replace the tile layer (first layer usually)
-            // or just clear and re-add everything correctly
-            layers.clear();
-
-            layers.push(await this.buildBaseMapLayer());
-
-            // 2. Draw layer
-            if (this.drawLayer) {
-                layers.push(this.drawLayer);
+            const arr = typeof layers.getArray === "function" ? layers.getArray() : layers;
+            const oldBaseLayer = arr?.[0];
+            if (typeof layers.insertAt === "function") {
+                layers.insertAt(0, newBaseLayer);
+            } else if (Array.isArray(arr)) {
+                arr.unshift(newBaseLayer);
             }
-
-            // 3. Marker layer
-            if (this.markerLayer) {
-                layers.push(this.markerLayer);
+            if (oldBaseLayer && oldBaseLayer !== newBaseLayer) {
+                if (typeof layers.remove === "function") {
+                    layers.remove(oldBaseLayer);
+                } else if (Array.isArray(arr)) {
+                    const idx = arr.indexOf(oldBaseLayer);
+                    if (idx > 0) arr.splice(idx, 1);
+                }
             }
         },
         async toggleOffline(enabled) {
@@ -4669,6 +4692,14 @@ export default {
                     }
                 }
             }
+            if (this.config?.location_source === "android") {
+                try {
+                    const pos = await getAndroidPosition();
+                    return { lon: pos.longitude, lat: pos.latitude };
+                } catch {
+                    return null;
+                }
+            }
             if (!navigator.geolocation) {
                 return null;
             }
@@ -5328,7 +5359,7 @@ export default {
             }
         },
 
-        goToMyLocation() {
+        async goToMyLocation() {
             if (this.config?.location_source === "disabled") {
                 ToastUtils.warning(this.$t("map.location_not_determined"));
                 return;
@@ -5368,7 +5399,22 @@ export default {
                 }
             }
 
-            // Priority 2: Use browser geolocation if online or available
+            // Priority 3: Use native Android GPS via the WebView bridge
+            if (this.config?.location_source === "android") {
+                try {
+                    const pos = await getAndroidPosition();
+                    this.map.getView().animate({
+                        center: fromLonLat([pos.longitude, pos.latitude]),
+                        zoom: 15,
+                        duration: 1000,
+                    });
+                } catch {
+                    ToastUtils.warning(this.$t("map.location_not_determined"));
+                }
+                return;
+            }
+
+            // Priority 4: Use browser geolocation if online or available
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -6123,7 +6169,7 @@ export default {
         z-index: 12;
     }
     :deep(.ol-attribution) {
-        bottom: 5.5rem;
+        bottom: 6.25rem;
         right: 0.75rem;
     }
 }

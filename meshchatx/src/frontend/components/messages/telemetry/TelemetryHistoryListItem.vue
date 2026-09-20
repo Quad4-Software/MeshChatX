@@ -11,15 +11,17 @@
             <span class="text-[10px] text-sem-fg-muted">{{ formatTimeAgo(item.lxmf_message.created_at) }}</span>
         </div>
 
-        <div v-if="item.lxmf_message.fields?.telemetry?.location" class="flex items-center gap-2 mb-2">
+        <div
+            v-if="telemetryLocationCoords(item.lxmf_message.fields?.telemetry?.location)"
+            class="flex items-center gap-2 mb-2"
+        >
             <button
                 type="button"
                 class="flex items-center gap-2 text-xs font-mono text-sem-accent hover:underline"
                 @click="$emit('location-click', item.lxmf_message.fields.telemetry.location)"
             >
                 <MaterialDesignIcon icon-name="map-marker" class="size-4" />
-                {{ item.lxmf_message.fields.telemetry.location.latitude.toFixed(6) }},
-                {{ item.lxmf_message.fields.telemetry.location.longitude.toFixed(6) }}
+                {{ formatTelemetryLocationCoords(item.lxmf_message.fields.telemetry.location) }}
             </button>
         </div>
 
@@ -50,6 +52,7 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import { formatTelemetryLocationCoords, telemetryLocationCoords } from "../../../js/lxmfTelemetryLocation.js";
 
 export default {
     name: "TelemetryHistoryListItem",
@@ -65,5 +68,9 @@ export default {
         },
     },
     emits: ["location-click"],
+    methods: {
+        telemetryLocationCoords,
+        formatTelemetryLocationCoords,
+    },
 };
 </script>

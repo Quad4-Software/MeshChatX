@@ -133,25 +133,26 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.selectedHubHash).toBe(HUB_HASH);
     });
 
-    it("collapses host, bots and search tabs into the mobile overflow menu", async () => {
+    it("keeps host visible and renders bots and search icon-only below md", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
 
-        // Below md these tabs live in the overflow dropdown so the tab bar
-        // never scrolls horizontally on phones.
-        expect(wrapper.vm.overflowTabs.map((t) => t.id)).toEqual(["host", "bots", "search"]);
-
+        // All tabs stay in the bar; bots and search collapse to icons below md
+        // so the bar never scrolls horizontally on phones.
         const tabs = wrapper.findAll('[role="tab"]');
-        const searchTab = tabs.find((t) => t.text().trim() === "Search");
-        expect(searchTab).toBeTruthy();
-        expect(searchTab.classes()).toContain("hidden");
-        expect(searchTab.classes()).toContain("md:inline-flex");
+        expect(tabs).toHaveLength(5);
 
-        // Selecting an overflow view flags the menu button as active.
-        wrapper.vm.selectView("search");
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.isOverflowView).toBe(true);
-        expect(wrapper.vm.overflowViewIcon).toBe("magnify");
+        const hostTab = tabs.find((t) => t.text().trim() === "Host");
+        expect(hostTab).toBeTruthy();
+        expect(hostTab.classes()).toContain("inline-flex");
+
+        for (const label of ["Bots", "Search"]) {
+            const tab = tabs.find((t) => t.attributes("aria-label") === label);
+            expect(tab, `${label} tab should be icon-only below md`).toBeTruthy();
+            const span = tab.find("span");
+            expect(span.classes()).toContain("hidden");
+            expect(span.classes()).toContain("md:inline");
+        }
     });
 
     it("shows hub rooms discovered via auto-list that have not been joined yet", async () => {

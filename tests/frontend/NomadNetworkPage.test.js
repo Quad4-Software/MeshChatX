@@ -161,7 +161,7 @@ describe("NomadNetworkPage.vue", () => {
         const pfButton = wrapper.find('[title="nomadnet.path_finder"]');
         expect(pfButton.exists()).toBe(true);
         let el = pfButton.element;
-        while (el && !(el.classList.contains("hidden") && el.classList.contains("xl:inline-block"))) {
+        while (el && !(el.classList.contains("hidden") && el.classList.contains("xl:block"))) {
             el = el.parentElement;
         }
         expect(el, "path finder dropdown must stay hidden below xl").toBeTruthy();

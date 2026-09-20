@@ -186,6 +186,7 @@ module.exports = {
     E2E_SCROLL_PEER_HASH,
     E2E_SCROLL_ALT_PEER_HASH,
     PALETTE_PLACEHOLDER,
+    buildE2eLxmfRow,
     dismissMapOnboardingTooltip,
     e2ePost,
     ensureE2eCsrf,

@@ -49,7 +49,7 @@
                     class="shrink-0 p-1 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                     :class="
                         fav.destination_hash === selectedDestinationHash
-                            ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
+                            ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-sem-surface'
                             : 'hover:bg-white/10'
                     "
                     :title="favouriteDisplayName(fav)"
@@ -69,7 +69,7 @@
                     class="shrink-0 p-1 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                     :class="
                         node.destination_hash === selectedDestinationHash
-                            ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
+                            ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-sem-surface'
                             : 'hover:bg-white/10'
                     "
                     :title="node.custom_display_name || node.display_name"
@@ -162,17 +162,25 @@
                                     <div
                                         v-if="favouriteBulkMoveMenuOpen"
                                         v-click-outside="{ handler: closeFavouriteBulkMoveMenu, capture: true }"
-                                        class="absolute right-0 top-full mt-1 z-60 min-w-[10rem] max-h-56 overflow-y-auto bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border py-1"
+                                        class="absolute right-0 top-full mt-1 z-60"
                                     >
-                                        <button
-                                            v-for="section in orderedSections"
-                                            :key="'bulk-move-' + section.id"
-                                            type="button"
-                                            class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted"
-                                            @click="bulkMoveSelectedFavouritesToSection(section.id)"
+                                        <div
+                                            class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                                            aria-hidden="true"
+                                        ></div>
+                                        <div
+                                            class="min-w-[10rem] max-h-56 overflow-y-auto bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1"
                                         >
-                                            {{ section.name }}
-                                        </button>
+                                            <button
+                                                v-for="section in orderedSections"
+                                                :key="'bulk-move-' + section.id"
+                                                type="button"
+                                                class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted"
+                                                @click="bulkMoveSelectedFavouritesToSection(section.id)"
+                                            >
+                                                {{ section.name }}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <button
@@ -518,6 +526,17 @@
                             </span>
                         </button>
                     </div>
+                    <select
+                        :value="announcesSort"
+                        class="input-field w-full min-w-0 rounded-none text-xs py-1"
+                        :title="$t('nomadnet.sort_announces')"
+                        @change="onAnnouncesSortChange"
+                    >
+                        <option value="last_announced">{{ $t("nomadnet.sort_last_announced") }}</option>
+                        <option value="newest_discovered">{{ $t("nomadnet.sort_newest_discovered") }}</option>
+                        <option value="most_announced">{{ $t("nomadnet.sort_most_announced") }}</option>
+                        <option value="name">{{ $t("nomadnet.sort_name") }}</option>
+                    </select>
                     <div
                         v-if="announcesSelectionMode"
                         class="flex flex-col gap-2 px-2 py-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg"
@@ -843,6 +862,7 @@ import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import { isUnknownNodeDisplayName } from "../../js/nomadUnknownNodeName.js";
 import { useNomadFavouritesLayout } from "../../js/nomadnet/useNomadFavouritesLayout.js";
+import { loadNomadAnnouncesSort, saveNomadAnnouncesSort } from "../../js/browserLayoutStore.js";
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
 import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
@@ -928,6 +948,7 @@ export default {
     data() {
         return {
             tab: lastSidebarTab,
+            announcesSort: loadNomadAnnouncesSort(),
             mobileUrlInput: "",
             favouritesSelectionMode: false,
             announcesSelectionMode: false,
@@ -988,9 +1009,40 @@ export default {
             timedNodes.sort((a, b) => b.t - a.t);
             return timedNodes.map((entry) => entry.node);
         },
+        nodesOrderedByAnnounceSort() {
+            if (this.announcesSort === "last_announced") {
+                return this.nodesOrderedByLatestAnnounce;
+            }
+            const nodes = Object.values(this.nodes);
+            const keyed = nodes.map((node) => {
+                if (node._created_at_ts === undefined) {
+                    const ts = new Date(node.created_at || node.updated_at).getTime();
+                    node._created_at_ts = Number.isFinite(ts) ? ts : 0;
+                }
+                return node;
+            });
+            if (this.announcesSort === "name") {
+                keyed.sort((a, b) =>
+                    (a.custom_display_name || a.display_name || "").localeCompare(
+                        b.custom_display_name || b.display_name || ""
+                    )
+                );
+            } else if (this.announcesSort === "most_announced") {
+                keyed.sort(
+                    (a, b) =>
+                        (Number(b.announce_count) || 0) - (Number(a.announce_count) || 0) ||
+                        b._created_at_ts - a._created_at_ts
+                );
+            } else {
+                // newest_discovered: first-seen wins, so a re-announce of a
+                // known node does not jump back to the top.
+                keyed.sort((a, b) => b._created_at_ts - a._created_at_ts);
+            }
+            return keyed;
+        },
         searchedNodes() {
             const search = (this.nodesSearchTerm || "").toLowerCase();
-            const ordered = this.nodesOrderedByLatestAnnounce;
+            const ordered = this.nodesOrderedByAnnounceSort;
             if (!search) {
                 return ordered;
             }
@@ -1056,6 +1108,10 @@ export default {
             if (!this.announcesSelectionMode) {
                 this.selectedAnnounceHashes = [];
             }
+        },
+        onAnnouncesSortChange(event) {
+            this.announcesSort = event.target.value;
+            saveNomadAnnouncesSort(this.announcesSort);
         },
         exitFavouritesSelectionMode() {
             this.favouritesSelectionMode = false;

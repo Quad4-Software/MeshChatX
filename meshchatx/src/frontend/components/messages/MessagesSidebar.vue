@@ -156,30 +156,38 @@
                                 <div
                                     v-if="folderMenu.show"
                                     v-click-outside="{ handler: () => (folderMenu.show = false), capture: true }"
-                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                                    class="absolute right-0 top-full mt-1 z-60 animate-in fade-in zoom-in duration-100"
                                 >
-                                    <button
-                                        type="button"
-                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                        @click="
-                                            $emit('export-folders');
-                                            folderMenu.show = false;
-                                        "
+                                    <div
+                                        class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                                        aria-hidden="true"
+                                    ></div>
+                                    <div
+                                        class="min-w-[160px] bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden"
                                     >
-                                        <MaterialDesignIcon icon-name="export" class="size-4" />
-                                        <span>{{ $t("messages.export_folders") }}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                        @click="
-                                            $emit('import-folders');
-                                            folderMenu.show = false;
-                                        "
-                                    >
-                                        <MaterialDesignIcon icon-name="import" class="size-4" />
-                                        <span>{{ $t("messages.import_folders") }}</span>
-                                    </button>
+                                        <button
+                                            type="button"
+                                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                            @click="
+                                                $emit('export-folders');
+                                                folderMenu.show = false;
+                                            "
+                                        >
+                                            <MaterialDesignIcon icon-name="export" class="size-4" />
+                                            <span>{{ $t("messages.export_folders") }}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                            @click="
+                                                $emit('import-folders');
+                                                folderMenu.show = false;
+                                            "
+                                        >
+                                            <MaterialDesignIcon icon-name="import" class="size-4" />
+                                            <span>{{ $t("messages.import_folders") }}</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -344,24 +352,32 @@
                                 <div
                                     v-if="moveMenu.show"
                                     v-click-outside="{ handler: () => (moveMenu.show = false), capture: true }"
-                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                                    class="absolute right-0 top-full mt-1 z-60 animate-in fade-in zoom-in duration-100"
                                 >
-                                    <button
-                                        type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                        @click="moveSelectedToFolder(null)"
+                                    <div
+                                        class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                                        aria-hidden="true"
+                                    ></div>
+                                    <div
+                                        class="min-w-[160px] bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden"
                                     >
-                                        {{ $t("messages.uncategorized") }}
-                                    </button>
-                                    <button
-                                        v-for="folder in folders"
-                                        :key="folder.id"
-                                        type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                        @click="moveSelectedToFolder(folder.id)"
-                                    >
-                                        {{ folder.name }}
-                                    </button>
+                                        <button
+                                            type="button"
+                                            class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                            @click="moveSelectedToFolder(null)"
+                                        >
+                                            {{ $t("messages.uncategorized") }}
+                                        </button>
+                                        <button
+                                            v-for="folder in folders"
+                                            :key="folder.id"
+                                            type="button"
+                                            class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                            @click="moveSelectedToFolder(folder.id)"
+                                        >
+                                            {{ folder.name }}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

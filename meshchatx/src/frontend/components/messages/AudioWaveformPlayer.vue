@@ -3,13 +3,15 @@
 <template>
     <div
         class="audio-waveform-player flex items-center gap-3 p-2 rounded-xl transition-all w-full min-w-0"
-        :class="[isOutbound ? 'bg-white/10 text-white' : 'bg-gray-100 dark:bg-zinc-800/80 text-sem-fg']"
+        :class="[isOutbound ? 'bg-sem-fg/10 text-sem-fg' : 'bg-sem-surface-muted text-sem-fg']"
     >
         <!-- Play/Pause Button -->
         <button
             class="flex items-center justify-center size-10 rounded-full shrink-0 transition-all active:scale-90"
             :class="[
-                isOutbound ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white',
+                isOutbound
+                    ? 'bg-sem-fg/15 hover:bg-sem-fg/25 text-sem-fg'
+                    : 'bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text',
             ]"
             @click="togglePlay"
         >
@@ -29,7 +31,7 @@
             <!-- Progress Line -->
             <div
                 v-if="!loading && (isPlaying || progressPercent > 0)"
-                class="absolute top-0 bottom-0 w-0.5 bg-blue-400 z-10 pointer-events-none transition-[left] duration-100 ease-linear"
+                class="absolute top-0 bottom-0 w-0.5 bg-sem-accent z-10 pointer-events-none transition-[left] duration-100 ease-linear"
                 :style="{ left: progressPercent + '%' }"
             ></div>
 
@@ -156,12 +158,13 @@ export default {
 
             ctx.clearRect(0, 0, width, height);
 
-            const dark = this.isDarkMode();
-            const waveBg = dark ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.2)";
-            const waveFg = dark ? "#fff" : "#000";
+            // Follow the surrounding text colour so the waveform respects the
+            // active theme instead of guessing light vs dark.
+            const waveFg = getComputedStyle(canvas).color || "#000";
 
             ctx.beginPath();
-            ctx.strokeStyle = waveBg;
+            ctx.globalAlpha = 0.25;
+            ctx.strokeStyle = waveFg;
             ctx.lineWidth = 1.5;
 
             for (let i = 0; i < width; i++) {
@@ -181,6 +184,7 @@ export default {
             const progressX = (this.progressPercent / 100) * width;
             if (progressX > 0) {
                 ctx.beginPath();
+                ctx.globalAlpha = 0.9;
                 ctx.strokeStyle = waveFg;
                 ctx.lineWidth = 2;
                 for (let i = 0; i < progressX; i++) {

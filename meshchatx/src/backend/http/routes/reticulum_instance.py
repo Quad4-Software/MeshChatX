@@ -11,7 +11,7 @@ import time
 from aiohttp import web
 from RNS.Discovery import InterfaceDiscovery
 
-from meshchatx.src.backend import i2p_support
+from meshchatx.src.backend import i2p_support, reticulum_config_versions
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
@@ -722,6 +722,9 @@ def register_reticulum_instance_routes(routes, app):
             )
             if i2p_raw_error is not None:
                 return http_error(422, i2p_raw_error)
+            reticulum_config_versions.snapshot_config(
+                config_dir, config_path, label="before save"
+            )
             with open(config_path, "w") as f:
                 f.write(content)
             i2p_support.guard_i2p_interfaces_in_config(config_path)
@@ -743,6 +746,9 @@ def register_reticulum_instance_routes(routes, app):
                 app.reticulum_config_dir,
             )
             config_path = app._reticulum_config_file_path()
+            reticulum_config_versions.snapshot_config(
+                app.reticulum_config_dir, config_path, label="before reset"
+            )
             default_text = app._write_rns_reticulum_default_config_file(
                 config_path,
             )
@@ -751,6 +757,72 @@ def register_reticulum_instance_routes(routes, app):
                 {
                     "message": "Reticulum config restored to defaults",
                     "content": default_text,
+                    "path": config_path,
+                },
+            )
+        except Exception as e:
+            return http_error_from_exception(e, fallback_status=500)
+
+    @routes.get(API_V1_PREFIX + "/reticulum/config/versions")
+    async def reticulum_config_versions_list(request):
+        """List saved Reticulum config snapshots, newest first."""
+        try:
+            config_dir = app._normalize_reticulum_config_dir(
+                app.reticulum_config_dir,
+            )
+            return web.json_response(
+                {"versions": reticulum_config_versions.list_versions(config_dir)},
+            )
+        except Exception as e:
+            return http_error_from_exception(e, fallback_status=500)
+
+    @routes.get(API_V1_PREFIX + "/reticulum/config/versions/{version_id}")
+    async def reticulum_config_version_get(request):
+        """Return one snapshot including its raw config content."""
+        try:
+            config_dir = app._normalize_reticulum_config_dir(
+                app.reticulum_config_dir,
+            )
+            record = reticulum_config_versions.get_version(
+                config_dir, request.match_info["version_id"]
+            )
+            if record is None:
+                return http_not_found("Config version not found")
+            return web.json_response({"version": record})
+        except Exception as e:
+            return http_error_from_exception(e, fallback_status=500)
+
+    @routes.post(API_V1_PREFIX + "/reticulum/config/versions/{version_id}/restore")
+    async def reticulum_config_version_restore(request):
+        """Restore a saved snapshot, snapshotting the live config first."""
+        try:
+            config_dir = app._normalize_reticulum_config_dir(
+                app.reticulum_config_dir,
+            )
+            record = reticulum_config_versions.get_version(
+                config_dir, request.match_info["version_id"]
+            )
+            if record is None:
+                return http_not_found("Config version not found")
+            content = record["content"]
+            if "[reticulum]" not in content or "[interfaces]" not in content:
+                return http_bad_request(
+                    "Snapshot is missing [reticulum] or [interfaces] sections"
+                )
+            if not os.path.exists(config_dir):
+                os.makedirs(config_dir, exist_ok=True)
+            config_path = app._reticulum_config_file_path()
+            reticulum_config_versions.snapshot_config(
+                config_dir, config_path, label="before restore"
+            )
+            with open(config_path, "w") as f:
+                f.write(content)
+            i2p_support.guard_i2p_interfaces_in_config(config_path)
+            app._sync_interfaces_from_disk(replace=True)
+            return web.json_response(
+                {
+                    "message": "Reticulum config restored",
+                    "content": content,
                     "path": config_path,
                 },
             )

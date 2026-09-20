@@ -233,7 +233,8 @@ def register_lxmf_routes(routes, app):
         outbound_node = app.message_router.get_outbound_propagation_node()
         if outbound_node is None:
             return http_bad_request(
-                "A propagation node must be configured to sync messages."
+                "A propagation node must be configured to sync messages.",
+                code="propagation_node_not_configured",
             )
 
         # proactively request path, but do not block/fail here.

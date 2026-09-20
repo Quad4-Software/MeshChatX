@@ -1193,6 +1193,7 @@ class ReticulumMeshChat:
         unicode_result = self_check_mod.check_unicode_path(storage_base)
         rnode_result = self_check_mod.check_rnode_support()
         bot_launcher_result = self_check_mod.check_bot_launcher()
+        backbone_patch_result = self_check_mod.check_rns_backbone_patch()
         umsgpack_result = self_check_mod.check_umsgpack_roundtrip()
         lxst_telephony_result = self_check_mod.run_isolated("lxst_telephony")
         audio_codec_result = self_check_mod.run_isolated("audio_codec_roundtrip")
@@ -1239,6 +1240,7 @@ class ReticulumMeshChat:
             "unicode_path_good": unicode_result,
             "rnode_support_good": rnode_result,
             "bot_launcher_good": bot_launcher_result,
+            "backbone_patch_good": backbone_patch_result,
             "http_status_good": web_results.get(
                 "http_status_good",
                 {"status": "failed", "reason": "missing"},
@@ -10317,8 +10319,17 @@ class ReticulumMeshChat:
             title=title,
             desired_method=desired_delivery_method,
         )
+        # Telemetry payloads are ephemeral. Falling back to propagation burns a
+        # stamp PoW round on every failed opportunistic send (the tracking loop
+        # fires once a minute) and only ever delivers stale location pings.
+        is_telemetry_payload = telemetry_data is not None or any(
+            isinstance(command, dict) and SidebandCommands.TELEMETRY_REQUEST in command
+            for command in (commands or [])
+        )
         lxmf_message.try_propagation_on_fail = (
-            ctx.config.auto_send_failed_messages_to_propagation_node.get()
+            False
+            if is_telemetry_payload
+            else ctx.config.auto_send_failed_messages_to_propagation_node.get()
         )
 
         lxmf_message.fields = {}

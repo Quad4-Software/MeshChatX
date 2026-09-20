@@ -1407,7 +1407,7 @@ describe("ConversationViewer.vue", () => {
         };
         const styles = wrapper.vm.bubbleStyles(chatItem);
         expect(styles["background-color"]).toBeUndefined();
-        expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toContain("bg-sky-100");
+        expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toContain("bg-sem-bubble-outbound/10");
         expect(wrapper.vm.isThemeOutboundBubble(chatItem)).toBe(true);
     });
 
@@ -1457,7 +1457,7 @@ describe("ConversationViewer.vue", () => {
         expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toBe("");
     });
 
-    it("uses dark neutral waiting bubble when pathfinding in dark theme with default gray", () => {
+    it("uses theme waiting bubble vars when pathfinding with default gray", () => {
         useConfigStore().config.theme = "dark";
         useConfigStore().config.message_waiting_bubble_color = "#e5e7eb";
         const wrapper = mountConversationViewer();
@@ -1475,8 +1475,8 @@ describe("ConversationViewer.vue", () => {
             },
         };
         expect(wrapper.vm.bubbleStyles(chatItem)).toMatchObject({
-            "background-color": "#3f3f46",
-            color: "#ffffff",
+            "background-color": "var(--mc-bubble-waiting)",
+            color: "var(--mc-bubble-waiting-text)",
         });
     });
 
