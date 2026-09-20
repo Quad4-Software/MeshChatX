@@ -2,8 +2,8 @@ import { EMITTER_EVENTS } from "./constants.js";
 import GlobalEmitter from "./GlobalEmitter";
 
 class ToastUtils {
-    static show(message, type = "info", duration = 5000, key = null) {
-        GlobalEmitter.emit(EMITTER_EVENTS.TOAST, { message, type, duration, key });
+    static show(message, type = "info", duration = 5000, key = null, action = null) {
+        GlobalEmitter.emit(EMITTER_EVENTS.TOAST, { message, type, duration, key, action });
     }
 
     static success(message, duration = 5000, key = null) {
@@ -26,13 +26,14 @@ class ToastUtils {
         this.show(message, "loading", duration, key);
     }
 
-    static helptips({ title, details, type = "warning", duration = 11000, key = null }) {
+    static helptips({ title, details, type = "warning", duration = 11000, key = null, action = null }) {
         GlobalEmitter.emit(EMITTER_EVENTS.TOAST, {
             message: title,
             details: Array.isArray(details) ? details : [],
             type,
             duration,
             key,
+            action,
         });
     }
 
