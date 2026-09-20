@@ -80,7 +80,14 @@ def snapshot_config(config_dir: str, config_path: str, label: str = "") -> dict 
     tmp_path = os.path.join(versions_dir(config_dir), f"{version_id}.json.tmp")
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(record, f)
-    os.replace(tmp_path, _version_path(config_dir, version_id))
+    target_path = _version_path(config_dir, version_id)
+    if target_path is None:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+        return None
+    os.replace(tmp_path, target_path)
 
     prune_versions(config_dir)
     return {k: v for k, v in record.items() if k != "content"}
