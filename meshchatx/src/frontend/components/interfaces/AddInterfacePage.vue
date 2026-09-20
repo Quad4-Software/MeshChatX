@@ -184,6 +184,9 @@
                                                 <option value="PipeInterface">Pipe Interface (External)</option>
                                                 <option value="RNodeIPInterface">RNode over IP</option>
                                                 <option value="BackboneInterface">Backbone (public relay)</option>
+                                                <option value="IodineUDPInterface">
+                                                    {{ $t("interfaces.iodine_option") }}
+                                                </option>
                                                 <option value="__external__">
                                                     Custom / external module (RNS interfacepath)
                                                 </option>
@@ -519,7 +522,11 @@
 
                                         <!-- TCP Server / UDP -->
                                         <div
-                                            v-if="['TCPServerInterface', 'UDPInterface'].includes(newInterfaceType)"
+                                            v-if="
+                                                ['TCPServerInterface', 'UDPInterface', 'IodineUDPInterface'].includes(
+                                                    newInterfaceType
+                                                )
+                                            "
                                             class="space-y-4"
                                         >
                                             <div>
@@ -620,7 +627,10 @@
                                         </div>
 
                                         <!-- UDP Extras -->
-                                        <div v-if="newInterfaceType === 'UDPInterface'" class="grid grid-cols-2 gap-4">
+                                        <div
+                                            v-if="['UDPInterface', 'IodineUDPInterface'].includes(newInterfaceType)"
+                                            class="grid grid-cols-2 gap-4"
+                                        >
                                             <div>
                                                 <FormLabel class="glass-label">Forward IP</FormLabel>
                                                 <input
@@ -639,6 +649,58 @@
                                                     class="input-field"
                                                 />
                                             </div>
+                                        </div>
+
+                                        <!-- Iodine DNS tunnel (UDP over iodine) -->
+                                        <div v-if="newInterfaceType === 'IodineUDPInterface'" class="space-y-4">
+                                            <div
+                                                class="bg-amber-50/80 dark:bg-amber-900/20 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200 space-y-1"
+                                            >
+                                                <div class="font-semibold">
+                                                    {{ $t("interfaces.iodine_requirements_title") }}
+                                                </div>
+                                                <p>{{ $t("interfaces.iodine_requirements_body") }}</p>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
+                                                    :class="
+                                                        newInterfaceIodineRole === 'client'
+                                                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
+                                                            : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                    "
+                                                    @click="newInterfaceIodineRole = 'client'"
+                                                >
+                                                    {{ $t("interfaces.iodine_role_client") }}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
+                                                    :class="
+                                                        newInterfaceIodineRole === 'server'
+                                                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
+                                                            : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                    "
+                                                    @click="newInterfaceIodineRole = 'server'"
+                                                >
+                                                    {{ $t("interfaces.iodine_role_server") }}
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.iodine_domain")
+                                                }}</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceIodineDomain"
+                                                    type="text"
+                                                    placeholder="tunnel.example.com"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <p class="text-xs text-sem-fg-muted leading-relaxed font-mono">
+                                                {{ iodineCommandHint }}
+                                            </p>
                                         </div>
 
                                         <!-- I2P Interface -->
@@ -2431,6 +2493,8 @@ export default {
             savingDiscovery: false,
             newInterfaceForwardIp: null,
             newInterfaceForwardPort: null,
+            newInterfaceIodineRole: "client",
+            newInterfaceIodineDomain: "",
 
             I2PSettings: {
                 newInterfacePeers: [],
@@ -2536,11 +2600,28 @@ export default {
             }
             return null;
         },
+        iodineCommandHint() {
+            const domain = (this.newInterfaceIodineDomain || "").trim() || "tunnel.example.com";
+            const serverIp =
+                this.newInterfaceIodineRole === "server" ? this.newInterfaceListenIp || "10.0.0.1" : "10.0.0.1";
+            if (this.newInterfaceIodineRole === "server") {
+                return this.$t("interfaces.iodine_hint_server", { domain, ip: serverIp });
+            }
+            return this.$t("interfaces.iodine_hint_client", { domain });
+        },
     },
     watch: {
         newInterfaceType(value) {
             if (value === "__external__") {
                 this.loadInstalledInterfaceModules();
+            }
+            if (value === "IodineUDPInterface") {
+                this.applyIodineDefaults();
+            }
+        },
+        newInterfaceIodineRole() {
+            if (this.newInterfaceType === "IodineUDPInterface") {
+                this.applyIodineDefaults();
             }
         },
     },
@@ -3476,6 +3557,31 @@ export default {
             this.applyConfig(config);
             ToastUtils.success(this.$t("interfaces.discovered_prefill_applied"));
         },
+        applyIodineDefaults() {
+            // Pre-fill a working UDP-over-iodine stanza for the chosen role.
+            // Users can still edit every field afterwards.
+            if (!this.newInterfaceName) {
+                this.newInterfaceName = "Iodine UDP";
+            }
+            if (this.newInterfaceListenPort == null || this.newInterfaceListenPort === "") {
+                this.newInterfaceListenPort = 6969;
+            }
+            if (this.newInterfaceForwardPort == null || this.newInterfaceForwardPort === "") {
+                this.newInterfaceForwardPort = 6969;
+            }
+            if (this.newInterfaceIodineRole === "server") {
+                this.newInterfaceListenIp = "10.0.0.1";
+                this.newInterfaceForwardIp = "10.0.0.255";
+                this.sharedInterfaceSettings.mode = "access_point";
+            } else {
+                this.newInterfaceListenIp = "0.0.0.0";
+                this.newInterfaceForwardIp = "10.0.0.1";
+                this.sharedInterfaceSettings.mode = "roaming";
+            }
+            if (this.sharedInterfaceSettings.bitrate == null || this.sharedInterfaceSettings.bitrate === "") {
+                this.sharedInterfaceSettings.bitrate = 20000;
+            }
+        },
         async quickAddInterfaceFromConfig(config) {
             if (!config || !config.type || !config.name || this.isSaving) {
                 return;
@@ -3571,7 +3677,11 @@ export default {
                     }
                 }
 
-                if (this.newInterfaceType === "TCPServerInterface" || this.newInterfaceType === "UDPInterface") {
+                if (
+                    this.newInterfaceType === "TCPServerInterface" ||
+                    this.newInterfaceType === "UDPInterface" ||
+                    this.newInterfaceType === "IodineUDPInterface"
+                ) {
                     const lip = String(this.newInterfaceListenIp ?? "").trim();
                     if (!lip) {
                         ToastUtils.error(this.$t("interfaces.listen_ip_required"));
@@ -3677,7 +3787,7 @@ export default {
                 const payload = {
                     allow_overwriting_interface: this.isEditingInterface,
                     name: this.newInterfaceName,
-                    type: this.newInterfaceType,
+                    type: this.newInterfaceType === "IodineUDPInterface" ? "UDPInterface" : this.newInterfaceType,
                     target_host: isBackboneListener ? null : this.newInterfaceTargetHost,
                     target_port: isBackboneListener ? null : this.newInterfaceTargetPort,
                     transport_identity: isBackboneListener ? null : this.newInterfaceTransportIdentity,
@@ -3687,7 +3797,9 @@ export default {
                             : i2pPeers,
                     listen_ip: isBackboneListener
                         ? (this.newInterfaceBackboneListenIp || "").trim() || null
-                        : this.newInterfaceType === "TCPServerInterface" || this.newInterfaceType === "UDPInterface"
+                        : this.newInterfaceType === "TCPServerInterface" ||
+                            this.newInterfaceType === "UDPInterface" ||
+                            this.newInterfaceType === "IodineUDPInterface"
                           ? String(this.newInterfaceListenIp ?? "").trim()
                           : this.newInterfaceListenIp,
                     listen_port: isBackboneListener

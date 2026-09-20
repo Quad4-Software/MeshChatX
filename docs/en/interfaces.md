@@ -18,6 +18,7 @@ The **Add interface** flow includes:
 | TCPServerInterface    | Accept inbound TCP connections                |
 | BackboneInterface     | High-throughput backbone link                 |
 | UDPInterface          | UDP transport with discovery helpers          |
+| DNS tunnel (iodine)   | UDPInterface preset riding an iodine tunnel   |
 | RNodeInterface        | LoRa via RNode (serial, BLE, or IP transport) |
 | RNodeIPInterface      | RNode reached over IP                         |
 | SerialInterface       | Direct serial devices                         |
@@ -49,6 +50,37 @@ MeshChatX includes a custom WebsocketServerInterface for WebSocket-based Reticul
 ## HTTP tunnel interface
 
 MeshChatX vendors [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) and installs HTTPInterface.py into your Reticulum interfacepath on startup. Use **Add interface -> HTTP Tunnel** for client or server mode when only HTTP/S egress is available. Default transport is HTTP/1.1. HTTP/2 and HTTP/3 need TLS and optional extra packages on the server side.
+
+## Iodine DNS tunnel
+
+**Add interface -> DNS tunnel (iodine)** is a preset, not a new transport. It fills in a UDPInterface that rides an existing iodine DNS tunnel. MeshChatX does not ship or start iodine. Install it yourself and run it with root privileges, then point the interface at the tunnel IPs.
+
+On the server host:
+
+```
+sudo iodined -f -c -P <password> 10.0.0.1 tunnel.example.com
+```
+
+This creates the dns0 device at 10.0.0.1 and answers tunnel queries on UDP 53. Add the interface with role **server**. The preset writes a UDPInterface in access_point mode listening on 10.0.0.1 port 6969 and forwarding to the subnet broadcast 10.0.0.255.
+
+On each client:
+
+```
+sudo iodine -f -P <password> tunnel.example.com
+```
+
+iodine assigns the client a tunnel IP in the same subnet (for example 10.0.0.2). Add the interface with role **client**. The preset writes a UDPInterface in roaming mode listening on 0.0.0.0 port 6969 and forwarding to the server at 10.0.0.1. Any UDP port works; the preset uses 6969 and it stays inside the tunnel, separate from iodine's own DNS traffic.
+
+The tunnel domain field in the UI is a label for your reference only. It is not written to Reticulum config. The delegation that makes iodine work lives in your DNS zone: give the server host an A record, then delegate the tunnel subdomain to it.
+
+```
+t1ns.example.com.     A   <server public IP>
+tunnel.example.com.   NS  t1ns.example.com.
+```
+
+Throughput is low and round trips are long because every packet travels inside DNS queries. The preset caps bitrate at 20000 bps, which matches typical iodine upstream rates; downstream can run faster when the resolver path allows larger record types. Captive portals and some corporate resolvers block or rate-limit the long lookups iodine relies on, so a tunnel that works on one network can stall on another.
+
+On Android there is no bundled iodine client. Run an external app such as AndIodine, which registers as the device VPN service. Android allows one VPN at a time, so the tunnel cannot run alongside another VPN app.
 
 ## WiFi Aware interface
 
