@@ -199,3 +199,22 @@ async def test_local_preferred_propagation_sync_completes_without_remote_lookup(
         assert status_data["state"] == "complete"
         assert status_data["progress"] == 100.0
         assert fake_router.request_messages_calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_propagation_sync_without_node_returns_structured_code(
+    integration_app,
+):
+    app, fake_router = integration_app
+    fake_router.set_outbound_propagation_node(None)
+
+    sync_handler = _route_handler(
+        app,
+        "/api/v1/lxmf/propagation-node/sync",
+        method="POST",
+    )
+    response = await sync_handler(None)
+    assert response.status == 400
+    payload = json.loads(response.body)
+    assert payload["code"] == "propagation_node_not_configured"
