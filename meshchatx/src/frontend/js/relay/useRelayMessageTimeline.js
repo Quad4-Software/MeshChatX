@@ -49,8 +49,7 @@ export function useRelayMessageTimeline(options = {}) {
         t,
     } = options;
 
-    const getTimelineOptions = () =>
-        typeof buildTimelineOptions === "function" ? buildTimelineOptions() : {};
+    const getTimelineOptions = () => (typeof buildTimelineOptions === "function" ? buildTimelineOptions() : {});
 
     const messages = ref([]);
     const messageTimelineCache = ref(null);
