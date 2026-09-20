@@ -63,6 +63,7 @@ All notable changes to this project will be documented in this file.
 - LXMFy bots get their configured icon colors seeded up front instead of showing a white avatar until first reply.
 - Popup menus show a caret pointing back at the button that opened them.
 - Mobile shows one toast at a time, and settings sections collapse to icon buttons on small screens.
+- Service worker: HEAD probes on hashed assets no longer reject the fetch, fixing the emoji picker data load.
 
 ### Changed
 
