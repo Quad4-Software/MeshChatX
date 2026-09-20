@@ -12,6 +12,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import java.io.File;
@@ -156,6 +157,7 @@ final class MeshchatDownloads {
         return persistLegacy(context, safe, null, sourceFile);
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private static Uri insertPendingDownload(ContentResolver resolver, String safe) throws IOException {
         ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, safe);
@@ -170,6 +172,7 @@ final class MeshchatDownloads {
         return uri;
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private static void markDownloadComplete(ContentResolver resolver, Uri uri) {
         ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.IS_PENDING, 0);

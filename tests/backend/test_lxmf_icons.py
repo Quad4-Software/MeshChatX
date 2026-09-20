@@ -358,7 +358,9 @@ async def test_receive_message_drops_invalid_signature(mock_rns, temp_dir):
 
 
 @pytest.mark.asyncio
-async def test_send_message_telemetry_never_falls_back_to_propagation(mock_rns, temp_dir):
+async def test_send_message_telemetry_never_falls_back_to_propagation(
+    mock_rns, temp_dir
+):
     app = ReticulumMeshChat(
         identity=mock_rns["id_instance"],
         storage_dir=temp_dir,

@@ -1180,7 +1180,9 @@ class RRCHub:
             ):
                 joiner = body_hashes[0]
             if joiner is not None:
-                self._record_system(r, self.display_name_for(joiner) + " joined", event="join")
+                self._record_system(
+                    r, self.display_name_for(joiner) + " joined", event="join"
+                )
         self.manager._notify_change(self)
 
     def _handle_parted(self, env):
@@ -1228,7 +1230,9 @@ class RRCHub:
             ):
                 parter = body_hashes[0]
             if parter is not None:
-                self._record_system(r, self.display_name_for(parter) + " left", event="part")
+                self._record_system(
+                    r, self.display_name_for(parter) + " left", event="part"
+                )
         self.manager._notify_change(self)
 
     def _handle_chat(self, env, kind):
