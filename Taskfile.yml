@@ -290,6 +290,11 @@ tasks:
         cmds:
             - "{{.NPM}} run test:ui:pages"
 
+    test:ui:screenshots:
+        desc: Capture desktop + mobile screenshots of UI pages with seeded demo data
+        cmds:
+            - "{{.NPM}} run test:ui:screenshots"
+
     test:ui:lighthouse:
         desc: Lighthouse scores on production-built UI (blocks /ws so LCP/TTI are real, set MESHCHAT_UI_CI=1 for core subset)
         cmds:
