@@ -2,7 +2,7 @@
 
 import { camelCaseToSearchWords } from "../settingsSearchUtils.js";
 
-/** @typedef {{ id: string, labelKey: string, descriptionKey: string, sections: string[] }} SettingsTab */
+/** @typedef {{ id: string, labelKey: string, descriptionKey: string, icon: string, sections: string[] }} SettingsTab */
 
 /** @type {SettingsTab[]} */
 export const SETTINGS_TABS = [
@@ -10,6 +10,7 @@ export const SETTINGS_TABS = [
         id: "general",
         labelKey: "settings.tabs.general",
         descriptionKey: "settings.tabs.general_desc",
+        icon: "cog-outline",
         sections: [
             "language",
             "translation",
@@ -26,36 +27,42 @@ export const SETTINGS_TABS = [
         id: "messages",
         labelKey: "settings.tabs.messages",
         descriptionKey: "settings.tabs.messages_desc",
+        icon: "message-text-outline",
         sections: ["strangerProtection", "messages", "notificationSounds", "propagation", "stickers", "gifs"],
     },
     {
         id: "network",
         labelKey: "settings.tabs.network",
         descriptionKey: "settings.tabs.network_desc",
+        icon: "access-point-network",
         sections: ["transport", "interfaces", "visualiser", "crawler", "networkSecurity", "telephony"],
     },
     {
         id: "nomad",
         labelKey: "settings.tabs.nomad",
         descriptionKey: "settings.tabs.nomad_desc",
+        icon: "compass-outline",
         sections: ["archiver", "nomadRenderer"],
     },
     {
         id: "privacy",
         labelKey: "settings.tabs.privacy",
         descriptionKey: "settings.tabs.privacy_desc",
+        icon: "shield-lock-outline",
         sections: ["privacyData", "blocked", "banishment", "auth", "webExposure", "csp"],
     },
     {
         id: "maintenance",
         labelKey: "settings.tabs.maintenance",
         descriptionKey: "settings.tabs.maintenance_desc",
-        sections: ["maintenance", "selftest", "infrastructure"],
+        icon: "wrench-outline",
+        sections: ["maintenance", "selftest", "infrastructure", "reticulumStack"],
     },
     {
         id: "plugins",
         labelKey: "settings.tabs.plugins",
         descriptionKey: "settings.tabs.plugins_desc",
+        icon: "puzzle-outline",
         sections: ["plugins"],
     },
 ];
@@ -83,6 +90,7 @@ const ADVANCED_SETTINGS_SECTIONS = new Set([
     "csp",
     "selftest",
     "infrastructure",
+    "reticulumStack",
     "plugins",
 ]);
 
