@@ -528,7 +528,7 @@
                     </div>
                     <select
                         :value="announcesSort"
-                        class="input-field w-full min-w-0 rounded-none text-xs py-1"
+                        class="input-field w-full min-w-0 rounded-none text-[11px] leading-tight py-0.5 px-2"
                         :title="$t('nomadnet.sort_announces')"
                         @change="onAnnouncesSortChange"
                     >
