@@ -1709,7 +1709,26 @@ export default {
                             })
                         );
                     }
-                    WebSocketConnection.send(entry.payload);
+                    if (WebSocketConnection.send(entry.payload)) {
+                        continue;
+                    }
+                    // socket died between the reconnect event and this
+                    // resend: settle the entry the same way a failed
+                    // initial send does, so the download does not spin
+                    delete map[key];
+                    const reason =
+                        typeof this.$t === "function"
+                            ? this.$t("nomadnet.websocket_not_connected")
+                            : "websocket_not_connected";
+                    if (entry.onFailureCallback) {
+                        entry.onFailureCallback(reason);
+                    } else if (entry.primary && this.isLoadingNodePage) {
+                        this.isLoadingNodePage = false;
+                        this.nodePageLoadPhase = null;
+                        this.currentPageDownloadId = null;
+                        this.nodePageContent = `Failed loading page: ${reason}`;
+                        ToastUtils.error(this.$t("nomadnet.failed_to_load_page"));
+                    }
                 }
             }
         },
