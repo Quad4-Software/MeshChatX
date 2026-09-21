@@ -56,7 +56,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -86,7 +86,7 @@ jobs:
 
     frontend:
         name: Build frontend artifact (CodeQL)
-        uses: ./.github/workflows/frontend-build.yml
+        uses: $/.github/workflows/frontend-build.yml
         permissions:
             contents: read
         with:
@@ -159,7 +159,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -167,7 +167,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Fetch frontend artifact
-              uses: ./.github/actions/fetch-frontend-artifact
+              uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 

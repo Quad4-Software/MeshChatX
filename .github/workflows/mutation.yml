@@ -55,7 +55,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -71,13 +71,15 @@ jobs:
 
             - name: Frontend mutation (MeshMut sample)
               if: ${{ github.event_name == 'schedule' || inputs.frontend != false }}
+              env:
+                  MIN_SCORE: ${{ github.event_name == 'schedule' && '50' || github.event.inputs.min_score }}
               run: |
                   set -euo pipefail
                   node scripts/mutation/run.mjs \
                     --source meshchatx/src/frontend/js/rnode/Capabilities.js \
                     --source meshchatx/src/frontend/js/mapLinkUtils.js \
                     --max-per-file 30 \
-                    --min-score ${{ github.event_name == 'schedule' && '50' || github.event.inputs.min_score }}
+                    --min-score "${MIN_SCORE}"
 
             - name: Upload mutation reports
               if: always()

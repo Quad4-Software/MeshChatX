@@ -40,6 +40,7 @@ jobs:
               with:
                   ref: dev
                   fetch-depth: 0
+                  persist-credentials: false
 
             - name: Compute Testing tag
               id: meta
@@ -89,6 +90,8 @@ jobs:
               with:
                   ref: dev
                   fetch-depth: 0
+                  # Tag push needs the persisted token (git push origin).
+                  persist-credentials: true
 
             - name: Create and push Testing tag
               env:
@@ -137,6 +140,8 @@ jobs:
                   egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  persist-credentials: false
 
             - name: Keep newest Testing prereleases
               env:

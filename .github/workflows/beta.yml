@@ -45,6 +45,8 @@ jobs:
               with:
                   ref: ${{ inputs.ref }}
                   fetch-depth: 0
+                  # Tag push needs the persisted token (git push origin).
+                  persist-credentials: true
 
             - name: Create tag
               id: meta
@@ -97,9 +99,10 @@ jobs:
             - name: Dispatch Android emulator smoke
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SHA: ${{ steps.meta.outputs.commit_sha }}
               run: |
                   set -euo pipefail
-                  gh workflow run android-emulator-smoke.yml --ref "${{ steps.meta.outputs.commit_sha }}" || \
+                  gh workflow run android-emulator-smoke.yml --ref "${SHA}" || \
                     echo "::warning::Could not dispatch android-emulator-smoke.yml"
 
             - name: Prune old Beta prereleases
