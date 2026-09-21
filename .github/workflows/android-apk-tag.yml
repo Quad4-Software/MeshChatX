@@ -23,6 +23,15 @@ on:
                 required: false
                 type: boolean
                 default: true
+        secrets:
+            ANDROID_SIGNING_KEYSTORE_BASE64:
+                required: false
+            ANDROID_SIGNING_KEYSTORE_PASSWORD:
+                required: false
+            ANDROID_SIGNING_KEY_ALIAS:
+                required: false
+            ANDROID_SIGNING_KEY_PASSWORD:
+                required: false
 
 permissions:
     contents: read
@@ -55,6 +64,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   fetch-depth: 0
+                  persist-credentials: false
 
             - name: Resolve tag release track
               id: track
@@ -118,7 +128,7 @@ jobs:
                   python-version: ${{ env.PYTHON_VERSION }}
 
             - name: Download frontend artifact
-              uses: ./.github/actions/fetch-frontend-artifact
+              uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 

@@ -142,8 +142,8 @@ jobs:
               run: |
                   set -euo pipefail
                   echo "created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
-                  if [ "${{ github.ref_type }}" = "tag" ]; then
-                    echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+                  if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+                    echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
                   else
                     echo "version=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
                   fi
@@ -195,9 +195,10 @@ jobs:
                   GITHUB_REF: ${{ github.ref }}
                   GITHUB_REF_NAME: ${{ github.ref_name }}
                   TAG_SUFFIX: ${{ matrix.tag_suffix }}
+                  IMAGE_NAME: ${{ steps.image.outputs.name }}
               run: |
                   set -euo pipefail
-                  TAG_SUFFIX="${{ matrix.tag_suffix }}" sh scripts/ci/docker-tags.sh "${{ steps.image.outputs.name }}" /tmp/docker-tags.txt
+                  sh scripts/ci/docker-tags.sh "${IMAGE_NAME}" /tmp/docker-tags.txt
                   {
                     echo 'tags<<EOF'
                     sed 's/^-t //' /tmp/docker-tags.txt
@@ -210,13 +211,14 @@ jobs:
               env:
                   GITHUB_REF: ${{ github.ref }}
                   GITHUB_REF_NAME: ${{ github.ref_name }}
+                  TAG_SUFFIX: ${{ matrix.tag_suffix }}
                   DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
                   DH_REPO_NAME: ${{ vars.DOCKERHUB_REPOSITORY }}
               run: |
                   set -euo pipefail
                   repo="${DH_REPO_NAME:-meshchatx}"
                   base="docker.io/$(printf '%s' "$DH_USER" | tr '[:upper:]' '[:lower:]')/$(printf '%s' "$repo" | tr '[:upper:]' '[:lower:]')"
-                  TAG_SUFFIX="${{ matrix.tag_suffix }}" sh scripts/ci/docker-tags.sh "${base}" /tmp/docker-hub-tags.txt
+                  sh scripts/ci/docker-tags.sh "${base}" /tmp/docker-hub-tags.txt
                   {
                     echo 'tags<<EOF'
                     sed 's/^-t //' /tmp/docker-hub-tags.txt
@@ -259,9 +261,12 @@ jobs:
                       OCI_LICENSES=${{ matrix.oci_licenses }}
 
             - name: Verify image has no package bloat
+              env:
+                  IMAGE_NAME: ${{ steps.image.outputs.name }}
+                  IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
               run: |
                   set -euo pipefail
-                  img="${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}"
+                  img="${IMAGE_NAME}@${IMAGE_DIGEST}"
                   docker pull --platform linux/amd64 "$img"
                   bash scripts/ci/verify-package-contents.sh docker "$img"
 
@@ -271,7 +276,9 @@ jobs:
             - name: Cosign sign (keyless, GHCR only)
               env:
                   COSIGN_YES: "true"
+                  IMAGE_NAME: ${{ steps.image.outputs.name }}
+                  IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
               run: |
                   set -euo pipefail
-                  test -n "${{ steps.build.outputs.digest }}"
-                  cosign sign "${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}"
+                  test -n "${IMAGE_DIGEST}"
+                  cosign sign "${IMAGE_NAME}@${IMAGE_DIGEST}"

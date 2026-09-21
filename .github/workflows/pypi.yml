@@ -39,7 +39,6 @@ on:
 permissions:
     contents: read
     actions: read
-    id-token: write
 
 concurrency:
     group: pypi-${{ github.workflow }}-${{ github.ref }}
@@ -54,7 +53,7 @@ env:
 jobs:
     frontend:
         name: Build frontend artifact
-        uses: ./.github/workflows/frontend-build.yml
+        uses: $/.github/workflows/frontend-build.yml
         permissions:
             contents: read
         with:
@@ -89,7 +88,7 @@ jobs:
                   python-version: ${{ env.PYTHON_VERSION }}
 
             - name: Fetch frontend artifact
-              uses: ./.github/actions/fetch-frontend-artifact
+              uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
