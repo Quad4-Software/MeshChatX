@@ -218,13 +218,7 @@
                 appendLocationMapUri(lat, lon);
             },
             () => {
-                ToastUtils.show(
-                    t("messages.location_failed"),
-                    "error",
-                    8000,
-                    toastKey,
-                    locationSettingsToastAction()
-                );
+                ToastUtils.show(t("messages.location_failed"), "error", 8000, toastKey, locationSettingsToastAction());
             },
             { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
         );
@@ -239,8 +233,13 @@
         });
         if (!session) return;
         if (destroyed) {
-            // Unmounted while getUserMedia was still resolving; release the mic.
-            void stopAudioRecordingSession(session);
+            // Unmounted while getUserMedia was still resolving; release the mic
+            // and revoke the preview URL the stop path would have consumed.
+            void stopAudioRecordingSession(session).then((result) => {
+                if (result?.audio_preview_url) {
+                    URL.revokeObjectURL(result.audio_preview_url);
+                }
+            });
             return;
         }
         activeRecording = session;

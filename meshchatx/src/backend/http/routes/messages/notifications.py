@@ -5,9 +5,6 @@ from __future__ import annotations
 
 from typing import Any
 
-# ruff: noqa: F401, F403, F405
-from meshchatx.src.backend.http.routes.messages._names import *  # noqa: F403
-
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.http.errors import (
@@ -15,6 +12,9 @@ from meshchatx.src.backend.http.errors import (
     http_error,
     http_payload_too_large,
 )
+
+# ruff: noqa: F401, F403, F405
+from meshchatx.src.backend.http.routes.messages._names import *
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,

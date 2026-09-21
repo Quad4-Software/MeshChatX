@@ -5,17 +5,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from meshchatx.src.backend.http.routes.reticulum_instance.config import (
+    register_reticulum_instance_config_routes,
+)
 from meshchatx.src.backend.http.routes.reticulum_instance.discovery import (
     register_reticulum_instance_discovery_routes,
-)
-from meshchatx.src.backend.http.routes.reticulum_instance.transport import (
-    register_reticulum_instance_transport_routes,
 )
 from meshchatx.src.backend.http.routes.reticulum_instance.instance import (
     register_reticulum_instance_instance_routes,
 )
-from meshchatx.src.backend.http.routes.reticulum_instance.config import (
-    register_reticulum_instance_config_routes,
+from meshchatx.src.backend.http.routes.reticulum_instance.transport import (
+    register_reticulum_instance_transport_routes,
 )
 
 

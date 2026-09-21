@@ -2,9 +2,7 @@
 """HTTP routes: telephone voicemail."""
 
 from __future__ import annotations
-# ruff: noqa: F405
 
-from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403, F405
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_error_from_exception,
@@ -13,12 +11,14 @@ from meshchatx.src.backend.http.errors import (
     http_unavailable,
     parse_int_param,
 )
+
+# ruff: noqa: F405
+from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403
 from meshchatx.src.backend.http.uploads import (
-    PayloadTooLargeError,
     UPLOAD_LIMITS,
+    PayloadTooLargeError,
     write_field_to_path,
 )
-
 
 
 def register_telephone_voicemail_routes(routes, app):

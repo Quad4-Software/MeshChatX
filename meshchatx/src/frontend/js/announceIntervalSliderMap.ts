@@ -55,10 +55,14 @@ export function formatAnnounceIntervalMinutes(minutes: number): string {
  * Returns minutes, or null when the input is not parseable.
  */
 export function parseAnnounceIntervalMinutes(text: string | null | undefined): number | null {
-    const s = String(text ?? "")
+    const raw = String(text ?? "")
         .trim()
-        .toLowerCase()
-        .replace(",", ".");
+        .toLowerCase();
+    // Comma is ambiguous: "1,5" is a decimal comma but "1,440" is thousands
+    // grouping. Only rewrite it as a decimal point when it is not grouped
+    // in digit triads, otherwise strip the separators outright.
+    // eslint-disable-next-line security/detect-unsafe-regex -- bounded digit groups only
+    const s = /^\d{1,3}(,\d{3})+$/.test(raw) ? raw.replace(/,/g, "") : raw.replace(",", ".");
     if (!s) {
         return null;
     }

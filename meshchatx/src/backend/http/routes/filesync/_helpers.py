@@ -3,8 +3,7 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F405
-from meshchatx.src.backend.http.routes.filesync._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.routes.filesync._names import *  # noqa: F403
 
 
 def make_filesync_helpers(app):

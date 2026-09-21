@@ -5,8 +5,7 @@
 from __future__ import annotations
 
 # ruff: noqa: F405
-
-from meshchatx.src.backend.lxmf_utils.constants import *  # noqa: F403, F405
+from meshchatx.src.backend.lxmf_utils.constants import *  # noqa: F403
 
 
 def _lxmf_dict_key(d: dict, *keys):

@@ -14,9 +14,9 @@ from meshchatx.src.backend.lxmf_message_fields import (
     LxmfImageField,
 )
 from meshchatx.src.backend.lxmf_utils import (
-    FIELD_REPLY_TO,
-    FIELD_REPLY_QUOTE,
     FIELD_REACTION,
+    FIELD_REPLY_QUOTE,
+    FIELD_REPLY_TO,
     LXMF_APP_EXTENSIONS_FIELD,
     build_lxmf_reaction_field,
 )

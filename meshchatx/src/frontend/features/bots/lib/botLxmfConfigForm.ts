@@ -149,7 +149,12 @@ export function buildLxmfConfigPatch(
     for (const key of NUMERIC_KEYS) {
         const value = String(draft[key] ?? "").trim();
         if (value) {
-            patch[key] = Number(value);
+            const num = Number(value);
+            // NaN would serialize as null and silently clear the override.
+            if (!Number.isFinite(num)) {
+                continue;
+            }
+            patch[key] = num;
         } else if (clearEmpty) {
             patch[key] = null;
         }

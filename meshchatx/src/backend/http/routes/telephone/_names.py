@@ -5,9 +5,7 @@
 from __future__ import annotations
 
 # ruff: noqa: F401
-
-
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
+from meshchatx.src.backend.http.meshchat_names import (
     LOGIN_PATH,
     LXMF,
     MAX_EXPORT_TILES,
@@ -133,7 +131,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
-from meshchatx.src.backend.http.uploads import (  # noqa: F401
+from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     read_field_limited,
 )

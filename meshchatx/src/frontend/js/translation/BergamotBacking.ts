@@ -70,10 +70,15 @@ export class BergamotBacking extends TranslatorBacking {
         const worker = new Worker(this.workerUrl, { type: "classic" });
 
         let serial = 0;
+        let workerFailure: Error | null = null;
         const pending = new Map<number, PendingCall>();
 
         const call = (name: string, ...args: unknown[]) =>
             new Promise<unknown>((accept, reject) => {
+                if (workerFailure) {
+                    reject(workerFailure);
+                    return;
+                }
                 const id = ++serial;
                 pending.set(id, {
                     accept,
@@ -125,7 +130,8 @@ export class BergamotBacking extends TranslatorBacking {
             for (const entry of entries) {
                 entry.reject(error);
             }
-            this.onerror(error);
+            workerFailure = error;
+            this.onerror?.(error);
         };
         worker.addEventListener("error", (err) => failPending(err));
         worker.addEventListener("messageerror", () => failPending(null));

@@ -95,13 +95,6 @@ export function renderContentByPath(
         useWasm: wasmActive,
     };
     const dest = destinationHash || null;
-    if (!hasKnownExt && String(content).includes("`")) {
-        let out = new MicronParser().convertMicronToHtml(content, {}, micronOpts);
-        if (dest) {
-            out = isolateNomadLinksInHtml(out, dest);
-        }
-        return out;
-    }
     if (!hasKnownExt) {
         let out = new MicronParser().convertMicronToHtml(content, {}, micronOpts);
         if (dest) {

@@ -5,14 +5,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from meshchatx.src.backend.http.routes.database.snapshots import (
-    register_database_snapshots_routes,
-)
 from meshchatx.src.backend.http.routes.database.backups import (
     register_database_backups_routes,
 )
 from meshchatx.src.backend.http.routes.database.health import (
     register_database_health_routes,
+)
+from meshchatx.src.backend.http.routes.database.snapshots import (
+    register_database_snapshots_routes,
 )
 
 

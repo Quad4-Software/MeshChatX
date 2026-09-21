@@ -287,9 +287,9 @@ def check_fs_sandbox() -> dict[str, str]:
     helpers create MeshChatX subdirs under a fake profile root.
     """
     try:
-        from meshchatx.src.backend.appcontainer_sandbox import core as ac
         from meshchatx.src.backend import landlock_sandbox as ll
         from meshchatx.src.backend import seccomp_sandbox as sc
+        from meshchatx.src.backend.appcontainer_sandbox import core as ac
     except Exception as exc:
         return _status(False, f"sandbox import failed: {exc}")
 
@@ -499,6 +499,8 @@ def check_appcontainer_launch() -> dict[str, str]:
             False,
             f"sandboxed child exited {result.exit_code} without marker{detail}",
         )
+    except Exception as exc:
+        return _status(False, f"marker probe failed: {exc}")
     finally:
         shutil.rmtree(marker_dir, ignore_errors=True)
 

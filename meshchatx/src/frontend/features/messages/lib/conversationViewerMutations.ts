@@ -182,9 +182,7 @@ export async function retryOutboundMessageItem(opts: {
         try {
             const response = await api.post(`/api/v1/lxmf-messages/${hash}/resend`);
             const resent = (response.data as { lxmf_message?: LxmfMessage } | undefined)?.lxmf_message;
-            const next = currentItems.filter(
-                (candidate) => !sameHash(candidate.lxmf_message.hash, hash)
-            );
+            const next = currentItems.filter((candidate) => !sameHash(candidate.lxmf_message.hash, hash));
             if (resent?.hash && !next.some((candidate) => sameHash(candidate.lxmf_message.hash, resent.hash))) {
                 next.push({
                     type: "lxmf_message",

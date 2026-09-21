@@ -9,8 +9,6 @@ from typing import Any
 
 from meshchatx.src.backend.meshchat_utils import list_inbound_deliveries
 
-# ruff: noqa: F821
-
 
 def get_local_propagation_node_stats(app: Any, context=None):
     mc = __import__("meshchatx.meshchat", fromlist=["*"])

@@ -183,7 +183,7 @@ also_copy = [
     "meshchatx/src/path_utils.py",
     "meshchatx/src/ssl_self_signed.py",
     "meshchatx/src/version.py",
-    "meshchatx/src/frontend/components/",
+    "meshchatx/src/frontend/features/",
     "meshchatx/src/frontend/js/",
 ]
 pytest_add_cli_args = [

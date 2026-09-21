@@ -5,13 +5,12 @@
 from __future__ import annotations
 
 # ruff: noqa: F405
-
 from meshchatx.src.backend.http.ws.handlers_nomad._helpers import (
     _request_id_fields,
     _send_nomad_page_content,
 )
+from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403
 from meshchatx.src.backend.websocket_runtime import WS_NOMAD_PAGE_MAX_CHARS
-from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403, F405
 
 
 async def handle_nomadnet_page_download(app, client, data):

@@ -5,14 +5,12 @@
 from __future__ import annotations
 
 # ruff: noqa: F401
-
-
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
     require_database,
 )
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
+from meshchatx.src.backend.http.meshchat_names import (
     LOGIN_PATH,
     LXMF,
     MAX_EXPORT_TILES,

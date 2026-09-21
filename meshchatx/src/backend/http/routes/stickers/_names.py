@@ -4,8 +4,7 @@
 from __future__ import annotations
 
 # ruff: noqa: F401
-
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
+from meshchatx.src.backend.http.meshchat_names import (
     LOGIN_PATH,
     LXMF,
     MAX_EXPORT_TILES,
@@ -131,7 +130,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
-from meshchatx.src.backend.sticker_utils import (  # noqa: F401
+from meshchatx.src.backend.sticker_utils import (
     MAX_STICKER_BYTES,
     MAX_STICKERS_PER_PACK,
 )

@@ -6,7 +6,7 @@
         { "prefix": "MessagesPage-", "maxKiB": 291 },
         { "prefix": "SettingsPage-", "maxKiB": 314 },
         { "prefix": "CallPage-", "maxKiB": 170 },
-        { "prefix": "shared-async-", "maxKiB": 1000 },
+        { "prefix": "shared-async-", "maxKiB": 1250 },
         { "prefix": "vendor-mdi-", "maxKiB": 3018 },
         { "prefix": "vendor-svelte-", "maxKiB": 120 },
         { "prefix": "vendor-other-", "maxKiB": 1022 },

@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F401, F403, F405
-
-from meshchatx.src.backend.rnstatus_handler.core import *  # noqa: F403
-
 from meshchatx.src.backend.rnstatus_handler import core as _core
+
+# ruff: noqa: F403
+from meshchatx.src.backend.rnstatus_handler.core import *
 
 _hex_value = _core._hex_value
 _pretty_duration = _core._pretty_duration

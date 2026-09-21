@@ -70,7 +70,7 @@ _REQUIRED_REPO_PATHS = [
     "scripts/ci/github-release-changelog.sh",
     "scripts/ci/github-draft-release-upload-assets.sh",
     "typings",
-    "meshchatx/src/frontend/components",
+    "meshchatx/src/frontend/features",
     "meshchatx/src/frontend/js",
 ]
 

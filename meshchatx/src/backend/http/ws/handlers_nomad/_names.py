@@ -4,9 +4,10 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F401
+from meshchatx.src.backend.constants import WsInboundType
 
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
+# ruff: noqa: F401
+from meshchatx.src.backend.http.meshchat_names import (
     LOGIN_PATH,
     LXMF,
     MAX_EXPORT_TILES,
@@ -91,10 +92,10 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     message_fields_have_attachments,
     migrate_legacy_to_target,
     mime_for_image_type,
+    nomad_link_identity_kwargs,
     normalize_identity_storage_hash,
     normalize_lxmf_sieve_filters,
     normalize_message_blocklist,
-    nomad_link_identity_kwargs,
     os,
     parse_bool_query_param,
     parse_import_document,
@@ -133,4 +134,3 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
-from meshchatx.src.backend.constants import WsInboundType  # noqa: F401

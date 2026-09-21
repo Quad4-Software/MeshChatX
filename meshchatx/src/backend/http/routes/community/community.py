@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from typing import Any
 
-# ruff: noqa: F401, F403, F405
-from meshchatx.src.backend.http.routes.community._names import *  # noqa: F403
+# ruff: noqa: F403, F405
+from meshchatx.src.backend.http.routes.community._names import *
 
 
 def register_community_community_routes(routes: Any, app: Any) -> None:

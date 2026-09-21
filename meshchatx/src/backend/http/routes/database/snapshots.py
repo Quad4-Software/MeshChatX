@@ -5,9 +5,6 @@ from __future__ import annotations
 
 from typing import Any
 
-# ruff: noqa: F401, F403, F405
-from meshchatx.src.backend.http.routes.database._names import *  # noqa: F403
-
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_error_from_exception,
@@ -15,6 +12,9 @@ from meshchatx.src.backend.http.errors import (
     http_payload_too_large,
     parse_int_param,
 )
+
+# ruff: noqa: F403, F405
+from meshchatx.src.backend.http.routes.database._names import *
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,

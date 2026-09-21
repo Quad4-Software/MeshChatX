@@ -169,15 +169,18 @@ _MSG_EXT = "rsm"
 _SIG_EXT = "rsg"
 
 
-def write_editor_shim(notes_text: str) -> Path:
-    """Create a temp editor that replaces rngit's notes template with our text."""
+def write_editor_shim(notes_text: str) -> tuple[Path, Path]:
+    """Create a temp editor that replaces rngit's notes template with our text.
+
+    Returns (shim_path, tmpdir); the caller removes tmpdir once rngit exits.
+    """
     tmpdir = Path(tempfile.mkdtemp(prefix="rngit-release-"))
     notes = tmpdir / "notes.md"
     notes.write_text(notes_text, encoding="utf-8")
     shim = tmpdir / "editor.sh"
     shim.write_text(f'#!/bin/sh\ncat "{notes}" > "$1"\n', encoding="utf-8")
     shim.chmod(shim.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    return shim
+    return shim, tmpdir
 
 
 def changelog_notes(tag: str) -> str:
@@ -197,7 +200,7 @@ def changelog_notes(tag: str) -> str:
 
 
 def resolve_notes(args, tag: str):
-    """Return (shim_path or None). None means interactive editing."""
+    """Return (shim_path or None, shim_tmpdir or None)."""
     if args.notes is not None:
         return write_editor_shim(args.notes + "\n")
     if args.notes_file is not None:
@@ -205,7 +208,7 @@ def resolve_notes(args, tag: str):
     if args.changelog:
         return write_editor_shim(changelog_notes(tag) + "\n")
     if args.edit or sys.stdin.isatty():
-        return None
+        return None, None
     fail(
         "non-interactive create needs --notes, --notes-file or --changelog (or pass --edit)"
     )
@@ -247,13 +250,19 @@ def cmd_create(args, tag: str | None = None) -> int:
         fail(f"artifacts directory {out} does not exist; run build first")
     if not any(p.is_file() for p in out.iterdir()):
         fail(f"artifacts directory {out} is empty")
+    # Resolve notes before cleaning: a validation failure must not strip
+    # existing manifest.rsm/*.rsg sidecars from the artifacts directory.
+    editor, shim_tmpdir = resolve_notes(args, tag)
     clean_generated_sidecars(out)
-    editor = resolve_notes(args, tag)
     extra = identity_args(args)
     if getattr(args, "local", False):
         extra.append("-L")
     extra += [remote_of(args), "create", f"{tag}:{out}"]
-    return run_rngit(args, extra, editor=editor)
+    try:
+        return run_rngit(args, extra, editor=editor)
+    finally:
+        if shim_tmpdir is not None:
+            shutil.rmtree(shim_tmpdir, ignore_errors=True)
 
 
 def cmd_delete(args) -> int:

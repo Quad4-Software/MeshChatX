@@ -2,20 +2,20 @@
 """HTTP routes: lxmf conversations."""
 
 from __future__ import annotations
-# ruff: noqa: F405
-
-from meshchatx.src.backend.http.routes.lxmf._names import *  # noqa: F403, F405
 
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_error,
     http_payload_too_large,
 )
-from meshchatx.src.backend.lxmf_utils import lxmf_row_arrival_timestamp
+
+# ruff: noqa: F405
+from meshchatx.src.backend.http.routes.lxmf._names import *  # noqa: F403
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.lxmf_utils import lxmf_row_arrival_timestamp
 
 
 def register_lxmf_conversations_routes(routes, app):

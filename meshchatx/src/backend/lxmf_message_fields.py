@@ -10,7 +10,7 @@ import os
 class LxmfAudioField:
     """In-memory LXMF audio attachment (mode code plus raw bytes)."""
 
-    __slots__ = ("audio_mode", "audio_bytes")
+    __slots__ = ("audio_bytes", "audio_mode")
 
     def __init__(self, audio_mode: int, audio_bytes: bytes) -> None:
         self.audio_mode = audio_mode
@@ -20,7 +20,7 @@ class LxmfAudioField:
 class LxmfImageField:
     """In-memory LXMF image attachment (type string plus raw bytes)."""
 
-    __slots__ = ("image_type", "image_bytes")
+    __slots__ = ("image_bytes", "image_type")
 
     def __init__(self, image_type: str, image_bytes: bytes) -> None:
         self.image_type = image_type
@@ -39,7 +39,7 @@ def _safe_attachment_basename(file_name: str) -> str:
 class LxmfFileAttachment:
     """Single file attachment with a peer-visible basename and bytes."""
 
-    __slots__ = ("file_name", "file_bytes")
+    __slots__ = ("file_bytes", "file_name")
 
     def __init__(self, file_name: str, file_bytes: bytes) -> None:
         self.file_name = _safe_attachment_basename(file_name)

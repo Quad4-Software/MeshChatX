@@ -5,6 +5,7 @@ import { DEFAULT_PAGE_PATH } from "./constants.js";
 import {
     appendDownloadChunk,
     consumeDownloadChunksAsBase64,
+    discardDownloadChunks,
     formatBytes,
     sendNomadWs,
     type NomadChunkBuffers,
@@ -371,20 +372,27 @@ export class NomadImageLoader {
         let body = (json.nomadnet_file_download || null) as Record<string, unknown> | null;
         const data = (body?.data || null) as Record<string, unknown> | null;
         const imageId = data?.image_id;
-        if (imageId == null || !this.callbacks[imageId as number]) {
+        if (imageId == null) {
             return false;
         }
         const downloadId = json.download_id as number | string | undefined;
+        const context = this.callbacks[imageId as number];
+        if (!context) {
+            // A stale event for a cancelled download: claim it so it cannot
+            // leak into the generic file-download handler, and drop any
+            // buffered bytes the backend already streamed.
+            discardDownloadChunks(this.deps.chunkBuffers, downloadId);
+            return true;
+        }
+        if (!ownsNomadImageDownloadEvent(context, body, json)) {
+            return true;
+        }
         if (body!.status === "chunk") {
             appendDownloadChunk(this.deps.chunkBuffers, downloadId, body);
             return true;
         }
         if (body!.status === "success" && body!.chunked) {
             body = { ...body, file_bytes: consumeDownloadChunksAsBase64(this.deps.chunkBuffers, downloadId) };
-        }
-        const context = this.callbacks[imageId as number];
-        if (!ownsNomadImageDownloadEvent(context, body, json)) {
-            return true;
         }
         if (body!.status === "started") {
             context.downloadId = downloadId ?? null;
@@ -414,6 +422,12 @@ export class NomadImageLoader {
             return;
         }
         const dataUrl = getNomadImageDataUrl(fileBytes);
+        if (!dataUrl) {
+            // A success with empty bytes is not loadable; report failure
+            // instead of caching a null dataUrl as a permanent "loaded" hit.
+            this.deps.setImage(imageId, "error", { reason: t("nomadnet.image_load_failed") });
+            return;
+        }
         const actualSize = formatBytes(fileBytes ? Math.ceil(fileBytes.length * 0.75) : 0);
         if (!this.deps.isPrivate()) {
             setNomadImageCacheEntry(
@@ -427,6 +441,10 @@ export class NomadImageLoader {
     }
 
     private onDownloadFailure(imageId: number, reason: unknown): void {
+        const context = this.callbacks[imageId];
+        if (context) {
+            discardDownloadChunks(this.deps.chunkBuffers, context.downloadId);
+        }
         delete this.callbacks[imageId];
         this.deps.setImage(imageId, "error", {
             reason: typeof reason === "string" && reason ? reason : t("nomadnet.image_load_failed"),
@@ -442,6 +460,7 @@ export class NomadImageLoader {
                     download_id: context.downloadId,
                     request_id: context.requestId,
                 });
+                discardDownloadChunks(this.deps.chunkBuffers, context.downloadId);
             }
             delete this.callbacks[key as unknown as number];
         }

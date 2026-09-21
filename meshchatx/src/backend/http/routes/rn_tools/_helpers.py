@@ -4,10 +4,8 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F405
-
-from meshchatx.src.backend.http.routes.rn_tools._names import *  # noqa: F403, F405
 from meshchatx.src.backend.http.errors import http_unavailable
+from meshchatx.src.backend.http.routes.rn_tools._names import *  # noqa: F403
 
 
 def make_rn_tools_helpers(app):

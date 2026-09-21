@@ -193,8 +193,7 @@ class RRCHub(
                 if rn and rn in known and rn not in seen:
                     ordered.append(rn)
                     seen.add(rn)
-            for room in sorted(known - seen):
-                ordered.append(room)
+            ordered.extend(sorted(known - seen))
             return ordered
 
     def reorder_rooms(self, room_names):
@@ -343,8 +342,6 @@ class RRCHub(
     def members_dict(self, room):
         """Return serialized members for a room."""
         r = proto.normalize_room(room)
-        out = []
-        for h in self.get_members(r):
-            out.append({"hash": h.hex(), "name": self.display_name_for(h)})
+        out = [{"hash": h.hex(), "name": self.display_name_for(h)} for h in self.get_members(r)]
         out.sort(key=lambda m: m["name"].lower())
         return out

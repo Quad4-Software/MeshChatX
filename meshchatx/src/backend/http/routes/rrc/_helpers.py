@@ -4,14 +4,11 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F405
-
-from meshchatx.src.backend.http.routes.rrc._names import *  # noqa: F403, F405
 from meshchatx.src.backend.http.errors import (
     http_not_found,
     http_unavailable,
 )
-
+from meshchatx.src.backend.http.routes.rrc._names import *  # noqa: F403
 
 RRC_ROOM_MESSAGES_DEFAULT_LIMIT = 200
 RRC_ROOM_MESSAGES_MAX_LIMIT = 1000

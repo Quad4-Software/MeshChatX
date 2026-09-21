@@ -17,6 +17,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from meshchatx.src import path_utils
 from meshchatx.src.backend.map_geo_sanitizer import sanitize_geo_bytes
 from meshchatx.src.backend.map_geo_validator import (
     GeoValidationError,
@@ -51,7 +52,6 @@ from meshchatx.src.backend.rngit_sparse_fetcher import (
     RngitFetchError,
     RngitSparseFetcher,
 )
-from meshchatx.src import path_utils
 from meshchatx.src.path_utils import is_path_within_dir
 
 _log = logging.getLogger("meshchatx.map_overlays")

@@ -81,7 +81,14 @@ function main() {
             issues.push(`Missing: ${relPath}`);
             continue;
         }
-        if (sha256(fullPath) !== expectedHash) {
+        let actualHash;
+        try {
+            actualHash = sha256(fullPath);
+        } catch (err) {
+            issues.push(`Unreadable: ${relPath} (${err.code || err.message})`);
+            continue;
+        }
+        if (actualHash !== expectedHash) {
             issues.push(`Modified: ${relPath}`);
         }
     }

@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 # ruff: noqa: F405
-from meshchatx.src.backend.http.routes.archives._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.routes.archives._names import *  # noqa: F403
 
 
 def resolve_node_name(app, destination_hash: str) -> str:

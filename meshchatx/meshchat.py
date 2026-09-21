@@ -34,7 +34,7 @@ import time
 import traceback
 import webbrowser
 import zipfile
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import cast
 from urllib.parse import urlparse
 
@@ -86,12 +86,11 @@ from meshchatx.src.backend.appcontainer_sandbox import (
     is_appcontainer_child,
 )
 from meshchatx.src.backend.async_utils import AsyncUtils
-from meshchatx.src.backend.cli_identity import resolve_startup_identity
 from meshchatx.src.backend.auth_page_hint import auth_page_hint_from_env
 from meshchatx.src.backend.auto_resend_guard import (
     AutoResendCoordinator,
 )
-from meshchatx.src.backend.colour_utils import ColourUtils
+from meshchatx.src.backend.cli_identity import resolve_startup_identity
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.csrf import (
     ensure_session_csrf_token,
@@ -152,11 +151,6 @@ from meshchatx.src.backend.lxmf_sieve import (
     parse_lxmf_sieve_filters_json,
 )
 from meshchatx.src.backend.lxmf_utils import (
-    FIELD_REACTION,
-    FIELD_REPLY_QUOTE,
-    FIELD_REPLY_TO,
-    LXMF_APP_EXTENSIONS_FIELD,
-    build_lxmf_reaction_field,
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
@@ -164,7 +158,6 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_state_to_string,
     is_lxmf_outbound_progress_terminal,
     is_user_facing_lxmf_payload,
-    lxmf_is_reaction_only_delivery,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.map_geo_validator import GeoValidationError
@@ -174,10 +167,6 @@ from meshchatx.src.backend.map_manager import (
     is_mbtiles_filename,
 )
 from meshchatx.src.backend.map_overlay_export import OverlayExportError
-from meshchatx.src.backend.map_overlay_manager import (
-    CONFIG_CLAMPS,
-    clamp_overlay_config_value,
-)
 from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.memory_pressure import (
@@ -190,21 +179,13 @@ from meshchatx.src.backend.meshchat_utils import (
     cancel_inbound_deliveries,
     convert_db_favourite_to_dict,
     convert_propagation_node_state_to_string,
-    has_attachments,
     hex_identifier_to_bytes,
     interval_action_due,
-    list_inbound_deliveries,
-    lxmf_signature_validated,
     message_fields_have_attachments,
     normalize_hex_identifier,
     normalize_identity_storage_hash,
-    normalize_lxmf_destination_hash,
     parse_bool_query_param,
-    parse_lxmf_audio_field_value,
     parse_lxmf_display_name,
-    parse_lxmf_file_attachments_field_value,
-    parse_lxmf_icon_appearance,
-    parse_lxmf_image_field_value,
     parse_lxmf_propagation_node_app_data,
     parse_lxmf_stamp_cost,
     parse_nomadnetwork_node_display_name,
@@ -213,6 +194,8 @@ from meshchatx.src.backend.meshchat_utils import (
 )
 from meshchatx.src.backend.message_blocklist import (
     build_export_document as build_blocklist_export_document,
+)
+from meshchatx.src.backend.message_blocklist import (
     first_matching_blocklist_entry,
     normalize_message_blocklist,
     parse_import_document,
@@ -289,7 +272,7 @@ from meshchatx.src.backend.sticker_utils import (
     sanitize_sticker_name,
     validate_export_document,
 )
-from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
+from meshchatx.src.backend.telemetry_utils import Telemeter
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
@@ -1239,7 +1222,7 @@ class ReticulumMeshChat:
         def restart():
             time.sleep(delay)
             try:
-                os.execv(sys.executable, [sys.executable] + sys.argv)  # nosec: BAN-B606
+                os.execv(sys.executable, [sys.executable, *sys.argv])  # nosec: BAN-B606  # noqa: S606
             except Exception as e:
                 print(f"Failed to restart: {e}")
                 os._exit(0)

@@ -13,7 +13,7 @@ class ToastUtils {
         type = "info",
         duration = 5000,
         key: string | null = null,
-        action: ToastAction | null = null,
+        action: ToastAction | null = null
     ): void {
         GlobalEmitter.emit("toast", { message, type, duration, key, action });
     }
