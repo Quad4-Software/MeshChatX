@@ -15,6 +15,20 @@ from meshchatx.src.backend.map_overlay_manager import (
 )
 from meshchatx.src.backend.webtransport_sidecar import try_start_webtransport_sidecar
 
+_MAX_LIBRETRANSLATE_API_KEY_LEN = 512
+
+
+def _normalize_optional_libretranslate_api_key(value: str | None) -> str | None:
+    if value is None:
+        return None
+    key = str(value).strip()
+    if not key:
+        return None
+    if len(key) > _MAX_LIBRETRANSLATE_API_KEY_LEN:
+        msg = "LibreTranslate API key exceeds maximum length"
+        raise ValueError(msg)
+    return key
+
 
 async def apply_config_update(app: Any, data):
     # Validate before any .set() call: config fields persist to SQLite
@@ -1060,10 +1074,6 @@ async def apply_config_update(app: Any, data):
             app.translator_handler.libretranslate_url = value
 
     if "libretranslate_api_key" in data:
-        from meshchatx.src.backend.translator_handler import (
-            _normalize_optional_libretranslate_api_key,
-        )
-
         raw = data["libretranslate_api_key"]
         if raw is None or raw == "":
             norm = None
