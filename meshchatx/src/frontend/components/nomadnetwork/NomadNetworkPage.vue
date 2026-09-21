@@ -1727,7 +1727,11 @@ export default {
                         this.nodePageLoadPhase = null;
                         this.currentPageDownloadId = null;
                         this.nodePageContent = `Failed loading page: ${reason}`;
-                        ToastUtils.error(this.$t("nomadnet.failed_to_load_page"));
+                        ToastUtils.error(
+                            typeof this.$t === "function"
+                                ? this.$t("nomadnet.failed_to_load_page")
+                                : "failed_to_load_page"
+                        );
                     }
                 }
             }
