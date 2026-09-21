@@ -1842,4 +1842,106 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("touch gestures", () => {
+        const makeContainer = () => ({
+            scrollTop: 0,
+            getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600 }),
+        });
+        const touchEvent = (x, y, el) => ({
+            touches: [{ clientX: x, clientY: y }],
+            currentTarget: el,
+        });
+
+        it("completed edge swipe still navigates back", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(10, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(110, 100, el));
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+
+            wrapper.vm.onNodeContainerTouchEnd();
+            expect(navSpy).toHaveBeenCalledTimes(1);
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            wrapper.unmount();
+        });
+
+        it("reversing direction mid-gesture cancels an armed swipe", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(10, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(110, 100, el));
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+
+            // finger drifts back and up before release: the armed distance must not survive
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(30, 60, el));
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+
+            wrapper.vm.onNodeContainerTouchEnd();
+            expect(navSpy).not.toHaveBeenCalled();
+            expect(reloadSpy).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        it("reversing direction mid-gesture cancels an armed pull", () => {
+            const wrapper = mountNomadNetworkPage();
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            // start away from the left edge so the pull branch is evaluated
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(200, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(200, 220, el));
+            expect(wrapper.vm.navPullDistance).toBe(120);
+
+            // finger drags back above the start point before release
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(200, 80, el));
+            expect(wrapper.vm.navPullDistance).toBe(0);
+
+            wrapper.vm.onNodeContainerTouchEnd();
+            expect(reloadSpy).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        it("touchcancel does not fire an armed swipe-back", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(10, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(110, 100, el));
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+
+            wrapper.vm.onNodeContainerTouchCancel();
+            expect(navSpy).not.toHaveBeenCalled();
+            expect(wrapper.vm.navSwipeEdgeActive).toBe(false);
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            wrapper.unmount();
+        });
+
+        it("touchcancel does not fire an armed pull-to-refresh", () => {
+            const wrapper = mountNomadNetworkPage();
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(200, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(200, 220, el));
+            expect(wrapper.vm.navPullDistance).toBe(120);
+
+            wrapper.vm.onNodeContainerTouchCancel();
+            expect(reloadSpy).not.toHaveBeenCalled();
+            expect(wrapper.vm.navSwipeEdgeActive).toBe(false);
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            wrapper.unmount();
+        });
+    });
 });

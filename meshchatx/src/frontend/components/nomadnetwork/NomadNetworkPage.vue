@@ -563,7 +563,7 @@
                     @touchstart.passive="onNodeContainerTouchStart"
                     @touchmove.passive="onNodeContainerTouchMove"
                     @touchend="onNodeContainerTouchEnd"
-                    @touchcancel="onNodeContainerTouchEnd"
+                    @touchcancel="onNodeContainerTouchCancel"
                 >
                     <!-- pull-to-refresh indicator -->
                     <div
@@ -3999,11 +3999,12 @@ export default {
                 this.navPullDistance = 0;
                 return;
             }
+            // Reversing direction mid-gesture must cancel a swipe that had
+            // already armed, otherwise touchend fires on a stale distance.
+            this.navSwipeBackDistance = 0;
             const el = e.currentTarget;
-            if (this.navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx)) {
-                this.navPullDistance = Math.min(dy, 160);
-                this.navSwipeBackDistance = 0;
-            }
+            const pulling = this.navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx);
+            this.navPullDistance = pulling ? Math.min(dy, 160) : 0;
         },
         onNodeContainerTouchEnd() {
             if (this.navSwipeBackDistance >= NAV_SWIPE_BACK_TRIGGER_PX) {
@@ -4011,6 +4012,13 @@ export default {
             } else if (this.navPullDistance >= NAV_PULL_TRIGGER_PX) {
                 this.reloadNodePage();
             }
+            this.navSwipeEdgeActive = false;
+            this.navSwipeBackDistance = 0;
+            this.navPullDistance = 0;
+        },
+        onNodeContainerTouchCancel() {
+            // An interrupted gesture (alert, gesture conflict) is not a
+            // completed swipe or pull, so it must not trigger either action.
             this.navSwipeEdgeActive = false;
             this.navSwipeBackDistance = 0;
             this.navPullDistance = 0;
