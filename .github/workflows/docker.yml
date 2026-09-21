@@ -230,6 +230,8 @@ jobs:
 
             # GHCR accepts OCI zstd layers; docker.io regular repos still
             # expect gzip, so the Hub export is a second cache-hit build.
+            # build-push-action has no compression inputs; they go through the
+            # image exporter options in `outputs`.
             - name: Build and push (GHCR, zstd layers)
               id: build
               uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
@@ -237,12 +239,9 @@ jobs:
                   context: .
                   file: ${{ matrix.dockerfile }}
                   platforms: linux/amd64,linux/arm64
-                  push: true
                   sbom: true
                   provenance: mode=max
-                  compression: zstd
-                  force-compression: true
-                  oci-mediatypes: true
+                  outputs: type=image,push=true,compression=zstd,force-compression=true,oci-mediatypes=true
                   tags: ${{ steps.tags.outputs.tags }}
                   cache-from: type=gha,scope=${{ matrix.variant }}
                   cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
