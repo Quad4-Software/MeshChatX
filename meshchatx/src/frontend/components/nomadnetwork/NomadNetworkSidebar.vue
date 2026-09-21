@@ -675,12 +675,6 @@
                         </template>
                     </SidebarVirtualList>
                     <div
-                        v-if="isLoadingMoreNodes && searchedNodes.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
-                        class="p-4 text-center"
-                    >
-                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
-                    </div>
-                    <div
                         v-else-if="searchedNodes.length > 0"
                         class="h-full overflow-y-auto space-y-2 pt-2"
                         @scroll="onNodesScroll"
@@ -795,6 +789,12 @@
                         <div class="text-sm text-sem-fg-muted">
                             {{ $t("nomadnet.listening_for_peers") }}
                         </div>
+                    </div>
+                    <div
+                        v-if="isLoadingMoreNodes && searchedNodes.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
+                        class="p-4 text-center"
+                    >
+                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
                     </div>
                 </div>
 
