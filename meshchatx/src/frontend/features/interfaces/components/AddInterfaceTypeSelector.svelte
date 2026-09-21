@@ -83,9 +83,7 @@
                         {opt.name}
                     </span>
                     {#if isTileDisabled(opt.id) && awareTileHint}
-                        <span
-                            class="text-[9px] font-semibold uppercase tracking-tight text-sem-fg-muted leading-tight"
-                        >
+                        <span class="text-[9px] font-semibold uppercase tracking-tight text-sem-fg-muted leading-tight">
                             {awareTileHint}
                         </span>
                     {/if}

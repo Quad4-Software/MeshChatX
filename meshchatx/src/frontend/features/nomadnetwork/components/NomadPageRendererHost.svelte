@@ -221,10 +221,10 @@
                 NAV_SWIPE_BACK_TRIGGER_PX
                     ? 'border-sem-accent bg-sem-surface text-sem-accent'
                     : 'border-sem-border bg-sem-surface text-sem-fg'}"
-                style="opacity: {Math.min(1, navSwipeBackDistance / NAV_SWIPE_BACK_TRIGGER_PX)}; transform: translate({Math.min(
-                    navSwipeBackDistance * 0.5,
-                    56
-                ) - 44}px, -50%);"
+                style="opacity: {Math.min(
+                    1,
+                    navSwipeBackDistance / NAV_SWIPE_BACK_TRIGGER_PX
+                )}; transform: translate({Math.min(navSwipeBackDistance * 0.5, 56) - 44}px, -50%);"
             >
                 <MaterialDesignIcon iconName="arrow-left" class="size-5" />
             </div>

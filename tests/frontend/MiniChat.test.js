@@ -25,8 +25,7 @@ describe("MiniChat.svelte", () => {
         delete window.api;
     });
 
-    const renderMiniChat = () =>
-        render(MiniChat, { props: { destinationHash: "a".repeat(32) } });
+    const renderMiniChat = () => render(MiniChat, { props: { destinationHash: "a".repeat(32) } });
 
     it("fetches recent messages on mount", async () => {
         renderMiniChat();

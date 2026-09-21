@@ -147,6 +147,11 @@ export default class MicronParser extends BaseMicronParser {
     declare darkTheme: any;
     declare enableForceMonospace: any;
     declare parseHeaderTags: any;
+    declare MAX_TABLE_WIDTH: number;
+    declare serif: boolean | undefined;
+    declare appendLineOutput: (container: HTMLElement | DocumentFragment, output: any, state: any) => void;
+    declare static _micronSanitizer: any;
+    declare static _resolveEmptyAnchors?: (container: HTMLElement) => void;
     constructor(darkTheme = true, enableForceMonospace = true, options: Record<string, unknown> = {}) {
         super(darkTheme, enableForceMonospace, { accessibility: true, ...options });
         if (this.enableForceMonospace) {

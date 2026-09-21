@@ -24,6 +24,7 @@ export type LiveTransportConfigureOptions = {
 export type LiveTransportConnectResult = {
     transport: "webtransport" | "websocket";
     fellBack: boolean;
+    superseded?: boolean;
 };
 
 type LiveTransportSource = {
@@ -105,7 +106,7 @@ class WebTransportLiveSession {
         }
         const transport = new WebTransport(url, wtOpts);
         this._transport = transport;
-        let timeoutId = null;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
         const readyRace = Promise.race([
             transport.ready,
             new Promise<never>((_, reject) => {

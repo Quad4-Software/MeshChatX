@@ -503,7 +503,9 @@ export function createConversationViewerActions(
             deps.chatItems.find((item) => item.lxmf_message.hash === hash)?.lxmf_message || null,
         handleMessageClick: (event) => {
             handleRichHtmlLinkClick(event, {
-                onNomadUrl: (hash, path) => {
+                onNomadUrl: (url) => {
+                    const [hash, ...pathParts] = url.split(":");
+                    const path = pathParts.join(":");
                     const base = deps.isPopout ? "/popout/nomadnetwork" : "/nomadnetwork";
                     const query = path ? `?path=${encodeURIComponent(path)}` : "";
                     window.location.hash = `#${base}/${encodeURIComponent(hash)}${query}`;

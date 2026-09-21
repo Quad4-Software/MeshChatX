@@ -133,8 +133,8 @@ export function installWsLiveSync(options: InstallWsLiveSyncOptions): WsLiveSync
     const getStorageKey = options.getStorageKey || (() => seqStorageKey());
     let lastSeq = loadLastSeq(getStorageKey());
     let syncInFlight = false;
-    let pendingSyncRequestId = null;
-    let syncWatchdog = null;
+    let pendingSyncRequestId: string | null = null;
+    let syncWatchdog: ReturnType<typeof setTimeout> | null = null;
     let disposed = false;
 
     const SYNC_REPLY_TIMEOUT_MS = 15000;

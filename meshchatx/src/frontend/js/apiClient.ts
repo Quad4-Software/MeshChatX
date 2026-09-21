@@ -78,7 +78,11 @@ function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Pr
                 );
             }, timeoutMs);
         }),
-    ]).finally(() => clearTimeout(timeoutId));
+    ]).finally(() => {
+        if (timeoutId !== undefined) {
+            clearTimeout(timeoutId);
+        }
+    });
 }
 
 function buildUrl(path: string, params?: Record<string, unknown>): string {
@@ -249,7 +253,8 @@ export function createApiClient(options: CreateApiClientOptions = {}): ApiClient
             const errData = await parseErrorBody(response);
             const detail =
                 errData && typeof errData === "object"
-                    ? errData.error || errData.message
+                    ? (errData as { error?: unknown; message?: unknown }).error ||
+                      (errData as { error?: unknown; message?: unknown }).message
                     : typeof errData === "string"
                       ? errData
                       : null;

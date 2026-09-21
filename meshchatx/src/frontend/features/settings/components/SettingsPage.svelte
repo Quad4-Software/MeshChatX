@@ -380,8 +380,7 @@
             config.is_transport_enabled = !requested;
             const detail = e?.response?.data?.message || e?.response?.data?.error || e?.message;
             ToastUtils.error(
-                detail ||
-                    (requested ? t("settings.failed_enable_transport") : t("settings.failed_disable_transport"))
+                detail || (requested ? t("settings.failed_enable_transport") : t("settings.failed_disable_transport"))
             );
             await loadConfig();
         }
