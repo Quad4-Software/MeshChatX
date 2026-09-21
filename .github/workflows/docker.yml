@@ -62,6 +62,9 @@ concurrency:
 
 env:
     REGISTRY: ghcr.io
+    # Official .deb from aquasecurity/trivy releases; scripts/ci/setup-trivy.sh verifies
+    # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
+    TRIVY_VERSION: "0.69.3"
 
 jobs:
     build:
@@ -249,6 +252,8 @@ jobs:
                   file: ${{ matrix.dockerfile }}
                   platforms: linux/amd64,linux/arm64
                   push: true
+                  sbom: true
+                  provenance: mode=max
                   tags: ${{ steps.all_tags.outputs.tags }}
                   cache-from: type=gha,scope=${{ matrix.variant }}
                   cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
@@ -269,6 +274,25 @@ jobs:
                   img="${IMAGE_NAME}@${IMAGE_DIGEST}"
                   docker pull --platform linux/amd64 "$img"
                   bash scripts/ci/verify-package-contents.sh docker "$img"
+
+            - name: Apt update (for Trivy .deb)
+              run: sh scripts/ci/exec-priv.sh apt-get update -qq
+
+            - name: Setup Trivy
+              run: sh scripts/ci/setup-trivy.sh
+
+            - name: Trivy image scan (amd64)
+              env:
+                  IMAGE_NAME: ${{ steps.image.outputs.name }}
+                  IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+              run: |
+                  set -euo pipefail
+                  # amd64 layer already pulled above; --ignore-unfixed keeps the gate
+                  # actionable (fails only when a fix exists upstream). openvex.json
+                  # statements suppress not_affected/fixed findings.
+                  trivy image --exit-code 1 --severity HIGH,CRITICAL \
+                    --ignore-unfixed --vex openvex.json \
+                    "${IMAGE_NAME}@${IMAGE_DIGEST}"
 
             - name: Install Cosign
               uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
