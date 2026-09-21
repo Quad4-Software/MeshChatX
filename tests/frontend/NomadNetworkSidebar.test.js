@@ -327,6 +327,60 @@ describe("NomadNetworkSidebar.vue", () => {
         expect(wrapper.text()).not.toContain("nomadnet.no_search_results_peers");
     });
 
+    describe("announces list virtualization branches", () => {
+        const makeNodes = (count) => {
+            const nodes = {};
+            for (let i = 0; i < count; i++) {
+                const hash = String(i).padStart(32, "0");
+                nodes[hash] = {
+                    destination_hash: hash,
+                    identity_hash: String(i + 1).padStart(32, "f"),
+                    display_name: `Node ${i}`,
+                    updated_at: new Date().toISOString(),
+                };
+            }
+            return nodes;
+        };
+
+        const openAnnouncesTab = async (wrapper) => {
+            const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
+            await announceTab.trigger("click");
+            await wrapper.vm.$nextTick();
+        };
+
+        it("mounts only the virtualized list at or above the virtualization threshold", async () => {
+            const wrapper = mountSidebar({ nodes: makeNodes(40), totalNodesCount: 40 });
+            await openAnnouncesTab(wrapper);
+
+            // regression: the plain list must not mount alongside the virtual list
+            expect(wrapper.find("div.h-full.overflow-y-auto.space-y-2").exists()).toBe(false);
+            expect(wrapper.find("div.h-full.overflow-y-auto.overflow-x-hidden").exists()).toBe(true);
+            expect(wrapper.text()).not.toContain("nomadnet.no_announces_yet");
+        });
+
+        it("keeps the plain list unmounted while loading more on the virtualized list", async () => {
+            const wrapper = mountSidebar({
+                nodes: makeNodes(40),
+                totalNodesCount: 40,
+                isLoadingMoreNodes: true,
+                hasMoreNodes: true,
+            });
+            await openAnnouncesTab(wrapper);
+
+            expect(wrapper.find("div.h-full.overflow-y-auto.space-y-2").exists()).toBe(false);
+            expect(wrapper.find('[data-icon-name="loading"]').exists()).toBe(true);
+        });
+
+        it("renders every announce card in the plain list below the virtualization threshold", async () => {
+            const wrapper = mountSidebar({ nodes: makeNodes(5), totalNodesCount: 5 });
+            await openAnnouncesTab(wrapper);
+
+            expect(wrapper.find("div.h-full.overflow-y-auto.space-y-2").exists()).toBe(true);
+            expect(wrapper.findAll(".announce-card")).toHaveLength(5);
+            expect(wrapper.text()).toContain("Node 4");
+        });
+    });
+
     it("favouriteDisplayName prefers announce cache over unknown favourite label", async () => {
         const favHash = defaultFavourite.destination_hash;
         const wrapper = mountSidebar({
