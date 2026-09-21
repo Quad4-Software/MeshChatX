@@ -121,9 +121,7 @@ describe("identity switch and stale-response regressions", () => {
         });
         GlobalEmitter.emit("websocket-reconnected", { degraded: false, failed: [] });
         await waitFor(() => {
-            expect(
-                axiosMock.get.mock.calls.some((c) => String(c[0]).includes("/rooms/roomA/messages"))
-            ).toBe(true);
+            expect(axiosMock.get.mock.calls.some((c) => String(c[0]).includes("/rooms/roomA/messages"))).toBe(true);
         });
 
         // User moves to roomB before the stale member fetch lands.
@@ -163,9 +161,7 @@ describe("identity switch and stale-response regressions", () => {
         GlobalEmitter.emit("identity-switched", { identity_hash: "new-identity" });
         resolveLoad({
             data: {
-                messages: [
-                    { kind: "msg", room: "roomA", src: "aa", nick: "x", text: "stale marker", ts: 1 },
-                ],
+                messages: [{ kind: "msg", room: "roomA", src: "aa", nick: "x", text: "stale marker", ts: 1 }],
                 members: [],
             },
         });

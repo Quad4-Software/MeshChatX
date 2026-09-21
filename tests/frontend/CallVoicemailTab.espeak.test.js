@@ -3,10 +3,7 @@ import { join } from "path";
 import { describe, it, expect } from "vitest";
 
 const src = readFileSync(
-    join(
-        process.cwd(),
-        "meshchatx/src/frontend/features/call/components/CallVoicemailSettings.svelte",
-    ),
+    join(process.cwd(), "meshchatx/src/frontend/features/call/components/CallVoicemailSettings.svelte"),
     "utf8"
 );
 
@@ -38,9 +35,7 @@ describe("CallVoicemailSettings eSpeak fallback", () => {
     });
 
     it("keeps audio upload and recording enabled without eSpeak", () => {
-        const uploadButton = src.match(
-            /<button[^>]*onclick=\{\(\) => greetingUploadInput\?\.click\(\)\}[^>]*>/
-        );
+        const uploadButton = src.match(/<button[^>]*onclick=\{\(\) => greetingUploadInput\?\.click\(\)\}[^>]*>/);
         expect(uploadButton).toBeTruthy();
         expect(uploadButton[0]).not.toContain("has_espeak");
     });

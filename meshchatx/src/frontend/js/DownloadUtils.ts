@@ -7,6 +7,10 @@ const ANDROID_BLOB_CHUNK_BYTES = 768 * 1024;
 // Base64 chars per chunk, kept a multiple of 4 so slices decode independently.
 const ANDROID_B64_CHUNK_CHARS = 1024 * 1024;
 
+interface DownloadOptions {
+    downloadId?: string;
+}
+
 function isAndroidSaveBridge() {
     return (
         typeof window !== "undefined" &&
@@ -197,7 +201,7 @@ class DownloadUtils {
         }
     }
 
-    static downloadFromBase64(filename, fileBytesBase64, options = undefined) {
+    static downloadFromBase64(filename, fileBytesBase64, options?: DownloadOptions) {
         const safeName = DownloadUtils.sanitizeDownloadFilename(filename, "download");
         if (isAndroidSaveBridge()) {
             DownloadUtils._androidSaveBase64(safeName, fileBytesBase64, options?.downloadId);
@@ -214,7 +218,7 @@ class DownloadUtils {
         DownloadUtils._triggerBrowserDownload(safeName, objectUrl);
     }
 
-    static async downloadFile(filename, blob, options = undefined) {
+    static async downloadFile(filename, blob, options?: DownloadOptions) {
         const safeName = DownloadUtils.sanitizeDownloadFilename(filename, "download");
         if (isAndroidSaveBridge()) {
             await DownloadUtils._androidSaveBlob(safeName, blob, options?.downloadId);

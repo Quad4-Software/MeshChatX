@@ -170,68 +170,68 @@
                 class="rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border focus:outline-hidden overflow-hidden min-w-[220px]"
             >
                 <div class="py-1">
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap border-b border-sem-border"
-                    onclick={() => setDeliveryMethod(null)}
-                >
-                    <MaterialDesignIcon iconName="auto-fix" class="size-5 shrink-0 text-sem-fg-muted" />
-                    <span>{t("messages.send_automatically")}</span>
-                </button>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                    onclick={() => setDeliveryMethod("direct")}
-                >
-                    <MaterialDesignIcon
-                        iconName="transit-connection-variant"
-                        class="size-5 shrink-0 text-sem-fg-muted"
-                    />
-                    <span>{t("messages.send_over_direct_link")}</span>
-                </button>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                    onclick={() => setDeliveryMethod("opportunistic")}
-                >
-                    <MaterialDesignIcon iconName="swap-horizontal" class="size-5 shrink-0 text-sem-fg-muted" />
-                    <span>{t("messages.send_opportunistically")}</span>
-                </button>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                    onclick={() => setDeliveryMethod("propagated")}
-                >
-                    <MaterialDesignIcon iconName="access-point-network" class="size-5 shrink-0 text-sem-fg-muted" />
-                    <span>{t("messages.send_to_propagation_node")}</span>
-                </button>
-                <div class="border-t border-sem-border text-[11px] font-medium text-sem-fg-muted px-4 pt-2 pb-1">
-                    {t("messages.send_menu_more_label")}
-                </div>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap disabled:opacity-50"
-                    disabled={!canOpenSendMenu}
-                    onclick={() => {
-                        onsendcommandorrequest?.();
-                        isShowingMenu = false;
-                    }}
-                >
-                    <MaterialDesignIcon iconName="code-tags" class="size-5 shrink-0 text-sem-fg-muted" />
-                    <span>{t("messages.send_menu_telemetry_request")}</span>
-                </button>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap disabled:opacity-50"
-                    disabled={!canSendMessage}
-                    onclick={() => {
-                        onsendpapercompose?.();
-                        isShowingMenu = false;
-                    }}
-                >
-                    <MaterialDesignIcon iconName="qrcode" class="size-5 shrink-0 text-sem-fg-muted" />
-                    <span>{t("messages.send_menu_paper_compose")}</span>
-                </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap border-b border-sem-border"
+                        onclick={() => setDeliveryMethod(null)}
+                    >
+                        <MaterialDesignIcon iconName="auto-fix" class="size-5 shrink-0 text-sem-fg-muted" />
+                        <span>{t("messages.send_automatically")}</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
+                        onclick={() => setDeliveryMethod("direct")}
+                    >
+                        <MaterialDesignIcon
+                            iconName="transit-connection-variant"
+                            class="size-5 shrink-0 text-sem-fg-muted"
+                        />
+                        <span>{t("messages.send_over_direct_link")}</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
+                        onclick={() => setDeliveryMethod("opportunistic")}
+                    >
+                        <MaterialDesignIcon iconName="swap-horizontal" class="size-5 shrink-0 text-sem-fg-muted" />
+                        <span>{t("messages.send_opportunistically")}</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
+                        onclick={() => setDeliveryMethod("propagated")}
+                    >
+                        <MaterialDesignIcon iconName="access-point-network" class="size-5 shrink-0 text-sem-fg-muted" />
+                        <span>{t("messages.send_to_propagation_node")}</span>
+                    </button>
+                    <div class="border-t border-sem-border text-[11px] font-medium text-sem-fg-muted px-4 pt-2 pb-1">
+                        {t("messages.send_menu_more_label")}
+                    </div>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap disabled:opacity-50"
+                        disabled={!canOpenSendMenu}
+                        onclick={() => {
+                            onsendcommandorrequest?.();
+                            isShowingMenu = false;
+                        }}
+                    >
+                        <MaterialDesignIcon iconName="code-tags" class="size-5 shrink-0 text-sem-fg-muted" />
+                        <span>{t("messages.send_menu_telemetry_request")}</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap disabled:opacity-50"
+                        disabled={!canSendMessage}
+                        onclick={() => {
+                            onsendpapercompose?.();
+                            isShowingMenu = false;
+                        }}
+                    >
+                        <MaterialDesignIcon iconName="qrcode" class="size-5 shrink-0 text-sem-fg-muted" />
+                        <span>{t("messages.send_menu_paper_compose")}</span>
+                    </button>
                 </div>
             </div>
         </div>

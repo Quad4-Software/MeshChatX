@@ -252,8 +252,7 @@
                             type="text"
                             class="input-field font-mono text-xs"
                             disabled={!!config.oidc_env_managed}
-                            oninput={(e) =>
-                                onoidcfieldchange?.("oidc_client_id", (e.target as HTMLInputElement).value)}
+                            oninput={(e) => onoidcfieldchange?.("oidc_client_id", (e.target as HTMLInputElement).value)}
                         />
                     </div>
                     <div class="space-y-2">

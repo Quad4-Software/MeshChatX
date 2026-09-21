@@ -316,9 +316,7 @@
             {/if}
 
             {#if showVersions}
-                <div
-                    class="rounded-xl border border-sem-border bg-sem-surface shrink-0 max-h-56 overflow-y-auto"
-                >
+                <div class="rounded-xl border border-sem-border bg-sem-surface shrink-0 max-h-56 overflow-y-auto">
                     <div
                         class="flex items-center gap-1.5 px-3 py-2 border-b border-sem-border bg-sem-surface-muted/60 text-xs font-semibold text-sem-fg-secondary"
                     >

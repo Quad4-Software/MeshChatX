@@ -202,9 +202,9 @@
     const awareInterfaceSupported = $derived(
         Boolean(
             locallinkCapabilities &&
-                locallinkCapabilities.supported &&
-                locallinkCapabilities.wifi_aware &&
-                locallinkCapabilities.wifi_aware_available
+            locallinkCapabilities.supported &&
+            locallinkCapabilities.wifi_aware &&
+            locallinkCapabilities.wifi_aware_available
         )
     );
     const awareNeedsPermission = $derived(

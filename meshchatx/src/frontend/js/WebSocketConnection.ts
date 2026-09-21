@@ -41,6 +41,10 @@ class WebSocketConnection {
     _isForcedReconnect: boolean;
     _outboundQueue: OutboundQueueItem[];
     _liveSendBridge: LiveSendBridge | null;
+    _bootstrapRetryTimeout: ReturnType<typeof setTimeout> | null;
+    _onVisibilityChange: (() => void) | null;
+    _onWindowFocus: (() => void) | null;
+    _onWindowOnline: (() => void) | null;
 
     constructor() {
         this.emitter = createEmitter();
@@ -61,6 +65,10 @@ class WebSocketConnection {
         // When LiveTransport uses WebTransport, page code that still calls
         // WebSocketConnection.send must ride the active live channel.
         this._liveSendBridge = null;
+        this._bootstrapRetryTimeout = null;
+        this._onVisibilityChange = null;
+        this._onWindowFocus = null;
+        this._onWindowOnline = null;
     }
 
     setLiveSendBridge(bridge: LiveSendBridge | null): void {
@@ -376,9 +384,15 @@ class WebSocketConnection {
             this._bootstrapRetryTimeout = null;
         }
         if (this._hasEventListeners && typeof window !== "undefined" && window.removeEventListener) {
-            window.removeEventListener("visibilitychange", this._onVisibilityChange);
-            window.removeEventListener("focus", this._onWindowFocus);
-            window.removeEventListener("online", this._onWindowOnline);
+            if (this._onVisibilityChange) {
+                window.removeEventListener("visibilitychange", this._onVisibilityChange);
+            }
+            if (this._onWindowFocus) {
+                window.removeEventListener("focus", this._onWindowFocus);
+            }
+            if (this._onWindowOnline) {
+                window.removeEventListener("online", this._onWindowOnline);
+            }
             this._hasEventListeners = false;
             this._onVisibilityChange = null;
             this._onWindowFocus = null;
@@ -463,7 +477,9 @@ class WebSocketConnection {
             // Surface the eviction so request_id-correlated callers can settle
             // instead of hanging until their own timeout.
             const evicted = this._outboundQueue.shift();
-            this.emit("queue_expired", { request_id: evicted.requestId });
+            if (evicted) {
+                this.emit("queue_expired", { request_id: evicted.requestId });
+            }
         }
         this._outboundQueue.push({
             message,

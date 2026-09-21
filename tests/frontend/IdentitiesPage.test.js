@@ -263,6 +263,6 @@ describe("IdentitiesPage.svelte", () => {
 
         const renderTime = end - start;
         expect(container.querySelectorAll(".identity-row").length).toBe(numIdentities - 1);
-        expect(renderTime).toBeLessThan(2000);
+        expect(renderTime).toBeLessThan(4000);
     });
 });

@@ -30,17 +30,13 @@
         loading = true;
         const gen = ++fetchGen;
         try {
-            const response = await window.api.get(
-                `/api/v1/lxmf-messages/conversation/${hash}?count=20&order=desc`
-            );
+            const response = await window.api.get(`/api/v1/lxmf-messages/conversation/${hash}?count=20&order=desc`);
             // A stale fetch must not clobber a newer peer view or a
             // message that sendMessage appended after this fetch started.
             if (gen !== fetchGen || hash !== destinationHash) return;
             const fetched = (response?.data?.lxmf_messages || []).reverse();
             const fetchedHashes = new Set(fetched.map((m: any) => m.hash));
-            const unsynced = messages.filter(
-                (m) => m.is_outbound && m.hash && !fetchedHashes.has(m.hash)
-            );
+            const unsynced = messages.filter((m) => m.is_outbound && m.hash && !fetchedHashes.has(m.hash));
             messages = [...fetched, ...unsynced].slice(-40);
             scrollToBottom();
         } catch (e) {

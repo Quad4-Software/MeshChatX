@@ -33,9 +33,9 @@ export function diffAvailableRooms(previous, next) {
     const nxt = next && typeof next === "object" && !Array.isArray(next) ? next : {};
     const prevKeys = new Set(Object.keys(prev));
     const nextKeys = new Set(Object.keys(nxt));
-    const added = [];
-    const removed = [];
-    const updated = [];
+    const added: string[] = [];
+    const removed: string[] = [];
+    const updated: string[] = [];
     for (const name of nextKeys) {
         if (!prevKeys.has(name)) {
             added.push(name);

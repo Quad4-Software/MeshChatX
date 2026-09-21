@@ -8,7 +8,7 @@ import WebSocketConnection from "../../../js/WebSocketConnection.js";
 import { copyImageBlobToClipboard } from "../../../js/clipboardUtils.js";
 import { t } from "../../../js/i18n.js";
 import { applyWsMessage, deleteWsMessage, updateWsMessage } from "./conversationViewerMessages.js";
-import { lxmfContactResolvedIcon, type ContactLike } from "./lxmf/contactDisplay.js";
+import { lxmfContactResolvedIcon, type ContactLike, type ConversationLike } from "./lxmf/contactDisplay.js";
 import { cancelOutbound, executeOutboundJob, type OutboundJob } from "./conversationViewerSend.js";
 import type { ApiClient } from "../../../js/apiClient.js";
 import type { LxmfMessage, ViewerChatItem } from "./conversationViewerCtx.js";
@@ -442,7 +442,7 @@ export function generatePaperMessagePayload(destinationHash: string, text: strin
 
 export function formatSharedContactString(
     contact: Record<string, unknown>,
-    conversations: Array<{ destination_hash?: string; lxmf_user_icon?: unknown }> = []
+    conversations: ConversationLike[] = []
 ): string {
     let sharedString = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
     if (contact.lxmf_address) {
