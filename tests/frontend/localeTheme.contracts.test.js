@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Adversarial fuzz and membership oracles for locale/theme regressions.
+ * Adversarial fuzz and membership references for locale/theme regressions.
  */
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { listLocaleCodes, normalizeUiLocaleCode } from "../../meshchatx/src/frontend/js/localeLoader.js";
-import { uiLocalePackOracle } from "../../meshchatx/src/frontend/js/localeThemeOracles.js";
+import { expectedUiLocalePack } from "../../meshchatx/src/frontend/js/localeThemeExpectations.js";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 
@@ -73,7 +73,7 @@ const DOC_MANUAL_LANGS = ["en", "de", "es", "jp", "nl", "pl", "pt-br", "tr", "uk
 const RETICULUM_ONLY = DOC_MANUAL_LANGS.filter((code) => !listLocaleCodes().includes(code));
 
 describe("localeTheme adversarial / fuzz", () => {
-    it("fuzz: normalizeUiLocaleCode never throws and oracle pack membership holds", () => {
+    it("fuzz: normalizeUiLocaleCode never throws and reference pack membership holds", () => {
         const packs = new Set(listLocaleCodes());
         const rng = mulberry32(0x1a2b3c4d);
         for (let n = 0; n < 600; n += 1) {
@@ -85,13 +85,13 @@ describe("localeTheme adversarial / fuzz", () => {
                       : n % 7 === 0
                         ? undefined
                         : randomUnicodeString(rng, 48);
-            const code = uiLocalePackOracle(raw);
+            const code = expectedUiLocalePack(raw);
             expect(packs.has(code)).toBe(true);
             expect(typeof normalizeUiLocaleCode(raw)).toBe("string");
         }
     });
 
-    it("oracle: Reticulum-only manual codes must not equal normalized UI pack", () => {
+    it("reference: Reticulum-only manual codes must not equal normalized UI pack", () => {
         for (const docLang of RETICULUM_ONLY) {
             const ui = normalizeUiLocaleCode(docLang);
             expect(ui).not.toBe(docLang);

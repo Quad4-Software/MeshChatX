@@ -59,7 +59,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}

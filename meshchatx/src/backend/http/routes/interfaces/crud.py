@@ -136,9 +136,10 @@ def register_interfaces_crud_routes(routes, app):
         reloaded = False
         if reload_stack and updated:
             try:
-                await app.reload_reticulum()
-                reloaded = True
+                reloaded = await app.reload_reticulum() is True
             except Exception:
+                reloaded = False
+            if not reloaded:
                 return http_unexpected(
                     "Bitrates saved but RNS reload failed",
                     updated=updated,

@@ -109,7 +109,7 @@ describe("App websocket reconnect shell resync", () => {
         expect(fetchCsrfToken).toHaveBeenCalledTimes(1);
         expect(updatePropagationNodeStatus).toHaveBeenCalled();
         expect(getConfig).toHaveBeenCalled();
-        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected");
+        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected", { degraded: false, failed: [] });
         expect(state.wsReconnectedBanner).toBe(false);
 
         onWsShellReady(state);
@@ -132,7 +132,7 @@ describe("App websocket reconnect shell resync", () => {
 
         expect(fetchCsrfToken).toHaveBeenCalledTimes(1);
         expect(state.wsReconnectedBanner).toBe(false);
-        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected");
+        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected", { degraded: false, failed: [] });
 
         onWsShellReady(state);
         expect(state.wsReconnectedBanner).toBe(false);

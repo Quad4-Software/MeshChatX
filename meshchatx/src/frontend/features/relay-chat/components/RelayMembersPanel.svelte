@@ -2,188 +2,181 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
-    import IconButton from "../../../ui/svelte/IconButton.svelte";
+    import SearchInput from "../../../ui/svelte/SearchInput.svelte";
     import { t } from "../../../js/i18n.js";
     import { filterRelayMembers } from "../../../js/relayMessageSearch.js";
-    import { deriveOfflineRelayMembers, nameStyle } from "../lib/relayFormatters.js";
-    import type { RelayOfflineMember } from "../lib/relayFormatters.js";
-    import type { RrcMember, RrcMessage } from "../lib/types.js";
+    import { colorForHash, memberAvatarStyle, memberInitial } from "../lib/relayFormatters.js";
+    import type { RrcMember } from "../lib/types.js";
 
     interface Props {
         members: RrcMember[];
-        messages?: RrcMessage[];
-        canModerate?: boolean;
+        offlineMembers?: RrcMember[];
+        memberDmLoadingHash?: string | null;
         onclose?: () => void;
-        onkickmember?: (member: RrcMember) => void;
-        onbanmember?: (member: RrcMember) => void;
-        ontogglememberop?: (member: RrcMember) => void;
+        oninsertmention?: (name: string) => void;
+        oncopymemberhash?: (member: RrcMember) => void;
+        onopenmemberdm?: (member: RrcMember) => void;
     }
 
     let {
         members = [],
-        messages = [],
-        canModerate = false,
+        offlineMembers = [],
+        memberDmLoadingHash = null,
         onclose,
-        onkickmember,
-        onbanmember,
-        ontogglememberop,
+        oninsertmention,
+        oncopymemberhash,
+        onopenmemberdm,
     }: Props = $props();
 
-    let searchTerm = $state("");
+    let membersSearch = $state("");
 
-    const offlineMembers = $derived.by((): RelayOfflineMember[] => {
-        return deriveOfflineRelayMembers(members, messages);
-    });
+    const filteredOnlineMembers = $derived.by(() => filterRelayMembers(members, membersSearch));
+    const filteredOfflineMembers = $derived.by(() => filterRelayMembers(offlineMembers, membersSearch));
 
-    const filteredOnlineMembers = $derived.by(() => {
-        return filterRelayMembers(members, searchTerm);
-    });
-
-    const filteredOfflineMembers = $derived.by(() => {
-        return filterRelayMembers(offlineMembers, searchTerm) as RelayOfflineMember[];
-    });
-
-    const hasSearch = $derived(Boolean(searchTerm.trim()));
+    function avatarStyle(hash?: string | null): string {
+        const s = memberAvatarStyle(hash);
+        return `background-color: ${s.backgroundColor}; color: ${s.color};`;
+    }
 </script>
 
 <div
     class="absolute inset-y-0 right-0 z-40 flex w-72 max-w-[min(18rem,100%)] min-h-0 flex-col border-l border-sem-border bg-sem-canvas shadow-xl text-sem-fg md:static md:z-auto md:max-w-none md:w-72 md:shadow-none"
 >
-    <div class="flex items-center justify-between px-3 py-2 border-b border-sem-border">
-        <div class="flex items-center gap-1.5 font-semibold text-sm">
-            <MaterialDesignIcon iconName="account-group" class="size-4 text-sem-fg-muted" />
-            <span>{t("relay_chat.members_title")} ({members.length})</span>
+    <div class="flex shrink-0 items-center justify-between gap-2 border-b border-sem-border px-3 py-2.5">
+        <div class="flex items-center gap-1.5 font-semibold">
+            <MaterialDesignIcon iconName="account-group" class="size-4 text-sem-accent" />
+            {t("relay_chat.members_title")}
         </div>
-        <IconButton
-            class="size-7 text-sem-fg-muted hover:text-sem-fg"
-            title={t("common.close")}
+        <button
+            type="button"
+            class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 cursor-pointer"
+            title={t("relay_chat.hide_members")}
             onclick={() => onclose?.()}
         >
             <MaterialDesignIcon iconName="close" class="size-4" />
-        </IconButton>
+        </button>
     </div>
-
-    <div class="p-2 border-b border-sem-border">
-        <div class="relative">
-            <MaterialDesignIcon
-                iconName="magnify"
-                class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-sem-fg-muted"
-            />
-            <input
-                type="search"
-                bind:value={searchTerm}
-                placeholder={t("relay_chat.members_search_placeholder")}
-                class="w-full pl-8 pr-2 py-1 text-xs bg-sem-canvas border border-sem-border rounded-md text-sem-fg focus:outline-hidden focus:border-sem-accent"
-            />
-        </div>
+    <div class="shrink-0 border-b border-sem-border p-2">
+        <SearchInput
+            bind:value={membersSearch}
+            compact
+            type="search"
+            placeholder={t("relay_chat.members_search_placeholder")}
+        />
     </div>
-
-    <div class="flex-1 overflow-y-auto p-1.5 space-y-3">
+    <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
         <div>
-            <div class="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted">
+            <div
+                class="sticky top-0 z-10 border-b border-sem-border/50 bg-sem-canvas/95 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted backdrop-blur"
+            >
                 {t("relay_chat.members_online")} ({filteredOnlineMembers.length})
             </div>
-            {#if filteredOnlineMembers.length === 0}
-                {#if !hasSearch && members.length === 0 && offlineMembers.length === 0}
-                    <div class="px-2 py-1 text-xs text-sem-fg-muted">
-                        {t("relay_chat.no_members_found")}
-                    </div>
-                {/if}
-            {:else}
-                <ul class="space-y-0.5">
-                    {#each filteredOnlineMembers as member, idx (member.identity_hash || member.nickname || idx)}
-                        <li
-                            class="group flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-sem-surface-muted text-xs"
+            <ul class="p-1.5">
+                {#each filteredOnlineMembers as m (m.hash)}
+                    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <li
+                        class="group/member flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-sem-surface/60"
+                        title={m.hash}
+                        onclick={() => oninsertmention?.(m.name)}
+                        oncontextmenu={(e) => {
+                            e.preventDefault();
+                            oncopymemberhash?.(m);
+                        }}
+                    >
+                        <span
+                            class="relative flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold uppercase"
+                            style={avatarStyle(m.hash)}
                         >
-                            <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span class="size-2 shrink-0 rounded-full bg-sem-success"></span>
-                                {#if member.is_founder}
-                                    <span title={t("relay_chat.role_founder")}>
-                                        <MaterialDesignIcon iconName="crown" class="size-3.5 shrink-0 text-amber-500" />
-                                    </span>
-                                {:else if member.is_operator}
-                                    <span title={t("relay_chat.role_operator")}>
-                                        <MaterialDesignIcon
-                                            iconName="shield-star"
-                                            class="size-3.5 shrink-0 text-blue-500"
-                                        />
-                                    </span>
-                                {:else if member.has_voice}
-                                    <span title={t("relay_chat.role_voice")}>
-                                        <MaterialDesignIcon
-                                            iconName="volume-high"
-                                            class="size-3.5 shrink-0 text-emerald-500"
-                                        />
-                                    </span>
-                                {/if}
-                                <span
-                                    class="truncate font-medium"
-                                    style={nameStyle({
-                                        src: member.identity_hash,
-                                        nickname: member.nickname,
-                                    })}
-                                    title={member.identity_hash}
+                            {memberInitial(m.name)}
+                            <span
+                                class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-sem-canvas bg-sem-success"
+                            ></span>
+                        </span>
+                        <span class="min-w-0 flex-1 truncate text-sm font-medium" style="color: {colorForHash(m.hash)}"
+                            >{m.name}</span
+                        >
+                        <span class="flex items-center gap-1 shrink-0">
+                            {#if memberDmLoadingHash === m.hash}
+                                <MaterialDesignIcon iconName="loading" class="size-3.5 animate-spin text-sem-accent" />
+                            {:else}
+                                <button
+                                    type="button"
+                                    class="flex items-center rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:text-sem-accent focus-ring-sem group-hover/member:opacity-70 max-sm:opacity-60"
+                                    title={t("relay_chat.dm_member")}
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        onopenmemberdm?.(m);
+                                    }}
                                 >
-                                    {member.nickname || member.identity_hash?.substring(0, 8) || "Unknown"}
-                                </span>
-                            </div>
-
-                            {#if canModerate && !member.is_founder}
-                                <div class="hidden group-hover:flex items-center gap-0.5 shrink-0">
-                                    <button
-                                        type="button"
-                                        class="p-0.5 text-sem-fg-muted hover:text-blue-500 rounded"
-                                        title={member.is_operator
-                                            ? t("relay_chat.demote_op")
-                                            : t("relay_chat.promote_op")}
-                                        onclick={() => ontogglememberop?.(member)}
-                                    >
-                                        <MaterialDesignIcon iconName="shield-edit" class="size-3.5" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="p-0.5 text-sem-fg-muted hover:text-amber-500 rounded"
-                                        title={t("relay_chat.kick_member")}
-                                        onclick={() => onkickmember?.(member)}
-                                    >
-                                        <MaterialDesignIcon iconName="account-remove" class="size-3.5" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="p-0.5 text-sem-fg-muted hover:text-red-500 rounded"
-                                        title={t("relay_chat.ban_member")}
-                                        onclick={() => onbanmember?.(member)}
-                                    >
-                                        <MaterialDesignIcon iconName="account-cancel" class="size-3.5" />
-                                    </button>
-                                </div>
+                                    <MaterialDesignIcon iconName="message-text-outline" class="size-3.5" />
+                                </button>
                             {/if}
-                        </li>
-                    {/each}
-                </ul>
-            {/if}
+                            <MaterialDesignIcon
+                                iconName="at"
+                                class="size-3.5 text-sem-fg-muted opacity-0 transition-opacity group-hover/member:opacity-70"
+                            />
+                        </span>
+                    </li>
+                {/each}
+            </ul>
         </div>
-
         {#if filteredOfflineMembers.length > 0}
             <div>
-                <div class="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted">
+                <div
+                    class="sticky top-0 z-10 border-b border-sem-border/50 bg-sem-canvas/95 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted backdrop-blur"
+                >
                     {t("relay_chat.members_offline")} ({filteredOfflineMembers.length})
                 </div>
-                <ul class="space-y-0.5">
-                    {#each filteredOfflineMembers as member (member.hash)}
+                <ul class="p-1.5">
+                    {#each filteredOfflineMembers as m (m.hash)}
+                        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <li
-                            class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs opacity-60"
-                            title={member.hash}
+                            class="group/member flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 opacity-60 transition-all hover:bg-sem-surface/60 hover:opacity-100"
+                            title={m.hash}
+                            onclick={() => oninsertmention?.(m.name)}
+                            oncontextmenu={(e) => {
+                                e.preventDefault();
+                                oncopymemberhash?.(m);
+                            }}
                         >
-                            <span class="size-2 shrink-0 rounded-full bg-sem-fg-muted"></span>
-                            <span class="truncate">{member.name}</span>
+                            <span
+                                class="flex size-7 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-[11px] font-bold uppercase text-sem-fg-muted"
+                            >
+                                {memberInitial(m.name)}
+                            </span>
+                            <span class="min-w-0 flex-1 truncate text-sm">{m.name}</span>
+                            <span class="flex items-center gap-1 shrink-0">
+                                {#if memberDmLoadingHash === m.hash}
+                                    <MaterialDesignIcon
+                                        iconName="loading"
+                                        class="size-3.5 animate-spin text-sem-accent"
+                                    />
+                                {:else}
+                                    <button
+                                        type="button"
+                                        class="flex items-center rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:text-sem-accent focus-ring-sem group-hover/member:opacity-70 max-sm:opacity-60"
+                                        title={t("relay_chat.dm_member")}
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            onopenmemberdm?.(m);
+                                        }}
+                                    >
+                                        <MaterialDesignIcon iconName="message-text-outline" class="size-3.5" />
+                                    </button>
+                                {/if}
+                                <MaterialDesignIcon
+                                    iconName="at"
+                                    class="size-3.5 text-sem-fg-muted opacity-0 transition-opacity group-hover/member:opacity-70"
+                                />
+                            </span>
                         </li>
                     {/each}
                 </ul>
             </div>
         {/if}
-
-        {#if hasSearch && filteredOnlineMembers.length === 0 && filteredOfflineMembers.length === 0}
+        {#if membersSearch.trim() && filteredOnlineMembers.length === 0 && filteredOfflineMembers.length === 0}
             <div class="px-2 py-4 text-center text-xs text-sem-fg-muted">
                 {t("relay_chat.members_search_no_results")}
             </div>

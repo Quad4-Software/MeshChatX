@@ -128,31 +128,37 @@
             </IconButton>
 
             {#if imagePolicyMenuOpen}
-                <div
-                    class="absolute right-0 top-full mt-1 z-50 min-w-44 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
-                    role="menu"
-                >
-                    <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted">
-                        {t("nomadnet.image_loading_policy_title")}
+                <div class="absolute right-0 top-full mt-1 z-50 min-w-44">
+                    <div
+                        class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                        aria-hidden="true"
+                    ></div>
+                    <div
+                        class="bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
+                        role="menu"
+                    >
+                        <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted">
+                            {t("nomadnet.image_loading_policy_title")}
+                        </div>
+                        {#each imagePolicyOptions as option (option.value)}
+                            <button
+                                type="button"
+                                class="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                                role="menuitem"
+                                onclick={() => {
+                                    imagePolicyMenuOpen = false;
+                                    onimagepolicychange?.(option.value);
+                                }}
+                            >
+                                <span class="flex size-5 shrink-0 items-center justify-center">
+                                    {#if imagePolicy === option.value}
+                                        <MaterialDesignIcon iconName="check" class="size-4 text-sem-accent" />
+                                    {/if}
+                                </span>
+                                <span>{option.label}</span>
+                            </button>
+                        {/each}
                     </div>
-                    {#each imagePolicyOptions as option (option.value)}
-                        <button
-                            type="button"
-                            class="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
-                            role="menuitem"
-                            onclick={() => {
-                                imagePolicyMenuOpen = false;
-                                onimagepolicychange?.(option.value);
-                            }}
-                        >
-                            <span class="flex size-5 shrink-0 items-center justify-center">
-                                {#if imagePolicy === option.value}
-                                    <MaterialDesignIcon iconName="check" class="size-4 text-sem-accent" />
-                                {/if}
-                            </span>
-                            <span>{option.label}</span>
-                        </button>
-                    {/each}
                 </div>
             {/if}
         </div>
@@ -177,55 +183,59 @@
             </IconButton>
 
             {#if pathfinderMenuOpen}
-                <div
-                    class="absolute right-0 top-full mt-1 z-50 min-w-52 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
-                >
-                    <button
-                        type="button"
-                        class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
-                        onclick={() => {
-                            pathfinderMenuOpen = false;
-                            onpathfinderquick?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="flash" class="size-5" />
-                        <span>{t("nomadnet.path_finder_quick_request")}</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
-                        onclick={() => {
-                            pathfinderMenuOpen = false;
-                            onpathfinderforce?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="map-marker-radius" class="size-5" />
-                        <span>{t("nomadnet.path_finder_force_find")}</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
-                        onclick={() => {
-                            pathfinderMenuOpen = false;
-                            onpathfinderdrop?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="reload-alert" class="size-5" />
-                        <span>{t("nomadnet.path_finder_drop_and_request")}</span>
-                    </button>
-                    {#if !isPrivate && hasArchives}
+                <div class="absolute right-0 top-full mt-1 z-50 min-w-52">
+                    <div
+                        class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                        aria-hidden="true"
+                    ></div>
+                    <div class="bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg">
                         <button
                             type="button"
                             class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
                             onclick={() => {
                                 pathfinderMenuOpen = false;
-                                onloadlatestarchive?.();
+                                onpathfinderquick?.();
                             }}
                         >
-                            <MaterialDesignIcon iconName="archive-clock" class="size-5" />
-                            <span>{t("nomadnet.path_finder_load_archive")}</span>
+                            <MaterialDesignIcon iconName="flash" class="size-5" />
+                            <span>{t("nomadnet.path_finder_quick_request")}</span>
                         </button>
-                    {/if}
+                        <button
+                            type="button"
+                            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                            onclick={() => {
+                                pathfinderMenuOpen = false;
+                                onpathfinderforce?.();
+                            }}
+                        >
+                            <MaterialDesignIcon iconName="map-marker-radius" class="size-5" />
+                            <span>{t("nomadnet.path_finder_force_find")}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                            onclick={() => {
+                                pathfinderMenuOpen = false;
+                                onpathfinderdrop?.();
+                            }}
+                        >
+                            <MaterialDesignIcon iconName="reload-alert" class="size-5" />
+                            <span>{t("nomadnet.path_finder_drop_and_request")}</span>
+                        </button>
+                        {#if !isPrivate && hasArchives}
+                            <button
+                                type="button"
+                                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sem-surface-muted"
+                                onclick={() => {
+                                    pathfinderMenuOpen = false;
+                                    onloadlatestarchive?.();
+                                }}
+                            >
+                                <MaterialDesignIcon iconName="archive-clock" class="size-5" />
+                                <span>{t("nomadnet.path_finder_load_archive")}</span>
+                            </button>
+                        {/if}
+                    </div>
                 </div>
             {/if}
         </div>

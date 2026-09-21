@@ -28,6 +28,13 @@ WEBSOCKET_CONFIG_DENYLIST = frozenset(
     {
         "auth_enabled",
         "auth_password_hash",
+        # OIDC changes the HTTP auth boundary and carries a client secret.
+        "oidc_enabled",
+        "oidc_issuer_url",
+        "oidc_client_id",
+        "oidc_client_secret",
+        "oidc_display_name",
+        "oidc_scopes",
         # Clearnet outbound kill-switch. Must use CSRF-protected HTTP PATCH.
         "privacy_mode_enabled",
     },
@@ -92,6 +99,31 @@ def _authority_host_port(authority: str, default_port: int) -> tuple[str, int] |
     return host, port if port is not None else default_port
 
 
+def _trusted_proxy_default_port(request) -> int | None:
+    """Client-facing port asserted by a trusted reverse proxy.
+
+    TLS-terminating proxies leave request.scheme as http even when the browser
+    connected over https, so the default port for authority comparison must
+    come from X-Forwarded-Port or X-Forwarded-Proto rather than the socket.
+    """
+    forwarded_port = request.headers.get("X-Forwarded-Port")
+    if forwarded_port:
+        try:
+            port = int(forwarded_port.split(",")[0].strip())
+        except ValueError:
+            port = 0
+        if 1 <= port <= 65535:
+            return port
+    forwarded_proto = request.headers.get("X-Forwarded-Proto")
+    if forwarded_proto:
+        scheme = forwarded_proto.split(",")[0].strip().lower()
+        if scheme == "https":
+            return 443
+        if scheme == "http":
+            return 80
+    return None
+
+
 def websocket_origin_allowed(request, trusted_proxy_cidrs: str | None = None) -> bool:
     """Return True when the WebSocket upgrade Origin matches the request authority.
 
@@ -99,7 +131,8 @@ def websocket_origin_allowed(request, trusted_proxy_cidrs: str | None = None) ->
     keeps working. Browsers always send Origin on cross-site handshakes, which
     is what makes this an effective cross-site hijacking defense. When the
     direct peer is a trusted reverse proxy, X-Forwarded-Host is accepted as
-    the public authority.
+    the public authority, and X-Forwarded-Port / X-Forwarded-Proto supply the
+    client-facing port for authorities that omit it.
     """
     origin = request.headers.get("Origin")
     if origin is None or not origin.strip():
@@ -127,6 +160,9 @@ def websocket_origin_allowed(request, trusted_proxy_cidrs: str | None = None) ->
             from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 
             if client_ip_allowed(remote, trusted_proxy_cidrs):
+                proxy_port = _trusted_proxy_default_port(request)
+                if proxy_port is not None:
+                    default_port = proxy_port
                 forwarded_host = request.headers.get("X-Forwarded-Host")
                 if forwarded_host:
                     candidates.insert(0, forwarded_host.split(",")[0].strip())

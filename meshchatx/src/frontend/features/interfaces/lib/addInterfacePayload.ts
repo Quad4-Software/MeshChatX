@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: 0BSD
 
-import { buildRNodeTcpPort } from "./addInterfaceState.js";
+import {
+    buildRNodeTcpPort,
+    effectiveRNodeBlePort,
+    effectiveRNodeBtPort,
+    numOrNull,
+} from "./addInterfaceState.js";
 import type { DiscoveryFields, SharedInterfaceSettings } from "./types.js";
 
 export interface AddInterfaceFormState {
@@ -63,6 +68,10 @@ export interface AddInterfaceFormState {
     autoDiscoveryPort?: number | string | null;
     autoDataPort?: number | string | null;
     autoConfiguredBitrate?: number | string | null;
+    iodineRole?: "client" | "server";
+    iodineDomain?: string | null;
+    awareMode?: "publish" | "subscribe" | null;
+    awarePeers?: number | string | null;
     httpMode?: "client" | "server";
     httpServerUrl?: string | null;
     httpPollInterval?: number | string | null;
@@ -129,7 +138,11 @@ export function buildSavePayload(
         if (form.connectTimeout != null) payload.connect_timeout = Number(form.connectTimeout);
         if (form.maxReconnectTries != null) payload.max_reconnect_tries = Number(form.maxReconnectTries);
         if (form.fixedMtu != null) payload.fixed_mtu = Number(form.fixedMtu);
-    } else if (interfaceType === "UDPInterface") {
+    } else if (interfaceType === "UDPInterface" || interfaceType === "IodineUDPInterface") {
+        // The iodine preset rides a plain UDP interface over the DNS tunnel.
+        if (interfaceType === "IodineUDPInterface") {
+            payload.type = "UDPInterface";
+        }
         payload.listen_ip = form.listenIp ?? null;
         payload.listen_port = form.listenPort != null ? Number(form.listenPort) : null;
         payload.forward_ip = form.forwardIp ?? null;
@@ -143,6 +156,10 @@ export function buildSavePayload(
     } else if (interfaceType === "RNodeInterface" || interfaceType === "RNodeIPInterface") {
         if (form.rnodeTransport === "tcp") {
             payload.port = buildRNodeTcpPort(form.rnodeTcpHost || "127.0.0.1");
+        } else if (form.rnodeTransport === "ble") {
+            payload.port = effectiveRNodeBlePort(form.rnodePort || "");
+        } else if (form.rnodeTransport === "bluetooth") {
+            payload.port = effectiveRNodeBtPort(form.rnodePort || "");
         } else {
             payload.port = form.rnodePort ?? null;
         }
@@ -204,6 +221,11 @@ export function buildSavePayload(
         if (form.httpTlsVerify !== undefined) payload.tls_verify = form.httpTlsVerify;
         if (form.httpTlsCertfile) payload.tls_certfile = form.httpTlsCertfile;
         if (form.httpTlsKeyfile) payload.tls_keyfile = form.httpTlsKeyfile;
+    } else if (interfaceType === "AwareInterface") {
+        // For WiFi Aware, mode carries the publish/subscribe role rather than
+        // a Reticulum interface mode, and peers is the max data-path cap.
+        payload.peers = numOrNull(form.awarePeers);
+        payload.mode = form.awareMode || "subscribe";
     } else if (interfaceType === "__external__") {
         payload.custom_type_name = form.customTypeName || "";
         payload.custom_options = JSON.parse(form.customOptionsJson || "{}");

@@ -134,33 +134,30 @@ export function onWsShellReady(state: AppShellState): void {
 }
 
 export async function resyncShellAfterWebsocketReconnect(state: AppShellState): Promise<void> {
-    try {
+    const failed: string[] = [];
+    const step = async (name: string, fn: () => Promise<unknown>) => {
+        try {
+            await fn();
+        } catch {
+            failed.push(name);
+        }
+    };
+    await step("authStatus", async () => {
         const status = await fetchAuthStatus(apiClient());
         applyAuthStatusToGlobalState(status);
-    } catch {
-        // ignore
+    });
+    await step("csrfToken", () => fetchCsrfToken(apiClient()));
+    await step("appInfo", () => getAppInfo(state));
+    await step("config", () => getConfig(state));
+    await step("blockedDestinations", () => getBlockedDestinations(state));
+    await step("keyboardShortcuts", () => getKeyboardShortcuts(state));
+    await step("ringtone", () => updateRingtonePlayer(state));
+    await step("telephoneStatus", () => updateTelephoneStatus(state));
+    await step("propagationStatus", () => updatePropagationNodeStatus(state));
+    if (failed.length) {
+        console.warn(`resync after websocket reconnect: failed steps: ${failed.join(", ")}`);
     }
-    try {
-        await fetchCsrfToken(apiClient());
-    } catch {
-        // ignore
-    }
-    for (const step of [
-        () => getAppInfo(state),
-        () => getConfig(state),
-        () => getBlockedDestinations(state),
-        () => getKeyboardShortcuts(state),
-        () => updateRingtonePlayer(state),
-        () => updateTelephoneStatus(state),
-        () => updatePropagationNodeStatus(state),
-    ]) {
-        try {
-            await step();
-        } catch {
-            // ignore
-        }
-    }
-    GlobalEmitter.emit("websocket-reconnected");
+    GlobalEmitter.emit("websocket-reconnected", { degraded: failed.length > 0, failed });
 }
 
 // Banner actions

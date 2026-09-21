@@ -10,6 +10,7 @@ import type {
     Comport,
     CommunityInterface,
     InterfaceStats,
+    LocalLinkCapabilities,
 } from "./types.js";
 
 export async function fetchInterfaces(): Promise<{
@@ -168,6 +169,11 @@ export async function fetchKernelInterfacesApi(): Promise<{
         interfaces: response.data?.interfaces || [],
         unavailable_reason: response.data?.unavailable_reason || null,
     };
+}
+
+export async function fetchLocalLinkCapabilitiesApi(): Promise<LocalLinkCapabilities> {
+    const response = await window.api.get("/api/v1/locallink/capabilities");
+    return response.data ?? { supported: false };
 }
 
 export async function fetchCommunityInterfacesApi(): Promise<CommunityInterface[]> {

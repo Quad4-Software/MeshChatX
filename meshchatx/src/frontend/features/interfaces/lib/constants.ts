@@ -88,6 +88,12 @@ export const TRANSPORT_TYPE_OPTIONS: TransportTypeOption[] = [
         icon: "web",
         color: "text-teal-500",
     },
+    {
+        id: "AwareInterface",
+        name: "WiFi Aware",
+        icon: "wifi-tethering",
+        color: "text-lime-500",
+    },
 ];
 
 export const DEDICATED_FORM_INTERFACE_TYPES = new Set([
@@ -106,4 +112,6 @@ export const DEDICATED_FORM_INTERFACE_TYPES = new Set([
     "AutoInterface",
     "LocalInterface",
     "HTTPInterface",
+    "IodineUDPInterface",
+    "AwareInterface",
 ]);

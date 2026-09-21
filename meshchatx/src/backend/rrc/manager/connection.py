@@ -45,6 +45,7 @@ class RRCHubConnectionMixin:
         link = _LoopbackEndpoint(self, server)
         server._attach_loopback(link, self.manager.identity)
         with self._lock:
+            self._hub_identity_hash = server.identity.hash
             self.link = link
         self._set_status(self.STATUS_CONNECTING, "Connected locally, sending HELLO")
         self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True)
@@ -114,6 +115,9 @@ class RRCHubConnectionMixin:
                 )
                 self._maybe_schedule_reconnect_after_failed_connect()
                 return
+
+            with self._lock:
+                self._hub_identity_hash = hub_identity.hash
 
             self._stop_hello.clear()
             link = RNS.Link(

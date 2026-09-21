@@ -2,7 +2,9 @@
 <script lang="ts">
     import { onMount, onDestroy, untrack } from "svelte";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
+    import GlobalState from "../../../js/GlobalState.js";
     import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
+    import { getCurrentRoute } from "../../../shell/hashRouter.js";
     import { t } from "../../../js/i18n.js";
     import NomadTabBar from "./NomadTabBar.svelte";
     import NomadNetworkSidebar from "./NomadNetworkSidebar.svelte";
@@ -15,6 +17,7 @@
         closeNomadTab,
         closeTabsToRight,
         closeOtherTabs,
+        calculateRelativeTabIndex,
     } from "../lib/nomadBrowserTabs.js";
     import {
         addNomadFavourite,
@@ -73,6 +76,34 @@
 
     const routePath = $derived(path || routeQuery.path || DEFAULT_PAGE_PATH);
     const routeArchiveId = $derived(routeQuery.archive_id || null);
+    const tabsEnabled = $derived(GlobalState.config?.nomad_tabs_enabled !== false);
+
+    // Match the Vue browser: the tab strip only shows on wide viewports.
+    let isWideViewport = $state(false);
+    const showTabStrip = $derived(!isPopout && isWideViewport && tabsEnabled && tabs.length > 0);
+    let viewportMediaQuery: MediaQueryList | null = null;
+    let viewportMediaQueryListener: ((event: MediaQueryListEvent) => void) | null = null;
+
+    function setupViewportWatcher() {
+        if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+            isWideViewport = false;
+            return;
+        }
+        viewportMediaQuery = window.matchMedia("(min-width: 768px)");
+        isWideViewport = viewportMediaQuery.matches;
+        viewportMediaQueryListener = (event) => {
+            isWideViewport = event.matches;
+        };
+        viewportMediaQuery.addEventListener("change", viewportMediaQueryListener);
+    }
+
+    function teardownViewportWatcher() {
+        if (viewportMediaQuery && viewportMediaQueryListener) {
+            viewportMediaQuery.removeEventListener("change", viewportMediaQueryListener);
+        }
+        viewportMediaQuery = null;
+        viewportMediaQueryListener = null;
+    }
 
     function ensureTabMounted(tabId: number | null) {
         if (tabId == null || mountedTabIds[tabId]) return;
@@ -107,6 +138,93 @@
 
     function handleSelectTab(id: number) {
         applyTabList({ tabs, selectedTabId: id });
+    }
+
+    function handleTabReorder(fromIndex: number, toIndex: number) {
+        if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+        if (fromIndex >= tabs.length || toIndex >= tabs.length) return;
+        const next = [...tabs];
+        const [moved] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, moved);
+        applyTabList({ tabs: next, selectedTabId });
+    }
+
+    function selectRelativeTab(offset: number) {
+        const nextIndex = calculateRelativeTabIndex(tabs, selectedTabId, offset);
+        if (nextIndex >= 0) {
+            applyTabList({ tabs, selectedTabId: tabs[nextIndex].id });
+        }
+    }
+
+    function selectTabByIndex(index: number) {
+        if (index >= 0 && index < tabs.length) {
+            applyTabList({ tabs, selectedTabId: tabs[index].id });
+        }
+    }
+
+    // Browser-style tab shortcuts. The keepAlive page stays mounted on other
+    // routes, so gate on the current route name like the Vue port did.
+    function handleKeydown(event: KeyboardEvent) {
+        if (!tabsEnabled || getCurrentRoute()?.name !== "nomadnetwork") {
+            return;
+        }
+
+        const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+        const mod = isMac ? event.metaKey : event.ctrlKey;
+        const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
+        const activeElement = document.activeElement as HTMLElement | null;
+        const isInput =
+            !!activeElement &&
+            (["INPUT", "TEXTAREA"].includes(activeElement.tagName) || activeElement.isContentEditable);
+        if (isInput && !hasModifier) {
+            return;
+        }
+
+        const key = event.key.toLowerCase();
+
+        if (mod && key === "t") {
+            event.preventDefault();
+            event.stopPropagation();
+            handleNewTab("", DEFAULT_PAGE_PATH, false);
+            return;
+        }
+        if (mod && event.shiftKey && key === "p") {
+            event.preventDefault();
+            event.stopPropagation();
+            handleNewTab("", DEFAULT_PAGE_PATH, true);
+            return;
+        }
+        if (mod && key === "w") {
+            event.preventDefault();
+            event.stopPropagation();
+            if (selectedTabId != null) {
+                handleCloseTab(selectedTabId);
+            }
+            return;
+        }
+        if (event.ctrlKey && key === "tab") {
+            event.preventDefault();
+            event.stopPropagation();
+            selectRelativeTab(event.shiftKey ? -1 : 1);
+            return;
+        }
+        if (event.ctrlKey && key === "pageup") {
+            event.preventDefault();
+            event.stopPropagation();
+            selectRelativeTab(-1);
+            return;
+        }
+        if (event.ctrlKey && key === "pagedown") {
+            event.preventDefault();
+            event.stopPropagation();
+            selectRelativeTab(1);
+            return;
+        }
+        if (mod && key >= "1" && key <= "9") {
+            event.preventDefault();
+            event.stopPropagation();
+            selectTabByIndex(parseInt(key, 10) - 1);
+        }
     }
 
     function handleNewTab(
@@ -251,6 +369,8 @@
     onMount(() => {
         void fetchNodes();
         void fetchFavourites();
+        setupViewportWatcher();
+        window.addEventListener("keydown", handleKeydown, true);
         onWsEvent("announce", onAnnounceEvent);
         GlobalEmitter.on("identity-switched", onIdentitySwitched);
         GlobalEmitter.on("nomadnet-add-favourite", handleAddFavourite);
@@ -278,6 +398,8 @@
     });
 
     onDestroy(() => {
+        window.removeEventListener("keydown", handleKeydown, true);
+        teardownViewportWatcher();
         offWsEvent("announce", onAnnounceEvent);
         GlobalEmitter.off("identity-switched", onIdentitySwitched);
         GlobalEmitter.off("nomadnet-add-favourite", handleAddFavourite);
@@ -287,7 +409,7 @@
 </script>
 
 <div class="flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-sem-surface text-sem-fg">
-    {#if !isPopout}
+    {#if showTabStrip}
         <NomadTabBar
             {tabs}
             {selectedTabId}
@@ -296,6 +418,8 @@
             onnewtab={() => handleNewTab("", DEFAULT_PAGE_PATH, false)}
             onnewprivatetab={() => handleNewTab("", DEFAULT_PAGE_PATH, true)}
             ontabcontextmenu={handleTabContextMenu}
+            ontabreorder={handleTabReorder}
+            ontabdrop={() => persistNomadTabs(tabs, selectedTabId)}
         />
     {/if}
 
@@ -386,11 +510,13 @@
         canFavourite={pageContextMenu?.canFavourite ?? false}
         isFavourite={pageContextMenu?.isFavourite ?? false}
         canDownloadPage={pageContextMenu?.canDownloadPage ?? false}
-        showTabActions={true}
-        canCloseTabsRight={tabContextMenu.tabId !== null &&
-            tabs.findIndex((t) => t.id === tabContextMenu.tabId) < tabs.length - 1}
-        canCloseOtherTabs={tabs.length > 1}
-        canCloseAllTabs={tabs.length > 0}
+        showTabActions={showTabStrip}
+        canCloseTabsRight={(() => {
+            const idx = tabContextMenu.tabId !== null ? tabs.findIndex((t) => t.id === tabContextMenu.tabId) : -1;
+            return idx >= 0 && idx < tabs.length - 1;
+        })()}
+        canCloseOtherTabs={tabs.length > 1 && tabContextMenu.tabId !== null}
+        canCloseAllTabs={tabs.length > 1}
         contextTabIsPrivate={contextTab?.private}
         onclose={() => {
             tabContextMenu.show = false;

@@ -28,6 +28,7 @@
 
 <SettingsSectionBlock
     show={visible}
+    sectionKey="gifs"
     eyebrow="Messages"
     title={t("gifs.settings_title")}
     description={t("gifs.settings_description")}

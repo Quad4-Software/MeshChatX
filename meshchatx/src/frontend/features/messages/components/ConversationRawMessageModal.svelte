@@ -50,7 +50,7 @@
     const stateClass = $derived(
         rawMessageData.state === "delivered"
             ? "bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400"
-            : "bg-blue-50 text-blue-700 ring-blue-700/10 dark:bg-blue-900/30 dark:text-blue-400"
+            : "bg-sem-info/5 text-sem-info ring-sem-info/10 dark:bg-sem-info/15"
     );
 </script>
 
@@ -196,7 +196,7 @@
                     </p>
                     <button
                         type="button"
-                        class="inline-flex items-center gap-2 rounded-lg bg-amber-700 hover:bg-amber-800 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors focus-ring-sem"
+                        class="inline-flex items-center gap-2 rounded-lg bg-sem-action-warning hover:bg-sem-action-warning-hover px-3 py-2 text-xs font-semibold text-sem-action-warning-text transition-colors focus-ring-sem"
                         onclick={() => oncopycontent?.()}
                     >
                         <MaterialDesignIcon iconName="content-copy" class="size-4 shrink-0" />
@@ -234,7 +234,7 @@
         <div class="flex justify-end">
             <button
                 type="button"
-                class="px-4 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-lg text-sm font-bold transition-colors focus-ring-sem"
+                class="px-4 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-lg text-sm font-bold transition-colors focus-ring-sem"
                 onclick={() => onclose?.()}
             >
                 Close

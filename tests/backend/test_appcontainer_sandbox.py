@@ -44,8 +44,19 @@ def test_appcontainer_forced_env(monkeypatch):
         assert ac.appcontainer_forced() is True
 
 
-def test_appcontainer_on_by_default_when_env_unset(monkeypatch):
+def test_appcontainer_off_by_default_when_env_unset(monkeypatch):
     monkeypatch.delenv("MESHCHAT_APPCONTAINER", raising=False)
+    with (
+        patch.object(ac, "sys") as mock_sys,
+        patch.object(ac, "appcontainer_supported", return_value=True),
+    ):
+        mock_sys.platform = "win32"
+        assert ac.appcontainer_requested() is False
+        assert ac.appcontainer_auto_enabled() is False
+
+
+def test_appcontainer_auto_env_enables_when_supported(monkeypatch):
+    monkeypatch.setenv("MESHCHAT_APPCONTAINER", "auto")
     with (
         patch.object(ac, "sys") as mock_sys,
         patch.object(ac, "appcontainer_supported", return_value=True),
@@ -53,10 +64,11 @@ def test_appcontainer_on_by_default_when_env_unset(monkeypatch):
         mock_sys.platform = "win32"
         assert ac.appcontainer_requested() is True
         assert ac.appcontainer_auto_enabled() is True
+        assert ac.appcontainer_forced() is False
 
 
-def test_appcontainer_off_by_default_when_unsupported(monkeypatch):
-    monkeypatch.delenv("MESHCHAT_APPCONTAINER", raising=False)
+def test_appcontainer_auto_env_off_when_unsupported(monkeypatch):
+    monkeypatch.setenv("MESHCHAT_APPCONTAINER", "auto")
     with (
         patch.object(ac, "sys") as mock_sys,
         patch.object(ac, "appcontainer_supported", return_value=False),
@@ -288,6 +300,7 @@ def test_launch_backend_auto_fallback(monkeypatch, tmp_path):
     sid = object()
     captured_env = {}
 
+    monkeypatch.setenv("MESHCHAT_APPCONTAINER", "auto")
     monkeypatch.setattr(ac, "appcontainer_supported", lambda: True)
     monkeypatch.setattr(ac, "ensure_appcontainer_profile", lambda: sid)
     monkeypatch.setattr(ac, "grant_path_access", lambda *a, **k: None)
@@ -324,7 +337,7 @@ def test_launch_backend_auto_fallback(monkeypatch, tmp_path):
 
 
 def _stub_grants(monkeypatch, sid):
-    monkeypatch.delenv("MESHCHAT_APPCONTAINER", raising=False)
+    monkeypatch.setenv("MESHCHAT_APPCONTAINER", "auto")
     monkeypatch.setattr(ac.sys, "platform", "win32")
     monkeypatch.setattr(ac, "appcontainer_supported", lambda: True)
     monkeypatch.setattr(ac, "ensure_appcontainer_profile", lambda: sid)
@@ -452,6 +465,7 @@ def test_launch_backend_unsupported_fallback(monkeypatch, tmp_path):
     captured_env = {}
     call_log = {"create_in_appcontainer": 0}
 
+    monkeypatch.setenv("MESHCHAT_APPCONTAINER", "auto")
     monkeypatch.setattr(ac, "appcontainer_supported", lambda: False)
 
     def fake_create_in_appcontainer(*a, **k):

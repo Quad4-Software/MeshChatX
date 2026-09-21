@@ -179,7 +179,7 @@ _GIF_REJECT_REASONS = frozenset(
         st.sampled_from(["gif", "webp", "image/gif", "image/webp", "png", ""]),
     ),
 )
-def test_validate_gif_payload_accept_reject_oracle(raw, typ):
+def test_validate_gif_payload_accept_reject(raw, typ):
     """Accept only when type and magic agree and size is in range."""
     nt = gif_utils.normalize_image_type(typ)
     detected = gif_utils.detect_image_format_from_magic(raw)

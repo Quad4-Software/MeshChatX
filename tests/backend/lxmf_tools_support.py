@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Independent oracles and inbound LXMF fixtures for messaging tools tests.
+"""Independent references and inbound LXMF fixtures for messaging tools tests.
 
 The matchers here are a trusted model of sieve and blocklist accept/reject.
 Delivery helpers feed LXMF-shaped objects through on_lxmf_delivery against
@@ -77,7 +77,7 @@ def _scope_matches(scope: str, is_contact: bool) -> bool:
     return True
 
 
-def oracle_sieve_first_match(
+def expected_sieve_first_match(
     rules: list[dict[str, Any]],
     peer_haystack: str | None,
     *,
@@ -112,7 +112,7 @@ def oracle_sieve_first_match(
     return None
 
 
-def oracle_blocklist_first_match(
+def expected_blocklist_first_match(
     blocklist: dict[str, Any],
     peer_haystack: str | None,
     *,
@@ -149,7 +149,7 @@ def oracle_blocklist_first_match(
     return None
 
 
-def oracle_forward_sends(
+def expected_forward_sends(
     *,
     mapping: dict[str, Any] | None,
     rules: list[dict[str, Any]],

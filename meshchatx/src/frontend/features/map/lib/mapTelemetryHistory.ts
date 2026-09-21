@@ -4,6 +4,7 @@ import Feature from "ol/Feature";
 import LineString from "ol/geom/LineString";
 import { fromLonLat } from "ol/proj";
 import { Style, Stroke } from "ol/style";
+import { isValidLatLon } from "../../../js/mapGeoCoords.js";
 import type { TelemetryPeer } from "./types.js";
 
 export function createTelemetryHistoryStyle(): Style {
@@ -27,12 +28,8 @@ export function buildTelemetryHistoryTrailFeature(history: TelemetryPeer[] | nul
     const coords: number[][] = [];
     for (const entry of history) {
         const loc = entry?.telemetry?.location;
-        if (loc && loc.latitude !== undefined && loc.longitude !== undefined) {
-            const lat = Number(loc.latitude);
-            const lon = Number(loc.longitude);
-            if (Number.isFinite(lat) && Number.isFinite(lon)) {
-                coords.push(fromLonLat([lon, lat]));
-            }
+        if (loc && isValidLatLon(loc.latitude, loc.longitude)) {
+            coords.push(fromLonLat([Number(loc.longitude), Number(loc.latitude)]));
         }
     }
     if (coords.length < 2) {

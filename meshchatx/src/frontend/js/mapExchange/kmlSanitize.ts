@@ -74,14 +74,33 @@ function dropTagBlocks(text: string, blockRe: RegExp, emptyRe: RegExp): { text: 
     return { text: out, count: n };
 }
 
+// Matches <href> elements including attribute-bearing, namespaced, and
+// whitespace-variant forms so remote URLs cannot hide behind XML syntax.
+// eslint-disable-next-line security/detect-unsafe-regex -- lazy inner match against a fixed closing tag
+export const KML_HREF_TAG_RE = /<(?:[A-Za-z_][\w.-]*:)?href\b[^>]*>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?href\s*>/gi;
+
+export function unwrapCdataText(inner: unknown): string {
+    const trimmed = String(inner).trim();
+    const m = trimmed.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
+    return m ? m[1].trim() : trimmed;
+}
+
 function rewriteHrefs(text: string, { zipLocalOk }: { zipLocalOk: boolean }): KmlSanitizeResult {
     const stripped: string[] = [];
-    const out = String(text).replace(/<href>\s*([^<]+?)\s*<\/href>/gi, (full, inner) => {
-        const raw = String(inner).trim();
+    const out = String(text).replace(KML_HREF_TAG_RE, (full, inner) => {
+        const raw = unwrapCdataText(inner);
         if (isAllowedDataImageHref(raw)) {
             return `<href>${raw}</href>`;
         }
-        if (isRemoteHref(raw) || raw.toLowerCase().startsWith("data:")) {
+        if (
+            isRemoteHref(raw) ||
+            raw.toLowerCase().startsWith("data:") ||
+            // A URL never legitimately contains raw markup chars. Seeing one
+            // means the tag was split mid-attribute or wraps nested markup.
+            raw.includes("<") ||
+            raw.includes(">") ||
+            raw.includes('"')
+        ) {
             stripped.push("remote_href");
             return "";
         }
@@ -169,7 +188,7 @@ export function sanitizeKmlText(text: string, opts: KmlSanitizeOptions = {}): Km
     ];
     for (const blockRe of overlayBlocks) {
         out = out.replace(blockRe, (block) => {
-            const hrefs = [...block.matchAll(/<href>\s*([^<]+?)\s*<\/href>/gi)].map((m) => m[1].trim());
+            const hrefs = [...block.matchAll(KML_HREF_TAG_RE)].map((m) => unwrapCdataText(m[1]));
             const remote = hrefs.some(
                 (h) => isRemoteHref(h) || (h.toLowerCase().startsWith("data:") && !isAllowedDataImageHref(h))
             );

@@ -230,43 +230,47 @@
                 {#if isOpenActionMenu}
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div class="fixed inset-0 z-10" onclick={ontogglemenu}></div>
-                    <div
-                        class="absolute right-0 mt-1 z-20 min-w-44 rounded-xl border border-sem-border bg-sem-surface shadow-lg p-1"
-                    >
-                        <button
-                            type="button"
-                            class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                            data-testid="use-discovered-interface"
-                            onclick={onusediscovered}
-                        >
-                            {t("interfaces.discovered_use_this")}
-                        </button>
-                        {#if iface.config_entry}
+                    <div class="absolute right-0 mt-1 z-20 min-w-44">
+                        <div
+                            class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                            aria-hidden="true"
+                        ></div>
+                        <div class="rounded-xl border border-sem-border bg-sem-surface shadow-lg p-1">
                             <button
                                 type="button"
-                                class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-gray-700 dark:text-gray-200"
-                                data-testid="copy-discovered-config"
-                                onclick={oncopydiscoveredconfig}
+                                class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                                data-testid="use-discovered-interface"
+                                onclick={onusediscovered}
                             >
-                                {t("interfaces.discovered_copy_config")}
+                                {t("interfaces.discovered_use_this")}
                             </button>
-                        {/if}
-                        <button
-                            type="button"
-                            class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
-                            disabled={savingDiscoveryAction}
-                            onclick={() => onaddtolist?.("allow")}
-                        >
-                            Allow this announce
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-700 dark:text-red-300"
-                            disabled={savingDiscoveryAction}
-                            onclick={() => onaddtolist?.("block")}
-                        >
-                            Blacklist this announce
-                        </button>
+                            {#if iface.config_entry}
+                                <button
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-gray-700 dark:text-gray-200"
+                                    data-testid="copy-discovered-config"
+                                    onclick={oncopydiscoveredconfig}
+                                >
+                                    {t("interfaces.discovered_copy_config")}
+                                </button>
+                            {/if}
+                            <button
+                                type="button"
+                                class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
+                                disabled={savingDiscoveryAction}
+                                onclick={() => onaddtolist?.("allow")}
+                            >
+                                Allow this announce
+                            </button>
+                            <button
+                                type="button"
+                                class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-700 dark:text-red-300"
+                                disabled={savingDiscoveryAction}
+                                onclick={() => onaddtolist?.("block")}
+                            >
+                                Blacklist this announce
+                            </button>
+                        </div>
                     </div>
                 {/if}
             </div>

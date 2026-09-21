@@ -7,6 +7,7 @@ export const TOOL_GROUP_ORDER = ["diagnostics", "transfer", "messaging", "networ
 
 /** Route names whose hashRouter path is under /tools/ (fallback when registry empty). */
 const TOOLS_PREFIXED_ROUTE_NAMES = new Set([
+    "nearby",
     "paper-message",
     "sieve-filters",
     "message-blocklist",

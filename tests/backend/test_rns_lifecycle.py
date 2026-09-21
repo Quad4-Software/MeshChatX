@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import contextlib
 import json
 import os
 import shutil
@@ -174,7 +175,7 @@ async def test_teardown_identity(mock_rns, temp_dir):
 
         app.teardown_identity()
 
-        assert app.running is False
+        assert app.current_context is None
         assert mock_rns["Transport"].deregister_announce_handler.called
         # IdentityContext.teardown calls database.durable_shutdown()
         assert mock_db_instance.durable_shutdown.called
@@ -596,6 +597,8 @@ async def test_transport_enable_endpoint_reloads_rns(mock_rns, temp_dir):
             reticulum_config_dir=temp_dir,
         )
         app.reload_reticulum = AsyncMock(return_value=True)
+        app.reticulum.transport_enabled = MagicMock(return_value=True)
+        app.reticulum.is_connected_to_shared_instance = False
 
         handler = None
         for route in app.get_routes():
@@ -616,6 +619,7 @@ async def test_transport_enable_endpoint_reloads_rns(mock_rns, temp_dir):
             payload["message"]
             == "Transport mode enabled and RNS restarted successfully."
         )
+        assert payload["transport_enabled"] is True
         app.reload_reticulum.assert_awaited_once()
         app.teardown_identity()
 
@@ -663,6 +667,7 @@ async def test_transport_disable_endpoint_reloads_rns(mock_rns, temp_dir):
             payload["message"]
             == "Transport mode disabled and RNS restarted successfully."
         )
+        assert payload["transport_enabled"] is False
         app.reload_reticulum.assert_awaited_once()
         app.teardown_identity()
 
@@ -758,6 +763,164 @@ async def test_transport_disable_endpoint_reload_failure(mock_rns, temp_dir):
             == "Transport mode was disabled in config, but RNS reload failed."
         )
         app.reload_reticulum.assert_awaited_once()
+        app.teardown_identity()
+
+
+class _WritableReticulumConfig(dict):
+    """dict with the ConfigObj write() surface _write_reticulum_config needs."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.write_called = False
+
+    def write(self):
+        self.write_called = True
+        return True
+
+
+def _find_route(app, path, method):
+    for route in app.get_routes():
+        if route.path == path and route.method == method:
+            return route.handler
+    return None
+
+
+_IDENTITY_CONTEXT_PATCHES = (
+    "Database",
+    "ConfigManager",
+    "MessageHandler",
+    "AnnounceManager",
+    "ArchiverManager",
+    "MapManager",
+    "TelephoneManager",
+    "VoicemailManager",
+    "RingtoneManager",
+    "RNCPHandler",
+    "RNStatusHandler",
+    "RNProbeHandler",
+)
+
+
+@contextlib.contextmanager
+def _patched_identity_context():
+    with contextlib.ExitStack() as stack:
+        for name in _IDENTITY_CONTEXT_PATCHES:
+            stack.enter_context(patch(f"meshchatx.src.backend.identity_context.{name}"))
+        yield
+
+
+@pytest.mark.asyncio
+async def test_transport_enable_shared_instance_client_conflict(mock_rns, temp_dir):
+    with (
+        _patched_identity_context(),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=True)
+
+        # Reload succeeded, but RNS attached to an existing shared instance,
+        # which forces transport off for clients. The config flag still saves.
+        config = _WritableReticulumConfig({"reticulum": {}, "interfaces": {}})
+        app.reticulum.config = config
+        app.reticulum.transport_enabled = MagicMock(return_value=False)
+        app.reticulum.is_connected_to_shared_instance = True
+
+        handler = _find_route(app, "/api/v1/reticulum/enable-transport", "POST")
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 409
+        assert payload["code"] == "transport_managed_by_shared_instance"
+        assert payload["transport_enabled"] is False
+        assert payload["is_connected_to_shared_instance"] is True
+        assert "shared Reticulum instance" in payload["message"]
+        assert config["reticulum"]["enable_transport"] is True
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_transport_enable_not_active_after_reload(mock_rns, temp_dir):
+    with (
+        _patched_identity_context(),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=True)
+        app.reticulum.transport_enabled = MagicMock(return_value=False)
+        app.reticulum.is_connected_to_shared_instance = False
+
+        handler = _find_route(app, "/api/v1/reticulum/enable-transport", "POST")
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 500
+        assert payload["transport_enabled"] is False
+        assert "not active" in payload["message"]
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_transport_enable_reload_raises_json_error(mock_rns, temp_dir):
+    with (
+        _patched_identity_context(),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(side_effect=RuntimeError("boom"))
+
+        handler = _find_route(app, "/api/v1/reticulum/enable-transport", "POST")
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 500
+        assert (
+            payload["message"]
+            == "Transport mode was enabled in config, but RNS reload failed."
+        )
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_transport_disable_still_active_after_reload(mock_rns, temp_dir):
+    with (
+        _patched_identity_context(),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=True)
+        app.reticulum.transport_enabled = MagicMock(return_value=True)
+
+        handler = _find_route(app, "/api/v1/reticulum/disable-transport", "POST")
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 500
+        assert payload["transport_enabled"] is True
+        assert "still active" in payload["message"]
         app.teardown_identity()
 
 

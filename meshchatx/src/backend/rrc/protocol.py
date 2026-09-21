@@ -316,11 +316,14 @@ class RRCMessage:
         self.ts = ts
         self.mention = False
         self.seq = None
+        # Optional subtype for system lines, e.g. "join" / "part", so clients
+        # can filter presence noise without parsing the display text.
+        self.event = None
 
     def to_dict(self):
         """Return a JSON-serializable representation of the message."""
         src = self.src
-        return {
+        out = {
             "kind": self.kind,
             "room": self.room,
             "src": src.hex() if isinstance(src, (bytes, bytearray)) else None,
@@ -330,3 +333,6 @@ class RRCMessage:
             "mention": bool(self.mention),
             "seq": self.seq,
         }
+        if self.event is not None:
+            out["event"] = self.event
+        return out

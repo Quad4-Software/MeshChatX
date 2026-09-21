@@ -450,7 +450,7 @@ def test_concurrent_acl_mutations_stable(handler):
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
 )
 @given(path=st.sampled_from([*_TRAVERSAL_PAYLOADS, "ok.txt", "dir/file.bin"]))
-def test_download_path_oracle(handler, path):
+def test_download_path(handler, path):
     service = MagicMock()
     service.download_file.return_value = {"ok": True, "path": path}
     handler.service = service
@@ -487,7 +487,7 @@ def test_download_path_oracle(handler, path):
         max_size=6,
     ),
 )
-def test_acl_hash_oracle(handler, identity_hash, perms):
+def test_acl_hash(handler, identity_hash, perms):
     effective_perms = perms or ["read"]
     result = handler.update_acl(
         identity_hash=identity_hash,
@@ -532,8 +532,8 @@ def test_acl_hash_oracle(handler, identity_hash, perms):
         ],
     ),
 )
-def test_settings_path_oracle(handler, sync_directory):
-    """Oracle: relative inputs stay under identity storage. Forbidden hosts reject."""
+def test_settings_path(handler, sync_directory):
+    """Reference: relative inputs stay under identity storage. Forbidden hosts reject."""
     before = handler.get_status()["sync_directory"]
     result = handler.update_settings(sync_directory=sync_directory)
     assert isinstance(result, dict)
@@ -569,7 +569,7 @@ def test_settings_path_oracle(handler, sync_directory):
         ),
     ),
 )
-def test_relative_path_oracle_stays_under_storage(handler, rel):
+def test_relative_path_stays_under_storage(handler, rel):
     cleaned = rel.strip()
     if not cleaned or cleaned in (".", ".."):
         return
@@ -745,8 +745,8 @@ def test_manager_refuses_delete_sync_root(handler):
         st.text(min_size=0, max_size=40),
     ),
 )
-def test_manager_path_oracle(handler, path):
-    """Oracle: manager resolve accepts only normalize_relpath-safe relative paths."""
+def test_manager_path(handler, path):
+    """Reference: manager resolve accepts only normalize_relpath-safe relative paths."""
     cleaned = str(path or "").strip()
     expect_ok = False
     if cleaned and not os.path.isabs(cleaned) and not cleaned.startswith(("/", "\\")):

@@ -36,7 +36,11 @@ def on_lxmf_announce_received(
 
     # check if source is blocked - drop announce and path if blocked
     identity_hash = announced_identity.hash.hex()
-    if app.is_destination_blocked(identity_hash, context=ctx):
+    verdict = ctx.announce_manager.classify_announce(
+        destination_hash,
+        identity_hash,
+    )
+    if verdict == "blocked":
         logger.debug(
             "Dropping announce from blocked source: %s",
             identity_hash,
@@ -55,6 +59,27 @@ def on_lxmf_announce_received(
 
     # track announce timestamp
     app._note_announce_timestamp()
+
+    if verdict == "background":
+        ctx.announce_manager.upsert_announce(
+            app.reticulum,
+            announced_identity,
+            destination_hash,
+            aspect,
+            app_data,
+            announce_packet_hash,
+            defer=True,
+        )
+        app._broadcast_announce_event(
+            app.build_pending_announce_dict(
+                aspect,
+                destination_hash,
+                announced_identity,
+                app_data,
+                announce_packet_hash,
+            ),
+        )
+        return
 
     # upsert announce to database
     ctx.announce_manager.upsert_announce(

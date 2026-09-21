@@ -1,10 +1,11 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, untrack } from "svelte";
     import DialogUtils from "../../js/DialogUtils.js";
     import ToastUtils from "../../js/ToastUtils.js";
     import GlobalState from "../../js/GlobalState.js";
+    import AndroidBridge from "../../js/rnode/AndroidBridge.js";
     import { t } from "../../js/i18n.js";
     import { INTERFACES_ROUTE_PATH } from "./lib/constants.js";
     import type {
@@ -14,6 +15,7 @@
         Comport,
         CommunityInterface,
         ConfiguredInterface,
+        LocalLinkCapabilities,
         RNodeLoRaParameters,
         ReticulumDiscovery,
         SharedInterfaceSettings,
@@ -30,12 +32,16 @@
         uploadInterfaceModuleApi,
         deleteInterfaceModuleApi,
         saveInterfaceApi,
+        fetchLocalLinkCapabilitiesApi,
     } from "./lib/interfacesApi.js";
     import { parseBool } from "./lib/interfacesFormat.js";
     import {
         calculateLoRaParameters,
         parseRawConfig,
         buildPayloadFromImportedConfig,
+        buildRNodeTcpPort,
+        numOrNull,
+        parseRnodeTcpHostFromPort,
     } from "./lib/addInterfaceState.js";
     import { buildSavePayload } from "./lib/addInterfacePayload.js";
 
@@ -129,6 +135,10 @@
         autoDiscoveryPort: null as number | string | null,
         autoDataPort: null as number | string | null,
         autoConfiguredBitrate: null as number | string | null,
+        iodineRole: "client" as "client" | "server",
+        iodineDomain: "" as string,
+        awareMode: "subscribe" as "publish" | "subscribe",
+        awarePeers: 4 as number | string | null,
         httpMode: "client" as "client" | "server",
         httpServerUrl: null as string | null,
         httpPollInterval: 0.1 as number | string | null,
@@ -184,6 +194,62 @@
         noiseFloor: -120,
     });
 
+    // WiFi Aware (Android only)
+    let locallinkCapabilities = $state<LocalLinkCapabilities | null>(null);
+    let awarePermissionRequesting = $state(false);
+    const androidBridge = new AndroidBridge();
+
+    const awareInterfaceSupported = $derived(
+        Boolean(
+            locallinkCapabilities &&
+                locallinkCapabilities.supported &&
+                locallinkCapabilities.wifi_aware &&
+                locallinkCapabilities.wifi_aware_available
+        )
+    );
+    const awareNeedsPermission = $derived(
+        Boolean(awareInterfaceSupported && locallinkCapabilities && !locallinkCapabilities.permission_nearby_wifi)
+    );
+    const awareTileHint = $derived.by((): string | null => {
+        const caps = locallinkCapabilities;
+        if (caps === null) {
+            return t("interfaces.aware_checking");
+        }
+        if (!caps.supported) {
+            return t("interfaces.aware_android_only");
+        }
+        if (!caps.wifi_aware) {
+            return t("interfaces.aware_not_supported");
+        }
+        if (!caps.wifi_aware_available) {
+            return t("interfaces.aware_unavailable");
+        }
+        if (!caps.permission_nearby_wifi) {
+            return t("interfaces.aware_permission_required");
+        }
+        return null;
+    });
+
+    const iodineCommandHint = $derived.by(() => {
+        const domain = (form.iodineDomain || "").trim() || "tunnel.example.com";
+        const serverIp = form.iodineRole === "server" ? form.listenIp || "10.0.0.1" : "10.0.0.1";
+        if (form.iodineRole === "server") {
+            return t("interfaces.iodine_hint_server", { domain, ip: serverIp });
+        }
+        return t("interfaces.iodine_hint_client", { domain });
+    });
+
+    // Pre-fill a working UDP-over-iodine stanza whenever the type or role
+    // changes, matching the Vue watchers on master. Inner reads are untracked
+    // so user edits to name/listen fields do not retrigger the defaults.
+    $effect(() => {
+        const type = newInterfaceType;
+        const role = form.iodineRole;
+        if (type === "IodineUDPInterface" && role) {
+            untrack(() => applyIodineDefaults());
+        }
+    });
+
     const loraCalculations = $derived.by(() => {
         if (newInterfaceType === "RNodeInterface" || newInterfaceType === "RNodeIPInterface") {
             return calculateLoRaParameters(
@@ -223,9 +289,69 @@
         (isEditingInterface && newInterfaceType === "I2PInterface") || (transportEnabled && !hasExistingI2PInterface)
     );
 
+    function onAndroidPermissionEvent(event: Event) {
+        const group = (event as CustomEvent)?.detail?.group;
+        if (group === "nearby_wifi") {
+            void loadLocalLinkCapabilities();
+        }
+    }
+
     onMount(() => {
         loadInitialData();
+        void loadLocalLinkCapabilities();
+        window.addEventListener("meshchatx-android-permission", onAndroidPermissionEvent);
+        return () => {
+            window.removeEventListener("meshchatx-android-permission", onAndroidPermissionEvent);
+        };
     });
+
+    function applyIodineDefaults() {
+        // Pre-fill a working UDP-over-iodine stanza for the chosen role.
+        // Users can still edit every field afterwards.
+        if (!newInterfaceName) {
+            newInterfaceName = "Iodine UDP";
+        }
+        if (form.listenPort == null || form.listenPort === "") {
+            form.listenPort = 6969;
+        }
+        if (form.forwardPort == null || form.forwardPort === "") {
+            form.forwardPort = 6969;
+        }
+        if (form.iodineRole === "server") {
+            form.listenIp = "10.0.0.1";
+            form.forwardIp = "10.0.0.255";
+            sharedSettings.mode = "access_point";
+        } else {
+            form.listenIp = "0.0.0.0";
+            form.forwardIp = "10.0.0.1";
+            sharedSettings.mode = "roaming";
+        }
+        if (sharedSettings.bitrate == null || sharedSettings.bitrate === "") {
+            sharedSettings.bitrate = 20000;
+        }
+    }
+
+    async function loadLocalLinkCapabilities() {
+        try {
+            locallinkCapabilities = await fetchLocalLinkCapabilitiesApi();
+        } catch {
+            locallinkCapabilities = { supported: false };
+        }
+    }
+
+    async function requestAwarePermission() {
+        awarePermissionRequesting = true;
+        try {
+            const result = await androidBridge.requestPermission(AndroidBridge.PERM_NEARBY_WIFI);
+            if (result === "granted") {
+                await loadLocalLinkCapabilities();
+            } else if (result === "settings") {
+                ToastUtils.warning(t("tools.nearby.permission_settings"));
+            }
+        } finally {
+            awarePermissionRequesting = false;
+        }
+    }
 
     async function loadInitialData() {
         try {
@@ -345,9 +471,37 @@
         }
         if (cfg.prefer_ipv6 !== undefined) form.preferIPv6 = parseBool(cfg.prefer_ipv6);
         if (cfg.connectable !== undefined) form.i2pConnectable = parseBool(cfg.connectable);
-        if (cfg.peers) form.i2pPeers = Array.isArray(cfg.peers) ? cfg.peers : [cfg.peers];
+        if (cfg.peers && cfg.type !== "AwareInterface")
+            form.i2pPeers = Array.isArray(cfg.peers) ? cfg.peers : [cfg.peers];
         else if (cfg.i2p_peers) form.i2pPeers = Array.isArray(cfg.i2p_peers) ? cfg.i2p_peers : [cfg.i2p_peers];
-        if (cfg.port) form.rnodePort = cfg.port;
+        // RNode transports: serial path, tcp:// host, ble:// / bt:// peers,
+        // plus the Android-normalized ble_name/ble_addr/force_ble and
+        // allow_bluetooth/target_device_* fields.
+        form.rnodeTransport = "serial";
+        const cfgPort = cfg.port != null ? String(cfg.port) : "";
+        const cfgPortLower = cfgPort.toLowerCase();
+        if (cfgPortLower.startsWith("ble://")) {
+            form.rnodeTransport = "ble";
+            form.rnodePort = cfgPort;
+        } else if (cfgPortLower.startsWith("bt://")) {
+            form.rnodeTransport = "bluetooth";
+            form.rnodePort = cfgPort;
+        } else if (cfg.ble_name || cfg.ble_addr || parseBool(cfg.force_ble)) {
+            form.rnodeTransport = "ble";
+            form.rnodePort = cfg.ble_addr || cfg.ble_name || "ble://";
+        } else if (
+            parseBool(cfg.allow_bluetooth) &&
+            (cfg.target_device_name || cfg.target_device_address || !cfgPort)
+        ) {
+            form.rnodeTransport = "bluetooth";
+            form.rnodePort = cfg.target_device_address || cfg.target_device_name || "bt://";
+        } else if (cfgPortLower.startsWith("tcp://")) {
+            form.rnodeTransport = "tcp";
+            form.rnodeTcpHost = parseRnodeTcpHostFromPort(cfgPort);
+            form.rnodePort = cfgPort;
+        } else if (cfg.port) {
+            form.rnodePort = cfg.port;
+        }
         if (cfg.frequency !== undefined) form.rnodeFrequency = cfg.frequency;
         if (cfg.bandwidth !== undefined) form.rnodeBandwidth = cfg.bandwidth;
         if (cfg.spreadingfactor !== undefined) form.rnodeSpreadingFactor = cfg.spreadingfactor;
@@ -386,8 +540,14 @@
         if (cfg.discovery_port !== undefined) form.autoDiscoveryPort = cfg.discovery_port;
         if (cfg.data_port !== undefined) form.autoDataPort = cfg.data_port;
         if (cfg.configured_bitrate !== undefined) form.autoConfiguredBitrate = cfg.configured_bitrate;
+        if (cfg.type === "AwareInterface") {
+            // For Aware, mode carries the publish or subscribe role and does
+            // not map onto the shared Reticulum interface modes.
+            form.awareMode = cfg.mode === "publish" ? "publish" : "subscribe";
+            form.awarePeers = cfg.peers != null && cfg.peers !== "" ? Number(cfg.peers) : 4;
+        }
         if (cfg.mode) {
-            sharedSettings.mode = cfg.mode;
+            sharedSettings.mode = ["HTTPInterface", "AwareInterface"].includes(cfg.type) ? null : cfg.mode;
             form.httpMode = cfg.mode === "server" ? "server" : "client";
         }
         if (cfg.server_url) form.httpServerUrl = cfg.server_url;
@@ -525,6 +685,49 @@
             }
         }
 
+        if (newInterfaceType === "RNodeInterface" && form.rnodeTransport === "ble") {
+            const raw = (form.rnodePort || "").trim();
+            const inner = raw.toLowerCase().startsWith("ble://") ? raw.slice(6).trim() : raw;
+            if (!inner) {
+                ToastUtils.warning(t("interfaces.rnode_ble_peer_required"));
+                return;
+            }
+        }
+
+        if (
+            newInterfaceType === "RNodeIPInterface" ||
+            (newInterfaceType === "RNodeInterface" && form.rnodeTransport === "tcp")
+        ) {
+            if (!buildRNodeTcpPort(form.rnodeTcpHost || "")) {
+                ToastUtils.error(t("interfaces.rnode_tcp_host_required"));
+                return;
+            }
+        }
+
+        if (
+            newInterfaceType === "TCPServerInterface" ||
+            newInterfaceType === "UDPInterface" ||
+            newInterfaceType === "IodineUDPInterface"
+        ) {
+            const lip = String(form.listenIp ?? "").trim();
+            if (!lip) {
+                ToastUtils.error(t("interfaces.listen_ip_required"));
+                return;
+            }
+        }
+
+        if (newInterfaceType === "AwareInterface") {
+            if (!awareInterfaceSupported) {
+                ToastUtils.error(awareTileHint || t("interfaces.aware_unsupported_toast"));
+                return;
+            }
+            const awarePeers = numOrNull(form.awarePeers);
+            if (awarePeers != null && (awarePeers < 1 || awarePeers > 8)) {
+                ToastUtils.error(t("interfaces.aware_max_peers_invalid"));
+                return;
+            }
+        }
+
         isSaving = true;
         try {
             let payload: Record<string, any>;
@@ -592,6 +795,24 @@
     function navigateBack() {
         window.location.hash = `#${INTERFACES_ROUTE_PATH}`;
     }
+
+    // Exported surface for tests and embedding hosts, replacing the parts of
+    // the old Vue component instance that tests used to drive directly.
+    export function saveInterface(): Promise<void> {
+        return handleSave();
+    }
+
+    export function setInterfaceType(value: string | null): void {
+        newInterfaceType = value;
+    }
+
+    export function getAwareInterfaceSupported(): boolean {
+        return awareInterfaceSupported;
+    }
+
+    export function getAwareNeedsPermission(): boolean {
+        return awareNeedsPermission;
+    }
 </script>
 
 <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
@@ -609,6 +830,8 @@
                                 name={newInterfaceName}
                                 type={newInterfaceType}
                                 isEditing={isEditingInterface}
+                                {awareInterfaceSupported}
+                                {awareTileHint}
                                 onnamechange={(v) => (newInterfaceName = v)}
                                 ontypechange={(v) => (newInterfaceType = v)}
                             />
@@ -627,10 +850,14 @@
                                 {transportEnabled}
                                 hasExistingI2P={hasExistingI2PInterface}
                                 isEditing={isEditingInterface}
+                                {awareNeedsPermission}
+                                {awarePermissionRequesting}
+                                iodineHint={iodineCommandHint}
                                 onpatch={(patch) => Object.assign(form, patch)}
                                 onrefreshcomports={refreshComports}
                                 onuploadmodule={handleUploadModule}
                                 ondeletemodule={handleDeleteModule}
+                                onrequestawarepermission={requestAwarePermission}
                             />
                         </div>
 

@@ -102,7 +102,7 @@
 </script>
 
 {#if visible}
-    <section class="settings-section break-inside-avoid">
+    <section class="settings-section break-inside-avoid" data-settings-section="propagation">
         <header class="settings-section__header">
             <div>
                 <div class="settings-section__eyebrow">LXMF</div>

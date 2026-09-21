@@ -5,7 +5,7 @@ import Point from "ol/geom/Point";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { dedupeTelemetryMarkersForMap, dedupeDiscoveredMapNodes } from "./mapDedupe.js";
 import { getPeerMarkerStyle } from "./markerStyles.js";
-import { formatCoordinate } from "../../../js/mapGeoCoords.js";
+import { formatCoordinate, isValidLatLon } from "../../../js/mapGeoCoords.js";
 import type { DiscoveredMapNode, DrawFeatureEditPayload, MapPeer, MarkerPanelPayload, TelemetryPeer } from "./types.js";
 
 interface FeaturePropReader {
@@ -17,9 +17,9 @@ export function createPeerFeatures(telemetryList: TelemetryPeer[], peers: Record
     const features: Feature[] = [];
     for (const item of deduped) {
         const loc = item.telemetry?.location;
-        if (!loc || typeof loc.longitude !== "number" || typeof loc.latitude !== "number") continue;
+        if (!loc || !isValidLatLon(loc.latitude, loc.longitude)) continue;
         const peer = item.destination_hash ? peers[item.destination_hash] : undefined;
-        const coord = fromLonLat([loc.longitude, loc.latitude]);
+        const coord = fromLonLat([Number(loc.longitude), Number(loc.latitude)]);
         const feat = new Feature({
             geometry: new Point(coord),
             telemetry: item,
@@ -47,8 +47,8 @@ export function createDiscoveredFeatures(nodes: DiscoveredMapNode[]): Feature[] 
     const deduped = dedupeDiscoveredMapNodes(nodes);
     const features: Feature[] = [];
     for (const node of deduped) {
-        if (typeof node.longitude !== "number" || typeof node.latitude !== "number") continue;
-        const coord = fromLonLat([node.longitude, node.latitude]);
+        if (!isValidLatLon(node.latitude, node.longitude)) continue;
+        const coord = fromLonLat([Number(node.longitude), Number(node.latitude)]);
         const feat = new Feature({
             geometry: new Point(coord),
             discovered: node,

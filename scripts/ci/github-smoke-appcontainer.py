@@ -147,12 +147,12 @@ def run_smoke(build_dir: Path) -> int:
         meshchat_log = logs / "meshchatx.log"
         env = os.environ.copy()
         env["MESHCHAT_LOG_DIR"] = str(logs)
-        # Exercise the real default path: the frozen backend re-enters via
+        # Exercise the opt-in auto path: the frozen backend re-enters via
         # the AppContainer launcher. When the runner cannot complete
         # AppContainer process creation the launcher must still bring the
         # backend up via its unsandboxed fallback; a hard failure here means
         # users see a dead backend.
-        env.pop("MESHCHAT_APPCONTAINER", None)
+        env["MESHCHAT_APPCONTAINER"] = "auto"
         # Keep console output as well for child/launcher diagnostics.
         console_log = tmp / "console.log"
         with open(console_log, "w", encoding="utf-8") as log_handle:
@@ -170,7 +170,7 @@ def run_smoke(build_dir: Path) -> int:
                 meshchat_log,
             )
 
-            # Default auto mode: the backend must report AppContainer support
+            # Auto mode: the backend must report AppContainer support
             # and request it. appcontainer_active may be true (sandboxed) or
             # false (the runner could not create the container and the
             # launcher fell back); both are valid as long as the API is up.

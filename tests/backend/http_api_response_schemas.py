@@ -189,6 +189,20 @@ DATABASE_BACKUPS_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+RETICULUM_CONFIG_VERSIONS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["versions"],
+    "properties": {"versions": _ARRAY},
+    "additionalProperties": True,
+}
+
+RETICULUM_CONFIG_VERSION_SCHEMA: dict = {
+    "type": "object",
+    "required": ["version"],
+    "properties": {"version": _OBJECT},
+    "additionalProperties": True,
+}
+
 DEBUG_LOGS_SCHEMA: dict = {
     "type": "object",
     "required": ["logs"],

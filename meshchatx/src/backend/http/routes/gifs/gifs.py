@@ -14,6 +14,7 @@ from meshchatx.src.backend.http.errors import (
     http_conflict,
     http_not_found,
     http_payload_too_large,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -66,7 +67,9 @@ def register_gifs_gifs_routes(routes: Any, app: Any) -> None:
     @routes.delete(API_V1_PREFIX + "/gifs/{gif_id}")
     async def gifs_delete(request):
         identity_hash = app.identity.hash.hex()
-        gif_id = int(request.match_info.get("gif_id", "0"))
+        gif_id = parse_int_param(request.match_info.get("gif_id"))
+        if gif_id is None:
+            return http_bad_request("invalid gif id")
         ok = app.database.gifs.delete(gif_id, identity_hash)
         if not ok:
             return http_not_found("not_found")
@@ -75,7 +78,9 @@ def register_gifs_gifs_routes(routes: Any, app: Any) -> None:
     @routes.patch(API_V1_PREFIX + "/gifs/{gif_id}")
     async def gifs_patch(request):
         identity_hash = app.identity.hash.hex()
-        gif_id = int(request.match_info.get("gif_id", "0"))
+        gif_id = parse_int_param(request.match_info.get("gif_id"))
+        if gif_id is None:
+            return http_bad_request("invalid gif id")
         try:
             data = await read_json_limited(request, gif_utils.MAX_GIF_BYTES * 2)
         except PayloadTooLargeError:
@@ -93,7 +98,9 @@ def register_gifs_gifs_routes(routes: Any, app: Any) -> None:
     @routes.get(API_V1_PREFIX + "/gifs/{gif_id}/image")
     async def gifs_get_image(request):
         identity_hash = app.identity.hash.hex()
-        gif_id = int(request.match_info.get("gif_id", "0"))
+        gif_id = parse_int_param(request.match_info.get("gif_id"))
+        if gif_id is None:
+            return http_bad_request("invalid gif id")
         row = app.database.gifs.get_row(gif_id, identity_hash)
         if row is None:
             return http_not_found("not_found")
@@ -103,7 +110,9 @@ def register_gifs_gifs_routes(routes: Any, app: Any) -> None:
     @routes.post(API_V1_PREFIX + "/gifs/{gif_id}/use")
     async def gifs_record_usage(request):
         identity_hash = app.identity.hash.hex()
-        gif_id = int(request.match_info.get("gif_id", "0"))
+        gif_id = parse_int_param(request.match_info.get("gif_id"))
+        if gif_id is None:
+            return http_bad_request("invalid gif id")
         ok = app.database.gifs.record_usage(gif_id, identity_hash)
         if not ok:
             return http_not_found("not_found")

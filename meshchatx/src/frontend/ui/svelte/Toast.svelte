@@ -5,6 +5,9 @@
     import GlobalEmitter from "../../js/GlobalEmitter.js";
     import { t } from "../../js/i18n.js";
     import MaterialDesignIcon from "./MaterialDesignIcon.svelte";
+    import type { ToastAction } from "../../js/ToastUtils.js";
+
+    const MAX_TOASTS = 8;
 
     interface ToastItem {
         id: number;
@@ -14,6 +17,7 @@
         type: "success" | "error" | "warning" | "loading" | "info";
         duration: number;
         timer: ReturnType<typeof setTimeout> | null;
+        action?: ToastAction | null;
         _startX?: number;
         _swipeX?: number;
         _swiping?: boolean;
@@ -26,6 +30,7 @@
         details?: string[];
         type?: "success" | "error" | "warning" | "loading" | "info";
         duration?: number;
+        action?: ToastAction | null;
     }
 
     let toasts = $state<ToastItem[]>([]);
@@ -95,40 +100,67 @@
         }
     }
 
-    function add(payload: ToastPayload): void {
-        if (payload.key != null) {
-            const existingIndex = toasts.findIndex((entry) => entry.key === payload.key);
-            if (existingIndex !== -1) {
-                const existing = toasts[existingIndex];
-                if (existing.timer) {
-                    clearTimeout(existing.timer);
-                }
-                existing.message = payload.message == null ? "" : String(payload.message);
-                existing.type = payload.type || "info";
-                existing.duration = payload.duration !== undefined ? payload.duration : 5000;
-                existing.details = Array.isArray(payload.details) ? payload.details : [];
+    function isMobileViewport(): boolean {
+        try {
+            return window.matchMedia("(max-width: 639px)").matches;
+        } catch {
+            return false;
+        }
+    }
 
-                if (existing.duration > 0) {
-                    existing.timer = setTimeout(() => {
-                        remove(existing.id);
-                    }, existing.duration);
-                } else {
-                    existing.timer = null;
-                }
-                return;
+    function runAction(toast: ToastItem): void {
+        const handler = toast?.action?.handler;
+        remove(toast.id);
+        if (typeof handler === "function") {
+            try {
+                handler();
+            } catch (e) {
+                console.error("toast action failed", e);
             }
+        }
+    }
+
+    function add(payload: ToastPayload): void {
+        // Generate a stable key for unkeyed toasts so identical messages do not
+        // stack into a tower when a retry loop, poll, or watchdog fires repeatedly.
+        let toastKey = payload.key;
+        if (toastKey == null) {
+            toastKey = `__unkeyed:${String(payload.type || "info")}:${String(payload.message || "")}`;
+        }
+
+        const existingIndex = toasts.findIndex((entry) => entry.key === toastKey);
+        if (existingIndex !== -1) {
+            const existing = toasts[existingIndex];
+            if (existing.timer) {
+                clearTimeout(existing.timer);
+            }
+            existing.message = payload.message == null ? "" : String(payload.message);
+            existing.type = payload.type || "info";
+            existing.duration = payload.duration !== undefined ? payload.duration : 5000;
+            existing.details = Array.isArray(payload.details) ? payload.details : [];
+            existing.action = payload.action || null;
+
+            if (existing.duration > 0) {
+                existing.timer = setTimeout(() => {
+                    remove(existing.id);
+                }, existing.duration);
+            } else {
+                existing.timer = null;
+            }
+            return;
         }
 
         const id = counter++;
         const duration = payload.duration !== undefined ? payload.duration : 5000;
         const newToast: ToastItem = {
             id,
-            key: payload.key,
+            key: toastKey,
             message: payload.message == null ? "" : String(payload.message),
             details: Array.isArray(payload.details) ? payload.details : [],
             type: payload.type || "info",
             duration,
             timer: null,
+            action: payload.action || null,
             _startX: 0,
             _swipeX: 0,
             _swiping: false,
@@ -141,7 +173,23 @@
             }, duration);
         }
 
+        // Mobile shows a single toast at a time. Evict older entries so the
+        // newest message replaces the current one instead of stacking.
+        if (isMobileViewport()) {
+            for (const existing of [...toasts]) {
+                remove(existing.id);
+            }
+        }
+
         toasts.push(newToast);
+        // Backstop cap: unkeyed zero-duration toasts otherwise persist
+        // forever when a dismiss call is skipped on an error path.
+        while (toasts.length > MAX_TOASTS) {
+            const evicted = toasts.shift();
+            if (evicted?.timer) {
+                clearTimeout(evicted.timer);
+            }
+        }
     }
 
     function toastClass(type: string): string {
@@ -223,7 +271,7 @@
 </script>
 
 <div
-    class="fixed max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
+    class="fixed max-sm:bottom-[calc(4.5rem+max(1.25rem,env(safe-area-inset-bottom,0px)))] bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
 >
     {#each toasts as toast (toast.id)}
         <div
@@ -259,6 +307,15 @@
                             <li>{line}</li>
                         {/each}
                     </ul>
+                {/if}
+                {#if toast.action && toast.action.label}
+                    <button
+                        type="button"
+                        class="mt-2 inline-flex min-h-[36px] items-center rounded-lg border border-sem-border px-3 text-xs font-bold text-sem-accent transition-colors hover:bg-sem-surface-raised"
+                        onclick={() => runAction(toast)}
+                    >
+                        {toastMessage(toast.action.label)}
+                    </button>
                 {/if}
             </div>
 

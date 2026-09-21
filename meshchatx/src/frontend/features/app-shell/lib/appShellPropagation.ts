@@ -7,6 +7,7 @@
 import DialogUtils from "../../../js/DialogUtils.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import { t } from "../../../js/i18n.js";
+import { navigate } from "../../../shell/hashRouter.js";
 import { postRequestPath } from "../../../js/reticulumPathfinding.js";
 import {
     PROPAGATION_SYNC_TOAST_KEY,
@@ -60,8 +61,19 @@ export async function syncPropagationNode(state: AppShellState): Promise<void> {
         await apiClient().post("/api/v1/lxmf/propagation-node/sync");
     } catch (e) {
         state.userInitiatedPropagationSync = false;
-        const error = e as { response?: { data?: { message?: string; error?: string } } };
-        ToastUtils.error(error.response?.data?.message ?? error.response?.data?.error ?? t("app.sync_error_generic"));
+        const error = e as { response?: { data?: { message?: string; error?: string; code?: string } } };
+        const errorMessage =
+            error.response?.data?.message ?? error.response?.data?.error ?? t("app.sync_error_generic");
+        if (error.response?.data?.code === "propagation_node_not_configured") {
+            ToastUtils.show(errorMessage, "error", 8000, "propagation-node-not-configured", {
+                label: t("common.configure"),
+                handler: () => {
+                    void navigate({ name: "propagation-nodes" });
+                },
+            });
+        } else {
+            ToastUtils.error(errorMessage);
+        }
         return;
     }
 

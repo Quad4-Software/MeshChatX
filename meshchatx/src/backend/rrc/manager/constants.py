@@ -12,6 +12,7 @@ SLOW_CHANNEL_BPS = 300
 _slow_connect_gate = threading.Semaphore(1)
 BAD_KEY_MARKERS = ("bad key (+k)", "bad key")
 FORCED_LEAVE_MARKERS = ("kicked from", "banned from", "banned (kline)")
+JOIN_FATAL_MARKERS = ("banned from", "bad key", "invite-only")
 
 HISTORY_DIR_NAME = "rrc_history"
 HISTORY_FILENAME_SANITIZE_RE = re.compile(r"[^a-z0-9._-]+")
@@ -22,3 +23,4 @@ H_NICK = "n"
 H_TEXT = "t"
 H_TS = "ts"
 H_MENTION = "m"
+H_EVENT = "e"

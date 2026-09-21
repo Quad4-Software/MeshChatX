@@ -236,25 +236,25 @@ describe("svelte shell migration API regressions", () => {
 
     it("relay leave uses HTTP DELETE and persists hub and room order", () => {
         const page = src("meshchatx/src/frontend/features/relay-chat/components/RelayChatPage.svelte");
-        expect(page).toContain("/api/v1/rrc/active/clear");
-        expect(page).toContain("/api/v1/rrc/hubs/order");
+        expect(page).toContain('apiPath("/rrc/active/clear")');
+        expect(page).toContain('apiPath("/rrc/hubs/order")');
         expect(page).toContain("onreorderhubs={onReorderHubs}");
         expect(page).toContain("onreorderrooms={onReorderRooms}");
         expect(page).toContain("onpersistroomorder");
-        expect(page).toContain("/api/v1/rrc/hubs/${current.hub_hash}/rooms/order");
+        expect(page).toContain("/rrc/hubs/${current.hub_hash}/rooms/order");
         expect(page).toContain("room_names:");
-        expect(page).toContain("/api/v1/rrc/hubs/${hubH}/rooms/${encodeURIComponent(room)}");
-        expect(page).toContain("/rooms/${encodeURIComponent(room)}/messages");
+        expect(page).toContain("/rrc/hubs/${hubH}/rooms/${encodeURIComponent(room");
+        expect(page).toContain("/rooms/${encodeURIComponent(room");
         expect(page).not.toContain('type: "rrc.leave_room"');
-        expect(page).toContain("/api/v1/rrc/hubs/${hubObj.hub_hash}/disconnect");
-        expect(page).toContain("/api/v1/rrc/hubs/${hubObj.hub_hash}/connect");
+        expect(page).toContain("/rrc/hubs/${hub.hub_hash}/disconnect");
+        expect(page).toContain("/rrc/hubs/${hub.hub_hash}/connect");
         const header = src("meshchatx/src/frontend/features/relay-chat/components/RelayChatHeader.svelte");
         expect(header).toContain("onclearmessages");
-        expect(header).toContain("ondisconnecthub");
         const sidebar = src("meshchatx/src/frontend/features/relay-chat/components/RelayHubSidebar.svelte");
         expect(sidebar).toContain("orderedKnownRoomNames");
         expect(sidebar).toContain("onpersistroomorder");
         expect(sidebar).toContain("onreorderrooms");
+        expect(sidebar).toContain("ondisconnecthub");
         const modals = src("meshchatx/src/frontend/features/relay-chat/components/RelayChatModals.svelte");
         expect(modals).toContain("ctx_leave_room");
         expect(modals).toContain("ctx_disconnect_hub");

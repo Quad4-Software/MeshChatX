@@ -177,3 +177,29 @@ def test_upsert_favourite_preserves_name_for_localized_unknown(announce_dao):
         announce_dao.upsert_favourite("dh1", sentinel, "nomadnetwork.node")
         row = announce_dao.get_favourite_by_destination_hash("dh1")
         assert row["display_name"] == "Kept Name", sentinel
+
+
+def test_upsert_announce_counts_repeated_announces(announce_dao):
+    data = {
+        "destination_hash": "dest1",
+        "aspect": "nomadnetwork.node",
+        "identity_hash": "ident1",
+        "identity_public_key": "pub1",
+        "app_data": "data1",
+        "rssi": -50,
+        "snr": 10,
+        "quality": 1.0,
+    }
+    announce_dao.upsert_announce(data)
+    row = announce_dao.get_announces(aspect="nomadnetwork.node")[0]
+    assert row["announce_count"] == 1
+    first_seen = row["created_at"]
+
+    announce_dao.upsert_announce({**data, "app_data": "data2"})
+    announce_dao.upsert_announce(data)
+    rows = announce_dao.get_announces(aspect="nomadnetwork.node")
+    assert len(rows) == 1
+    assert rows[0]["announce_count"] == 3
+    # first-seen timestamp survives re-announces so "newest discovered"
+    # sorting does not churn on re-announce
+    assert rows[0]["created_at"] == first_seen

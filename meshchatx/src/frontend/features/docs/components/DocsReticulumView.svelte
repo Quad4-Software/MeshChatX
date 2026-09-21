@@ -21,23 +21,23 @@
         }
     }
 
-    export function reloadFrame(): void {
-        if (frameEl?.contentWindow) {
-            frameEl.contentWindow.location.reload();
-        }
-    }
-
     function handleLoad(): void {
         revealFrame();
     }
 </script>
 
 {#if hasDocs}
+    <!-- Uploaded manuals are user-supplied HTML: sandbox keeps them in an
+         opaque origin so embedded scripts cannot reach the app DOM, session,
+         or API. allow-scripts keeps the bundled manual's own JS working.
+         Reloads must remount via the localDocsUrl key since the sandboxed
+         frame is cross-origin to us. -->
     {#key localDocsUrl}
         <iframe
             bind:this={frameEl}
             src={localDocsUrl}
             title="Reticulum Documentation"
+            sandbox="allow-scripts allow-forms allow-modals"
             class="w-full flex-1 min-h-0 border-none opacity-0 transition-opacity duration-1000"
             onload={handleLoad}
         ></iframe>

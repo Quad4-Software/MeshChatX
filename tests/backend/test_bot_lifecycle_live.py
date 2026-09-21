@@ -133,7 +133,7 @@ def test_bot_process_exits_when_watched_parent_dies(tmp_path):
     --parent-pid set to itself, prints the bot pid, then sleeps. Killing the
     helper orphans the bot exactly like a backend crash does.
 
-    Oracle: after the helper exits, the bot is not alive within the watchdog
+    Reference: after the helper exits, the bot is not alive within the watchdog
     interval plus startup margin.
     """
     storage = tmp_path / "watchdog-storage"
@@ -182,7 +182,7 @@ def test_bot_process_exits_when_parent_pid_is_not_real_parent(tmp_path):
     Guards against the arg silently diverging from the real parent: getppid
     will never equal the bogus pid, so the bot must not linger.
 
-    Oracle: the bot is dead within the watchdog interval plus margin even
+    Reference: the bot is dead within the watchdog interval plus margin even
     though the bogus watched pid stays alive.
     """
     sleeper = subprocess.Popen(
@@ -206,7 +206,7 @@ def test_bot_process_exits_when_parent_pid_is_not_real_parent(tmp_path):
 def test_bot_process_with_live_parent_stays_up(tmp_path):
     """The watchdog must not false-positive while the backend lives.
 
-    Oracle: a bot watching this test process is still alive after several
+    Reference: a bot watching this test process is still alive after several
     watchdog intervals, then dies when signalled normally.
     """
     bot = None

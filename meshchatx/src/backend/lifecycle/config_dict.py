@@ -6,11 +6,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from meshchatx.src.backend import oidc
+
 
 def build_config_dict(app: Any, context=None):
     ctx = context or app.current_context
     if not ctx:
         return {}
+    oidc_settings = app._oidc_settings()
     return {
         "display_name": ctx.config.display_name.get(),
         "identity_hash": ctx.identity.hash.hex(),
@@ -74,6 +77,16 @@ def build_config_dict(app: Any, context=None):
         "crawler_requests_per_day_per_node": ctx.config.crawler_requests_per_day_per_node.get(),
         "crawler_refresh_days": ctx.config.crawler_refresh_days.get(),
         "auth_enabled": app.auth_enabled,
+        **{
+            "oidc_enabled": oidc_settings.enabled,
+            "oidc_ready": oidc.oidc_ready(oidc_settings),
+            "oidc_env_managed": oidc_settings.env_managed,
+            "oidc_issuer_url": oidc_settings.issuer,
+            "oidc_client_id": oidc_settings.client_id,
+            "oidc_display_name": oidc_settings.display_name,
+            "oidc_scopes": oidc_settings.scopes,
+            "oidc_client_secret_set": bool(oidc_settings.client_secret),
+        },
         "privacy_mode_enabled": ctx.config.privacy_mode_enabled.get(),
         "multi_session_warning_enabled": ctx.config.multi_session_warning_enabled.get(),
         "voicemail_enabled": ctx.config.voicemail_enabled.get(),

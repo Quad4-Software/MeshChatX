@@ -566,6 +566,20 @@ async def reload_reticulum_instance(app: Any):
         )
 
         # Try to recover if possible without wiping storage.
+        # A failure between RNS shutdown and the attribute drop leaves a
+        # dead app.reticulum that would make setup_identity reuse a
+        # torn-down stack, so clear it (and the RNS singleton) first.
+        # The singleton clear must run even when app.reticulum is already
+        # gone: a failure after `del app.reticulum` but before __instance
+        # was reset still leaves the singleton bound to the dead stack.
+        if getattr(app, "reticulum", None) is not None:
+            with contextlib.suppress(Exception):
+                RNS.Reticulum.exit_handler()
+            with contextlib.suppress(Exception):
+                del app.reticulum
+        with contextlib.suppress(Exception):
+            RNS.Reticulum._Reticulum__instance = None
+
         if not hasattr(app, "reticulum") and identity_to_restore is not None:
             try:
                 app.setup_identity(identity_to_restore)

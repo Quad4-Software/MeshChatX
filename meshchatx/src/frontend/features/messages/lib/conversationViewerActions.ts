@@ -1,17 +1,27 @@
 // SPDX-License-Identifier: 0BSD
 
+import DialogUtils from "../../../js/DialogUtils.js";
+import GlobalEmitter from "../../../js/GlobalEmitter.js";
+import GlobalState from "../../../js/GlobalState.js";
 import MarkdownRenderer from "../../../js/MarkdownRenderer.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import Utils from "../../../js/Utils.js";
 import WebSocketConnection from "../../../js/WebSocketConnection.js";
 import { t } from "../../../js/i18n.js";
+import { resolveGeoText } from "../../../js/geoLinkify.js";
+import { handleRichHtmlLinkClick } from "../../../js/NomadRichHtmlLinks.js";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../../js/mapLinkUtils.js";
 import {
     isOpportunisticDeferredDelivery,
     outboundBubbleStatusIconName,
     outboundBubbleStatusTitleKey,
 } from "../../../js/outboundMessageStatus.js";
-import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } from "../../../js/relayLinkUtils.js";
+import {
+    applyRelayShareLink,
+    findRelayUriInContent,
+    parseMeshchatRelayUri,
+    parseRelayUri,
+} from "../../../js/relayLinkUtils.js";
 import { formatDate, fromNow } from "../../../libs/datetime.js";
 import { AUTO_IMAGE_CAPTION_MAX_CHARS, MESSAGE_BODY_MAX_DISPLAY_CHARS } from "./constants.js";
 import {
@@ -109,7 +119,41 @@ function takeOptionalBracketField(rest: string, label: string): { value?: string
     return { value, rest: after.slice(close + 1) };
 }
 
-function parseSharedContactContent(content: string): ParsedMessageItems["contact"] | undefined {
+function normalizeIconColour(value: string | undefined): string {
+    const s = String(value || "").trim();
+    return /^#?[0-9a-fA-F]{3,8}$/.test(s) ? s : "";
+}
+
+// " [ICON: name;fg;bg]" carries the sender's user icon in a shared contact.
+// Icon names are not hashes so this needs its own bracket parser.
+function takeIconBracketField(
+    rest: string
+): { value?: { icon_name: string; foreground_colour: string; background_colour: string }; rest: string } {
+    const prefix = " [ICON:";
+    if (!rest.toLowerCase().startsWith(prefix.toLowerCase())) {
+        return { rest };
+    }
+    const after = rest.slice(prefix.length);
+    const close = after.indexOf("]");
+    if (close === -1) return { rest };
+    const inner = after.slice(0, close);
+    const [name, fg, bg] = inner.split(";");
+    const iconName = String(name || "").trim();
+    if (!/^[a-zA-Z0-9_-]+$/.test(iconName)) return { rest };
+    return {
+        value: {
+            icon_name: iconName,
+            foreground_colour: normalizeIconColour(fg),
+            background_colour: normalizeIconColour(bg),
+        },
+        rest: after.slice(close + 1),
+    };
+}
+
+function parseSharedContactContent(
+    content: string,
+    conversations?: ConversationViewerActionDeps["conversations"]
+): { contact: ParsedMessageItems["contact"]; rest: string } | undefined {
     if (!content.toLowerCase().startsWith("contact:")) return undefined;
     let rest = content.slice("contact:".length);
     if (!rest || (rest[0] !== " " && rest[0] !== "\t")) return undefined;
@@ -127,23 +171,38 @@ function parseSharedContactContent(content: string): ParsedMessageItems["contact
     const lxmf = takeOptionalBracketField(rest, "LXMF");
     rest = lxmf.rest;
     const lxst = takeOptionalBracketField(rest, "LXST");
+    rest = lxst.rest;
+    const icon = takeIconBracketField(rest);
+    rest = icon.rest;
+    const contactHash = String(lxmf.value || hash).toLowerCase();
+    const existing = (conversations || []).find(
+        (item) => String(item.destination_hash || "").toLowerCase() === contactHash
+    );
     return {
-        name,
-        hash,
-        lxmf_address: lxmf.value,
-        lxst_address: lxst.value,
+        contact: {
+            name,
+            hash,
+            lxmf_address: lxmf.value,
+            lxst_address: lxst.value,
+            lxmf_user_icon: existing?.lxmf_user_icon || icon.value,
+        },
+        rest,
     };
 }
 
-function parseBasicItems(chatItem: MessageChatItem): ParsedMessageItems {
+function parseBasicItems(
+    chatItem: MessageChatItem,
+    conversations?: ConversationViewerActionDeps["conversations"]
+): ParsedMessageItems {
     const content = String(chatItem.lxmf_message.content || "");
     if (!content) {
         return {};
     }
     const parsed: ParsedMessageItems = {};
-    const contact = parseSharedContactContent(content);
-    if (contact) {
-        parsed.contact = contact;
+    const contactResult = parseSharedContactContent(content, conversations);
+    if (contactResult) {
+        parsed.contact = contactResult.contact;
+        parsed.isOnlyContact = contactResult.rest.trim() === "";
     }
     const paper = content.match(/(lxm|lxmf):\/\/[a-zA-Z0-9+/=._-]+/i)?.[0];
     if (paper) {
@@ -198,10 +257,10 @@ function bubbleClass(chatItem: MessageChatItem): string {
         return "";
     }
     if (["cancelled", "failed", "rejected"].includes(String(chatItem.lxmf_message.state || ""))) {
-        return "bg-red-600 text-white border border-red-500 shadow-xs";
+        return "bg-sem-action-danger text-white border border-sem-action-danger shadow-xs";
     }
     if (chatItem.lxmf_message._pendingPathfinding) {
-        return "bg-sem-surface-muted text-sem-fg border border-sem-border shadow-xs";
+        return "bg-sem-surface-muted text-sem-fg border border-sem-border";
     }
     return "bg-sem-action-primary text-white border border-sem-action-primary shadow-xs";
 }
@@ -211,6 +270,113 @@ function classForOutbound(chatItem: MessageChatItem, themed: string, defaultClas
         return inbound;
     }
     return themedOutbound(chatItem) ? themed : defaultClass;
+}
+
+type BubbleColorConfig = {
+    theme?: string;
+    message_outbound_bubble_color?: string | null;
+    message_inbound_bubble_color?: string | null;
+    message_failed_bubble_color?: string | null;
+    message_waiting_bubble_color?: string | null;
+};
+
+function bubbleColorConfig(): BubbleColorConfig | undefined {
+    return GlobalState.config as BubbleColorConfig | undefined;
+}
+
+// Custom hex colors are opt-in: the default values map to semantic tokens so
+// theme changes keep working until the user picks a custom color.
+function isDefaultBubbleHex(raw: string | null | undefined, defaults: string[]): boolean {
+    if (raw == null || String(raw).trim() === "") {
+        return true;
+    }
+    return defaults.includes(String(raw).trim().toLowerCase());
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const s = String(hex ?? "")
+        .trim()
+        .replace(/^#/, "");
+    if (s.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(s)) {
+        return null;
+    }
+    return {
+        r: parseInt(s.slice(0, 2), 16),
+        g: parseInt(s.slice(2, 4), 16),
+        b: parseInt(s.slice(4, 6), 16),
+    };
+}
+
+function hexRelativeLuminance(hex: string): number | null {
+    const rgb = hexToRgb(hex);
+    if (!rgb) {
+        return null;
+    }
+    const toLinear = (c: number) => {
+        const x = c / 255;
+        return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * toLinear(rgb.r) + 0.7152 * toLinear(rgb.g) + 0.0722 * toLinear(rgb.b);
+}
+
+function pickTextColorForBubbleBackground(hex: string): string {
+    const lum = hexRelativeLuminance(hex);
+    if (lum == null) {
+        return "#111827";
+    }
+    return lum > 0.45 ? "#111827" : "#ffffff";
+}
+
+function waitingBubbleBorderForHex(hex: string): string {
+    const lum = hexRelativeLuminance(hex);
+    if (lum == null) {
+        return "1px solid rgba(15, 23, 42, 0.12)";
+    }
+    return lum > 0.45 ? "1px solid rgba(15, 23, 42, 0.12)" : "1px solid rgba(255, 255, 255, 0.14)";
+}
+
+function bubbleStyles(chatItem: MessageChatItem): Record<string, string> {
+    const styles: Record<string, string> = {};
+    const cfg = bubbleColorConfig();
+    const message = chatItem.lxmf_message;
+    const isFailed = ["cancelled", "failed"].includes(String(message.state || ""));
+
+    if (isFailed) {
+        if (isDefaultBubbleHex(cfg?.message_failed_bubble_color, ["#ef4444", "#dc2626"])) {
+            styles["background-color"] = "var(--mc-bubble-failed)";
+            styles["color"] = "var(--mc-bubble-failed-text)";
+        } else {
+            styles["background-color"] = cfg?.message_failed_bubble_color || "#ef4444";
+            styles["color"] = "#ffffff";
+        }
+    } else if (chatItem.is_outbound) {
+        if (message._pendingPathfinding) {
+            if (isDefaultBubbleHex(cfg?.message_waiting_bubble_color, ["#e5e7eb", "#3f3f46"])) {
+                styles["background-color"] = "var(--mc-bubble-waiting)";
+                styles["color"] = "var(--mc-bubble-waiting-text)";
+                styles["border"] = "1px solid var(--mc-border)";
+                return styles;
+            }
+            const raw = cfg?.message_waiting_bubble_color;
+            let hex = raw != null && String(raw).trim() !== "" ? String(raw).trim() : "#e5e7eb";
+            if (cfg?.theme === "dark" && /^#e5e7eb$/i.test(hex)) {
+                hex = "#3f3f46";
+            }
+            styles["background-color"] = hex;
+            styles["color"] = pickTextColorForBubbleBackground(hex);
+            styles["border"] = waitingBubbleBorderForHex(hex);
+            return styles;
+        }
+        if (isDefaultBubbleHex(cfg?.message_outbound_bubble_color, ["#4f46e5"])) {
+            return {};
+        }
+        styles["background-color"] = cfg?.message_outbound_bubble_color || "#4f46e5";
+        styles["color"] = "#ffffff";
+    } else if (cfg?.message_inbound_bubble_color) {
+        styles["background-color"] = cfg.message_inbound_bubble_color;
+    }
+
+    return styles;
 }
 
 export function createConversationViewerActions(
@@ -273,6 +439,16 @@ export function createConversationViewerActions(
         };
     };
 
+    const openRelayShareFromParsed = async (parsed: unknown) => {
+        if (!parsed || typeof parsed !== "object") return;
+        try {
+            await applyRelayShareLink(parsed, { api: window.api });
+            window.location.hash = "#/relay-chat";
+        } catch {
+            window.location.hash = "#/relay-chat";
+        }
+    };
+
     return {
         expandedMessageInfo: deps.expandedMessageInfo,
         audioAttachmentUrls: deps.audioAttachmentUrls || {},
@@ -326,11 +502,55 @@ export function createConversationViewerActions(
         getRepliedMessage: (hash) =>
             deps.chatItems.find((item) => item.lxmf_message.hash === hash)?.lxmf_message || null,
         handleMessageClick: (event) => {
-            const target = event.target as HTMLElement | null;
-            const anchor = target?.closest("a");
-            if (anchor) {
-                event.stopPropagation();
-            }
+            handleRichHtmlLinkClick(event, {
+                onNomadUrl: (hash, path) => {
+                    const base = deps.isPopout ? "/popout/nomadnetwork" : "/nomadnetwork";
+                    const query = path ? `?path=${encodeURIComponent(path)}` : "";
+                    window.location.hash = `#${base}/${encodeURIComponent(hash)}${query}`;
+                },
+                onLxmfAddress: (address) => {
+                    const base = deps.isPopout ? "/popout/messages" : "/messages";
+                    window.location.hash = `#${base}/${encodeURIComponent(address)}`;
+                },
+                onGeo: (geoText) => {
+                    void (async () => {
+                        try {
+                            const point = await resolveGeoText(geoText);
+                            if (!point) {
+                                ToastUtils.error(t("map.geo_parse_failed"));
+                                return;
+                            }
+                            const params = new URLSearchParams({
+                                lat: point.lat.toFixed(6),
+                                lon: point.lon.toFixed(6),
+                                zoom: "12",
+                                label: String(geoText).trim(),
+                            });
+                            window.location.hash = `#/map?${params.toString()}`;
+                        } catch {
+                            ToastUtils.error(t("map.geo_parse_failed"));
+                        }
+                    })();
+                },
+                onRrcUrl: (uri) => {
+                    openRelayShareFromParsed(parseRelayUri(uri));
+                },
+                openExternalHttp: (href) => {
+                    const warnOnStranger = Boolean(
+                        (GlobalState.config as { warn_on_stranger_links?: boolean } | undefined)
+                            ?.warn_on_stranger_links
+                    );
+                    if (deps.isStrangerPeer && warnOnStranger) {
+                        void DialogUtils.confirm(
+                            t("messages.stranger_link_open_confirm", { url: href })
+                        ).then((ok) => {
+                            if (ok) window.open(href, "_blank", "noopener,noreferrer");
+                        });
+                        return;
+                    }
+                    window.open(href, "_blank", "noopener,noreferrer");
+                },
+            });
         },
         setBubbleMessageShowOriginal: (hash, showOriginal) => {
             if (hash) {
@@ -342,8 +562,8 @@ export function createConversationViewerActions(
             const name = String(item.lxmf_message.fields?.file_attachments?.[index]?.file_name || "download");
             void deps.downloadLxmfFileAttachment(item, index, name);
         },
-        addContact: (name, hash, lxmfAddress, lxstAddress) =>
-            void deps.addContact(name, hash, lxmfAddress, lxstAddress),
+        addContact: (name, hash, lxmfAddress, lxstAddress, icon) =>
+            void deps.addContact(name, hash, lxmfAddress, lxstAddress, icon),
         ingestPaperMessage: (paperMessage: unknown, hash?: string) => {
             if (typeof paperMessage === "string" && paperMessage) {
                 WebSocketConnection.send(JSON.stringify({ type: "lxm.ingest_uri", uri: paperMessage }));
@@ -375,15 +595,7 @@ export function createConversationViewerActions(
                 ToastUtils.success(t("messages.map_link_copied"));
             }
         },
-        openRelayShareFromParsed: async (parsed: unknown) => {
-            if (!parsed || typeof parsed !== "object") return;
-            try {
-                await applyRelayShareLink(parsed, { api: window.api });
-                window.location.hash = "#/relay-chat";
-            } catch {
-                window.location.hash = "#/relay-chat";
-            }
-        },
+        openRelayShareFromParsed,
         copyRelayShareUri: (uri) => {
             if (uri) {
                 void deps.copyText(uri);
@@ -422,7 +634,7 @@ export function createConversationViewerActions(
         },
         bubbleViewModel,
         renderMarkdown: (text) => MarkdownRenderer.render(text || ""),
-        getParsedItems: parseBasicItems,
+        getParsedItems: (item) => parseBasicItems(item, deps.conversations),
         formatTimeAgo: (value) => fromNow(value),
         formatDateDividerLabel: (value) => formatDate(value, "MMM D, YYYY"),
         formatAttachmentSize: attachmentSize,
@@ -435,7 +647,7 @@ export function createConversationViewerActions(
         messageBodyCharCount: (item) => String(item.lxmf_message.content || "").length,
         bubbleMessageBodyFontSizePx: (model) =>
             Math.round((Number(deps.messageFontSize) || 14) * (model.singleEmoji ? 2.75 : 1)),
-        bubbleStyles: () => "",
+        bubbleStyles,
         isImageOnlyMessage: (item) =>
             isImageOnlyMessage(item as ChatItemLike, shouldHideAutoImageCaption as (item: ChatItemLike) => boolean),
         hasMessageBubble: (item) =>

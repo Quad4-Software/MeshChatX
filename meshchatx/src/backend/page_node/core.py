@@ -1054,6 +1054,10 @@ class PageNode:
                         max_dimension = int(max_dimension_raw)
                     except (TypeError, ValueError):
                         max_dimension = MEDIA_MAX_DIMENSION
+            # Clamp so arbitrary peer values cannot crash the converter or
+            # grow the media cache with one file per quality/dimension pair.
+            quality = max(1, min(100, quality))
+            max_dimension = max(16, min(MEDIA_MAX_DIMENSION, max_dimension))
 
             converted_path = self._get_converted_media_path(
                 source_path,

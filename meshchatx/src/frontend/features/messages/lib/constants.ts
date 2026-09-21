@@ -62,5 +62,8 @@ export const VIRTUAL_ROW_HEIGHT = {
     base: 88,
 } as const;
 
+/** Max items kept in the live chat window before trimming (rows are plain JS objects). */
+export const MAX_CHAT_ITEMS = 2000;
+
 /** Re-export kernel inline body limit used by MessageEntry and raw modal. */
 export { MESSAGE_BODY_MAX_DISPLAY_CHARS };

@@ -109,6 +109,25 @@ describe("NomadRichHtmlLinks", () => {
             expect(ev.defaultPrevented).toBe(true);
         });
 
+        it("routes rrc links through onRrcUrl", () => {
+            const uri = "rrc://00112233445566778899aabbccddeeff/lobby";
+            holder.innerHTML = `<a class="rrc-link" href="#" data-rrc-url="${uri}">join</a>`;
+            const onRrcUrl = vi.fn();
+            const ev = clickEvent(holder.querySelector("a"));
+            expect(handleRichHtmlLinkClick(ev, { onRrcUrl })).toBe(true);
+            expect(onRrcUrl).toHaveBeenCalledWith(uri);
+            expect(ev.defaultPrevented).toBe(true);
+        });
+
+        it("rrc links without a handler stay inert", () => {
+            const uri = "rrc://00112233445566778899aabbccddeeff/lobby";
+            holder.innerHTML = `<a class="rrc-link" href="#" data-rrc-url="${uri}">join</a>`;
+            const ev = clickEvent(holder.querySelector("a"));
+            const openExternalHttp = vi.fn();
+            handleRichHtmlLinkClick(ev, { openExternalHttp });
+            expect(openExternalHttp).not.toHaveBeenCalled();
+        });
+
         it("returns false for unrelated clicks", () => {
             holder.innerHTML = "<span>plain text</span>";
             const ev = clickEvent(holder.querySelector("span"));

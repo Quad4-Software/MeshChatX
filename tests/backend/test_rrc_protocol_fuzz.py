@@ -3,6 +3,7 @@
 """Property-based fuzz tests for the RRC wire protocol and notice parsers."""
 
 import base64
+import math
 
 import cbor2
 import pytest
@@ -32,7 +33,7 @@ def _envelope_dict_strategy():
 
 @given(data=st.binary(min_size=0, max_size=4096))
 @settings(max_examples=200, deadline=None)
-def test_decode_random_bytes_accept_reject_oracle(data):
+def test_decode_random_bytes_accept_reject(data):
     try:
         obj = proto.decode(data)
     except Exception as exc:
@@ -44,7 +45,11 @@ def test_decode_random_bytes_accept_reject_oracle(data):
     except cbor2.CBOREncodeError:
         return
     assert isinstance(encoded, (bytes, bytearray))
-    assert proto.decode(encoded) == obj
+    decoded = proto.decode(encoded)
+    if isinstance(obj, float) and math.isnan(obj):
+        assert isinstance(decoded, float) and math.isnan(decoded)
+    else:
+        assert decoded == obj
 
 
 @given(env=_envelope_dict_strategy())
@@ -73,7 +78,7 @@ def test_make_envelope_encode_decode_roundtrip(msg_type, src, room, body, nick):
 
 @given(nick=st.text(max_size=128))
 @settings(max_examples=100, deadline=None)
-def test_normalize_nick_shape_oracle(nick):
+def test_normalize_nick_shape(nick):
     result = proto.normalize_nick(nick)
     if result is not None:
         assert isinstance(result, str)
@@ -105,7 +110,7 @@ def test_normalize_room_only_raises_on_empty_or_whitespace(room):
 
 @given(text=st.text(max_size=256), nick=st.text(max_size=64))
 @settings(max_examples=120, deadline=None)
-def test_text_mentions_bool_oracle(text, nick):
+def test_text_mentions_bool(text, nick):
     result = proto.text_mentions(text, nick)
     assert isinstance(result, bool)
     n = proto.normalize_nick(nick)
@@ -115,7 +120,7 @@ def test_text_mentions_bool_oracle(text, nick):
 
 @given(text=st.one_of(st.none(), st.integers(), st.binary(), st.text(max_size=256)))
 @settings(max_examples=80, deadline=None)
-def test_parse_who_notice_shape_oracle(text):
+def test_parse_who_notice_shape(text):
     result = proto.parse_who_notice(text)
     if result is not None:
         room, entries = result
@@ -126,7 +131,7 @@ def test_parse_who_notice_shape_oracle(text):
 
 @given(text=st.one_of(st.none(), st.integers(), st.binary(), st.text(max_size=512)))
 @settings(max_examples=80, deadline=None)
-def test_parse_room_list_notice_shape_oracle(text):
+def test_parse_room_list_notice_shape(text):
     result = proto.parse_room_list_notice(text)
     details = proto.parse_room_list_notice_details(text)
     if result is None:
@@ -155,7 +160,7 @@ def test_parse_room_list_notice_shape_oracle(text):
     ),
 )
 @settings(max_examples=60, deadline=None)
-def test_parse_room_list_notice_keyed_roundtrip_oracle(rooms):
+def test_parse_room_list_notice_keyed_roundtrip(rooms):
     """Independent formatter: [+k] after the name roundtrips as has_key."""
     if not rooms:
         body = "No public rooms registered"
@@ -185,7 +190,7 @@ def test_parse_room_list_notice_keyed_roundtrip_oracle(rooms):
     ts=st.one_of(st.integers(), st.floats(allow_nan=False), st.text(max_size=16)),
 )
 @settings(max_examples=100, deadline=None)
-def test_rrc_message_to_dict_shape_oracle(kind, room, src, nick, text, ts):
+def test_rrc_message_to_dict_shape(kind, room, src, nick, text, ts):
     msg = proto.RRCMessage(kind, room, src, nick, text, ts)
     d = msg.to_dict()
     assert isinstance(d, dict)
@@ -196,7 +201,7 @@ def test_rrc_message_to_dict_shape_oracle(kind, room, src, nick, text, ts):
 
 @given(app_data=st.one_of(st.none(), st.text(max_size=256), st.binary(max_size=128)))
 @settings(max_examples=100, deadline=None)
-def test_display_name_from_hub_app_data_shape_oracle(app_data):
+def test_display_name_from_hub_app_data_shape(app_data):
     if isinstance(app_data, bytes):
         b64 = base64.b64encode(app_data).decode("ascii")
     elif isinstance(app_data, str):

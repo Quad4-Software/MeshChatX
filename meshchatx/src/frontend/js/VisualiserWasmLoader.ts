@@ -64,8 +64,13 @@ async function verifySri(buf, expectedHash, name) {
 
 async function injectScript(src, expectedHash) {
     const id = "meshchatx-visualiser-wasm-exec";
-    if (document.getElementById(id)) {
-        return;
+    const existing = document.getElementById(id);
+    if (existing) {
+        // Stale tag without Go (partial/failed prior load) must be replaced so retry works.
+        if (typeof globalThis.Go !== "undefined") {
+            return;
+        }
+        existing.remove();
     }
     const res = await fetch(src);
     if (!res.ok) {
@@ -86,6 +91,7 @@ async function injectScript(src, expectedHash) {
         };
         s.onerror = () => {
             URL.revokeObjectURL(blobUrl);
+            s.remove();
             reject(new Error(`Visualiser WASM: failed to load script ${src}`));
         };
         document.head.appendChild(s);

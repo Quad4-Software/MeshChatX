@@ -320,6 +320,11 @@ tasks:
         cmds:
             - "{{.NPM}} run test:ui:pages"
 
+    test:ui:screenshots:
+        desc: Capture desktop + mobile screenshots of UI pages with seeded demo data
+        cmds:
+            - "{{.NPM}} run test:ui:screenshots"
+
     test:ui:lighthouse:
         desc: Lighthouse scores on production-built UI (blocks /ws so LCP/TTI are real, set MESHCHAT_UI_CI=1 for core subset)
         cmds:
@@ -341,7 +346,7 @@ tasks:
                 fi
 
     test:quick:be:
-        desc: Backend regression subset (auth/CSRF, LXMF/nomad/RNS link, filesync, EECT packs, privacy oracles)
+        desc: Backend regression subset (auth/CSRF, LXMF/nomad/RNS link, filesync, EECT packs, privacy references)
         cmds:
             - >-
                 uv run pytest
@@ -381,12 +386,12 @@ tasks:
                 -m integration -q --tb=short
 
     test:lxmf:live:
-        desc: Live LXMF suites (local TCP + pack/reject oracles, MESHCHAT_LIVE_RETICULUM=1)
+        desc: Live LXMF suites (local TCP + pack/reject references, MESHCHAT_LIVE_RETICULUM=1)
         cmds:
             - >-
                 MESHCHAT_LIVE_RETICULUM=1 uv run pytest
                 tests/backend/test_lxmf_live_local_network.py
-                tests/backend/test_lxmf_live_rejection_oracle.py
+                tests/backend/test_lxmf_live_rejection.py
                 tests/backend/test_lxmf_tools_live.py
                 -m integration -q --tb=short
 
@@ -463,7 +468,7 @@ tasks:
             - >-
                 {{.NPM}} exec vitest run
                 tests/frontend/libs.core.test.js
-                tests/frontend/libs.oracle.test.js
+                tests/frontend/libs.test.js
                 --coverage
                 --coverage.include=meshchatx/src/frontend/libs/**
             - node scripts/check-format-tokens.mjs

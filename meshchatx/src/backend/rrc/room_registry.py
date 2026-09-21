@@ -148,6 +148,17 @@ class RoomRegistry:
         if self._store is not None:
             self._store.save(self._registry)
 
+    def drop_transient_state(self, room):
+        """Drop in-memory ACL state for an unregistered, emptied room.
+
+        Registered rooms keep their persisted state. Without this, ops,
+        bans, voiced, invites, and founder linger as ghost ACLs and apply
+        to the next transient room of the same name.
+        """
+        st = self._state.get(room)
+        if st is not None and not st.get("registered"):
+            self._state.pop(room, None)
+
     def get_mode_string(self, room):
         st = self.ensure_state(room)
         flags = []
@@ -180,6 +191,11 @@ class RoomRegistry:
             return True
         st = self.get_state(room)
         if st is None:
+            return False
+        bans = st.get("bans")
+        if isinstance(bans, set) and bytes(peer_hash) in bans:
+            # A banned peer loses operator authority so it cannot self-unban
+            # or keep issuing mode/kick commands. Server ops still override.
             return False
         founder = st.get("founder")
         if isinstance(founder, (bytes, bytearray)) and bytes(founder) == bytes(

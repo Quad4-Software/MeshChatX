@@ -32,7 +32,7 @@ from meshchatx.src.backend.meshchat_utils import parse_lxmf_icon_appearance
         (["user", b"\xaa\xbb\xcc", b"\x11\x22\x33"], ("user", "#aabbcc", "#112233")),
     ],
 )
-def test_parse_lxmf_icon_appearance_oracle(value, expected):
+def test_parse_lxmf_icon_appearance(value, expected):
     assert parse_lxmf_icon_appearance(value) == expected
 
 
@@ -357,3 +357,40 @@ async def test_receive_message_drops_invalid_signature(mock_rns, temp_dir):
 
     app.db_upsert_lxmf_message.assert_not_called()
     app.is_destination_blocked.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_send_message_telemetry_never_falls_back_to_propagation(
+    mock_rns, temp_dir
+):
+    app = ReticulumMeshChat(
+        identity=mock_rns["id_instance"],
+        storage_dir=temp_dir,
+        reticulum_config_dir=temp_dir,
+    )
+
+    mock_context = mock_rns["IdentityContext"].return_value
+    mock_context.config = mock_rns["ConfigManager"].return_value
+    # propagation fallback enabled: telemetry must still opt out so the
+    # tracking loop cannot queue a stamp PoW round every interval
+    mock_context.config.auto_send_failed_messages_to_propagation_node.get.return_value = True
+    app.current_context = mock_context
+
+    app.db_upsert_lxmf_message = MagicMock()
+    app.websocket_broadcast = AsyncMock()
+    app.handle_lxmf_message_progress = AsyncMock()
+
+    plain = await app.send_message("abc123", "hello")
+    assert plain.try_propagation_on_fail is True
+
+    from meshchatx.src.backend.sideband_commands import SidebandCommands
+
+    via_data = await app.send_message("abc123", "", telemetry_data=b"\x00packed")
+    assert via_data.try_propagation_on_fail is False
+
+    via_cmd = await app.send_message(
+        "abc123",
+        "",
+        commands=[{SidebandCommands.TELEMETRY_REQUEST: 0}],
+    )
+    assert via_cmd.try_propagation_on_fail is False

@@ -25,9 +25,10 @@ WS_RATE_RETRY_AFTER_SEC = 1.0
 
 # Cost multipliers for expensive mutators (tokens consumed per message).
 WS_RATE_COST_HEAVY = 5.0
+# nomadnet.file.download stays at base cost: image-rich pages legitimately
+# burst dozens of requests, and the transfer itself is bounded by the mesh.
 WS_HEAVY_TYPES = frozenset(
     {
-        "nomadnet.file.download",
         "nomadnet.page.download",
         "nomadnet.page.archive.add",
         "rns.link.request",
@@ -502,11 +503,16 @@ class CoalesceBuffer:
 
     async def _delayed_flush(self) -> None:
         try:
-            await asyncio.sleep(self._window)
-            pending = self._pending
-            self._pending = {}
-            for payload in pending.values():
-                await self._flush_cb(payload)
+            while True:
+                await asyncio.sleep(self._window)
+                pending = self._pending
+                self._pending = {}
+                for payload in pending.values():
+                    await self._flush_cb(payload)
+                # Offers that land while flush callbacks are still running
+                # must not be stranded in _pending until a future offer.
+                if not self._pending:
+                    break
         except asyncio.CancelledError:
             raise
         except Exception:

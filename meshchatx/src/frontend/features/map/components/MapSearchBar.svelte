@@ -113,21 +113,25 @@
     </div>
 
     {#if showResults && activeResults.length > 0}
-        <div
-            class="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-sem-surface rounded-xl shadow-2xl border border-sem-border z-50 text-sm"
-        >
-            {#each activeResults as result, idx (idx)}
-                <button
-                    type="button"
-                    class="w-full text-left px-4 py-2.5 hover:bg-sem-surface-muted transition-colors border-b border-sem-border last:border-b-0 cursor-pointer text-sem-fg"
-                    onclick={() => onselect?.(result)}
-                >
-                    <div class="font-medium truncate">{result.display_name}</div>
-                    {#if result.type}
-                        <div class="text-xs text-sem-fg-muted capitalize">{result.type}</div>
-                    {/if}
-                </button>
-            {/each}
+        <div class="absolute top-full left-0 right-0 mt-1 z-50">
+            <div
+                class="dropdown-caret pointer-events-none absolute -top-[4px] right-9 border-t border-l border-sem-border"
+                aria-hidden="true"
+            ></div>
+            <div class="max-h-60 overflow-y-auto bg-sem-surface rounded-xl shadow-2xl border border-sem-border text-sm">
+                {#each activeResults as result, idx (idx)}
+                    <button
+                        type="button"
+                        class="w-full text-left px-4 py-2.5 hover:bg-sem-surface-muted transition-colors border-b border-sem-border last:border-b-0 cursor-pointer text-sem-fg"
+                        onclick={() => onselect?.(result)}
+                    >
+                        <div class="font-medium truncate">{result.display_name}</div>
+                        {#if result.type}
+                            <div class="text-xs text-sem-fg-muted capitalize">{result.type}</div>
+                        {/if}
+                    </button>
+                {/each}
+            </div>
         </div>
     {/if}
 

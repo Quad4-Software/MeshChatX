@@ -5,14 +5,14 @@ import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.hardware.usb.UsbManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Build;
@@ -22,7 +22,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.content.IntentFilter;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
@@ -36,6 +35,8 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
+import android.webkit.WebBackForwardList;
+import android.webkit.WebHistoryItem;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageView;
@@ -60,10 +61,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -92,6 +91,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int WEB_MEDIA_PERMISSION_REQUEST_CODE = 1003;
     private static final int RNODE_BLUETOOTH_PERMISSION_REQUEST_CODE = 1004;
     private static final int WEBVIEW_GEOLOCATION_PERMISSION_REQUEST_CODE = 1006;
+    private static final int NEARBY_WIFI_PERMISSION_REQUEST_CODE = 1007;
+    private static final int BRIDGE_LOCATION_PERMISSION_REQUEST_CODE = 1008;
     private static final String PREFS_NAME = "meshchatx";
     private static final String PREF_BATTERY_OPT_REQUESTED = "battery_opt_requested";
     private static final int MAX_CONNECTION_ATTEMPTS = 120;
@@ -130,6 +131,23 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
         return RemoteBackendUrl.isAllowedShellNavigation(uri.toString(), resolveBackendUrl());
+    }
+
+    private boolean canGoBackWithinApp() {
+        if (webView == null || !webView.canGoBack()) {
+            return false;
+        }
+        // about:blank sits at the bottom of the WebView history, so an
+        // unguarded goBack can strand the user on a blank page. Only go back
+        // when the previous entry is a backend-origin page.
+        WebBackForwardList history = webView.copyBackForwardList();
+        int index = history.getCurrentIndex();
+        if (index <= 0) {
+            return false;
+        }
+        WebHistoryItem previous = history.getItemAtIndex(index - 1);
+        return previous != null
+            && RemoteBackendUrl.matchesBackend(previous.getUrl(), resolveBackendUrl());
     }
 
     private void openExternalBrowserUri(Uri uri) {
@@ -323,6 +341,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            @RequiresApi(api = Build.VERSION_CODES.O)
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 // Without this callback the whole process dies when the
                 // renderer crashes or is killed (OOM). Returning true marks the
@@ -563,7 +582,7 @@ public class MainActivity extends AppCompatActivity {
             new OnBackPressedCallback(true) {
                 @Override
                 public void handleOnBackPressed() {
-                    if (webView != null && webView.canGoBack()) {
+                    if (canGoBackWithinApp()) {
                         webView.goBack();
                     } else {
                         setEnabled(false);
@@ -632,6 +651,9 @@ public class MainActivity extends AppCompatActivity {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             addIfMissing(missingPermissions, Manifest.permission.POST_NOTIFICATIONS);
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            addIfMissing(missingPermissions, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
         if (!missingPermissions.isEmpty()) {
             for (String permission : missingPermissions) {
@@ -737,6 +759,32 @@ public class MainActivity extends AppCompatActivity {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .edit()
             .putBoolean(PREF_BT_PERM_PROMPTED_PREFIX + permission, true)
+            .apply();
+    }
+
+    private static final String PREF_NEARBY_WIFI_PERM_PROMPTED = "nearby_wifi_perm_prompted";
+
+    boolean isNearbyWifiPermanentlyDenied() {
+        boolean prompted =
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(PREF_NEARBY_WIFI_PERM_PROMPTED, false);
+        if (!prompted) {
+            return false;
+        }
+        String permission = Build.VERSION.SDK_INT >= 33
+            ? Manifest.permission.NEARBY_WIFI_DEVICES
+            : Manifest.permission.ACCESS_FINE_LOCATION;
+        if (ContextCompat.checkSelfPermission(this, permission)
+            == PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+        return !ActivityCompat.shouldShowRequestPermissionRationale(this, permission);
+    }
+
+    void markNearbyWifiPermissionPrompted() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .putBoolean(PREF_NEARBY_WIFI_PERM_PROMPTED, true)
             .apply();
     }
 
@@ -849,6 +897,65 @@ public class MainActivity extends AppCompatActivity {
                 webView.evaluateJavascript(
                     "window.dispatchEvent(new CustomEvent('meshchatx-android-permission',"
                         + "{detail:{group:'bluetooth',granted:"
+                        + ok
+                        + "}}));",
+                    null
+                );
+            }
+            return;
+        }
+        if (requestCode == NEARBY_WIFI_PERMISSION_REQUEST_CODE) {
+            boolean granted = grantResults != null && grantResults.length > 0;
+            if (granted) {
+                for (int result : grantResults) {
+                    if (result != PackageManager.PERMISSION_GRANTED) {
+                        granted = false;
+                        break;
+                    }
+                }
+            }
+            final boolean ok = granted;
+            if (!ok && isNearbyWifiPermanentlyDenied()) {
+                openAppPermissionSettings();
+                Toast.makeText(
+                    this,
+                    "Nearby devices blocked. Enable it in app settings.",
+                    Toast.LENGTH_LONG
+                ).show();
+            }
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('meshchatx-android-permission',"
+                        + "{detail:{group:'nearby_wifi',granted:"
+                        + ok
+                        + "}}));",
+                    null
+                );
+            }
+            return;
+        }
+        if (requestCode == BRIDGE_LOCATION_PERMISSION_REQUEST_CODE) {
+            boolean granted = false;
+            if (grantResults != null) {
+                for (int result : grantResults) {
+                    if (result == PackageManager.PERMISSION_GRANTED) {
+                        granted = true;
+                        break;
+                    }
+                }
+            }
+            final boolean ok = granted;
+            if (!ok) {
+                Toast.makeText(
+                    this,
+                    "Location blocked. Enable it in app settings.",
+                    Toast.LENGTH_LONG
+                ).show();
+            }
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('meshchatx-android-permission',"
+                        + "{detail:{group:'location',granted:"
                         + ok
                         + "}}));",
                     null
@@ -1399,6 +1506,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchAndPersistWebViewDownload(String url, String fileName) {
+        Context appContext = getApplicationContext();
+        String notifId = "webview:" + fileName;
+        String wakeTag = "webview-dl:" + fileName;
+        MeshChatWakeLock.acquire(appContext, wakeTag);
+        File tempFile = null;
         try {
             Request.Builder builder = new Request.Builder().url(url);
             String cookie = CookieManager.getInstance().getCookie(url);
@@ -1407,80 +1519,55 @@ public class MainActivity extends AppCompatActivity {
             }
             try (Response response = LocalhostTrustOkHttpClient.get().newCall(builder.build()).execute()) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    runOnUiThread(
-                        () ->
-                            Toast.makeText(
-                                this,
-                                "Download failed: HTTP " + response.code(),
-                                Toast.LENGTH_LONG
-                            ).show()
-                    );
+                    DownloadNotifications.showFailed(appContext, notifId, fileName);
+                    showDownloadToast("Download failed: HTTP " + response.code());
                     return;
                 }
-                byte[] data = response.body().bytes();
-                runOnUiThread(
-                    () -> {
-                        try {
-                            persistMeshchatDownload(fileName, data);
-                        } catch (IOException e) {
-                            Toast.makeText(
-                                this,
-                                "Save failed: " + e.getMessage(),
-                                Toast.LENGTH_LONG
-                            ).show();
+                DownloadNotifications.showProgress(appContext, notifId, fileName, 0);
+                long total = response.body().contentLength();
+                tempFile = File.createTempFile("mcx-webview-", ".part", appContext.getCacheDir());
+                try (java.io.InputStream in = response.body().byteStream();
+                     FileOutputStream out = new FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[64 * 1024];
+                    long written = 0;
+                    int lastPercent = 0;
+                    int read;
+                    while ((read = in.read(buffer)) >= 0) {
+                        out.write(buffer, 0, read);
+                        written += read;
+                        if (total > 0) {
+                            int percent = (int) (written * 100 / total);
+                            if (percent != lastPercent) {
+                                lastPercent = percent;
+                                DownloadNotifications.showProgress(appContext, notifId, fileName, percent);
+                            }
                         }
                     }
-                );
+                }
+                Uri saved = MeshchatDownloads.persist(appContext, fileName, tempFile);
+                DownloadNotifications.showFinished(appContext, notifId, fileName, saved);
+                showDownloadToast(getString(R.string.download_saved_meshchatx, fileName));
             }
         } catch (Exception e) {
-            runOnUiThread(
-                () -> Toast.makeText(this, "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
-            );
+            DownloadNotifications.showFailed(appContext, notifId, fileName);
+            showDownloadToast("Download failed: " + e.getMessage());
+        } finally {
+            if (tempFile != null) {
+                tempFile.delete();
+            }
+            MeshChatWakeLock.release(wakeTag);
         }
     }
 
-    void persistMeshchatDownload(String fileName, byte[] data) throws IOException {
-        String safe = MeshchatDownloadUtils.sanitizeFileName(fileName);
-        ContentResolver resolver = getContentResolver();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.MediaColumns.DISPLAY_NAME, safe);
-            String mime = URLConnection.guessContentTypeFromName(safe);
-            if (mime == null) {
-                mime = "application/octet-stream";
-            }
-            values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
-            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-            values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) {
-                throw new IOException("MediaStore insert failed");
-            }
-            try (OutputStream out = resolver.openOutputStream(uri)) {
-                if (out == null) {
-                    throw new IOException("openOutputStream failed");
-                }
-                out.write(data);
-            }
-            values.clear();
-            values.put(MediaStore.MediaColumns.IS_PENDING, 0);
-            resolver.update(uri, values, null, null);
-            Toast.makeText(this, getString(R.string.download_saved_meshchatx, safe), Toast.LENGTH_LONG).show();
-        } else {
-            File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-            if (dir == null) {
-                throw new IOException("no download directory");
-            }
-            if (!dir.exists() && !dir.mkdirs()) {
-                throw new IOException("mkdirs failed");
-            }
-            File target = new File(dir, safe);
-            try (FileOutputStream fos = new FileOutputStream(target)) {
-                fos.write(data);
-            }
-            Toast.makeText(this, getString(R.string.download_saved_app_files, target.getAbsolutePath()), Toast.LENGTH_LONG)
-                .show();
+    private void showDownloadToast(String message) {
+        if (isFinishing() || isDestroyed()) {
+            return;
         }
+        runOnUiThread(() -> {
+            if (!isFinishing() && !isDestroyed()) {
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private static class MeshChatXAndroidBridge {
@@ -1490,25 +1577,136 @@ public class MainActivity extends AppCompatActivity {
             this.activity = activity;
         }
 
+        private Context appContext() {
+            Context appContext = MeshChatApplication.getAppContext();
+            return appContext != null ? appContext : activity.getApplicationContext();
+        }
+
+        private void persistAndNotify(String downloadId, String fileName, byte[] raw) {
+            Context context = appContext();
+            String notifId = downloadId != null ? downloadId : "save:" + fileName;
+            String wakeTag = "save:" + notifId;
+            MeshChatWakeLock.acquire(context, wakeTag);
+            try {
+                Uri uri = MeshchatDownloads.persist(context, fileName, raw);
+                DownloadNotifications.showFinished(context, notifId, fileName, uri);
+                activity.showDownloadToast(
+                    activity.getString(R.string.download_saved_meshchatx, fileName)
+                );
+            } catch (IOException | RuntimeException e) {
+                DownloadNotifications.showFailed(context, notifId, fileName);
+                activity.showDownloadToast("Save failed: " + e.getMessage());
+            } finally {
+                MeshChatWakeLock.release(wakeTag);
+            }
+        }
+
         @JavascriptInterface
         public void saveDownload(String fileName, String base64Data) {
+            saveDownloadWithId(null, fileName, base64Data);
+        }
+
+        @JavascriptInterface
+        public void saveDownloadWithId(String downloadId, String fileName, String base64Data) {
             if (base64Data == null) {
                 return;
             }
-            activity.runOnUiThread(() -> {
-                try {
-                    byte[] raw = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT);
-                    if (raw.length == 0) {
-                        Toast.makeText(activity, "Empty file", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    activity.persistMeshchatDownload(fileName, raw);
-                } catch (IllegalArgumentException e) {
-                    Toast.makeText(activity, "Invalid download data", Toast.LENGTH_LONG).show();
-                } catch (IOException e) {
-                    Toast.makeText(activity, "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            });
+            // Bridge calls run on the JavaBridge thread, not the UI thread, so
+            // decode and persist inline. Safe if the Activity is already gone.
+            byte[] raw;
+            try {
+                raw = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT);
+            } catch (IllegalArgumentException e) {
+                activity.showDownloadToast("Invalid download data");
+                return;
+            }
+            if (raw.length == 0) {
+                activity.showDownloadToast("Empty file");
+                return;
+            }
+            persistAndNotify(downloadId, fileName, raw);
+        }
+
+        @JavascriptInterface
+        public String saveDownloadBegin(String fileName) {
+            try {
+                return MeshchatDownloads.begin(appContext(), fileName);
+            } catch (IOException e) {
+                return null;
+            }
+        }
+
+        @JavascriptInterface
+        public boolean saveDownloadAppend(String saveId, String base64Data) {
+            try {
+                MeshchatDownloads.append(saveId, base64Data);
+                return true;
+            } catch (IOException | IllegalArgumentException e) {
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public boolean saveDownloadFinish(String saveId) {
+            return saveDownloadFinishWithId(saveId, null);
+        }
+
+        @JavascriptInterface
+        public boolean saveDownloadFinishWithId(String saveId, String downloadId) {
+            Context context = appContext();
+            String wakeTag = "save:" + saveId;
+            MeshChatWakeLock.acquire(context, wakeTag);
+            String pendingName = MeshchatDownloads.fileNameFor(saveId);
+            try {
+                MeshchatDownloads.FinishedSave saved = MeshchatDownloads.finish(context, saveId);
+                String fileName = saved.fileName;
+                String notifId = downloadId != null ? downloadId : "save:" + fileName;
+                DownloadNotifications.showFinished(context, notifId, fileName, saved.uri);
+                activity.showDownloadToast(
+                    activity.getString(R.string.download_saved_meshchatx, fileName)
+                );
+                return true;
+            } catch (IOException e) {
+                DownloadNotifications.showFailed(
+                    context,
+                    downloadId != null ? downloadId : "save:" + saveId,
+                    pendingName != null ? pendingName : "download"
+                );
+                activity.showDownloadToast("Save failed: " + e.getMessage());
+                return false;
+            } finally {
+                MeshChatWakeLock.release(wakeTag);
+            }
+        }
+
+        @JavascriptInterface
+        public void saveDownloadAbort(String saveId) {
+            MeshchatDownloads.abort(saveId);
+        }
+
+        @JavascriptInterface
+        public void downloadSessionStart(String sessionId) {
+            MeshChatWakeLock.acquire(appContext(), "session:" + sessionId);
+        }
+
+        @JavascriptInterface
+        public void downloadSessionEnd(String sessionId) {
+            MeshChatWakeLock.release("session:" + sessionId);
+        }
+
+        @JavascriptInterface
+        public void showDownloadProgress(String downloadId, String fileName, int percent) {
+            DownloadNotifications.showProgress(appContext(), downloadId, fileName, percent);
+        }
+
+        @JavascriptInterface
+        public void downloadFailed(String downloadId, String fileName) {
+            DownloadNotifications.showFailed(appContext(), downloadId, fileName);
+        }
+
+        @JavascriptInterface
+        public void cancelDownloadNotification(String downloadId) {
+            DownloadNotifications.cancel(appContext(), downloadId);
         }
 
         @JavascriptInterface
@@ -1522,6 +1720,147 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public String getPlatform() {
             return "android";
+        }
+
+        @JavascriptInterface
+        public boolean isLocationPermissionGranted() {
+            Context context = appContext();
+            return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void requestLocationPermission() {
+            activity.runOnUiThread(
+                () ->
+                    ActivityCompat.requestPermissions(
+                        activity,
+                        new String[] {
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        },
+                        BRIDGE_LOCATION_PERMISSION_REQUEST_CODE
+                    )
+            );
+        }
+
+        @SuppressLint("MissingPermission")
+        @JavascriptInterface
+        public String getLastKnownLocation() {
+            if (!isLocationPermissionGranted()) {
+                return null;
+            }
+            try {
+                LocationManager manager =
+                    (LocationManager) appContext().getSystemService(Context.LOCATION_SERVICE);
+                if (manager == null) {
+                    return null;
+                }
+                Location best = null;
+                String[] providers = {
+                    LocationManager.GPS_PROVIDER,
+                    LocationManager.NETWORK_PROVIDER,
+                    LocationManager.PASSIVE_PROVIDER,
+                };
+                for (String provider : providers) {
+                    try {
+                        Location location = manager.getLastKnownLocation(provider);
+                        if (location != null && (best == null || location.getTime() > best.getTime())) {
+                            best = location;
+                        }
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+                return best == null ? null : locationToJson(best);
+            } catch (RuntimeException e) {
+                return null;
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        @JavascriptInterface
+        public void requestFreshLocation() {
+            if (!isLocationPermissionGranted()) {
+                dispatchLocationError("permission_denied");
+                return;
+            }
+            activity.runOnUiThread(
+                () -> {
+                    try {
+                        LocationManager manager =
+                            (LocationManager) appContext().getSystemService(Context.LOCATION_SERVICE);
+                        if (manager == null) {
+                            dispatchLocationError("unavailable");
+                            return;
+                        }
+                        boolean hasGps = manager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                        boolean hasNetwork = manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+                        if (!hasGps && !hasNetwork) {
+                            dispatchLocationError("location_disabled");
+                            return;
+                        }
+                        String provider = hasGps ? LocationManager.GPS_PROVIDER : LocationManager.NETWORK_PROVIDER;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            manager.getCurrentLocation(
+                                provider, null, activity.getMainExecutor(), this::dispatchLocationResult
+                            );
+                        } else {
+                            manager.requestSingleUpdate(
+                                provider, this::dispatchLocationResult, Looper.getMainLooper()
+                            );
+                        }
+                    } catch (RuntimeException e) {
+                        dispatchLocationError("unavailable");
+                    }
+                }
+            );
+        }
+
+        private static String locationToJson(Location location) {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("latitude", location.getLatitude());
+                o.put("longitude", location.getLongitude());
+                o.put("altitude", location.hasAltitude() ? location.getAltitude() : 0);
+                o.put("accuracy", location.hasAccuracy() ? location.getAccuracy() : 0);
+                o.put("speed", location.hasSpeed() ? location.getSpeed() : 0);
+                o.put("bearing", location.hasBearing() ? location.getBearing() : 0);
+                o.put("time", location.getTime());
+                return o.toString();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        private void dispatchLocationResult(Location location) {
+            String detail = location == null ? null : locationToJson(location);
+            if (detail == null) {
+                dispatchLocationError("unavailable");
+                return;
+            }
+            dispatchLocationScript("{detail:" + detail + "}");
+        }
+
+        private void dispatchLocationError(String code) {
+            dispatchLocationScript("{detail:{error:" + JSONObject.quote(code) + "}}");
+        }
+
+        private void dispatchLocationScript(String detailLiteral) {
+            WebView view = activity.webView;
+            if (view == null) {
+                return;
+            }
+            activity.runOnUiThread(
+                () ->
+                    view.evaluateJavascript(
+                        "window.dispatchEvent(new CustomEvent('meshchatx-android-location',"
+                            + detailLiteral
+                            + "));",
+                        null
+                    )
+            );
         }
 
         @JavascriptInterface
@@ -1887,6 +2226,45 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public boolean hasNativeRNodeFlasher() {
             return true;
+        }
+
+        @JavascriptInterface
+        public boolean hasNearbyWifiPermissions() {
+            String permission = Build.VERSION.SDK_INT >= 33
+                ? Manifest.permission.NEARBY_WIFI_DEVICES
+                : Manifest.permission.ACCESS_FINE_LOCATION;
+            return ContextCompat.checkSelfPermission(activity, permission)
+                == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public String requestNearbyWifiPermissions() {
+            if (hasNearbyWifiPermissions()) {
+                return "granted";
+            }
+            if (activity.isNearbyWifiPermanentlyDenied()) {
+                activity.runOnUiThread(() -> {
+                    activity.openAppPermissionSettings();
+                    Toast.makeText(
+                        activity,
+                        "Nearby devices blocked. Enable it in app settings.",
+                        Toast.LENGTH_LONG
+                    ).show();
+                });
+                return "settings";
+            }
+            activity.runOnUiThread(() -> {
+                String permission = Build.VERSION.SDK_INT >= 33
+                    ? Manifest.permission.NEARBY_WIFI_DEVICES
+                    : Manifest.permission.ACCESS_FINE_LOCATION;
+                activity.markNearbyWifiPermissionPrompted();
+                ActivityCompat.requestPermissions(
+                    activity,
+                    new String[] { permission },
+                    NEARBY_WIFI_PERMISSION_REQUEST_CODE
+                );
+            });
+            return "requested";
         }
 
         @JavascriptInterface

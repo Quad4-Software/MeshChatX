@@ -42,6 +42,7 @@ class RRCHub(
         self.status_text = "Disconnected"
         self.welcomed = False
         self.hub_name = None
+        self._hub_identity_hash = None
         self.hub_version = None
         self.hub_caps = {}
         self.motd = None

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Adversarial fuzzing and oracles for early-UI / mesh-ready boot gating.
+ * Adversarial fuzzing and references for early-UI / mesh-ready boot gating.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,7 +12,7 @@ import {
     waitForNetworkReady,
 } from "../../meshchatx/src/frontend/js/networkStartupWait.js";
 
-function assertInterpretOracle(result, data) {
+function assertInterpretMatches(result, data) {
     expect(result).toBeTruthy();
     expect(typeof result.kind).toBe("string");
     expect(["ready", "ui", "degraded", "failed", "starting", "invalid"]).toContain(result.kind);
@@ -55,19 +55,19 @@ function mulberry32(seed) {
     };
 }
 
-describe("networkStartupWait adversarial / oracle", () => {
+describe("networkStartupWait adversarial / reference", () => {
     afterEach(() => {
         vi.useRealTimers();
     });
 
-    it("oracle: ready beats starting labels when network_ready is true", () => {
+    it("reference: ready beats starting labels when network_ready is true", () => {
         const data = { status: "starting", stage: "identity", network_ready: true, ui_ready: true };
         const result = interpretStartupStatus(data);
         expect(result.kind).toBe("ready");
-        assertInterpretOracle(result, data);
+        assertInterpretMatches(result, data);
     });
 
-    it("oracle: failed is checked before network_ready spoof", () => {
+    it("reference: failed is checked before network_ready spoof", () => {
         const data = {
             status: "failed",
             network_ready: true,
@@ -77,15 +77,15 @@ describe("networkStartupWait adversarial / oracle", () => {
         };
         const result = interpretStartupStatus(data);
         expect(result.kind).toBe("failed");
-        assertInterpretOracle(result, data);
+        assertInterpretMatches(result, data);
     });
 
-    it("oracle: only strict boolean true mounts UI early", () => {
+    it("reference: only strict boolean true mounts UI early", () => {
         for (const fake of [1, "true", "yes", {}, [], "1"]) {
             const data = { status: "starting", stage: "rns", ui_ready: fake, network_ready: false };
             const result = interpretStartupStatus(data);
             expect(result.kind).toBe("starting");
-            assertInterpretOracle(result, data);
+            assertInterpretMatches(result, data);
         }
         const ok = interpretStartupStatus({
             status: "starting",
@@ -96,7 +96,7 @@ describe("networkStartupWait adversarial / oracle", () => {
         expect(ok.kind).toBe("ui");
     });
 
-    it("oracle: degraded requires failed + recovery flag", () => {
+    it("reference: degraded requires failed + recovery flag", () => {
         expect(
             interpretStartupStatus({
                 status: "failed",
@@ -114,7 +114,7 @@ describe("networkStartupWait adversarial / oracle", () => {
         expect(interpretStartupStatus({ status: "failed", error: "z" }).kind).toBe("failed");
     });
 
-    it("fuzz: random status payloads never throw and obey oracle", () => {
+    it("fuzz: random status payloads never throw and obey reference", () => {
         const rand = mulberry32(0x51a7);
         const statuses = ["ok", "starting", "failed", undefined, null, "nope", 0, "", "OK"];
         const stages = [...Object.keys(STARTUP_STAGE_LABELS), undefined, null, "???", 12];
@@ -132,7 +132,7 @@ describe("networkStartupWait adversarial / oracle", () => {
                 result = interpretStartupStatus(data);
             }).not.toThrow();
             if (data && typeof data === "object" && !Array.isArray(data)) {
-                assertInterpretOracle(result, data);
+                assertInterpretMatches(result, data);
             } else {
                 expect(result.kind).toBe("invalid");
             }
@@ -255,7 +255,7 @@ describe("networkStartupWait adversarial / oracle", () => {
         });
         const result = interpretStartupStatus(polluted);
         expect(result.kind).toBe("starting");
-        assertInterpretOracle(result, polluted);
+        assertInterpretMatches(result, polluted);
 
         const ownUi = { status: "starting", stage: "rns", ui_ready: true };
         Object.setPrototypeOf(ownUi, { network_ready: true });
@@ -283,7 +283,7 @@ describe("networkStartupWait adversarial / oracle", () => {
         for (const [data, kind] of matrix) {
             const result = interpretStartupStatus(data);
             expect(result.kind).toBe(kind);
-            assertInterpretOracle(result, data);
+            assertInterpretMatches(result, data);
         }
     });
 });

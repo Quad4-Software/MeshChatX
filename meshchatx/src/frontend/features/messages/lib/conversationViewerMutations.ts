@@ -8,6 +8,7 @@ import WebSocketConnection from "../../../js/WebSocketConnection.js";
 import { copyImageBlobToClipboard } from "../../../js/clipboardUtils.js";
 import { t } from "../../../js/i18n.js";
 import { applyWsMessage, deleteWsMessage, updateWsMessage } from "./conversationViewerMessages.js";
+import { lxmfContactResolvedIcon, type ContactLike } from "./lxmf/contactDisplay.js";
 import { cancelOutbound, executeOutboundJob, type OutboundJob } from "./conversationViewerSend.js";
 import type { ApiClient } from "../../../js/apiClient.js";
 import type { LxmfMessage, ViewerChatItem } from "./conversationViewerCtx.js";
@@ -158,6 +159,8 @@ export async function saveMessageImageToGifs(
 /**
  * Delete then re-POST the original LXMF payload (preserves attachments and fields).
  */
+const RESENDABLE_STATES = new Set(["failed", "cancelled", "rejected", "outbound", "sending", "delivered"]);
+
 export async function retryOutboundMessageItem(opts: {
     api: ApiClient;
     item: ViewerChatItem;
@@ -169,6 +172,37 @@ export async function retryOutboundMessageItem(opts: {
     const hash = msg?.hash;
     if (!hash) {
         return null;
+    }
+    // If the server still has the row, resend it. The backend deletes the
+    // original row and returns a fresh message with a new hash, so the stale
+    // item must be swapped out rather than patched in place. A 404 means the
+    // row was already purged (e.g. a locally queued item) - fall through to
+    // delete + resend.
+    if (RESENDABLE_STATES.has(String(msg.state || ""))) {
+        try {
+            const response = await api.post(`/api/v1/lxmf-messages/${hash}/resend`);
+            const resent = (response.data as { lxmf_message?: LxmfMessage } | undefined)?.lxmf_message;
+            const next = currentItems.filter(
+                (candidate) => !sameHash(candidate.lxmf_message.hash, hash)
+            );
+            if (resent?.hash && !next.some((candidate) => sameHash(candidate.lxmf_message.hash, resent.hash))) {
+                next.push({
+                    type: "lxmf_message",
+                    is_outbound: true,
+                    lxmf_message: resent,
+                });
+            }
+            return next;
+        } catch (error) {
+            const status = (error as { response?: { status?: number } })?.response?.status;
+            if (status !== 404) {
+                const message =
+                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                    t("messages.failed_to_send");
+                await DialogUtils.alert(message);
+                return currentItems;
+            }
+        }
     }
     let next = currentItems;
     const deleted = await deleteMessageItem({ api, item, currentItems, skipConfirm: true });
@@ -370,9 +404,10 @@ export async function addSharedContactEntry(opts: {
     hash?: string;
     lxmfAddress?: string;
     lxstAddress?: string;
+    icon?: { icon_name?: string; foreground_colour?: string; background_colour?: string } | null;
     onSuccess: () => void;
 }): Promise<boolean> {
-    const { api, name, hash, lxmfAddress, lxstAddress, onSuccess } = opts;
+    const { api, name, hash, lxmfAddress, lxstAddress, icon, onSuccess } = opts;
     const remoteHash = String(hash || "");
     if (!remoteHash) {
         return false;
@@ -383,6 +418,7 @@ export async function addSharedContactEntry(opts: {
             remote_identity_hash: remoteHash,
             lxmf_address: lxmfAddress || remoteHash,
             lxst_address: lxstAddress || undefined,
+            icon: icon || undefined,
         });
         onSuccess();
         ToastUtils.success(t("contacts.contact_added"));
@@ -406,13 +442,20 @@ export function generatePaperMessagePayload(destinationHash: string, text: strin
     );
 }
 
-export function formatSharedContactString(contact: Record<string, unknown>): string {
+export function formatSharedContactString(
+    contact: Record<string, unknown>,
+    conversations: Array<{ destination_hash?: string; lxmf_user_icon?: unknown }> = []
+): string {
     let sharedString = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
     if (contact.lxmf_address) {
         sharedString += ` [LXMF: ${contact.lxmf_address}]`;
     }
     if (contact.lxst_address) {
         sharedString += ` [LXST: ${contact.lxst_address}]`;
+    }
+    const icon = lxmfContactResolvedIcon(contact as ContactLike, conversations);
+    if (icon.iconName) {
+        sharedString += ` [ICON: ${icon.iconName};${icon.foreground};${icon.background}]`;
     }
     return sharedString;
 }

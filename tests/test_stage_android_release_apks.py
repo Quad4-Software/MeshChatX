@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracle checks for Android GitHub release APK naming."""
+"""Reference checks for Android GitHub release APK naming."""
 
 from __future__ import annotations
 

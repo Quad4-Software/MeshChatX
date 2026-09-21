@@ -8,6 +8,7 @@ from meshchatx.src.backend.http.routes.lxmf._names import *  # noqa: F403, F405
 
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
+    parse_int_param,
     http_error_from_exception,
     http_payload_too_large,
 )
@@ -47,7 +48,9 @@ def register_lxmf_folders_routes(routes, app):
 
     @routes.patch("/api/v1/lxmf/folders/{id}")
     async def lxmf_folders_patch(request):
-        folder_id = int(request.match_info["id"])
+        folder_id = parse_int_param(request.match_info["id"])
+        if folder_id is None:
+            return http_bad_request("invalid folder id")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
@@ -60,7 +63,9 @@ def register_lxmf_folders_routes(routes, app):
 
     @routes.delete("/api/v1/lxmf/folders/{id}")
     async def lxmf_folders_delete(request):
-        folder_id = int(request.match_info["id"])
+        folder_id = parse_int_param(request.match_info["id"])
+        if folder_id is None:
+            return http_bad_request("invalid folder id")
         app.database.messages.delete_folder(folder_id)
         return web.json_response({"message": "Folder deleted"})
 

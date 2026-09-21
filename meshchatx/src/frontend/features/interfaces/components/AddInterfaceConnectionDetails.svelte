@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import { t } from "../../../js/i18n.js";
     import type { Comport, InterfaceModule, KernelInterface } from "../lib/types.js";
     import AddInterfaceTcpDetails from "./AddInterfaceTcpDetails.svelte";
     import AddInterfaceBackboneDetails from "./AddInterfaceBackboneDetails.svelte";
@@ -11,6 +12,7 @@
     import AddInterfaceSerialDetails from "./AddInterfaceSerialDetails.svelte";
     import AddInterfaceAutoDetails from "./AddInterfaceAutoDetails.svelte";
     import AddInterfaceHttpDetails from "./AddInterfaceHttpDetails.svelte";
+    import AddInterfaceAwareDetails from "./AddInterfaceAwareDetails.svelte";
     import AddInterfaceExternalDetails from "./AddInterfaceExternalDetails.svelte";
 
     interface Props {
@@ -26,10 +28,14 @@
         transportEnabled?: boolean;
         hasExistingI2P?: boolean;
         isEditing?: boolean;
+        awareNeedsPermission?: boolean;
+        awarePermissionRequesting?: boolean;
+        iodineHint?: string | null;
         onpatch: (patch: Record<string, any>) => void;
         onrefreshcomports: () => void;
         onuploadmodule: (file: File) => void;
         ondeletemodule: (typeName: string) => void;
+        onrequestawarepermission?: () => void;
     }
 
     let {
@@ -45,10 +51,14 @@
         transportEnabled = true,
         hasExistingI2P = false,
         isEditing = false,
+        awareNeedsPermission = false,
+        awarePermissionRequesting = false,
+        iodineHint = null,
         onpatch,
         onrefreshcomports,
         onuploadmodule,
         ondeletemodule,
+        onrequestawarepermission,
     }: Props = $props();
 </script>
 
@@ -124,7 +134,7 @@
             onfastflappingthresholdchange={(v) => onpatch({ fastFlappingThreshold: v })}
             onfastflappinggracechange={(v) => onpatch({ fastFlappingGrace: v })}
         />
-    {:else if interfaceType === "UDPInterface"}
+    {:else if interfaceType === "UDPInterface" || interfaceType === "IodineUDPInterface"}
         <AddInterfaceUdpDetails
             listenIp={form.listenIp}
             listenPort={form.listenPort}
@@ -137,6 +147,57 @@
             onforwardportchange={(v) => onpatch({ forwardPort: v })}
             ondevicechange={(v) => onpatch({ udpDevice: v })}
         />
+        {#if interfaceType === "IodineUDPInterface"}
+            <!-- Iodine DNS tunnel (UDP over iodine) -->
+            <div class="space-y-4 pt-2">
+                <div
+                    class="bg-amber-50/80 dark:bg-amber-900/20 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200 space-y-1"
+                >
+                    <div class="font-semibold">
+                        {t("interfaces.iodine_requirements_title")}
+                    </div>
+                    <p>{t("interfaces.iodine_requirements_body")}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition {form.iodineRole ===
+                        'client'
+                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
+                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'}"
+                        onclick={() => onpatch({ iodineRole: "client" })}
+                    >
+                        {t("interfaces.iodine_role_client")}
+                    </button>
+                    <button
+                        type="button"
+                        class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition {form.iodineRole ===
+                        'server'
+                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
+                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'}"
+                        onclick={() => onpatch({ iodineRole: "server" })}
+                    >
+                        {t("interfaces.iodine_role_server")}
+                    </button>
+                </div>
+                <div>
+                    <label for="iodine-domain" class="glass-label block font-medium mb-1">
+                        {t("interfaces.iodine_domain")}
+                    </label>
+                    <input
+                        id="iodine-domain"
+                        value={form.iodineDomain ?? ""}
+                        type="text"
+                        placeholder="tunnel.example.com"
+                        class="input-field"
+                        oninput={(e) => onpatch({ iodineDomain: (e.target as HTMLInputElement).value })}
+                    />
+                </div>
+                <p class="text-xs text-sem-fg-muted leading-relaxed font-mono">
+                    {iodineHint}
+                </p>
+            </div>
+        {/if}
     {:else if interfaceType === "I2PInterface"}
         <AddInterfaceI2pDetails
             connectable={form.i2pConnectable}
@@ -253,6 +314,16 @@
             ontlsverifychange={(v) => onpatch({ httpTlsVerify: v })}
             ontlscertfilechange={(v) => onpatch({ httpTlsCertfile: v })}
             ontlskeyfilechange={(v) => onpatch({ httpTlsKeyfile: v })}
+        />
+    {:else if interfaceType === "AwareInterface"}
+        <AddInterfaceAwareDetails
+            awareMode={form.awareMode}
+            awarePeers={form.awarePeers}
+            needsPermission={awareNeedsPermission}
+            permissionRequesting={awarePermissionRequesting}
+            onawaremodechange={(v) => onpatch({ awareMode: v })}
+            onawarepeerschange={(v) => onpatch({ awarePeers: v })}
+            onrequestpermission={onrequestawarepermission}
         />
     {:else if interfaceType === "__external__"}
         <AddInterfaceExternalDetails

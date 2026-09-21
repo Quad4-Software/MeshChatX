@@ -159,6 +159,7 @@ def register_interfaces_import_export_routes(routes, app):
                 )
                 if import_option_error is not None:
                     return http_error(422, import_option_error)
+                InterfaceEditor.strip_ui_metadata(iface_body)
                 if iface_type in ("RNodeInterface", "RNodeIPInterface"):
                     freq = iface_body.get("frequency")
                     if freq is not None and freq != "":

@@ -188,3 +188,17 @@ describe("shouldShowMarkerLabel", () => {
         expect(shouldShowMarkerLabel({ zoom: 3 })).toBe(false);
     });
 });
+
+describe("style cache bound", () => {
+    it("evicts oldest entries past the cap and keeps recent hits", () => {
+        const cache = {};
+        for (let i = 0; i < 600; i++) {
+            getCachedClusterStyle(cache, { count: i, hovered: false });
+        }
+        expect(Object.keys(cache).length).toBeLessThanOrEqual(500);
+        // The most recent key must survive. The oldest must be gone.
+        const recent = getCachedClusterStyle(cache, { count: 599, hovered: false });
+        expect(Object.keys(cache).length).toBeLessThanOrEqual(500);
+        expect(recent).toBeTruthy();
+    });
+});

@@ -15,6 +15,7 @@
 
 <SettingsSectionBlock
     show={visible}
+    sectionKey="telephony"
     eyebrow="Telephony"
     title="Telephone (LXST)"
     description="Enable or disable the integrated voice calling system."

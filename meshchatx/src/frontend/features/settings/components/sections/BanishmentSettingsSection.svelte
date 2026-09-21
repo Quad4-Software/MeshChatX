@@ -18,6 +18,7 @@
 
 <SettingsSectionBlock
     show={visible}
+    sectionKey="banishment"
     eyebrow={t("app.privacy_eyebrow")}
     title={t("app.banishment")}
     description={t("app.banishment_description")}

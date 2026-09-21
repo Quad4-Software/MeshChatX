@@ -158,6 +158,24 @@ export function adjustHex(hex: string, amount: number): string {
     return rgbToHex(rgb.r + amount, rgb.g + amount, rgb.b + amount);
 }
 
+/**
+ * Relative luminance check for choosing on-fill text color. Returns true when
+ * the fill is light enough that dark text outperforms white on it.
+ */
+export function isLightFill(hex: string): boolean {
+    const rgb = parseHexColor(hex);
+    if (!rgb) {
+        return false;
+    }
+    const lum = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+    return lum > 0.45;
+}
+
+/** Text color guaranteed readable on top of the given action fill. */
+export function actionTextForFill(fillHex: string, darkText = "#111827"): string {
+    return isLightFill(fillHex) ? darkText : "#ffffff";
+}
+
 export function mixHex(a: string, b: string, ratio = 0.5): string {
     const left = parseHexColor(a);
     const right = parseHexColor(b);
@@ -178,6 +196,7 @@ export function accentDerivativeVars(accentHex: string, isDark: boolean): CssVar
         "--mc-accent-hover": hover,
         "--mc-action-primary": accentHex,
         "--mc-action-primary-hover": hover,
+        "--mc-action-primary-text": actionTextForFill(accentHex),
         "--mc-focus": hover,
         "--mc-focus-border": hover,
         "--mc-secondary-chip-hover-border": hover,
@@ -192,6 +211,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
     },
     high_contrast: {
         light: {
+            "--mc-bubble-failed": "#b91c1c",
             "--mc-text": "#000000",
             "--mc-text-secondary": "#000000",
             "--mc-text-muted": "#374151",
@@ -200,6 +220,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-border-strong": "#000000",
         },
         dark: {
+            "--mc-bubble-failed": "#ff5252",
             "--mc-text": "#ffffff",
             "--mc-text-secondary": "#ffffff",
             "--mc-text-muted": "#d4d4d8",
@@ -229,6 +250,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
     },
     solarized: {
         light: {
+            "--mc-bubble-failed": "#dc322f",
             "--mc-canvas": "#fdf6e3",
             "--mc-surface": "#eee8d5",
             "--mc-border": "#93a1a1",
@@ -241,6 +263,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-action-primary-hover": "#2aa198",
         },
         dark: {
+            "--mc-bubble-failed": "#dc322f",
             "--mc-canvas": "#002b36",
             "--mc-surface": "#073642",
             "--mc-border": "#586e75",
@@ -255,6 +278,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
     },
     nord: {
         light: {
+            "--mc-bubble-failed": "#bf616a",
             "--mc-canvas": "#eceff4",
             "--mc-surface": "#e5e9f0",
             "--mc-border": "#d8dee9",
@@ -268,6 +292,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-action-primary-hover": "#81a1c1",
         },
         dark: {
+            "--mc-bubble-failed": "#bf616a",
             "--mc-canvas": "#2e3440",
             "--mc-surface": "#3b4252",
             "--mc-border": "#4c566a",
@@ -279,10 +304,12 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#8fbcbb",
             "--mc-action-primary": "#81a1c1",
             "--mc-action-primary-hover": "#88c0d0",
+            "--mc-action-primary-text": "#2e3440",
         },
     },
     gruvbox: {
         light: {
+            "--mc-bubble-failed": "#cc241d",
             "--mc-canvas": "#fbf1c7",
             "--mc-surface": "#ebdbb2",
             "--mc-border": "#d5c4a1",
@@ -296,6 +323,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-action-primary-hover": "#076678",
         },
         dark: {
+            "--mc-bubble-failed": "#fb4934",
             "--mc-canvas": "#282828",
             "--mc-surface": "#3c3836",
             "--mc-border": "#504945",
@@ -307,10 +335,12 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#8ec07c",
             "--mc-action-primary": "#83a598",
             "--mc-action-primary-hover": "#8ec07c",
+            "--mc-action-primary-text": "#282828",
         },
     },
     catppuccin: {
         light: {
+            "--mc-bubble-failed": "#d20f39",
             "--mc-canvas": "#eff1f5",
             "--mc-surface": "#e6e9ef",
             "--mc-border": "#ccd0da",
@@ -324,6 +354,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-action-primary-hover": "#0284c7",
         },
         dark: {
+            "--mc-bubble-failed": "#f38ba8",
             "--mc-canvas": "#1e1e2e",
             "--mc-surface": "#313244",
             "--mc-border": "#45475a",
@@ -335,10 +366,12 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#74c7ec",
             "--mc-action-primary": "#89b4fa",
             "--mc-action-primary-hover": "#74c7ec",
+            "--mc-action-primary-text": "#1e1e2e",
         },
     },
     dracula: {
         light: {
+            "--mc-bubble-failed": "#ff5555",
             "--mc-canvas": "#f8f8f2",
             "--mc-surface": "#ffffff",
             "--mc-border": "#e2e2dc",
@@ -352,6 +385,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-action-primary-hover": "#6c5ce7",
         },
         dark: {
+            "--mc-bubble-failed": "#ff5555",
             "--mc-canvas": "#282a36",
             "--mc-surface": "#44475a",
             "--mc-border": "#6272a4",
@@ -363,10 +397,12 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#ff79c6",
             "--mc-action-primary": "#bd93f9",
             "--mc-action-primary-hover": "#ff79c6",
+            "--mc-action-primary-text": "#282a36",
         },
     },
     rose_pine: {
         light: {
+            "--mc-bubble-failed": "#b4637a",
             "--mc-canvas": "#faf4ed",
             "--mc-surface": "#fffaf3",
             "--mc-border": "#dfdad9",
@@ -380,6 +416,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-action-primary-hover": "#56949f",
         },
         dark: {
+            "--mc-bubble-failed": "#eb6f92",
             "--mc-canvas": "#191724",
             "--mc-surface": "#1f1d2e",
             "--mc-border": "#403d52",
@@ -391,6 +428,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#eb6f92",
             "--mc-action-primary": "#c4a7e7",
             "--mc-action-primary-hover": "#eb6f92",
+            "--mc-action-primary-text": "#191724",
         },
     },
     forest: {
@@ -419,6 +457,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#74c69d",
             "--mc-action-primary": "#52b788",
             "--mc-action-primary-hover": "#74c69d",
+            "--mc-action-primary-text": "#081c15",
         },
     },
     midnight: {
@@ -447,6 +486,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#38bdf8",
             "--mc-action-primary": "#60a5fa",
             "--mc-action-primary-hover": "#38bdf8",
+            "--mc-action-primary-text": "#0f172a",
         },
     },
     warm_paper: {
@@ -475,10 +515,12 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#fbbf24",
             "--mc-action-primary": "#f59e0b",
             "--mc-action-primary-hover": "#fbbf24",
+            "--mc-action-primary-text": "#1c1917",
         },
     },
     tokyo: {
         light: {
+            "--mc-bubble-failed": "#f52a65",
             "--mc-canvas": "#e6e7ea",
             "--mc-surface": "#d5d6db",
             "--mc-border": "#c0c2ca",
@@ -492,6 +534,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-action-primary-hover": "#188092",
         },
         dark: {
+            "--mc-bubble-failed": "#f7768e",
             "--mc-canvas": "#1a1b26",
             "--mc-surface": "#24283b",
             "--mc-border": "#414868",
@@ -503,10 +546,12 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#bb9af7",
             "--mc-action-primary": "#7aa2f7",
             "--mc-action-primary-hover": "#bb9af7",
+            "--mc-action-primary-text": "#1a1b26",
         },
     },
     atom_one: {
         light: {
+            "--mc-bubble-failed": "#e45649",
             "--mc-canvas": "#fafafa",
             "--mc-surface": "#ffffff",
             "--mc-border": "#e5e5e6",
@@ -520,6 +565,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-action-primary-hover": "#0184bc",
         },
         dark: {
+            "--mc-bubble-failed": "#e06c75",
             "--mc-canvas": "#282c34",
             "--mc-surface": "#21252b",
             "--mc-border": "#3e4451",
@@ -531,10 +577,12 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#56b6c2",
             "--mc-action-primary": "#61afef",
             "--mc-action-primary-hover": "#56b6c2",
+            "--mc-action-primary-text": "#282c34",
         },
     },
     neo_brutalist: {
         light: {
+            "--mc-bubble-failed": "#ff5252",
             "--mc-canvas": "#f7f7f5",
             "--mc-surface": "#fafafa",
             "--mc-border": "#464b54",
@@ -547,10 +595,12 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#2478ab",
             "--mc-action-primary": "#8080c0",
             "--mc-action-primary-hover": "#2478ab",
+            "--mc-action-primary-text": "#2b2b2b",
             "--mc-secondary-chip-hover-border": "#8080c0",
             "--mc-address-action-hover-border": "#8080c0",
         },
         dark: {
+            "--mc-bubble-failed": "#ff6b6b",
             "--mc-canvas": "#18191b",
             "--mc-surface": "#222428",
             "--mc-border": "#464b54",
@@ -563,6 +613,7 @@ export const THEME_PRESETS: Record<string, { light: CssVariables; dark: CssVaria
             "--mc-accent-hover": "#5ab7ec",
             "--mc-action-primary": "#bc86dd",
             "--mc-action-primary-hover": "#5ab7ec",
+            "--mc-action-primary-text": "#18191b",
             "--mc-secondary-chip-hover-border": "#bc86dd",
             "--mc-address-action-hover-border": "#bc86dd",
             "--mc-glass-surface": "rgb(34 36 40 / 0.92)",
@@ -635,6 +686,27 @@ export function buildThemeVariableOverrides(
     const accent = normalizeOptionalHexColor(config?.accent_color);
     if (accent) {
         Object.assign(overrides, accentDerivativeVars(accent, effectiveMode === "dark"));
+    }
+
+    const base = effectiveMode === "dark" ? MESHCHAT_THEME_VARIABLES_DARK : MESHCHAT_THEME_VARIABLES_LIGHT;
+    const resolved = { ...base, ...overrides };
+
+    // Message bubble colors follow the theme unless the preset sets its own.
+    if (overrides["--mc-bubble-outbound"] == null) {
+        overrides["--mc-bubble-outbound"] = overrides["--mc-accent"] ?? resolved["--mc-info"];
+    }
+    if (overrides["--mc-bubble-failed"] == null) {
+        overrides["--mc-bubble-failed"] = resolved["--mc-error"];
+    }
+    if (overrides["--mc-bubble-failed-text"] == null) {
+        overrides["--mc-bubble-failed-text"] = actionTextForFill(overrides["--mc-bubble-failed"]);
+    }
+    if (overrides["--mc-bubble-waiting"] == null) {
+        const isDark = effectiveMode === "dark";
+        overrides["--mc-bubble-waiting"] = mixHex(resolved["--mc-canvas"], resolved["--mc-text"], isDark ? 0.25 : 0.08);
+    }
+    if (overrides["--mc-bubble-waiting-text"] == null) {
+        overrides["--mc-bubble-waiting-text"] = resolved["--mc-text"];
     }
 
     return overrides;

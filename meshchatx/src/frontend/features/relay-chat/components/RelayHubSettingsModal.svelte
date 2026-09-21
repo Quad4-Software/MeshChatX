@@ -2,114 +2,224 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import Toggle from "../../../ui/svelte/Toggle.svelte";
     import MdiIconPickerModal from "./MdiIconPickerModal.svelte";
     import { t } from "../../../js/i18n.js";
-    import { BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER } from "../lib/constants.js";
+    import { DEFAULT_RRC_HUB_ICON, normalizeMdiIconName } from "../../../js/mdiIconNames.js";
+    import { BTN_PRIMARY, BTN_SECONDARY } from "../lib/constants.js";
+    import { statusIconColor } from "../lib/relayFormatters.js";
     import type { RrcHub } from "../lib/types.js";
 
     interface Props {
         show?: boolean;
         hub?: RrcHub | null;
+        applyingOptionsToAllHubs?: boolean;
         onclose?: () => void;
-        onsubmit?: (hub: RrcHub, name: string, autoReconnect: boolean, icon: string) => void;
-        onremove?: (hub: RrcHub) => void;
+        onsubmit?: (payload: Record<string, unknown>) => void;
+        onapplyoptionsall?: (options: { auto_reconnect: boolean; auto_list: boolean; auto_who: boolean }) => void;
     }
 
-    let { show = false, hub = null, onclose, onsubmit, onremove }: Props = $props();
+    let {
+        show = false,
+        hub = null,
+        applyingOptionsToAllHubs = false,
+        onclose,
+        onsubmit,
+        onapplyoptionsall,
+    }: Props = $props();
 
-    let editName = $state("");
-    let editAutoReconnect = $state(true);
-    let editIcon = $state("forum");
-    let iconPickerShowing = $state(false);
+    let autoReconnect = $state(true);
+    let autoList = $state(true);
+    let autoWho = $state(false);
+    let nick = $state("");
+    let customName = $state("");
+    let defaultName = $state("");
+    let hasCustomName = $state(false);
+    let hubIcon = $state<string | null>(null);
+    let showIconPicker = $state(false);
+
+    const iconPreview = $derived(normalizeMdiIconName(hubIcon) || DEFAULT_RRC_HUB_ICON);
+    const statusIconClass = $derived(statusIconColor(hub?.status ?? 0));
 
     $effect(() => {
-        if (hub) {
-            editName = hub.custom_display_name || hub.display_name || hub.name || "";
-            editAutoReconnect = hub.auto_reconnect ?? true;
-            editIcon = hub.icon || "forum";
+        if (show && hub) {
+            defaultName = hub.hub_name_announced || hub.name || "";
+            autoReconnect = hub.auto_reconnect !== false;
+            autoList = !!hub.auto_list;
+            autoWho = !!hub.auto_who;
+            nick = hub.nick_override || "";
+            customName = hub.custom_name || "";
+            hasCustomName = Boolean(hub.custom_name);
+            hubIcon = normalizeMdiIconName(hub.hub_icon);
+            showIconPicker = false;
         }
     });
 
+    function onHubIconPicked(iconName: string | null) {
+        hubIcon = normalizeMdiIconName(iconName);
+    }
+
     function handleSubmit() {
         if (!hub) return;
-        onsubmit?.(hub, editName.trim(), editAutoReconnect, editIcon);
+        const payload: Record<string, unknown> = {
+            auto_reconnect: autoReconnect,
+            auto_list: autoList,
+            auto_who: autoWho,
+            nick,
+        };
+        const trimmed = (customName || "").trim();
+        if (!trimmed && hasCustomName) {
+            payload.revert_custom_name = true;
+        } else if (trimmed) {
+            payload.custom_name = trimmed;
+        }
+        const icon = normalizeMdiIconName(hubIcon);
+        const hadIcon = Boolean(hub.hub_icon);
+        if (!icon && hadIcon) {
+            payload.revert_hub_icon = true;
+        } else if (icon) {
+            payload.hub_icon = icon;
+        }
+        onsubmit?.(payload);
     }
 </script>
 
-{#if show && hub}
-    <div class="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4">
-        <div class="w-full max-w-md rounded-2xl border border-sem-border bg-sem-surface p-6 shadow-xl text-sem-fg">
-            <h3 class="text-lg font-bold mb-4">{t("relay_chat.hub_settings")}</h3>
-            <div class="space-y-4">
-                <div>
-                    <label
-                        class="block text-xs font-semibold text-sem-fg-muted uppercase tracking-wider mb-1"
-                        for="edit-hub-name-input"
-                    >
-                        {t("relay_chat.hub_name")}
+{#if show}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        onclick={(e) => {
+            if (e.target === e.currentTarget) onclose?.();
+        }}
+    >
+        <div class="w-full max-w-md rounded-2xl border border-sem-border-card bg-sem-surface p-5 shadow-xl text-sem-fg">
+            <h2 class="mb-4 text-lg font-semibold">{t("relay_chat.settings")}</h2>
+            <form
+                class="space-y-4"
+                onsubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmit();
+                }}
+            >
+                <div class="space-y-2">
+                    <span class="block text-sm font-semibold text-sem-fg-secondary">{t("relay_chat.hub_icon")}</span>
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-sem-border bg-sem-canvas"
+                        >
+                            <MaterialDesignIcon iconName={iconPreview} class="size-7 {statusIconClass}" />
+                        </div>
+                        <div class="flex min-w-0 flex-1 flex-wrap gap-2">
+                            <button
+                                type="button"
+                                class="{BTN_SECONDARY} py-1.5! text-xs!"
+                                onclick={() => {
+                                    showIconPicker = true;
+                                }}
+                            >
+                                <MaterialDesignIcon iconName="image-edit-outline" class="size-4" />
+                                {t("relay_chat.hub_icon_choose")}
+                            </button>
+                            {#if hubIcon}
+                                <button
+                                    type="button"
+                                    class="text-xs text-sem-accent hover:underline cursor-pointer"
+                                    onclick={() => {
+                                        hubIcon = null;
+                                    }}
+                                >
+                                    {t("relay_chat.hub_icon_reset_default")}
+                                </button>
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-sm font-semibold text-sem-fg-secondary" for="hub-settings-name">
+                        {t("relay_chat.hub_display_name")}
                     </label>
                     <input
-                        id="edit-hub-name-input"
+                        id="hub-settings-name"
+                        bind:value={customName}
                         type="text"
-                        bind:value={editName}
-                        class="w-full px-3 py-2 text-sm bg-sem-canvas border border-sem-border rounded-xl text-sem-fg focus:outline-hidden focus:border-sem-accent"
+                        placeholder={defaultName}
+                        class="input-field"
                     />
+                    {#if hasCustomName}
+                        <button
+                            type="button"
+                            class="text-xs text-sem-accent hover:underline cursor-pointer"
+                            onclick={() => {
+                                customName = "";
+                            }}
+                        >
+                            {t("relay_chat.revert_hub_name")}
+                        </button>
+                    {/if}
                 </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold text-sem-fg-muted uppercase tracking-wider">
-                        {t("relay_chat.hub_icon")}
+                <label class="setting-toggle flex items-start gap-3 cursor-pointer">
+                    <Toggle id="rrc-auto-reconnect" bind:checked={autoReconnect} />
+                    <span class="min-w-0 text-sm">
+                        <span class="font-medium text-sem-fg">{t("relay_chat.auto_reconnect")}</span>
                     </span>
+                </label>
+                <label class="setting-toggle flex items-start gap-3 cursor-pointer">
+                    <Toggle id="rrc-auto-list" bind:checked={autoList} />
+                    <span class="min-w-0 text-sm">
+                        <span class="font-medium text-sem-fg">{t("relay_chat.auto_list")}</span>
+                    </span>
+                </label>
+                <label class="setting-toggle flex items-start gap-3 cursor-pointer">
+                    <Toggle id="rrc-auto-who" bind:checked={autoWho} />
+                    <span class="min-w-0 text-sm">
+                        <span class="font-medium text-sem-fg">{t("relay_chat.auto_who")}</span>
+                    </span>
+                </label>
+                <div>
                     <button
                         type="button"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-sem-border bg-sem-canvas hover:bg-sem-surface-muted transition-colors cursor-pointer text-xs"
-                        onclick={() => {
-                            iconPickerShowing = true;
-                        }}
+                        class="text-xs text-sem-accent hover:underline disabled:opacity-50 cursor-pointer"
+                        disabled={applyingOptionsToAllHubs}
+                        onclick={() =>
+                            onapplyoptionsall?.({
+                                auto_reconnect: autoReconnect,
+                                auto_list: autoList,
+                                auto_who: autoWho,
+                            })}
                     >
-                        <MaterialDesignIcon iconName={editIcon} class="size-4" />
-                        <span>{editIcon}</span>
+                        {t("relay_chat.apply_auto_options_all_hubs")}
                     </button>
                 </div>
-                <label class="flex items-center gap-2 cursor-pointer select-none">
+                <div class="space-y-1.5">
+                    <label class="block text-sm font-semibold text-sem-fg-secondary" for="hub-settings-nick">
+                        {t("relay_chat.nickname")}
+                    </label>
                     <input
-                        type="checkbox"
-                        bind:checked={editAutoReconnect}
-                        class="size-4 rounded border-sem-border text-sem-accent focus:ring-sem-accent"
+                        id="hub-settings-nick"
+                        bind:value={nick}
+                        type="text"
+                        placeholder={t("relay_chat.nickname_placeholder")}
+                        class="input-field"
                     />
-                    <span class="text-xs font-medium">{t("relay_chat.auto_reconnect")}</span>
-                </label>
-            </div>
-            <div class="mt-6 flex items-center justify-between">
-                <button
-                    type="button"
-                    class={BTN_DANGER}
-                    onclick={() => {
-                        if (hub) onremove?.(hub);
-                    }}
-                >
-                    {t("relay_chat.remove_hub")}
-                </button>
-                <div class="flex gap-3">
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
                     <button type="button" class={BTN_SECONDARY} onclick={() => onclose?.()}>
                         {t("common.cancel")}
                     </button>
-                    <button type="button" class={BTN_PRIMARY} onclick={handleSubmit}>
-                        {t("common.save")}
-                    </button>
+                    <button type="submit" class={BTN_PRIMARY}>{t("relay_chat.save")}</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 {/if}
 
 <MdiIconPickerModal
-    open={iconPickerShowing}
-    selectedIcon={editIcon}
-    onselect={(icon) => {
-        editIcon = icon || "";
-        iconPickerShowing = false;
-    }}
+    open={showIconPicker}
+    selectedIcon={hubIcon}
+    previewIconClass={statusIconClass}
     onclose={() => {
-        iconPickerShowing = false;
+        showIconPicker = false;
     }}
+    onselect={onHubIconPicked}
 />

@@ -1,24 +1,24 @@
 ---
 name: exploratory-testing
-description: Adversarial bug hunting with explicit hypotheses and oracle-backed confirmation. Use when the user asks to find bugs, fuzz a subsystem, or audit edge cases.
+description: Adversarial bug hunting with explicit hypotheses and reference-backed confirmation. Use when the user asks to find bugs, fuzz a subsystem, or audit edge cases.
 ---
 
 # Skill: exploratory-testing
 
-Hunt bugs with explicit hypotheses and oracle-backed confirmation. Use when the user asks to find bugs, fuzz a subsystem, or audit edge cases beyond happy-path unit tests.
+Hunt bugs with explicit hypotheses and reference-backed confirmation. Use when the user asks to find bugs, fuzz a subsystem, or audit edge cases beyond happy-path unit tests.
 
 ## When to use
 
 - New or recently changed mesh protocols (RNS, LXMF, LXST, RRC)
 - Security-sensitive surfaces (ACL, keys, auth, path handling, URL origin allowlists)
 - After a feature lands and needs adversarial review
-- Soft fuzz suites that need real oracles
+- Soft fuzz suites that need real references
 
 ## Method
 
 1. Map the state machine or ACL matrix from code (not from memory alone).
 2. Write 5 to 15 concrete hypotheses (Hn) with file references and predicted wrong behaviour.
-3. For each high-priority hypothesis, write a failing oracle test first when possible.
+3. For each high-priority hypothesis, write a failing reference test first when possible.
 4. Confirm with a focused pytest or vitest run. Fix only confirmed bugs unless asked to report only.
 5. Record intentional behaviours (example IRC-style outside messages without +n) instead of changing them by accident.
 
@@ -48,11 +48,11 @@ Bad:
 APR research findings that shape how fixes land:
 
 - LLMs claim bugs in correct code, and repair of buggy code damages correct code
-  more often than it helps. No oracle, no edit. A hypothesis without a failing
+  more often than it helps. No reference, no edit. A hypothesis without a failing
   test stays a report item, not a patch.
 - Multi-turn fixes accumulate regressions: 40 to 73 percent of tasks lose
   earlier-correct behaviour across a session. After every patch, re-run the
-  prior oracle tests and the suites of direct consumers, not only the new test.
+  prior reference tests and the suites of direct consumers, not only the new test.
 - Regression rate grows with churn. Keep patches minimal and local. No
   refactors, renames, or drive-by cleanups inside a bugfix.
 - Test overfitting: a patch can pass the new test and still violate the
@@ -94,7 +94,7 @@ APR research findings that shape how fixes land:
 When reporting to the user:
 
 - Confirmed bugs (fixed or still open)
-- Oracle tests added
+- Reference tests added
 - Intentional behaviours left alone
 - Remaining hypotheses not yet tested
 - Rejected hypotheses (looked buggy, verified correct) worth recording

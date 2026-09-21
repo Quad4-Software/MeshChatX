@@ -133,14 +133,15 @@ class VoicemailManager:
                 voice,
                 "-w",
                 wav_path,
-                text,
             ]
 
             RNS.log(
                 f"Voicemail: Generating greeting with command: {' '.join(cmd)}",
                 RNS.LOG_DEBUG,
             )
-            subprocess.run(cmd, check=True)
+            # Text goes over stdin: a greeting starting with '-' would
+            # otherwise be parsed as an espeak flag.
+            subprocess.run(cmd, input=text.encode("utf-8"), check=True)
 
             return self.convert_to_greeting(wav_path)
         finally:
@@ -385,6 +386,7 @@ class VoicemailManager:
                 if self.is_recording:
                     self.stop_recording()
             finally:
+                self.telephone_manager.is_voicemail_session_active = False
                 with contextlib.suppress(Exception):
                     if not prev_receive_muted:
                         self.telephone_manager.unmute_receive()

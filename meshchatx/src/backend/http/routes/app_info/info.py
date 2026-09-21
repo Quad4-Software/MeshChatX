@@ -47,7 +47,7 @@ def register_app_info_info_routes(routes, app):
 
                 return _EmptyMem()
             try:
-                return process.memory_info()
+                info = process.memory_info()
             except Exception:
 
                 class _EmptyMemFallback:
@@ -55,6 +55,18 @@ def register_app_info_info_routes(routes, app):
                     vms = 0
 
                 return _EmptyMemFallback()
+            if hasattr(sys, "getandroidapilevel"):
+                # Android runtimes reserve huge virtual ranges, so vsize is
+                # meaningless noise (multi-TB). Report it as unknown instead.
+                class _AndroidMem:
+                    __slots__ = ("rss", "vms")
+
+                    def __init__(self, rss):
+                        self.rss = rss
+                        self.vms = None
+
+                return _AndroidMem(info.rss)
+            return info
 
         def _safe_process_usage():
             usage: dict[str, float | int | None] = {

@@ -90,7 +90,7 @@
 </script>
 
 {#if visible}
-    <section class="settings-section break-inside-avoid">
+    <section class="settings-section break-inside-avoid" data-settings-section="transport">
         <header class="settings-section__header">
             <div>
                 <div class="settings-section__eyebrow">Reticulum</div>
@@ -110,6 +110,11 @@
                     <span class="setting-toggle__description">{t("app.transport_toggle_description")}</span>
                 </span>
             </label>
+            {#if reticulumInstance.is_connected_to_shared_instance}
+                <p class="text-xs text-amber-700 dark:text-amber-300">
+                    {t("app.transport_shared_instance_notice")}
+                </p>
+            {/if}
 
             <label class="setting-toggle">
                 <Toggle

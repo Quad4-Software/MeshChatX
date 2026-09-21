@@ -97,6 +97,9 @@ export function isRelayPresenceSystemMessage(msg: RelayTimelineMessage | null | 
     if (!msg || msg.kind !== "system") {
         return false;
     }
+    if (msg.event === "join" || msg.event === "part") {
+        return true;
+    }
     const text = typeof msg.text === "string" ? msg.text.trim() : "";
     if (!text) {
         return false;
@@ -110,7 +113,30 @@ export function isRelayPresenceSystemMessage(msg: RelayTimelineMessage | null | 
     return /^You (?:re)?joined #/i.test(text);
 }
 
+/**
+ * Peer join/part presence lines only: own-join confirmations ("You joined")
+ * and connection events stay visible when presence muting is on. Detects the
+ * backend msg.event tag and falls back to the generated text for older
+ * history entries.
+ */
+export function isRelayPeerJoinPartMessage(msg: RelayTimelineMessage | null | undefined): boolean {
+    if (!msg || msg.kind !== "system") {
+        return false;
+    }
+    if (msg.event === "join" || msg.event === "part") {
+        return true;
+    }
+    const text = typeof msg.text === "string" ? msg.text.trim() : "";
+    return text.endsWith(" joined") || text.endsWith(" left");
+}
+
 export function relayPresenceEventKind(msg: RelayTimelineMessage | null | undefined): RelayPresenceEventKind {
+    if (msg?.event === "part") {
+        return "left";
+    }
+    if (msg?.event === "join") {
+        return "joined";
+    }
     const text = typeof msg?.text === "string" ? msg.text.trim() : "";
     if (CONNECTION_EVENT_TEXTS.has(text)) {
         return "connection";
@@ -146,7 +172,11 @@ function buildPresenceGroup(presenceMessages: RelayTimelineMessage[]): RelayTime
     };
 }
 
-export function buildRelayMessageTimeline(messages: RelayTimelineMessage[]): RelayTimelineItem[] {
+export function buildRelayMessageTimeline(
+    messages: RelayTimelineMessage[],
+    options: { hideJoinPart?: boolean } = {}
+): RelayTimelineItem[] {
+    const hideJoinPart = options.hideJoinPart === true;
     if (!Array.isArray(messages) || messages.length === 0) {
         return [];
     }
@@ -179,6 +209,9 @@ export function buildRelayMessageTimeline(messages: RelayTimelineMessage[]): Rel
             flushPresence();
             out.push({ type: "dateDivider", dayKey });
             prevDayKey = dayKey;
+        }
+        if (hideJoinPart && isRelayPeerJoinPartMessage(msg)) {
+            continue;
         }
         if (isRelayPresenceSystemMessage(msg)) {
             presenceBuffer.push(msg);

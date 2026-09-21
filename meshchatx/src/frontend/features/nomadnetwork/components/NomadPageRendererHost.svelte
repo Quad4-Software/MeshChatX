@@ -36,7 +36,9 @@
         nomadRenderedShellFullBleed?: boolean;
         nomadShellDark?: boolean;
         nodeContainerShellStyle?: string;
+        hasHistory?: boolean;
         onreload?: () => void;
+        onback?: () => void;
         oncancelbusy?: () => void;
         onretrycrashtab?: () => void;
         ontogglearchive?: () => void;
@@ -83,7 +85,9 @@
         nomadRenderedShellFullBleed = false,
         nomadShellDark = false,
         nodeContainerShellStyle = "",
+        hasHistory = false,
         onreload,
+        onback,
         oncancelbusy,
         onretrycrashtab,
         ontogglearchive,
@@ -119,6 +123,62 @@
     export function setImage(index: number, state: string, payload: Record<string, unknown> = {}) {
         crashTab?.setImage(index, state, payload);
     }
+
+    // Edge swipe-back and pull-to-refresh gestures, matching the Vue page.
+    const NAV_SWIPE_EDGE_PX = 40;
+    const NAV_SWIPE_BACK_TRIGGER_PX = 64;
+    const NAV_PULL_TRIGGER_PX = 72;
+
+    let navTouchStartX = 0;
+    let navTouchStartY = 0;
+    let navTouchStartScrollTop = 0;
+    let navSwipeEdgeActive = false;
+    let navSwipeBackDistance = $state(0);
+    let navPullDistance = $state(0);
+
+    function onNodeContainerTouchStart(e: TouchEvent) {
+        const touch = e.touches[0];
+        if (!touch) {
+            return;
+        }
+        const el = e.currentTarget as HTMLElement;
+        navTouchStartX = touch.clientX;
+        navTouchStartY = touch.clientY;
+        navTouchStartScrollTop = el.scrollTop;
+        navSwipeEdgeActive = touch.clientX - el.getBoundingClientRect().left <= NAV_SWIPE_EDGE_PX;
+        navSwipeBackDistance = 0;
+        navPullDistance = 0;
+    }
+
+    function onNodeContainerTouchMove(e: TouchEvent) {
+        const touch = e.touches[0];
+        if (!touch) {
+            return;
+        }
+        const dx = touch.clientX - navTouchStartX;
+        const dy = touch.clientY - navTouchStartY;
+        if (navSwipeEdgeActive && dx > 0 && dx > Math.abs(dy) && hasHistory) {
+            navSwipeBackDistance = Math.min(dx, 140);
+            navPullDistance = 0;
+            return;
+        }
+        const el = e.currentTarget as HTMLElement;
+        if (navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx)) {
+            navPullDistance = Math.min(dy, 160);
+            navSwipeBackDistance = 0;
+        }
+    }
+
+    function onNodeContainerTouchEnd() {
+        if (navSwipeBackDistance >= NAV_SWIPE_BACK_TRIGGER_PX) {
+            onback?.();
+        } else if (navPullDistance >= NAV_PULL_TRIGGER_PX) {
+            onreload?.();
+        }
+        navSwipeEdgeActive = false;
+        navSwipeBackDistance = 0;
+        navPullDistance = 0;
+    }
 </script>
 
 <div
@@ -129,9 +189,48 @@
     onclickcapture={(e) => oncontentclick?.(e)}
     onauxclickcapture={(e) => oncontentclick?.(e)}
     oncontextmenu={(e) => oncontentcontextmenu?.(e)}
+    ontouchstart={onNodeContainerTouchStart}
+    ontouchmove={onNodeContainerTouchMove}
+    ontouchend={onNodeContainerTouchEnd}
+    ontouchcancel={onNodeContainerTouchEnd}
     role="region"
     aria-label="Nomad page content"
 >
+    <!-- pull-to-refresh indicator -->
+    {#if navPullDistance > 8}
+        <div class="pointer-events-none absolute inset-x-0 top-2 z-20 flex justify-center">
+            <div
+                class="flex size-9 items-center justify-center rounded-full border border-sem-border bg-sem-surface shadow-md"
+                style="opacity: {Math.min(1, navPullDistance / NAV_PULL_TRIGGER_PX)}; transform: scale({0.6 +
+                    0.4 * Math.min(1, navPullDistance / NAV_PULL_TRIGGER_PX)});"
+            >
+                <MaterialDesignIcon
+                    iconName="refresh"
+                    class="size-5 {navPullDistance >= NAV_PULL_TRIGGER_PX
+                        ? 'animate-spin text-sem-accent'
+                        : 'text-sem-fg'}"
+                />
+            </div>
+        </div>
+    {/if}
+    <!-- edge swipe-back indicator -->
+    {#if navSwipeBackDistance > 8}
+        <div class="pointer-events-none absolute left-0 top-1/2 z-20">
+            <div
+                class="flex size-9 items-center justify-center rounded-full border shadow-md {navSwipeBackDistance >=
+                NAV_SWIPE_BACK_TRIGGER_PX
+                    ? 'border-sem-accent bg-sem-surface text-sem-accent'
+                    : 'border-sem-border bg-sem-surface text-sem-fg'}"
+                style="opacity: {Math.min(1, navSwipeBackDistance / NAV_SWIPE_BACK_TRIGGER_PX)}; transform: translate({Math.min(
+                    navSwipeBackDistance * 0.5,
+                    56
+                ) - 44}px, -50%);"
+            >
+                <MaterialDesignIcon iconName="arrow-left" class="size-5" />
+            </div>
+        </div>
+    {/if}
+
     {#if isShowingArchivedVersion}
         <div
             class="mb-4 flex min-w-0 items-center justify-between gap-2 rounded-sm border border-yellow-700/50 bg-yellow-900/40 p-2 text-yellow-200 {nomadRenderedShellFullBleed

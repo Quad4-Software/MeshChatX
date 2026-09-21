@@ -805,7 +805,19 @@
     async function onComposeNewMessage(destHash: string | null | undefined) {
         if (destHash == null) {
             if (selectedPeer) {
-                return;
+                // A popout window is bound to one conversation - leave it alone.
+                if (isPopoutMode) {
+                    return;
+                }
+                // Header Compose used to silently no-op while a chat was open.
+                // Surface an empty pane on wide multi-pane layouts, otherwise
+                // close the open conversation so the compose form shows.
+                if (canAddPane) {
+                    addPane();
+                    syncRouteToFocusedPane();
+                } else {
+                    onCloseConversationViewer();
+                }
             }
             queueMicrotask(() => {
                 document.getElementById("compose-input")?.focus();

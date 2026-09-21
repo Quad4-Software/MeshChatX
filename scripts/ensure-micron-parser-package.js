@@ -22,7 +22,10 @@ const packageJson = {
     module: "js/micron-parser.js",
 };
 
-if (!fs.existsSync(packageJsonPath)) {
+const isPlaceholder =
+    fs.existsSync(packageJsonPath) && fs.readFileSync(packageJsonPath, "utf8").includes('"_pnpmPlaceholder"');
+
+if (!fs.existsSync(packageJsonPath) || isPlaceholder) {
     fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf8");
     console.log("Created node_modules/micron-parser/package.json for module resolution.");
 }

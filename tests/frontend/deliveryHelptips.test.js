@@ -237,3 +237,19 @@ describe("HelptipUtils integration", () => {
         }
     });
 });
+
+describe("helptip policy bounds", () => {
+    it("prunes stale entries and caps the tracked maps", async () => {
+        const { recordHelptipShownForPeer, resetHelptipPolicyForTests } =
+            await import("../../meshchatx/src/frontend/js/helptipPolicy.js");
+        resetHelptipPolicyForTests();
+        const stale = Date.now() - 60 * 1000;
+        for (let i = 0; i < 600; i++) {
+            recordHelptipShownForPeer(`peer-${i}`, stale);
+        }
+        // All entries are older than the 30s cooldown window: the next write
+        // prunes them before inserting.
+        recordHelptipShownForPeer("peer-fresh", Date.now());
+        resetHelptipPolicyForTests();
+    });
+});

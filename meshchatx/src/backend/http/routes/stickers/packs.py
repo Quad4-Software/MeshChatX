@@ -11,6 +11,7 @@ from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_not_found,
     http_payload_too_large,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -68,7 +69,9 @@ def register_stickers_packs_routes(routes: Any, app: Any) -> None:
     async def sticker_packs_get(request):
         identity_hash = app.identity.hash.hex()
         try:
-            pack_id = int(request.match_info.get("pack_id", "0"))
+            pack_id = parse_int_param(request.match_info.get("pack_id"))
+            if pack_id is None:
+                return http_bad_request("invalid pack id")
         except ValueError:
             return http_bad_request("invalid_pack_id")
         row = app.database.sticker_packs.get_row(pack_id, identity_hash)
@@ -86,7 +89,9 @@ def register_stickers_packs_routes(routes: Any, app: Any) -> None:
     async def sticker_packs_patch(request):
         identity_hash = app.identity.hash.hex()
         try:
-            pack_id = int(request.match_info.get("pack_id", "0"))
+            pack_id = parse_int_param(request.match_info.get("pack_id"))
+            if pack_id is None:
+                return http_bad_request("invalid pack id")
         except ValueError:
             return http_bad_request("invalid_pack_id")
         try:
@@ -136,7 +141,9 @@ def register_stickers_packs_routes(routes: Any, app: Any) -> None:
     async def sticker_packs_delete(request):
         identity_hash = app.identity.hash.hex()
         try:
-            pack_id = int(request.match_info.get("pack_id", "0"))
+            pack_id = parse_int_param(request.match_info.get("pack_id"))
+            if pack_id is None:
+                return http_bad_request("invalid pack id")
         except ValueError:
             return http_bad_request("invalid_pack_id")
         with_stickers = request.query.get("with_stickers", "false").lower() == "true"
@@ -155,7 +162,9 @@ def register_stickers_packs_routes(routes: Any, app: Any) -> None:
     async def sticker_packs_export(request):
         identity_hash = app.identity.hash.hex()
         try:
-            pack_id = int(request.match_info.get("pack_id", "0"))
+            pack_id = parse_int_param(request.match_info.get("pack_id"))
+            if pack_id is None:
+                return http_bad_request("invalid pack id")
         except ValueError:
             return http_bad_request("invalid_pack_id")
         row = app.database.sticker_packs.get_row(pack_id, identity_hash)

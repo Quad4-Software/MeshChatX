@@ -11,6 +11,7 @@ from meshchatx.src.backend.http.errors import (
     http_not_found,
     http_payload_too_large,
     http_unavailable,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -60,8 +61,12 @@ def register_telephone_voicemail_routes(routes, app):
     @routes.get("/api/v1/telephone/voicemails")
     async def telephone_voicemails(request):
         search = request.query.get("search")
-        limit = int(request.query.get("limit", 50))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 50, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request(
+                "limit and offset must be non-negative integers",
+            )
         voicemails_rows = app.database.voicemails.get_voicemails(
             search=search,
             limit=limit,

@@ -10,10 +10,11 @@
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import LanguageSelector from "../../../ui/svelte/LanguageSelector.svelte";
     import { navigate } from "../../../shell/hashRouter.js";
+    import { orderedTopNavItems, topNavLayoutState } from "../../../js/appTopNavLayout.svelte.js";
     import type { AppShellState } from "../lib/appShellState.svelte.js";
     import { composeNewMessage, onAppNameClick } from "../lib/appShellCommands.js";
     import { onLanguageChange, toggleTheme } from "../lib/appShellConfig.js";
-    import { openCommandPalette } from "../lib/appShellNav.js";
+    import { navBadgeCount, navBadgeText, openCommandPalette } from "../lib/appShellNav.js";
     import { cancelInboundDeliveries, syncPropagationNode } from "../lib/appShellPropagation.js";
 
     interface Props {
@@ -27,6 +28,8 @@
         void shell.localeVersion;
         return (key: string, values?: Record<string, unknown>) => t(key, values);
     });
+
+    const topNavItems = $derived(orderedTopNavItems(shell.rawVisibleNavItems, topNavLayoutState.itemIds));
 </script>
 
 <div
@@ -85,42 +88,26 @@
             >
                 <MaterialDesignIcon iconName="magnify" class="size-5" />
             </button>
-            {#if shell.rrcEnabled}
+            {#each topNavItems as item (item.id)}
                 <button
                     type="button"
                     class="relative inline-flex size-11 sm:size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised"
-                    title={tr("app.relay_chat")}
-                    aria-label={tr("app.relay_chat")}
-                    data-testid="header-relay-chat"
-                    onclick={() => void navigate({ name: "relay-chat" })}
+                    class:text-sem-accent={shell.routeName === item.route?.name}
+                    title={tr(item.labelKey ?? "")}
+                    aria-label={tr(item.labelKey ?? "")}
+                    data-testid={`header-nav-${item.id}`}
+                    onclick={() => void navigate(item.route)}
                 >
-                    <MaterialDesignIcon iconName="forum" class="size-5" />
-                    {#if shell.global.relayChatUnreadCount > 0}
+                    <MaterialDesignIcon iconName={item.icon} class="size-5" />
+                    {#if navBadgeCount(shell, item) > 0}
                         <span
-                            class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                            class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sem-action-danger px-1 text-[10px] font-bold leading-none text-sem-action-danger-text"
                         >
-                            {shell.global.relayChatUnreadCount > 99 ? "99+" : shell.global.relayChatUnreadCount}
+                            {navBadgeText(shell, item)}
                         </span>
                     {/if}
                 </button>
-            {/if}
-            <button
-                type="button"
-                class="relative inline-flex size-11 sm:size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised"
-                title={tr("app.audio_calls")}
-                aria-label={tr("app.audio_calls")}
-                data-testid="header-telephone"
-                onclick={() => void navigate({ name: "call" })}
-            >
-                <MaterialDesignIcon iconName="phone" class="size-5" />
-                {#if shell.global.missedCallsCount > 0}
-                    <span
-                        class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
-                    >
-                        {shell.global.missedCallsCount > 99 ? "99+" : shell.global.missedCallsCount}
-                    </span>
-                {/if}
-            </button>
+            {/each}
             <button
                 type="button"
                 class="sm:hidden inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised"

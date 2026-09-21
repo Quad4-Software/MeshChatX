@@ -2,7 +2,22 @@ package com.meshchatx;
 
 final class MeshchatDownloadUtils {
 
+    private static final int DOWNLOAD_NOTIFICATION_ID_BASE = 0x60000;
+    private static final java.util.concurrent.ConcurrentHashMap<String, Integer> downloadNotificationIds =
+        new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.atomic.AtomicInteger nextDownloadNotificationId =
+        new java.util.concurrent.atomic.AtomicInteger(DOWNLOAD_NOTIFICATION_ID_BASE);
+
     private MeshchatDownloadUtils() {}
+
+    /**
+     * Maps a string download id to a stable notification id so progress updates
+     * replace each other and the finished state reuses the same slot.
+     */
+    static int notificationIdFor(String downloadId) {
+        String key = downloadId != null ? downloadId : "download";
+        return downloadNotificationIds.computeIfAbsent(key, k -> nextDownloadNotificationId.getAndIncrement());
+    }
 
     /**
      * Produces a filename safe for writing into app storage / MediaStore.

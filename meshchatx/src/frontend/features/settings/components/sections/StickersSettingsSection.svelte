@@ -29,6 +29,7 @@
 
 <SettingsSectionBlock
     show={visible}
+    sectionKey="stickers"
     eyebrow="Messages"
     title={t("stickers.settings_title")}
     description={t("stickers.settings_description")}

@@ -78,7 +78,7 @@ def test_filter_discovered_interfaces_long_names_and_scripts():
         max_size=8,
     ),
 )
-def test_discovery_filter_candidates_field_oracle(name, typ, host, port, extra):
+def test_discovery_filter_candidates_field(name, typ, host, port, extra):
     iface = {"name": name, "type": typ, "reachable_on": host, "port": port, **extra}
     c = ReticulumMeshChat.discovery_filter_candidates(iface)
     assert isinstance(c, list)

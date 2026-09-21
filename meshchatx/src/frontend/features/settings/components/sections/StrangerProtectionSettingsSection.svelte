@@ -26,6 +26,7 @@
 
 <SettingsSectionBlock
     show={visible}
+    sectionKey="strangerProtection"
     eyebrow="Security"
     title={t("app.stranger_protection")}
     description={t("app.stranger_protection_description")}

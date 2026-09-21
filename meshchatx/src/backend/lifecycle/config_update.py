@@ -17,6 +17,23 @@ from meshchatx.src.backend.webtransport_sidecar import try_start_webtransport_si
 
 
 async def apply_config_update(app: Any, data):
+    # Validate before any .set() call: config fields persist to SQLite
+    # immediately, so a late ValueError would leave a partial update.
+    if "oidc_issuer_url" in data:
+        from meshchatx.src.backend.oidc import (
+            OidcConfigError,
+            validate_issuer_url,
+        )
+
+        raw_issuer = data["oidc_issuer_url"]
+        if raw_issuer is not None and str(raw_issuer).strip() != "":
+            try:
+                validated_issuer_url = validate_issuer_url(str(raw_issuer))
+            except OidcConfigError as exc:
+                raise ValueError(f"Invalid oidc_issuer_url: {exc}") from exc
+        else:
+            validated_issuer_url = None
+
     # update display name in config
     if "display_name" in data and data["display_name"] != "":
         app.config.display_name.set(data["display_name"])
@@ -400,7 +417,53 @@ async def apply_config_update(app: Any, data):
 
         # if disabling auth, also remove the password hash from config
         if not value:
-            app.config.auth_password_hash.set(None)
+            app.config.oidc_enabled.set(False)
+            # Only drop the stored password when the request actually
+            # turns authentication off. Env-managed OIDC can keep auth
+            # enforced, and wiping the hash in that state strands the
+            # admin's local credential while the endpoint still demands
+            # authentication.
+            if not app._oidc_ready():
+                app.config.auth_password_hash.set(None)
+
+    if "oidc_enabled" in data:
+        app.config.oidc_enabled.set(app._parse_bool(data["oidc_enabled"]))
+
+    if "oidc_issuer_url" in data:
+        app.config.oidc_issuer_url.set(validated_issuer_url)
+
+    if "oidc_client_id" in data:
+        value = data["oidc_client_id"]
+        app.config.oidc_client_id.set(
+            str(value).strip()
+            if value is not None and str(value).strip()
+            else None,
+        )
+
+    if "oidc_client_secret" in data:
+        value = data["oidc_client_secret"]
+        if value is None:
+            app.config.oidc_client_secret.set(None)
+        elif str(value) != "":
+            app.config.oidc_client_secret.set(str(value))
+        # Empty string means "leave unchanged": the UI never echoes the
+        # stored secret, so a blank field is not a clear request.
+
+    if "oidc_display_name" in data:
+        value = data["oidc_display_name"]
+        app.config.oidc_display_name.set(
+            str(value).strip()
+            if value is not None and str(value).strip()
+            else None,
+        )
+
+    if "oidc_scopes" in data:
+        value = data["oidc_scopes"]
+        scopes = str(value).strip() if value is not None else ""
+        if scopes and "openid" in scopes.split():
+            app.config.oidc_scopes.set(scopes[:200])
+        elif not scopes:
+            app.config.oidc_scopes.set("openid profile email")
 
     if "privacy_mode_enabled" in data:
         app.config.privacy_mode_enabled.set(
@@ -419,10 +482,16 @@ async def apply_config_update(app: Any, data):
         )
 
     if "map_default_lat" in data:
-        app.config.map_default_lat.set(str(data["map_default_lat"]))
+        _map_lat = data["map_default_lat"]
+        app.config.map_default_lat.set(
+            str(_map_lat) if _map_lat is not None else None,
+        )
 
     if "map_default_lon" in data:
-        app.config.map_default_lon.set(str(data["map_default_lon"]))
+        _map_lon = data["map_default_lon"]
+        app.config.map_default_lon.set(
+            str(_map_lon) if _map_lon is not None else None,
+        )
 
     if "map_default_zoom" in data:
         try:
@@ -461,13 +530,22 @@ async def apply_config_update(app: Any, data):
         app.config.location_source.set(data["location_source"])
 
     if "location_manual_lat" in data:
-        app.config.location_manual_lat.set(str(data["location_manual_lat"]))
+        _loc_lat = data["location_manual_lat"]
+        app.config.location_manual_lat.set(
+            str(_loc_lat) if _loc_lat is not None else None,
+        )
 
     if "location_manual_lon" in data:
-        app.config.location_manual_lon.set(str(data["location_manual_lon"]))
+        _loc_lon = data["location_manual_lon"]
+        app.config.location_manual_lon.set(
+            str(_loc_lon) if _loc_lon is not None else None,
+        )
 
     if "location_manual_alt" in data:
-        app.config.location_manual_alt.set(str(data["location_manual_alt"]))
+        _loc_alt = data["location_manual_alt"]
+        app.config.location_manual_alt.set(
+            str(_loc_alt) if _loc_alt is not None else None,
+        )
 
     if "telemetry_enabled" in data:
         app.config.telemetry_enabled.set(

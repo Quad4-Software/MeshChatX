@@ -1,11 +1,11 @@
 ---
 name: test-oracles
-description: Property, fuzz, and security tests that accept or reject with an independent oracle. Use when adding Hypothesis tests or reviewing soft fuzz.
+description: Property, fuzz, and security tests that accept or reject with an independent reference. Use when adding Hypothesis tests or reviewing soft fuzz.
 ---
 
 # Skill: test-oracles
 
-Write property, fuzz, and security tests that decide accept or reject with an independent oracle. Never soft-fuzz that only checks nothing crashed.
+Write property, fuzz, and security tests that decide accept or reject with an independent reference. Never soft-fuzz that only checks nothing crashed.
 
 ## When to use
 
@@ -14,9 +14,9 @@ Write property, fuzz, and security tests that decide accept or reject with an in
 - Protocol decode/encode, parsers, normalizers
 - Reviewing tests that look like fuzz but assert nothing
 
-## What an oracle is
+## What an reference is
 
-An oracle predicts the correct outcome from the input alone (or from a simpler trusted model), then the test checks the code matches that prediction.
+An reference predicts the correct outcome from the input alone (or from a simpler trusted model), then the test checks the code matches that prediction.
 
 | Oracle type    | Example                                        |
 | -------------- | ---------------------------------------------- |

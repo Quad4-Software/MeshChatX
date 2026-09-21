@@ -4,154 +4,190 @@
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";
     import { formatUptime } from "../lib/relayFormatters.js";
-    import { formatAnnounceIntervalMinutes } from "../../../js/announceIntervalSliderMap.js";
+    import { BTN_DANGER, BTN_ICON, BTN_PRIMARY, BTN_SECONDARY } from "../lib/constants.js";
     import type { RrcHostedHub } from "../lib/types.js";
 
     interface Props {
-        hostedHub?: RrcHostedHub | null;
-        isOperating?: boolean;
+        serverHubs?: RrcHostedHub[];
+        isHubAdded?: (destinationHash?: string | null) => boolean;
+        uptimeFor?: (hub: RrcHostedHub) => number;
+        formatHash?: (hash: string | null | undefined) => string;
         oncreatehub?: () => void;
-        ontogglestart?: () => void;
-        onopenmoderation?: () => void;
-        onopensettings?: () => void;
+        onjoinclient?: (hub: RrcHostedHub) => void;
+        onleaveclient?: (hub: RrcHostedHub) => void;
+        onshare?: (hub: RrcHostedHub) => void;
+        onstart?: (hub: RrcHostedHub) => void;
+        onstop?: (hub: RrcHostedHub) => void;
+        onopensettings?: (hub: RrcHostedHub) => void;
+        onannounce?: (hub: RrcHostedHub) => void;
+        ondelete?: (hub: RrcHostedHub) => void;
+        onmoderate?: (hub: RrcHostedHub) => void;
         oncopyhash?: (hash: string) => void;
     }
 
     let {
-        hostedHub = null,
-        isOperating = false,
+        serverHubs = [],
+        isHubAdded = () => false,
+        uptimeFor = (hub) => Number(hub?.uptime_seconds) || 0,
+        formatHash = (h) => h || "-",
         oncreatehub,
-        ontogglestart,
-        onopenmoderation,
+        onjoinclient,
+        onleaveclient,
+        onshare,
+        onstart,
+        onstop,
         onopensettings,
+        onannounce,
+        ondelete,
+        onmoderate,
         oncopyhash,
     }: Props = $props();
 </script>
 
-<div class="flex flex-1 flex-col overflow-y-auto bg-sem-canvas p-4 sm:p-6 text-sem-fg">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h2 class="text-lg font-bold">{t("relay_chat.host_view_title")}</h2>
-            <p class="text-xs text-sem-fg-muted">{t("relay_chat.host_view_subtitle")}</p>
+<div class="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4">
+    <div class="mx-auto w-full max-w-3xl space-y-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold">{t("relay_chat.host_title")}</h2>
+                <p class="text-sm text-sem-fg-muted">{t("relay_chat.host_subtitle")}</p>
+            </div>
+            <button type="button" class={BTN_PRIMARY} onclick={() => oncreatehub?.()}>
+                <MaterialDesignIcon iconName="plus" class="size-4" />
+                {t("relay_chat.create_hub")}
+            </button>
         </div>
 
-        {#if !hostedHub}
-            <button
-                type="button"
-                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sem-action-primary text-sm font-semibold text-white hover:bg-sem-action-primary-hover transition-colors cursor-pointer"
-                onclick={() => oncreatehub?.()}
+        {#if serverHubs.length === 0}
+            <div
+                class="flex flex-col items-center gap-2 rounded-xl border border-sem-border bg-sem-canvas p-8 text-center text-sm text-sem-fg-muted"
             >
-                <MaterialDesignIcon iconName="plus" class="size-4" />
-                <span>{t("relay_chat.host_create_hub")}</span>
-            </button>
+                <MaterialDesignIcon iconName="server-network-off" class="size-10 opacity-40" />
+                {t("relay_chat.no_hosted_hubs")}
+            </div>
         {/if}
-    </div>
 
-    {#if !hostedHub}
-        <div class="flex flex-1 flex-col items-center justify-center p-8 text-center text-sem-fg-muted">
-            <MaterialDesignIcon iconName="server-off" class="size-12 opacity-40 mb-2" />
-            <div class="font-semibold text-base mb-1">{t("relay_chat.no_hosted_hub")}</div>
-            <p class="text-xs max-w-sm mb-4">{t("relay_chat.no_hosted_hub_hint")}</p>
-            <button
-                type="button"
-                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sem-action-primary text-sm font-semibold text-white hover:bg-sem-action-primary-hover transition-colors cursor-pointer"
-                onclick={() => oncreatehub?.()}
-            >
-                <MaterialDesignIcon iconName="plus" class="size-4" />
-                <span>{t("relay_chat.host_create_hub")}</span>
-            </button>
-        </div>
-    {:else}
-        <div class="space-y-4 max-w-3xl">
-            <div class="rounded-2xl border border-sem-border bg-sem-surface p-4 sm:p-6 shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-sem-border">
-                    <div>
+        {#each serverHubs as hub (hub.id)}
+            <div class="rounded-xl border border-sem-border bg-sem-canvas p-4 space-y-3">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
-                            <h3 class="text-base font-bold">{hostedHub.name}</h3>
                             <span
-                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {hostedHub.running
-                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                    : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400'}"
-                            >
-                                <span
-                                    class="size-1.5 rounded-full {hostedHub.running ? 'bg-emerald-500' : 'bg-zinc-400'}"
-                                ></span>
-                                {hostedHub.running
-                                    ? t("relay_chat.host_status_running")
-                                    : t("relay_chat.host_status_stopped")}
-                            </span>
+                                class="size-2 shrink-0 rounded-full {hub.running
+                                    ? 'bg-sem-success'
+                                    : 'bg-sem-fg-muted'}"
+                            ></span>
+                            <span class="font-semibold truncate">{hub.name}</span>
                         </div>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="font-mono text-xs text-sem-fg-muted truncate max-w-xs"
-                                >{hostedHub.hub_hash}</span
-                            >
+                        <button
+                            type="button"
+                            class="mt-1 flex items-center gap-1.5 text-xs font-mono text-sem-fg-muted hover:text-sem-accent cursor-pointer"
+                            title={t("relay_chat.copy_hash")}
+                            onclick={() => hub.dest_hash && oncopyhash?.(hub.dest_hash)}
+                        >
+                            <MaterialDesignIcon iconName="content-copy" class="size-3.5" />
+                            <span class="truncate">{formatHash(hub.dest_hash)}</span>
+                        </button>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-1.5">
+                        {#if !isHubAdded(hub.dest_hash)}
                             <button
                                 type="button"
-                                class="p-1 rounded text-sem-fg-muted hover:text-sem-fg"
-                                title={t("relay_chat.copy_hub_hash")}
-                                onclick={() => oncopyhash?.(hostedHub.hub_hash)}
+                                class={BTN_ICON}
+                                title={t("relay_chat.host_join_as_client")}
+                                disabled={!hub.running || !hub.dest_hash}
+                                onclick={() => onjoinclient?.(hub)}
                             >
-                                <MaterialDesignIcon iconName="content-copy" class="size-3.5" />
+                                <MaterialDesignIcon iconName="login" class="size-4" />
                             </button>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2">
+                        {:else}
+                            <button
+                                type="button"
+                                class={BTN_ICON}
+                                title={t("relay_chat.host_leave_as_client")}
+                                onclick={() => onleaveclient?.(hub)}
+                            >
+                                <MaterialDesignIcon iconName="logout" class="size-4" />
+                            </button>
+                        {/if}
                         <button
                             type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white transition-colors cursor-pointer {hostedHub.running
-                                ? 'bg-amber-600 hover:bg-amber-700'
-                                : 'bg-emerald-600 hover:bg-emerald-700'}"
-                            disabled={isOperating}
-                            onclick={() => ontogglestart?.()}
+                            class={BTN_ICON}
+                            title={t("relay_chat.share_hub")}
+                            onclick={() => onshare?.(hub)}
                         >
-                            <MaterialDesignIcon iconName={hostedHub.running ? "stop" : "play"} class="size-4" />
-                            <span>{hostedHub.running ? t("relay_chat.host_stop") : t("relay_chat.host_start")}</span>
+                            <MaterialDesignIcon iconName="share-variant" class="size-4" />
                         </button>
-
+                        {#if !hub.running}
+                            <button
+                                type="button"
+                                class="{BTN_SECONDARY} px-2.5! py-1.5! text-xs!"
+                                onclick={() => onstart?.(hub)}
+                            >
+                                <MaterialDesignIcon iconName="play" class="size-4" />
+                                {t("relay_chat.host_start")}
+                            </button>
+                        {:else}
+                            <button
+                                type="button"
+                                class="{BTN_SECONDARY} px-2.5! py-1.5! text-xs!"
+                                onclick={() => onstop?.(hub)}
+                            >
+                                <MaterialDesignIcon iconName="stop" class="size-4" />
+                                {t("relay_chat.host_stop")}
+                            </button>
+                        {/if}
                         <button
                             type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-sem-border bg-sem-surface-muted text-xs font-semibold hover:bg-sem-surface-raised transition-colors cursor-pointer"
-                            onclick={() => onopensettings?.()}
+                            class={BTN_ICON}
+                            title={t("relay_chat.host_hub_settings")}
+                            onclick={() => onopensettings?.(hub)}
                         >
                             <MaterialDesignIcon iconName="cog" class="size-4" />
-                            <span>{t("common.settings")}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class={BTN_ICON}
+                            title={t("relay_chat.host_announce")}
+                            disabled={!hub.running}
+                            onclick={() => onannounce?.(hub)}
+                        >
+                            <MaterialDesignIcon iconName="bullhorn-outline" class="size-4" />
+                        </button>
+                        <button
+                            type="button"
+                            class={BTN_DANGER}
+                            title={t("relay_chat.host_delete")}
+                            onclick={() => ondelete?.(hub)}
+                        >
+                            <MaterialDesignIcon iconName="trash-can-outline" class="size-4" />
                         </button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
-                    <div class="p-3 rounded-xl bg-sem-canvas border border-sem-border/60">
-                        <div class="text-xs text-sem-fg-muted">{t("relay_chat.host_rooms_count")}</div>
-                        <div class="text-lg font-bold mt-0.5">{hostedHub.rooms_count ?? 0}</div>
-                    </div>
-                    <div class="p-3 rounded-xl bg-sem-canvas border border-sem-border/60">
-                        <div class="text-xs text-sem-fg-muted">{t("relay_chat.host_members_count")}</div>
-                        <div class="text-lg font-bold mt-0.5">{hostedHub.members_count ?? 0}</div>
-                    </div>
-                    <div class="p-3 rounded-xl bg-sem-canvas border border-sem-border/60">
-                        <div class="text-xs text-sem-fg-muted">{t("relay_chat.host_uptime")}</div>
-                        <div class="text-lg font-bold mt-0.5">{formatUptime(hostedHub.uptime_seconds || 0)}</div>
-                    </div>
-                    <div class="p-3 rounded-xl bg-sem-canvas border border-sem-border/60">
-                        <div class="text-xs text-sem-fg-muted">{t("relay_chat.host_announce_interval")}</div>
-                        <div class="text-lg font-bold mt-0.5">
-                            {formatAnnounceIntervalMinutes(Math.round((hostedHub.announce_interval || 900) / 60))}
-                        </div>
-                    </div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-sem-fg-muted">
+                    <span class="inline-flex items-center gap-1">
+                        <MaterialDesignIcon iconName="account-group" class="size-3.5" />
+                        {hub.clients}
+                        {t("relay_chat.host_users")}
+                    </span>
+                    <span class="inline-flex items-center gap-1">
+                        <MaterialDesignIcon iconName="pound" class="size-3.5" />
+                        {(hub.rooms || []).length}
+                        {t("relay_chat.host_rooms")}
+                    </span>
+                    {#if hub.running}
+                        <span class="inline-flex items-center gap-1">
+                            <MaterialDesignIcon iconName="clock-outline" class="size-3.5" />
+                            {t("relay_chat.host_moderation_uptime", { time: formatUptime(uptimeFor(hub)) })}
+                        </span>
+                    {/if}
                 </div>
 
-                <div class="mt-6 pt-4 border-t border-sem-border flex justify-end">
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sem-surface-muted border border-sem-border text-xs font-semibold hover:bg-sem-surface-raised transition-colors cursor-pointer"
-                        onclick={() => onopenmoderation?.()}
-                    >
-                        <MaterialDesignIcon iconName="shield-account" class="size-4 text-sem-accent" />
-                        <span>{t("relay_chat.open_host_moderation")}</span>
-                    </button>
-                </div>
+                <button type="button" class="{BTN_SECONDARY} w-full py-2! text-xs!" onclick={() => onmoderate?.(hub)}>
+                    <MaterialDesignIcon iconName="shield-account" class="size-4" />
+                    {t("relay_chat.host_moderate")}
+                </button>
             </div>
-        </div>
-    {/if}
+        {/each}
+    </div>
 </div>

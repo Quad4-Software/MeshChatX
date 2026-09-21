@@ -24,6 +24,11 @@
         imageInput?.click();
     }
 
+    // Lets the mobile attachments menu open the picker at a chosen quality.
+    export function pickImage(quality: string) {
+        addImage(quality);
+    }
+
     function clearImageInput() {
         if (imageInput) imageInput.value = "";
     }

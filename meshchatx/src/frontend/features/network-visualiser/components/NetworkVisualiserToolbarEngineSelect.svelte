@@ -4,6 +4,7 @@
     import { tick } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
+    import { computeCaret, type ContextMenuCaret } from "../../../js/contextMenuCaret.js";
     import { t } from "../../../js/i18n.js";
     import { ENGINE_VALUES } from "../lib/constants.js";
     import type { EngineMode, PreferredRenderer } from "../lib/types.js";
@@ -19,6 +20,7 @@
     let engineMenuOpen = $state(false);
     let engineMenuPosition = $state<{ left: number; top: number; maxHeight?: number | null } | null>(null);
     let engineMenuPanel = $state<HTMLDivElement | null>(null);
+    let engineMenuCaret: ContextMenuCaret | null = $state(null);
 
     let engineOptions = $derived([
         { value: "auto" as const, label: t("visualiser.renderer_option_auto") },
@@ -63,6 +65,7 @@
     function closeEngineMenu() {
         engineMenuOpen = false;
         engineMenuPosition = null;
+        engineMenuCaret = null;
     }
 
     async function positionEngineMenu() {
@@ -80,6 +83,14 @@
         const pr = engineMenuPanel.getBoundingClientRect();
         const { left, top, maxHeight } = clampFloatingToViewport(pr.left, pr.top, pr.width, pr.height);
         engineMenuPosition = { left, top, maxHeight };
+        engineMenuCaret = computeCaret(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+            left,
+            top,
+            pr.width,
+            pr.height
+        );
     }
 
     function selectEngine(value: PreferredRenderer) {
@@ -161,5 +172,12 @@
                 </button>
             {/each}
         </div>
+        {#if engineMenuCaret}
+            <div
+                class="dropdown-caret fixed z-200 border-sem-border {engineMenuCaret.borderClass}"
+                style="left: {engineMenuCaret.style.left}; top: {engineMenuCaret.style.top};"
+                aria-hidden="true"
+            ></div>
+        {/if}
     {/if}
 </div>

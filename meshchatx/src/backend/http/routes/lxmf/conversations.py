@@ -11,6 +11,7 @@ from meshchatx.src.backend.http.errors import (
     http_error,
     http_payload_too_large,
 )
+from meshchatx.src.backend.lxmf_utils import lxmf_row_arrival_timestamp
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
@@ -174,7 +175,7 @@ def register_lxmf_conversations_routes(routes, app):
                 if is_unread and filter_unread:
                     if app.database.messages.notification_viewed_covers(
                         viewed_map.get(other_user_hash),
-                        row["timestamp"],
+                        lxmf_row_arrival_timestamp(row) or row["timestamp"],
                     ):
                         is_unread = False
                         if filter_unread:

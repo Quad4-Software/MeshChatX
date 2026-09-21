@@ -170,7 +170,7 @@
         {#snippet content()}
             <div class="p-6 space-y-6">
                 <div class="grid grid-cols-2 gap-4">
-                    {#if interfaceType !== "HTTPInterface"}
+                    {#if interfaceType !== "HTTPInterface" && interfaceType !== "AwareInterface"}
                         <div>
                             <label for="adv-iface-mode" class="glass-label block font-medium mb-1">Interface Mode</label
                             >
@@ -190,9 +190,13 @@
                                 <option value="internal">{t("interfaces.mode_internal")}</option>
                             </select>
                         </div>
-                    {:else}
+                    {:else if interfaceType === "HTTPInterface"}
                         <div class="col-span-2">
                             <p class="text-xs text-sem-fg-muted">{t("interfaces.http_tunnel_mode_note")}</p>
+                        </div>
+                    {:else}
+                        <div class="col-span-2">
+                            <p class="text-xs text-sem-fg-muted">{t("interfaces.aware_mode_note")}</p>
                         </div>
                     {/if}
                     <div>

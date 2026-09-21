@@ -20,6 +20,7 @@ from meshchatx.src.backend.lxmf_utils import (
     LXMF_APP_EXTENSIONS_FIELD,
     build_lxmf_reaction_field,
 )
+from meshchatx.src.backend.sideband_commands import SidebandCommands
 
 # ruff: noqa: F821
 
@@ -257,8 +258,17 @@ async def send_lxmf_message(
         title=title,
         desired_method=desired_delivery_method,
     )
+    # Telemetry payloads are ephemeral. Falling back to propagation burns a
+    # stamp PoW round on every failed opportunistic send (the tracking loop
+    # fires once a minute) and only ever delivers stale location pings.
+    is_telemetry_payload = telemetry_data is not None or any(
+        isinstance(command, dict) and SidebandCommands.TELEMETRY_REQUEST in command
+        for command in (commands or [])
+    )
     lxmf_message.try_propagation_on_fail = (
-        ctx.config.auto_send_failed_messages_to_propagation_node.get()
+        False
+        if is_telemetry_payload
+        else ctx.config.auto_send_failed_messages_to_propagation_node.get()
     )
 
     lxmf_message.fields = {}

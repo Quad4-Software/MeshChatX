@@ -799,6 +799,21 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
         data = zin.read(item.filename)
         if item.filename == "LXST/Codecs/__init__.py":
             data = patched_codecs_init.encode("utf-8")
+        elif item.filename == "LXST/Filters.py":
+            text = data.decode("utf-8")
+            # Chaquopy's importer returns a spec whose origin .so is only
+            # extracted when a module is created. filterlib has no PyInit, so
+            # nothing ever imports it and dlopen(origin) hits a missing file.
+            # Force the lazy extraction through create_module first.
+            old_spec = '                if not filterlib_spec or filterlib_spec.origin == None: raise ImportError("Could not locate pre-compiled LXST.filterlib module")\n'
+            new_spec = old_spec + (
+                '                if not os.path.exists(filterlib_spec.origin):\n'
+                '                    try: filterlib_spec.loader.create_module(filterlib_spec)\n'
+                '                    except Exception: pass\n'
+            )
+            if old_spec in text and new_spec not in text:
+                text = text.replace(old_spec, new_spec)
+            data = text.encode("utf-8")
         elif item.filename == "LXST/Primitives/Telephony.py":
             text = data.decode("utf-8")
             old_get_codec = """    @staticmethod
@@ -839,6 +854,17 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
             data = text.encode("utf-8")
         zout.writestr(item, data)
 PY
+
+    # Cross-compile LXST Filters.c with the NDK into per-ABI wheels carrying
+    # LXST/filterlib.so so find_spec("LXST.filterlib") resolves on Android
+    # instead of attempting a runtime source compile.
+    "${VENV_DIR}/bin/python" \
+        "${ROOT_DIR}/scripts/build-android-lxst-filterlib.py" \
+        --out-dir "${OUT_DIR}" \
+        --abis "${ABI_LIST}" \
+        --api "${API_LEVEL}" \
+        --version "${LXST_VERSION}" \
+        --lxst-wheel "${PATCHED_LXST_WHEEL}"
 fi
 
 if [[ -z "${ONLY_RECIPES}" ]]; then
@@ -997,11 +1023,25 @@ new_block = '''        import importlib.util
             raise SystemError("Android-specific interface was used on non-Android OS")
 '''
 
+bt_enabled_marker = '''    def bt_enabled(self):
+        return self.bt_adapter.getDefaultAdapter().isEnabled()
+'''
+bt_enabled_new = '''    def bt_enabled(self):
+        adapter = self.bt_adapter.getDefaultAdapter()
+        return adapter != None and adapter.isEnabled()
+'''
+
 def patch_rnode_interface(data):
     text = data.decode("utf-8")
     start_idx = text.index(start_marker)
     end_idx = text.index(end_marker, start_idx) + len(end_marker)
-    return (text[:start_idx] + new_block + text[end_idx:]).encode("utf-8")
+    text = text[:start_idx] + new_block + text[end_idx:]
+    # getDefaultAdapter() returns null on devices without Bluetooth; a null
+    # dereference here would kill the BLE connection job thread.
+    if bt_enabled_marker not in text:
+        raise SystemExit("bt_enabled marker not found in RNodeInterface.py")
+    text = text.replace(bt_enabled_marker, bt_enabled_new, 1)
+    return text.encode("utf-8")
 
 patched_target = "RNS/Interfaces/Android/RNodeInterface.py"
 found = False

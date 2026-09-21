@@ -25,6 +25,7 @@ export type SessionLayout = {
 export type SidebarFeatureId = "app" | "messages" | "nomadnetwork" | "relayChat";
 
 const NOMAD_TABS_KEY = "meshchatx.nomadnet.tabs";
+const NOMAD_ANNOUNCES_SORT_KEY = "meshchatx.nomadnet.announces.sort";
 const MAP_TABS_KEY = "meshchatx.map.tabs";
 const MESSAGE_PANES_KEY = "meshchatx.messages.panes";
 const RNSH_LAYOUT_KEY = "meshchatx.rnsh.layout";
@@ -77,6 +78,22 @@ export function loadNomadTabs(): BrowserTabLayout | null {
 /** Persist the NomadNet browser tab layout. */
 export function saveNomadTabs(state: BrowserTabLayout): void {
     writeJson(NOMAD_TABS_KEY, state);
+}
+
+const NOMAD_ANNOUNCES_SORTS = new Set(["last_announced", "name", "most_announced", "newest_discovered"]);
+
+/** Load the persisted NomadNet announces sort mode. */
+export function loadNomadAnnouncesSort(): string {
+    const saved = readJson(NOMAD_ANNOUNCES_SORT_KEY);
+    return NOMAD_ANNOUNCES_SORTS.has(saved as string) ? (saved as string) : "last_announced";
+}
+
+/** Persist the NomadNet announces sort mode. */
+export function saveNomadAnnouncesSort(sort: string): void {
+    if (!NOMAD_ANNOUNCES_SORTS.has(sort)) {
+        return;
+    }
+    writeJson(NOMAD_ANNOUNCES_SORT_KEY, sort);
 }
 
 /** Load the persisted Map browser tab layout. */

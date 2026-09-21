@@ -2,10 +2,14 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
+    import Toggle from "../../../../ui/svelte/Toggle.svelte";
     import { t } from "../../../../js/i18n.js";
 
     interface Props {
         visible?: boolean;
+        config?: Record<string, any>;
+        oidcClientSecret?: string;
+        oidcRedirectUri?: string;
         serverSecurity?: {
             listen_host?: string;
             listen_port?: number;
@@ -35,21 +39,32 @@
         onackfirewallchange?: (val: boolean) => void;
         onackvpnchange?: (val: boolean) => void;
         onallowlistchange?: (val: string) => void;
+        onoidcenabledchange?: (val: boolean) => void;
+        onoidcfieldchange?: (key: string, value: string) => void;
+        onoidcsecretchange?: (val: string) => void;
+        onoidcsecretclear?: () => void;
     }
 
     let {
         visible = true,
+        config = {},
+        oidcClientSecret = "",
+        oidcRedirectUri = "",
         serverSecurity = {},
         exposureAckFirewall = false,
         exposureAckVpn = false,
         onackfirewallchange,
         onackvpnchange,
         onallowlistchange,
+        onoidcenabledchange,
+        onoidcfieldchange,
+        onoidcsecretchange,
+        onoidcsecretclear,
     }: Props = $props();
 </script>
 
 {#if visible}
-    <section class="settings-section break-inside-avoid">
+    <section class="settings-section break-inside-avoid" data-settings-section="webExposure">
         <header class="settings-section__header">
             <div>
                 <div class="settings-section__eyebrow">Security</div>
@@ -185,6 +200,137 @@
                 <div class="text-xs text-sem-fg-muted">
                     {t("app.web_ui_ip_allowlist_description")}
                 </div>
+            </div>
+
+            <div class="space-y-3 border-t border-sem-border pt-4">
+                <div>
+                    <div class="text-sm font-medium text-sem-fg">
+                        {t("app.oidc_title")}
+                    </div>
+                    <p class="text-xs text-sem-fg-muted mt-1">
+                        {t("app.oidc_description")}
+                    </p>
+                </div>
+                <label class="setting-toggle">
+                    <Toggle
+                        id="oidc-enabled"
+                        checked={Boolean(config.oidc_enabled)}
+                        disabled={!!config.oidc_env_managed}
+                        onchange={(val) => onoidcenabledchange?.(val)}
+                    />
+                    <span class="setting-toggle__label">
+                        <span class="setting-toggle__title">{t("app.oidc_enable")}</span>
+                        <span class="setting-toggle__description">{t("app.oidc_enable_description")}</span>
+                    </span>
+                </label>
+                {#if config.oidc_env_managed}
+                    <div class="info-callout">
+                        <p class="text-sm">{t("app.oidc_env_managed")}</p>
+                    </div>
+                {/if}
+                {#if config.oidc_enabled}
+                    <div class="space-y-2">
+                        <div class="text-sm font-medium text-sem-fg">
+                            {t("app.oidc_issuer_url")}
+                        </div>
+                        <input
+                            value={config.oidc_issuer_url || ""}
+                            type="text"
+                            class="input-field font-mono text-xs"
+                            disabled={!!config.oidc_env_managed}
+                            placeholder={t("app.oidc_issuer_placeholder")}
+                            oninput={(e) =>
+                                onoidcfieldchange?.("oidc_issuer_url", (e.target as HTMLInputElement).value)}
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-sm font-medium text-sem-fg">
+                            {t("app.oidc_client_id")}
+                        </div>
+                        <input
+                            value={config.oidc_client_id || ""}
+                            type="text"
+                            class="input-field font-mono text-xs"
+                            disabled={!!config.oidc_env_managed}
+                            oninput={(e) =>
+                                onoidcfieldchange?.("oidc_client_id", (e.target as HTMLInputElement).value)}
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-sm font-medium text-sem-fg">
+                            {t("app.oidc_client_secret")}
+                        </div>
+                        <div class="flex gap-2">
+                            <input
+                                value={oidcClientSecret}
+                                type="password"
+                                class="input-field font-mono text-xs flex-1"
+                                disabled={!!config.oidc_env_managed}
+                                placeholder={config.oidc_client_secret_set
+                                    ? t("app.oidc_client_secret_configured")
+                                    : ""}
+                                autocomplete="new-password"
+                                oninput={(e) => onoidcsecretchange?.((e.target as HTMLInputElement).value)}
+                            />
+                            {#if config.oidc_client_secret_set && !config.oidc_env_managed}
+                                <button
+                                    type="button"
+                                    class="px-2 py-1 text-xs rounded border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+                                    onclick={() => onoidcsecretclear?.()}
+                                >
+                                    {t("app.oidc_client_secret_clear")}
+                                </button>
+                            {/if}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="space-y-2">
+                            <div class="text-sm font-medium text-sem-fg">
+                                {t("app.oidc_display_name_label")}
+                            </div>
+                            <input
+                                value={config.oidc_display_name || ""}
+                                type="text"
+                                class="input-field text-xs"
+                                disabled={!!config.oidc_env_managed}
+                                placeholder="SSO"
+                                oninput={(e) =>
+                                    onoidcfieldchange?.("oidc_display_name", (e.target as HTMLInputElement).value)}
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-sm font-medium text-sem-fg">
+                                {t("app.oidc_scopes")}
+                            </div>
+                            <input
+                                value={config.oidc_scopes || ""}
+                                type="text"
+                                class="input-field font-mono text-xs"
+                                disabled={!!config.oidc_env_managed}
+                                placeholder="openid profile email"
+                                oninput={(e) =>
+                                    onoidcfieldchange?.("oidc_scopes", (e.target as HTMLInputElement).value)}
+                            />
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-sm font-medium text-sem-fg">
+                            {t("app.oidc_redirect_uri")}
+                        </div>
+                        <input
+                            value={oidcRedirectUri}
+                            type="text"
+                            readonly
+                            class="input-field font-mono text-xs opacity-70"
+                        />
+                        <div class="text-xs text-sem-fg-muted">
+                            {t("app.oidc_redirect_hint")}
+                        </div>
+                    </div>
+                    <div class="text-xs text-sem-fg-muted">
+                        {config.oidc_ready ? t("app.oidc_status_ready") : t("app.oidc_status_incomplete")}
+                    </div>
+                {/if}
             </div>
         </div>
     </section>

@@ -2,82 +2,74 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
-    import IconButton from "../../../ui/svelte/IconButton.svelte";
+    import SearchInput from "../../../ui/svelte/SearchInput.svelte";
     import { t } from "../../../js/i18n.js";
-    import { filterRelayMessages } from "../../../js/relayMessageSearch.js";
-    import { formatTime, displayName } from "../lib/relayFormatters.js";
     import type { RrcMessage } from "../lib/types.js";
 
     interface Props {
-        messages: RrcMessage[];
+        searchTerm?: string;
+        results?: RrcMessage[];
+        messageKey?: (msg: RrcMessage) => string;
+        displayName?: (msg: RrcMessage) => string;
+        nameStyle?: (msg: RrcMessage) => string;
+        formatTime?: (ts: number | string | null | undefined) => string;
         onclose?: () => void;
         onselectmessage?: (msg: RrcMessage) => void;
     }
 
-    let { messages = [], onclose, onselectmessage }: Props = $props();
-
-    let searchTerm = $state("");
-
-    const matchedMessages = $derived.by(() => {
-        if (!searchTerm.trim()) return [];
-        return filterRelayMessages(messages, searchTerm, displayName);
-    });
+    let {
+        searchTerm = $bindable(""),
+        results = [],
+        messageKey = (m: RrcMessage) => String(m?.seq ?? m?.ts ?? ""),
+        displayName = (m: RrcMessage) => m?.nick || "",
+        nameStyle = () => "",
+        formatTime = (ts) => String(ts ?? ""),
+        onclose,
+        onselectmessage,
+    }: Props = $props();
 </script>
 
 <div
     class="absolute inset-y-0 right-0 z-40 flex w-80 max-w-[min(20rem,100%)] min-h-0 flex-col border-l border-sem-border bg-sem-canvas shadow-xl text-sem-fg md:static md:z-auto md:max-w-none md:w-80 md:shadow-none"
 >
-    <div class="flex items-center justify-between px-3 py-2 border-b border-sem-border">
-        <div class="flex items-center gap-1.5 font-semibold text-sm">
-            <MaterialDesignIcon iconName="magnify" class="size-4 text-sem-fg-muted" />
-            <span>{t("relay_chat.search_messages")}</span>
+    <div class="flex shrink-0 items-center justify-between gap-2 border-b border-sem-border px-3 py-2.5">
+        <div class="flex items-center gap-1.5 font-semibold">
+            <MaterialDesignIcon iconName="magnify" class="size-4 text-sem-accent" />
+            {t("relay_chat.search_messages")}
         </div>
-        <IconButton
-            class="size-7 text-sem-fg-muted hover:text-sem-fg"
+        <button
+            type="button"
+            class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 cursor-pointer"
             title={t("common.close")}
             onclick={() => onclose?.()}
         >
             <MaterialDesignIcon iconName="close" class="size-4" />
-        </IconButton>
+        </button>
     </div>
-
-    <div class="p-2 border-b border-sem-border">
-        <input
-            type="text"
-            bind:value={searchTerm}
-            placeholder={t("relay_chat.search_placeholder")}
-            class="w-full px-2.5 py-1.5 text-xs bg-sem-canvas border border-sem-border rounded-md text-sem-fg focus:outline-hidden focus:border-sem-accent"
-        />
-        {#if searchTerm.trim()}
-            <div class="mt-1 text-[11px] text-sem-fg-muted">
-                {t("relay_chat.search_results_count", { count: matchedMessages.length })}
-            </div>
-        {/if}
+    <div class="shrink-0 border-b border-sem-border p-2">
+        <SearchInput bind:value={searchTerm} compact placeholder={t("relay_chat.search_messages_placeholder")} />
     </div>
-
-    <div class="flex-1 overflow-y-auto p-2 space-y-1">
+    <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
         {#if !searchTerm.trim()}
-            <div class="p-4 text-center text-xs text-sem-fg-muted">
-                {t("relay_chat.type_to_search")}
+            <div class="flex flex-col items-center gap-2 px-3 py-8 text-center text-xs text-sem-fg-muted">
+                <MaterialDesignIcon iconName="magnify" class="size-8 opacity-40" />
+                <div class="font-medium text-sem-fg-secondary">{t("relay_chat.search_empty_hint")}</div>
+                <div class="leading-relaxed">{t("relay_chat.search_syntax_hint")}</div>
             </div>
-        {:else if matchedMessages.length === 0}
-            <div class="p-4 text-center text-xs text-sem-fg-muted">
-                {t("relay_chat.no_search_results")}
+        {:else if results.length === 0}
+            <div class="px-2 py-4 text-center text-xs text-sem-fg-muted">
+                {t("relay_chat.search_no_results")}
             </div>
         {:else}
-            {#each matchedMessages as msg (msg.seq || msg.ts)}
+            {#each results as msg ("search-" + messageKey(msg))}
                 <button
                     type="button"
-                    class="w-full text-left p-2 rounded-lg bg-sem-canvas border border-sem-border hover:border-sem-accent transition-colors cursor-pointer"
+                    class="w-full rounded-lg px-2 py-1.5 text-left text-xs hover:bg-sem-surface/60 cursor-pointer"
                     onclick={() => onselectmessage?.(msg)}
                 >
-                    <div class="flex items-center justify-between text-[11px] text-sem-fg-muted mb-0.5">
-                        <span class="font-semibold">{displayName(msg)}</span>
-                        <span>{formatTime(msg.ts)}</span>
-                    </div>
-                    <div class="text-xs text-sem-fg line-clamp-2 break-words">
-                        {msg.text}
-                    </div>
+                    <span class="font-semibold" style={nameStyle(msg)}>{displayName(msg)}</span>
+                    <span class="ml-1 text-sem-fg-muted">{formatTime(msg.ts)}</span>
+                    <div class="truncate text-sem-fg-secondary">{msg.text}</div>
                 </button>
             {/each}
         {/if}

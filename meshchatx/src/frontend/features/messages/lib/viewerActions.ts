@@ -60,6 +60,7 @@ export type ParsedMessageItems = {
     isOnlyPaperMessage?: boolean;
     isOnlyMapLink?: boolean;
     isOnlyRelayLink?: boolean;
+    isOnlyContact?: boolean;
     contact?: Record<string, any>;
     paperMessage?: unknown;
     mapLink?: Record<string, any>;
@@ -92,7 +93,13 @@ export type ConversationViewerActions = {
     setBubbleMessageShowOriginal: (hash?: string, showOriginal?: boolean) => void;
     copyOversizedMessageBody: (chatItem: MessageChatItem) => void;
     downloadLxmfFileAttachment: (chatItem: MessageChatItem, index: number) => void;
-    addContact: (name?: string, hash?: string, lxmfAddress?: string, lxstAddress?: string) => void;
+    addContact: (
+        name?: string,
+        hash?: string,
+        lxmfAddress?: string,
+        lxstAddress?: string,
+        icon?: { icon_name?: string; foreground_colour?: string; background_colour?: string } | null
+    ) => void;
     ingestPaperMessage: (paperMessage: unknown, hash?: string) => void;
     openMapShareFromParsed: (parsed: unknown) => void;
     copyMapShareUri: (uri?: string) => void;
@@ -158,8 +165,11 @@ export type ConversationViewerActionDeps = {
         destination_hash?: string;
         display_name?: string | null;
         custom_display_name?: string | null;
+        lxmf_user_icon?: { icon_name?: string; foreground_colour?: string; background_colour?: string } | null;
     }>;
     myLxmfAddressHash?: string;
+    isStrangerPeer?: boolean;
+    isPopout?: boolean;
     messageFontSize?: number;
     expandedMessageInfo?: string | null;
     audioAttachmentUrls?: Readonly<Record<string, string>>;
@@ -177,7 +187,13 @@ export type ConversationViewerActionDeps = {
     copyText: (text: string) => unknown;
     downloadMessageImage: (chatItem: MessageChatItem) => void | Promise<void>;
     downloadLxmfFileAttachment: (chatItem: MessageChatItem, index: number, name: string) => void | Promise<void>;
-    addContact: (name?: string, hash?: string, lxmfAddress?: string, lxstAddress?: string) => void | Promise<void>;
+    addContact: (
+        name?: string,
+        hash?: string,
+        lxmfAddress?: string,
+        lxstAddress?: string,
+        icon?: { icon_name?: string; foreground_colour?: string; background_colour?: string } | null
+    ) => void | Promise<void>;
     onSetBubbleMessageShowOriginal?: (hash: string, showOriginal: boolean) => void;
     onupdatePeerTracking?: (payload: { destination_hash: string; is_tracking: boolean }) => void;
     onPaperIngested?: (hash: string) => void;

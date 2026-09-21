@@ -7,6 +7,8 @@ export interface AuthStatusPayload {
     authenticated?: boolean;
     password_set?: boolean;
     auth_page_hint?: string;
+    oidc_enabled?: boolean;
+    oidc_display_name?: string;
 }
 
 export interface AuthValidationResult {

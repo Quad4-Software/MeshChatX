@@ -148,6 +148,45 @@ def read_linux_host_battery() -> tuple[int | None, bool | None]:
     return level, charging
 
 
+def _proc_self_cpu_and_uptime() -> tuple[float | None, float | None]:
+    """Read own process CPU time and uptime from /proc/self/stat.
+
+    Fallback for platforms where psutil cannot read process stats, such as
+    Android where SELinux restricts /proc access under Chaquopy. Reading
+    /proc/self remains allowed. Returns (cpu_seconds, uptime_seconds).
+    """
+    try:
+        with open("/proc/self/stat", encoding="utf-8") as handle:
+            stat = handle.read()
+        # comm (field 2) may contain spaces and parentheses, so parse the
+        # fields after the last ')' where index 0 is state (field 3).
+        tail = stat.rpartition(")")[2].split()
+        utime = int(tail[11])  # field 14
+        stime = int(tail[12])  # field 15
+        starttime = int(tail[19])  # field 22
+        try:
+            ticks = os.sysconf("SC_CLK_TCK")
+        except (ValueError, OSError, AttributeError):
+            ticks = 100  # USER_HZ is 100 on all Android/Linux kernels
+        try:
+            with open("/proc/uptime", encoding="utf-8") as handle:
+                sys_uptime = float(handle.read().split()[0])
+        except OSError:
+            try:
+                # CLOCK_BOOTTIME shares the epoch of the /proc stat starttime
+                # jiffies counter, including time spent suspended. Plain
+                # CLOCK_MONOTONIC skips suspend time and can sit below
+                # starttime on phones, which would zero the uptime result.
+                sys_uptime = time.clock_gettime(time.CLOCK_BOOTTIME)
+            except (OSError, AttributeError):
+                sys_uptime = time.monotonic()
+        cpu_seconds = (utime + stime) / ticks
+        uptime_seconds = max(0.0, sys_uptime - starttime / ticks)
+        return cpu_seconds, uptime_seconds
+    except Exception:
+        return None, None
+
+
 class BatteryUsageTracker:
     """Snapshot MeshChatX process CPU into a battery-usage estimate."""
 
@@ -156,25 +195,33 @@ class BatteryUsageTracker:
 
     def snapshot(self, process: Any) -> dict[str, Any] | None:
         if process is None:
-            return self._last
-        try:
-            times = process.cpu_times()
-            cpu_time = float(getattr(times, "user", 0.0)) + float(
-                getattr(times, "system", 0.0),
-            )
-        except Exception:
-            return self._last
-        try:
-            create_time = float(process.create_time())
-        except Exception:
-            return self._last
-        uptime = max(0.0, time.time() - create_time)
+            # Caller could not build a psutil.Process at all; /proc/self is
+            # still readable on platforms like Android, so fall back to it.
+            cpu_time, uptime = _proc_self_cpu_and_uptime()
+            if cpu_time is None or uptime is None:
+                return self._last
+        else:
+            try:
+                times = process.cpu_times()
+                cpu_time = float(getattr(times, "user", 0.0)) + float(
+                    getattr(times, "system", 0.0),
+                )
+                create_time = float(process.create_time())
+                uptime = max(0.0, time.time() - create_time)
+            except Exception:
+                cpu_time, uptime = None, None
+            if cpu_time is None or uptime is None or uptime <= 0:
+                # psutil can succeed but return unusable values on platforms
+                # that restrict /proc (Android): fall back to /proc/self.
+                cpu_time, uptime = _proc_self_cpu_and_uptime()
+            if cpu_time is None or uptime is None:
+                return self._last
         try:
             import psutil
 
-            cpu_count = psutil.cpu_count(logical=True) or 1
+            cpu_count = psutil.cpu_count(logical=True) or (os.cpu_count() or 1)
         except Exception:
-            cpu_count = 1
+            cpu_count = os.cpu_count() or 1
 
         host_level, charging = read_linux_host_battery()
         on_battery = None

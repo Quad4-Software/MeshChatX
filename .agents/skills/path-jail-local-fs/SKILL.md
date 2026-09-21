@@ -1,11 +1,11 @@
 ---
 name: path-jail-local-fs
-description: Local file browse/upload/download/delete with a hard path jail, CSRF-safe mutators, and oracle tests. Use when any handler takes a client path and touches disk.
+description: Local file browse/upload/download/delete with a hard path jail, CSRF-safe mutators, and reference tests. Use when any handler takes a client path and touches disk.
 ---
 
 # Skill: path-jail-local-fs
 
-Add or change local filesystem features (browse, upload, download, mkdir, delete) with a hard path jail, CSRF-safe mutators, and oracle-style tests. Do not ship file CRUD that can escape identity or feature roots.
+Add or change local filesystem features (browse, upload, download, mkdir, delete) with a hard path jail, CSRF-safe mutators, and reference-style tests. Do not ship file CRUD that can escape identity or feature roots.
 
 ## When to use
 

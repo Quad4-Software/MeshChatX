@@ -3,6 +3,7 @@
 <script lang="ts">
     import ThemeColorsCard from "../ThemeColorsCard.svelte";
     import ChatAppearanceCard from "../ChatAppearanceCard.svelte";
+    import TopNavButtonsCard from "../TopNavButtonsCard.svelte";
     import MessageBubbleColorsCard from "../MessageBubbleColorsCard.svelte";
     import { t } from "../../../../js/i18n.js";
 
@@ -66,7 +67,7 @@
 </script>
 
 {#if visible}
-    <section class="settings-section break-inside-avoid">
+    <section class="settings-section break-inside-avoid" data-settings-section="appearance">
         <header class="settings-section__header">
             <div>
                 <div class="settings-section__eyebrow">{t("app.appearance")}</div>
@@ -106,6 +107,8 @@
                 {onoutboundtransferprogressenabledchange}
                 {onmessagetimestampgroupingchange}
             />
+
+            <TopNavButtonsCard />
 
             <MessageBubbleColorsCard {config} {onupdatefield} {onbubblecolorchange} />
         </div>

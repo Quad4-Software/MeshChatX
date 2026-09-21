@@ -2,8 +2,9 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import { t } from "../../../js/i18n.js";
     import { formatTime, nameStyle, displayName } from "../lib/relayFormatters.js";
-    import type { RrcMessage, RrcTimelineEntry } from "../lib/types.js";
+    import type { RrcMessage, RrcMessageTranslation, RrcTimelineEntry } from "../lib/types.js";
 
     interface Props {
         entry: RrcTimelineEntry;
@@ -13,6 +14,9 @@
         formatPresenceGroupSummary: (entry: RrcTimelineEntry) => string;
         messageKey: (msg?: RrcMessage) => string;
         renderMessageHtml: (text: string) => string;
+        relayMessageDisplayText?: (msg: RrcMessage) => string;
+        relayMessageTranslation?: (msg: RrcMessage) => RrcMessageTranslation | null;
+        toggleRelayMessageOriginal?: (msg: RrcMessage) => void;
         onmessagehtmlclick?: (e: MouseEvent) => void;
         onmessagecontextmenu?: (e: MouseEvent, msg: RrcMessage) => void;
     }
@@ -25,6 +29,9 @@
         formatPresenceGroupSummary,
         messageKey,
         renderMessageHtml,
+        relayMessageDisplayText = (m: RrcMessage) => m?.text ?? "",
+        relayMessageTranslation = () => null,
+        toggleRelayMessageOriginal = () => {},
         onmessagehtmlclick,
         onmessagecontextmenu,
     }: Props = $props();
@@ -37,6 +44,11 @@
     const expanded = $derived.by(() => {
         if (entry?.type !== "presenceGroup") return false;
         return isPresenceGroupExpanded(entry.id);
+    });
+
+    const translation = $derived.by(() => {
+        if (!entry?.msg) return null;
+        return relayMessageTranslation(entry.msg);
     });
 </script>
 
@@ -126,7 +138,29 @@
             tabindex="0"
         >
             <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-            {@html renderMessageHtml(entry.msg.text)}
+            {@html renderMessageHtml(relayMessageDisplayText(entry.msg))}
         </span>
+        {#if translation}
+            <div
+                class="mt-1 pt-1 border-t border-black/5 dark:border-white/5 text-xs text-sem-fg-muted flex items-center gap-2"
+            >
+                <span>
+                    {t("messages.translated_from_to", {
+                        source: translation.from.toUpperCase(),
+                        target: translation.to.toUpperCase(),
+                    })}
+                </span>
+                <button
+                    type="button"
+                    class="text-sem-info hover:underline cursor-pointer"
+                    onclick={(e) => {
+                        e.stopPropagation();
+                        if (entry.msg) toggleRelayMessageOriginal(entry.msg);
+                    }}
+                >
+                    {translation.showOriginal ? t("messages.show_translation") : t("messages.show_original")}
+                </button>
+            </div>
+        {/if}
     </div>
 {/if}

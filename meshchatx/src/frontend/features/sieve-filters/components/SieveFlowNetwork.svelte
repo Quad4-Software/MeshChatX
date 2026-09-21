@@ -19,6 +19,9 @@
 
     let hostEl = $state<HTMLDivElement | null>(null);
     let network: Network | null = null;
+    let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
+    let resizeRaf: number | null = null;
+    let hasBuiltInitial = false;
 
     function folderName(folderId: number | null): string {
         if (folderId == null) {
@@ -39,14 +42,32 @@
         }
     }
 
-    function onResize(): void {
-        try {
-            network?.redraw();
-            network?.fit({ animation: false });
-        } catch (error) {
-            console.warn("SieveFlowNetwork resize failed:", error);
-            destroyNetwork();
+    // Deep prop changes fire per keystroke while rules are edited.
+    // Coalesce them so each burst produces one destroy/layout cycle.
+    function scheduleRebuild(): void {
+        if (rebuildTimer != null) {
+            clearTimeout(rebuildTimer);
         }
+        rebuildTimer = setTimeout(() => {
+            rebuildTimer = null;
+            rebuild();
+        }, 150);
+    }
+
+    function onResize(): void {
+        if (resizeRaf != null) {
+            return;
+        }
+        resizeRaf = requestAnimationFrame(() => {
+            resizeRaf = null;
+            try {
+                network?.redraw();
+                network?.fit({ animation: false });
+            } catch (error) {
+                console.warn("SieveFlowNetwork resize failed:", error);
+                destroyNetwork();
+            }
+        });
     }
 
     function rebuild(): void {
@@ -233,13 +254,27 @@
     $effect(() => {
         // Track reactive dependencies
         const _ = [filters, folders, labels];
-        rebuild();
+        if (!hasBuiltInitial) {
+            // First run mirrors the mounted rebuild, later bursts are debounced.
+            hasBuiltInitial = true;
+            rebuild();
+            return;
+        }
+        scheduleRebuild();
     });
 
     useEventListener(window, "resize", onResize);
 
     onMount(() => {
         return () => {
+            if (rebuildTimer != null) {
+                clearTimeout(rebuildTimer);
+                rebuildTimer = null;
+            }
+            if (resizeRaf != null) {
+                cancelAnimationFrame(resizeRaf);
+                resizeRaf = null;
+            }
             destroyNetwork();
         };
     });

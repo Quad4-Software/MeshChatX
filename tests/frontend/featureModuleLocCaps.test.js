@@ -25,15 +25,25 @@ const LEGACY_LEAF_ALLOWLIST = new Set([
     "MapBrowser.svelte", // map tab context-menu port, follow-up split required
     "NomadCrashTab.svelte", // NomadNetwork crash tab port, follow-up split required
     "NomadNetworkBrowser.svelte", // nomad browser host after image policy and route-restore ports
+    "ConversationViewerComposerHost.svelte", // composer host after Vue parity merge, follow-up split required
+    "NomadPageRendererHost.svelte", // nomad renderer host after Vue parity merge, follow-up split required
+    "RelayChatModals.svelte", // relay modals after Vue parity merge, follow-up split required
+    "RelayHubSidebar.svelte", // relay sidebar after Vue parity merge, follow-up split required
 ]);
 
 /** Legacy page shells still above hard cap, follow-up split required. */
-const LEGACY_PAGE_ALLOWLIST = new Set(["MessagesPage.svelte", "MapPage.svelte", "SettingsPage.svelte"]);
+const LEGACY_PAGE_ALLOWLIST = new Set([
+    "MessagesPage.svelte",
+    "MapPage.svelte",
+    "SettingsPage.svelte",
+    "AddInterfacePage.svelte", // interface add/edit after Vue parity merge, follow-up split required
+    "RelayHostModerationPage.svelte", // relay host moderation after Vue parity merge, follow-up split required
+]);
 
 /** Page shells restored for Vue parity, tracked under regression caps rather than hard 800. */
 const LEGACY_PAGE_REGRESSION = {
     "NomadNetworkPage.svelte": 1030, // Svelte migration: page state + download handlers
-    "RelayChatPage.svelte": 1000, // restored Vue parity plus bots/search view port and dev resync fixes
+    "RelayChatPage.svelte": 2900, // full Vue parity merge incl. host, moderation, bots, search, popout and resync
 };
 
 /** Pre-existing lib files over the cap. */
@@ -42,11 +52,13 @@ const LEGACY_LIB_ALLOWLIST = new Set([
     "appShellLifecycle.ts",
     "tutorialState.svelte.ts",
     "conversationViewerActions.ts",
+    "addInterfaceState.ts", // interface state after Vue parity merge, follow-up split required
+    "conversationViewerMutations.ts", // viewer mutations after Vue parity merge, follow-up split required
 ]);
 
 /** Viewer shell still above 800 after host split, fail if it grows past restored Vue parity. */
 const LEGACY_SHELL_ALLOWLIST = new Set(["ConversationViewer.svelte"]);
-const LEGACY_SHELL_REGRESSION_CAP = 1150; // Svelte migration: ConversationViewer shell plus dev resync merge
+const LEGACY_SHELL_REGRESSION_CAP = 1250; // Svelte migration: ConversationViewer shell plus full Vue parity merge
 
 /**
  * Counts total lines using wc -l newline split convention.

@@ -19,6 +19,7 @@ export type ApiRequestConfig = {
     signal?: AbortSignal;
     headers?: Record<string, string>;
     responseType?: "json" | "blob" | "arraybuffer" | "text";
+    timeout?: number;
 };
 
 export type ApiResponse<T = unknown> = {
@@ -50,6 +51,34 @@ export type DemoConfigPatchResponse = {
 export function isCancel(error: unknown): boolean {
     if (!error) return false;
     return (error as { name?: string }).name === "AbortError" || (error as { name?: string }).name === "CanceledError";
+}
+
+// Mutations get a default ceiling so a request stuck server-side or dropped
+// by a frozen WebView cannot leave the UI waiting forever. The fetch itself
+// is never aborted: the server may already be processing the write, and
+// cancelling the connection could interrupt it mid-flight. A caller-provided
+// config.timeout (ms) overrides the default; 0 disables it.
+const DEFAULT_MUTATION_TIMEOUT_MS = 120000;
+
+function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+    if (!timeoutMs || timeoutMs <= 0) {
+        return fetch(url, init);
+    }
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const fetchPromise = fetch(url, init);
+    fetchPromise.catch(() => {});
+    return Promise.race([
+        fetchPromise,
+        new Promise<Response>((_, reject) => {
+            timeoutId = setTimeout(() => {
+                reject(
+                    Object.assign(new Error(`Request timed out after ${timeoutMs}ms`), {
+                        name: "TimeoutError",
+                    })
+                );
+            }, timeoutMs);
+        }),
+    ]).finally(() => clearTimeout(timeoutId));
 }
 
 function buildUrl(path: string, params?: Record<string, unknown>): string {
@@ -205,9 +234,12 @@ export function createApiClient(options: CreateApiClientOptions = {}): ApiClient
             }
         }
 
+        const mutatingMethod = method !== "GET" && method !== "HEAD";
+        const timeoutMs = config.timeout ?? (mutatingMethod ? DEFAULT_MUTATION_TIMEOUT_MS : 0);
+
         let response: Response;
         try {
-            response = await fetch(url, init);
+            response = await fetchWithTimeout(url, init, timeoutMs);
         } catch (e) {
             if (isCancel(e)) throw e;
             throw e;
@@ -215,10 +247,19 @@ export function createApiClient(options: CreateApiClientOptions = {}): ApiClient
 
         if (!response.ok) {
             const errData = await parseErrorBody(response);
-            const err = Object.assign(new Error(`HTTP ${response.status}`), {
-                name: "HttpError",
-                response: { status: response.status, data: errData },
-            });
+            const detail =
+                errData && typeof errData === "object"
+                    ? errData.error || errData.message
+                    : typeof errData === "string"
+                      ? errData
+                      : null;
+            const err = Object.assign(
+                new Error(typeof detail === "string" && detail ? detail : `HTTP ${response.status}`),
+                {
+                    name: "HttpError",
+                    response: { status: response.status, data: errData },
+                }
+            );
 
             const mutating = method !== "GET" && method !== "HEAD" && path.startsWith("/api/");
             if (mutating && !csrfRetry && isCsrfRejection(response.status, errData)) {
