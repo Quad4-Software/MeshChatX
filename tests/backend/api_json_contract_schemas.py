@@ -398,7 +398,6 @@ AUTH_STATUS_SCHEMA: dict = {
 }
 
 
-
 TELEPHONE_VOICEMAIL_STATUS_SCHEMA: dict = {
     "type": "object",
     "required": [

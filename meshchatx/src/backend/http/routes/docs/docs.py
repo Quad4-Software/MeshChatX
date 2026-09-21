@@ -135,7 +135,6 @@ def register_docs_docs_routes(routes: Any, app: Any) -> None:
 
         return web.json_response(content)
 
-
     # export docs
     @routes.get(API_V1_PREFIX + "/docs/export")
     async def docs_export(request):

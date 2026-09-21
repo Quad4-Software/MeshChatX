@@ -227,4 +227,3 @@ def register_rn_tools_rnpath_routes(routes, app):
         except Exception:
             logger.exception("RN path trace route failed")
             return http_unexpected("Trace failed")
-

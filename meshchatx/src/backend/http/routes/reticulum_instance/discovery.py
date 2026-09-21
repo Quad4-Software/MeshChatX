@@ -73,7 +73,6 @@ def register_reticulum_instance_discovery_routes(routes, app):
 
         reticulum_config = app._get_reticulum_section()
 
-
         def update_config_value(key):
             if key not in data:
                 return

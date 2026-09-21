@@ -171,4 +171,3 @@ def register_rn_tools_rnsh_routes(routes, app):
         except Exception as e:
             return http_error_from_exception(e, key="message")
         return web.json_response({"session": session})
-

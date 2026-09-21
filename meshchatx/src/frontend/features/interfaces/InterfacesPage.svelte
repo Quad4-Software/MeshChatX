@@ -287,8 +287,7 @@
             const merged = new Map<string, DiscoveredInterface>();
             const addOrUpdate = (iface: DiscoveredInterface, isNew = false) => {
                 const key = discoveryKey(iface);
-                const existing =
-                    merged.get(key) || discoveredInterfaces.find((i) => discoveryKey(i) === key);
+                const existing = merged.get(key) || discoveredInterfaces.find((i) => discoveryKey(i) === key);
                 const lastHeard = iface.last_heard ?? existing?.last_heard ?? Math.floor(Date.now() / 1000);
                 merged.set(key, {
                     ...existing,
@@ -419,10 +418,6 @@
         window.location.hash = `#${INTERFACES_EDIT_ROUTE_PATH}?interface_name=${encodeURIComponent(name)}`;
     }
 
-    function handleAdd() {
-        window.location.hash = `#${INTERFACES_ADD_ROUTE_PATH}`;
-    }
-
     async function handleSaveDiscoverySettings() {
         savingDiscoveryConfig = true;
         try {
@@ -546,7 +541,6 @@
                 {typeFilter}
                 {sortedInterfaceTypes}
                 onrelaunch={handleRelaunch}
-                onadd={handleAdd}
                 onimport={() => (isImportModalShowing = true)}
                 onexportall={handleExportAll}
                 onreloadrns={handleReloadRns}
@@ -753,14 +747,13 @@
     </div>
 
     <!-- Mobile Floating Action Button -->
-    <button
-        type="button"
+    <a
+        href={`#${INTERFACES_ADD_ROUTE_PATH}`}
         class="fixed bottom-6 right-6 z-40 sm:hidden primary-btn rounded-full w-14 h-14 shadow-2xl flex items-center justify-center p-0"
         aria-label={t("interfaces.add_interface")}
-        onclick={handleAdd}
     >
         <MaterialDesignIcon iconName="plus" class="w-7 h-7" />
-    </button>
+    </a>
 
     <!-- Import Interfaces Modal -->
     <ImportInterfacesModal

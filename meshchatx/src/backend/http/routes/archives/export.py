@@ -32,9 +32,7 @@ def register_archives_export_routes(routes: Any, app: Any) -> None:
             )
 
             def _safe_segment(value: str) -> str:
-                cleaned = re.sub(
-                    r"[\\/:*?\"<>|\x00-\x1f]+", "_", value or ""
-                ).strip()
+                cleaned = re.sub(r"[\\/:*?\"<>|\x00-\x1f]+", "_", value or "").strip()
                 cleaned = cleaned.strip(". ")
                 return cleaned[:80] or "_"
 
@@ -58,7 +56,9 @@ def register_archives_export_routes(routes: Any, app: Any) -> None:
                         short = (row.get("hash") or "snap")[:8]
                         name = f"{stem}__{short}{'.' + ext if ext else ''}"
                     while name in used_names:
-                        name = f"{stem}__{secrets.token_hex(4)}{'.' + ext if ext else ''}"
+                        name = (
+                            f"{stem}__{secrets.token_hex(4)}{'.' + ext if ext else ''}"
+                        )
                     used_names.add(name)
                     zf.writestr(name, row.get("content") or "")
                     manifest.append(

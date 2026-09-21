@@ -248,5 +248,3 @@ async def _send_nomad_page_content(
             },
         ),
     )
-
-

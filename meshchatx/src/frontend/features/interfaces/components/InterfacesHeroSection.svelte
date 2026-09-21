@@ -3,6 +3,7 @@
 <script lang="ts">
     import { t } from "../../../js/i18n.js";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import { INTERFACES_ADD_ROUTE_PATH } from "../lib/constants.js";
 
     interface Props {
         hasPendingChanges?: boolean;
@@ -12,7 +13,6 @@
         typeFilter?: string;
         sortedInterfaceTypes?: string[];
         onrelaunch?: () => void;
-        onadd?: () => void;
         onimport?: () => void;
         onexportall?: () => void;
         onreloadrns?: () => void;
@@ -28,7 +28,6 @@
         typeFilter = "all",
         sortedInterfaceTypes = [],
         onrelaunch,
-        onadd,
         onimport,
         onexportall,
         onreloadrns,
@@ -77,14 +76,13 @@
             {t("interfaces.description")}
         </div>
         <div class="flex flex-wrap gap-2 pt-2">
-            <button
-                type="button"
+            <a
+                href={`#${INTERFACES_ADD_ROUTE_PATH}`}
                 class="primary-chip px-4 py-2 text-sm min-h-[44px] sm:min-h-0 items-center justify-center hidden sm:inline-flex"
-                onclick={onadd}
             >
                 <MaterialDesignIcon iconName="plus" class="w-4 h-4" />
                 <span>{t("interfaces.add_interface")}</span>
-            </button>
+            </a>
             <button type="button" class="secondary-chip text-sm" onclick={onimport}>
                 <MaterialDesignIcon iconName="import" class="w-4 h-4" />
                 <span>{t("interfaces.import")}</span>

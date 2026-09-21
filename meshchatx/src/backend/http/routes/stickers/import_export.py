@@ -51,4 +51,3 @@ def register_stickers_import_export_routes(routes: Any, app: Any) -> None:
             replace_duplicates=replace,
         )
         return web.json_response(result)
-

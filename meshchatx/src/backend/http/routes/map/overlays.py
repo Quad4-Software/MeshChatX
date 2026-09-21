@@ -219,4 +219,3 @@ def register_map_overlays_routes(routes, app):
                 "Content-Disposition": f'attachment; filename="{filename}"',
             },
         )
-
