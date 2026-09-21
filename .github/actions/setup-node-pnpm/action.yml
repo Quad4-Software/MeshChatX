@@ -24,9 +24,28 @@ runs:
           with:
               node-version: ${{ inputs.node-version }}
 
+        - name: Cache corepack downloads
+          uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+          with:
+              path: |
+                  ~/.cache/node/corepack
+                  ~/Library/Caches/node/corepack
+                  ~/AppData/Local/node/corepack
+              key: corepack-${{ runner.os }}-${{ inputs.node-version }}-pnpm-${{ inputs.pnpm-version }}
+
         - name: Enable pnpm (corepack)
           shell: bash
-          run: corepack enable && corepack prepare "pnpm@${{ inputs.pnpm-version }}" --activate
+          run: |
+              set -euo pipefail
+              corepack enable
+              for attempt in 1 2 3; do
+                  if corepack prepare "pnpm@${{ inputs.pnpm-version }}" --activate; then
+                      exit 0
+                  fi
+                  echo "corepack prepare failed (attempt $attempt of 3); retrying"
+                  sleep $((attempt * 5))
+              done
+              exit 1
 
         - name: Verify Node.js version
           shell: bash
