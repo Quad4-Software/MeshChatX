@@ -38,7 +38,7 @@ env:
 jobs:
     frontend:
         name: Build frontend artifact
-        uses: ./.github/workflows/frontend-build.yml
+        uses: $/.github/workflows/frontend-build.yml
         permissions:
             contents: read
         with:
@@ -85,13 +85,13 @@ jobs:
                   persist-credentials: false
 
             - name: Set up Python and UV
-              uses: ./.github/actions/setup-python-uv
+              uses: $/.github/actions/setup-python-uv
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
 
             - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
+              uses: $/.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
@@ -115,7 +115,7 @@ jobs:
               run: bash scripts/ci/github-install-macos-x64-port-deps.sh
 
             - name: Fetch frontend artifact
-              uses: ./.github/actions/fetch-frontend-artifact
+              uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 

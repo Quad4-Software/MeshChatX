@@ -12,7 +12,7 @@ from meshchatx.src.path_utils import atomic_write_bytes
 
 _MODULE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _MAX_MODULE_BYTES = 512 * 1024
-_BUNDLED_INTERFACE_MODULES = ("HTTPInterface.py",)
+_BUNDLED_INTERFACE_MODULES = ("HTTPInterface.py", "AwareInterface.py")
 
 
 def interface_modules_dir(reticulum_config_dir: str | None) -> str:

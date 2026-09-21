@@ -6,6 +6,8 @@
     import DialogUtils from "../../../js/DialogUtils.js";
     import ToastUtils from "../../../js/ToastUtils.js";
     import { buildMeshchatMapUri } from "../../../js/mapLinkUtils.js";
+    import { getAndroidPosition, isAndroidLocationSupported } from "../../../js/androidLocation.js";
+    import { parseCommandOrRequestText } from "../lib/lxmf/normalize.js";
     import ConversationComposer from "./ConversationComposer.svelte";
     import ConversationViewerComposerPickerHost from "./ConversationViewerComposerPickerHost.svelte";
     import {
@@ -31,6 +33,7 @@
         myLxmfAddressHash = "",
         peerPathSnapshot = null as ViewerPathSnapshot | null,
         isSelectedPeerBlocked = false,
+        config = null as Record<string, unknown> | null,
         translateOptions = [] as LangOption[],
         hasTranslator = false,
         text = $bindable(""),
@@ -44,6 +47,7 @@
         myLxmfAddressHash?: string;
         peerPathSnapshot?: ViewerPathSnapshot | null;
         isSelectedPeerBlocked?: boolean;
+        config?: Record<string, unknown> | null;
         translateOptions?: LangOption[];
         hasTranslator?: boolean;
         text?: string;
@@ -55,7 +59,11 @@
 
     let pickerHost: ConversationViewerComposerPickerHost | undefined = $state();
     let fileInput: HTMLInputElement | undefined = $state();
+    let videoInput: HTMLInputElement | undefined = $state();
     let deliveryMethod = $state<string | null>(null);
+    // Armed by the send menu: next send parses the composer text as a
+    // command/request payload instead of a chat message.
+    let pendingSendAsCommandOrRequest = $state(false);
     let images = $state.raw<File[]>([]);
     let imageUrls = $state.raw<string[]>([]);
     let files = $state.raw<File[]>([]);
@@ -139,24 +147,86 @@
         }
     }
 
-    function toggleLocation() {
+    function locationSettingsToastAction() {
+        return {
+            label: t("common.configure"),
+            handler: () => {
+                window.location.hash = "#/settings?section=location";
+            },
+        };
+    }
+
+    function appendLocationMapUri(lat: number, lon: number) {
+        const mapUri = buildMeshchatMapUri({ lat, lon, zoom: 15 });
+        appendText(mapUri || "");
+        ToastUtils.success(t("messages.location_sent"), 3000, "location_share");
+    }
+
+    async function toggleLocation() {
+        const toastKey = "location_share";
+        const source = String(config?.location_source || "browser");
+        if (source === "disabled") {
+            ToastUtils.show(t("messages.location_disabled"), "error", 8000, toastKey, locationSettingsToastAction());
+            return;
+        }
+        if (source === "manual") {
+            const lat = parseFloat(String(config?.location_manual_lat ?? ""));
+            const lon = parseFloat(String(config?.location_manual_lon ?? ""));
+            if (isNaN(lat) || isNaN(lon)) {
+                ToastUtils.error("Invalid manual coordinates in settings", 5000, toastKey);
+                return;
+            }
+            appendLocationMapUri(lat, lon);
+            return;
+        }
+        if (source === "android") {
+            if (!isAndroidLocationSupported()) {
+                ToastUtils.show(
+                    t("messages.location_android_unavailable"),
+                    "error",
+                    8000,
+                    toastKey,
+                    locationSettingsToastAction()
+                );
+                return;
+            }
+            ToastUtils.loading(t("messages.fetching_location"), 0, toastKey);
+            try {
+                const pos = await getAndroidPosition();
+                appendLocationMapUri(Number(pos.latitude.toFixed(6)), Number(pos.longitude.toFixed(6)));
+            } catch (err) {
+                const code = (err as { code?: string } | null)?.code;
+                const key =
+                    code === "permission_denied"
+                        ? "messages.location_permission_denied"
+                        : code === "location_disabled"
+                          ? "messages.location_service_off"
+                          : "messages.location_failed";
+                ToastUtils.show(t(key), "error", 8000, toastKey, locationSettingsToastAction());
+            }
+            return;
+        }
         if (!navigator.geolocation) {
             ToastUtils.warning(t("map.geolocation_not_supported"));
             return;
         }
-        ToastUtils.loading(t("messages.fetching_location"), 2000);
+        ToastUtils.loading(t("messages.fetching_location"), 0, toastKey);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const lat = Number(pos.coords.latitude.toFixed(6));
                 const lon = Number(pos.coords.longitude.toFixed(6));
-                const mapUri = buildMeshchatMapUri({ lat, lon, zoom: 15 });
-                appendText(mapUri || "");
-                ToastUtils.success(t("messages.location_sent"));
+                appendLocationMapUri(lat, lon);
             },
             () => {
-                ToastUtils.error(t("map.location_not_determined"));
+                ToastUtils.show(
+                    t("messages.location_failed"),
+                    "error",
+                    8000,
+                    toastKey,
+                    locationSettingsToastAction()
+                );
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
         );
     }
 
@@ -199,7 +269,51 @@
         activeRecording = null;
     }
 
+    async function requestLocation() {
+        if (!selectedHash) return;
+        try {
+            // Telemetry request command asks the peer to report its position.
+            await window.api.post("/api/v1/lxmf-messages/send", {
+                lxmf_message: {
+                    destination_hash: selectedHash,
+                    content: "",
+                    fields: {
+                        commands: [{ "0x01": Math.floor(Date.now() / 1000) }],
+                    },
+                },
+            });
+            ToastUtils.success(t("messages.location_request_sent"));
+        } catch (e) {
+            console.log(e);
+            ToastUtils.error(t("messages.failed_send_location_request"));
+        }
+    }
+
+    async function sendCommandOrRequest() {
+        if (!selectedHash) return;
+        try {
+            const commands = parseCommandOrRequestText(text);
+            await window.api.post("/api/v1/lxmf-messages/send", {
+                lxmf_message: {
+                    destination_hash: selectedHash,
+                    content: "",
+                    fields: { commands },
+                },
+            });
+            text = "";
+            pendingSendAsCommandOrRequest = false;
+            ToastUtils.success("Command or request sent");
+        } catch (e) {
+            console.log(e);
+            ToastUtils.error(`Failed to send command/request: ${(e as Error)?.message || e}`);
+        }
+    }
+
     async function sendMessage() {
+        if (pendingSendAsCommandOrRequest) {
+            await sendCommandOrRequest();
+            return;
+        }
         if (!canSendMessage || !selectedHash) return;
         try {
             const job = await buildOutboundJob({
@@ -266,6 +380,11 @@
         onsend={() => void sendMessage()}
         onaddfiles={() => fileInput?.click()}
         onaddimage={addImage}
+        onaddvideo={() => videoInput?.click()}
+        onrequestlocation={() => void requestLocation()}
+        onsendcommandorrequest={() => {
+            pendingSendAsCommandOrRequest = true;
+        }}
         onstartrecording={(args) => void startAudioRecording(args)}
         onstoprecording={() => void stopAudioRecording()}
         onremovefile={(f) => {
@@ -297,6 +416,20 @@
         class="hidden"
         onchange={(event) => {
             files = files.concat(Array.from(event.currentTarget.files || []));
+            // Clear so picking the same file again re-fires change.
+            event.currentTarget.value = "";
+        }}
+    />
+
+    <!-- hidden video input for the mobile attachments menu -->
+    <input
+        bind:this={videoInput}
+        type="file"
+        accept="video/*"
+        class="hidden"
+        onchange={(event) => {
+            files = files.concat(Array.from(event.currentTarget.files || []));
+            event.currentTarget.value = "";
         }}
     />
 </div>

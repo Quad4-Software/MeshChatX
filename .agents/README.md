@@ -15,7 +15,7 @@ Entry: root AGENTS.md. Always-on rules: .agents/conventions/core.md and .agents/
 | Python / HTTP / SQLite                | [conventions/backend.md](conventions/backend.md)             |
 | Local FS jail                         | [conventions/path-jail.md](conventions/path-jail.md)         |
 | Android WebView                       | [conventions/android.md](conventions/android.md)             |
-| Tests / oracles / contracts           | [conventions/tests.md](conventions/tests.md)                 |
+| Tests / references / contracts           | [conventions/tests.md](conventions/tests.md)                 |
 | Commit messages                       | [conventions/commits.md](conventions/commits.md)             |
 
 Skills: one file each at skills/<name>/SKILL.md. Open the matching skill before coding that surface.
@@ -52,7 +52,7 @@ Skills: one file each at skills/<name>/SKILL.md. Open the matching skill before 
 | Electron frozen packaging                | [electron-frozen-packaging](skills/electron-frozen-packaging/SKILL.md)       |
 | Android bridge                           | [android-webview-bridge](skills/android-webview-bridge/SKILL.md)             |
 | focused test loops                       | [test-loop](skills/test-loop/SKILL.md)                                       |
-| property / fuzz oracles                  | [test-oracles](skills/test-oracles/SKILL.md)                                 |
+| property / fuzz references                  | [test-oracles](skills/test-oracles/SKILL.md)                                 |
 | exploratory bug hunt                     | [exploratory-testing](skills/exploratory-testing/SKILL.md)                   |
 | releases, tags, immutability             | [release-immutability](skills/release-immutability/SKILL.md)                 |
 | experimental WebTransport live           | [webtransport-experimental](skills/webtransport-experimental/SKILL.md)       |

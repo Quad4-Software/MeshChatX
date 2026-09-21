@@ -28,7 +28,7 @@ Decide allow/deny from a parsed URL (scheme, host, port, userinfo), never from a
 10. Hostname RFC1918 checks must require a dotted-quad IPv4 (or a parsed hostname), not host.startsWith("10.").
 11. Plugin network:fetch scanning: parse the URL host. Do not treat a remote URL as local because the string contains 127.0.0.1 or localhost.
 
-## Tests (oracle, not crash-only)
+## Tests (reference, not crash-only)
 
 Assert deny for the userinfo-host form against the helper under test:
 
@@ -37,7 +37,7 @@ Assert deny for the userinfo-host form against the helper under test:
 - data:text/html,... in shell navigation
 - blob:https://example.com/uuid in shell navigation
 
-Do not write exploit pages or PoCs. The oracle is accept/reject on the parser.
+Do not write exploit pages or PoCs. The reference is accept/reject on the parser.
 
 ## Key files
 

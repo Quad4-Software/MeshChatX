@@ -33,6 +33,7 @@
         { key: "unicode_path_good", labelKey: "selftest.unicode_path_good" },
         { key: "rnode_support_good", labelKey: "selftest.rnode_support_good" },
         { key: "bot_launcher_good", labelKey: "selftest.bot_launcher_good" },
+        { key: "backbone_patch_good", labelKey: "selftest.backbone_patch_good" },
         { key: "http_status_good", labelKey: "selftest.http_status_good" },
         { key: "http_app_info_good", labelKey: "selftest.http_app_info_good" },
         { key: "http_config_good", labelKey: "selftest.http_config_good" },
@@ -106,7 +107,7 @@
 </script>
 
 {#if visible}
-    <section class="settings-section break-inside-avoid">
+    <section class="settings-section break-inside-avoid" data-settings-section="selftest">
         <header class="settings-section__header">
             <div>
                 <div class="settings-section__eyebrow">Maintenance</div>

@@ -5,9 +5,9 @@
             "name": "micron-parser",
             "specifiers": [
                 "github:RFnexus/micron-parser-js",
-                "github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098"
+                "github:RFnexus/micron-parser-js#ce24ce44adf804230a16520a9f79cd5f183c0bb5"
             ],
-            "commit": "33feb1054c8b2cb3f5f05abbb8903360d3f0c098",
+            "commit": "ce24ce44adf804230a16520a9f79cd5f183c0bb5",
             "repository": "https://github.com/RFnexus/micron-parser-js"
         }
     ],

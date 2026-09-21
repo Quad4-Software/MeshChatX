@@ -3,6 +3,7 @@
 <script lang="ts">
     import "../lib/conversationViewerGlobals.js";
     import { onMount, tick, untrack } from "svelte";
+    import { onClickOutside } from "runed";
     import DialogUtils from "../../../js/DialogUtils.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import GlobalState, { subscribeGlobalState } from "../../../js/GlobalState.js";
@@ -105,6 +106,7 @@
     import type { LxmfMessage, ViewerChatItem, ViewerPathSnapshot } from "../lib/conversationViewerCtx.js";
     import { sameHash } from "../lib/conversationViewerCtx.js";
     import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "../lib/messageListVirtual.js";
+    import { MAX_CHAT_ITEMS } from "../lib/constants.js";
     import type { Conversation, MessagesConfig, Peer } from "../lib/types.js";
     import type { MessageChatItem } from "../lib/viewerActions.js";
 
@@ -146,8 +148,15 @@
     let hasMorePrevious = $state(true);
     let autoScrollOnNewMessage = $state(true);
     let messagesViewportReady = $state(true);
+    // Scrollback loading trims the newest tail once the window is full; when
+    // the user returns to the bottom we reset to the latest page.
+    let chatWindowTailTrimmed = $state(false);
+    let chatHeadTrimQueued = false;
     let newMessageText = $state("");
     let replyingTo = $state<ViewerChatItem | null>(null);
+    let mobileAttachmentMenuOpen = $state(false);
+    let fileAttachmentInput: HTMLInputElement | null = $state(null);
+    let unmounted = false;
 
     let listPane: ConversationViewerListPane | undefined = $state();
     let composerHost: ConversationViewerComposerHost | undefined = $state();
@@ -248,6 +257,8 @@
             downloadLxmfFileAttachment: (item, index, name) => downloadFile(item as ViewerChatItem, index, name),
             addContact: addSharedContact,
             onupdatePeerTracking,
+            isStrangerPeer,
+            isPopout,
             onSetBubbleMessageShowOriginal: (hash, showOriginal) => {
                 chatItems = chatItems.map((candidate) =>
                     candidate.lxmf_message.hash === hash
@@ -322,10 +333,14 @@
         void fetchContacts();
         void loadTranslateOptions();
         return () => {
+            unmounted = true;
             onviewerReady?.(null);
             for (const [type, handler] of wsHandlers) offWsEvent(type, handler);
             GlobalEmitter.off("websocket-reconnected", softResync);
             GlobalEmitter.off("identity-switched", onIdentitySwitched);
+            // Unmounting while a send is in flight: let the server keep it
+            // (the send POST already ran); just stop touching view state.
+            outboundQueue.clear();
             if (openedPeerHash) saveDraft(openedPeerHash, openedIdentityKey, newMessageText);
             clearAudioAttachmentCache(audioAttachmentOrder, audioAttachmentCache);
             audioAttachmentCache = {};
@@ -339,8 +354,12 @@
         openedPeerHash = peerHash;
         openedIdentityKey = nextIdentity;
         requestSequence += 1;
+        // Queued sends were composed under the previous peer or identity.
+        // The queue marks them dropped so the executor resolves quietly.
+        outboundQueue.clear();
         loadPreviousPromise = null;
         isLoadingPrevious = false;
+        chatWindowTailTrimmed = false;
         clearAudioAttachmentCache(audioAttachmentOrder, audioAttachmentCache);
         audioAttachmentCache = {};
         audioAttachmentOrder = [];
@@ -428,6 +447,7 @@
                 if (result.paintedFromCache) {
                     paintedFirstPageFromCache = true;
                 }
+                trimChatWindowTail();
             } finally {
                 if (loadPreviousPromise === pending) {
                     isLoadingPrevious = false;
@@ -439,9 +459,61 @@
         await pending;
     }
 
+    // Rows are plain JS objects; an unbounded live window is what grows
+    // memory and render cost in long sessions. Trim oldest rows off the
+    // head after appends and re-anchor the scroll position so the visible
+    // region does not jump.
+    function trimChatWindowHead() {
+        if (chatItems.length <= MAX_CHAT_ITEMS || chatHeadTrimQueued) return;
+        chatHeadTrimQueued = true;
+        void tick().then(() => {
+            chatHeadTrimQueued = false;
+            const drop = chatItems.length - MAX_CHAT_ITEMS;
+            if (drop <= 0) return;
+            const scrollEl = messagesScroll;
+            const prevScrollHeight = scrollEl?.scrollHeight ?? 0;
+            const prevScrollTop = scrollEl?.scrollTop ?? 0;
+            chatItems = chatItems.slice(drop);
+            if (!scrollEl) return;
+            void tick().then(() => {
+                scrollEl.scrollTop = Math.max(0, prevScrollTop - (prevScrollHeight - scrollEl.scrollHeight));
+            });
+        });
+    }
+
+    // When the user is paging upward through history, keep the window
+    // bounded by dropping the newest tail instead of the rows just loaded.
+    // Return-to-bottom reloads the latest page.
+    function trimChatWindowTail() {
+        if (chatItems.length <= MAX_CHAT_ITEMS) return;
+        chatItems = chatItems.slice(0, MAX_CHAT_ITEMS);
+        chatWindowTailTrimmed = true;
+    }
+
+    async function reloadLatestPage() {
+        const peerHash = selectedHash;
+        if (!peerHash || isLoadingPrevious) return;
+        requestSequence += 1;
+        loadPreviousPromise = null;
+        isLoadingPrevious = false;
+        chatWindowTailTrimmed = false;
+        audioDownloadInFlight.clear();
+        const seq = requestSequence;
+        chatItems = [];
+        hasMorePrevious = true;
+        await loadPrevious();
+        if (seq !== requestSequence) return;
+        await tick();
+        scrollMessagesToBottom();
+    }
+
     function onMessagesScroll() {
-        autoScrollOnNewMessage = isNearBottom(messagesScroll);
+        const nearBottom = isNearBottom(messagesScroll);
+        autoScrollOnNewMessage = nearBottom;
         if (shouldLoadPreviousMessages(messagesScroll)) void loadPrevious();
+        if (nearBottom && chatWindowTailTrimmed && !isLoadingPrevious) {
+            void reloadLatestPage();
+        }
     }
 
     async function scrollMessagesToBottom() {
@@ -472,7 +544,10 @@
                 next = result.items;
             }
             chatItems = next;
-            if (added && autoScrollOnNewMessage) void scrollMessagesToBottom();
+            if (added) {
+                trimChatWindowHead();
+                if (autoScrollOnNewMessage) void scrollMessagesToBottom();
+            }
             await refreshPeerNetwork(false);
         } catch {
             // Soft resync is best effort; the next WS event catches up.
@@ -482,7 +557,9 @@
     async function applyLiveMessage(message: LxmfMessage) {
         const result = applyWsMessage(chatItems, message, selectedHash, myLxmfAddressHash);
         if (!result.changed) return;
+        const appended = result.items.length > chatItems.length;
         chatItems = result.items;
+        if (appended) trimChatWindowHead();
         if (result.incoming) {
             const conversation = conversations.find((candidate) => sameHash(candidate.destination_hash, selectedHash));
             await markConversationAsRead(conversation || selectedPeer || { destination_hash: selectedHash }, {
@@ -640,7 +717,7 @@
     }
 
     function shareContact(contact) {
-        newMessageText = formatSharedContactString(contact);
+        newMessageText = formatSharedContactString(contact, conversations);
         isShareContactModalOpen = false;
         void tick().then(() => composerHost?.sendNow?.());
     }
@@ -650,7 +727,7 @@
     }
 
     async function executeSendJob(job: OutboundJob) {
-        chatItems = await executeOutboundSendJob({
+        const next = await executeOutboundSendJob({
             api: window.api,
             job,
             peerPathSnapshot,
@@ -664,6 +741,11 @@
                 (GlobalState.config as Record<string, unknown> | undefined)
                     ?.lxmf_preferred_propagation_node_destination_hash,
         });
+        // View went away mid-send; backend already accepted the message, so
+        // leave it alone. Live events update the pane if it reopens.
+        if (job.dropped || job.cancelled || unmounted) return;
+        chatItems = next;
+        trimChatWindowHead();
     }
 
     async function markConversationAsRead(
@@ -693,13 +775,20 @@
         void ok;
     }
 
-    async function addSharedContact(name?: string, hash?: string, lxmfAddress?: string, lxstAddress?: string) {
+    async function addSharedContact(
+        name?: string,
+        hash?: string,
+        lxmfAddress?: string,
+        lxstAddress?: string,
+        icon?: { icon_name?: string; foreground_colour?: string; background_colour?: string } | null
+    ) {
         await addSharedContactEntry({
             api: window.api,
             name,
             hash,
             lxmfAddress,
             lxstAddress,
+            icon,
             onSuccess: () => onreloadConversations?.(),
         });
     }
@@ -817,6 +906,7 @@
             targetItem: item,
             currentItems: chatItems,
         });
+        trimChatWindowHead();
     }
 
     async function deleteMessage() {
@@ -847,6 +937,7 @@
         });
         if (next) {
             chatItems = next;
+            trimChatWindowHead();
             void scrollMessagesToBottom();
         }
     }
@@ -904,6 +995,7 @@
             is_outbound: true,
             lxmf_message: pending,
         });
+        trimChatWindowHead();
         onoutboundComposeEnqueued?.({
             peerHash: job.destinationHash,
             previewText: job.text,
@@ -1033,6 +1125,7 @@
             {myLxmfAddressHash}
             {peerPathSnapshot}
             {isSelectedPeerBlocked}
+            {config}
             {translateOptions}
             {hasTranslator}
             onjobCreated={handleJobCreated}

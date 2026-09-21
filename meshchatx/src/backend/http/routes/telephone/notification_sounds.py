@@ -10,6 +10,7 @@ from meshchatx.src.backend.http.errors import (
     http_error_from_exception,
     http_payload_too_large,
     http_unavailable,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -83,7 +84,9 @@ def register_telephone_notification_sounds_routes(routes, app):
 
     @routes.get("/api/v1/notification-sounds/{id}/audio")
     async def notification_sound_audio(request):
-        sound_id = int(request.match_info["id"])
+        sound_id = parse_int_param(request.match_info["id"])
+        if sound_id is None:
+            return http_bad_request("invalid sound id")
         sound = app.database.notification_sounds.get_by_id(sound_id)
         if not sound:
             return web.Response(status=404)
@@ -164,7 +167,9 @@ def register_telephone_notification_sounds_routes(routes, app):
     @routes.patch("/api/v1/notification-sounds/{id}")
     async def notification_sound_patch(request):
         try:
-            sound_id = int(request.match_info["id"])
+            sound_id = parse_int_param(request.match_info["id"])
+            if sound_id is None:
+                return http_bad_request("invalid sound id")
             data = await read_json_limited(request)
 
             display_name = data.get("display_name")
@@ -185,7 +190,9 @@ def register_telephone_notification_sounds_routes(routes, app):
     @routes.delete("/api/v1/notification-sounds/{id}")
     async def notification_sound_delete(request):
         try:
-            sound_id = int(request.match_info["id"])
+            sound_id = parse_int_param(request.match_info["id"])
+            if sound_id is None:
+                return http_bad_request("invalid sound id")
             sound = app.database.notification_sounds.get_by_id(sound_id)
             if sound:
                 if app.notification_sound_manager:

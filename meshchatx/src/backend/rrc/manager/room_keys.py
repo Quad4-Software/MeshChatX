@@ -9,6 +9,7 @@ from meshchatx.src.backend.rrc.manager.constants import (
     BAD_KEY_MARKERS,
     DEFAULT_DEST_NAME,
     FORCED_LEAVE_MARKERS,
+    JOIN_FATAL_MARKERS,
 )
 from meshchatx.src.backend.rrc.room_key_crypto import decrypt_room_key, encrypt_room_key
 
@@ -146,3 +147,15 @@ class RRCManagerRoomKeysMixin:
             return False
         lowered = text.strip().lower()
         return any(marker in lowered for marker in FORCED_LEAVE_MARKERS)
+
+    @staticmethod
+    def is_fatal_join_error(text):
+        """Whether a JOIN error means the room can never be joined.
+
+        Transient failures like rate limiting must keep room membership
+        and history so saved rooms can retry on the next connect.
+        """
+        if not isinstance(text, str):
+            return False
+        lowered = text.strip().lower()
+        return any(marker in lowered for marker in JOIN_FATAL_MARKERS)

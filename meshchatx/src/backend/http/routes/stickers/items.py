@@ -12,6 +12,7 @@ from meshchatx.src.backend.http.errors import (
     http_conflict,
     http_not_found,
     http_payload_too_large,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -79,7 +80,9 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
     @routes.delete("/api/v1/stickers/{sticker_id}")
     async def stickers_delete(request):
         identity_hash = app.identity.hash.hex()
-        sticker_id = int(request.match_info.get("sticker_id", "0"))
+        sticker_id = parse_int_param(request.match_info.get("sticker_id"))
+        if sticker_id is None:
+            return http_bad_request("invalid sticker id")
         ok = app.database.stickers.delete(sticker_id, identity_hash)
         if not ok:
             return http_not_found("not_found")
@@ -88,7 +91,9 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
     @routes.patch("/api/v1/stickers/{sticker_id}")
     async def stickers_patch(request):
         identity_hash = app.identity.hash.hex()
-        sticker_id = int(request.match_info.get("sticker_id", "0"))
+        sticker_id = parse_int_param(request.match_info.get("sticker_id"))
+        if sticker_id is None:
+            return http_bad_request("invalid sticker id")
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
@@ -138,7 +143,9 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
     @routes.get("/api/v1/stickers/{sticker_id}/image")
     async def stickers_get_image(request):
         identity_hash = app.identity.hash.hex()
-        sticker_id = int(request.match_info.get("sticker_id", "0"))
+        sticker_id = parse_int_param(request.match_info.get("sticker_id"))
+        if sticker_id is None:
+            return http_bad_request("invalid sticker id")
         row = app.database.stickers.get_row(sticker_id, identity_hash)
         if row is None:
             return http_not_found("not_found")

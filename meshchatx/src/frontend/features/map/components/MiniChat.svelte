@@ -16,6 +16,7 @@
     let loading = $state(false);
     let sending = $state(false);
     let messageListEl = $state<HTMLDivElement | null>(null);
+    let fetchGen = 0;
 
     $effect(() => {
         if (destinationHash) {
@@ -24,18 +25,30 @@
     });
 
     async function fetchMessages() {
-        if (!destinationHash) return;
+        const hash = destinationHash;
+        if (!hash) return;
         loading = true;
+        const gen = ++fetchGen;
         try {
             const response = await window.api.get(
-                `/api/v1/lxmf-messages/conversation/${destinationHash}?count=20&order=desc`
+                `/api/v1/lxmf-messages/conversation/${hash}?count=20&order=desc`
             );
-            messages = (response?.data?.lxmf_messages || []).reverse();
+            // A stale fetch must not clobber a newer peer view or a
+            // message that sendMessage appended after this fetch started.
+            if (gen !== fetchGen || hash !== destinationHash) return;
+            const fetched = (response?.data?.lxmf_messages || []).reverse();
+            const fetchedHashes = new Set(fetched.map((m: any) => m.hash));
+            const unsynced = messages.filter(
+                (m) => m.is_outbound && m.hash && !fetchedHashes.has(m.hash)
+            );
+            messages = [...fetched, ...unsynced].slice(-40);
             scrollToBottom();
         } catch (e) {
             console.error("Failed to fetch messages", e);
         } finally {
-            loading = false;
+            if (gen === fetchGen) {
+                loading = false;
+            }
         }
     }
 
@@ -61,6 +74,10 @@
                         fields: msg.fields,
                     },
                 ];
+                // Match the fetch window so the panel does not grow forever.
+                if (messages.length > 40) {
+                    messages = messages.slice(messages.length - 40);
+                }
             }
             newMessage = "";
             scrollToBottom();

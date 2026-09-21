@@ -47,6 +47,7 @@
 
 <SettingsSectionBlock
     show={visible}
+    sectionKey="privacyData"
     eyebrow={t("app.privacy_eyebrow")}
     title={t("app.privacy_data_title")}
     description={t("app.privacy_data_description")}

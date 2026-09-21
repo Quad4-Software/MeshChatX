@@ -48,7 +48,12 @@
     import { publishPatchedConfig } from "../../js/settings/settingsConfigService.js";
     import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
     import { mapViewStateKey } from "../../js/mapStateKeys.js";
-    import { formatCoordinate, ensureGeoCoordsReady, parseCoordinateQuery } from "../../js/mapGeoCoords.js";
+    import {
+        formatCoordinate,
+        ensureGeoCoordsReady,
+        isValidLatLon,
+        parseCoordinateQuery,
+    } from "../../js/mapGeoCoords.js";
     import { computeSegmentMetrics, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
     import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.js";
     import { buildNominatimSearchUrl } from "../../js/mapTileNetwork.js";
@@ -310,25 +315,45 @@
         }
     }
 
+    async function saveStateImmediate() {
+        if (!map) return;
+        const view = map.getView();
+        const center = toLonLat(view.getCenter() || [0, 0]);
+        const zoom = view.getZoom() || 2;
+        const key = getStorageKey();
+        await TileCache.setMapState(key, {
+            center,
+            zoom,
+            offlineEnabled,
+            cachingEnabled,
+            tileServerUrl,
+            coordinateFormat,
+            clusterMarkersEnabled,
+        });
+    }
+
     function saveState() {
         if (saveStateTimer) clearTimeout(saveStateTimer);
-        saveStateTimer = setTimeout(async () => {
-            if (!map) return;
-            const view = map.getView();
-            const center = toLonLat(view.getCenter() || [0, 0]);
-            const zoom = view.getZoom() || 2;
-            const key = getStorageKey();
-            await TileCache.setMapState(key, {
-                center,
-                zoom,
-                offlineEnabled,
-                cachingEnabled,
-                tileServerUrl,
-                coordinateFormat,
-                clusterMarkersEnabled,
-            });
+        saveStateTimer = setTimeout(() => {
+            saveStateTimer = null;
+            void saveStateImmediate();
         }, 500);
     }
+
+    // Flush a pending debounced map state write when the page is hidden or
+    // killed so the last view survives an app restart (onDestroy never runs
+    // on process kill).
+    function flushPendingSaveState() {
+        if (!saveStateTimer) return;
+        clearTimeout(saveStateTimer);
+        saveStateTimer = null;
+        void saveStateImmediate();
+    }
+
+    const onPageHideFlush = () => flushPendingSaveState();
+    const onVisibilityFlush = () => {
+        if (document.visibilityState === "hidden") flushPendingSaveState();
+    };
 
     function initOpenLayers() {
         if (!mapContainer) return;
@@ -940,7 +965,7 @@
         if (!Number.isFinite(zoom)) zoom = 15;
         zoom = Math.max(0, Math.min(22, zoom));
         const label = (q.label != null && String(q.label)) || "Target";
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+        if (!isValidLatLon(lat, lon)) return;
 
         if (queryMarker) {
             markersSource.removeFeature(queryMarker);
@@ -985,7 +1010,7 @@
         if (!discoveredSource) return;
         try {
             const nodes = await fetchDiscoveredNodes();
-            const withLoc = nodes.filter((n) => n.latitude != null && n.longitude != null);
+            const withLoc = nodes.filter((n) => isValidLatLon(n.latitude, n.longitude));
             if (withLoc.length === 0) {
                 ToastUtils.info(t("map.no_nodes_location"));
                 return;
@@ -1054,10 +1079,23 @@
     }
 
     function selectSearchResult(res: SearchResult) {
-        if (!map || res.lon == null || res.lat == null) return;
+        if (!map || !isValidLatLon(res.lat, res.lon)) return;
         const lon = Number(res.lon);
         const lat = Number(res.lat);
-        map.getView().animate({ center: fromLonLat([lon, lat]), zoom: 12, duration: 600 });
+        const view = map.getView();
+        const center = fromLonLat([lon, lat]);
+
+        if (res.boundingbox && res.boundingbox.length === 4) {
+            const [minLat, maxLat, minLon, maxLon] = res.boundingbox.map(parseFloat);
+            if (isValidLatLon(minLat, minLon) && isValidLatLon(maxLat, maxLon)) {
+                const extent = [...fromLonLat([minLon, minLat]), ...fromLonLat([maxLon, maxLat])];
+                view.fit(extent, { padding: [50, 50, 50, 50], duration: 500 });
+            } else {
+                view.animate({ center, zoom: Math.max(view.getZoom() || 0, 15), duration: 500 });
+            }
+        } else {
+            view.animate({ center, zoom: 12, duration: 600 });
+        }
         searchResults = [];
         isSearchFocused = false;
         (onupdatetitle || onUpdateTitle)?.(res.display_name?.split(",")?.[0] || "");
@@ -1311,6 +1349,8 @@
         telemetryPollTimer = setInterval(() => reloadTelemetry(), 10000);
         onWsEvent("lxmf.telemetry", reloadTelemetry);
         onWsEvent("announce", reloadTelemetry);
+        window.addEventListener("pagehide", onPageHideFlush);
+        document.addEventListener("visibilitychange", onVisibilityFlush);
         applyMapViewFromRoute();
         unsubscribeRoute = subscribeRoute(() => {
             applyMapViewFromRoute();
@@ -1347,7 +1387,9 @@
         teardownTabToolbarHostWatcher();
         if (exportPollTimer) clearInterval(exportPollTimer);
         if (telemetryPollTimer) clearInterval(telemetryPollTimer);
-        if (saveStateTimer) clearTimeout(saveStateTimer);
+        window.removeEventListener("pagehide", onPageHideFlush);
+        document.removeEventListener("visibilitychange", onVisibilityFlush);
+        flushPendingSaveState();
         if (tileConnectivityBannerTimer) clearTimeout(tileConnectivityBannerTimer);
         measureTooltipManager?.destroy();
         GlobalEmitter.off("config-updated", onConfigUpdatedExternally);

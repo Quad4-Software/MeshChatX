@@ -2,17 +2,32 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import { t } from "../../../js/i18n.js";
     import { TRANSPORT_TYPE_OPTIONS } from "../lib/constants.js";
 
     interface Props {
         name: string;
         type: string | null;
         isEditing?: boolean;
+        awareInterfaceSupported?: boolean;
+        awareTileHint?: string | null;
         onnamechange?: (name: string) => void;
         ontypechange?: (type: string | null) => void;
     }
 
-    let { name = "", type = null, isEditing = false, onnamechange, ontypechange }: Props = $props();
+    let {
+        name = "",
+        type = null,
+        isEditing = false,
+        awareInterfaceSupported = true,
+        awareTileHint = null,
+        onnamechange,
+        ontypechange,
+    }: Props = $props();
+
+    function isTileDisabled(id: string): boolean {
+        return id === "AwareInterface" && !awareInterfaceSupported;
+    }
 </script>
 
 <div class="space-y-6">
@@ -45,7 +60,13 @@
                     class="flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 text-center gap-1 group {type ===
                     opt.id
                         ? 'bg-blue-500/10 border-blue-500 ring-1 ring-blue-500/50'
-                        : 'bg-gray-50/50 dark:bg-zinc-800/30 border-sem-border hover:border-gray-300 dark:hover:border-zinc-600'}"
+                        : 'bg-gray-50/50 dark:bg-zinc-800/30 border-sem-border hover:border-gray-300 dark:hover:border-zinc-600'} {isTileDisabled(
+                        opt.id
+                    )
+                        ? 'opacity-40 cursor-not-allowed saturate-50'
+                        : ''}"
+                    disabled={isTileDisabled(opt.id)}
+                    title={opt.id === "AwareInterface" ? awareTileHint || "" : ""}
                     onclick={() => ontypechange?.(opt.id)}
                 >
                     <MaterialDesignIcon
@@ -61,6 +82,13 @@
                     >
                         {opt.name}
                     </span>
+                    {#if isTileDisabled(opt.id) && awareTileHint}
+                        <span
+                            class="text-[9px] font-semibold uppercase tracking-tight text-sem-fg-muted leading-tight"
+                        >
+                            {awareTileHint}
+                        </span>
+                    {/if}
                 </button>
             {/each}
         </div>
@@ -79,6 +107,7 @@
                 <option value="PipeInterface">Pipe Interface (External)</option>
                 <option value="RNodeIPInterface">RNode over IP</option>
                 <option value="BackboneInterface">Backbone (public relay)</option>
+                <option value="IodineUDPInterface">{t("interfaces.iodine_option")}</option>
                 <option value="__external__">Custom / external module (RNS interfacepath)</option>
             </select>
         </div>

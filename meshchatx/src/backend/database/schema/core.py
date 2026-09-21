@@ -47,7 +47,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 58
+    LATEST_VERSION = 59
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1849,4 +1849,12 @@ class DatabaseSchema:
                 "favourite_destinations",
                 "identify_on_connect",
                 "INTEGER NOT NULL DEFAULT 0",
+            )
+
+        if current_version < 59 and target_version >= 59:
+            # Rows that already exist were heard at least once.
+            self._ensure_column(
+                "announces",
+                "announce_count",
+                "INTEGER NOT NULL DEFAULT 1",
             )

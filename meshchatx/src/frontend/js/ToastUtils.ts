@@ -2,9 +2,20 @@
 
 import GlobalEmitter from "./GlobalEmitter.js";
 
+export interface ToastAction {
+    label: unknown;
+    handler?: () => void;
+}
+
 class ToastUtils {
-    static show(message: unknown, type = "info", duration = 5000, key: string | null = null): void {
-        GlobalEmitter.emit("toast", { message, type, duration, key });
+    static show(
+        message: unknown,
+        type = "info",
+        duration = 5000,
+        key: string | null = null,
+        action: ToastAction | null = null,
+    ): void {
+        GlobalEmitter.emit("toast", { message, type, duration, key, action });
     }
 
     static success(message: unknown, duration = 5000, key: string | null = null): void {
@@ -41,12 +52,14 @@ class ToastUtils {
         type = "warning",
         duration = 11000,
         key = null,
+        action = null,
     }: {
         title: unknown;
         details?: unknown;
         type?: string;
         duration?: number;
         key?: string | null;
+        action?: ToastAction | null;
     }): void {
         GlobalEmitter.emit("toast", {
             message: title,
@@ -54,6 +67,7 @@ class ToastUtils {
             type,
             duration,
             key,
+            action,
         });
     }
 

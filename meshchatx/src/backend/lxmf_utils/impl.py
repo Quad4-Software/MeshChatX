@@ -1100,6 +1100,35 @@ def convert_db_lxmf_message_to_dict(
     return out
 
 
+def lxmf_row_arrival_timestamp(row) -> float | None:
+    """Epoch seconds of the row's local arrival time (created_at).
+
+    Unread and notification checks must compare local arrival, never the
+    sender-supplied ``timestamp`` which a peer can skew into the future or
+    past. Falls back to ``timestamp`` only when created_at is missing.
+    """
+    from datetime import UTC, datetime
+
+    try:
+        raw = row.get("created_at")
+    except AttributeError:
+        raw = row["created_at"]
+    if raw is None or raw == "":
+        raw = row.get("timestamp") if isinstance(row, dict) else row["timestamp"]
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    if isinstance(raw, datetime):
+        dt = raw
+    else:
+        try:
+            dt = datetime.fromisoformat(str(raw))
+        except (TypeError, ValueError):
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.timestamp()
+
+
 def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing=False):
     """Return whether the conversation row should appear as unread.
 
@@ -1145,7 +1174,7 @@ def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing
         return True
     if last_read_at.tzinfo is None:
         last_read_at = last_read_at.replace(tzinfo=UTC)
-    try:
-        return float(row["timestamp"]) > last_read_at.timestamp()
-    except (TypeError, ValueError, KeyError):
+    arrival_ts = lxmf_row_arrival_timestamp(row)
+    if arrival_ts is None:
         return False
+    return arrival_ts > last_read_at.timestamp()

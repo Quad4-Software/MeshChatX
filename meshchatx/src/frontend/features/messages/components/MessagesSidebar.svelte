@@ -6,6 +6,8 @@
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
     import EmptyState from "../../../ui/svelte/EmptyState.svelte";
     import LoadingState from "../../../ui/svelte/LoadingState.svelte";
+    import ContactsWindowedList from "../../contacts/components/ContactsWindowedList.svelte";
+    import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../../js/sidebarListVirtual.js";
     import { t } from "../../../js/i18n.js";
     import Utils from "../../../js/Utils.js";
     import DialogUtils from "../../../js/DialogUtils.js";
@@ -107,6 +109,8 @@
     const isRightSidebar = $derived(sidebarPosition === "right");
     const edgeBorderClass = $derived(isRightSidebar ? "border-l" : "border-r");
     const peerList = $derived(Object.values(peers || {}));
+    let peersScrollEl: HTMLDivElement | undefined = $state();
+    const useVirtualPeerList = $derived(peerList.length >= MIN_VIRTUAL_SIDEBAR_ITEMS);
     const messageIconStyle = $derived.by(() => {
         const cfg = GlobalState.config as { message_icon_size?: number } | null | undefined;
         const size = Number(cfg?.message_icon_size) || 28;
@@ -224,7 +228,7 @@
                 <button
                     type="button"
                     class="p-2 rounded-xl transition-colors focus-ring-sem {tab === 'conversations'
-                        ? 'bg-sem-accent text-white'
+                        ? 'bg-sem-action-primary text-sem-action-primary-text'
                         : 'text-sem-fg-muted hover:bg-sem-surface-muted'}"
                     onclick={() => (tab = "conversations")}
                 >
@@ -233,7 +237,7 @@
                 <button
                     type="button"
                     class="p-2 rounded-xl transition-colors focus-ring-sem {tab === 'announces'
-                        ? 'bg-sem-accent text-white'
+                        ? 'bg-sem-action-primary text-sem-action-primary-text'
                         : 'text-sem-fg-muted hover:bg-sem-surface-muted'}"
                     onclick={() => (tab = "announces")}
                 >
@@ -348,31 +352,37 @@
                                     <MaterialDesignIcon iconName="dots-vertical" class="size-4" />
                                 </button>
                                 {#if folderMenuShow}
-                                    <div
-                                        class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden"
-                                    >
-                                        <button
-                                            type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors focus-ring-sem"
-                                            onclick={() => {
-                                                folderMenuShow = false;
-                                                onexportFolders?.();
-                                            }}
+                                    <div class="absolute right-0 top-full mt-1 z-60 min-w-[160px]">
+                                        <div
+                                            class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                                            aria-hidden="true"
+                                        ></div>
+                                        <div
+                                            class="bg-sem-surface rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden"
                                         >
-                                            <MaterialDesignIcon iconName="export" class="size-4" />
-                                            <span>{t("messages.export_folders")}</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors focus-ring-sem"
-                                            onclick={() => {
-                                                folderMenuShow = false;
-                                                onimportFolders?.();
-                                            }}
-                                        >
-                                            <MaterialDesignIcon iconName="import" class="size-4" />
-                                            <span>{t("messages.import_folders")}</span>
-                                        </button>
+                                            <button
+                                                type="button"
+                                                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors focus-ring-sem"
+                                                onclick={() => {
+                                                    folderMenuShow = false;
+                                                    onexportFolders?.();
+                                                }}
+                                            >
+                                                <MaterialDesignIcon iconName="export" class="size-4" />
+                                                <span>{t("messages.export_folders")}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors focus-ring-sem"
+                                                onclick={() => {
+                                                    folderMenuShow = false;
+                                                    onimportFolders?.();
+                                                }}
+                                            >
+                                                <MaterialDesignIcon iconName="import" class="size-4" />
+                                                <span>{t("messages.import_folders")}</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 {/if}
                             </div>
@@ -580,41 +590,31 @@
                         oninput={(e) => onpeersSearchChanged?.((e.currentTarget as HTMLInputElement).value)}
                     />
                 </div>
-                <div class="flex-1 min-h-0 overflow-y-auto" onscroll={onAnnouncesScroll}>
+                <div bind:this={peersScrollEl} class="flex-1 min-h-0 overflow-y-auto" onscroll={onAnnouncesScroll}>
                     {#if isSearchingAnnounces && peerList.length === 0}
                         <LoadingState />
                     {:else if peerList.length === 0}
                         <EmptyState icon="account-search-outline" title={t("messages.no_peers_discovered")} />
+                    {:else if useVirtualPeerList}
+                        <ContactsWindowedList
+                            items={peerList as unknown as Array<Record<string, unknown>>}
+                            getScrollElement={() => peersScrollEl}
+                            itemKey={(item) => String(item.destination_hash)}
+                        >
+                            {#snippet children({ item })}
+                                {@render peerRow(item as unknown as Peer)}
+                            {/snippet}
+                        </ContactsWindowedList>
                     {:else}
                         <ul class="divide-y divide-sem-border">
                             {#each peerList as p (p.destination_hash)}
                                 <li>
-                                    <button
-                                        type="button"
-                                        class="w-full text-left px-3 py-2 flex gap-2 items-center hover:bg-sem-surface-muted focus-ring-sem {selectedDestinationHash ===
-                                        p.destination_hash
-                                            ? 'bg-sem-accent/10'
-                                            : ''}"
-                                        onclick={() => onpeerClick?.(p)}
-                                    >
-                                        <LxmfUserIcon
-                                            customImage={peerContactImage(p)}
-                                            iconName={peerIconName(p)}
-                                            iconForegroundColour={peerIconForeground(p)}
-                                            iconBackgroundColour={peerIconBackground(p)}
-                                            iconClass="shrink-0"
-                                            iconStyle={messageIconStyle}
-                                        />
-                                        <div class="min-w-0 flex-1">
-                                            <div class="truncate text-sm font-medium text-sem-fg">{displayName(p)}</div>
-                                            <div class="truncate text-xs text-sem-fg-muted font-mono">
-                                                {Utils.formatDestinationHash(p.destination_hash || "")}
-                                            </div>
-                                        </div>
-                                    </button>
+                                    {@render peerRow(p)}
                                 </li>
                             {/each}
                         </ul>
+                    {/if}
+                    {#if peerList.length > 0}
                         {#if isLoadingMoreAnnounces}
                             <div class="p-3 text-center text-xs text-sem-fg-muted">{t("common.loading")}</div>
                         {:else if hasMoreAnnounces}
@@ -632,3 +632,29 @@
         {/if}
     {/if}
 </aside>
+
+{#snippet peerRow(p: Peer)}
+    <button
+        type="button"
+        class="w-full text-left px-3 py-2 flex gap-2 items-center hover:bg-sem-surface-muted focus-ring-sem {selectedDestinationHash ===
+        p.destination_hash
+            ? 'bg-sem-accent/10'
+            : ''}"
+        onclick={() => onpeerClick?.(p)}
+    >
+        <LxmfUserIcon
+            customImage={peerContactImage(p)}
+            iconName={peerIconName(p)}
+            iconForegroundColour={peerIconForeground(p)}
+            iconBackgroundColour={peerIconBackground(p)}
+            iconClass="shrink-0"
+            iconStyle={messageIconStyle}
+        />
+        <div class="min-w-0 flex-1">
+            <div class="truncate text-sm font-medium text-sem-fg">{displayName(p)}</div>
+            <div class="truncate text-xs text-sem-fg-muted font-mono">
+                {Utils.formatDestinationHash(p.destination_hash || "")}
+            </div>
+        </div>
+    </button>
+{/snippet}

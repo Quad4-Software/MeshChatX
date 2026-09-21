@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -467,6 +468,78 @@ def test_landlock_extra_read_root_allows_sideband_plugin_dir(tmp_path):
         extra_read_roots=[str(sideband)],
     )
     assert_probe_ok(result)
+
+
+@requires_landlock_integration
+def test_landlock_extra_read_root_allows_custom_ssl_cert_dir(tmp_path):
+    """--ssl-cert/--ssl-key under a mounted dir (e.g. a k8s Secret at /tls).
+
+    run() loads the chain after the sandbox applies, so the cert dir must be
+    granted as a read root or load_cert_chain fails with EACCES. The cert dir
+    lives under home so it is outside the standard read/RW roots (tmp is a
+    root and would mask the regression).
+    """
+    from meshchatx.src.ssl_self_signed import generate_ssl_certificate
+
+    tls_dir = Path(
+        tempfile.mkdtemp(prefix="meshchat_ll_tls_", dir=os.path.expanduser("~")),
+    )
+    cert = tls_dir / "tls.crt"
+    key = tls_dir / "tls.key"
+    generate_ssl_certificate(str(cert), str(key))
+
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    body = f"""
+    import ssl
+    import sys
+
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.load_cert_chain({str(cert)!r}, {str(key)!r})
+    print("OK")
+    sys.exit(0)
+    """
+    try:
+        result = run_python_under_landlock(
+            body,
+            storage=storage,
+            extra_read_roots=[str(tls_dir)],
+        )
+        assert_probe_ok(result)
+    finally:
+        shutil.rmtree(tls_dir, ignore_errors=True)
+
+
+@requires_landlock_integration
+def test_landlock_denies_ssl_cert_dir_without_extra_read_root(tmp_path):
+    """Regression reference for the reverse: without the extra root, EACCES."""
+    tls_dir = Path(
+        tempfile.mkdtemp(prefix="meshchat_ll_tls_", dir=os.path.expanduser("~")),
+    )
+    probe = tls_dir / "tls.crt"
+    probe.write_text("dummy", encoding="utf-8")
+
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    try:
+        result = run_python_under_landlock(
+            f"""
+            import sys
+
+            try:
+                with open({str(probe)!r}, encoding="utf-8") as handle:
+                    handle.read()
+            except PermissionError:
+                print("OK")
+                sys.exit(0)
+            print("READ_SHOULD_HAVE_FAILED")
+            sys.exit(3)
+            """,
+            storage=storage,
+        )
+        assert_probe_ok(result)
+    finally:
+        shutil.rmtree(tls_dir, ignore_errors=True)
 
 
 def test_extra_read_roots_from_app_uses_command_plugins_path(tmp_path):

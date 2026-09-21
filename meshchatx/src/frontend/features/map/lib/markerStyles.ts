@@ -245,16 +245,36 @@ export function clusterBadgeStyle({ count = 0, hovered = false }: ClusterStyleOp
     ];
 }
 
+const STYLE_CACHE_MAX_ENTRIES = 500;
+
+function styleCacheGet<T>(cache: Record<string, T>, key: string): T | undefined {
+    const hit = cache[key];
+    if (hit === undefined) return undefined;
+    // refresh recency since string-key order is insertion order
+    delete cache[key];
+    cache[key] = hit;
+    return hit;
+}
+
+function styleCacheSet<T>(cache: Record<string, T>, key: string, style: T): T {
+    cache[key] = style;
+    const keys = Object.keys(cache);
+    for (let i = 0; i <= keys.length - STYLE_CACHE_MAX_ENTRIES; i++) {
+        delete cache[keys[i]];
+    }
+    return style;
+}
+
+/** Cache-aware cluster style helper. */
 export function getCachedClusterStyle(
     cache: Record<string, Style[]>,
     { count = 0, hovered = false }: ClusterStyleOptions = {}
 ): Style[] {
     const band = clusterBand(count);
     const key = `cluster-v2-${band.bandId}-${count}-${hovered ? "h" : "n"}`;
-    if (cache[key]) return cache[key];
-    const style = clusterBadgeStyle({ count, hovered });
-    cache[key] = style;
-    return style;
+    const hit = styleCacheGet(cache, key);
+    if (hit) return hit;
+    return styleCacheSet(cache, key, clusterBadgeStyle({ count, hovered }));
 }
 
 export function getCachedPeerBadgeStyle(cache: Record<string, Style>, opts: PeerBadgeStyleOptions = {}): Style {
@@ -287,19 +307,22 @@ export function getCachedPeerBadgeStyle(cache: Record<string, Style>, opts: Peer
         isTracking ? "1" : "0",
         scale,
     ].join("|");
-    if (cache[key]) return cache[key];
-    const style = peerBadgeStyle({
-        face: resolvedFace,
-        glyph: resolvedGlyph,
-        pathD: d,
-        label,
-        showLabel,
-        isStale,
-        isTracking,
-        scale,
-    });
-    cache[key] = style;
-    return style;
+    const hit = styleCacheGet(cache, key);
+    if (hit) return hit;
+    return styleCacheSet(
+        cache,
+        key,
+        peerBadgeStyle({
+            face: resolvedFace,
+            glyph: resolvedGlyph,
+            pathD: d,
+            label,
+            showLabel,
+            isStale,
+            isTracking,
+            scale,
+        })
+    );
 }
 
 export function getPeerMarkerStyle(item: PeerMarkerStyleSource | null | undefined, showLabel = false): Style {

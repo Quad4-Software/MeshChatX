@@ -128,6 +128,12 @@ describe("ReticulumConfigEditorPage.svelte", () => {
                     restart_description: "Restart RNS to apply interface changes",
                     restart_now: "Restart Now",
                     restart_done: "Restart completed",
+                    versions: "Versions",
+                    versions_empty: "No saved versions yet.",
+                    preview: "Preview",
+                    restore_version: "Restore",
+                    confirm_restore_version: "Restore this version?",
+                    failed_versions: "Failed to load versions",
                     info: "Direct file editing",
                     unsaved: "Unsaved Changes",
                     loading: "Loading config...",
@@ -289,5 +295,132 @@ describe("ReticulumConfigEditorPage.svelte", () => {
 
         expect(textarea.value).toBe(SAMPLE_CONFIG);
         expect(screen.queryByText("Unsaved Changes")).toBeNull();
+    });
+
+    it("loads versions when the versions panel is toggled", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions") {
+                return Promise.resolve({
+                    data: {
+                        versions: [
+                            {
+                                id: "20250101T000000-abcdef12",
+                                created_at: "2025-01-01T00:00:00Z",
+                                label: "before save",
+                                size: 120,
+                            },
+                        ],
+                    },
+                });
+            }
+            return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
+        });
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
+
+        expect(screen.queryByText("before save")).toBeNull();
+        await fireEvent.click(screen.getByText("Versions"));
+
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/reticulum/config/versions");
+        });
+        expect(await screen.findByText("before save")).toBeTruthy();
+    });
+
+    it("previews a version into the editor without saving", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions") {
+                return Promise.resolve({
+                    data: { versions: [{ id: "v1", created_at: "", label: "x", size: 1 }] },
+                });
+            }
+            if (url === "/api/v1/reticulum/config/versions/v1") {
+                return Promise.resolve({ data: { version: { content: DEFAULT_CONFIG } } });
+            }
+            return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
+        });
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
+
+        await fireEvent.click(screen.getByText("Versions"));
+        await screen.findByText("x");
+        await fireEvent.click(screen.getByText("Preview"));
+
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1");
+        });
+        const textarea = screen.getByRole("textbox");
+        expect(textarea.value).toBe(DEFAULT_CONFIG);
+        expect(screen.getByText("Unsaved Changes")).toBeTruthy();
+        expect(axiosMock.put).not.toHaveBeenCalled();
+    });
+
+    it("restores a version after confirmation and marks restart pending", async () => {
+        DialogUtils.confirm.mockResolvedValue(true);
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions") {
+                return Promise.resolve({
+                    data: { versions: [{ id: "v1", created_at: "", label: "x", size: 1 }] },
+                });
+            }
+            return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
+        });
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions/v1/restore") {
+                return Promise.resolve({
+                    data: { message: "Reticulum config restored", content: DEFAULT_CONFIG, path: CONFIG_PATH },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
+
+        await fireEvent.click(screen.getByText("Versions"));
+        await screen.findByText("x");
+        await fireEvent.click(screen.getByText("Restore"));
+
+        await waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1/restore");
+        });
+        expect(DialogUtils.confirm).toHaveBeenCalled();
+        const textarea = screen.getByRole("textbox");
+        expect(textarea.value).toBe(DEFAULT_CONFIG);
+        expect(screen.queryByText("Unsaved Changes")).toBeNull();
+        expect(await screen.findByText("Restart Required")).toBeTruthy();
+        expect(GlobalState.hasPendingInterfaceChanges).toBe(true);
+    });
+
+    it("does not restore a version when the user cancels", async () => {
+        DialogUtils.confirm.mockResolvedValue(false);
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions") {
+                return Promise.resolve({
+                    data: { versions: [{ id: "v1", created_at: "", label: "x", size: 1 }] },
+                });
+            }
+            return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
+        });
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
+
+        await fireEvent.click(screen.getByText("Versions"));
+        await screen.findByText("x");
+        await fireEvent.click(screen.getByText("Restore"));
+
+        await waitFor(() => {
+            expect(DialogUtils.confirm).toHaveBeenCalled();
+        });
+        expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1/restore");
+        const textarea = screen.getByRole("textbox");
+        expect(textarea.value).toBe(SAMPLE_CONFIG);
     });
 });

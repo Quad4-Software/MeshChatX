@@ -143,6 +143,7 @@ from meshchatx.src.backend.http.errors import (  # noqa: F401
 
 from meshchatx.src.backend.websocket_config_guard import websocket_origin_allowed
 from meshchatx.src.backend.websocket_runtime import (
+    WS_IDLE_TIMEOUT_SEC,
     WS_RATE_ABUSE_STRIKES,
     WS_RATE_RETRY_AFTER_SEC,
     client_is_idle,

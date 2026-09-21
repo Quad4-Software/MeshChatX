@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracles and contract tests for RRC hub/client membership and ACL rules."""
+"""References and contract tests for RRC hub/client membership and ACL rules."""
 
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ def make_server(**kwargs):
     return RRCHubServer(
         FakeManager(),
         FakeIdentity(HUB_HASH),
-        name="Oracle Hub",
+        name="Reference Hub",
         **kwargs,
     )
 
@@ -143,7 +143,7 @@ def envs_of_type(out, msg_type, to_link=None):
     return result
 
 
-def test_oracle_phantom_part_does_not_fanout():
+def test_phantom_part_does_not_fanout():
     """Non-member PART must not tell real members that someone left."""
     server = make_server()
     link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
@@ -165,7 +165,7 @@ def test_oracle_phantom_part_does_not_fanout():
     assert "lobby" in sess_b.rooms
 
 
-def test_oracle_kick_fans_out_parted_and_blocks_with_no_outside():
+def test_kick_fans_out_parted_and_blocks_with_no_outside():
     """Kick must notify peers. With +n, kicked peers cannot keep messaging."""
     server = make_server()
     link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
@@ -198,7 +198,7 @@ def test_oracle_kick_fans_out_parted_and_blocks_with_no_outside():
     )
 
 
-def test_oracle_client_kick_error_leaves_joined_room(tmp_path):
+def test_client_kick_error_leaves_joined_room(tmp_path):
     """Client must drop a joined room when hub says kicked/banned."""
     manager = RRCManager(
         identity=FakeIdentity(b"\x11" * 16),
@@ -228,7 +228,7 @@ def test_oracle_client_kick_error_leaves_joined_room(tmp_path):
     assert "lobby" not in hub.ordered_known_rooms()
 
 
-def test_oracle_invite_only_rollback_clears_unread(tmp_path):
+def test_invite_only_rollback_clears_unread(tmp_path):
     """Failed auto-rejoin (+i) must not leave unread badges for a dropped room."""
     manager = RRCManager(
         identity=FakeIdentity(b"\x11" * 16),
@@ -255,7 +255,7 @@ def test_oracle_invite_only_rollback_clears_unread(tmp_path):
     assert "private" not in hub.ordered_known_rooms()
 
 
-def test_oracle_client_ban_error_drops_known_room(tmp_path):
+def test_client_ban_error_drops_known_room(tmp_path):
     """Ban ERROR must drop the room from the sidebar the same way PART does."""
     manager = RRCManager(
         identity=FakeIdentity(b"\x11" * 16),
@@ -278,7 +278,7 @@ def test_oracle_client_ban_error_drops_known_room(tmp_path):
     assert "lobby" not in hub.ordered_known_rooms()
 
 
-def test_oracle_register_room_key_strips_like_join_paths():
+def test_register_room_key_strips_like_join_paths():
     """Hub key store paths must agree with JOIN after strip."""
     server = make_server()
     server.register_room("vault", key="  secret  ")
@@ -297,7 +297,7 @@ def test_oracle_register_room_key_strips_like_join_paths():
     )
 
 
-def test_oracle_topic_private_hides_from_outsiders_and_blocks_set():
+def test_topic_private_hides_from_outsiders_and_blocks_set():
     server = make_server()
     link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
     link_spy, sess_spy = add_session(server, b"\xbb" * 16, nick="spy")
@@ -314,14 +314,14 @@ def test_oracle_topic_private_hides_from_outsiders_and_blocks_set():
     assert server.rooms.get_state("secret")["topic"] == "hidden"
 
 
-def test_oracle_topic_read_does_not_create_ghost_state():
+def test_topic_read_does_not_create_ghost_state():
     server = make_server()
     link, sess = add_session(server, b"\xaa" * 16, nick="alice")
     msg(server, link, sess, "lobby", "/topic ghostroom")
     assert server.rooms.get_state("ghostroom") is None
 
 
-def test_oracle_who_on_private_room_requires_membership():
+def test_who_on_private_room_requires_membership():
     server = make_server()
     link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
     link_spy, sess_spy = add_session(server, b"\xbb" * 16, nick="spy")
@@ -341,7 +341,7 @@ def test_oracle_who_on_private_room_requires_membership():
     assert "alice" in member_notices[0][proto.K_BODY].lower()
 
 
-def test_oracle_who_private_existence_oracle_closed():
+def test_who_private_existence_closed():
     """Private registered vs nonexistent must look identical to outsiders."""
     server = make_server()
     link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
@@ -363,7 +363,7 @@ def test_oracle_who_private_existence_oracle_closed():
     assert private_body.replace("secret", "X") == missing_body.replace("nosuch", "X")
 
 
-def test_oracle_ban_list_requires_room_op():
+def test_ban_list_requires_room_op():
     server = make_server()
     link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
     link_spy, sess_spy = add_session(server, b"\xbb" * 16, nick="spy")
@@ -385,7 +385,7 @@ def test_oracle_ban_list_requires_room_op():
     assert banned.hex() in notices[0][proto.K_BODY]
 
 
-def test_oracle_unidentified_join_denied_for_keyed_room():
+def test_unidentified_join_denied_for_keyed_room():
     server = make_server()
     server.register_room("vault", key="secret")
     link = FakeLink(FakeIdentity(b"\xdd" * 16))
@@ -402,7 +402,7 @@ def test_oracle_unidentified_join_denied_for_keyed_room():
     assert "vault" not in sess.rooms
 
 
-def test_oracle_join_strips_key_whitespace():
+def test_join_strips_key_whitespace():
     server = make_server()
     server.register_room("vault", key="secret")
     link, sess = add_session(server, b"\xdd" * 16, nick="dee")
@@ -411,11 +411,11 @@ def test_oracle_join_strips_key_whitespace():
     assert "vault" in sess.rooms
 
 
-def test_oracle_invite_only_link_drop_allows_rejoin():
+def test_invite_only_link_drop_allows_rejoin():
     """After +i invite is consumed, link drop must still allow auto-rejoin.
 
     Intentional PART still requires a fresh invite (see
-    test_oracle_invite_consumed_after_join).
+    test_invite_consumed_after_join).
     """
     server = make_server()
     link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
@@ -436,7 +436,7 @@ def test_oracle_invite_only_link_drop_allows_rejoin():
     assert not server.rooms.is_invited("club", sess_guest.peer)
 
 
-def test_oracle_invite_only_part_still_requires_fresh_invite():
+def test_invite_only_part_still_requires_fresh_invite():
     server = make_server()
     link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
     link_guest, sess_guest = add_session(server, b"\xbb" * 16, nick="guest")
@@ -453,7 +453,7 @@ def test_oracle_invite_only_part_still_requires_fresh_invite():
     )
 
 
-def test_oracle_invite_consumed_after_join():
+def test_invite_consumed_after_join():
     server = make_server()
     _link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
     link_guest, sess_guest = add_session(server, b"\xbb" * 16, nick="guest")
@@ -471,7 +471,7 @@ def test_oracle_invite_consumed_after_join():
     )
 
 
-def test_oracle_hub_rejects_oversized_room_key():
+def test_hub_rejects_oversized_room_key():
     server = make_server()
     with pytest.raises(ValueError):
         server.set_room_key("vault", "x" * 300)
@@ -485,7 +485,7 @@ def test_property_bad_key_detector_ignores_mode_hints():
     assert RRCManager.is_bad_key_error("+k") is False
 
 
-def test_oracle_rooms_toml_dotted_and_unicode_roundtrip(tmp_path):
+def test_rooms_toml_dotted_and_unicode_roundtrip(tmp_path):
     path = str(tmp_path / "rooms.toml")
     founder = b"\x11" * 16
     registry = {
@@ -534,7 +534,7 @@ def test_oracle_rooms_toml_dotted_and_unicode_roundtrip(tmp_path):
     assert loaded["café"]["topic"] == "unicode"
 
 
-def test_oracle_invite_ttl_boundary_denies_join():
+def test_invite_ttl_boundary_denies_join():
     server = make_server()
     _link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
     link_guest, sess_guest = add_session(server, b"\xbb" * 16, nick="guest")
@@ -549,7 +549,7 @@ def test_oracle_invite_ttl_boundary_denies_join():
     assert "club" not in sess_guest.rooms
 
 
-def test_oracle_double_join_is_idempotent_for_peers():
+def test_double_join_is_idempotent_for_peers():
     server = make_server()
     link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
     link_b, sess_b = add_session(server, b"\xbb" * 16, nick="bob")
@@ -620,8 +620,8 @@ def test_property_keyed_join_rejects_non_matching_keys(wrong):
     assert server.rooms.ensure_state("vault").get("founder") is None
 
 
-def _oracle_available_rooms_diff(previous, next_rooms):
-    """Independent oracle for /list snapshot replace semantics."""
+def _expected_available_rooms_diff(previous, next_rooms):
+    """Independent reference for /list snapshot replace semantics."""
     prev = previous if isinstance(previous, dict) else {}
     nxt = next_rooms if isinstance(next_rooms, dict) else {}
     added = sorted(k for k in nxt if k not in prev)
@@ -645,7 +645,7 @@ def _oracle_available_rooms_diff(previous, next_rooms):
     ),
 )
 @settings(max_examples=60, deadline=None)
-def test_oracle_list_notice_replaces_available_rooms(
+def test_list_notice_replaces_available_rooms(
     tmp_path_factory,
     previous,
     next_rooms,
@@ -683,7 +683,7 @@ def test_oracle_list_notice_replaces_available_rooms(
             expected[name] = None
     assert hub.available_rooms == expected
     assert hub.available_keyed_rooms == []
-    added, removed, updated = _oracle_available_rooms_diff(previous, expected)
+    added, removed, updated = _expected_available_rooms_diff(previous, expected)
     for name in added:
         assert name in hub.available_rooms
         assert name not in previous
@@ -694,7 +694,7 @@ def test_oracle_list_notice_replaces_available_rooms(
         assert hub.available_rooms[name] != (previous.get(name) or None)
 
 
-def test_oracle_unregister_preserves_live_key_modes_and_bans():
+def test_unregister_preserves_live_key_modes_and_bans():
     """Slash /unregister must drop +r only. Live +k/+i/bans stay while members remain."""
     server = make_server()
     link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
@@ -730,7 +730,7 @@ def test_oracle_unregister_preserves_live_key_modes_and_bans():
     assert "vault" not in sess_eve.rooms
 
 
-def test_oracle_rejoin_at_room_cap_succeeds():
+def test_rejoin_at_room_cap_succeeds():
     """Re-JOIN of a room you already occupy must not hit the session room cap."""
     server = make_server()
     server.max_rooms_per_session = 1
@@ -746,7 +746,7 @@ def test_oracle_rejoin_at_room_cap_succeeds():
     assert "lobby" in sess.rooms
 
 
-def test_oracle_mode_and_ban_unknown_room_do_not_create_ghost_state():
+def test_mode_and_ban_unknown_room_do_not_create_ghost_state():
     """Failed ACL commands must not persist rooms.toml-style ghost state."""
     server = make_server()
     link, sess = add_session(server, b"\xaa" * 16, nick="alice")
@@ -759,7 +759,7 @@ def test_oracle_mode_and_ban_unknown_room_do_not_create_ghost_state():
     assert server.rooms.get_state("ghostroom") is None
 
 
-def test_oracle_non_founder_cannot_register_unregistered_room():
+def test_non_founder_cannot_register_unregistered_room():
     """Only the founder or a room op may /register, even before +r is set."""
     server = make_server()
     link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
@@ -775,7 +775,7 @@ def test_oracle_non_founder_cannot_register_unregistered_room():
     assert server.rooms.get_state("lobby")["registered"] is True
 
 
-def test_oracle_outside_msg_does_not_add_client_member(tmp_path):
+def test_outside_msg_does_not_add_client_member(tmp_path):
     """Without +n, hub MSG from a non-member must not pollute the client member list."""
     manager = RRCManager(
         identity=FakeIdentity(b"\x11" * 16),
@@ -801,7 +801,7 @@ def test_oracle_outside_msg_does_not_add_client_member(tmp_path):
     assert hub.nicks.get(outsider) == "eve"
 
 
-def test_oracle_rejoin_does_not_consume_fresh_invite():
+def test_rejoin_does_not_consume_fresh_invite():
     """Re-JOIN while already a member must not burn a newly issued invite."""
     server = make_server()
     link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
@@ -820,7 +820,7 @@ def test_oracle_rejoin_does_not_consume_fresh_invite():
     assert envs_of_type(again, proto.T_JOINED, to_link=link_guest)
 
 
-def test_oracle_disconnected_send_does_not_keep_local_history(tmp_path):
+def test_disconnected_send_does_not_keep_local_history(tmp_path):
     """A failed send must not leave a chat line that never left the node."""
     manager = RRCManager(
         identity=FakeIdentity(b"\x11" * 16),
@@ -838,7 +838,7 @@ def test_oracle_disconnected_send_does_not_keep_local_history(tmp_path):
     assert hub.messages.get("lobby", []) == []
 
 
-def test_oracle_disconnected_join_does_not_keep_pending(tmp_path):
+def test_disconnected_join_does_not_keep_pending(tmp_path):
     """A failed JOIN must not treat a later peer JOINED as our own join."""
     manager = RRCManager(
         identity=FakeIdentity(b"\x11" * 16),
@@ -862,7 +862,7 @@ def test_oracle_disconnected_join_does_not_keep_pending(tmp_path):
     assert any("joined" in t for t in texts)
 
 
-def test_oracle_welcome_timeout_reconnects_when_teardown_skips_closed(tmp_path):
+def test_welcome_timeout_reconnects_when_teardown_skips_closed(tmp_path):
     """WELCOME timeout must reconnect even if link.teardown never fires closed."""
     manager = RRCManager(
         identity=FakeIdentity(b"\x11" * 16),

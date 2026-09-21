@@ -16,7 +16,7 @@ from collections.abc import Callable
 from typing import Any
 
 from meshchatx.src.backend import self_check_probe as _self_check_probe  # noqa: F401
-from meshchatx.src.env_utils import env_restore, env_set, env_str
+from meshchatx.src.env_utils import env_snapshot
 
 _CRITICAL_IMPORTS = (
     "email.header",
@@ -64,6 +64,7 @@ SELF_CHECK_LABELS = {
     "unicode_path_good": "Unicode Path I/O       ",
     "rnode_support_good": "RNode Support Module   ",
     "bot_launcher_good": "Bot Launcher Argv      ",
+    "backbone_patch_good": "RNS Backbone Fallback  ",
     "http_status_good": "HTTP /api/v1/status    ",
     "http_app_info_good": "HTTP /api/v1/app/info  ",
     "http_config_good": "HTTP /api/v1/config    ",
@@ -353,6 +354,44 @@ def check_fs_sandbox() -> dict[str, str]:
     return _status(True)
 
 
+def check_rns_backbone_patch() -> dict[str, str]:
+    """Verify the backbone epoll degradation is correct for this platform.
+
+    RNS 1.5.4's BackboneClientInterface needs the Linux epoll loop. On
+    macOS and Windows the patch must rebind it to TCPClientInterface or
+    every backbone client connection retries forever; on Linux and
+    Android it must be left alone.
+    """
+    try:
+        from meshchatx.src.backend.rns_backbone_patch import (
+            _epoll_supported,
+            install_rns_backbone_patches,
+        )
+    except Exception as exc:
+        return _status(False, f"rns_backbone_patch unavailable: {exc}")
+    try:
+        epoll = _epoll_supported()
+        applied = install_rns_backbone_patches()
+        if epoll:
+            if applied:
+                return _status(
+                    False,
+                    "epoll available but BackboneClientInterface was degraded",
+                )
+            return _status(True)
+        from RNS.Interfaces import BackboneInterface as backbone_module
+        from RNS.Interfaces import TCPInterface as tcp_module
+
+        if backbone_module.BackboneClientInterface is not tcp_module.TCPClientInterface:
+            return _status(
+                False,
+                "no epoll but BackboneClientInterface is not TCPClientInterface",
+            )
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"backbone patch probe failed: {exc}")
+
+
 def check_appcontainer_launch() -> dict[str, str]:
     """Spawn a real child inside the AppContainer and require it to run.
 
@@ -379,48 +418,86 @@ def check_appcontainer_launch() -> dict[str, str]:
         }
 
     exe = sys.executable
+    if not _is_frozen_executable():
+        # In a venv, sys.executable is the redirector shim. Inside the
+        # container it would have to spawn the real interpreter again and
+        # that nested CreateProcess fails with access denied, so run the
+        # real base interpreter directly.
+        exe = getattr(sys, "_base_executable", None) or exe
     if not exe:
         return _status(False, "sys.executable is unset")
 
     marker_dir = tempfile.mkdtemp(prefix="meshchatx_ac_probe_")
     marker = os.path.join(marker_dir, "probe.out")
+    child_log = os.path.join(marker_dir, "probe_child.log")
     env_flag = "MESHCHATX_SELF_CHECK_PROBE_PATH"
-    previous = env_str(env_flag)
-    env_set(env_flag, marker)
+    saved = env_snapshot((env_flag,))
+    os.environ[env_flag] = marker
     try:
         if _is_frozen_executable():
             args = [_MESHCHATX_RUN_MODULE_FLAG, _SELF_CHECK_PROBE_MODULE]
         else:
+            # A self-contained snippet avoids resolving meshchatx through
+            # site-packages inside the container, where the editable-install
+            # .pth finder is unreadable.
             args = [
                 "-c",
-                "import sys; open(sys.argv[1], 'w').write('ok')",
+                "import sys; open(sys.argv[1], 'w', encoding='utf-8').write('ok\\n')",
                 marker,
             ]
-        result = ac.launch_backend_sandboxed(
-            exe,
-            args,
-            storage_dir=marker_dir,
-            reticulum_config_dir=marker_dir,
-            log_dir=marker_dir,
-            forced=True,
-        )
+        results = []
+        try:
+            for use_lpac in (True, False):
+                result = ac.launch_backend_sandboxed(
+                    exe,
+                    args,
+                    storage_dir=marker_dir,
+                    reticulum_config_dir=marker_dir,
+                    log_dir=marker_dir,
+                    forced=True,
+                    use_lpac=use_lpac,
+                    child_log_path=child_log,
+                )
+                results.append((use_lpac, result))
+                # Production treats LPAC loader-init exits (0xC0000142 and
+                # friends) as fallback-worthy, so retry once as a plain
+                # AppContainer child. Any other outcome is final.
+                if (
+                    not result.ok
+                    or result.exit_code not in ac._SANDBOX_INIT_FAILURE_CODES
+                ):
+                    break
+        except Exception as exc:
+            return _status(False, f"sandboxed spawn raised: {exc}")
     finally:
-        env_restore(env_flag, previous)
+        previous = saved[env_flag]
+        if previous is None:
+            os.environ.pop(env_flag, None)
+        else:
+            os.environ[env_flag] = previous
 
     try:
-        if not result.ok:
-            return _status(False, f"sandboxed spawn failed: {result.error}")
-        if result.fell_back or not result.used_appcontainer:
-            return _status(False, "probe did not run inside the AppContainer")
-        marker_ok = False
-        if os.path.isfile(marker):
-            with open(marker, encoding="utf-8") as handle:
-                marker_ok = "ok" in handle.read()
-        if marker_ok:
-            return _status(True)
+        for use_lpac, result in results:
+            if not result.ok:
+                return _status(False, f"sandboxed spawn failed: {result.error}")
+            if result.fell_back or not result.used_appcontainer:
+                return _status(False, "probe did not run inside the AppContainer")
+            marker_ok = False
+            if os.path.isfile(marker):
+                with open(marker, encoding="utf-8") as handle:
+                    marker_ok = "ok" in handle.read()
+            if marker_ok:
+                mode = "lpac" if use_lpac else "plain"
+                return _status(True, f"child ran inside AppContainer ({mode})")
+        detail = ""
+        if os.path.isfile(child_log):
+            with open(child_log, encoding="utf-8", errors="replace") as handle:
+                tail = handle.read().strip().splitlines()[-5:]
+            if tail:
+                detail = ", child log: " + " | ".join(tail)
         return _status(
             False,
-            f"sandboxed child exited {result.exit_code} without marker",
+            f"sandboxed child exited {result.exit_code} without marker{detail}",
         )
     finally:
         shutil.rmtree(marker_dir, ignore_errors=True)
@@ -726,8 +803,10 @@ def check_rnode_support() -> dict[str, str]:
         cases = (
             ({"port": "tcp://127.0.0.1"}, "tcp"),
             ({"port": "ble://aa:bb:cc:dd:ee:ff"}, "ble"),
+            ({"port": "bt://MyRNode"}, "bluetooth_classic"),
             ({"port": "/dev/ttyUSB0"}, "serial"),
             ({"port": "", "allow_bluetooth": "true"}, "bluetooth_classic"),
+            ({"ble_name": "MyRNode"}, "ble"),
         )
         for iface, expected in cases:
             got = rn._rnode_iface_transport(iface)
@@ -1099,11 +1178,27 @@ async def _build_probe_aio_app(app: Any):
         except Exception:
             pass
     routes = web.RouteTableDef()
-    sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = app._define_routes(
-        routes
-    )
+    (
+        bad_req_mw,
+        sqlite_mw,
+        auth_mw,
+        mime_mw,
+        sec_mw,
+        csrf_mw,
+        ip_mw,
+        demo_mw,
+    ) = app._define_routes(routes)
     aio_app = web.Application(
-        middlewares=[sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw],
+        middlewares=[
+            bad_req_mw,
+            sqlite_mw,
+            auth_mw,
+            mime_mw,
+            sec_mw,
+            csrf_mw,
+            ip_mw,
+            demo_mw,
+        ],
     )
     setup_session(aio_app, app._encrypted_cookie_storage(use_https=False))
     aio_app.add_routes(routes)

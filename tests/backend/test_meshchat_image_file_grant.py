@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Oracle tests for MeshChatX local page-node image file grants."""
+"""Reference tests for MeshChatX local page-node image file grants."""
 
 from __future__ import annotations
 

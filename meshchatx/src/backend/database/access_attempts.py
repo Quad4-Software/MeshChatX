@@ -12,6 +12,7 @@ from .provider import DatabaseProvider
 
 LOGIN_PATH = f"{API_V1_PREFIX}/auth/login"
 SETUP_PATH = f"{API_V1_PREFIX}/auth/setup"
+OIDC_PATH = f"{API_V1_PREFIX}/auth/oidc"
 
 WINDOW_RATE_UNTRUSTED_S = 60
 MAX_UNTRUSTED_LOGIN_PER_WINDOW = 20

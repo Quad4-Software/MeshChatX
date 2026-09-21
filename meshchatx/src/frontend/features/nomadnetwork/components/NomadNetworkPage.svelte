@@ -935,9 +935,11 @@
             {nomadRenderedShellFullBleed}
             {nomadShellDark}
             {nodeContainerShellStyle}
+            hasHistory={pathHistory.length > 0}
             onreload={() => {
                 reloadCurrentPage();
             }}
+            onback={handleBack}
             oncancelbusy={handleCancel}
             onretrycrashtab={() => {
                 pageRenderAborted = false;

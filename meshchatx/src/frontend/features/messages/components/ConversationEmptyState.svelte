@@ -208,7 +208,7 @@
                                     type="button"
                                     class="w-full px-3 py-2 flex items-center gap-3 cursor-pointer rounded-lg transition-colors text-left {index ===
                                     selectedComposeSuggestionIndex
-                                        ? 'bg-blue-600 text-white'
+                                        ? 'bg-sem-action-primary text-sem-action-primary-text'
                                         : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted'}"
                                     onmousedown={(e) => {
                                         e.preventDefault();

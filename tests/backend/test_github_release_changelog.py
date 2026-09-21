@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracle checks for git-log release changelog notes."""
+"""Reference checks for git-log release changelog notes."""
 
 from __future__ import annotations
 

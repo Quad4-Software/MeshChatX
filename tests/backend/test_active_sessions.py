@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Active UI WebSocket session tracking and multi-session warning oracles."""
+"""Active UI WebSocket session tracking and multi-session warning references."""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ def mock_rns_minimal():
         yield mock_id
 
 
-def test_should_warn_multi_session_oracle_edge_cases():
+def test_should_warn_multi_session_edge_cases():
     assert should_warn_multi_session(0, True) is False
     assert should_warn_multi_session(1, True) is False
     assert should_warn_multi_session(2, True) is True

@@ -36,7 +36,7 @@
 </script>
 
 {#if visible}
-    <div class="settings-section break-inside-avoid">
+    <div class="settings-section break-inside-avoid" data-settings-section="shortcuts">
         <button
             type="button"
             class="settings-section__header w-full text-left cursor-pointer border-0 bg-transparent"

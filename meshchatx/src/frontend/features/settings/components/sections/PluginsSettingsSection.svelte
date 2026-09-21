@@ -259,6 +259,7 @@
 
 <SettingsSectionBlock
     show={visible}
+    sectionKey="plugins"
     title={t("plugins.settings.title")}
     description={t("plugins.settings.description")}
 >

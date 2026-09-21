@@ -77,6 +77,15 @@ async def handle_nomadnet_page_archive_load(app, client, data):
     archive = app.database.misc.get_archived_page_by_id(archive_id)
 
     if archive:
+        try:
+            app._register_page_file_grant(
+                client,
+                bytes.fromhex(archive["destination_hash"]),
+                archive["page_path"],
+                archive["content"],
+            )
+        except (TypeError, ValueError):
+            pass
         AsyncUtils.run_async(
             client.send_str(
                 json.dumps(

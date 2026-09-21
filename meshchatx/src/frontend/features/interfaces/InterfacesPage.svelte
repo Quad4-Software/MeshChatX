@@ -41,6 +41,7 @@
         normalizeDiscoveryPatternInput,
         discoveredNetworkName,
         discoveredPassphrase,
+        discoveryKey,
     } from "./lib/interfacesFormat.js";
 
     import InterfaceCard from "./components/InterfaceCard.svelte";
@@ -48,6 +49,9 @@
     import DiscoverySettingsPanel from "./components/DiscoverySettingsPanel.svelte";
     import ImportInterfacesModal from "./components/ImportInterfacesModal.svelte";
     import InterfacesHeroSection from "./components/InterfacesHeroSection.svelte";
+
+    // Bounds the discovered-interfaces accumulation across discovery polls.
+    const MAX_DISCOVERED_INTERFACES = 200;
 
     let interfaces = $state<Record<string, ConfiguredInterface>>({});
     let interfaceStats = $state<Record<string, InterfaceStats>>({});
@@ -277,8 +281,34 @@
     async function loadDiscovered() {
         try {
             const res = await fetchDiscoveredInterfacesApi();
-            discoveredInterfaces = res.interfaces || [];
-            discoveredActive = res.active || [];
+            const incoming = res.interfaces || [];
+            const active = res.active || [];
+
+            const merged = new Map<string, DiscoveredInterface>();
+            const addOrUpdate = (iface: DiscoveredInterface, isNew = false) => {
+                const key = discoveryKey(iface);
+                const existing =
+                    merged.get(key) || discoveredInterfaces.find((i) => discoveryKey(i) === key);
+                const lastHeard = iface.last_heard ?? existing?.last_heard ?? Math.floor(Date.now() / 1000);
+                merged.set(key, {
+                    ...existing,
+                    ...iface,
+                    last_heard: lastHeard,
+                    __isNew: isNew || existing?.__isNew,
+                });
+            };
+
+            discoveredInterfaces.forEach((iface) => addOrUpdate(iface, false));
+            incoming.forEach((iface) => addOrUpdate(iface, true));
+
+            // Bound the accumulation: keep the most recently heard entries.
+            const mergedList = Array.from(merged.values());
+            if (mergedList.length > MAX_DISCOVERED_INTERFACES) {
+                mergedList.sort((a, b) => (b.last_heard ?? 0) - (a.last_heard ?? 0));
+                mergedList.length = MAX_DISCOVERED_INTERFACES;
+            }
+            discoveredInterfaces = mergedList;
+            discoveredActive = active;
         } catch {
             /* ignore */
         }

@@ -1033,5 +1033,59 @@ Content at depth 1`;
             const html = parser.convertMicronToHtml("`t\n|Col A|Col B|\n|-----|-----|\n|Row|Val|\n`t");
             expect(html).toContain('scope="col"');
         });
+
+        it("does not double up role=heading when upstream tags the inner div", () => {
+            const html = parser.convertMicronToHtml("> Section");
+            const roles = (html.match(/role="heading"/g) || []).length;
+            expect(roles).toBe(1);
+        });
+    });
+
+    describe("upstream fold and field support", () => {
+        it("renders open collapsible headings as details/summary", () => {
+            const html = parser.convertMicronToHtml("`+> Section\nBody text");
+            expect(html).toContain("<details");
+            expect(html).toContain("micron-fold");
+            expect(html).toContain("<summary");
+            expect(html).toMatch(/<details[^>]*\bopen\b/);
+        });
+
+        it("renders collapsed collapsible headings without open", () => {
+            const html = parser.convertMicronToHtml("`-> Section\nBody text");
+            expect(html).toContain("<details");
+            expect(html).toContain("micron-fold");
+            expect(html).not.toMatch(/<details[^>]*\bopen\b/);
+        });
+
+        it("nests content inside the fold details element", () => {
+            const html = parser.convertMicronToHtml("`+> Section\ninside fold\n> Next\noutside fold");
+            expect(html).toMatch(/<details[^>]*>[\s\S]*inside fold[\s\S]*<\/details>/);
+            expect(html).not.toMatch(/<details[^>]*>[\s\S]*outside fold[\s\S]*<\/details>/);
+        });
+
+        it("keeps partial placeholders inside an open fold", () => {
+            const dest = "c".repeat(32);
+            const html = parser.convertMicronToHtml(`\`+> Section\n\`{${dest}:/page/p.mu}`);
+            const foldMatch = html.match(/<details[^>]*>([\s\S]*)<\/details>/);
+            expect(foldMatch).not.toBeNull();
+            expect(foldMatch[1]).toContain("mu-partial");
+        });
+
+        it("renders multi-row fields as textarea", () => {
+            const html = parser.convertMicronToHtml("`<20x3|bio`hello>");
+            expect(html).toContain("<textarea");
+            expect(html).toContain('rows="3"');
+        });
+
+        it("applies field width to text inputs", () => {
+            const html = parser.convertMicronToHtml("`<40|name`bob>");
+            expect(html).toContain('size="40"');
+            expect(html).toContain('name="name"');
+        });
+
+        it("keeps field names that shadow DOM properties", () => {
+            const html = parser.convertMicronToHtml("`<20|action`x>");
+            expect(html).toContain('name="action"');
+        });
     });
 });

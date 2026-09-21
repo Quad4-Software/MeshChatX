@@ -44,14 +44,14 @@ runs:
     steps:
         - name: Set up Python and UV
           if: inputs.install-python == 'true'
-          uses: ./.github/actions/setup-python-uv
+          uses: $/.github/actions/setup-python-uv
           with:
               python-version: ${{ inputs.python-version }}
               uv-version: ${{ inputs.uv-version }}
 
         - name: Set up Node and pnpm
           if: inputs.install-node == 'true'
-          uses: ./.github/actions/setup-node-pnpm
+          uses: $/.github/actions/setup-node-pnpm
           with:
               node-version: ${{ inputs.node-version }}
               pnpm-version: ${{ inputs.pnpm-version }}
@@ -78,4 +78,5 @@ runs:
           shell: bash
           env:
               GITHUB_TOKEN: ${{ github.token }}
-          run: sh scripts/ci/setup-task.sh "${{ inputs.task-version }}"
+              TASK_VERSION: ${{ inputs.task-version }}
+          run: sh scripts/ci/setup-task.sh "${TASK_VERSION}"

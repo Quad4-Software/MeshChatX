@@ -78,6 +78,9 @@ class TelephoneManager:
         self.call_status_at_end = None
         self.call_is_incoming = False
         self.call_was_established = False
+        # Once-per-call latch so a duplicated ended event (local hangup plus
+        # remote link close) cannot record the same call twice.
+        self._call_end_recorded = False
 
         # Manual mute overrides in case LXST internal muting is buggy
         self.transmit_muted = False
@@ -385,6 +388,19 @@ class TelephoneManager:
         if self.telephone is not None:
             self.telephone.teardown()
             self.telephone = None
+        # Drop per-call state: otherwise a call that was in flight leaves
+        # initiation_status set and every later initiate() reports busy, and
+        # stale start/stats leak into the next session.
+        self.initiation_status = None
+        self.initiation_target_hash = None
+        self.call_start_time = None
+        self.call_status_at_end = None
+        self.call_is_incoming = False
+        self.call_was_established = False
+        self.call_stats = {}
+        self.ptt_active = False
+        self.is_voicemail_session_active = False
+        self._call_end_recorded = True
 
     def hangup(self):
         self._update_initiation_status(None, None)
@@ -426,6 +442,7 @@ class TelephoneManager:
         self.call_start_time = time.time()
         self.call_is_incoming = True
         self.call_was_established = False
+        self._call_end_recorded = False
         if self.on_ringing_callback:
             self.on_ringing_callback(caller_identity)
 
@@ -446,6 +463,11 @@ class TelephoneManager:
             self.on_established_callback(caller_identity)
 
     def on_telephone_call_ended(self, caller_identity: RNS.Identity):
+        if self._call_end_recorded:
+            # LXST can emit ended twice for one call (local hangup plus remote
+            # link close); only the first may record history/notifications.
+            return
+        self._call_end_recorded = True
         # Capture status just before ending if possible, or use the last known status
         if self.telephone:
             self.call_status_at_end = self.telephone.call_status
@@ -670,6 +692,7 @@ class TelephoneManager:
             self._update_initiation_status("Establishing link...", destination_hash_hex)
             self.call_start_time = time.time()
             self.call_is_incoming = False
+            self._call_end_recorded = False
 
             profile_id = self.resolve_audio_profile_id(self.preferred_profile_id)
             self.preferred_profile_id = profile_id

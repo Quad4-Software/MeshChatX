@@ -119,6 +119,28 @@ export function openCommandPalette(state: AppShellState): void {
     void state.hosts.commandPalette?.open();
 }
 
+// Top-nav pinned buttons
+// ------------------------------------------------------------------
+export function navBadgeCount(state: AppShellState, item: NavItem | null): number {
+    const source = item?.badge?.source;
+    if (source === "unreadConversationsCount") {
+        return state.global.unreadConversationsCount;
+    }
+    if (source === "relayChatUnreadCount") {
+        return state.global.relayChatUnreadCount;
+    }
+    if (source === "missedCallsCount") {
+        return state.global.missedCallsCount;
+    }
+    return 0;
+}
+
+export function navBadgeText(state: AppShellState, item: NavItem | null): string {
+    const count = navBadgeCount(state, item);
+    const cap = item?.badge?.cap ?? 99;
+    return count > cap ? `${cap}+` : String(count);
+}
+
 // Counters
 // ------------------------------------------------------------------
 export function updateUnreadConversationsCount(state: AppShellState): void {

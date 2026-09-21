@@ -49,7 +49,7 @@ env:
 jobs:
     frontend:
         name: Build frontend artifact
-        uses: ./.github/workflows/frontend-build.yml
+        uses: $/.github/workflows/frontend-build.yml
         permissions:
             contents: read
         with:
@@ -87,7 +87,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -95,6 +95,8 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Run matrix task
+              env:
+                  PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
               run: |
                   set -euo pipefail
                   case "${{ matrix.task.id }}" in
@@ -102,8 +104,8 @@ jobs:
                       task lint
                       if [ "${{ github.event_name }}" = "pull_request" ]; then
                         git fetch --unshallow
-                        git fetch origin "+refs/heads/${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}"
-                        export COMMITLINT_FROM="origin/${{ github.event.pull_request.base.ref }}"
+                        git fetch origin "+refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}"
+                        export COMMITLINT_FROM="origin/${PR_BASE_REF}"
                         export COMMITLINT_TO="HEAD^2"
                         task check:commits
                       fi
@@ -121,7 +123,7 @@ jobs:
                   esac
 
             - name: Verify workspace clean
-              uses: ./.github/actions/verify-workspace-clean
+              uses: $/.github/actions/verify-workspace-clean
 
     visualiser-wasm:
         name: Visualiser WASM (Go)
@@ -236,7 +238,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -249,7 +251,7 @@ jobs:
               run: task test:backend
 
             - name: Verify workspace clean
-              uses: ./.github/actions/verify-workspace-clean
+              uses: $/.github/actions/verify-workspace-clean
 
     lxmf-live-local:
         name: Live LXMF (local TCP + pack/reject)
@@ -268,7 +270,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -278,7 +280,7 @@ jobs:
               run: task test:lxmf:live
 
             - name: Verify workspace clean
-              uses: ./.github/actions/verify-workspace-clean
+              uses: $/.github/actions/verify-workspace-clean
 
     build-check:
         name: Linux build check
@@ -304,7 +306,7 @@ jobs:
               run: bash scripts/ci/verify-package-contents-smoke.sh
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -312,7 +314,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Fetch frontend artifact
-              uses: ./.github/actions/fetch-frontend-artifact
+              uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
@@ -341,7 +343,7 @@ jobs:
               run: bash scripts/ci/verify-package-contents.sh frozen build/exe
 
             - name: Verify workspace clean
-              uses: ./.github/actions/verify-workspace-clean
+              uses: $/.github/actions/verify-workspace-clean
 
             - name: Upload Linux build-check artifacts
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
@@ -413,7 +415,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -451,7 +453,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -465,7 +467,7 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
 
             - name: Fetch frontend artifact
-              uses: ./.github/actions/fetch-frontend-artifact
+              uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
@@ -502,7 +504,7 @@ jobs:
                   persist-credentials: false
 
             - name: Set up development environment
-              uses: ./.github/actions/setup-dev-environment
+              uses: $/.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
@@ -541,6 +543,10 @@ jobs:
                   # SKIP is fine where the platform or runner lacks support.
                   grep -E '^\[(OK|SKIP)\][[:space:]]+AppContainer Launch' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+HTTP Server Security' self-check-out.txt
+                  # On macOS/Windows the epoll degradation must rebind
+                  # BackboneClientInterface to TCPClientInterface; on Linux it
+                  # must be left alone. Both states print OK.
+                  grep -E '^\[OK\][[:space:]]+RNS Backbone Fallback' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+Umsgpack Roundtrip' self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+LXST Telephony' self-check-out.txt
                   # The bundled win_amd64 opusfile/opus DLLs access-violate in

@@ -161,10 +161,15 @@
     {/if}
 
     {#if isShowingMenu}
-        <div
-            class="absolute bottom-full right-0 mb-1 z-10 rounded-xl bg-sem-surface shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden overflow-hidden min-w-[220px]"
-        >
-            <div class="py-1">
+        <div class="absolute bottom-full right-0 mb-1 z-10 focus:outline-hidden">
+            <div
+                class="dropdown-caret pointer-events-none absolute -bottom-[4px] right-4 border-b border-r border-sem-border"
+                aria-hidden="true"
+            ></div>
+            <div
+                class="rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border focus:outline-hidden overflow-hidden min-w-[220px]"
+            >
+                <div class="py-1">
                 <button
                     type="button"
                     class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap border-b border-sem-border"
@@ -227,6 +232,7 @@
                     <MaterialDesignIcon iconName="qrcode" class="size-5 shrink-0 text-sem-fg-muted" />
                     <span>{t("messages.send_menu_paper_compose")}</span>
                 </button>
+                </div>
             </div>
         </div>
     {/if}

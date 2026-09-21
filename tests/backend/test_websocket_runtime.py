@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracles for websocket_runtime helpers (rate limit, origin policy, envelope, peek)."""
+"""References for websocket_runtime helpers (rate limit, origin policy, envelope, peek)."""
 
 from __future__ import annotations
 
@@ -87,9 +87,40 @@ async def test_coalesce_key_falls_back_to_telemetry_dest():
     assert len(buf._pending) == 2
 
 
+@pytest.mark.asyncio
+async def test_coalesce_offer_during_flush_is_not_dropped():
+    """An offer landing while flush callbacks run must be flushed later."""
+    import asyncio
+
+    flushed = []
+    release = asyncio.Event()
+
+    async def _flush(p):
+        flushed.append(p)
+        await release.wait()
+
+    buf = CoalesceBuffer(_flush, window_sec=0.01)
+    buf.offer({"type": "announce", "announce": {"destination_hash": "aa"}})
+    # Let the delayed flush start and block inside the callback.
+    await asyncio.sleep(0.05)
+    assert len(flushed) == 1
+
+    # Offer while the flush task is still running.
+    buf.offer({"type": "announce", "announce": {"destination_hash": "bb"}})
+    release.set()
+    # Allow the drain loop to flush the late offer.
+    for _ in range(50):
+        await asyncio.sleep(0.02)
+        if len(flushed) >= 2:
+            break
+    assert {p["announce"]["destination_hash"] for p in flushed} == {"aa", "bb"}
+
+
 def test_message_rate_cost_heavy_types():
     assert message_rate_cost("ping") == 1.0
-    assert message_rate_cost("nomadnet.file.download") == 5.0
+    # Image-rich pages legitimately burst many file downloads.
+    assert message_rate_cost("nomadnet.file.download") == 1.0
+    assert message_rate_cost("nomadnet.page.download") == 5.0
     assert message_rate_cost("rns.link.request") == 5.0
 
 

@@ -4,8 +4,10 @@
     import type { Action } from "svelte/action";
     import { on } from "svelte/events";
     import { t } from "../../../js/i18n.js";
+    import { formatTelemetryLocationCoords, telemetryLocationCoords } from "../../../js/lxmfTelemetryLocation.js";
     import { isAnimatedRasterType } from "../../../js/inViewObserver.js";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
     import AudioWaveformPlayer from "./AudioWaveformPlayer.svelte";
     import InViewAnimatedImg from "./InViewAnimatedImg.svelte";
     import MessageReactionsOverlay from "./MessageReactionsOverlay.svelte";
@@ -178,7 +180,7 @@
                 {#if actions.canCancelOutboundSend(chatItem)}
                     <button
                         type="button"
-                        class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white"
+                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-warning px-3 py-1.5 text-xs font-semibold text-sem-action-warning-text shadow-xs hover:bg-sem-action-warning-hover transition-colors"
                         onclick={(event) => {
                             event.stopPropagation();
                             actions.cancelSendingMessage(chatItem);
@@ -187,7 +189,7 @@
                 {/if}
                 <button
                     type="button"
-                    class="rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-primary px-3 py-1.5 text-xs font-semibold text-sem-action-primary-text shadow-xs hover:bg-sem-action-primary-hover transition-colors"
                     onclick={(event) => {
                         event.stopPropagation();
                         actions.replyToMessage(chatItem);
@@ -195,7 +197,7 @@
                 >
                 <button
                     type="button"
-                    class="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-action-danger px-3 py-1.5 text-xs font-semibold text-sem-action-danger-text shadow-xs hover:bg-sem-action-danger-hover transition-colors"
                     onclick={(event) => {
                         event.stopPropagation();
                         actions.deleteChatItem(chatItem);
@@ -203,7 +205,7 @@
                 >
                 <button
                     type="button"
-                    class="rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-sem-canvas shadow-xs hover:bg-sem-fg transition-colors"
                     onclick={(event) => {
                         event.stopPropagation();
                         actions.showRawMessage(chatItem);
@@ -326,7 +328,7 @@
                 <span>Marked as Spam</span>
             </div>
         {/if}
-        {#if message.content && !parsedItems.isOnlyPaperMessage && !parsedItems.isOnlyMapLink && !parsedItems.isOnlyRelayLink && !actions.shouldHideAutoImageCaption(chatItem)}
+        {#if message.content && !parsedItems.isOnlyPaperMessage && !parsedItems.isOnlyMapLink && !parsedItems.isOnlyRelayLink && !parsedItems.isOnlyContact && !actions.shouldHideAutoImageCaption(chatItem)}
             {#if actions.isMessageBodyTooLargeForDisplay(chatItem)}
                 <div
                     class="rounded-lg border border-amber-200/90 bg-amber-50/90 px-3 py-2.5 dark:border-amber-800/50 dark:bg-amber-950/25"
@@ -390,11 +392,29 @@
                 class="flex flex-col gap-2 p-3 rounded-xl border bg-sem-surface-muted border-blue-100 dark:border-blue-800/30"
             >
                 <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                    <MaterialDesignIcon iconName="account-plus-outline" class="size-5" />
+                    {#if parsedItems.contact.lxmf_user_icon}
+                        <LxmfUserIcon
+                            iconName={parsedItems.contact.lxmf_user_icon.icon_name || ""}
+                            iconForegroundColour={parsedItems.contact.lxmf_user_icon.foreground_colour || ""}
+                            iconBackgroundColour={parsedItems.contact.lxmf_user_icon.background_colour || ""}
+                        />
+                    {:else}
+                        <MaterialDesignIcon iconName="account-plus-outline" class="size-5" />
+                    {/if}
                     <span class="text-sm font-bold">Contact Shared</span>
                 </div>
                 <div class="text-sm font-bold truncate">{parsedItems.contact.name}</div>
                 <div class="text-[10px] font-mono truncate">{parsedItems.contact.hash}</div>
+                {#if parsedItems.contact.lxmf_address}
+                    <div class="text-[10px] font-mono truncate text-blue-600 dark:text-blue-400">
+                        LXMF: {parsedItems.contact.lxmf_address}
+                    </div>
+                {/if}
+                {#if parsedItems.contact.lxst_address}
+                    <div class="text-[10px] font-mono truncate text-blue-600 dark:text-blue-400">
+                        LXST: {parsedItems.contact.lxst_address}
+                    </div>
+                {/if}
                 {#if !chatItem.is_outbound}
                     <button
                         type="button"
@@ -404,7 +424,8 @@
                                 parsedItems.contact?.name,
                                 parsedItems.contact?.hash,
                                 parsedItems.contact?.lxmf_address,
-                                parsedItems.contact?.lxst_address
+                                parsedItems.contact?.lxst_address,
+                                parsedItems.contact?.lxmf_user_icon
                             )}>Add to Contacts</button
                     >
                 {/if}
@@ -515,8 +536,15 @@
                         isOutbound={chatItem.is_outbound}
                     />
                 {:else}
-                    <div class="flex min-h-[54px] items-center justify-center rounded-xl border border-sem-border p-2">
-                        <span class="text-[10px] font-bold uppercase text-gray-400">{t("messages.downloading")}</span>
+                    <div
+                        class="flex min-h-[54px] items-center justify-center gap-2 rounded-xl border border-sem-border p-2"
+                    >
+                        <div
+                            class="size-4 border-2 border-sem-accent/20 border-t-sem-accent rounded-full animate-spin"
+                        ></div>
+                        <span class="text-[10px] font-bold uppercase text-sem-fg-muted"
+                            >{t("messages.downloading")}</span
+                        >
                     </div>
                 {/if}
                 <div class="text-[10px] mt-1 text-right opacity-60 {actions.outboundAttachmentCaptionClass(chatItem)}">
@@ -565,7 +593,7 @@
                 {/each}
             </div>
         {/if}
-        {#if message.fields?.telemetry?.location}
+        {#if telemetryLocationCoords(message.fields?.telemetry?.location)}
             <button
                 type="button"
                 class="flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium"
@@ -575,8 +603,7 @@
                 <span class="text-left">
                     <span class="block font-bold text-[10px] uppercase">Location</span>
                     <span class="block text-[9px] font-mono opacity-70">
-                        {Number(message.fields.telemetry.location.latitude).toFixed(6)},
-                        {Number(message.fields.telemetry.location.longitude).toFixed(6)}
+                        {formatTelemetryLocationCoords(message.fields?.telemetry?.location)}
                     </span>
                 </span>
             </button>

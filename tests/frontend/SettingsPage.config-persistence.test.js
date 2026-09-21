@@ -231,7 +231,7 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
 
     it("onMessageBubbleColorChange PATCHes outbound bubble color", async () => {
         const { view, api } = await renderSettings();
-        const colorInput = view.container.querySelector('input[placeholder="#4f46e5"]');
+        const colorInput = view.container.querySelector('[data-testid="bubble-color-outbound-text"]');
         expect(colorInput).not.toBeNull();
         await fireEvent.input(colorInput, { target: { value: "#112233" } });
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
@@ -678,6 +678,49 @@ describe("SettingsPage: transport mode (POST, not PATCH)", () => {
         expect(toggle).not.toBeNull();
         await fireEvent.click(toggle);
         expect(api.post).toHaveBeenCalledWith("/api/v1/reticulum/disable-transport");
+    });
+});
+
+describe("SettingsPage: updateConfig failure handling", () => {
+    beforeEach(() => {
+        registerCoreContributions();
+    });
+
+    afterEach(() => {
+        delete window.api;
+        vi.clearAllMocks();
+    });
+
+    it("shows server error detail and reverts the patched key", async () => {
+        const { view, api } = await renderSettings();
+        api.patch.mockRejectedValueOnce(
+            Object.assign(new Error("bad"), {
+                response: { data: { error: "theme unsupported" } },
+            })
+        );
+        const select = view.container.querySelector("#theme-select");
+        await fireEvent.change(select, { target: { value: "light" } });
+
+        await waitFor(() => {
+            expect(ToastUtils.error).toHaveBeenCalledWith("theme unsupported");
+        });
+        await waitFor(() => {
+            expect(select.value).toBe("dark");
+        });
+    });
+
+    it("falls back to generic error and still reverts the patched key", async () => {
+        const { view, api } = await renderSettings();
+        api.patch.mockRejectedValueOnce(new Error("boom"));
+        const select = view.container.querySelector("#theme-select");
+        await fireEvent.change(select, { target: { value: "light" } });
+
+        await waitFor(() => {
+            expect(ToastUtils.error).toHaveBeenCalledWith(t("common.save_failed"));
+        });
+        await waitFor(() => {
+            expect(select.value).toBe("dark");
+        });
     });
 });
 

@@ -57,6 +57,17 @@ export function effectiveRNodeBlePort(peer: string): string {
     return `ble://${p}`;
 }
 
+export function effectiveRNodeBtPort(peer: string): string {
+    const p = (peer || "").trim();
+    if (!p) {
+        return "bt://";
+    }
+    if (p.toLowerCase().startsWith("bt://")) {
+        return p;
+    }
+    return `bt://${p}`;
+}
+
 export function calculateRNodeParameters(
     bandwidth: number,
     spreadingFactor: number,
@@ -429,6 +440,10 @@ export function buildInterfaceSavePayload(
     } else if (interfaceType === "RNodeInterface" || interfaceType === "RNodeIPInterface") {
         if (form.rnodeTransport === "tcp") {
             payload.port = buildRNodeTcpPort(form.rnodeTcpHost || "127.0.0.1");
+        } else if (form.rnodeTransport === "ble") {
+            payload.port = effectiveRNodeBlePort(form.rnodePort || "");
+        } else if (form.rnodeTransport === "bluetooth") {
+            payload.port = effectiveRNodeBtPort(form.rnodePort || "");
         } else {
             payload.port = form.rnodePort;
         }

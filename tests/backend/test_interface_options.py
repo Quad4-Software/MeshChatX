@@ -979,3 +979,208 @@ async def test_http_interface_rejects_reticulum_mode_values(temp_dir):
         body = json.loads(response.body)
         assert response.status == 422, body
         assert "client or server" in body["message"]
+
+
+def _aware_supported_caps(**overrides):
+    caps = {
+        "supported": True,
+        "wifi_aware": True,
+        "wifi_aware_available": True,
+        "permission_nearby_wifi": True,
+    }
+    caps.update(overrides)
+    return caps
+
+
+@pytest.mark.asyncio
+async def test_aware_rejected_without_android_bridge(temp_dir):
+    """Desktop/web hosts have no local-link bridge, so Aware must 422."""
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with patch(
+            "meshchatx.src.backend.android_locallink.is_available",
+            return_value=False,
+        ):
+            payload = {
+                "name": "Nan",
+                "type": "AwareInterface",
+                "mode": "subscribe",
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 422, body
+            assert "Android" in body["message"]
+            assert "Nan" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_aware_rejected_when_hardware_missing(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with (
+            patch(
+                "meshchatx.src.backend.android_locallink.is_available",
+                return_value=True,
+            ),
+            patch(
+                "meshchatx.src.backend.android_locallink.probe_capabilities",
+                return_value=_aware_supported_caps(wifi_aware=False),
+            ),
+        ):
+            payload = {
+                "name": "Nan",
+                "type": "AwareInterface",
+                "mode": "subscribe",
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 422, body
+            assert "not supported" in body["message"]
+            assert "Nan" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_aware_rejected_when_currently_unavailable(temp_dir):
+    """wifi_aware_available flaps with WiFi state, so it is checked too."""
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with (
+            patch(
+                "meshchatx.src.backend.android_locallink.is_available",
+                return_value=True,
+            ),
+            patch(
+                "meshchatx.src.backend.android_locallink.probe_capabilities",
+                return_value=_aware_supported_caps(wifi_aware_available=False),
+            ),
+        ):
+            payload = {
+                "name": "Nan",
+                "type": "AwareInterface",
+                "mode": "subscribe",
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 422, body
+            assert "unavailable" in body["message"]
+            assert "Nan" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_aware_rejects_reticulum_mode_values(temp_dir):
+    """Mode is the Aware role, so Reticulum mode strings must not pass."""
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with (
+            patch(
+                "meshchatx.src.backend.android_locallink.is_available",
+                return_value=True,
+            ),
+            patch(
+                "meshchatx.src.backend.android_locallink.probe_capabilities",
+                return_value=_aware_supported_caps(),
+            ),
+        ):
+            payload = {
+                "name": "Nan",
+                "type": "AwareInterface",
+                "mode": "gateway",
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 422, body
+            assert "subscribe or publish" in body["message"]
+            assert "Nan" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_aware_rejects_peers_out_of_range(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with (
+            patch(
+                "meshchatx.src.backend.android_locallink.is_available",
+                return_value=True,
+            ),
+            patch(
+                "meshchatx.src.backend.android_locallink.probe_capabilities",
+                return_value=_aware_supported_caps(),
+            ),
+        ):
+            for bad in (0, 9, "abc"):
+                payload = {
+                    "name": f"Nan{bad}",
+                    "type": "AwareInterface",
+                    "mode": "publish",
+                    "peers": bad,
+                }
+                response = await handler(make_request(payload))
+                body = json.loads(response.body)
+                assert response.status == 422, body
+                assert f"Nan{bad}" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_aware_persists_options_on_supported_device(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with (
+            patch(
+                "meshchatx.src.backend.android_locallink.is_available",
+                return_value=True,
+            ),
+            patch(
+                "meshchatx.src.backend.android_locallink.probe_capabilities",
+                return_value=_aware_supported_caps(),
+            ),
+        ):
+            payload = {
+                "name": "Nan",
+                "type": "AwareInterface",
+                "mode": "publish",
+                "peers": 3,
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 200, body
+            saved = config["interfaces"]["Nan"]
+            assert saved["type"] == "AwareInterface"
+            assert saved["mode"] == "publish"
+            assert saved["peers"] == 3
+
+
+@pytest.mark.asyncio
+async def test_aware_extra_config_is_ignored(temp_dir):
+    """AwareInterface is a builtin type, so extra_config must not merge."""
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with (
+            patch(
+                "meshchatx.src.backend.android_locallink.is_available",
+                return_value=True,
+            ),
+            patch(
+                "meshchatx.src.backend.android_locallink.probe_capabilities",
+                return_value=_aware_supported_caps(),
+            ),
+        ):
+            payload = {
+                "name": "Nan",
+                "type": "AwareInterface",
+                "mode": "subscribe",
+                "extra_config": {"injected_key": "should_not_persist"},
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 200, body
+            saved = config["interfaces"]["Nan"]
+            assert saved["mode"] == "subscribe"
+            assert "peers" not in saved
+            assert "injected_key" not in saved

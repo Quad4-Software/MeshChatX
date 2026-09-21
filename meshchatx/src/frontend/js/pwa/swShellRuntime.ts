@@ -10,7 +10,7 @@ import {
 export const SHELL_FALLBACK_URL = "/";
 export const UPDATE_MESSAGE_TYPE = "meshchatx-sw-updated";
 
-export type OracleStrategyInput = {
+export type ExpectedStrategyInput = {
     method?: string;
     pathname?: string;
     mode?: string;
@@ -19,10 +19,10 @@ export type OracleStrategyInput = {
 };
 
 /**
- * Independent accept/reject oracle for shell caching.
+ * Independent accept/reject reference for shell caching.
  * Predicts strategy from raw inputs without calling classifyShellRequest.
  */
-export function oracleExpectedStrategy(input: OracleStrategyInput): ShellRequestKind {
+export function expectedStrategy(input: ExpectedStrategyInput): ShellRequestKind {
     const method = input.method || "GET";
     const pathname = String(input.pathname || "/");
     if (method !== "GET" && method !== "HEAD") {
@@ -129,6 +129,9 @@ export function createShellRuntime(options: ShellRuntimeOptions): ShellRuntime {
         if (!response || !response.ok) {
             return;
         }
+        if (!request || request.method !== "GET") {
+            return;
+        }
         const cache = await cachesApi.open(cacheName);
         await cache.put(request, response);
     }
@@ -168,7 +171,7 @@ export function createShellRuntime(options: ShellRuntimeOptions): ShellRuntime {
         const cached = await cache.match(request);
         const networkPromise = fetchFn(request)
             .then((response) => {
-                if (response && response.ok) {
+                if (response && response.ok && request.method === "GET") {
                     void cache.put(request, response.clone());
                 }
                 return response;

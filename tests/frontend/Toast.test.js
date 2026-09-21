@@ -90,7 +90,7 @@ describe("Toast.svelte", () => {
         const { container } = render(Toast);
         const el = container.querySelector("[class*='fixed']");
         expect(el).toBeTruthy();
-        expect(el.className).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
+        expect(el.className).toContain("max-sm:bottom-[calc(4.5rem+max(1.25rem,env(safe-area-inset-bottom,0px)))]");
     });
 
     it("renders non-string toast payloads without throwing", async () => {

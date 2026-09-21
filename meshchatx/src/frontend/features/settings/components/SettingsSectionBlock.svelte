@@ -9,6 +9,7 @@
         description?: string;
         show?: boolean;
         bodyClass?: string;
+        sectionKey?: string;
         headerText?: Snippet;
         actions?: Snippet;
         children?: Snippet;
@@ -20,6 +21,7 @@
         description = "",
         show = true,
         bodyClass = "space-y-3",
+        sectionKey = "",
         headerText,
         actions,
         children,
@@ -27,7 +29,7 @@
 </script>
 
 {#if show}
-    <section class="settings-section break-inside-avoid">
+    <section class="settings-section break-inside-avoid" data-settings-section={sectionKey || null}>
         <header class="settings-section__header">
             <div>
                 {#if eyebrow}

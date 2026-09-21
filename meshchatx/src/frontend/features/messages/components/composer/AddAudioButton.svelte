@@ -37,7 +37,7 @@
     {#if isRecordingAudioAttachment}
         <button
             type="button"
-            class="my-auto inline-flex items-center gap-x-1 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 shadow-xs hover:border-red-400 transition dark:border-red-500/40 dark:bg-red-900/30 dark:text-red-100"
+            class="my-auto inline-flex items-center gap-x-1 rounded-full border border-sem-danger/40 bg-sem-danger/10 px-3 py-1.5 text-xs font-semibold text-sem-danger shadow-xs hover:border-sem-danger transition"
             onclick={() => {
                 isShowingMenu = false;
                 onstoprecording?.();
@@ -53,7 +53,7 @@
     {:else}
         <button
             type="button"
-            class="my-auto inline-flex items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
+            class="my-auto inline-flex items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
             onclick={() => {
                 isShowingMenu = true;
             }}
@@ -64,8 +64,12 @@
 
     {#if isShowingMenu}
         <div
-            class="absolute bottom-full right-0 z-10 mb-2 max-w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-sem-surface shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
+            class="absolute bottom-full right-0 z-10 mb-2 max-w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border focus:outline-hidden"
         >
+            <div
+                class="dropdown-caret pointer-events-none absolute -bottom-[5px] right-3 border-b border-r border-sem-border"
+                aria-hidden="true"
+            ></div>
             <div class="py-1">
                 <button
                     type="button"

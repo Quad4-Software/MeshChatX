@@ -10,6 +10,7 @@ from meshchatx.src.backend.http.errors import (
     http_error_from_exception,
     http_not_found,
     http_payload_too_large,
+    parse_int_param,
 )
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
@@ -104,7 +105,9 @@ def register_telephone_ringtones_routes(routes, app):
 
     @routes.get("/api/v1/telephone/ringtones/{id}/audio")
     async def telephone_ringtone_audio(request):
-        ringtone_id = int(request.match_info["id"])
+        ringtone_id = parse_int_param(request.match_info["id"])
+        if ringtone_id is None:
+            return http_bad_request("invalid ringtone id")
         ringtone = app.database.ringtones.get_by_id(ringtone_id)
         if not ringtone:
             return http_not_found("Ringtone not found")
@@ -187,7 +190,9 @@ def register_telephone_ringtones_routes(routes, app):
     @routes.patch("/api/v1/telephone/ringtones/{id}")
     async def telephone_ringtone_patch(request):
         try:
-            ringtone_id = int(request.match_info["id"])
+            ringtone_id = parse_int_param(request.match_info["id"])
+            if ringtone_id is None:
+                return http_bad_request("invalid ringtone id")
             data = await read_json_limited(request)
 
             display_name = data.get("display_name")
@@ -208,7 +213,9 @@ def register_telephone_ringtones_routes(routes, app):
     @routes.delete("/api/v1/telephone/ringtones/{id}")
     async def telephone_ringtone_delete(request):
         try:
-            ringtone_id = int(request.match_info["id"])
+            ringtone_id = parse_int_param(request.match_info["id"])
+            if ringtone_id is None:
+                return http_bad_request("invalid ringtone id")
             ringtone = app.database.ringtones.get_by_id(ringtone_id)
             if ringtone:
                 app.ringtone_manager.remove_ringtone(ringtone["storage_filename"])

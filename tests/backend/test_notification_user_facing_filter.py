@@ -263,6 +263,7 @@ def _mk_message(
     title="",
     fields=None,
     timestamp=None,
+    created_at=None,
     state="delivered",
 ):
     return {
@@ -280,6 +281,7 @@ def _mk_message(
         "content": content,
         "fields": fields if fields is not None else {},
         "timestamp": timestamp if timestamp is not None else time.time(),
+        "created_at": created_at,
         "rssi": None,
         "snr": None,
         "quality": None,
@@ -287,6 +289,10 @@ def _mk_message(
         "reply_to_hash": None,
         "attachments_stripped": 0,
     }
+
+
+def _iso(ts):
+    return datetime.fromtimestamp(ts, UTC).isoformat()
 
 
 class TestGetLatestUserFacingIncomingMessage:
@@ -449,11 +455,20 @@ pytestmark_integration = pytest.mark.usefixtures("require_loopback_tcp")
 
 def _build_aio_app(app):
     routes = web.RouteTableDef()
-    sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = app._define_routes(
-        routes
+    bad_mw, sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = (
+        app._define_routes(routes)
     )
     aio_app = web.Application(
-        middlewares=[sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw],
+        middlewares=[
+            bad_mw,
+            sqlite_mw,
+            auth_mw,
+            mime_mw,
+            sec_mw,
+            csrf_mw,
+            ip_mw,
+            demo_mw,
+        ],
     )
     aio_app.add_routes(routes)
     return aio_app
@@ -535,12 +550,15 @@ class TestNotificationsGetUserFacingFilter:
 
     async def test_reaction_after_read_message_does_not_raise_bell(self, bell_app):
         # Real message arrived, was read, then a reaction landed afterwards.
+        # Arrival order is modeled with created_at because unread checks use
+        # local arrival time, not the sender-supplied timestamp.
         bell_app.database.messages.upsert_lxmf_message(
             _mk_message(
                 msg_hash="m1",
                 peer_hash=PEER_HASH,
                 content="hello",
                 timestamp=1_700_000_000,
+                created_at=_iso(1_700_000_000),
             ),
         )
         # Mark conversation as read AFTER hello but BEFORE reaction.
@@ -558,6 +576,7 @@ class TestNotificationsGetUserFacingFilter:
                     "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"},
                 },
                 timestamp=1_700_001_000,
+                created_at=_iso(1_700_001_000),
             ),
         )
         body = await self._get(bell_app, unread="true", limit=10)

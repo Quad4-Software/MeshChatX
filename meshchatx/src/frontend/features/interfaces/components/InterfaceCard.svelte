@@ -241,33 +241,37 @@
                 {#if isMenuOpen}
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div class="fixed inset-0 z-40" onclick={() => (isMenuOpen = false)}></div>
-                    <div
-                        class="absolute right-0 mt-1 z-50 min-w-44 rounded-xl border border-sem-border bg-sem-surface shadow-lg p-1 space-y-1"
-                    >
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-sem-fg text-left"
-                            onclick={handleEdit}
-                        >
-                            <MaterialDesignIcon iconName="pencil" class="w-4 h-4" />
-                            <span>{t("interface.edit_interface")}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-sem-fg text-left"
-                            onclick={handleExport}
-                        >
-                            <MaterialDesignIcon iconName="export" class="w-4 h-4" />
-                            <span>{t("interface.export_interface")}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 text-left"
-                            onclick={handleDelete}
-                        >
-                            <MaterialDesignIcon iconName="trash-can" class="w-4 h-4 text-red-500" />
-                            <span>{t("interface.delete_interface")}</span>
-                        </button>
+                    <div class="absolute right-0 mt-1 z-50 min-w-44">
+                        <div
+                            class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                            aria-hidden="true"
+                        ></div>
+                        <div class="rounded-xl border border-sem-border bg-sem-surface shadow-lg p-1 space-y-1">
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-sem-fg text-left"
+                                onclick={handleEdit}
+                            >
+                                <MaterialDesignIcon iconName="pencil" class="w-4 h-4" />
+                                <span>{t("interface.edit_interface")}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-sem-fg text-left"
+                                onclick={handleExport}
+                            >
+                                <MaterialDesignIcon iconName="export" class="w-4 h-4" />
+                                <span>{t("interface.export_interface")}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 text-left"
+                                onclick={handleDelete}
+                            >
+                                <MaterialDesignIcon iconName="trash-can" class="w-4 h-4 text-red-500" />
+                                <span>{t("interface.delete_interface")}</span>
+                            </button>
+                        </div>
                     </div>
                 {/if}
             </div>

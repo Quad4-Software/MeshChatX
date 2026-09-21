@@ -466,16 +466,17 @@ describe("WebSocketConnection module", () => {
         expect(() => WebSocketConnection.ping()).not.toThrow();
     });
 
-    it("registers window event listeners only once across repeated connect() calls", async () => {
+    it("registers window event listeners once per live connection and removes them on destroy", async () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
         const addEventListenerSpy = vi.fn();
+        const removeEventListenerSpy = vi.fn();
         global.window = {
             api: {},
             location: { origin: "http://127.0.0.1:5173" },
             addEventListener: addEventListenerSpy,
-            removeEventListener: vi.fn(),
+            removeEventListener: removeEventListenerSpy,
         };
 
         const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
@@ -485,11 +486,14 @@ describe("WebSocketConnection module", () => {
         const countAfterFirst = addEventListenerSpy.mock.calls.length;
         expect(countAfterFirst).toBeGreaterThan(0);
 
+        // destroy() removes the window listeners. The next connect() must
+        // re-register them exactly once, not stack duplicates.
         WebSocketConnection.destroy();
+        expect(removeEventListenerSpy.mock.calls.length).toBe(countAfterFirst);
         await WebSocketConnection.connect();
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
 
-        expect(addEventListenerSpy.mock.calls.length).toBe(countAfterFirst);
+        expect(addEventListenerSpy.mock.calls.length).toBe(countAfterFirst * 2);
 
         WebSocketConnection.destroy();
     });

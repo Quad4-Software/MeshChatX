@@ -19,6 +19,7 @@ import { registerMessageBlocklistFeature } from "./message-blocklist/index.js";
 import { registerMessagesFeature } from "./messages/index.js";
 import { registerMicronEditorFeature } from "./micron-editor/index.js";
 import { registerNetworkVisualiserFeature } from "./network-visualiser/index.js";
+import { registerNearbyFeature } from "./nearby/index.js";
 import { registerNomadNetworkFeature } from "./nomadnetwork/index.js";
 import { registerPageNodesFeature } from "./page-nodes/index.js";
 import { registerPaperMessageFeature } from "./paper-message/index.js";
@@ -81,6 +82,7 @@ export function registerAllFeatures(): void {
     registerMessagesFeature();
     registerMicronEditorFeature();
     registerNetworkVisualiserFeature();
+    registerNearbyFeature();
     registerNomadNetworkFeature();
     registerPageNodesFeature();
     registerPaperMessageFeature();

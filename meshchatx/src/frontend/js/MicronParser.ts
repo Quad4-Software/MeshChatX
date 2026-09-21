@@ -147,8 +147,8 @@ export default class MicronParser extends BaseMicronParser {
     declare darkTheme: any;
     declare enableForceMonospace: any;
     declare parseHeaderTags: any;
-    constructor(darkTheme = true, enableForceMonospace = true) {
-        super(darkTheme, enableForceMonospace);
+    constructor(darkTheme = true, enableForceMonospace = true, options: Record<string, unknown> = {}) {
+        super(darkTheme, enableForceMonospace, { accessibility: true, ...options });
         if (this.enableForceMonospace) {
             const existing = document.getElementById("micron-monospace-styles");
             if (existing) {
@@ -267,13 +267,43 @@ export default class MicronParser extends BaseMicronParser {
         return scrubNetworkCssBody(css);
     }
 
+    /**
+     * Dedicated DOMPurify instance for rendered Micron output. Newer DOMPurify
+     * strips name/id values that shadow DOM named properties (for example an
+     * input named "action"), which silently breaks Micron field submission and
+     * micron-anchor targets. Keep those attributes on the elements that need
+     * them; Micron output is not wrapped in a form, so clobbering does not
+     * apply here.
+     */
+    static getMicronSanitizer() {
+        if (MicronParser._micronSanitizer) {
+            return MicronParser._micronSanitizer;
+        }
+        const sanitizer =
+            typeof DOMPurify === "function" && typeof window !== "undefined" ? DOMPurify(window) : DOMPurify;
+        sanitizer.addHook("uponSanitizeAttribute", (node, hookEvent) => {
+            const tagName = node.nodeName;
+            if (
+                hookEvent.attrName === "name" &&
+                (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT")
+            ) {
+                hookEvent.forceKeepAttr = true;
+            }
+            if (hookEvent.attrName === "id" && tagName === "A" && node.classList.contains("micron-anchor")) {
+                hookEvent.forceKeepAttr = true;
+            }
+        });
+        MicronParser._micronSanitizer = sanitizer;
+        return sanitizer;
+    }
+
     static sanitizeRenderedMicronHtml(html) {
         if (html == null) {
             return "";
         }
         const s = typeof html === "string" ? html : String(html);
         try {
-            let sanitized = DOMPurify.sanitize(s, {
+            let sanitized = MicronParser.getMicronSanitizer().sanitize(s, {
                 USE_PROFILES: { html: true },
                 ALLOWED_URI_REGEXP,
             });
@@ -516,6 +546,7 @@ export default class MicronParser extends BaseMicronParser {
 
     _convertMicronToHtmlJs(markup, partialContents: any = {}, options: any = {}) {
         const build = () => {
+            markup = markup.replace(/\r\n?/g, "\n");
             let headerColors: any = { fg: null, bg: null };
             try {
                 headerColors = this.parseHeaderTags(markup);
@@ -543,6 +574,10 @@ export default class MicronParser extends BaseMicronParser {
                 default_fg: defaultFg,
                 default_bg: defaultBg,
                 radio_groups: {},
+                table_mode: false,
+                table_buffer: [],
+                table_align: null,
+                table_maxwidth: this.MAX_TABLE_WIDTH,
                 partialIndex: 0,
             };
 
@@ -574,39 +609,35 @@ export default class MicronParser extends BaseMicronParser {
                     tempContainer.appendChild(document.createElement("br"));
                     continue;
                 }
-                if (lineOutput && lineOutput.length > 0) {
+                let resolvedOutput = lineOutput;
+                if (Array.isArray(lineOutput) && lineOutput.length > 0) {
+                    resolvedOutput = [];
                     for (let el of lineOutput) {
-                        try {
-                            if (el.classList && el.classList.contains("mu-partial")) {
-                                const id = el.getAttribute("data-partial-id");
-                                if (id && partialContents[id]) {
-                                    const holder = document.createElement("div");
-                                    // Partials should arrive pre-sanitized, but do not
-                                    // rely on every caller: sanitize at the sink too.
-                                    holder.innerHTML = MicronParser.sanitizeRenderedMicronHtml(partialContents[id]);
-                                    while (holder.firstChild) {
-                                        tempContainer.appendChild(holder.firstChild);
-                                    }
-                                } else {
-                                    tempContainer.appendChild(el);
-                                }
+                        if (el && el.classList && el.classList.contains("mu-partial")) {
+                            const id = el.getAttribute("data-partial-id");
+                            if (id && partialContents[id]) {
+                                const holder = document.createElement("div");
+                                // Partials should arrive pre-sanitized, but do not
+                                // rely on every caller: sanitize at the sink too.
+                                holder.innerHTML = MicronParser.sanitizeRenderedMicronHtml(partialContents[id]);
+                                resolvedOutput.push(...holder.childNodes);
                             } else {
-                                tempContainer.appendChild(el);
+                                resolvedOutput.push(el);
                             }
-                        } catch (e) {
-                            console.warn("MicronParser: line output serialization failed", e);
-                            const fallback = document.createElement("span");
-                            fallback.className = "mu-line-parse-fallback";
-                            fallback.style.whiteSpace = "pre-wrap";
-                            fallback.innerHTML = escapeHtmlForFallback(line);
-                            tempContainer.appendChild(fallback);
-                            tempContainer.appendChild(document.createElement("br"));
-                            break;
+                        } else {
+                            resolvedOutput.push(el);
                         }
                     }
-                } else if (lineOutput && lineOutput.length === 0) {
-                    // skip
-                } else {
+                }
+                try {
+                    this.appendLineOutput(tempContainer, resolvedOutput, state);
+                } catch (e) {
+                    console.warn("MicronParser: line output serialization failed", e);
+                    const fallback = document.createElement("span");
+                    fallback.className = "mu-line-parse-fallback";
+                    fallback.style.whiteSpace = "pre-wrap";
+                    fallback.innerHTML = escapeHtmlForFallback(line);
+                    tempContainer.appendChild(fallback);
                     tempContainer.appendChild(document.createElement("br"));
                 }
             }
@@ -666,6 +697,7 @@ export default class MicronParser extends BaseMicronParser {
         if (typeof markup !== "string") markup = String(markup);
 
         try {
+            markup = markup.replace(/\r\n?/g, "\n");
             const fragment = document.createDocumentFragment();
 
             let headerColors: any = { fg: null, bg: null };
@@ -695,6 +727,10 @@ export default class MicronParser extends BaseMicronParser {
                 default_fg: defaultFg,
                 default_bg: defaultBg,
                 radio_groups: {},
+                table_mode: false,
+                table_buffer: [],
+                table_align: null,
+                table_maxwidth: this.MAX_TABLE_WIDTH,
                 partialIndex: 0,
             };
 
@@ -723,30 +759,31 @@ export default class MicronParser extends BaseMicronParser {
                     fragment.appendChild(document.createElement("br"));
                     continue;
                 }
-                if (lineOutput && lineOutput.length > 0) {
-                    for (let el of lineOutput) {
-                        try {
-                            fragment.appendChild(el);
-                        } catch (e) {
-                            console.warn("MicronParser: appendChild failed", e);
-                            const fallback = document.createElement("span");
-                            fallback.className = "mu-line-parse-fallback";
-                            fallback.style.whiteSpace = "pre-wrap";
-                            fallback.textContent = line;
-                            fragment.appendChild(fallback);
-                            fragment.appendChild(document.createElement("br"));
-                            break;
-                        }
-                    }
-                } else if (lineOutput && lineOutput.length === 0) {
-                    // skip
-                } else {
+                try {
+                    this.appendLineOutput(fragment, lineOutput, state);
+                } catch (e) {
+                    console.warn("MicronParser: appendChild failed", e);
+                    const fallback = document.createElement("span");
+                    fallback.className = "mu-line-parse-fallback";
+                    fallback.style.whiteSpace = "pre-wrap";
+                    fallback.textContent = line;
+                    fragment.appendChild(fallback);
                     fragment.appendChild(document.createElement("br"));
                 }
             }
 
             const tempDiv = document.createElement("div");
+            if (this.serif) {
+                tempDiv.className = "Mu-serif";
+            }
             tempDiv.appendChild(fragment);
+            try {
+                if (typeof MicronParser._resolveEmptyAnchors === "function") {
+                    MicronParser._resolveEmptyAnchors(tempDiv);
+                }
+            } catch (e) {
+                console.warn("MicronParser: resolveEmptyAnchors failed", e);
+            }
             MicronParser.enhanceA11y(tempDiv, options);
             const outFragment = document.createDocumentFragment();
             const muPage = tempDiv.querySelector(".mu-page");
@@ -859,13 +896,13 @@ export default class MicronParser extends BaseMicronParser {
         return linkData;
     }
 
-    appendOutput(container, parts, state) {
+    appendOutput(container, parts, state, inheritedFg = state.default_fg) {
         if (!Array.isArray(parts) || parts.length === 0) {
             return;
         }
         const flushNonImage = (chunk) => {
             if (chunk.length > 0) {
-                super.appendOutput(container, chunk, state);
+                super.appendOutput(container, chunk, state, inheritedFg);
             }
         };
         let chunk: any[] = [];
@@ -966,6 +1003,10 @@ export default class MicronParser extends BaseMicronParser {
     }
 
     parseLine(line, state) {
+        // Upstream resets per-line fold state in parseLine; do the same before
+        // the partial intercept early-returns without reaching super.
+        state._line_is_heading = false;
+        state._collapsible_pending = null;
         if (line.length > 0 && !state.literal) {
             const partialMatch = line.trim().match(MicronParser.PARTIAL_LINE_REGEX);
             if (partialMatch) {
@@ -1102,7 +1143,7 @@ export default class MicronParser extends BaseMicronParser {
                 }
 
                 const headingLevel = el.getAttribute("data-micron-heading-level");
-                if (headingLevel) {
+                if (headingLevel && !el.querySelector('[role="heading"]')) {
                     const level = Math.min(Math.max(1, Number(headingLevel) || 1), 6);
                     el.setAttribute("role", "heading");
                     el.setAttribute("aria-level", String(level));
@@ -1141,8 +1182,9 @@ export default class MicronParser extends BaseMicronParser {
                     }
                 }
             } else if (tag === "INPUT" && (el.type === "text" || el.type === "password")) {
+                // Upstream may have set aria-label to the raw field name; prefer
+                // the prompt text when available, but never override explicit labels.
                 if (
-                    !el.getAttribute("aria-label") &&
                     !el.getAttribute("aria-labelledby") &&
                     !el.getAttribute("title") &&
                     !el.getAttribute("placeholder")

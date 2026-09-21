@@ -48,12 +48,21 @@ export interface ConfiguredInterface {
     txpower?: number;
     speed?: number | string;
     mode?: string;
+    peers?: number | string;
     server_url?: string;
     description?: string;
     passphrase?: string;
     network_name?: string;
     ifac_netname?: string;
     ifac_netkey?: string;
+    [key: string]: unknown;
+}
+
+export interface LocalLinkCapabilities {
+    supported?: boolean;
+    wifi_aware?: boolean;
+    wifi_aware_available?: boolean;
+    permission_nearby_wifi?: boolean;
     [key: string]: unknown;
 }
 

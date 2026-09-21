@@ -84,7 +84,7 @@ describe("BergamotBacking", () => {
         const result = await backing.loadModelRegistery();
 
         expect(result).toHaveLength(1);
-        // Independent oracle: the 4-letter pair key encodes from = first two chars, to = last two.
+        // Independent reference: the 4-letter pair key encodes from = first two chars, to = last two.
         expect(result[0]).toMatchObject({
             from: "en",
             to: "es",

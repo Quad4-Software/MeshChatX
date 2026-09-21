@@ -134,6 +134,7 @@ reports/mutation/
 test-results/
 playwright-report/
 blob-report/
+.tmp-pw/
 
 # Local benchmark / CI artifact downloads
 bench_results.json

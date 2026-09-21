@@ -192,7 +192,7 @@ _STICKER_EXPORT_PREFIXES = (
         ),
     ),
 )
-def test_validate_sticker_payload_accept_reject_oracle(raw, typ):
+def test_validate_sticker_payload_accept_reject(raw, typ):
     """Accept only when type, magic, and size agree. Else known ValueError reason."""
     nt = sticker_utils.normalize_image_type(typ)
     detected = sticker_utils.detect_image_format_from_magic(raw)
@@ -260,7 +260,7 @@ def test_detect_image_format_from_magic_closed_set(raw):
         max_size=8,
     ),
 )
-def test_validate_export_document_accept_reject_oracle(doc):
+def test_validate_export_document_accept_reject(doc):
     try:
         items = sticker_utils.validate_export_document(doc)
     except ValueError as exc:

@@ -142,61 +142,65 @@
         </button>
 
         {#if isDropdownActive}
-            <div
-                class="absolute right-0 top-full mt-1 z-50 min-w-44 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
-            >
-                {#if !isFav}
+            <div class="absolute right-0 top-full mt-1 z-50 min-w-44">
+                <div
+                    class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                    aria-hidden="true"
+                ></div>
+                <div class="bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg">
+                    {#if !isFav}
+                        <button
+                            type="button"
+                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
+                            onclick={() => onaddfavourite?.(node)}
+                        >
+                            <MaterialDesignIcon iconName="star-outline" class="size-4 text-yellow-500" />
+                            {t("nomadnet.add_to_favourites")}
+                        </button>
+                    {/if}
                     <button
                         type="button"
                         class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
-                        onclick={() => onaddfavourite?.(node)}
+                        onclick={() => {
+                            navigator.clipboard.writeText(node.destination_hash);
+                            ToastUtils.success("Address copied to clipboard");
+                        }}
                     >
-                        <MaterialDesignIcon iconName="star-outline" class="size-4 text-yellow-500" />
-                        {t("nomadnet.add_to_favourites")}
+                        <MaterialDesignIcon iconName="content-copy" class="size-4" />
+                        {t("nomadnet.copy_address")}
                     </button>
-                {/if}
-                <button
-                    type="button"
-                    class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
-                    onclick={() => {
-                        navigator.clipboard.writeText(node.destination_hash);
-                        ToastUtils.success("Address copied to clipboard");
-                    }}
-                >
-                    <MaterialDesignIcon iconName="content-copy" class="size-4" />
-                    {t("nomadnet.copy_address")}
-                </button>
-                <button
-                    type="button"
-                    class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
-                    onclick={() => {
-                        navigator.clipboard.writeText(`nomadnet://${node.destination_hash}`);
-                        ToastUtils.success("Link copied to clipboard");
-                    }}
-                >
-                    <MaterialDesignIcon iconName="link" class="size-4" />
-                    {t("nomadnet.copy_nomad_link")}
-                </button>
-                <hr class="my-1 border-sem-border" />
-                {#if isBlockedNode}
                     <button
                         type="button"
-                        class="w-full text-left px-3 py-1.5 text-xs text-green-600 dark:text-green-400 hover:bg-sem-surface-muted flex items-center gap-2"
-                        onclick={() => unblockNodeDestination(node.identity_hash || node.destination_hash)}
+                        class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
+                        onclick={() => {
+                            navigator.clipboard.writeText(`nomadnet://${node.destination_hash}`);
+                            ToastUtils.success("Link copied to clipboard");
+                        }}
                     >
-                        <MaterialDesignIcon iconName="lock-open-outline" class="size-4" />
-                        {t("nomadnet.lift_banishment")}
+                        <MaterialDesignIcon iconName="link" class="size-4" />
+                        {t("nomadnet.copy_nomad_link")}
                     </button>
-                {:else}
-                    <button
-                        type="button"
-                        class="w-full text-left px-3 py-1.5 text-xs text-red-600 dark:text-red-400 hover:bg-sem-surface-muted flex items-center gap-2"
-                        onclick={() => blockNodeDestination(node)}
-                    >
-                        <MaterialDesignIcon iconName="cancel" class="size-4" />
-                        {t("nomadnet.block_node")}
-                    </button>
-                {/if}
+                    <hr class="my-1 border-sem-border" />
+                    {#if isBlockedNode}
+                        <button
+                            type="button"
+                            class="w-full text-left px-3 py-1.5 text-xs text-green-600 dark:text-green-400 hover:bg-sem-surface-muted flex items-center gap-2"
+                            onclick={() => unblockNodeDestination(node.identity_hash || node.destination_hash)}
+                        >
+                            <MaterialDesignIcon iconName="lock-open-outline" class="size-4" />
+                            {t("nomadnet.lift_banishment")}
+                        </button>
+                    {:else}
+                        <button
+                            type="button"
+                            class="w-full text-left px-3 py-1.5 text-xs text-red-600 dark:text-red-400 hover:bg-sem-surface-muted flex items-center gap-2"
+                            onclick={() => blockNodeDestination(node)}
+                        >
+                            <MaterialDesignIcon iconName="cancel" class="size-4" />
+                            {t("nomadnet.block_node")}
+                        </button>
+                    {/if}
+                </div>
             </div>
         {/if}
     </div>

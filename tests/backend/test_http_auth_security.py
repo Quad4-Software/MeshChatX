@@ -260,7 +260,7 @@ async def test_auth_rejects_api_paths_that_end_with_static_extensions(mock_app):
 
 @pytest.mark.asyncio
 async def test_auth_middleware_does_not_treat_api_static_suffixes_as_public():
-    """Oracle: password auth still applies when an API path ends in .js/.json/.wasm."""
+    """Reference: password auth still applies when an API path ends in .js/.json/.wasm."""
     app = MagicMock()
     app.auth_enabled = True
     app.current_context = MagicMock(running=True)

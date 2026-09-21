@@ -141,7 +141,9 @@ class RRCHubPacketHandlersMixin:
             ):
                 joiner = body_hashes[0]
             if joiner is not None:
-                self._record_system(r, self.display_name_for(joiner) + " joined")
+                self._record_system(
+                    r, self.display_name_for(joiner) + " joined", event="join"
+                )
         self.manager._notify_change(self)
 
     def _handle_parted(self, env):
@@ -189,7 +191,9 @@ class RRCHubPacketHandlersMixin:
             ):
                 parter = body_hashes[0]
             if parter is not None:
-                self._record_system(r, self.display_name_for(parter) + " left")
+                self._record_system(
+                    r, self.display_name_for(parter) + " left", event="part"
+                )
         self.manager._notify_change(self)
 
     def _handle_chat(self, env, kind):
@@ -240,14 +244,25 @@ class RRCHubPacketHandlersMixin:
         if not isinstance(body, str):
             return
 
+        # Only the hub may drive protocol state via NOTICE. Peer NOTICEs are
+        # fanned out to room members with src rewritten to the peer's hash, so
+        # without this check any member could spoof nick overrides, room
+        # lists, WHO results, or the MOTD. A missing src is unattributed and
+        # can only come from the hub itself.
+        is_hub_src = src is None or (
+            self._hub_identity_hash is not None
+            and isinstance(src, (bytes, bytearray))
+            and bytes(src) == bytes(self._hub_identity_hash)
+        )
+
         nick_prefix = "nickname set to "
-        if body.startswith(nick_prefix):
+        if body.startswith(nick_prefix) and is_hub_src:
             new_nick = body[len(nick_prefix) :].strip()
             if new_nick:
                 self.set_nick_override(new_nick)
 
         parsed = proto.parse_room_list_notice_details(body)
-        if parsed is not None:
+        if parsed is not None and is_hub_src:
             with self._lock:
                 self.available_rooms = {
                     name: info.get("topic") for name, info in parsed.items()
@@ -263,7 +278,7 @@ class RRCHubPacketHandlersMixin:
                 return
 
         parsed_who = proto.parse_who_notice(body)
-        if parsed_who is not None:
+        if parsed_who is not None and is_hub_src:
             who_room, who_entries = parsed_who
             with self._lock:
                 members = self.members.setdefault(who_room, set())
@@ -287,7 +302,7 @@ class RRCHubPacketHandlersMixin:
                 return
 
         room_n = room.strip().lower() if isinstance(room, str) else None
-        if room_n is None and isinstance(body, str) and body.strip():
+        if room_n is None and isinstance(body, str) and body.strip() and is_hub_src:
             with self._lock:
                 self.motd = body
             self.manager._notify_change(self)
@@ -310,7 +325,9 @@ class RRCHubPacketHandlersMixin:
         leave_rooms = []
         with self._lock:
             if r:
-                if r in self._pending_joins:
+                if r in self._pending_joins and self.manager.is_fatal_join_error(
+                    text,
+                ):
                     rollback_join = True
                 self._pending_joins.discard(r)
                 self._silent_joins.discard(r)

@@ -9,8 +9,10 @@ from typing import Any
 from meshchatx.src.backend.http.routes.database._names import *  # noqa: F403
 
 from meshchatx.src.backend.http.errors import (
+    http_bad_request,
     http_error_from_exception,
     http_not_found,
+    parse_int_param,
 )
 
 
@@ -18,8 +20,12 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
     @routes.get("/api/v1/database/backups")
     async def list_db_backups(request):
         try:
-            limit = int(request.query.get("limit", 100))
-            offset = int(request.query.get("offset", 0))
+            limit = parse_int_param(request.query.get("limit"), 100, minimum=0)
+            offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+            if limit is None or offset is None:
+                return http_bad_request(
+                    "limit and offset must be non-negative integers",
+                )
             storage_path = app.storage_path
             if app.database is not None:
                 sorted_backups = app.database.list_auto_backups(storage_path)

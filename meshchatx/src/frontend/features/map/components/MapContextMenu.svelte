@@ -4,6 +4,7 @@
     import { tick } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
+    import { computeCaret, type ContextMenuCaret } from "../../../js/contextMenuCaret.js";
     import { t } from "../../../js/i18n.js";
 
     interface CoordRow {
@@ -50,6 +51,7 @@
 
     let panelEl = $state<HTMLDivElement | null>(null);
     let position = $state<{ left: number; top: number }>({ left: 0, top: 0 });
+    let caret: ContextMenuCaret | null = $state(null);
 
     async function reposition() {
         if (!show || !panelEl) return;
@@ -57,10 +59,12 @@
         if (!panelEl) return;
         const clamped = clampFloatingToViewport(x, y, panelEl.offsetWidth, panelEl.offsetHeight, { margin: 8 });
         position = { left: clamped.left, top: clamped.top };
+        caret = computeCaret(x, y, clamped.left, clamped.top, panelEl.offsetWidth, panelEl.offsetHeight);
     }
 
     $effect(() => {
         if (show && x !== undefined && y !== undefined) {
+            caret = null;
             reposition();
         }
     });
@@ -207,4 +211,11 @@
             {/each}
         </div>
     </div>
+    {#if caret}
+        <div
+            class="dropdown-caret fixed z-120 border-sem-border {caret.borderClass}"
+            style="left: {caret.style.left}; top: {caret.style.top};"
+            aria-hidden="true"
+        ></div>
+    {/if}
 {/if}

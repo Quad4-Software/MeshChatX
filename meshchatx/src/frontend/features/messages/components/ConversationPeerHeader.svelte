@@ -295,42 +295,46 @@
                     />
                 </IconButton>
                 {#if pathMenuOpen}
-                    <div
-                        class="absolute right-0 top-full mt-1 z-30 min-w-[14rem] rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border overflow-hidden"
-                    >
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
-                            onclick={() => {
-                                pathMenuOpen = false;
-                                onpathfinderquick?.();
-                            }}
-                        >
-                            <MaterialDesignIcon iconName="flash" class="size-5" />
-                            <span>{t("nomadnet.path_finder_quick_request")}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
-                            onclick={() => {
-                                pathMenuOpen = false;
-                                onpathfinderforce?.();
-                            }}
-                        >
-                            <MaterialDesignIcon iconName="map-marker-radius" class="size-5" />
-                            <span>{t("nomadnet.path_finder_force_find")}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
-                            onclick={() => {
-                                pathMenuOpen = false;
-                                onpathfinderdrop?.();
-                            }}
-                        >
-                            <MaterialDesignIcon iconName="reload-alert" class="size-5" />
-                            <span>{t("nomadnet.path_finder_drop_and_request")}</span>
-                        </button>
+                    <div class="absolute right-0 top-full mt-1 z-30 min-w-[14rem]">
+                        <div
+                            class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                            aria-hidden="true"
+                        ></div>
+                        <div class="rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border overflow-hidden">
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
+                                onclick={() => {
+                                    pathMenuOpen = false;
+                                    onpathfinderquick?.();
+                                }}
+                            >
+                                <MaterialDesignIcon iconName="flash" class="size-5" />
+                                <span>{t("nomadnet.path_finder_quick_request")}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
+                                onclick={() => {
+                                    pathMenuOpen = false;
+                                    onpathfinderforce?.();
+                                }}
+                            >
+                                <MaterialDesignIcon iconName="map-marker-radius" class="size-5" />
+                                <span>{t("nomadnet.path_finder_force_find")}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
+                                onclick={() => {
+                                    pathMenuOpen = false;
+                                    onpathfinderdrop?.();
+                                }}
+                            >
+                                <MaterialDesignIcon iconName="reload-alert" class="size-5" />
+                                <span>{t("nomadnet.path_finder_drop_and_request")}</span>
+                            </button>
+                        </div>
                     </div>
                 {/if}
             </div>
@@ -346,125 +350,129 @@
                 <MaterialDesignIcon iconName="dots-vertical" class="size-5" />
             </IconButton>
             {#if moreMenuOpen}
-                <div
-                    class="absolute right-0 top-full mt-1 z-30 min-w-[14rem] rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border overflow-hidden py-1"
-                >
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
-                        onclick={() => {
-                            moreMenuOpen = false;
-                            oneditdisplayname?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="account-edit" class="size-5 shrink-0" />
-                        <span>{t("messages.set_custom_display_name")}</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
-                        onclick={() => {
-                            moreMenuOpen = false;
-                            onstartcall?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="phone" class="size-5 shrink-0" />
-                        <span>{t("messages.start_call")}</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
-                        onclick={() => {
-                            moreMenuOpen = false;
-                            onsharecontact?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="notebook-outline" class="size-5 shrink-0" />
-                        <span>{t("messages.share_contact")}</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
-                        onclick={() => {
-                            moreMenuOpen = false;
-                            onping?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="flash" class="size-5 shrink-0" />
-                        <span>{t("messages.ping_peer")}</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
-                        onclick={() => {
-                            moreMenuOpen = false;
-                            onopentelemetryhistory?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="satellite-variant" class="size-5 shrink-0" />
-                        <span>{t("messages.telemetry_history")}</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
-                        onclick={() => {
-                            moreMenuOpen = false;
-                            onpopout?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="open-in-new" class="size-5 shrink-0" />
-                        <span>{t("messages.pop_out_chat")}</span>
-                    </button>
-                    {#if hasFailedOrCancelledMessages}
+                <div class="absolute right-0 top-full mt-1 z-30 min-w-[14rem]">
+                    <div
+                        class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-t border-l border-sem-border"
+                        aria-hidden="true"
+                    ></div>
+                    <div class="rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border overflow-hidden py-1">
                         <button
                             type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-amber-600 hover:bg-sem-surface-muted focus-ring-sem"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 moreMenuOpen = false;
-                                onretryfailed?.();
+                                oneditdisplayname?.();
                             }}
                         >
-                            <MaterialDesignIcon iconName="refresh" class="size-5 shrink-0 text-amber-600" />
-                            <span>{t("messages.retry_failed")}</span>
+                            <MaterialDesignIcon iconName="account-edit" class="size-5 shrink-0" />
+                            <span>{t("messages.set_custom_display_name")}</span>
                         </button>
-                    {/if}
-                    <div class="border-t border-sem-border my-1"></div>
-                    {#if isPeerBlocked}
                         <button
                             type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-emerald-600 hover:bg-sem-surface-muted focus-ring-sem"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 moreMenuOpen = false;
-                                onunbanish?.();
+                                onstartcall?.();
                             }}
                         >
-                            <MaterialDesignIcon iconName="check-circle" class="size-5 shrink-0 text-emerald-600" />
-                            <span>{t("banishment.lift_banishment")}</span>
+                            <MaterialDesignIcon iconName="phone" class="size-5 shrink-0" />
+                            <span>{t("messages.start_call")}</span>
                         </button>
-                    {:else}
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
+                            onclick={() => {
+                                moreMenuOpen = false;
+                                onsharecontact?.();
+                            }}
+                        >
+                            <MaterialDesignIcon iconName="notebook-outline" class="size-5 shrink-0" />
+                            <span>{t("messages.share_contact")}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
+                            onclick={() => {
+                                moreMenuOpen = false;
+                                onping?.();
+                            }}
+                        >
+                            <MaterialDesignIcon iconName="flash" class="size-5 shrink-0" />
+                            <span>{t("messages.ping_peer")}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
+                            onclick={() => {
+                                moreMenuOpen = false;
+                                onopentelemetryhistory?.();
+                            }}
+                        >
+                            <MaterialDesignIcon iconName="satellite-variant" class="size-5 shrink-0" />
+                            <span>{t("messages.telemetry_history")}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
+                            onclick={() => {
+                                moreMenuOpen = false;
+                                onpopout?.();
+                            }}
+                        >
+                            <MaterialDesignIcon iconName="open-in-new" class="size-5 shrink-0" />
+                            <span>{t("messages.pop_out_chat")}</span>
+                        </button>
+                        {#if hasFailedOrCancelledMessages}
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-amber-600 hover:bg-sem-surface-muted focus-ring-sem"
+                                onclick={() => {
+                                    moreMenuOpen = false;
+                                    onretryfailed?.();
+                                }}
+                            >
+                                <MaterialDesignIcon iconName="refresh" class="size-5 shrink-0 text-amber-600" />
+                                <span>{t("messages.retry_failed")}</span>
+                            </button>
+                        {/if}
+                        <div class="border-t border-sem-border my-1"></div>
+                        {#if isPeerBlocked}
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-emerald-600 hover:bg-sem-surface-muted focus-ring-sem"
+                                onclick={() => {
+                                    moreMenuOpen = false;
+                                    onunbanish?.();
+                                }}
+                            >
+                                <MaterialDesignIcon iconName="check-circle" class="size-5 shrink-0 text-emerald-600" />
+                                <span>{t("banishment.lift_banishment")}</span>
+                            </button>
+                        {:else}
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-sem-surface-muted focus-ring-sem"
+                                onclick={() => {
+                                    moreMenuOpen = false;
+                                    onbanish?.();
+                                }}
+                            >
+                                <MaterialDesignIcon iconName="gavel" class="size-5 shrink-0 text-red-600" />
+                                <span>{t("messages.banish_user")}</span>
+                            </button>
+                        {/if}
                         <button
                             type="button"
                             class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 moreMenuOpen = false;
-                                onbanish?.();
+                                onconversationdeleted?.();
                             }}
                         >
-                            <MaterialDesignIcon iconName="gavel" class="size-5 shrink-0 text-red-600" />
-                            <span>{t("messages.banish_user")}</span>
+                            <MaterialDesignIcon iconName="delete" class="size-5 shrink-0 text-red-600" />
+                            <span>{t("messages.delete_message_history")}</span>
                         </button>
-                    {/if}
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-sem-surface-muted focus-ring-sem"
-                        onclick={() => {
-                            moreMenuOpen = false;
-                            onconversationdeleted?.();
-                        }}
-                    >
-                        <MaterialDesignIcon iconName="delete" class="size-5 shrink-0 text-red-600" />
-                        <span>{t("messages.delete_message_history")}</span>
-                    </button>
+                    </div>
                 </div>
             {/if}
         </div>

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracles for settings stamp restore and interface enable rollback."""
+"""References for settings stamp restore and interface enable rollback."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from meshchatx.meshchat import ReticulumMeshChat
 
 
 @pytest.mark.asyncio
-async def test_oracle_block_all_restore_preserves_zero_stamp_cost():
+async def test_block_all_restore_preserves_zero_stamp_cost():
     """Disabling block-all must restore stamps-off (0), not fall back to 8."""
     app = MagicMock(spec=ReticulumMeshChat)
     app.config = MagicMock()
@@ -71,7 +71,7 @@ def test_oracle_enable_disable_pass_rollback_interfaces():
     assert "_get_interfaces_snapshot()" in disable_body
 
 
-def test_oracle_discovery_patch_reports_reload_failure():
+def test_discovery_patch_reports_reload_failure():
     src = Path(
         "meshchatx/src/backend/http/routes/reticulum_instance/discovery.py",
     ).read_text(encoding="utf-8")
@@ -84,7 +84,7 @@ def test_oracle_discovery_patch_reports_reload_failure():
     assert "http_unexpected" in body
 
 
-def test_oracle_interface_stats_replace_map():
+def test_interface_stats_replace_map():
     src = Path(
         "meshchatx/src/frontend/features/interfaces/lib/interfacesApi.ts",
     ).read_text(encoding="utf-8")

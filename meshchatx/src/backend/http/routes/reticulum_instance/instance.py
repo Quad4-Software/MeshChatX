@@ -105,7 +105,13 @@ def register_reticulum_instance_instance_routes(routes, app):
         if not app._write_reticulum_config():
             return http_unexpected("Failed to write Reticulum config")
 
-        if not await app.reload_reticulum():
+        try:
+            reloaded = await app.reload_reticulum()
+        except Exception as e:
+            logger.debug(f"Failed to reload RNS after instance config update: {e}")
+            reloaded = False
+
+        if not reloaded:
             return http_unexpected(
                 "Instance settings were saved, but RNS reload failed.",
                 instance=app._build_reticulum_instance_settings(),
@@ -159,7 +165,11 @@ def register_reticulum_instance_instance_routes(routes, app):
 
     @routes.post("/api/v1/reticulum/reload")
     async def reticulum_reload(request):
-        success = await app.reload_reticulum()
+        try:
+            success = await app.reload_reticulum()
+        except Exception as e:
+            logger.debug(f"Failed to reload RNS on request: {e}")
+            success = False
         if success:
             return web.json_response({"message": "Reticulum reloaded successfully"})
         return http_unexpected("Failed to reload Reticulum")

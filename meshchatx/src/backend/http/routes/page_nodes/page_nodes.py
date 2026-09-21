@@ -23,6 +23,19 @@ from meshchatx.src.backend.http.uploads import (
 )
 
 
+def _json_bool(value, default=False):
+    """Coerce a JSON value to bool. bool("false") must not read as True."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return default
+
+
 def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
 
     # --- Page Node API ---
@@ -40,9 +53,12 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
         name = data.get("name", "").strip()
         if not name:
             return http_bad_request("Name is required")
-        announce_enabled = bool(data.get("announce_enabled", True))
+        announce_enabled = _json_bool(data.get("announce_enabled"), True)
         announce_interval_seconds = data.get("announce_interval_seconds")
-        executable_pages_enabled = bool(data.get("executable_pages_enabled", False))
+        executable_pages_enabled = _json_bool(
+            data.get("executable_pages_enabled"),
+            False,
+        )
         node = app.page_node_manager.create_node(
             name,
             announce_enabled=announce_enabled,
@@ -152,7 +168,7 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
             if executable_pages_enabled is not None:
                 node = app.page_node_manager.set_executable_pages_enabled(
                     node_id,
-                    bool(executable_pages_enabled),
+                    _json_bool(executable_pages_enabled),
                 )
             return web.json_response(node.get_status())
         except KeyError:
@@ -180,7 +196,9 @@ def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
             return http_bad_request(f"Invalid request body: {e}")
         name = data.get("name", "")
         content = data.get("content", "")
-        executable = data.get("executable") if "executable" in data else None
+        executable = (
+            _json_bool(data.get("executable")) if "executable" in data else None
+        )
         if not name:
             return http_bad_request("Page name is required")
         try:

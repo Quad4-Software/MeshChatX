@@ -61,26 +61,30 @@
     </button>
 
     {#if isShowingMenu}
-        <div
-            class="absolute left-0 z-100 mt-2 rounded-xl border border-gray-200 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
-        >
-            <input
-                value={normalizedColour}
-                type="color"
-                class="block h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-transparent p-0 dark:border-zinc-700"
-                oninput={onNativeColorInput}
-            />
-            <div class="mt-2 grid grid-cols-6 gap-1.5">
-                {#each DEFAULT_COLOR_SWATCHES as swatch (swatch)}
-                    <button
-                        type="button"
-                        class="size-6 rounded-md border border-sem-border hover:scale-105 transition-transform"
-                        style="background-color: {swatch};"
-                        title={swatch}
-                        aria-label={swatch}
-                        onclick={() => selectSwatch(swatch)}
-                    ></button>
-                {/each}
+        <div class="absolute left-0 z-100 mt-2">
+            <div
+                class="dropdown-caret pointer-events-none absolute -top-[4px] left-3 border-t border-l border-gray-200 dark:border-zinc-700"
+                aria-hidden="true"
+            ></div>
+            <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+                <input
+                    value={normalizedColour}
+                    type="color"
+                    class="block h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-transparent p-0 dark:border-zinc-700"
+                    oninput={onNativeColorInput}
+                />
+                <div class="mt-2 grid grid-cols-6 gap-1.5">
+                    {#each DEFAULT_COLOR_SWATCHES as swatch (swatch)}
+                        <button
+                            type="button"
+                            class="size-6 rounded-md border border-sem-border hover:scale-105 transition-transform"
+                            style="background-color: {swatch};"
+                            title={swatch}
+                            aria-label={swatch}
+                            onclick={() => selectSwatch(swatch)}
+                        ></button>
+                    {/each}
+                </div>
             </div>
         </div>
     {/if}

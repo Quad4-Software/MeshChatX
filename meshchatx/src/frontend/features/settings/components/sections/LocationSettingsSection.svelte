@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import Toggle from "../../../../ui/svelte/Toggle.svelte";
+    import { isAndroidLocationSupported } from "../../../../js/androidLocation.js";
     import { t } from "../../../../js/i18n.js";
 
     interface Props {
@@ -52,7 +53,7 @@
 </script>
 
 {#if visible}
-    <section class="settings-section break-inside-avoid">
+    <section class="settings-section break-inside-avoid" data-settings-section="location">
         <header class="settings-section__header">
             <div>
                 <div class="settings-section__eyebrow">{t("app.settings_map_eyebrow")}</div>
@@ -73,6 +74,9 @@
                 >
                     <option value="disabled">{t("app.location_source_disabled")}</option>
                     <option value="browser">{t("app.location_source_browser")}</option>
+                    {#if isAndroidLocationSupported()}
+                        <option value="android">{t("app.location_source_android")}</option>
+                    {/if}
                     <option value="manual">{t("app.location_source_manual")}</option>
                 </select>
                 {#if config.location_source === "disabled"}
@@ -82,6 +86,10 @@
                 {:else if config.location_source === "browser"}
                     <div class="text-xs text-sem-fg-muted">
                         {t("app.location_source_browser_desc")}
+                    </div>
+                {:else if config.location_source === "android"}
+                    <div class="text-xs text-sem-fg-muted">
+                        {t("app.location_source_android_desc")}
                     </div>
                 {:else if config.location_source === "manual"}
                     <div class="text-xs text-sem-fg-muted">

@@ -3,35 +3,54 @@
 import { getLength, getArea } from "ol/sphere";
 import type Geometry from "ol/geom/Geometry.js";
 import type OlMap from "ol/Map.js";
+import { getAndroidPosition } from "../../../js/androidLocation.js";
+import { isValidLatLon } from "../../../js/mapGeoCoords.js";
 import type { RemoteOverlayEntry, TelemetryPeer } from "./types.js";
 import type { RemoteOverlayLayerEntry } from "./mapRemoteOverlays.js";
 
 export async function resolveMyLocationWgs84(ctx: {
     config?: {
         location_source?: string;
+        location_manual_lat?: string | number | null;
+        location_manual_lon?: string | number | null;
         lxmf_address_hash?: string;
         identity_hash?: string;
     };
     telemetryList?: TelemetryPeer[];
 }): Promise<{ lon: number; lat: number } | null> {
     const cfg = ctx.config || {};
-    const lx = cfg.lxmf_address_hash;
-    const id = cfg.identity_hash;
     const list = ctx.telemetryList || [];
 
-    if (lx) {
-        const match = list.find((t) => t.destination_hash === lx);
-        const loc = match?.telemetry?.location;
-        if (loc && typeof loc.longitude === "number" && typeof loc.latitude === "number") {
-            return { lon: loc.longitude, lat: loc.latitude };
+    if (cfg.location_source === "disabled") {
+        return null;
+    }
+
+    if (cfg.location_source === "manual") {
+        const lat = parseFloat(String(cfg.location_manual_lat));
+        const lon = parseFloat(String(cfg.location_manual_lon));
+        if (isValidLatLon(lat, lon)) {
+            return { lon, lat };
         }
     }
 
-    if (id) {
-        const match = list.find((t) => t.destination_hash === id);
-        const loc = match?.telemetry?.location;
-        if (loc && typeof loc.longitude === "number" && typeof loc.latitude === "number") {
-            return { lon: loc.longitude, lat: loc.latitude };
+    if (cfg.lxmf_address_hash || cfg.identity_hash) {
+        const myHashes = new Set(
+            [cfg.lxmf_address_hash, cfg.identity_hash].filter(Boolean).map((h) => String(h).toLowerCase())
+        );
+        const myTelemetry = list.find((t) => myHashes.has(String(t.destination_hash || "").toLowerCase()));
+        const loc = myTelemetry?.telemetry?.location;
+        if (loc && isValidLatLon(loc.latitude, loc.longitude)) {
+            return { lon: Number(loc.longitude), lat: Number(loc.latitude) };
+        }
+    }
+
+    // Native Android GPS through the WebView bridge.
+    if (cfg.location_source === "android") {
+        try {
+            const pos = await getAndroidPosition();
+            return { lon: pos.longitude, lat: pos.latitude };
+        } catch {
+            return null;
         }
     }
 

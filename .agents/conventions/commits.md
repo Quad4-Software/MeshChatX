@@ -30,6 +30,10 @@ fix: close SQLite connections on identity switch teardown
 chore: bump version to 4.8.6 and refresh lockfiles
 ```
 
+## Signing
+
+This repo's local git config signs with rngcs (Reticulum identity, SSH signature format), not GPG. The author email is the signing identity hash and `.mailmap` maps it to the canonical name. Do not switch the config back to GPG and do not rewrite `user.email`. `%G?` reports `G` for verified rngcs signatures, `E` when rngcs is missing, `N` for unsigned. Setup details: `CONTRIBUTING.md` section "Commit signing".
+
 ## Validation
 
 - **manual**: task check:commits or ./node_modules/.bin/commitlint --from origin/master --to HEAD

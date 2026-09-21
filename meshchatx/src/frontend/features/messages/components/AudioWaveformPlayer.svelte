@@ -29,10 +29,6 @@
     let animationFrame: number | null = $state(null);
     let waveform: HTMLCanvasElement | undefined = $state();
 
-    function isDarkMode() {
-        return document.documentElement.classList.contains("dark");
-    }
-
     function formatTime(seconds: number) {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
@@ -54,11 +50,12 @@
         const step = Math.ceil(data.length / width);
         const amp = height / 2;
         ctx.clearRect(0, 0, width, height);
-        const dark = isDarkMode();
-        const waveBg = dark ? "rgba(255, 255, 255, 0.35)" : "rgba(0, 0, 0, 0.25)";
-        const waveFg = dark ? "#fff" : "#000";
+        // Follow the surrounding text colour so the waveform respects the
+        // active theme instead of guessing light vs dark.
+        const waveFg = getComputedStyle(canvas).color || "#000";
         ctx.beginPath();
-        ctx.strokeStyle = waveBg;
+        ctx.globalAlpha = 0.25;
+        ctx.strokeStyle = waveFg;
         ctx.lineWidth = 1.5;
         for (let i = 0; i < width; i++) {
             let min = 1.0;
@@ -75,6 +72,7 @@
         const progressX = (progressPercent / 100) * width;
         if (progressX > 0) {
             ctx.beginPath();
+            ctx.globalAlpha = 0.9;
             ctx.strokeStyle = waveFg;
             ctx.lineWidth = 2;
             for (let i = 0; i < progressX; i++) {
@@ -251,14 +249,14 @@
 
 <div
     class="audio-waveform-player flex items-center gap-3 p-2 rounded-xl transition-all w-full min-w-0 {isOutbound
-        ? 'bg-white/10 text-white'
-        : 'bg-gray-100 dark:bg-zinc-800/80 text-sem-fg'}"
+        ? 'bg-sem-fg/10 text-sem-fg'
+        : 'bg-sem-surface-muted text-sem-fg'}"
 >
     <button
         type="button"
         class="flex items-center justify-center size-10 rounded-full shrink-0 transition-all active:scale-90 {isOutbound
-            ? 'bg-white/20 hover:bg-white/30 text-white'
-            : 'bg-blue-500 hover:bg-blue-600 text-white'}"
+            ? 'bg-sem-fg/15 hover:bg-sem-fg/25 text-sem-fg'
+            : 'bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text'}"
         onclick={togglePlay}
         disabled={loading || totalDuration <= 0}
     >
@@ -285,7 +283,7 @@
         <canvas bind:this={waveform} class="w-full h-full" class:invisible={loading}></canvas>
         {#if !loading && (isPlaying || progressPercent > 0)}
             <div
-                class="absolute top-0 bottom-0 w-0.5 bg-blue-400 z-10 pointer-events-none transition-[left] duration-100 ease-linear"
+                class="absolute top-0 bottom-0 w-0.5 bg-sem-accent z-10 pointer-events-none transition-[left] duration-100 ease-linear"
                 style="left: {progressPercent}%"
             ></div>
         {/if}

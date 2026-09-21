@@ -1,10 +1,27 @@
 # SPDX-License-Identifier: 0BSD
 
 import base64
+import threading
+import time
+
+from meshchatx.src.backend.meshchat_utils import normalize_hex_identifier
 
 from .database import Database
 
 MAX_ANNOUNCE_APP_DATA_BYTES = 2048
+
+# How often the deferred announce journal is committed to SQLite in one
+# transaction. Backbone announce floods otherwise cost a WAL write plus
+# several read queries per announce even when the UI never sees them.
+ANNOUNCE_JOURNAL_FLUSH_SECONDS = 30.0
+
+# Safety bound for the in-memory deferred journal. Beyond this, the oldest
+# pending entries are dropped; peers simply re-announce later.
+ANNOUNCE_JOURNAL_MAX_PENDING = 2000
+
+# How long cached contact/favourite/conversation/block sets stay valid.
+# Mutations can force an early rebuild via invalidate_peer_sets().
+PEER_SETS_REFRESH_SECONDS = 120.0
 
 _ASPECT_MAX_STORED_KEYS = {
     "lxmf.delivery": "announce_max_stored_lxmf_delivery",
@@ -41,10 +58,39 @@ _CONTACT_IMAGE_SQL = (
 )
 
 
+def _norm_hash(value) -> str:
+    """Normalize destination/identity hash input (bytes or hex string)."""
+    if value is None:
+        return ""
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        try:
+            return bytes(value).hex()
+        except Exception:
+            return ""
+    return normalize_hex_identifier(value)
+
+
 class AnnounceManager:
-    def __init__(self, db: Database, config=None):
+    def __init__(
+        self,
+        db: Database,
+        config=None,
+        related_hashes_resolver=None,
+        is_blocked_resolver=None,
+    ):
         self.db = db
         self.config = config
+        self._related_hashes_resolver = related_hashes_resolver
+        self._is_blocked_resolver = is_blocked_resolver
+        self._peer_sets_lock = threading.RLock()
+        self._peer_sets_loaded_at = 0.0
+        self._priority_hashes: set = set()
+        self._blocked_hashes: set = set()
+        self._pending_lock = threading.RLock()
+        self._pending: dict = {}
+        self._pending_aspects: set = set()
+        self._flush_stop = threading.Event()
+        self._flush_thread: threading.Thread | None = None
 
     def _get_max_stored_for_aspect(self, aspect):
         key = _ASPECT_MAX_STORED_KEYS.get(aspect)
@@ -83,6 +129,188 @@ class AnnounceManager:
             return True
         return bool(attr.get())
 
+    # ------------------------------------------------------------------
+    # Ingress gate and deferred journal
+    #
+    # Backbone interfaces deliver a constant stream of announces from peers
+    # the user has no relationship with. Each used to cost several SQLite
+    # reads (block-check fanout, read-back, name/icon lookups) plus a WAL
+    # write. classify_announce() answers with cached peer sets so the hot
+    # path is a dict lookup; "background" announces go through a deferred
+    # journal flushed in a single transaction.
+    # ------------------------------------------------------------------
+
+    def start(self):
+        """Start the periodic journal flush thread."""
+        if self._flush_thread is not None:
+            return
+        self._flush_stop.clear()
+        self._flush_thread = threading.Thread(
+            target=self._flush_loop,
+            name="meshchatx-announce-flush",
+            daemon=True,
+        )
+        self._flush_thread.start()
+
+    def stop(self):
+        """Stop the flush thread and commit any pending journal rows."""
+        self._flush_stop.set()
+        thread = self._flush_thread
+        if thread is not None:
+            thread.join(timeout=5)
+        self._flush_thread = None
+        self.flush_pending()
+
+    def _flush_loop(self):
+        while not self._flush_stop.wait(ANNOUNCE_JOURNAL_FLUSH_SECONDS):
+            try:
+                self.flush_pending()
+            except Exception as exc:
+                print(f"Announce journal flush failed: {exc}")
+
+    def invalidate_peer_sets(self):
+        """Force priority/blocked set rebuild on the next classify call."""
+        with self._peer_sets_lock:
+            self._peer_sets_loaded_at = 0.0
+
+    def classify_announce(self, destination_hash, identity_hash=None) -> str:
+        """Return 'blocked', 'priority', or 'background' for an inbound announce.
+
+        'priority' peers are contacts, favourites, and conversation partners:
+        they take the full immediate path. 'background' peers are everything
+        else: deferred DB write and a slim broadcast. 'blocked' announces
+        should be dropped by the caller (fail-closed when the block list
+        cannot be evaluated at all).
+        """
+        dh = _norm_hash(destination_hash)
+        ih = _norm_hash(identity_hash)
+        self._ensure_peer_sets()
+        with self._peer_sets_lock:
+            blocked = self._blocked_hashes
+            priority = self._priority_hashes
+            sets_loaded = self._peer_sets_loaded_at > 0
+            if dh in blocked or ih in blocked:
+                return "blocked"
+            if not sets_loaded:
+                # Sets never loaded: evaluate blocking directly and fail
+                # closed on error, matching is_destination_blocked semantics.
+                if self._is_blocked_resolver is not None:
+                    try:
+                        if self._is_blocked_resolver(dh):
+                            return "blocked"
+                    except Exception:
+                        return "blocked"
+                return "background"
+            if dh in priority or ih in priority:
+                return "priority"
+            return "background"
+
+    def _ensure_peer_sets(self):
+        if time.time() - self._peer_sets_loaded_at < PEER_SETS_REFRESH_SECONDS:
+            return
+        self._reload_peer_sets()
+
+    def _reload_peer_sets(self):
+        db = self.db
+        priority: set = set()
+        blocked: set = set()
+
+        try:
+            rows = db.provider.fetchall(
+                "SELECT remote_identity_hash, lxmf_address, lxst_address FROM contacts",
+            )
+            for row in rows or []:
+                for key in ("remote_identity_hash", "lxmf_address", "lxst_address"):
+                    h = _norm_hash(row.get(key))
+                    if h:
+                        priority.add(h)
+        except Exception:
+            pass
+
+        try:
+            for row in db.announces.get_favourites() or []:
+                h = _norm_hash(row.get("destination_hash"))
+                if h:
+                    priority.add(h)
+        except Exception:
+            pass
+
+        try:
+            rows = db.provider.fetchall(
+                "SELECT DISTINCT peer_hash FROM lxmf_messages "
+                "WHERE peer_hash IS NOT NULL",
+            )
+            for row in rows or []:
+                h = _norm_hash(row.get("peer_hash"))
+                if h:
+                    priority.add(h)
+        except Exception:
+            pass
+
+        raw_blocked = []
+        try:
+            misc = getattr(db, "misc", None)
+            if misc is not None:
+                raw_blocked = [
+                    r.get("destination_hash")
+                    for r in misc.get_blocked_destinations() or []
+                ]
+        except Exception:
+            # Block list unreadable: leave the sets unloaded so classify
+            # falls back to the resolver path, which fails closed like
+            # is_destination_blocked. Loading an empty block set here
+            # would silently unblock every peer.
+            return
+        for raw in raw_blocked:
+            h = _norm_hash(raw)
+            if h:
+                blocked.add(h)
+
+        # Expand each blocked hash to the peer's other known hashes once per
+        # refresh, instead of fanning out announce lookups per announce.
+        resolver = self._related_hashes_resolver
+        if resolver is not None:
+            for raw in list(blocked):
+                try:
+                    related = resolver(raw) or []
+                except Exception:
+                    related = []
+                for rel in related:
+                    h = _norm_hash(rel)
+                    if h:
+                        blocked.add(h)
+
+        with self._peer_sets_lock:
+            self._priority_hashes = priority
+            self._blocked_hashes = blocked
+            self._peer_sets_loaded_at = time.time()
+
+    def flush_pending(self):
+        """Commit deferred announce rows in a single transaction."""
+        with self._pending_lock:
+            if not self._pending:
+                return
+            rows = list(self._pending.values())
+            aspects = set(self._pending_aspects)
+            self._pending.clear()
+            self._pending_aspects.clear()
+        try:
+            with self.db.provider:
+                for data in rows:
+                    self.db.announces.upsert_announce(data)
+        except Exception as exc:
+            print(f"Announce journal flush failed ({len(rows)} rows): {exc}")
+        for aspect in aspects:
+            try:
+                max_stored = self._get_max_stored_for_aspect(aspect)
+                if max_stored is not None:
+                    self.db.announces.trim_announces_for_aspect(
+                        aspect,
+                        max_stored,
+                    )
+            except Exception as exc:
+                print(f"Announce trim after flush failed for {aspect}: {exc}")
+
     def upsert_announce(
         self,
         reticulum,
@@ -92,9 +320,10 @@ class AnnounceManager:
         app_data,
         announce_packet_hash,
         force_store: bool = False,
+        defer: bool = False,
     ):
         if not self.is_storing_announce_for_aspect(aspect, force_store=force_store):
-            return
+            return None
 
         rssi = snr = quality = None
         if announce_packet_hash and reticulum:
@@ -128,11 +357,21 @@ class AnnounceManager:
             if raw is not None:
                 data["app_data"] = base64.b64encode(raw).decode("utf-8")
 
+        if defer:
+            with self._pending_lock:
+                if len(self._pending) >= ANNOUNCE_JOURNAL_MAX_PENDING:
+                    # Dicts are insertion ordered; drop the oldest entry.
+                    self._pending.pop(next(iter(self._pending)))
+                self._pending[data["destination_hash"]] = data
+                self._pending_aspects.add(aspect)
+            return data
+
         self.db.announces.upsert_announce(data)
 
         max_stored = self._get_max_stored_for_aspect(aspect)
         if max_stored is not None:
             self.db.announces.trim_announces_for_aspect(aspect, max_stored)
+        return data
 
     def get_filtered_announces(
         self,

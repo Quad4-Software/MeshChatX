@@ -521,9 +521,11 @@ class NomadnetPageDownloader(NomadnetDownloader):
         private: bool = False,
         local_identity=None,
         identify_on_connect: bool = False,
+        max_bytes: int | None = None,
     ):
         self.on_page_download_success = on_page_download_success
         self.on_page_download_failure = on_page_download_failure
+        self._max_bytes = int(max_bytes) if max_bytes else None
         super().__init__(
             destination_hash,
             page_path,
@@ -549,6 +551,15 @@ class NomadnetPageDownloader(NomadnetDownloader):
         raw = request_receipt.response
         if raw is None:
             self.on_page_download_failure("empty_response")
+            return
+        if (
+            self._max_bytes is not None
+            and isinstance(raw, (bytes, bytearray, memoryview))
+            and len(raw) > self._max_bytes
+        ):
+            # Reject before decode/archive so a hostile node cannot push an
+            # unbounded page into memory and onto disk.
+            self.on_page_download_failure("page_too_large")
             return
         try:
             micron_markup_response = raw.decode("utf-8", errors="replace")

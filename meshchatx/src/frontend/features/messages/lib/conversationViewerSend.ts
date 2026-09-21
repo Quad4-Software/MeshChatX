@@ -24,6 +24,7 @@ export type OutboundJob = {
     myLxmfAddressHash: string;
     pendingHash: string | null;
     cancelled?: boolean;
+    dropped?: boolean;
     messageHash?: string;
 };
 
@@ -120,14 +121,14 @@ export async function executeOutboundJob(input: {
     propagationHash?: unknown;
 }): Promise<LxmfMessage[]> {
     const { api, job } = input;
-    if (job.cancelled) {
+    if (job.cancelled || job.dropped) {
         return [];
     }
     await warmOutboundPath(api, job.destinationHash, job.deliveryMethod, input.pathSnapshot, input.propagationHash);
     const images = job.images.length > 0 ? job.images : [null];
     const sent: LxmfMessage[] = [];
     for (let index = 0; index < images.length; index++) {
-        if (job.cancelled) {
+        if (job.cancelled || job.dropped) {
             break;
         }
         const image = images[index];

@@ -35,6 +35,7 @@ export type RichHtmlLinkClickOptions = {
     onNomadUrl?: (url: string) => void;
     onLxmfAddress?: (address: string) => void;
     onGeo?: (text: string) => void;
+    onRrcUrl?: (uri: string) => void;
     onOpenNode?: (destination: string, fields: string | null) => void;
     openExternalHttp?: (url: string) => void | Promise<void>;
     blockUnhandledAnchors?: boolean;
@@ -51,6 +52,7 @@ export function handleRichHtmlLinkClick(event: MouseEvent, options: RichHtmlLink
         onNomadUrl,
         onLxmfAddress,
         onGeo,
+        onRrcUrl,
         onOpenNode,
         openExternalHttp = openExternalHttpUrl,
         blockUnhandledAnchors = true,
@@ -67,6 +69,16 @@ export function handleRichHtmlLinkClick(event: MouseEvent, options: RichHtmlLink
         const url = nomadLink.getAttribute("data-nomadnet-url");
         if (url) {
             onNomadUrl(url);
+        }
+        return true;
+    }
+
+    const rrcLink = target.closest("a.rrc-link[data-rrc-url]");
+    if (rrcLink && onRrcUrl) {
+        stopEvent(event);
+        const uri = rrcLink.getAttribute("data-rrc-url");
+        if (uri) {
+            onRrcUrl(uri);
         }
         return true;
     }

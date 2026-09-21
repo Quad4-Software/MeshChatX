@@ -52,7 +52,7 @@ function makeHub(overrides = {}) {
         known_rooms: ["lobby"],
         unread_rooms: [],
         mention_rooms: [],
-        available_rooms: {},
+        available_rooms: [],
         auto_reconnect: false,
         auto_list: false,
         auto_who: false,
@@ -74,8 +74,8 @@ describe("RelayChatPage.svelte", () => {
                 if (url === "/api/v1/rrc/hubs") {
                     return Promise.resolve({ data: { hubs: [makeHub()] } });
                 }
-                if (url === "/api/v1/rrc/servers/active" || url === "/api/v1/rrc/servers") {
-                    return Promise.resolve({ data: { server: makeHostedHub() } });
+                if (url === "/api/v1/rrc/servers") {
+                    return Promise.resolve({ data: { hubs: [makeHostedHub()] } });
                 }
                 if (url === "/api/v1/rrc/discovery" || url === "/api/v1/announces") {
                     return Promise.resolve({ data: { announces: [makeAnnounce()], total_count: 1 } });
@@ -106,6 +106,7 @@ describe("RelayChatPage.svelte", () => {
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.api = axiosMock;
+        window.localStorage.clear();
         vi.clearAllMocks();
         if (typeof globalThis.ResizeObserver !== "function") {
             globalThis.ResizeObserver = class {
@@ -126,7 +127,7 @@ describe("RelayChatPage.svelte", () => {
 
         await waitFor(() => {
             expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs");
-            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/servers/active");
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/servers");
         });
     });
 

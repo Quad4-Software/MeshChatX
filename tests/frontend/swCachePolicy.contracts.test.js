@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Adversarial fuzzing and independent oracles for shell cache policy.
+ * Adversarial fuzzing and independent references for shell cache policy.
  */
 
 import { describe, expect, it } from "vitest";
@@ -11,7 +11,7 @@ import {
     isApiPath,
     shouldBypassCache,
 } from "../../meshchatx/src/frontend/js/pwa/swCachePolicy.js";
-import { oracleExpectedStrategy } from "../../meshchatx/src/frontend/js/pwa/swShellRuntime.js";
+import { expectedStrategy } from "../../meshchatx/src/frontend/js/pwa/swShellRuntime.js";
 
 function mulberry32(seed) {
     let t = seed >>> 0;
@@ -34,9 +34,9 @@ function req(url, init = {}) {
     };
 }
 
-function assertClassifyMatchesOracle(request, url) {
+function assertClassifyMatchesExpected(request, url) {
     const actual = classifyShellRequest(request, url);
-    const expected = oracleExpectedStrategy({
+    const expected = expectedStrategy({
         method: request.method,
         pathname: url.pathname,
         mode: request.mode,
@@ -56,32 +56,32 @@ function assertClassifyMatchesOracle(request, url) {
     }
 }
 
-describe("swCachePolicy adversarial / oracle", () => {
-    it("oracle: API and WS never classify as cacheable strategies", () => {
+describe("swCachePolicy adversarial / reference", () => {
+    it("reference: API and WS never classify as cacheable strategies", () => {
         for (const pathname of ["/api", "/api/v1/status", "/api/v1/auth/status", "/ws", "/ws/telephone/audio"]) {
             const url = new URL(`https://127.0.0.1${pathname}`);
-            assertClassifyMatchesOracle(req(url.href), url);
+            assertClassifyMatchesExpected(req(url.href), url);
             expect(classifyShellRequest(req(url.href), url)).toBe("bypass");
         }
     });
 
-    it("oracle: mutating methods always bypass even for assets", () => {
+    it("reference: mutating methods always bypass even for assets", () => {
         const url = new URL("https://127.0.0.1/assets/app.js");
         for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
-            assertClassifyMatchesOracle(req(url.href, { method }), url);
+            assertClassifyMatchesExpected(req(url.href, { method }), url);
             expect(classifyShellRequest(req(url.href, { method }), url)).toBe("bypass");
         }
     });
 
-    it("oracle: path traversal-looking API prefixes still bypass", () => {
+    it("reference: path traversal-looking API prefixes still bypass", () => {
         for (const pathname of ["/api/../api/v1/status", "/api/%2e%2e/v1/status"]) {
             const url = new URL(`https://127.0.0.1${pathname}`);
             // URL parser normalizes ../ so /api/../api/v1/status -> /api/v1/status
-            assertClassifyMatchesOracle(req(url.href), url);
+            assertClassifyMatchesExpected(req(url.href), url);
         }
     });
 
-    it("oracle: cache names never escape prefix and sanitize hostile build ids", () => {
+    it("reference: cache names never escape prefix and sanitize hostile build ids", () => {
         const hostile = ["../escape", "a/b", "x y", "v1;drop", "✨", ""];
         for (const buildId of hostile) {
             const name = cacheNameForBuild(buildId);
@@ -92,7 +92,7 @@ describe("swCachePolicy adversarial / oracle", () => {
         }
     });
 
-    it("fuzz: random path/method/mode inputs match independent oracle", () => {
+    it("fuzz: random path/method/mode inputs match independent reference", () => {
         const rand = mulberry32(0xcace);
         const methods = ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"];
         const modes = ["cors", "navigate", "no-cors", "same-origin"];
@@ -138,7 +138,7 @@ describe("swCachePolicy adversarial / oracle", () => {
                 destination,
                 headers: { accept },
             });
-            assertClassifyMatchesOracle(request, url);
+            assertClassifyMatchesExpected(request, url);
         }
     });
 });

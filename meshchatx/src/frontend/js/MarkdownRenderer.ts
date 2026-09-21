@@ -55,11 +55,21 @@ export default class MarkdownRenderer {
 
         text = Utils.escapeHtml(text);
 
+        // Nonce keeps user-typed placeholder text from resolving to real
+        // markup at restore time.
+        const nonce = Math.random().toString(36).slice(2);
+        const cbToken = (i) => `[[CB_${nonce}_${i}]]`;
+        const icToken = (i) => `[[IC_${nonce}_${i}]]`;
+        // eslint-disable-next-line security/detect-non-literal-regexp -- nonce is generated, not user input
+        const cbRe = new RegExp(`\\[\\[CB_${nonce}_(\\d+)\\]\\]`, "g");
+        // eslint-disable-next-line security/detect-non-literal-regexp -- nonce is generated, not user input
+        const icRe = new RegExp(`\\[\\[IC_${nonce}_(\\d+)\\]\\]`, "g");
+
         // Fenced code blocks - process these FIRST and replace with placeholders
         const code_blocks: string[] = [];
         // eslint-disable-next-line security/detect-unsafe-regex -- bounded fenced block, lazy match
         text = text.replace(/```(\w+)?\n([\s\S]*?)\n```/g, (match, lang, code) => {
-            const placeholder = `[[CB${code_blocks.length}]]`;
+            const placeholder = cbToken(code_blocks.length);
             code_blocks.push(
                 `<pre class="bg-gray-800 dark:bg-zinc-900 text-zinc-100 dark:text-zinc-100 p-3 rounded-lg my-3 overflow-x-auto border border-gray-700 dark:border-zinc-800 font-mono text-sm"><code class="language-${lang || ""} text-inherit">${code}</code></pre>`
             );
@@ -69,7 +79,7 @@ export default class MarkdownRenderer {
         // Inline code before emphasis so snake_case inside `code` / code is safe.
         const inline_codes: string[] = [];
         const pushInline = (code) => {
-            const placeholder = `[[IC${inline_codes.length}]]`;
+            const placeholder = icToken(inline_codes.length);
             inline_codes.push(
                 `<code class="bg-black/10 dark:bg-white/10 px-1 rounded-sm font-mono text-[0.9em]">${code}</code>`
             );
@@ -101,8 +111,8 @@ export default class MarkdownRenderer {
         text = LinkUtils.renderAllLinks(text);
 
         // Restore inline code then fenced blocks (single pass, avoid O(n*m) replace loops)
-        text = text.replace(/\[\[IC(\d+)\]\]/g, (_m, idx) => inline_codes[Number(idx)] ?? _m);
-        text = text.replace(/\[\[CB(\d+)\]\]/g, (_m, idx) => code_blocks[Number(idx)] ?? _m);
+        text = text.replace(icRe, (_m, idx) => inline_codes[Number(idx)] ?? _m);
+        text = text.replace(cbRe, (_m, idx) => code_blocks[Number(idx)] ?? _m);
 
         // Paragraphs - double newline to p tag
         const parts = text.split(/\n\n+/);
@@ -143,16 +153,19 @@ export default class MarkdownRenderer {
         text = Utils.escapeHtml(text);
         text = LinkUtils.renderAllLinks(text);
 
-        const { protectedText, anchors } = LinkUtils.protectAnchors(text);
+        const { protectedText, anchors, nonce: anchorNonce } = LinkUtils.protectAnchors(text);
         text = protectedText;
 
         // Geo references become in-app map links before inline code so that
         // text inside backticks is not linkified.
         text = linkifyGeoRefs(text);
 
+        const nonce = Math.random().toString(36).slice(2);
+        // eslint-disable-next-line security/detect-non-literal-regexp -- nonce is generated, not user input
+        const icRe = new RegExp(`\\[\\[IC_${nonce}_(\\d+)\\]\\]`, "g");
         const inline_codes: string[] = [];
         const pushInline = (code) => {
-            const placeholder = `[[IC${inline_codes.length}]]`;
+            const placeholder = `[[IC_${nonce}_${inline_codes.length}]]`;
             inline_codes.push(
                 `<code class="bg-black/10 dark:bg-white/10 px-1 rounded-sm font-mono text-[0.9em]">${code}</code>`
             );
@@ -169,8 +182,8 @@ export default class MarkdownRenderer {
         text = text.replace(/(^|[^\w])__(.*?)__(?=[^\w]|$)/g, "$1<strong>$2</strong>");
         text = text.replace(/(^|[^\w])_(.*?)_(?=[^\w]|$)/g, "$1<em>$2</em>");
 
-        text = text.replace(/\[\[IC(\d+)\]\]/g, (_m, idx) => inline_codes[Number(idx)] ?? _m);
-        text = LinkUtils.restoreAnchors(text, anchors);
+        text = text.replace(icRe, (_m, idx) => inline_codes[Number(idx)] ?? _m);
+        text = LinkUtils.restoreAnchors(text, anchors, anchorNonce);
         return text.replace(/\n/g, "<br>");
     }
 

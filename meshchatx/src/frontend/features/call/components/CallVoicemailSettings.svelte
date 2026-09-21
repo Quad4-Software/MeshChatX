@@ -52,8 +52,11 @@
         <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-3 items-start">
             <MaterialDesignIcon iconName="alert" class="size-5 text-amber-500 shrink-0" />
             <div class="text-xs text-sem-fg">
-                <p class="font-bold mb-1">{t("call.dependencies_missing")}</p>
-                <p>{t("call.voicemail_requires_espeak")}</p>
+                <p class="font-bold mb-1">eSpeak NG not installed</p>
+                <p>
+                    Text-to-speech greeting generation is unavailable. You can still record a greeting or upload an
+                    audio file below.
+                </p>
             </div>
         </div>
     {/if}
@@ -68,7 +71,6 @@
             role="switch"
             aria-label={t("call.enable_voicemail")}
             aria-checked={Boolean(props.config?.voicemail_enabled)}
-            disabled={!props.voicemailStatus?.has_espeak}
             class="{VOICEMAIL_STYLES.switchBtn} {getSwitchBgClass(props.config?.voicemail_enabled)}"
             onclick={handleToggleVoicemailEnabled}
         >
@@ -86,7 +88,11 @@
             placeholder={t("call.enter_greeting_text")}
             oninput={handleGreetingInput}></textarea>
 
-        <div class="grid grid-cols-2 gap-3 mt-2">
+        <div
+            class="grid grid-cols-2 gap-3 mt-2"
+            class:opacity-50={!props.voicemailStatus?.has_espeak}
+            class:pointer-events-none={!props.voicemailStatus?.has_espeak}
+        >
             {#each VOICEMAIL_TTS_FIELDS as field (field.key)}
                 <div class="space-y-1">
                     <label class={VOICEMAIL_STYLES.labelMini} for={field.id}>{t(field.labelKey)}</label>
@@ -108,6 +114,7 @@
             <button
                 type="button"
                 disabled={!props.voicemailStatus?.has_espeak || props.isGeneratingGreeting}
+                title={!props.voicemailStatus?.has_espeak ? "Requires eSpeak NG to be installed" : ""}
                 class="text-[10px] bg-sem-surface-muted text-sem-fg-muted px-3 py-1 rounded-full font-bold hover:bg-sem-surface-subtle transition-colors disabled:opacity-50 focus-ring-sem cursor-pointer"
                 onclick={() => props.onsaveandgenerate?.()}
             >

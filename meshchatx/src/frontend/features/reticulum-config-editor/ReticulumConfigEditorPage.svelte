@@ -11,7 +11,10 @@
     import {
         RETICULUM_CONFIG_RAW_ENDPOINT,
         RETICULUM_CONFIG_RESET_ENDPOINT,
+        RETICULUM_CONFIG_VERSIONS_ENDPOINT,
         RETICULUM_RELOAD_ENDPOINT,
+        reticulumConfigVersionEndpoint,
+        reticulumConfigVersionRestoreEndpoint,
         TOAST_ID_CONFIG_SAVE,
         TOAST_ID_CONFIG_RESTORE,
         TOAST_ID_CONFIG_RELOAD,
@@ -25,6 +28,9 @@
     import type {
         ReticulumConfigRawResponse,
         ReticulumConfigResetResponse,
+        ReticulumConfigVersion,
+        ReticulumConfigVersionResponse,
+        ReticulumConfigVersionsResponse,
         ReticulumReloadResponse,
     } from "./lib/types.js";
 
@@ -36,6 +42,10 @@
     let resetting = $state(false);
     let reloadingRns = $state(false);
     let hasSavedChanges = $state(false);
+    let showVersions = $state(false);
+    let versions = $state<ReticulumConfigVersion[]>([]);
+    let versionsLoading = $state(false);
+    let restoringVersionId = $state<string | null>(null);
 
     const isDirty = $derived(isConfigDirty(content, originalContent));
     const showRestartReminder = $derived(
@@ -103,6 +113,71 @@
         }
     }
 
+    async function toggleVersions(): Promise<void> {
+        showVersions = !showVersions;
+        if (showVersions) {
+            await loadVersions();
+        }
+    }
+
+    async function loadVersions(): Promise<void> {
+        if (versionsLoading) return;
+        try {
+            versionsLoading = true;
+            const response = await window.api.get(RETICULUM_CONFIG_VERSIONS_ENDPOINT);
+            const data = (response.data || {}) as ReticulumConfigVersionsResponse;
+            versions = Array.isArray(data.versions) ? data.versions : [];
+        } catch (e) {
+            versions = [];
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_versions")));
+        } finally {
+            versionsLoading = false;
+        }
+    }
+
+    function formatVersionTime(iso: string | undefined): string {
+        const date = new Date(iso || "");
+        if (Number.isNaN(date.getTime())) {
+            return iso || "";
+        }
+        return date.toLocaleString();
+    }
+
+    async function previewVersion(version: ReticulumConfigVersion): Promise<void> {
+        try {
+            const response = await window.api.get(reticulumConfigVersionEndpoint(version.id));
+            const data = (response.data || {}) as ReticulumConfigVersionResponse;
+            const versionContent = data.version?.content;
+            if (typeof versionContent === "string") {
+                content = versionContent;
+            }
+        } catch (e) {
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_versions")));
+        }
+    }
+
+    async function restoreVersion(version: ReticulumConfigVersion): Promise<void> {
+        if (restoringVersionId != null) return;
+        const confirmed = await DialogUtils.confirm(t("tools.reticulum_config_editor.confirm_restore_version"));
+        if (!confirmed) return;
+        try {
+            restoringVersionId = version.id;
+            const response = await window.api.post(reticulumConfigVersionRestoreEndpoint(version.id));
+            const data = (response.data || {}) as ReticulumConfigResetResponse;
+            content = data.content || "";
+            originalContent = content;
+            configPath = data.path || configPath;
+            hasSavedChanges = true;
+            GlobalState.hasPendingInterfaceChanges = true;
+            ToastUtils.success(data.message || t("tools.reticulum_config_editor.restored"));
+            await loadVersions();
+        } catch (e) {
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_restore")));
+        } finally {
+            restoringVersionId = null;
+        }
+    }
+
     function discardChanges(): void {
         if (!isDirty) return;
         content = originalContent;
@@ -160,6 +235,15 @@
         <button type="button" class="secondary-chip focus-ring-sem py-1! px-3!" disabled={loading} onclick={loadConfig}>
             <MaterialDesignIcon iconName="refresh" class="w-3.5 h-3.5" />
             <span class="hidden sm:inline">{t("tools.reticulum_config_editor.reload")}</span>
+        </button>
+        <button
+            type="button"
+            class="secondary-chip focus-ring-sem py-1! px-3! {showVersions ? 'ring-1 ring-sem-accent/40' : ''}"
+            disabled={loading}
+            onclick={toggleVersions}
+        >
+            <MaterialDesignIcon iconName="history" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{t("tools.reticulum_config_editor.versions")}</span>
         </button>
         <button
             type="button"
@@ -228,6 +312,62 @@
                         <MaterialDesignIcon iconName="restart" class="w-4 h-4" />
                         {reloadingRns ? t("app.reloading_rns") : t("tools.reticulum_config_editor.restart_now")}
                     </button>
+                </div>
+            {/if}
+
+            {#if showVersions}
+                <div
+                    class="rounded-xl border border-sem-border bg-sem-surface shrink-0 max-h-56 overflow-y-auto"
+                >
+                    <div
+                        class="flex items-center gap-1.5 px-3 py-2 border-b border-sem-border bg-sem-surface-muted/60 text-xs font-semibold text-sem-fg-secondary"
+                    >
+                        <MaterialDesignIcon iconName="history" class="w-3.5 h-3.5" />
+                        {t("tools.reticulum_config_editor.versions")}
+                    </div>
+                    {#if versionsLoading}
+                        <div class="px-3 py-3 text-xs text-sem-fg-muted">
+                            {t("tools.reticulum_config_editor.loading")}
+                        </div>
+                    {:else if !versions.length}
+                        <div class="px-3 py-3 text-xs text-sem-fg-muted">
+                            {t("tools.reticulum_config_editor.versions_empty")}
+                        </div>
+                    {:else}
+                        <ul class="divide-y divide-sem-border">
+                            {#each versions as version (version.id)}
+                                <li class="flex items-center gap-2 px-3 py-2 text-xs">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-semibold text-sem-fg truncate">
+                                            {formatVersionTime(version.created_at)}
+                                        </div>
+                                        <div class="text-sem-fg-muted truncate">
+                                            {version.label || version.id}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip focus-ring-sem py-1! px-2!"
+                                        disabled={restoringVersionId != null}
+                                        onclick={() => previewVersion(version)}
+                                    >
+                                        {t("tools.reticulum_config_editor.preview")}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip focus-ring-sem py-1! px-2!"
+                                        disabled={restoringVersionId != null}
+                                        onclick={() => restoreVersion(version)}
+                                    >
+                                        {#if restoringVersionId === version.id}
+                                            <MaterialDesignIcon iconName="loading" class="w-3.5 h-3.5 animate-spin" />
+                                        {/if}
+                                        {t("tools.reticulum_config_editor.restore_version")}
+                                    </button>
+                                </li>
+                            {/each}
+                        </ul>
+                    {/if}
                 </div>
             {/if}
 

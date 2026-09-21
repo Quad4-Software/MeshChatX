@@ -43,6 +43,31 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
                         bot["last_announce_at"] = None
                         continue
                     lxmf_addr = str(lxmf_addr).strip().lower()
+                    # Seed the avatar row so locally hosted bots render their
+                    # configured icon in conversation lists before they have
+                    # replied with an icon appearance field.
+                    icon = bot.get("icon")
+                    if not (isinstance(icon, dict) and icon.get("icon_name")):
+                        # Lazy: bot_process pulls in lxmfy, which may be absent.
+                        try:
+                            from meshchatx.src.backend.bot_process import (
+                                TEMPLATE_MAP,
+                            )
+
+                            template_cls = TEMPLATE_MAP.get(bot.get("template_id"))
+                            icon = getattr(template_cls, "DEFAULT_ICON", None)
+                        except Exception:
+                            icon = None
+                    if isinstance(icon, dict) and icon.get("icon_name"):
+                        try:
+                            app.database.misc.update_lxmf_user_icon(
+                                lxmf_addr,
+                                icon_name=icon["icon_name"],
+                                foreground_colour=icon.get("fg_color"),
+                                background_colour=icon.get("bg_color"),
+                            )
+                        except Exception:
+                            pass
                     ann = app.database.announces.get_announce_by_hash(lxmf_addr)
                     if not ann:
                         bot["last_announce_at"] = None

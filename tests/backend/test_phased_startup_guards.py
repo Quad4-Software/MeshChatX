@@ -58,8 +58,8 @@ def _make_deferred_app(mock_identity, temp_dir, **kwargs):
         )
 
 
-def _status_oracle(payload: dict) -> None:
-    """Invariant oracle for /api/v1/status style payloads."""
+def _status_expected(payload: dict) -> None:
+    """Invariant reference for /api/v1/status style payloads."""
     assert_matches_schema(payload, API_V1_STATUS_SCHEMA)
     assert payload["network_ready"] is False or payload["status"] == "ok"
     if payload["status"] == "ok":
@@ -78,23 +78,23 @@ def _status_oracle(payload: dict) -> None:
 def test_deferred_init_ui_ready_before_network(mock_identity, temp_dir):
     app = _make_deferred_app(mock_identity, temp_dir)
     payload = app._startup_status_payload()
-    _status_oracle(payload)
+    _status_expected(payload)
     assert payload["ui_ready"] is True
     assert payload["network_ready"] is False
 
 
-def test_status_oracle_across_stage_transitions(mock_identity, temp_dir):
+def test_status_across_stage_transitions(mock_identity, temp_dir):
     app = _make_deferred_app(mock_identity, temp_dir)
     for stage in ("http", "starting", "rns", "identity"):
         app._set_startup_stage(stage)
-        _status_oracle(app._startup_status_payload())
+        _status_expected(app._startup_status_payload())
     app._mark_network_degraded("boom")
-    _status_oracle(app._startup_status_payload())
+    _status_expected(app._startup_status_payload())
     context = MagicMock()
     context.running = True
     app.current_context = context
     app._mark_network_ready()
-    _status_oracle(app._startup_status_payload())
+    _status_expected(app._startup_status_payload())
 
 
 def test_finish_deferred_calls_context_and_reticulum_secondary(mock_identity, temp_dir):

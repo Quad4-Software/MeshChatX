@@ -6,6 +6,7 @@
     import ToastUtils from "../../../js/ToastUtils.js";
     import GlobalState from "../../../js/GlobalState.js";
     import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
+    import { computeCaret, type ContextMenuCaret } from "../../../js/contextMenuCaret.js";
     import { t } from "../../../js/i18n.js";
     import NomadAnnounceRow from "./NomadAnnounceRow.svelte";
     import {
@@ -61,6 +62,7 @@
     let menuPanel = $state<HTMLDivElement | null>(null);
     let menuLeft = $state(0);
     let menuTop = $state(0);
+    let menuCaret: ContextMenuCaret | null = $state(null);
 
     const orderedNodes = $derived.by(() => {
         const list = Object.values(nodes);
@@ -146,12 +148,14 @@
             node,
         };
         activeDropdownHash = null;
+        menuCaret = null;
         tick().then(() => {
             if (menuPanel) {
                 const rect = menuPanel.getBoundingClientRect();
                 const res = clampFloatingToViewport(e.clientX, e.clientY, rect.width, rect.height);
                 menuLeft = res.left;
                 menuTop = res.top;
+                menuCaret = computeCaret(e.clientX, e.clientY, res.left, res.top, rect.width, rect.height);
             }
         });
         setTimeout(() => {
@@ -162,6 +166,7 @@
     function closeContextMenu() {
         contextMenu.show = false;
         activeDropdownHash = null;
+        menuCaret = null;
     }
 
     function handleScroll(e: Event) {
@@ -370,4 +375,11 @@
             </button>
         {/if}
     </div>
+    {#if menuCaret}
+        <div
+            class="dropdown-caret fixed z-50 border-sem-border {menuCaret.borderClass}"
+            style="left: {menuCaret.style.left}; top: {menuCaret.style.top};"
+            aria-hidden="true"
+        ></div>
+    {/if}
 {/if}

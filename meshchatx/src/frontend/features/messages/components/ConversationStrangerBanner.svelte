@@ -28,7 +28,7 @@
     <div class="flex items-center gap-2 shrink-0">
         <button
             type="button"
-            class="px-2 py-1 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors whitespace-nowrap"
+            class="px-2 py-1 text-xs font-medium rounded-md bg-sem-action-warning hover:bg-sem-action-warning-hover text-sem-action-warning-text transition-colors whitespace-nowrap"
             onclick={() => onadd?.()}
         >
             {t("messages.add_to_contacts")}

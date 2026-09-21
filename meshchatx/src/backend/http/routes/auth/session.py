@@ -39,6 +39,8 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "stage": app._startup_stage,
                     "demo_mode": app.demo_mode,
                     "auth_page_hint": app.auth_page_hint,
+                    "oidc_enabled": app._oidc_ready(),
+                    "oidc_display_name": app._oidc_settings().display_name,
                 },
             )
         try:
@@ -51,6 +53,7 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                 session_identity == app.identity.hash.hex()
             )
 
+            oidc_settings = app._oidc_settings()
             return web.json_response(
                 {
                     "auth_enabled": app.auth_enabled,
@@ -59,6 +62,8 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "network_ready": True,
                     "demo_mode": app.demo_mode,
                     "auth_page_hint": app.auth_page_hint,
+                    "oidc_enabled": app._oidc_ready(),
+                    "oidc_display_name": oidc_settings.display_name,
                 },
             )
         except Exception:
@@ -77,6 +82,8 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     ),
                     "demo_mode": app.demo_mode,
                     "auth_page_hint": app.auth_page_hint,
+                    "oidc_enabled": app._oidc_ready(),
+                    "oidc_display_name": app._oidc_settings().display_name,
                     "error": "Status unavailable",
                 },
             )
@@ -107,6 +114,23 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
                     "",
                 )
             return http_forbidden("Initial setup already completed")
+
+        # On an OIDC-only deployment (no local password) a public setup
+        # endpoint would let any caller bootstrap a credential and session,
+        # bypassing the SSO boundary. Local password setup must instead run
+        # after an OIDC login or through config/env.
+        if app._oidc_ready():
+            if dao:
+                dao.insert(
+                    id_hash,
+                    ip,
+                    ua,
+                    SETUP_PATH,
+                    request.method,
+                    "setup_oidc_managed",
+                    "",
+                )
+            return http_forbidden("Instance is managed by single sign-on")
 
         try:
             data = await read_json_limited(request)

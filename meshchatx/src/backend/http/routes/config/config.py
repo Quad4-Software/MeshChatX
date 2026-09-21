@@ -37,10 +37,6 @@ def register_config_config_routes(routes: Any, app: Any) -> None:
         try:
             data = await read_json_limited(request)
             await app.update_config(data)
-            try:
-                AsyncUtils.run_async(app.send_config_to_websocket_clients())
-            except Exception as e:
-                print(f"Failed to broadcast config update: {e}")
 
             return web.json_response(
                 {

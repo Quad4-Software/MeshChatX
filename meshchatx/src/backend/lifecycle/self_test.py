@@ -137,6 +137,7 @@ def run_self_test(app: Any) -> dict:
     unicode_result = self_check_mod.check_unicode_path(storage_base)
     rnode_result = self_check_mod.check_rnode_support()
     bot_launcher_result = self_check_mod.check_bot_launcher()
+    backbone_patch_result = self_check_mod.check_rns_backbone_patch()
     umsgpack_result = self_check_mod.check_umsgpack_roundtrip()
     lxst_telephony_result = self_check_mod.run_isolated("lxst_telephony")
     audio_codec_result = self_check_mod.run_isolated("audio_codec_roundtrip")
@@ -183,6 +184,7 @@ def run_self_test(app: Any) -> dict:
         "unicode_path_good": unicode_result,
         "rnode_support_good": rnode_result,
         "bot_launcher_good": bot_launcher_result,
+        "backbone_patch_good": backbone_patch_result,
         "http_status_good": web_results.get(
             "http_status_good",
             {"status": "failed", "reason": "missing"},

@@ -462,6 +462,17 @@ export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
         "localhost",
     ],
     infrastructure: ["Infrastructure", "Sources & Mirroring", "gitea", "documentation", "download", "urls"],
+    reticulumStack: [
+        "reticulum",
+        "rns",
+        "restart",
+        "reload",
+        "stack",
+        "app.system",
+        "app.reticulum_stack",
+        "app.reticulum_stack_description",
+        "app.reload_rns",
+    ],
     messages: [
         "delivery",
         "stamp",

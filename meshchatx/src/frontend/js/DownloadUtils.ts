@@ -1,3 +1,12 @@
+import AndroidDownloadBridge from "./AndroidDownloadBridge";
+
+// Above this size the Android save uses the chunked bridge so the payload
+// never crosses JNI as one giant base64 string.
+const ANDROID_CHUNKED_SAVE_MIN_BYTES = 4 * 1024 * 1024;
+const ANDROID_BLOB_CHUNK_BYTES = 768 * 1024;
+// Base64 chars per chunk, kept a multiple of 4 so slices decode independently.
+const ANDROID_B64_CHUNK_CHARS = 1024 * 1024;
+
 function isAndroidSaveBridge() {
     return (
         typeof window !== "undefined" &&
@@ -70,13 +79,13 @@ class DownloadUtils {
         return undefined;
     }
 
-    static async downloadFromApiResponse(response, defaultFilename) {
+    static async downloadFromApiResponse(response, defaultFilename, options = undefined) {
         const headers = response?.headers || {};
         const cd = DownloadUtils.headerValue(headers, "content-disposition");
         const filename = DownloadUtils.parseFilenameFromContentDisposition(cd, defaultFilename);
         const type = DownloadUtils.headerValue(headers, "content-type") || "application/octet-stream";
         const blob = new Blob([response.data], { type });
-        await DownloadUtils.downloadFile(filename, blob);
+        await DownloadUtils.downloadFile(filename, blob, options);
     }
 
     static _blobToBase64(blob) {
@@ -107,10 +116,91 @@ class DownloadUtils {
         setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
     }
 
-    static downloadFromBase64(filename, fileBytesBase64) {
+    static async _androidSaveBlob(safeName, blob, downloadId) {
+        const bridge = window.MeshChatXAndroid;
+        if (AndroidDownloadBridge.supportsChunkedSave() && blob.size > ANDROID_CHUNKED_SAVE_MIN_BYTES) {
+            const saveId = bridge.saveDownloadBegin(safeName);
+            if (saveId) {
+                try {
+                    for (let offset = 0; offset < blob.size; offset += ANDROID_BLOB_CHUNK_BYTES) {
+                        const b64 = await DownloadUtils._blobToBase64(
+                            blob.slice(offset, offset + ANDROID_BLOB_CHUNK_BYTES)
+                        );
+                        if (!bridge.saveDownloadAppend(saveId, b64)) {
+                            throw new Error("saveDownloadAppend failed");
+                        }
+                    }
+                    const finished =
+                        downloadId != null && typeof bridge.saveDownloadFinishWithId === "function"
+                            ? bridge.saveDownloadFinishWithId(saveId, String(downloadId))
+                            : bridge.saveDownloadFinish(saveId);
+                    if (!finished) {
+                        throw new Error("saveDownloadFinish failed");
+                    }
+                    return;
+                } catch (e) {
+                    try {
+                        bridge.saveDownloadAbort?.(saveId);
+                    } catch {
+                        // best effort cleanup
+                    }
+                    throw e;
+                }
+            }
+        }
+        const b64 = await DownloadUtils._blobToBase64(blob);
+        if (downloadId != null && typeof bridge.saveDownloadWithId === "function") {
+            bridge.saveDownloadWithId(String(downloadId), safeName, b64);
+        } else {
+            bridge.saveDownload(safeName, b64);
+        }
+    }
+
+    static _androidSaveBase64(safeName, fileBytesBase64, downloadId) {
+        const bridge = window.MeshChatXAndroid;
+        if (AndroidDownloadBridge.supportsChunkedSave() && fileBytesBase64.length > ANDROID_CHUNKED_SAVE_MIN_BYTES) {
+            const saveId = bridge.saveDownloadBegin(safeName);
+            if (saveId) {
+                try {
+                    for (let offset = 0; offset < fileBytesBase64.length; offset += ANDROID_B64_CHUNK_CHARS) {
+                        if (
+                            !bridge.saveDownloadAppend(
+                                saveId,
+                                fileBytesBase64.slice(offset, offset + ANDROID_B64_CHUNK_CHARS)
+                            )
+                        ) {
+                            throw new Error("saveDownloadAppend failed");
+                        }
+                    }
+                    const finished =
+                        downloadId != null && typeof bridge.saveDownloadFinishWithId === "function"
+                            ? bridge.saveDownloadFinishWithId(saveId, String(downloadId))
+                            : bridge.saveDownloadFinish(saveId);
+                    if (!finished) {
+                        throw new Error("saveDownloadFinish failed");
+                    }
+                    return;
+                } catch (e) {
+                    try {
+                        bridge.saveDownloadAbort?.(saveId);
+                    } catch {
+                        // best effort cleanup
+                    }
+                    throw e;
+                }
+            }
+        }
+        if (downloadId != null && typeof bridge.saveDownloadWithId === "function") {
+            bridge.saveDownloadWithId(String(downloadId), safeName, fileBytesBase64);
+        } else {
+            bridge.saveDownload(safeName, fileBytesBase64);
+        }
+    }
+
+    static downloadFromBase64(filename, fileBytesBase64, options = undefined) {
         const safeName = DownloadUtils.sanitizeDownloadFilename(filename, "download");
         if (isAndroidSaveBridge()) {
-            window.MeshChatXAndroid.saveDownload(safeName, fileBytesBase64);
+            DownloadUtils._androidSaveBase64(safeName, fileBytesBase64, options?.downloadId);
             return;
         }
         const byteCharacters = atob(fileBytesBase64);
@@ -124,11 +214,10 @@ class DownloadUtils {
         DownloadUtils._triggerBrowserDownload(safeName, objectUrl);
     }
 
-    static async downloadFile(filename, blob) {
+    static async downloadFile(filename, blob, options = undefined) {
         const safeName = DownloadUtils.sanitizeDownloadFilename(filename, "download");
         if (isAndroidSaveBridge()) {
-            const b64 = await DownloadUtils._blobToBase64(blob);
-            window.MeshChatXAndroid.saveDownload(safeName, b64);
+            await DownloadUtils._androidSaveBlob(safeName, blob, options?.downloadId);
             return;
         }
         const objectUrl = URL.createObjectURL(blob);

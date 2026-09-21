@@ -218,8 +218,11 @@
             await switchDocsVersion(version);
             selectedReticulumPath = null;
             await fetchStatus();
+            // Remount the docs frame if in the reticulum tab. The sandboxed
+            // frame is cross-origin, so reload it via the cache-bust key
+            // instead of contentWindow.location.
             if (activeTab === "reticulum") {
-                reticulumViewComponent?.reloadFrame();
+                reticulumDocsCacheBust += 1;
             }
         } catch (error) {
             console.error("Failed to switch docs version:", error);

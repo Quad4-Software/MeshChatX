@@ -4,6 +4,7 @@
     import { tick } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
+    import { computeCaret, type ContextMenuCaret } from "../../../js/contextMenuCaret.js";
     import { t } from "../../../js/i18n.js";
 
     interface Props {
@@ -59,6 +60,7 @@
     let panel = $state<HTMLDivElement | null>(null);
     let adjustedLeft = $state(0);
     let adjustedTop = $state(0);
+    let caret: ContextMenuCaret | null = $state(null);
 
     async function reposition() {
         await tick();
@@ -67,12 +69,14 @@
         const result = clampFloatingToViewport(x, y, rect.width, rect.height);
         adjustedLeft = result.left;
         adjustedTop = result.top;
+        caret = computeCaret(x, y, result.left, result.top, rect.width, rect.height);
     }
 
     $effect(() => {
         if (show) {
             adjustedLeft = x;
             adjustedTop = y;
+            caret = null;
             void reposition();
         }
     });
@@ -207,4 +211,11 @@
             </button>
         {/if}
     </div>
+    {#if caret}
+        <div
+            class="dropdown-caret fixed z-200 border-sem-border {caret.borderClass}"
+            style="left: {caret.style.left}; top: {caret.style.top};"
+            aria-hidden="true"
+        ></div>
+    {/if}
 {/if}

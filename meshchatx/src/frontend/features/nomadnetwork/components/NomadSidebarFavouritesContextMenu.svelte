@@ -1,8 +1,10 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { tick } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import ToastUtils from "../../../js/ToastUtils.js";
+    import { computeCaret, type ContextMenuCaret } from "../../../js/contextMenuCaret.js";
     import { t } from "../../../js/i18n.js";
     import { DEFAULT_SECTION_ID } from "../lib/nomadSidebarFavourites.js";
     import type { NomadFavourite, NomadSection } from "../lib/types.js";
@@ -63,10 +65,54 @@
     }: Props = $props();
 
     const targetSection = $derived(orderedSections.find((s) => s.id === secContextMenu.sectionId) || null);
+
+    let favPanelEl = $state<HTMLDivElement | null>(null);
+    let secPanelEl = $state<HTMLDivElement | null>(null);
+    let favCaret: ContextMenuCaret | null = $state(null);
+    let secCaret: ContextMenuCaret | null = $state(null);
+
+    async function updateCarets() {
+        await tick();
+        favCaret = favPanelEl
+            ? computeCaret(
+                  favContextMenu.x,
+                  favContextMenu.y,
+                  favMenuLeft,
+                  favMenuTop,
+                  favPanelEl.offsetWidth,
+                  favPanelEl.offsetHeight
+              )
+            : null;
+        secCaret = secPanelEl
+            ? computeCaret(
+                  secContextMenu.x,
+                  secContextMenu.y,
+                  secMenuLeft,
+                  secMenuTop,
+                  secPanelEl.offsetWidth,
+                  secPanelEl.offsetHeight
+              )
+            : null;
+    }
+
+    $effect(() => {
+        void favContextMenu.show;
+        void favContextMenu.x;
+        void favContextMenu.y;
+        void favMenuLeft;
+        void favMenuTop;
+        void secContextMenu.show;
+        void secContextMenu.x;
+        void secContextMenu.y;
+        void secMenuLeft;
+        void secMenuTop;
+        void updateCarets();
+    });
 </script>
 
 {#if favContextMenu.show && targetFavourite}
     <div
+        bind:this={favPanelEl}
         class="fixed z-50 min-w-44 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
         style="left: {favMenuLeft}px; top: {favMenuTop}px;"
     >
@@ -180,10 +226,18 @@
             {t("nomadnet.remove_favourite")}
         </button>
     </div>
+    {#if favCaret}
+        <div
+            class="dropdown-caret fixed z-50 border-sem-border {favCaret.borderClass}"
+            style="left: {favCaret.style.left}; top: {favCaret.style.top};"
+            aria-hidden="true"
+        ></div>
+    {/if}
 {/if}
 
 {#if secContextMenu.show && targetSection}
     <div
+        bind:this={secPanelEl}
         class="fixed z-50 min-w-44 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
         style="left: {secMenuLeft}px; top: {secMenuTop}px;"
     >
@@ -224,4 +278,11 @@
             </button>
         {/if}
     </div>
+    {#if secCaret}
+        <div
+            class="dropdown-caret fixed z-50 border-sem-border {secCaret.borderClass}"
+            style="left: {secCaret.style.left}; top: {secCaret.style.top};"
+            aria-hidden="true"
+        ></div>
+    {/if}
 {/if}

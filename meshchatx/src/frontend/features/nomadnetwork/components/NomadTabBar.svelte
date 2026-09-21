@@ -14,6 +14,8 @@
         onnewtab?: () => void;
         onnewprivatetab?: () => void;
         ontabcontextmenu?: (e: MouseEvent, tabId: number) => void;
+        ontabreorder?: (fromIndex: number, toIndex: number) => void;
+        ontabdrop?: () => void;
     }
 
     let {
@@ -24,7 +26,36 @@
         onnewtab,
         onnewprivatetab,
         ontabcontextmenu,
+        ontabreorder,
+        ontabdrop,
     }: Props = $props();
+
+    let dragTabIndex = $state<number | null>(null);
+
+    function onTabDragStart(index: number, event: DragEvent) {
+        dragTabIndex = index;
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", String(index));
+        }
+    }
+
+    function onTabDragOver(index: number) {
+        if (dragTabIndex === null || dragTabIndex === index) {
+            return;
+        }
+        ontabreorder?.(dragTabIndex, index);
+        dragTabIndex = index;
+    }
+
+    function onTabDrop() {
+        dragTabIndex = null;
+        ontabdrop?.();
+    }
+
+    function onTabDragEnd() {
+        dragTabIndex = null;
+    }
 </script>
 
 <div
@@ -33,22 +64,33 @@
     aria-label="Nomad tabs"
 >
     <div class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-        {#each tabs as tab (tab.id)}
+        {#each tabs as tab, tabIndex (tab.id)}
             <div
                 class="group flex h-7 max-w-44 min-w-24 items-center gap-1.5 rounded-t-md px-2 text-xs transition-colors cursor-pointer {tab.id ===
                 selectedTabId
                     ? 'bg-sem-surface text-sem-fg font-medium border-t-2 border-blue-500'
                     : 'text-sem-fg-muted hover:bg-sem-surface/50'} {tab.private
                     ? 'border-t-purple-500 bg-purple-950/30 text-purple-200'
-                    : ''}"
+                    : ''} {dragTabIndex === tabIndex ? 'opacity-50' : ''}"
                 role="tab"
                 tabindex="0"
                 aria-selected={tab.id === selectedTabId}
+                draggable="true"
                 onclick={() => onselecttab?.(tab.id)}
                 onkeydown={(e) => {
                     if (e.key === "Enter" || e.key === " ") onselecttab?.(tab.id);
                 }}
                 oncontextmenu={(e) => ontabcontextmenu?.(e, tab.id)}
+                ondragstart={(e) => onTabDragStart(tabIndex, e)}
+                ondragover={(e) => {
+                    e.preventDefault();
+                    onTabDragOver(tabIndex);
+                }}
+                ondrop={(e) => {
+                    e.preventDefault();
+                    onTabDrop();
+                }}
+                ondragend={onTabDragEnd}
             >
                 {#if tab.private}
                     <MaterialDesignIcon iconName="incognito" class="size-3.5 shrink-0 text-purple-300" />

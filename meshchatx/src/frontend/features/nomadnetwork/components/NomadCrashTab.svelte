@@ -6,6 +6,7 @@
     import { useEventListener } from "runed";
     import { nomadCrashTabRendererUrl } from "../../../js/nomadCrashTabShell.js";
     import { readTextFromClipboard } from "../../../js/clipboardUtils.js";
+    import { computeCaret, type ContextMenuCaret } from "../../../js/contextMenuCaret.js";
     import { t } from "../../../js/i18n.js";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import {
@@ -98,6 +99,7 @@
     let rectPollRaf: number | null = null;
     let fieldContextMenu = $state({ show: false, justOpened: false, x: 0, y: 0 });
     let fieldContextMenuEl = $state<HTMLDivElement | null>(null);
+    let fieldContextMenuCaret: ContextMenuCaret | null = $state(null);
 
     const watchdog = new NomadCrashTabWatchdog({
         onHung: () => {
@@ -403,6 +405,27 @@
         }
     }
 
+    async function updateFieldContextMenuCaret() {
+        await tick();
+        fieldContextMenuCaret = fieldContextMenuEl
+            ? computeCaret(
+                  fieldContextMenu.x,
+                  fieldContextMenu.y,
+                  fieldContextMenu.x,
+                  fieldContextMenu.y,
+                  fieldContextMenuEl.offsetWidth,
+                  fieldContextMenuEl.offsetHeight
+              )
+            : null;
+    }
+
+    $effect(() => {
+        void fieldContextMenu.show;
+        void fieldContextMenu.x;
+        void fieldContextMenu.y;
+        void updateFieldContextMenuCaret();
+    });
+
     function onVisibilityChange() {
         if (isDocumentHidden()) {
             livenessPaused = true;
@@ -585,5 +608,12 @@
                 <span>{t("common.paste")}</span>
             </button>
         </div>
+        {#if fieldContextMenuCaret}
+            <div
+                class="dropdown-caret fixed z-200 border-sem-border {fieldContextMenuCaret.borderClass}"
+                style="left: {fieldContextMenuCaret.style.left}; top: {fieldContextMenuCaret.style.top};"
+                aria-hidden="true"
+            ></div>
+        {/if}
     {/if}
 </div>

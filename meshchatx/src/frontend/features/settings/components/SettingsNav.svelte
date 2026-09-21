@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { SETTINGS_TABS } from "../../../js/settings/settingsTabs.js";
     import { t } from "../../../js/i18n.js";
 
@@ -43,16 +44,23 @@
     {#each tabs as tab (tab.id)}
         <button
             type="button"
-            class="settings-nav__tab flex flex-col items-start gap-0.5 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors shrink-0 lg:w-full text-sem-fg-muted hover:bg-sem-surface-muted {tab.id ===
+            class="settings-nav__tab flex flex-col items-start gap-0.5 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors shrink-0 lg:w-full text-sem-fg-muted hover:bg-sem-surface-muted max-lg:items-center max-lg:justify-center max-lg:px-2.5 {tab.id ===
             activeTab
                 ? 'border-sem-border bg-sem-surface text-sem-fg shadow-xs'
                 : ''} {isSearchEmpty(tab.id) ? 'opacity-40 pointer-events-none' : ''}"
             aria-current={tab.id === activeTab ? "page" : undefined}
+            title={t(tab.labelKey)}
+            aria-label={t(tab.labelKey)}
             disabled={isSearchEmpty(tab.id)}
             onclick={() => onTabClick(tab.id)}
         >
-            <span class="flex items-center gap-2 w-full min-w-0">
-                <span class="text-sm font-semibold leading-tight min-w-0 truncate">{t(tab.labelKey)}</span>
+            {#if tab.icon}
+                <MaterialDesignIcon iconName={tab.icon} class="size-5 lg:hidden" />
+            {/if}
+            <span class="flex items-center gap-2 w-full min-w-0 max-lg:w-auto">
+                <span class="text-sm font-semibold leading-tight min-w-0 truncate max-lg:hidden">
+                    {t(tab.labelKey)}
+                </span>
                 {#if searchActive}
                     <span
                         class="ml-auto text-[10px] font-semibold tabular-nums rounded-md px-1.5 py-0.5 bg-sem-surface-muted text-sem-fg-muted"

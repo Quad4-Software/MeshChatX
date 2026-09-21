@@ -5,7 +5,7 @@
     import { useEventListener } from "runed";
     import RelayMessageEntry from "./RelayMessageEntry.svelte";
     import { estimateRelayEntryHeight, findRelayEntryIndexForMessageKey } from "../lib/relayVirtual.js";
-    import type { RrcMessage, RrcTimelineEntry } from "../lib/types.js";
+    import type { RrcMessage, RrcMessageTranslation, RrcTimelineEntry } from "../lib/types.js";
 
     interface Props {
         entries: RrcTimelineEntry[];
@@ -17,6 +17,9 @@
         formatPresenceGroupSummary: (entry: RrcTimelineEntry) => string;
         messageKey: (msg?: RrcMessage) => string;
         renderMessageHtml: (text: string) => string;
+        relayMessageDisplayText?: (msg: RrcMessage) => string;
+        relayMessageTranslation?: (msg: RrcMessage) => RrcMessageTranslation | null;
+        toggleRelayMessageOriginal?: (msg: RrcMessage) => void;
         onmessagehtmlclick?: (e: MouseEvent) => void;
         onmessagecontextmenu?: (e: MouseEvent, msg: RrcMessage) => void;
     }
@@ -31,6 +34,9 @@
         formatPresenceGroupSummary,
         messageKey,
         renderMessageHtml,
+        relayMessageDisplayText,
+        relayMessageTranslation,
+        toggleRelayMessageOriginal,
         onmessagehtmlclick,
         onmessagecontextmenu,
     }: Props = $props();
@@ -169,6 +175,9 @@
                 {formatPresenceGroupSummary}
                 {messageKey}
                 {renderMessageHtml}
+                {relayMessageDisplayText}
+                {relayMessageTranslation}
+                {toggleRelayMessageOriginal}
                 {onmessagehtmlclick}
                 {onmessagecontextmenu}
             />

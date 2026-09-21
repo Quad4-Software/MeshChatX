@@ -9,6 +9,12 @@
     <string name="notification_channel_messages_desc">Incoming LXMF message alerts</string>
     <string name="notification_channel_calls_name">Calls</string>
     <string name="notification_channel_calls_desc">Incoming and missed call alerts (ring + vibrate)</string>
+    <string name="notification_channel_downloads_name">Downloads</string>
+    <string name="notification_channel_downloads_desc">Download progress and completion alerts</string>
+    <string name="download_notification_running">Downloading…</string>
+    <string name="download_notification_progress">%1$d%%</string>
+    <string name="download_notification_complete">Download complete. Tap to open.</string>
+    <string name="download_notification_failed">Download failed</string>
     <string name="notification_incoming_call_tap">Incoming call</string>
     <string name="notification_incoming_call_label">%1$s is calling</string>
     <string name="notification_call_decline">Decline</string>
@@ -53,4 +59,6 @@
     <string name="rnode_flasher_ready">Ready</string>
     <string name="rnode_flasher_no_usb">No USB serial devices found. Plug in your RNode.</string>
     <string name="rnode_flasher_busy">Working…</string>
+    <string name="nfc_share_service_description">MeshChatX NFC share</string>
+    <string name="nfc_share_aid_description">MeshChatX bootstrap payloads</string>
 </resources>

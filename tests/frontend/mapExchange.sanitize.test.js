@@ -18,7 +18,7 @@ import { getDrawFeatureMetadataPayload } from "@/js/mapExchange/metadataUtils.js
 const TINY_PNG =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
-describe("kmlSanitize oracle", () => {
+describe("kmlSanitize reference", () => {
     it("classifies remote hrefs as remote", () => {
         expect(isRemoteHref("https://evil.example/i.png")).toBe(true);
         expect(isRemoteHref("http://evil.example/x")).toBe(true);
@@ -57,6 +57,35 @@ describe("kmlSanitize oracle", () => {
         expect(out.text.toLowerCase()).toContain("placemark");
         const features = readKmlToFeatures(kml, "EPSG:3857");
         expect(features.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("strips remote icon hrefs written with attributes or CDATA", () => {
+        const variants = [
+            `<Icon><href x="1">https://evil.example/i.png</href ></Icon>`,
+            `<Icon><href\n>https://evil.example/i.png</href></Icon>`,
+            `<Icon><href><![CDATA[https://evil.example/i.png]]></href></Icon>`,
+            `<Icon><kml:href>https://evil.example/i.png</kml:href></Icon>`,
+        ];
+        for (const icon of variants) {
+            const kml = `<?xml version="1.0"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:kml="http://www.opengis.net/kml/2.2"><Document>
+<Placemark><name>P</name><Style><IconStyle>${icon}</IconStyle></Style>
+<Point><coordinates>1,2,0</coordinates></Point>
+</Placemark></Document></kml>`;
+            const out = sanitizeKmlText(kml);
+            expect(out.text).not.toContain("evil.example");
+        }
+    });
+
+    it("drops remote overlay blocks with attribute-bearing href", () => {
+        const kml = `<?xml version="1.0"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<Placemark><name>P</name><Point><coordinates>1,2,0</coordinates></Point></Placemark>
+<GroundOverlay><Icon><href x="1">https://evil.example/ov.png</href></Icon></GroundOverlay>
+</Document></kml>`;
+        const out = sanitizeKmlText(kml);
+        expect(out.text).not.toContain("GroundOverlay");
+        expect(out.stripped).toContain("remote_overlay");
     });
 
     it("rejects network-link-only kml", () => {

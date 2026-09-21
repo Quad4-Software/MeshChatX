@@ -20,7 +20,7 @@ function makeHub(overrides = {}) {
         known_rooms: ["lobby"],
         unread_rooms: [],
         mention_rooms: [],
-        available_rooms: {},
+        available_rooms: [],
         auto_reconnect: false,
         auto_list: false,
         auto_who: false,
@@ -41,6 +41,7 @@ describe("RelayChatPage security and fuzz", () => {
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.api = axiosMock;
+        window.localStorage.clear();
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rrc/hubs") {
                 return Promise.resolve({ data: { hubs: [makeHub()] } });

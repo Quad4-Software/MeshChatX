@@ -6,14 +6,23 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403, F405
 
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    parse_int_param,
+)
+
 
 def register_telephone_history_routes(routes, app):
 
     # get call history
     @routes.get("/api/v1/telephone/history")
     async def telephone_history(request):
-        limit = int(request.query.get("limit", 10))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 10, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request(
+                "limit and offset must be non-negative integers",
+            )
         search = request.query.get("search", None)
         history = app.database.telephone.get_call_history(
             search=search,

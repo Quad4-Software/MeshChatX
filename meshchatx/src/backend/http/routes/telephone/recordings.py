@@ -8,6 +8,7 @@ from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403, 
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_not_found,
+    parse_int_param,
 )
 
 
@@ -18,8 +19,12 @@ def register_telephone_recordings_routes(routes, app):
     @routes.get("/api/v1/telephone/recordings")
     async def telephone_recordings(request):
         search = request.query.get("search", None)
-        limit = int(request.query.get("limit", 10))
-        offset = int(request.query.get("offset", 0))
+        limit = parse_int_param(request.query.get("limit"), 10, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request(
+                "limit and offset must be non-negative integers",
+            )
         recordings_rows = app.database.telephone.get_call_recordings(
             search=search,
             limit=limit,

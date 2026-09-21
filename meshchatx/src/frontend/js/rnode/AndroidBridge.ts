@@ -12,6 +12,7 @@
 
 const PERM_BLUETOOTH = "bluetooth";
 const PERM_USB = "usb";
+const PERM_NEARBY_WIFI = "nearby_wifi";
 
 function pickEnv() {
     if (typeof window !== "undefined") {
@@ -35,6 +36,7 @@ function safeCall(fn, fallback) {
 export default class AndroidBridge {
     static PERM_BLUETOOTH = PERM_BLUETOOTH;
     static PERM_USB = PERM_USB;
+    static PERM_NEARBY_WIFI = PERM_NEARBY_WIFI;
     declare bridge: any;
     declare env: any;
     constructor(bridge: any = null, env: any = null) {
@@ -61,6 +63,9 @@ export default class AndroidBridge {
         if (permissionGroup === PERM_USB && typeof this.bridge.hasUsbPermissions === "function") {
             return safeCall(() => Boolean(this.bridge.hasUsbPermissions()), false);
         }
+        if (permissionGroup === PERM_NEARBY_WIFI && typeof this.bridge.hasNearbyWifiPermissions === "function") {
+            return safeCall(() => Boolean(this.bridge.hasNearbyWifiPermissions()), false);
+        }
         return false;
     }
 
@@ -84,6 +89,15 @@ export default class AndroidBridge {
         if (permissionGroup === PERM_USB && typeof this.bridge.requestUsbPermissions === "function") {
             return safeCall(() => {
                 const result = this.bridge.requestUsbPermissions();
+                if (typeof result === "string") {
+                    return result;
+                }
+                return "requested";
+            }, "unsupported");
+        }
+        if (permissionGroup === PERM_NEARBY_WIFI && typeof this.bridge.requestNearbyWifiPermissions === "function") {
+            return safeCall(() => {
+                const result = this.bridge.requestNearbyWifiPermissions();
                 if (typeof result === "string") {
                     return result;
                 }

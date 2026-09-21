@@ -49,6 +49,13 @@
 
     let isExpanded = $state(false);
 
+    // Reset the expanded panel when the sidebar collapses.
+    $effect(() => {
+        if (isCollapsed) {
+            isExpanded = false;
+        }
+    });
+
     function onAccountChipClick(): void {
         if (isCollapsed) {
             if (onnavigatetoidentities) {

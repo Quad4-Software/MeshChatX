@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import { useEventListener } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import SettingsNav from "./SettingsNav.svelte";
@@ -43,6 +43,7 @@
     import ReticulumStackSettingsSection from "./sections/ReticulumStackSettingsSection.svelte";
 
     import ToastUtils from "../../../js/ToastUtils.js";
+    import { apiPath } from "../../../js/constants.js";
     import ElectronUtils from "../../../js/ElectronUtils.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import GlobalState from "../../../js/GlobalState.js";
@@ -120,6 +121,12 @@
         type BatteryInterfaceRow,
     } from "../lib/batterySettingsUi.js";
     import type { BatterySaverPrefs } from "../../../js/settings/batterySaverPrefs.js";
+
+    interface Props {
+        routeQuery?: Record<string, string>;
+    }
+
+    let { routeQuery = {} }: Props = $props();
 
     let config = $state<Record<string, any>>(createDefaultConfig());
     let serverSecurity = $state<Record<string, any>>(createDefaultServerSecurity());
@@ -344,18 +351,41 @@
             publishPatchedConfig(config);
         } catch (e) {
             console.error("Failed to update config field", key, e);
-            ToastUtils.error(t("common.error"));
+            const detail = (e as any)?.response?.data?.error || (e as any)?.response?.data?.message;
+            ToastUtils.error(detail || t("common.save_failed"));
+            try {
+                const fresh = await fetchMergedConfig(window.api, config);
+                if (fresh && key in fresh) {
+                    config = { ...config, [key]: fresh[key] };
+                }
+            } catch {
+                // keep local state if the resync fetch also fails
+            }
         }
     }
 
     async function onIsTransportEnabledChange(val: boolean) {
-        config.is_transport_enabled = val;
+        const requested = Boolean(val);
+        config.is_transport_enabled = requested;
         try {
-            await applyTransportMode(val, window.api);
-            ToastUtils.success(t("common.saved"));
+            const response = await applyTransportMode(requested, window.api);
+            const data = response?.data;
+            if (data && typeof data.transport_enabled === "boolean") {
+                config.is_transport_enabled = data.transport_enabled;
+            }
+            if (data?.message) {
+                ToastUtils.success(data.message);
+            }
         } catch (e: any) {
-            ToastUtils.error(e?.response?.data?.message || t("common.error"));
+            config.is_transport_enabled = !requested;
+            const detail = e?.response?.data?.message || e?.response?.data?.error || e?.message;
+            ToastUtils.error(
+                detail ||
+                    (requested ? t("settings.failed_enable_transport") : t("settings.failed_disable_transport"))
+            );
+            await loadConfig();
         }
+        await loadReticulumInstance();
     }
 
     async function onAuthEnabledChange(value: boolean) {
@@ -438,6 +468,81 @@
         await flushArchivedPagesHelper();
     }
 
+    let oidcClientSecret = $state("");
+    let oidcSecretDirty = $state(false);
+    let oidcSecretClear = $state(false);
+    let oidcSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const oidcRedirectUri = $derived(window.location.origin + apiPath("/auth/oidc/callback"));
+
+    async function onOidcEnabledChange(value: boolean) {
+        await updateConfigField("oidc_enabled", value);
+    }
+
+    function onOidcFieldChange(key: string, value: string) {
+        config[key] = value;
+        onOidcConfigChange();
+    }
+
+    function onOidcSecretChange(value: string) {
+        oidcClientSecret = value;
+        oidcSecretDirty = true;
+        oidcSecretClear = false;
+        onOidcConfigChange();
+    }
+
+    function clearOidcSecret() {
+        oidcClientSecret = "";
+        oidcSecretDirty = false;
+        oidcSecretClear = true;
+        onOidcConfigChange();
+    }
+
+    function onOidcConfigChange() {
+        if (oidcSaveTimeout) clearTimeout(oidcSaveTimeout);
+        oidcSaveTimeout = setTimeout(async () => {
+            oidcSaveTimeout = null;
+            const payload: Record<string, any> = {
+                oidc_issuer_url: config.oidc_issuer_url,
+                oidc_client_id: config.oidc_client_id,
+                oidc_display_name: config.oidc_display_name,
+                oidc_scopes: config.oidc_scopes,
+            };
+            if (oidcSecretClear) {
+                payload.oidc_client_secret = null;
+            } else if (oidcSecretDirty && oidcClientSecret) {
+                // An empty field means unchanged, not cleared. Only an
+                // explicit clear action sends null.
+                payload.oidc_client_secret = oidcClientSecret;
+            }
+            try {
+                const updated = await patchServerConfig(payload, window.api);
+                sanitizeColorConfigFields(updated);
+                config = { ...config, ...updated };
+                publishPatchedConfig(config);
+            } catch (e) {
+                console.error("Failed to update oidc settings", e);
+                const detail = (e as any)?.response?.data?.error || (e as any)?.response?.data?.message;
+                ToastUtils.error(detail || t("common.save_failed"));
+                try {
+                    const fresh = await fetchMergedConfig(window.api, config);
+                    if (fresh) {
+                        for (const key of Object.keys(payload)) {
+                            if (key in fresh) {
+                                config = { ...config, [key]: fresh[key] };
+                            }
+                        }
+                    }
+                } catch {
+                    // keep local state if the resync fetch also fails
+                }
+            }
+            oidcClientSecret = "";
+            oidcSecretDirty = false;
+            oidcSecretClear = false;
+        }, 1000);
+    }
+
     let webUiAllowlistSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
     function onWebUiAllowlistChange(val: string) {
@@ -477,16 +582,35 @@
         await updateConfigField("language", lang);
     }
 
+    function mergeReticulumInstance(instance: Record<string, any>) {
+        reticulumInstance = {
+            ...reticulumInstance,
+            ...instance,
+            shared_instance_type: instance.shared_instance_type || "",
+            instance_name: instance.instance_name || "default",
+            remote_management_allowed: Array.isArray(instance.remote_management_allowed)
+                ? instance.remote_management_allowed
+                : [],
+        };
+    }
+
     async function updateReticulumInstance(patch: Record<string, any>) {
+        if (reticulumInstanceSaving) return;
         reticulumInstanceSaving = true;
         try {
-            const updated = await applyReticulumInstanceSettings(window.api, patch);
-            if (updated) {
-                reticulumInstance = { ...reticulumInstance, ...updated };
+            const response = await applyReticulumInstanceSettings(window.api, patch);
+            if (response?.data?.instance) {
+                mergeReticulumInstance(response.data.instance);
             }
-            ToastUtils.success(t("common.saved"));
+            if (response?.data?.message) {
+                ToastUtils.success(response.data.message);
+            } else {
+                ToastUtils.success(t("common.saved"));
+            }
         } catch (e: any) {
-            ToastUtils.error(e?.response?.data?.message || t("common.error"));
+            const detail = e?.response?.data?.error || e?.response?.data?.message || e?.message;
+            ToastUtils.error(detail || t("settings.failed_update_reticulum_instance"));
+            await loadReticulumInstance();
         } finally {
             reticulumInstanceSaving = false;
         }
@@ -556,6 +680,37 @@
             desktopCloseSettings = res;
         }
     }
+
+    function selectSettingsTab(tabId: string) {
+        activeSettingsTab = normalizeSettingsTabId(tabId);
+    }
+
+    function applyRouteTarget(query: Record<string, string>) {
+        const requestedSection = query?.section;
+        const requestedTab = query?.tab;
+        if (typeof requestedSection === "string" && requestedSection) {
+            const tab = SETTINGS_TABS.find((entry) => entry.sections.includes(requestedSection));
+            if (tab) {
+                selectSettingsTab(tab.id);
+            }
+            void tick().then(() => {
+                const el = document.querySelector(`[data-settings-section="${requestedSection}"]`);
+                if (el && typeof el.scrollIntoView === "function") {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            });
+            return;
+        }
+        if (typeof requestedTab === "string" && requestedTab) {
+            selectSettingsTab(requestedTab);
+        }
+    }
+
+    // Deep links like ?section=location select the owning tab and scroll the
+    // section into view; re-runs whenever the routed query prop changes.
+    $effect(() => {
+        applyRouteTarget(routeQuery);
+    });
 
     function onSelectTab(tabId: string) {
         if (isSearching) {
@@ -633,6 +788,7 @@
             GlobalEmitter.off("identity-switched-apply", loadConfig);
             if (displayNameSaveTimeout) clearTimeout(displayNameSaveTimeout);
             if (webUiAllowlistSaveTimeout) clearTimeout(webUiAllowlistSaveTimeout);
+            if (oidcSaveTimeout) clearTimeout(oidcSaveTimeout);
         };
     });
 </script>
@@ -961,12 +1117,19 @@
                             />
                             <WebExposureSettingsSection
                                 visible={showSection("webExposure")}
+                                {config}
                                 {serverSecurity}
                                 {exposureAckFirewall}
                                 {exposureAckVpn}
+                                {oidcClientSecret}
+                                {oidcRedirectUri}
                                 onackfirewallchange={(val) => (exposureAckFirewall = val)}
                                 onackvpnchange={(val) => (exposureAckVpn = val)}
                                 onallowlistchange={onWebUiAllowlistChange}
+                                onoidcenabledchange={onOidcEnabledChange}
+                                onoidcfieldchange={onOidcFieldChange}
+                                onoidcsecretchange={onOidcSecretChange}
+                                onoidcsecretclear={clearOidcSecret}
                             />
                             <CspSettingsSection
                                 visible={showSection("csp")}
@@ -987,7 +1150,7 @@
                                 onupdatefield={(d) => updateConfigField(d.key, d.value)}
                             />
                             <ReticulumStackSettingsSection
-                                visible={showSection("maintenance")}
+                                visible={showSection("reticulumStack")}
                                 {reloadingRns}
                                 {reloadRnsStatusMessage}
                                 onreloadrns={reloadRns}

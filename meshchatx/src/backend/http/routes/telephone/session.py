@@ -286,6 +286,8 @@ def register_telephone_session_routes(routes, app):
     # answer incoming telephone call
     @routes.post("/api/v1/telephone/answer")
     async def telephone_answer(request):
+        if app.telephone_manager.telephone is None:
+            return http_bad_request("Telephone is not enabled")
         # get incoming caller identity
         active_call = app.telephone_manager.telephone.active_call
         if not active_call:
@@ -330,6 +332,8 @@ def register_telephone_session_routes(routes, app):
     # send active call to voicemail
     @routes.post("/api/v1/telephone/send-to-voicemail")
     async def telephone_send_to_voicemail(request):
+        if app.telephone_manager.telephone is None:
+            return http_bad_request("Telephone is not enabled")
         active_call = app.telephone_manager.telephone.active_call
         if not active_call:
             return http_not_found("No active call")

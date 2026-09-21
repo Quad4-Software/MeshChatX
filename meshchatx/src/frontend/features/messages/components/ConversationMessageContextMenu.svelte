@@ -6,6 +6,7 @@
     import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
+    import { computeCaret, type ContextMenuCaret } from "../../../js/contextMenuCaret.js";
     import { t } from "../../../js/i18n.js";
 
     let {
@@ -74,6 +75,7 @@
     let adjustedLeft = $state(0);
     let adjustedTop = $state(0);
     let panelMaxHeight: number | null = $state(null);
+    let caret: ContextMenuCaret | null = $state(null);
 
     function isReducedMotion(): boolean {
         if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -92,6 +94,7 @@
         adjustedLeft = result.left;
         adjustedTop = result.top;
         panelMaxHeight = result.maxHeight;
+        caret = computeCaret(x, y, result.left, result.top, rect.width, rect.height);
     }
 
     $effect(() => {
@@ -99,6 +102,7 @@
             adjustedLeft = x;
             adjustedTop = y;
             panelMaxHeight = null;
+            caret = null;
             void reposition();
         }
     });
@@ -235,4 +239,11 @@
             {t("common.delete")}
         </button>
     </div>
+    {#if caret}
+        <div
+            class="dropdown-caret fixed z-200 border-sem-border {caret.borderClass}"
+            style="left: {caret.style.left}; top: {caret.style.top};"
+            aria-hidden="true"
+        ></div>
+    {/if}
 {/if}

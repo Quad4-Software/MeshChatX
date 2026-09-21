@@ -20,6 +20,7 @@ export const WS_EVENTS = Object.freeze({
     ANNOUNCE: "announce",
     APP_SESSIONS_UPDATED: "app.sessions.updated",
     CONFIG: "config",
+    ERROR: "error",
     KEYBOARD_SHORTCUTS: "keyboard_shortcuts",
     LXMF_DELIVERY: "lxmf.delivery",
     LXMF_FORWARDING_RULES: "lxmf.forwarding.rules",
@@ -97,4 +98,5 @@ export const STORAGE_KEYS = Object.freeze({
     TRANSLATE_TARGET_LANG: "meshchatx.translateTargetLang",
     UI_THEME: "meshchatx_ui_theme",
     MICRON_EDITOR_CONTENT: "micron_editor_content",
+    RRC_PREFS: "meshchatx.rrc.prefs",
 });

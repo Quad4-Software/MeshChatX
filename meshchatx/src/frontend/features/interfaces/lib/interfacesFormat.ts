@@ -55,6 +55,8 @@ export function getDiscoveryIcon(iface: { type?: string; port?: string | number 
             return "eye";
         case "PipeInterface":
             return "pipe";
+        case "AwareInterface":
+            return "wifi-tethering";
         default:
             return "server-network";
     }
@@ -85,6 +87,8 @@ export function getInterfaceIcon(iface: { type?: string; port?: string | number 
             return "pipe";
         case "HTTPInterface":
             return "web";
+        case "AwareInterface":
+            return "wifi-tethering";
         default:
             return "server-network";
     }
@@ -107,7 +111,7 @@ export function getInterfaceDescription(iface: ConfiguredInterface): string {
     if (iface.type === "HTTPInterface") {
         const tunnelMode = String(iface.mode || "").toLowerCase();
         if (tunnelMode === "server") {
-            return `HTTP ${iface.listen_host || "127.0.0.1"}:${iface.listen_port}`;
+            return `HTTP ${iface.listen_host || "0.0.0.0"}:${iface.listen_port}`;
         }
         return iface.server_url || "HTTP tunnel client";
     }
@@ -122,6 +126,11 @@ export function getInterfaceDescription(iface: ConfiguredInterface): string {
     }
     if (iface.type === "AutoInterface") {
         return "Auto-detect Ethernet and Wi-Fi peers";
+    }
+    if (iface.type === "AwareInterface") {
+        const role = String(iface.mode || "subscribe").toLowerCase();
+        const peers = iface.peers;
+        return `WiFi Aware (${role}${peers != null && peers !== "" ? `, max ${peers} peers` : ""})`;
     }
     if (iface.type === "BackboneInterface") {
         if (isBackboneIfacTunnel(iface)) {

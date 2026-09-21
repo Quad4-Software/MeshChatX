@@ -10,6 +10,7 @@ from meshchatx.src.backend.http.ws.handlers_nomad._helpers import (
     _request_id_fields,
     _send_nomad_page_content,
 )
+from meshchatx.src.backend.websocket_runtime import WS_NOMAD_PAGE_MAX_CHARS
 from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403, F405
 
 
@@ -89,6 +90,13 @@ async def handle_nomadnet_page_download(app, client, data):
         page_path_to_download,
         request_data=combined_data,
     )
+    if local_page is not None and len(local_page) > WS_NOMAD_PAGE_MAX_CHARS:
+        await send_failure(
+            "page_too_large",
+            destination_hash.hex(),
+            page_path,
+        )
+        return
     if local_page is not None:
         if not private:
             app.archive_page(destination_hash.hex(), page_path, local_page)
@@ -216,6 +224,7 @@ async def handle_nomadnet_page_download(app, client, data):
         on_phase=on_page_download_phase,
         reticulum=getattr(app, "reticulum", None),
         private=private,
+        max_bytes=WS_NOMAD_PAGE_MAX_CHARS,
         **nomad_link_identity_kwargs(app, destination_hash, private=private),
     )
     app.active_downloads[download_id] = downloader

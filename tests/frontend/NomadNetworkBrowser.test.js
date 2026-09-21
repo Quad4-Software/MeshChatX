@@ -33,6 +33,18 @@ describe("NomadNetworkBrowser.svelte", () => {
     let axiosMock;
 
     beforeEach(() => {
+        // jsdom has no matchMedia. The tab strip only renders on wide
+        // viewports, so report a wide viewport here.
+        window.matchMedia = vi.fn().mockImplementation((query) => ({
+            matches: true,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            onchange: null,
+            dispatchEvent: vi.fn(),
+        }));
         axiosMock = {
             get: vi.fn((url) => {
                 if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });

@@ -5,6 +5,7 @@
     import { onClickOutside } from "runed";
     import { t } from "../../js/i18n.js";
     import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
+    import { computeCaret, type ContextMenuCaret } from "../../js/contextMenuCaret.js";
     import { ensureLocaleMessages, getCurrentUiLocale, listLocaleCodes, setLocale } from "../../js/localeLoader.js";
     import MaterialDesignIcon from "./MaterialDesignIcon.svelte";
 
@@ -44,6 +45,7 @@
     let currentLanguage = $state(getCurrentUiLocale() || "en");
     let dropdownPanel: HTMLElement | undefined = $state();
     let triggerButton: HTMLButtonElement | undefined = $state();
+    let dropdownCaret: ContextMenuCaret | null = $state(null);
 
     const dropdownStyle = $derived(
         `top: ${dropdownPosition.top}px; left: ${dropdownPosition.left}px; ${
@@ -64,6 +66,14 @@
             const { left, top, maxHeight } = clampFloatingToViewport(pr.left, pr.top, pr.width, pr.height);
             dropdownPosition = { left, top };
             dropdownMaxHeight = maxHeight;
+            dropdownCaret = computeCaret(
+                rect.left + rect.width / 2,
+                rect.top + rect.height / 2,
+                left,
+                top,
+                pr.width,
+                pr.height
+            );
         });
     }
 
@@ -76,6 +86,7 @@
 
     function closeDropdown(): void {
         isDropdownOpen = false;
+        dropdownCaret = null;
     }
 
     async function selectLanguage(langCode: string): Promise<void> {
@@ -144,5 +155,12 @@
                 {/each}
             </div>
         </div>
+        {#if dropdownCaret}
+            <div
+                class="dropdown-caret fixed z-9999 border-sem-border {dropdownCaret.borderClass}"
+                style="left: {dropdownCaret.style.left}; top: {dropdownCaret.style.top};"
+                aria-hidden="true"
+            ></div>
+        {/if}
     {/if}
 </div>

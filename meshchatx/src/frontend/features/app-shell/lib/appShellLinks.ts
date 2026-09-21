@@ -10,7 +10,7 @@ import LiveTransport from "../../../js/liveTransport.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import GlobalState from "../../../js/GlobalState.js";
 import { t } from "../../../js/i18n.js";
-import { applyRelayShareLink, parseMeshchatRelayUri } from "../../../js/relayLinkUtils.js";
+import { applyRelayShareLink, parseRelayUri } from "../../../js/relayLinkUtils.js";
 import type { RouteTarget } from "../../../shell/hashRouter.js";
 
 export interface ShellRouter {
@@ -24,7 +24,7 @@ const KNOWN_MESHCHATX_HOSTS = ["map", "docs", "relay", "app"];
  * Join a relay hub share link and open Relay Chat on it.
  */
 export async function openRelayShareLink(router: ShellRouter, uri: string): Promise<void> {
-    const parsed = parseMeshchatRelayUri(uri);
+    const parsed = parseRelayUri(uri);
     if (!parsed) {
         ToastUtils.error(t("messages.relay_link_invalid"));
         return;

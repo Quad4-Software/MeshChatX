@@ -195,6 +195,17 @@ tasks.register("verifyVendorWheels") {
                         "Expected a real Codec2 shared library for Android calls."
                 )
             }
+            // LXST native filters: per-ABI wheel carrying LXST/filterlib.so so
+            // find_spec resolves instead of falling back to slow Python
+            // filters. Built by scripts/build-android-lxst-filterlib.py.
+            if (!wheels.any { it.startsWith("lxst_filterlib_android-") && it.contains("android_24_${abiTag}") }) {
+                throw new org.gradle.api.GradleException(
+                    "Missing lxst_filterlib_android wheel for ${abi} in ${vendorWheelDir}. " +
+                        "Run: python3 scripts/build-android-lxst-filterlib.py " +
+                        "--out-dir ${vendorWheelDir} --abis ${abi} " +
+                        "--lxst-wheel ${lxstPatchedWheel}"
+                )
+            }
         }
     }
 }
@@ -385,6 +396,9 @@ chaquopy {
                 throw new org.gradle.api.GradleException("Missing patched LXST wheel at ${lxstPatchedWheel}")
             }
             install lxstPatchedWheel.absolutePath
+            // Per-ABI wheel carrying LXST/filterlib.so so LXST finds a native
+            // filter blob via find_spec instead of runtime-compiling Filters.c.
+            install "lxst-filterlib-android==0.5.1"
             if (!bleakPatchedWheel.exists()) {
                 throw new org.gradle.api.GradleException("Missing patched bleak wheel at ${bleakPatchedWheel}")
             }
