@@ -14,8 +14,10 @@ const shellPath = path.join(root, "electron", "shellOrigin.js");
 const preloadPath = path.join(root, "electron", "preload.js");
 const outPath = path.join(root, "electron", "preload.bundle.js");
 
-const shellSource = fs.readFileSync(shellPath, "utf8");
-const preloadSource = fs.readFileSync(preloadPath, "utf8");
+// Normalize CRLF so Windows checkouts hit the same cut markers and produce
+// byte-identical bundles to Linux/macOS builds.
+const shellSource = fs.readFileSync(shellPath, "utf8").replace(/\r\n/g, "\n");
+const preloadSource = fs.readFileSync(preloadPath, "utf8").replace(/\r\n/g, "\n");
 
 const shellBody = (() => {
     let body = shellSource.replace(/^"use strict";\s*/m, "");
