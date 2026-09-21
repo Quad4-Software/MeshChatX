@@ -35,11 +35,13 @@ runs:
 
         - name: Enable pnpm (corepack)
           shell: bash
+          env:
+              PNPM_VERSION: ${{ inputs.pnpm-version }}
           run: |
               set -euo pipefail
               corepack enable
               for attempt in 1 2 3; do
-                  if corepack prepare "pnpm@${{ inputs.pnpm-version }}" --activate; then
+                  if corepack prepare "pnpm@${PNPM_VERSION}" --activate; then
                       exit 0
                   fi
                   echo "corepack prepare failed (attempt $attempt of 3); retrying"

@@ -60,7 +60,7 @@ env:
 jobs:
     frontend:
         name: Build frontend artifact
-        uses: ./.github/workflows/frontend-build.yml
+        uses: $/.github/workflows/frontend-build.yml
         permissions:
             contents: read
         with:
@@ -91,6 +91,7 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
                   fetch-depth: 0
+                  persist-credentials: false
 
             - name: Resolve tag release track
               id: track
@@ -155,7 +156,7 @@ jobs:
                   python-version: ${{ env.PYTHON_VERSION }}
 
             - name: Download frontend artifact
-              uses: ./.github/actions/fetch-frontend-artifact
+              uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 

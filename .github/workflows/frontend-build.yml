@@ -92,7 +92,7 @@ jobs:
                   python-version: ${{ inputs.python_version }}
 
             - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
+              uses: $/.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ inputs.node_version }}
                   pnpm-version: ${{ inputs.pnpm_version }}

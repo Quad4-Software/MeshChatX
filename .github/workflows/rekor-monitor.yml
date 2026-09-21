@@ -14,7 +14,6 @@ concurrency:
 
 permissions:
     contents: read
-    issues: write
 
 jobs:
     monitor:
@@ -68,6 +67,8 @@ jobs:
         needs: [monitor]
         timeout-minutes: 60
         if: ${{ needs.monitor.result == 'success' }}
+        permissions:
+            issues: write
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:
@@ -103,6 +104,8 @@ jobs:
         needs: [monitor]
         timeout-minutes: 60
         if: ${{ always() && needs.monitor.result == 'failure' }}
+        permissions:
+            issues: write
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:

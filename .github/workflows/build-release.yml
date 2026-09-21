@@ -63,7 +63,7 @@ env:
 jobs:
     frontend:
         name: Build frontend artifact
-        uses: ./.github/workflows/frontend-build.yml
+        uses: $/.github/workflows/frontend-build.yml
         permissions:
             contents: read
         with:
@@ -74,7 +74,7 @@ jobs:
     frontend-android:
         name: Build frontend (Android / Python 3.11)
         if: startsWith(github.ref, 'refs/tags/')
-        uses: ./.github/workflows/frontend-build.yml
+        uses: $/.github/workflows/frontend-build.yml
         permissions:
             contents: read
         with:
@@ -87,8 +87,12 @@ jobs:
         name: Android APKs (tag)
         if: startsWith(github.ref, 'refs/tags/')
         needs: [frontend-android]
-        secrets: inherit
-        uses: ./.github/workflows/android-apk-tag.yml
+        uses: $/.github/workflows/android-apk-tag.yml
+        secrets:
+            ANDROID_SIGNING_KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+            ANDROID_SIGNING_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEYSTORE_PASSWORD }}
+            ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+            ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
         with:
             frontend_artifact_name: ${{ needs.frontend-android.outputs.artifact_name }}
             run_unit_tests: true
@@ -124,13 +128,13 @@ jobs:
                   persist-credentials: false
 
             - name: Set up Python and UV
-              uses: ./.github/actions/setup-python-uv
+              uses: $/.github/actions/setup-python-uv
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
 
             - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
+              uses: $/.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
@@ -142,6 +146,7 @@ jobs:
                   key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
                   restore-keys: |
                       electron-builder-${{ runner.os }}-${{ runner.arch }}-
+                  lookup-only: true
 
             - name: Linux packaging APT dependencies
               run: bash scripts/ci/github-apt-linux-packaging.sh
@@ -150,7 +155,7 @@ jobs:
               run: bash scripts/ci/github-install-deps.sh
 
             - name: Fetch frontend artifact
-              uses: ./.github/actions/fetch-frontend-artifact
+              uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
@@ -282,6 +287,7 @@ jobs:
                   key: flatpak-runtimes-25.08-${{ runner.os }}
                   restore-keys: |
                       flatpak-runtimes-
+                  lookup-only: true
 
             - name: Install flatpak runtimes (user scope)
               run: |
@@ -293,13 +299,13 @@ jobs:
                       org.electronjs.Electron2.BaseApp//25.08
 
             - name: Set up Python and UV
-              uses: ./.github/actions/setup-python-uv
+              uses: $/.github/actions/setup-python-uv
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
 
             - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
+              uses: $/.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
@@ -311,6 +317,7 @@ jobs:
                   key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
                   restore-keys: |
                       electron-builder-${{ runner.os }}-${{ runner.arch }}-
+                  lookup-only: true
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -479,13 +486,13 @@ jobs:
                   persist-credentials: false
 
             - name: Set up Python and UV
-              uses: ./.github/actions/setup-python-uv
+              uses: $/.github/actions/setup-python-uv
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
 
             - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
+              uses: $/.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
@@ -499,6 +506,7 @@ jobs:
                       ~/Library/Caches/electron
                       ~/Library/Caches/electron-builder
                   key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  lookup-only: true
 
             - name: Cache Cargo registry (macOS x64 rustc slices)
               if: matrix.label == 'macos-x64'
@@ -510,6 +518,7 @@ jobs:
                   key: cargo-mac-x64-${{ hashFiles('uv.lock') }}
                   restore-keys: |
                       cargo-mac-x64-
+                  lookup-only: true
 
             - name: Cache macOS x64 Python env
               if: matrix.label == 'macos-x64'
@@ -521,6 +530,7 @@ jobs:
                   key: venv-x64-${{ runner.os }}-${{ hashFiles('uv.lock', 'pyproject.toml', 'scripts/ci/github-install-macos-x64-port-deps.sh', 'scripts/ci/github-macos-x64-venv-ready.sh') }}
                   restore-keys: |
                       venv-x64-${{ runner.os }}-
+                  lookup-only: true
 
             - name: Check cached macOS x64 env
               id: x64_ready
