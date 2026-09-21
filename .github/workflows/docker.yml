@@ -228,23 +228,9 @@ jobs:
                     echo 'EOF'
                   } >> "$GITHUB_OUTPUT"
 
-            - name: Merge image tags for build
-              id: all_tags
-              env:
-                  GH_TAGS: ${{ steps.tags.outputs.tags }}
-                  DH_TAGS: ${{ steps.dh_tags.outputs.tags }}
-              run: |
-                  set -euo pipefail
-                  {
-                    echo 'tags<<EOF'
-                    printf '%s\n' "${GH_TAGS}"
-                    if [ -n "${DH_TAGS:-}" ]; then
-                      printf '%s\n' "${DH_TAGS}"
-                    fi
-                    echo 'EOF'
-                  } >> "$GITHUB_OUTPUT"
-
-            - name: Build and push
+            # GHCR accepts OCI zstd layers; docker.io regular repos still
+            # expect gzip, so the Hub export is a second cache-hit build.
+            - name: Build and push (GHCR, zstd layers)
               id: build
               uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
               with:
@@ -254,9 +240,32 @@ jobs:
                   push: true
                   sbom: true
                   provenance: mode=max
-                  tags: ${{ steps.all_tags.outputs.tags }}
+                  compression: zstd
+                  force-compression: true
+                  oci-mediatypes: true
+                  tags: ${{ steps.tags.outputs.tags }}
                   cache-from: type=gha,scope=${{ matrix.variant }}
                   cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
+                  build-args: |
+                      OCI_REVISION=${{ github.sha }}
+                      OCI_VERSION=${{ steps.oci.outputs.version }}
+                      OCI_CREATED=${{ steps.oci.outputs.created }}
+                      VARIANT=${{ matrix.build_variant }}
+                      OCI_DESCRIPTION=${{ matrix.oci_description }}
+                      OCI_LICENSES=${{ matrix.oci_licenses }}
+
+            - name: Build and push (Docker Hub, gzip layers)
+              if: ${{ steps.dockerhub.outputs.configured == 'true' }}
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+              with:
+                  context: .
+                  file: ${{ matrix.dockerfile }}
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  sbom: true
+                  provenance: mode=max
+                  tags: ${{ steps.dh_tags.outputs.tags }}
+                  cache-from: type=gha,scope=${{ matrix.variant }}
                   build-args: |
                       OCI_REVISION=${{ github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}
