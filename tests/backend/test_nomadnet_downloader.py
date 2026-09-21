@@ -489,3 +489,98 @@ async def test_download_fails_cleanly_when_identity_missing():
     assert failures
     assert "identity" in failures[0].lower()
     nudge.assert_called_once_with(dest)
+
+
+@pytest.mark.asyncio
+async def test_request_watchdog_times_out_unanswered_request():
+    # RNS only fires failed_callback once a receipt reaches DELIVERED, so a
+    # packet request stuck in SENT must be bounded by the watchdog.
+    from meshchatx.src.backend import nomadnet_downloader as nd
+
+    failures = []
+    d = NomadnetDownloader(
+        b"ef" * 8,
+        "/p",
+        None,
+        MagicMock(),
+        lambda reason: failures.append(reason),
+        MagicMock(),
+        timeout=0.05,
+    )
+    link = MagicMock()
+    link.status = RNS.Link.ACTIVE
+    receipt = MagicMock()
+    receipt.progress = 0.0
+    d.request_receipt = receipt
+    d.link = link
+
+    with patch.object(nd, "_MIN_REQUEST_WATCHDOG_S", 0.05):
+        await d._watch_request_receipt(link)
+
+    assert failures == ["Request timed out. The node did not respond."]
+    link.teardown.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_request_watchdog_fails_on_closed_link():
+    failures = []
+    d = NomadnetDownloader(
+        b"ef" * 8,
+        "/p",
+        None,
+        MagicMock(),
+        lambda reason: failures.append(reason),
+        MagicMock(),
+    )
+    link = MagicMock()
+    link.status = RNS.Link.CLOSED
+    d.request_receipt = MagicMock()
+    d.link = link
+
+    await d._watch_request_receipt(link)
+
+    assert failures == ["Link to node closed before the request completed."]
+
+
+@pytest.mark.asyncio
+async def test_request_watchdog_ignores_concluded_request():
+    failures = []
+    d = NomadnetDownloader(
+        b"ef" * 8,
+        "/p",
+        None,
+        MagicMock(),
+        lambda reason: failures.append(reason),
+        MagicMock(),
+        timeout=0.05,
+    )
+    link = MagicMock()
+    link.status = RNS.Link.ACTIVE
+    d.request_receipt = MagicMock()
+    d._outcome_delivered = True
+    d.link = link
+
+    await d._watch_request_receipt(link)
+
+    assert failures == []
+    link.teardown.assert_not_called()
+
+
+def test_link_established_fails_when_request_send_fails():
+    failures = []
+    d = NomadnetDownloader(
+        b"ef" * 8,
+        "/p",
+        None,
+        MagicMock(),
+        lambda reason: failures.append(reason),
+        MagicMock(),
+    )
+    link = MagicMock()
+    link.status = RNS.Link.ACTIVE
+    link.request = MagicMock(return_value=False)
+    d.link = link
+
+    d.link_established(link)
+
+    assert failures == ["Could not send request to node."]
