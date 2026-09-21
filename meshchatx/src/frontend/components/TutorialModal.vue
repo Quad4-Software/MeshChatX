@@ -1148,7 +1148,7 @@
         </div>
 
         <div class="flex-1 overflow-y-auto px-6 md:px-12 py-6 md:py-10">
-            <div class="w-full h-full flex flex-col justify-between">
+            <div class="w-full h-full flex flex-col">
                 <transition name="fade-slide" mode="out-in">
                     <!-- Step 1: Welcome -->
                     <div
@@ -2229,54 +2229,58 @@
                         </RouterLink>
                     </div>
                 </transition>
+            </div>
+        </div>
 
-                <!-- Navigation Buttons (Page Mode) -->
-                <div class="flex justify-between items-center mt-12 border-t dark:border-zinc-900 pt-8">
+        <!-- Navigation Buttons (Page Mode): pinned below the scroll area -->
+        <div
+            class="shrink-0 border-t border-sem-border bg-sem-surface-muted px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-zinc-900 dark:bg-zinc-950/50 md:px-12"
+        >
+            <div class="flex justify-between items-center">
+                <button
+                    v-if="currentStep > 1 && currentStep < totalSteps"
+                    type="button"
+                    class="tutorial-action-btn tutorial-action-btn-secondary"
+                    :disabled="tutorialNavBusy"
+                    @click="previousStep"
+                >
+                    {{ $t("tutorial.back") }}
+                </button>
+                <div v-else></div>
+
+                <div class="flex gap-4">
                     <button
-                        v-if="currentStep > 1 && currentStep < totalSteps"
+                        v-if="currentStep < totalSteps"
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-secondary"
                         :disabled="tutorialNavBusy"
-                        @click="previousStep"
+                        @click="skipTutorial"
                     >
-                        {{ $t("tutorial.back") }}
+                        {{ $t("tutorial.skip_setup") }}
                     </button>
-                    <div v-else></div>
 
-                    <div class="flex gap-4">
-                        <button
-                            v-if="currentStep < totalSteps"
-                            type="button"
-                            class="tutorial-action-btn tutorial-action-btn-secondary"
-                            :disabled="tutorialNavBusy"
-                            @click="skipTutorial"
-                        >
-                            {{ $t("tutorial.skip_setup") }}
-                        </button>
+                    <button
+                        v-if="showFooterContinue"
+                        type="button"
+                        class="tutorial-action-btn tutorial-action-btn-primary"
+                        :disabled="
+                            tutorialNavBusy ||
+                            (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
+                        "
+                        @click="handlePrimaryAction"
+                    >
+                        {{ $t("tutorial.continue") }}
+                    </button>
 
-                        <button
-                            v-if="showFooterContinue"
-                            type="button"
-                            class="tutorial-action-btn tutorial-action-btn-primary"
-                            :disabled="
-                                tutorialNavBusy ||
-                                (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
-                            "
-                            @click="handlePrimaryAction"
-                        >
-                            {{ $t("tutorial.continue") }}
-                        </button>
-
-                        <button
-                            v-else-if="currentStep === totalSteps"
-                            type="button"
-                            class="tutorial-action-btn tutorial-action-btn-success"
-                            :disabled="finishingTutorial || tutorialNavBusy"
-                            @click="finishTutorial"
-                        >
-                            {{ $t("tutorial.finish_setup") }}
-                        </button>
-                    </div>
+                    <button
+                        v-else-if="currentStep === totalSteps"
+                        type="button"
+                        class="tutorial-action-btn tutorial-action-btn-success"
+                        :disabled="finishingTutorial || tutorialNavBusy"
+                        @click="finishTutorial"
+                    >
+                        {{ $t("tutorial.finish_setup") }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -2352,7 +2356,7 @@ export default {
             discoveryInterval: null,
             markingSeen: false,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
-            defaultBootstrapOnly: true,
+            defaultBootstrapOnly: false,
             bootstrapListSearch: "",
             bootstrapDiscoveredSectionOpen: true,
             bootstrapCommunitySectionOpen: true,
@@ -2693,10 +2697,10 @@ export default {
                 const payload = {
                     discover_interfaces: true,
                     autoconnect_discovered_interfaces: 3,
-                    default_bootstrap_only: true,
+                    default_bootstrap_only: false,
                 };
                 await window.api.patch(apiPath("/reticulum/discovery"), payload);
-                this.defaultBootstrapOnly = true;
+                this.defaultBootstrapOnly = false;
 
                 ToastUtils.success(this.$t("tutorial.mode_recommended_added"));
                 this.connectionMode = "recommended";
@@ -2730,10 +2734,10 @@ export default {
                 const payload = {
                     discover_interfaces: true,
                     autoconnect_discovered_interfaces: 3,
-                    default_bootstrap_only: true,
+                    default_bootstrap_only: false,
                 };
                 await window.api.patch(apiPath("/reticulum/discovery"), payload);
-                this.defaultBootstrapOnly = true;
+                this.defaultBootstrapOnly = false;
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.connectionMode = "discovery";
                 this.currentStep = 4;
@@ -3015,10 +3019,10 @@ export default {
             try {
                 const response = await window.api.get(apiPath("/reticulum/discovery"));
                 const d = response.data?.discovery ?? {};
-                this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only, true);
+                this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only);
             } catch (e) {
                 console.error(e);
-                this.defaultBootstrapOnly = true;
+                this.defaultBootstrapOnly = false;
             }
         },
         async persistDefaultBootstrapOnly(value) {
