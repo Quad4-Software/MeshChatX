@@ -121,4 +121,3 @@ def register_messages_destination_routes(routes: Any, app: Any) -> None:
         return web.json_response(
             build_delivery_diagnostics(app, destination_hash),
         )
-

@@ -90,4 +90,3 @@ def register_spam_spam_routes(routes: Any, app: Any) -> None:
             return http_not_found("Message not found")
         except Exception as e:
             return http_error_from_exception(e, fallback_status=500)
-

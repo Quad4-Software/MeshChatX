@@ -112,6 +112,7 @@ from meshchatx.src.backend.demo_mode import (
     auth_bypass_from_env,
     demo_auth_password_from_env,
 )
+from meshchatx.src.backend.host_interfaces import list_host_network_interfaces
 from meshchatx.src.backend.identity_context import IdentityContext
 from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
@@ -142,6 +143,7 @@ from meshchatx.src.backend.local_message_retention import (
 )
 from meshchatx.src.backend.lxmf_message_fields import (
     LxmfAudioField,
+    LxmfFileAttachment,
     LxmfFileAttachmentsField,
     LxmfImageField,
 )
@@ -528,6 +530,8 @@ _HTTP_LIVE_NAME_ANCHORS = (
     import_messages_export_bundle,
     NomadnetFileDownloader,
     NomadnetPageDownloader,
+    list_host_network_interfaces,
+    LxmfFileAttachment,
     get_cached_active_link,
     drop_cached_link,
     nomad_link_identity_kwargs,
@@ -2284,9 +2288,9 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.lifecycle.reticulum_reload import (
             reload_reticulum_instance,
         )
+
         async with self._reticulum_reload_lock:
             return await reload_reticulum_instance(self)
-
 
     async def hotswap_identity(self, identity_hash, keep_alive=False):
         async with self._identity_hotswap_lock:
@@ -3174,7 +3178,6 @@ class ReticulumMeshChat:
         )
 
         return await _process_crawler_task(self, task, context)
-
 
     # uses the provided destination hash as the active propagation node
     def set_active_propagation_node(self, destination_hash: str | None, context=None):

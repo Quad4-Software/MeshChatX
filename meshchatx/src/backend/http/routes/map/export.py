@@ -119,4 +119,3 @@ def register_map_export_routes(routes, app):
         if app.map_manager.cancel_export(export_id):
             return web.json_response({"message": "Export cancelled/deleted"})
         return http_not_found("Export not found")
-

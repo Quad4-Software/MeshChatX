@@ -69,4 +69,3 @@ def register_map_drawings_routes(routes, app):
         if not updated:
             return http_not_found("Drawing not found")
         return web.json_response({"message": "Drawing updated successfully"})
-

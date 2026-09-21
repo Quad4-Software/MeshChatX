@@ -91,4 +91,3 @@ def register_rn_tools_rnstatus_routes(routes, app):
             return http_error(504, str(e))
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
-

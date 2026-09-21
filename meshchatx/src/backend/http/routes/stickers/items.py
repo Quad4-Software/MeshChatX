@@ -151,4 +151,3 @@ def register_stickers_items_routes(routes: Any, app: Any) -> None:
             return http_not_found("not_found")
         ct = mime_for_image_type(row["image_type"])
         return web.Response(body=row["image_blob"], content_type=ct)
-

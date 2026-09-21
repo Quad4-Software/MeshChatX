@@ -41,4 +41,3 @@ def register_nomad_nomad_routes(routes: Any, app: Any) -> None:
 
         # failed to identify
         return http_unexpected("Failed to identify. No active link to destination.")
-

@@ -100,7 +100,6 @@ def global_mocks():
         patch("meshchatx.meshchat.generate_ssl_certificate", return_value=None),
         ExitStack(),
     ):
-
         # Mock run_async to properly close coroutines
         def mock_run_async(coro):
             if asyncio.iscoroutine(coro):

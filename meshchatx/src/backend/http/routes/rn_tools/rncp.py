@@ -214,4 +214,3 @@ def register_rn_tools_rncp_routes(routes, app):
             return web.json_response(result)
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
-

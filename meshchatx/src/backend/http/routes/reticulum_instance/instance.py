@@ -172,4 +172,3 @@ def register_reticulum_instance_instance_routes(routes, app):
         if success:
             return web.json_response({"message": "Reticulum reloaded successfully"})
         return http_unexpected("Failed to reload Reticulum")
-

@@ -435,9 +435,7 @@ async def apply_config_update(app: Any, data):
     if "oidc_client_id" in data:
         value = data["oidc_client_id"]
         app.config.oidc_client_id.set(
-            str(value).strip()
-            if value is not None and str(value).strip()
-            else None,
+            str(value).strip() if value is not None and str(value).strip() else None,
         )
 
     if "oidc_client_secret" in data:
@@ -452,9 +450,7 @@ async def apply_config_update(app: Any, data):
     if "oidc_display_name" in data:
         value = data["oidc_display_name"]
         app.config.oidc_display_name.set(
-            str(value).strip()
-            if value is not None and str(value).strip()
-            else None,
+            str(value).strip() if value is not None and str(value).strip() else None,
         )
 
     if "oidc_scopes" in data:
