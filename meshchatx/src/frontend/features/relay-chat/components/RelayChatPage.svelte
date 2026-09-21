@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount, onDestroy, tick } from "svelte";
+    import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import GlobalState from "../../../js/GlobalState.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
@@ -122,6 +123,19 @@
     let view = $state<RelayView>("chat");
     let viewBeforeRoomOpen = $state<RelayView | null>(null);
     let overflowMenuOpen = $state(false);
+    let overflowMenuEl: HTMLDivElement | undefined = $state();
+    onClickOutside(
+        () => overflowMenuEl,
+        () => {
+            overflowMenuOpen = false;
+        }
+    );
+
+    function handleOverflowKeydown(e: KeyboardEvent) {
+        if (e.key === "Escape" && overflowMenuOpen) {
+            overflowMenuOpen = false;
+        }
+    }
 
     // Hubs, rooms, messages
     let hubs = $state<RrcHub[]>([]);
@@ -1485,11 +1499,17 @@
 
     // --- room selection ---------------------------------------------------------
 
-    export function openSearchResult(target: { hubHash: string; room: string }) {
+    export async function openSearchResult(target: { hubHash: string; room: string }) {
         if (!target?.hubHash || !target?.room) {
             return;
         }
-        const hubObj = hubs.find((h) => h.hub_hash === target.hubHash);
+        let hubObj = hubs.find((h) => h.hub_hash === target.hubHash);
+        if (!hubObj) {
+            // The local list may just be stale or still loading; refresh once
+            // before deciding the hub is genuinely absent.
+            await fetchHubs();
+            hubObj = hubs.find((h) => h.hub_hash === target.hubHash);
+        }
         if (!hubObj) {
             // The hub is not in the local list (never added or disconnected),
             // so selecting it would leave the pane blank with no feedback.
@@ -2451,6 +2471,8 @@
     }
 </script>
 
+<svelte:window onkeydown={handleOverflowKeydown} />
+
 <div class="flex flex-col flex-1 min-w-0 h-full bg-sem-canvas text-sem-fg">
     {#if !rrcEnabled}
         <div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-sem-fg-muted">
@@ -2483,7 +2505,7 @@
 
                 <!-- mobile overflow: host, bots and search move here so the bar never scrolls -->
                 {#if overflowTabs.length > 0}
-                    <div class="relative md:hidden shrink-0">
+                    <div class="relative md:hidden shrink-0" bind:this={overflowMenuEl}>
                         <button
                             type="button"
                             role="tab"

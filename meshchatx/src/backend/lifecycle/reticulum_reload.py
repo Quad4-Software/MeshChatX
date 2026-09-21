@@ -370,7 +370,7 @@ async def reload_reticulum_instance(app: Any):
                                                 # Match IP and port for IPv4
                                                 if conn.laddr.port == addr[1] and (
                                                     conn.laddr.ip == addr[0]
-                                                    or addr[0] == "0.0.0.0"  # nosec: BAN-B104
+                                                    or addr[0] == "0.0.0.0"  # nosec: BAN-B104  # noqa: S104
                                                 ):
                                                     match = True
                                             elif family_str == "AF_UNIX":

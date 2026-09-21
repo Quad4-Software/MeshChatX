@@ -5,13 +5,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from meshchatx.src.backend.http.errors import http_unavailable
+
 # ruff: noqa: F401, F403, F405
-from meshchatx.src.backend.http.routes.websocket_upgrade._names import *  # noqa: F403
+from meshchatx.src.backend.http.routes.websocket_upgrade._names import *
 from meshchatx.src.backend.http.routes.websocket_upgrade._names import (
     _reject_forbidden_ws_origin,
     _reject_forbidden_ws_session,
 )
-from meshchatx.src.backend.http.errors import http_unavailable  # noqa: F401
 from meshchatx.src.path_utils import is_loopback_bind_host
 
 

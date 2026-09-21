@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F401, F403, F405
-
-from meshchatx.src.backend.appcontainer_sandbox.core import *  # noqa: F403
-
 from meshchatx.src.backend.appcontainer_sandbox import core as _core
+
+# ruff: noqa: F403
+from meshchatx.src.backend.appcontainer_sandbox.core import *
 
 _env_override = _core._env_override
 _windows_version_supported = _core._windows_version_supported

@@ -17,7 +17,7 @@ Supported page types:
 
 Follow links inside pages to browse further paths on the same node. Download files offered at /file/* paths.
 
-Rendering uses NomadPageRenderer.js with DOMPurify sanitization. Micron can use a JavaScript parser or optional Go WASM when nomad_micron_wasm_enabled is set.
+Rendering uses NomadPageRenderer.ts with DOMPurify sanitization. Micron can use a TypeScript parser or optional Go WASM when nomad_micron_wasm_enabled is set.
 
 ## Favourites and caching
 

@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F405
-
-from meshchatx.src.backend.http.routes.path_probe._names import *  # noqa: F403, F405
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_unavailable,
 )
+
+# ruff: noqa: F405
+from meshchatx.src.backend.http.routes.path_probe._names import *  # noqa: F403
 
 
 def register_path_probe_ping_routes(routes, app):
@@ -39,8 +39,8 @@ def register_path_probe_ping_routes(routes, app):
             return http_bad_request(f"Ping failed. {timeout_error}")
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
-            timeout_seconds = int(
-                round(path_response_window(destination_hash, reticulum)),
+            timeout_seconds = round(
+                path_response_window(destination_hash, reticulum),
             )
 
         # Split the budget so path discovery cannot consume the whole timeout.

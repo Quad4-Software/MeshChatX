@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { tick } from "svelte";
+    import { onDestroy, tick } from "svelte";
     import type { Snippet } from "svelte";
     import { Dialog } from "bits-ui";
     import { fade, fly } from "svelte/transition";
@@ -75,6 +75,17 @@
                     el.focus();
                 }
             });
+        }
+    });
+
+    // If the modal is unmounted while still open (keepAlive teardown), the
+    // close transition never runs, so restore focus here as well. A normal
+    // close clears previouslyFocused first, so this only fires for teardown.
+    onDestroy(() => {
+        const el = previouslyFocused;
+        previouslyFocused = null;
+        if (el?.isConnected) {
+            el.focus();
         }
     });
 

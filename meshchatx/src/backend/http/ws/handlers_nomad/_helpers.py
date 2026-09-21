@@ -7,8 +7,7 @@ from __future__ import annotations
 import hashlib
 
 # ruff: noqa: F405
-
-from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403
 from meshchatx.src.backend.websocket_runtime import (
     WS_NOMAD_CHUNK_SIZE,
     WS_NOMAD_CHUNK_THRESHOLD,
@@ -124,7 +123,6 @@ async def _send_nomad_file_bytes(
         )
         offset += len(chunk)
         chunk_index += 1
-    import hashlib
 
     digest = hashlib.sha256(file_bytes).hexdigest()
     await client.send_str(
@@ -227,7 +225,6 @@ async def _send_nomad_page_content(
         )
         offset += len(chunk)
         chunk_index += 1
-    import hashlib
 
     digest = hashlib.sha256(raw).hexdigest()
     body = {

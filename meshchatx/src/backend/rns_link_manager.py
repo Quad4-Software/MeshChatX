@@ -8,12 +8,11 @@ import time
 from collections.abc import Callable
 from typing import Optional
 
-from meshchatx.src.backend.async_utils import AsyncUtils
-from meshchatx.src.backend.meshchat_utils import hex_identifier_to_bytes
-
 import RNS
 
 from meshchatx.src.backend import reticulum_pathfinding
+from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.meshchat_utils import hex_identifier_to_bytes
 from meshchatx.src.backend.path_utils import (
     link_establishment_window,
     path_response_window,

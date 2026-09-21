@@ -3,13 +3,12 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F405
-
-from meshchatx.src.backend.http.routes.path_probe._names import *  # noqa: F403, F405
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
 )
 
+# ruff: noqa: F405
+from meshchatx.src.backend.http.routes.path_probe._names import *  # noqa: F403
 
 
 def register_path_probe_destination_routes(routes, app):

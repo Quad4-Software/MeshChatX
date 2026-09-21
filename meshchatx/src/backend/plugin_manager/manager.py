@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 # ruff: noqa: F401
-
 import json
 import os
 import re
@@ -32,6 +31,7 @@ from meshchatx.src.backend.plugin_integrity import (
     compute_dir_integrity_hash,
     verify_dir_integrity,
 )
+from meshchatx.src.backend.plugin_manager.record import PluginRecord
 from meshchatx.src.backend.plugin_permissions import (
     collect_network_endpoints,
     declared_permission_ids,
@@ -79,7 +79,6 @@ from meshchatx.src.path_utils import (
     is_path_within_dir,
     is_under_root,
 )
-from meshchatx.src.backend.plugin_manager.record import PluginRecord
 
 SUPPORTED_API_VERSION = 1
 PLUGIN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")

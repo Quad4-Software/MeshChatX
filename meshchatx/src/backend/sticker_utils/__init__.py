@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F401, F403, F405
-
-from meshchatx.src.backend.sticker_utils.core import *  # noqa: F403
-
 from meshchatx.src.backend.sticker_utils import core as _core
+
+# ruff: noqa: F403
+from meshchatx.src.backend.sticker_utils.core import *
 
 _read_png_dimensions = _core._read_png_dimensions
 _read_webp_dimensions = _core._read_webp_dimensions

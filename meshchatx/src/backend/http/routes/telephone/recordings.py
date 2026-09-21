@@ -2,15 +2,15 @@
 """HTTP routes: telephone recordings."""
 
 from __future__ import annotations
-# ruff: noqa: F405
 
-from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403, F405
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_not_found,
     parse_int_param,
 )
 
+# ruff: noqa: F405
+from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403
 
 
 def register_telephone_recordings_routes(routes, app):

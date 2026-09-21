@@ -2,13 +2,14 @@
 
 """Shared imports for websocket_upgrade HTTP route slices."""
 
-from __future__ import annotations
-
 # ruff: noqa: F401
-
 from __future__ import annotations
 
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
+from meshchatx.src.backend.http.errors import (
+    http_forbidden,
+    http_unauthorized,
+)
+from meshchatx.src.backend.http.meshchat_names import (
     LOGIN_PATH,
     LXMF,
     MAX_EXPORT_TILES,
@@ -135,12 +136,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.path_utils import path_response_window
-from meshchatx.src.path_utils import is_loopback_bind_host
-from meshchatx.src.backend.http.errors import (  # noqa: F401
-    http_forbidden,
-    http_unauthorized,
-)
-
 from meshchatx.src.backend.websocket_config_guard import websocket_origin_allowed
 from meshchatx.src.backend.websocket_runtime import (
     WS_IDLE_TIMEOUT_SEC,
@@ -154,6 +149,7 @@ from meshchatx.src.backend.websocket_runtime import (
     touch_client_activity,
     websocket_origin_policy_allows,
 )
+from meshchatx.src.path_utils import is_loopback_bind_host
 
 
 async def _reject_forbidden_ws_session(app, request):

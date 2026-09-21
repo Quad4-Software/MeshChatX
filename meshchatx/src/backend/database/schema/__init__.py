@@ -3,6 +3,5 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F403, F405
-
+# ruff: noqa: F403
 from meshchatx.src.backend.database.schema.core import *

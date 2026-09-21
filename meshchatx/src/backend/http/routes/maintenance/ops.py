@@ -5,15 +5,15 @@ from __future__ import annotations
 
 from typing import Any
 
-# ruff: noqa: F401, F403, F405
-from meshchatx.src.backend.http.routes.maintenance._names import *  # noqa: F403
-
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_error_from_exception,
     http_payload_too_large,
 )
+
+# ruff: noqa: F403, F405
+from meshchatx.src.backend.http.routes.maintenance._names import *
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,

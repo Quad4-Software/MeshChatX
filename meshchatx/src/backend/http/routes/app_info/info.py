@@ -3,21 +3,13 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F405
-
-from meshchatx.src.backend.http.routes.app_info._names import *  # noqa: F403, F405
-
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
-    http_bad_request,
-    http_conflict,
     http_error_from_exception,
-    http_payload_too_large,
 )
-from meshchatx.src.backend.http.uploads import (
-    PayloadTooLargeError,
-    read_json_limited,
-)
+
+# ruff: noqa: F405
+from meshchatx.src.backend.http.routes.app_info._names import *  # noqa: F403
 
 
 def register_app_info_info_routes(routes, app):

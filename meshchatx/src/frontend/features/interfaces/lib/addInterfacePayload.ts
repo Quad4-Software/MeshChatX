@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import {
-    buildRNodeTcpPort,
-    effectiveRNodeBlePort,
-    effectiveRNodeBtPort,
-    numOrNull,
-} from "./addInterfaceState.js";
+import { buildRNodeTcpPort, effectiveRNodeBlePort, effectiveRNodeBtPort, numOrNull } from "./addInterfaceState.js";
 import type { DiscoveryFields, SharedInterfaceSettings } from "./types.js";
 
 export interface AddInterfaceFormState {

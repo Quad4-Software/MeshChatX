@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from typing import Any
 
-# ruff: noqa: F821
-
 
 def build_user_guidance_messages(app: Any):
     mc = __import__("meshchatx.meshchat", fromlist=["*"])

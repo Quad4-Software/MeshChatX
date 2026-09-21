@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F401, F403, F405
-
-from meshchatx.src.backend.licenses_collector.core import *  # noqa: F403
-
 from meshchatx.src.backend.licenses_collector import core as _core
+
+# ruff: noqa: F403
+from meshchatx.src.backend.licenses_collector.core import *
 
 _repo_root = _core._repo_root
 _license_from_metadata = _core._license_from_metadata

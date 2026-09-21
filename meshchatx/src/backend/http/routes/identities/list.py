@@ -5,15 +5,15 @@ from __future__ import annotations
 
 from typing import Any
 
-# ruff: noqa: F401, F403, F405
-from meshchatx.src.backend.http.routes.identities._names import *  # noqa: F403
-
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_not_found,
     http_payload_too_large,
     http_unexpected,
 )
+
+# ruff: noqa: F403, F405
+from meshchatx.src.backend.http.routes.identities._names import *
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
@@ -152,7 +152,7 @@ def register_identities_list_routes(routes: Any, app: Any) -> None:
             def restart():
                 time.sleep(1)
                 try:
-                    os.execv(sys.executable, [sys.executable, *sys.argv])  # noqa: S606
+                    os.execv(sys.executable, [sys.executable, *sys.argv])
                 except Exception as e:
                     print(f"Failed to restart: {e}")
                     os._exit(0)

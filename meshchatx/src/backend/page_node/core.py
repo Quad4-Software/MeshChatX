@@ -111,7 +111,7 @@ def normalize_announce_interval_seconds(
         return int(default)
     try:
         seconds = int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return int(default)
     if seconds <= 0:
         return 0
@@ -956,13 +956,13 @@ class PageNode:
             return None
         try:
             quality = int(quality)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             quality = MEDIA_QUALITY
         quality = max(MEDIA_MIN_QUALITY, min(MEDIA_MAX_QUALITY, quality))
         if max_dimension:
             try:
                 max_dimension = int(max_dimension)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 max_dimension = MEDIA_MAX_DIMENSION
             max_dimension = max(1, min(MEDIA_MAX_DIMENSION, max_dimension))
         lower_name = os.path.basename(source_path).lower()
@@ -1046,13 +1046,13 @@ class PageNode:
             if isinstance(data, dict):
                 try:
                     quality = int(data.get("quality", quality))
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     quality = MEDIA_QUALITY
                 max_dimension_raw = data.get("max_dimension")
                 if max_dimension_raw is not None:
                     try:
                         max_dimension = int(max_dimension_raw)
-                    except (TypeError, ValueError):
+                    except (TypeError, ValueError, OverflowError):
                         max_dimension = MEDIA_MAX_DIMENSION
             # Clamp so arbitrary peer values cannot crash the converter or
             # grow the media cache with one file per quality/dimension pair.

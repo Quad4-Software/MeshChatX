@@ -43,6 +43,7 @@ __all__ = [
     "H_SRC",
     "H_TEXT",
     "H_TS",
+    "SLOW_CHANNEL_BPS",
     "RRCHub",
     "RRCHubActionsMixin",
     "RRCHubConnectionMixin",
@@ -51,6 +52,5 @@ __all__ = [
     "RRCManager",
     "RRCManagerPersistenceMixin",
     "RRCManagerRoomKeysMixin",
-    "SLOW_CHANNEL_BPS",
     "_slow_connect_gate",
 ]

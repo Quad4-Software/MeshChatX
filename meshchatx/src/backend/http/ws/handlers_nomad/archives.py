@@ -5,8 +5,7 @@
 from __future__ import annotations
 
 # ruff: noqa: F405
-
-from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403
 
 
 async def handle_nomadnet_page_archives_get(app, client, data):

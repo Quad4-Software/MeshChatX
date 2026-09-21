@@ -8,12 +8,12 @@ import os
 
 import RNS
 
-from meshchatx.src.path_utils import atomic_write_bytes
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.manager.constants import (
     HISTORY_DIR_NAME,
     HISTORY_FILENAME_SANITIZE_RE,
 )
+from meshchatx.src.path_utils import atomic_write_bytes
 
 
 class RRCManagerPersistenceMixin:

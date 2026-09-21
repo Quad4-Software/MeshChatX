@@ -5,14 +5,13 @@
 from __future__ import annotations
 
 # ruff: noqa: F405
-
 from meshchatx.src.backend.http.ws.handlers_nomad._helpers import (
     _is_nomad_image_request,
     _request_id_fields,
     _send_nomad_file_bytes,
     _validate_nomad_image_bytes,
 )
-from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403
 from meshchatx.src.backend.websocket_runtime import WS_NOMAD_FILE_MAX_BYTES
 
 

@@ -5,15 +5,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from meshchatx.src.backend.http.routes.rn_tools.rnsh import (
-    register_rn_tools_rnsh_routes,
-)
-from meshchatx.src.backend.http.routes.rn_tools.rnx import register_rn_tools_rnx_routes
 from meshchatx.src.backend.http.routes.rn_tools.rncp import (
     register_rn_tools_rncp_routes,
-)
-from meshchatx.src.backend.http.routes.rn_tools.rnstatus import (
-    register_rn_tools_rnstatus_routes,
 )
 from meshchatx.src.backend.http.routes.rn_tools.rnpath import (
     register_rn_tools_rnpath_routes,
@@ -21,6 +14,13 @@ from meshchatx.src.backend.http.routes.rn_tools.rnpath import (
 from meshchatx.src.backend.http.routes.rn_tools.rnprobe import (
     register_rn_tools_rnprobe_routes,
 )
+from meshchatx.src.backend.http.routes.rn_tools.rnsh import (
+    register_rn_tools_rnsh_routes,
+)
+from meshchatx.src.backend.http.routes.rn_tools.rnstatus import (
+    register_rn_tools_rnstatus_routes,
+)
+from meshchatx.src.backend.http.routes.rn_tools.rnx import register_rn_tools_rnx_routes
 
 
 def register_rn_tools_routes(routes: Any, app: Any) -> None:

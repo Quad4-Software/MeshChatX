@@ -4,8 +4,7 @@
 from __future__ import annotations
 
 # ruff: noqa: F405
-
-from meshchatx.src.backend.http.routes.app_info._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.routes.app_info._names import *  # noqa: F403
 
 
 def register_app_info_shutdown_routes(routes, app):

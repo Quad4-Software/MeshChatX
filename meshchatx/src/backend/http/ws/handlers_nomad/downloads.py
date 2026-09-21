@@ -5,9 +5,8 @@
 from __future__ import annotations
 
 # ruff: noqa: F405
-
 from meshchatx.src.backend.http.ws.handlers_nomad._helpers import _request_id_fields
-from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403, F405
+from meshchatx.src.backend.http.ws.handlers_nomad._names import *  # noqa: F403
 
 
 async def handle_nomadnet_download_cancel(app, client, data):

@@ -3,9 +3,6 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F405
-
-from meshchatx.src.backend.http.routes.reticulum_instance._names import *  # noqa: F403, F405
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_conflict,
@@ -13,11 +10,13 @@ from meshchatx.src.backend.http.errors import (
     http_payload_too_large,
     http_unexpected,
 )
+
+# ruff: noqa: F405
+from meshchatx.src.backend.http.routes.reticulum_instance._names import *  # noqa: F403
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
-
 
 
 def register_reticulum_instance_instance_routes(routes, app):

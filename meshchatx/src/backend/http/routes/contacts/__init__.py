@@ -7,8 +7,14 @@ from typing import Any
 
 from meshchatx.src.backend.http.routes.contacts.contacts import (
     CONTACTS_MAX_LIMIT as CONTACTS_MAX_LIMIT,
+)
+from meshchatx.src.backend.http.routes.contacts.contacts import (
     enrich_contact_row as enrich_contact_row,
+)
+from meshchatx.src.backend.http.routes.contacts.contacts import (
     parse_contacts_pagination as parse_contacts_pagination,
+)
+from meshchatx.src.backend.http.routes.contacts.contacts import (
     register_contacts_contacts_routes,
 )
 

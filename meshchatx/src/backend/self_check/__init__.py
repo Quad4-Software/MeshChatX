@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F401, F403, F405
-
-from meshchatx.src.backend.self_check.core import *
 from meshchatx.src.backend.self_check import core as _core
+
+# ruff: noqa: F403
+from meshchatx.src.backend.self_check.core import *
 
 _status = _core._status
 _check_storage_lock_soft_fallback = _core._check_storage_lock_soft_fallback

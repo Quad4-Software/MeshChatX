@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-# ruff: noqa: F401, F403, F405
-
-from meshchatx.src.backend.page_node.core import *  # noqa: F403
-
 from meshchatx.src.backend.page_node import core as _core
+
+# ruff: noqa: F403
+from meshchatx.src.backend.page_node.core import *
 
 _safe_mesh_file_basename = _core._safe_mesh_file_basename
 _path_is_under_root = _core._path_is_under_root

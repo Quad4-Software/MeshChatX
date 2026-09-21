@@ -29,6 +29,7 @@
         deleteWsMessage,
         fetchConversationPage,
         applyWsMessage,
+        prependConversationPage,
         updateWsMessage,
         visibleConversationItems,
     } from "../lib/conversationViewerMessages.js";
@@ -104,7 +105,7 @@
         navigateImageLightbox as navigateImageLightboxState,
     } from "../lib/conversationViewerLightbox.js";
     import type { LxmfMessage, ViewerChatItem, ViewerPathSnapshot } from "../lib/conversationViewerCtx.js";
-    import { sameHash } from "../lib/conversationViewerCtx.js";
+    import { messageKey, sameHash } from "../lib/conversationViewerCtx.js";
     import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "../lib/messageListVirtual.js";
     import { MAX_CHAT_ITEMS } from "../lib/constants.js";
     import type { Conversation, MessagesConfig, Peer } from "../lib/types.js";
@@ -441,7 +442,18 @@
                     messagesScroll,
                     tick,
                 });
-                if (!result || seq !== requestSequence) return;
+                if (!result) return;
+                if (seq !== requestSequence) {
+                    // A resync or reload landed while this page was in flight;
+                    // prepend the fetched older rows onto the live window
+                    // instead of discarding them. A conversation switch also
+                    // bumps the sequence, so only merge for the same peer.
+                    if (sameHash(selectedHash, peerHash)) {
+                        chatItems = prependConversationPage(chatItems, result.items).items;
+                        hasMorePrevious = result.hasMorePrevious;
+                    }
+                    return;
+                }
                 chatItems = result.items;
                 hasMorePrevious = result.hasMorePrevious;
                 if (result.paintedFromCache) {
@@ -533,6 +545,17 @@
             // Refresh the warm-start stash so the next open paints the
             // page we just merged rather than an older snapshot.
             stashConversationFirstPage(peerHash, page.data);
+            // If the newest page does not overlap the painted tail and older
+            // rows still exist, more than a page arrived while the pane was
+            // closed. A partial merge would leave an unreachable middle gap,
+            // so fall back to a full reload.
+            const pageKeys = new Set(page.items.map((item) => messageKey(item.lxmf_message)).filter(Boolean));
+            const overlapsPainted = chatItems.some((item) => pageKeys.has(messageKey(item.lxmf_message)));
+            if (!overlapsPainted && page.hasMore && chatItems.length > 0) {
+                await reloadLatestPage();
+                await refreshPeerNetwork(false);
+                return;
+            }
             let added = false;
             let next = chatItems;
             // Page items are chronological; apply in order so append order

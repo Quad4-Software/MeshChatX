@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
 import DialogUtils from "../../../js/DialogUtils.js";
-import GlobalEmitter from "../../../js/GlobalEmitter.js";
 import GlobalState from "../../../js/GlobalState.js";
 import MarkdownRenderer from "../../../js/MarkdownRenderer.js";
 import ToastUtils from "../../../js/ToastUtils.js";
@@ -126,9 +125,10 @@ function normalizeIconColour(value: string | undefined): string {
 
 // " [ICON: name;fg;bg]" carries the sender's user icon in a shared contact.
 // Icon names are not hashes so this needs its own bracket parser.
-function takeIconBracketField(
-    rest: string
-): { value?: { icon_name: string; foreground_colour: string; background_colour: string }; rest: string } {
+function takeIconBracketField(rest: string): {
+    value?: { icon_name: string; foreground_colour: string; background_colour: string };
+    rest: string;
+} {
     const prefix = " [ICON:";
     if (!rest.toLowerCase().startsWith(prefix.toLowerCase())) {
         return { rest };
@@ -537,13 +537,10 @@ export function createConversationViewerActions(
                 },
                 openExternalHttp: (href) => {
                     const warnOnStranger = Boolean(
-                        (GlobalState.config as { warn_on_stranger_links?: boolean } | undefined)
-                            ?.warn_on_stranger_links
+                        (GlobalState.config as { warn_on_stranger_links?: boolean } | undefined)?.warn_on_stranger_links
                     );
                     if (deps.isStrangerPeer && warnOnStranger) {
-                        void DialogUtils.confirm(
-                            t("messages.stranger_link_open_confirm", { url: href })
-                        ).then((ok) => {
+                        void DialogUtils.confirm(t("messages.stranger_link_open_confirm", { url: href })).then((ok) => {
                             if (ok) window.open(href, "_blank", "noopener,noreferrer");
                         });
                         return;

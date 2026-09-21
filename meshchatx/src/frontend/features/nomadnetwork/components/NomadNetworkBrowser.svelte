@@ -29,6 +29,7 @@
         toggleNomadIdentifyOnConnect,
     } from "../lib/nomadBrowserData.js";
     import { DEFAULT_PAGE_PATH } from "../lib/constants.js";
+    import LinkUtils from "../../../js/LinkUtils.js";
     import { parseNomadUrl } from "../lib/nomadPageNavigation.js";
     import type {
         NomadContextMenuState,
@@ -264,6 +265,12 @@
     }
 
     function handleNavigateUrl(url: string) {
+        // Typed http(s) URLs open externally like in-page links do; without
+        // this check "https://x" parses as a bogus hash:path mesh destination.
+        if (LinkUtils.httpUrlHrefOrNull(url?.trim())) {
+            window.open(url.trim(), "_blank");
+            return;
+        }
         const { destinationHash: dHash, pagePath: pPath } = parseNomadUrl(url);
         const targetHash = dHash || activeTab?.destinationHash || "";
         if (!targetHash) return;

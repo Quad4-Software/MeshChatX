@@ -18,10 +18,10 @@ import RNS
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.config_manager import ConfigManager
 from meshchatx.src.backend.database import Database
-from meshchatx.src.backend.rrc.manager.manager import RRCManager
-from meshchatx.src.backend.rrc.server.core import RRCServerManager
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
+from meshchatx.src.backend.rrc.manager.manager import RRCManager
+from meshchatx.src.backend.rrc.server.core import RRCServerManager
 from tests.backend.support.test_temp_dir import (
     TEST_COVERAGE_DIR,
     ensure_test_temp_dirs,
@@ -98,7 +98,7 @@ def global_mocks():
             return_value=None,
         ),
         patch("meshchatx.meshchat.generate_ssl_certificate", return_value=None),
-        ExitStack() as stack,
+        ExitStack(),
     ):
 
         # Mock run_async to properly close coroutines
