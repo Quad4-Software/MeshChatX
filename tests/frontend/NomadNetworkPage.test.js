@@ -1843,6 +1843,110 @@ describe("NomadNetworkPage.vue", () => {
         });
     });
 
+    describe("resendInFlightNomadDownloads", () => {
+        let WebSocketConnection;
+
+        beforeEach(async () => {
+            WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            WebSocketConnection.send.mockClear();
+        });
+
+        it("cancels orphaned transfers and resends in-flight downloads", () => {
+            const wrapper = mountNomadNetworkPage();
+            const pagePayload = JSON.stringify({ type: "nomadnet.page.download" });
+            const filePayload = JSON.stringify({ type: "nomadnet.file.download" });
+            const pageEntry = { sent: true, payload: pagePayload, downloadId: "dl-old", primary: true };
+            const fileEntry = { sent: true, payload: filePayload, downloadId: "dl-file" };
+            wrapper.vm.nomadnetPageDownloadCallbacks["p1"] = pageEntry;
+            wrapper.vm.nomadnetFileDownloadCallbacks["f1"] = fileEntry;
+            wrapper.vm.currentPageDownloadId = "dl-old";
+            wrapper.vm.currentFileDownloadId = "dl-file";
+            wrapper.vm.nomadImageDownloadCallbacks["i1"] = { downloadId: "dl-old" };
+
+            wrapper.vm.resendInFlightNomadDownloads();
+
+            const sent = WebSocketConnection.send.mock.calls.map((call) => JSON.parse(call[0]));
+            expect(sent).toContainEqual({ type: "nomadnet.download.cancel", download_id: "dl-old" });
+            expect(sent).toContainEqual({ type: "nomadnet.download.cancel", download_id: "dl-file" });
+            expect(sent).toContainEqual({ type: "nomadnet.page.download" });
+            expect(sent).toContainEqual({ type: "nomadnet.file.download" });
+            expect(pageEntry.downloadId).toBeNull();
+            expect(fileEntry.downloadId).toBeNull();
+            expect(wrapper.vm.currentPageDownloadId).toBeNull();
+            expect(wrapper.vm.currentFileDownloadId).toBeNull();
+            expect(wrapper.vm.nomadImageDownloadCallbacks["i1"].downloadId).toBeNull();
+            wrapper.unmount();
+        });
+
+        it("keeps the resent entry when the stale cancelled event arrives", async () => {
+            const wrapper = mountNomadNetworkPage();
+            const entry = {
+                sent: true,
+                payload: JSON.stringify({ type: "nomadnet.page.download" }),
+                downloadId: "dl-old",
+            };
+            wrapper.vm.nomadnetPageDownloadCallbacks["p1"] = entry;
+
+            wrapper.vm.resendInFlightNomadDownloads();
+            await dispatchWsEvent("nomadnet.download.cancelled", { download_id: "dl-old" });
+
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks["p1"]).toStrictEqual(entry);
+            wrapper.unmount();
+        });
+
+        it("settles entries whose resend fails on a dead socket", () => {
+            const wrapper = mountNomadNetworkPage();
+            const onFailure = vi.fn();
+            wrapper.vm.nomadnetFileDownloadCallbacks["f1"] = {
+                sent: true,
+                payload: JSON.stringify({ type: "nomadnet.file.download" }),
+                downloadId: "dl-file",
+                onFailureCallback: onFailure,
+            };
+            WebSocketConnection.send.mockReturnValue(false);
+
+            wrapper.vm.resendInFlightNomadDownloads();
+
+            expect(wrapper.vm.nomadnetFileDownloadCallbacks["f1"]).toBeUndefined();
+            expect(onFailure).toHaveBeenCalledWith("nomadnet.websocket_not_connected");
+            wrapper.unmount();
+        });
+
+        it("clears the loading state for primary page entries without a failure callback", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.isLoadingNodePage = true;
+            wrapper.vm.nodePageLoadPhase = "request";
+            wrapper.vm.nomadnetPageDownloadCallbacks["p1"] = {
+                sent: true,
+                payload: JSON.stringify({ type: "nomadnet.page.download" }),
+                primary: true,
+            };
+            WebSocketConnection.send.mockReturnValue(false);
+
+            wrapper.vm.resendInFlightNomadDownloads();
+
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks["p1"]).toBeUndefined();
+            expect(wrapper.vm.isLoadingNodePage).toBe(false);
+            expect(wrapper.vm.nodePageLoadPhase).toBeNull();
+            expect(wrapper.vm.nodePageContent).toBe("Failed loading page: nomadnet.websocket_not_connected");
+            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.failed_to_load_page");
+            wrapper.unmount();
+        });
+
+        it("skips entries that were never sent or have no payload", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nomadnetPageDownloadCallbacks["p1"] = { sent: false, payload: "{}" };
+            wrapper.vm.nomadnetFileDownloadCallbacks["f1"] = { sent: true };
+
+            wrapper.vm.resendInFlightNomadDownloads();
+
+            expect(WebSocketConnection.send).not.toHaveBeenCalled();
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks["p1"]).toBeDefined();
+            expect(wrapper.vm.nomadnetFileDownloadCallbacks["f1"]).toBeDefined();
+            wrapper.unmount();
+        });
+    });
+
     describe("touch gestures", () => {
         const makeContainer = () => ({
             scrollTop: 0,
