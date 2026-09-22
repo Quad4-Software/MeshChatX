@@ -506,7 +506,8 @@ import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, WS_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import * as announcesApi from "../../js/api/announces.js";
 import * as telephoneApi from "../../js/api/telephone.js";
 import {
@@ -606,7 +607,9 @@ export default {
     },
     beforeUnmount() {
         offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResult);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         document.removeEventListener("click", this.closeContextMenu);
+        document.removeEventListener("contextmenu", this.closeContextMenu, true);
         this.stopScanner();
         if (this.searchDebounceTimeout) {
             clearTimeout(this.searchDebounceTimeout);
@@ -614,11 +617,26 @@ export default {
     },
     async mounted() {
         document.addEventListener("click", this.closeContextMenu);
+        // Capture so a right-click on another row closes the open menu before
+        // that row's own contextmenu handler reopens it at the new anchor.
+        document.addEventListener("contextmenu", this.closeContextMenu, true);
         onWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResult);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         await this.getConfig();
         await this.getContacts();
     },
     methods: {
+        async onIdentitySwitched() {
+            // Contacts, the share URI, and its QR all belong to the old
+            // identity; drop them before the new identity's data lands.
+            this.contacts = [];
+            this.totalContactsCount = 0;
+            this.myQrDataUrl = null;
+            this.myIdentityUri = null;
+            this.closeContextMenu();
+            await this.getConfig();
+            await this.getContacts();
+        },
         async getConfig() {
             try {
                 const response = await window.api.get(apiPath("/config"));
@@ -848,8 +866,10 @@ export default {
         async editContactName(contact) {
             this.closeContextMenu();
             if (!contact?.id) return;
-            const name = await DialogUtils.prompt(this.$t("contacts.enter_contact_name"), contact.name);
-            if (name == null || name === contact.name) return;
+            const entered = await DialogUtils.prompt(this.$t("contacts.enter_contact_name"), contact.name);
+            if (entered == null) return;
+            const name = String(entered).trim();
+            if (!name || name === contact.name) return;
             try {
                 const duplicates = this.contacts.filter((c) => c.name === contact.name && c.id !== contact.id);
                 const ids = [contact.id, ...duplicates.map((c) => c.id)];
@@ -859,7 +879,7 @@ export default {
                 const allContacts = [contact, ...duplicates];
                 for (const c of allContacts) {
                     const destHash = c.remote_destination_hash || c.lxmf_address || c.remote_identity_hash;
-                    if (destHash && name.length > 0) {
+                    if (destHash) {
                         await window.api.post(apiPath(`/destination/${destHash}/custom-display-name/update`), {
                             display_name: name,
                         });

@@ -61,6 +61,11 @@ export function useRelayMessageTimeline(options = {}) {
     const expandedPresenceGroups = ref({});
     const tailTrimmed = ref(false);
     const reloadingLatest = ref(false);
+    // Oldest seq ever fetched for this room, including messages that were
+    // excluded from the display list. before_seq must advance past fully
+    // filtered pages (all ignored or hidden presence) or scroll-up refetches
+    // the same page forever.
+    const oldestFetchedSeq = ref(null);
     let headTrimQueued = false;
 
     const messageTimeline = computed(() => {
@@ -99,6 +104,7 @@ export function useRelayMessageTimeline(options = {}) {
         (msgs) => {
             if (msgs.length === 0) {
                 tailTrimmed.value = false;
+                oldestFetchedSeq.value = null;
             }
             const sig = relayMessageTimelineSignature(msgs);
             if (messageTimelineCache.value === null || messageTimelineCacheSignature.value !== sig) {
@@ -113,7 +119,10 @@ export function useRelayMessageTimeline(options = {}) {
         if (isLoadingPrevious.value || !hasMorePrevious.value || !getSelectedHubHash?.() || !getSelectedRoom?.()) {
             return;
         }
-        const beforeSeq = oldestLoadedSeq.value;
+        const loadedMin = oldestLoadedSeq.value;
+        const fetchedMin = oldestFetchedSeq.value;
+        const beforeSeq =
+            loadedMin === null && fetchedMin === null ? null : Math.min(loadedMin ?? Infinity, fetchedMin ?? Infinity);
         if (beforeSeq === null) {
             hasMorePrevious.value = false;
             return;
@@ -132,14 +141,20 @@ export function useRelayMessageTimeline(options = {}) {
             }
             const older = response.data?.messages || [];
             hasMorePrevious.value = Boolean(response.data?.has_more);
+            for (const msg of older) {
+                if (typeof msg?.seq === "number") {
+                    oldestFetchedSeq.value =
+                        oldestFetchedSeq.value === null ? msg.seq : Math.min(oldestFetchedSeq.value, msg.seq);
+                }
+            }
             if (older.length === 0) {
                 return;
             }
             const uniqueOlder = filterUniqueOlderRelayMessages(older, messages.value);
             if (uniqueOlder.length === 0) {
-                if (older.length > 0) {
-                    hasMorePrevious.value = false;
-                }
+                // A fully duplicate page does not mean history ends: trust
+                // the server has_more flag and let oldestFetchedSeq walk
+                // the pagination window past this page.
                 return;
             }
             // Locally ignored peers never enter the display list, but the
@@ -232,6 +247,12 @@ export function useRelayMessageTimeline(options = {}) {
             tailTrimmed.value = false;
             Promise.resolve(reloadLatest?.()).finally(() => {
                 reloadingLatest.value = false;
+                // A failed reload resolves with the room still empty and
+                // nothing else re-triggers the fetch, so re-arm for the next
+                // bottom-scroll.
+                if (messages.value.length === 0) {
+                    tailTrimmed.value = true;
+                }
             });
             return;
         }

@@ -42,6 +42,27 @@ export function useMessageDrafts(options = {}) {
             // identity and leak the draft into the wrong bucket.
             const key = scope.beginIdentity(identityKey);
             const drafts = readDraftRoot();
+            // Drafts saved before the identity hash resolved landed in the
+            // "_" fallback bucket. Fold them into the real bucket once the
+            // hash is known so they are not orphaned behind the nested
+            // bucket check. Existing real-bucket entries win.
+            if (key !== "_" && drafts["_"] !== undefined) {
+                const fallback = draftBucketFor(drafts, "_");
+                if (fallback) {
+                    let target = draftBucketFor(drafts, key);
+                    if (!target) {
+                        target = {};
+                        drafts[key] = target;
+                    }
+                    for (const [dest, draftText] of Object.entries(fallback)) {
+                        if (typeof draftText === "string" && typeof target[dest] !== "string") {
+                            target[dest] = draftText;
+                        }
+                    }
+                }
+                delete drafts["_"];
+                localStorage.setItem(STORAGE_KEYS.MESSAGE_DRAFTS, JSON.stringify(drafts));
+            }
             const bucket = draftBucketFor(drafts, key);
             let text = "";
             if (bucket && typeof bucket[destinationHash] === "string") {

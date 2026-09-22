@@ -98,10 +98,15 @@ export default {
         clearSearch() {
             this.query = "";
             this.results = [];
+            // Invalidate any in-flight search so a stale response cannot
+            // repopulate results under the empty query.
+            this.searchGen += 1;
+            this.searching = false;
         },
         async runSearch() {
             const q = this.query.trim();
             if (!q) {
+                this.searchGen += 1;
                 this.results = [];
                 this.searching = false;
                 return;

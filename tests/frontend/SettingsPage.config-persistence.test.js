@@ -560,6 +560,42 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         await w.vm.updateConfig({ telemetry_enabled: true }, "telemetry");
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { telemetry_enabled: true });
     });
+
+    it("identity switch cancels pending debounced saves", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.display_name = "Typed Under Old Identity";
+        await w.vm.onDisplayNameChange();
+        api.patch.mockClear();
+        w.vm.onIdentitySwitched();
+        await vi.advanceTimersByTimeAsync(2000);
+        // The queued save reads this.config at fire time; cancelling it
+        // keeps the old identity's edit from PATCHing the new identity.
+        expect(api.patch).not.toHaveBeenCalledWith("/api/v1/config", {
+            display_name: "Typed Under Old Identity",
+        });
+    });
+
+    it("a config event keeps keys whose debounced save is still pending", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.display_name = "Typed Name";
+        await w.vm.onDisplayNameChange();
+        w.vm.onConfigEvent({ config: { display_name: "Server Name", theme: "light" } });
+        // The pending field keeps the in-flight edit; other keys merge.
+        expect(w.vm.config.display_name).toBe("Typed Name");
+        expect(w.vm.config.theme).toBe("light");
+        await vi.advanceTimersByTimeAsync(600);
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { display_name: "Typed Name" });
+    });
+
+    it("unmount flushes pending debounced saves instead of dropping them", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.display_name = "Flushed Name";
+        await w.vm.onDisplayNameChange();
+        api.patch.mockClear();
+        w.unmount();
+        await flushPromises();
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { display_name: "Flushed Name" });
+    });
 });
 
 describe("SettingsPage: transport mode (POST, not PATCH)", () => {
