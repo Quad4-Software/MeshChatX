@@ -26,6 +26,32 @@ class DebugLogsDAO:
             ),
         )
 
+    def insert_logs(self, rows):
+        """Insert a batch of log rows as one transaction.
+
+        Rows are (timestamp, level, module, message, is_anomaly,
+        anomaly_type) tuples. Batching turns a flush burst into a single
+        WAL commit instead of one transaction per log line.
+        """
+        if not rows:
+            return
+        sql = """
+            INSERT INTO debug_logs (timestamp, level, module, message, is_anomaly, anomaly_type)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """
+        if self.provider.connection.in_transaction:
+            # The flushing thread already holds a transaction, so join it
+            # instead of committing work the caller has not finished.
+            self.provider.executemany(sql, rows)
+            return
+        self.provider.begin()
+        try:
+            self.provider.executemany(sql, rows)
+            self.provider.commit()
+        except Exception:
+            self.provider.rollback()
+            raise
+
     def get_logs(
         self,
         limit=100,
