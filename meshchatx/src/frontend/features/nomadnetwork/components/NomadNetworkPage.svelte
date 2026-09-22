@@ -48,6 +48,7 @@
     } from "../lib/nomadCrashTabHost.js";
     import {
         cancelNomadActiveDownload,
+        resendInFlightNomadDownloads,
         onNomadDownloadCancelledEvent,
         onNomadFileDownloadEvent,
         onNomadPageArchiveAddedEvent,
@@ -154,6 +155,9 @@
     let micronWasmReleaseLabel = $state(resolveMicronWasmReleaseLabel() || "");
     let nomadPageDownloadChunkBuffers: NomadChunkBuffers = {};
     let nomadFileDownloadChunkBuffers: NomadChunkBuffers = {};
+    // Sent requests kept so a websocket reconnect can re-issue them.
+    let inFlightPagePayload = $state<Record<string, unknown> | null>(null);
+    let inFlightFilePayload = $state<Record<string, unknown> | null>(null);
 
     let contextMenu = $state<NomadContextMenuState>({
         show: false,
@@ -430,12 +434,14 @@
         const sent = sendNomadWs(payload);
         if (!sent) {
             if (seq !== pageRequestSequence) return;
+            inFlightPagePayload = null;
             clearPageLoadTimeout();
             isLoadingNodePage = false;
             nodePageContent = t("nomadnet.failed_to_load_page");
             ToastUtils.error(t("nomadnet.websocket_not_connected"));
             return;
         }
+        inFlightPagePayload = payload;
         ontabactivity?.();
     }
 
@@ -520,15 +526,44 @@
 
     function onPageDownloadEvent(json: Record<string, unknown>) {
         onNomadPageDownloadEvent(downloadAccess, json);
+        const status = (json.nomadnet_page_download as Record<string, unknown> | null)?.status;
+        if ((status === "success" || status === "failure") && !isLoadingNodePage && currentPageDownloadId == null) {
+            inFlightPagePayload = null;
+        }
     }
 
     function onFileDownloadEvent(json: Record<string, unknown>) {
         if (nomadImageLoader.handleFileDownloadEvent(json)) return;
         onNomadFileDownloadEvent(downloadAccess, json);
+        const status = (json.nomadnet_file_download as Record<string, unknown> | null)?.status;
+        if (status === "success" || status === "failure") {
+            inFlightFilePayload = null;
+        }
     }
 
     function onDownloadCancelledEvent(json: Record<string, unknown>) {
+        // Match against the pre-dispatch ids: resend clears them first so a
+        // stale cancel for an orphaned download cannot drop the resent one.
+        const cancelledPage = json.download_id != null && json.download_id === currentPageDownloadId;
+        const cancelledFile = json.download_id != null && json.download_id === currentFileDownloadId;
         onNomadDownloadCancelledEvent(downloadAccess, json);
+        if (cancelledPage) inFlightPagePayload = null;
+        if (cancelledFile) inFlightFilePayload = null;
+    }
+
+    function onWebsocketReconnected() {
+        resendInFlightNomadDownloads(downloadAccess, {
+            pagePayload: inFlightPagePayload,
+            filePayload: inFlightFilePayload,
+            resendImages: () => nomadImageLoader.resendInFlightDownloads(),
+            armPageLoadTimeout,
+            onPageResendFailed: () => {
+                inFlightPagePayload = null;
+            },
+            onFileResendFailed: () => {
+                inFlightFilePayload = null;
+            },
+        });
     }
 
     function onPageArchivesEvent(json: Record<string, unknown>) {
@@ -568,6 +603,8 @@
     }
 
     function handleCancel() {
+        inFlightPagePayload = null;
+        inFlightFilePayload = null;
         cancelNomadActiveDownload(downloadAccess, { abortRender: () => rendererHost?.abortRender() });
     }
 
@@ -607,6 +644,9 @@
         isShowingArchivedVersion = false;
         archivedAt = null;
         pageRenderAborted = false;
+        // The in-flight transfer becomes an archive load, which a reconnect
+        // resend cannot replay.
+        inFlightPagePayload = null;
         armPageLoadTimeout();
 
         const archive = pageArchives.find((a) => String(a.id) === String(archiveId));
@@ -693,7 +733,15 @@
 
     function downloadPageToDisk() {
         if (selectedNode?.destination_hash && relativePagePath) {
-            sendNomadWs(createFileDownloadRequestPayload(selectedNode.destination_hash, relativePagePath, isPrivate));
+            const payload = createFileDownloadRequestPayload(
+                selectedNode.destination_hash,
+                relativePagePath,
+                isPrivate
+            );
+            if (sendNomadWs(payload)) {
+                // kept so a websocket reconnect can re-issue this request
+                inFlightFilePayload = payload;
+            }
         }
     }
 
@@ -763,6 +811,7 @@
         onWsEvent("nomadnet.download.cancelled", onDownloadCancelledEvent);
         onWsEvent("nomadnet.page.archives", onPageArchivesEvent);
         onWsEvent("nomadnet.page.archive.added", onPageArchiveAddedEvent);
+        GlobalEmitter.on("websocket-reconnected", onWebsocketReconnected);
         if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
             void preloadNomadMicronWasm().then((ok) => {
                 nomadMicronWasmReady = ok === true;
@@ -780,6 +829,7 @@
         offWsEvent("nomadnet.download.cancelled", onDownloadCancelledEvent);
         offWsEvent("nomadnet.page.archives", onPageArchivesEvent);
         offWsEvent("nomadnet.page.archive.added", onPageArchiveAddedEvent);
+        GlobalEmitter.off("websocket-reconnected", onWebsocketReconnected);
         nomadImageLoader.clear();
         clearPageLoadTimeout();
     });

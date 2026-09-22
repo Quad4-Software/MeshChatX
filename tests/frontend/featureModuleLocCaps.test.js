@@ -42,7 +42,7 @@ const LEGACY_PAGE_ALLOWLIST = new Set([
 
 /** Page shells restored for Vue parity, tracked under regression caps rather than hard 800. */
 const LEGACY_PAGE_REGRESSION = {
-    "NomadNetworkPage.svelte": 1030, // Svelte migration: page state + download handlers
+    "NomadNetworkPage.svelte": 1078, // Svelte migration: page state + download handlers + reconnect resend
     "RelayChatPage.svelte": 2900, // full Vue parity merge incl. host, moderation, bots, search, popout and resync
 };
 

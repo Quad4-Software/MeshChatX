@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import type { Snippet } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import MapToolbarControls from "./MapToolbarControls.svelte";
     import { t } from "../../../js/i18n.js";
@@ -11,10 +12,13 @@
         discoveredVisible?: boolean;
         offlineEnabled?: boolean;
         hideControls?: boolean;
+        searchOpen?: boolean;
+        searchBar?: Snippet;
         ontogglediscovered?: () => void;
         ontoggleoffline?: (enabled: boolean) => void;
         ontogglemotools?: () => void;
         ontogglesettings?: () => void;
+        ontogglesearch?: () => void;
         onshare?: () => void;
     }
 
@@ -24,12 +28,21 @@
         discoveredVisible = false,
         offlineEnabled = false,
         hideControls = false,
+        searchOpen = false,
+        searchBar,
         ontogglediscovered,
         ontoggleoffline,
         ontogglemotools,
         ontogglesettings,
+        ontogglesearch,
         onshare,
     }: Props = $props();
+
+    let toolbarControls: ReturnType<typeof MapToolbarControls> | undefined = $state();
+
+    export function getMapToolsButtonEl() {
+        return toolbarControls?.getMapToolsButtonEl() ?? null;
+    }
 </script>
 
 {#if !embedded}
@@ -45,12 +58,16 @@
 
 {#if !hideControls}
     <MapToolbarControls
+        bind:this={toolbarControls}
         {discoveredVisible}
         {offlineEnabled}
+        {searchOpen}
+        {searchBar}
         {ontogglediscovered}
         {ontoggleoffline}
         {ontogglemotools}
         {ontogglesettings}
+        {ontogglesearch}
         {onshare}
     />
 {/if}

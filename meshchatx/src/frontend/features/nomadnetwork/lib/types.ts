@@ -15,6 +15,8 @@ export interface NomadNode {
     display_name?: string;
     custom_display_name?: string | null;
     updated_at?: string;
+    created_at?: string;
+    announce_count?: number;
     aspect?: string;
     hops?: number;
     [key: string]: unknown;

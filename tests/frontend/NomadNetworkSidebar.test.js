@@ -95,4 +95,46 @@ describe("NomadNetworkSidebar.svelte", () => {
 
         expect(onnavigateurl).not.toHaveBeenCalled();
     });
+
+    it("keeps the announces list mounted while loading more", async () => {
+        const { getByText, container } = render(NomadNetworkSidebar, {
+            favourites: [],
+            nodes: {
+                ccdd: { destination_hash: "ccdd", display_name: "Announced Node" },
+            },
+            isLoadingMoreNodes: true,
+            hasMoreNodes: true,
+        });
+
+        const announcesTab = getByText(/announces|nomadnet\.announces/i);
+        await fireEvent.click(announcesTab);
+
+        // regression: the loading spinner must not replace the list
+        expect(getByText("Announced Node")).toBeTruthy();
+        expect(container.querySelector(".animate-spin")).toBeTruthy();
+    });
+
+    it("switches announces ordering via the sort select", async () => {
+        const { getByText, getByTitle } = render(NomadNetworkSidebar, {
+            favourites: [],
+            nodes: {
+                aaaa: { destination_hash: "aaaa", display_name: "Zebra", announce_count: 1 },
+                bbbb: { destination_hash: "bbbb", display_name: "Alpha", announce_count: 9 },
+            },
+        });
+
+        const announcesTab = getByText(/announces|nomadnet\.announces/i);
+        await fireEvent.click(announcesTab);
+
+        const select = getByTitle(/sort announces|nomadnet\.sort_announces/i);
+        await fireEvent.change(select, { target: { value: "name" } });
+
+        const rows = [...document.querySelectorAll(".announce-card, [data-destination-hash]")].map(
+            (el) => el.textContent
+        );
+        const alphaIdx = rows.findIndex((txt) => txt.includes("Alpha"));
+        const zebraIdx = rows.findIndex((txt) => txt.includes("Zebra"));
+        expect(alphaIdx).toBeGreaterThanOrEqual(0);
+        expect(alphaIdx).toBeLessThan(zebraIdx);
+    });
 });

@@ -212,6 +212,13 @@
     let isSearchFocused = $state(false);
     let searchError = $state<string | null>(null);
     let isMobileScreen = $state(false);
+    let isMobileSearchOpen = $state(false);
+    let searchContainer = $state<HTMLDivElement | null>(null);
+    let inlineSearchContainer = $state<HTMLDivElement | null>(null);
+    let mobileSearchBar: ReturnType<typeof MapSearchBar> | undefined = $state();
+    let mapHeaderBar: ReturnType<typeof MapHeaderBar> | undefined = $state();
+    let mapToolbarControls: ReturnType<typeof MapToolbarControls> | undefined = $state();
+    let onboardingTooltip: ReturnType<typeof MapOnboardingTooltip> | undefined = $state();
 
     let isMapToolsOpen = $state(false);
     let isSettingsOpen = $state(false);
@@ -1262,14 +1269,100 @@
         tileLayer?.getSource()?.refresh?.();
     }
 
-    function checkOnboardingTooltip() {
+    function getOnboardingAnchorEl(): HTMLElement | null {
+        return mapToolbarControls?.getMapToolsButtonEl() ?? mapHeaderBar?.getMapToolsButtonEl() ?? null;
+    }
+
+    async function checkOnboardingTooltip() {
         try {
             const hasSeen = localStorage.getItem("map_onboarding_seen");
             if (!hasSeen && !offlineEnabled) {
                 showOnboardingTooltip = true;
+                await positionOnboardingTooltip();
             }
         } catch {
             // ignore storage errors
+        }
+    }
+
+    // anchors the tooltip to the map tools button: below it and right-aligned
+    // on desktop, centered above or below it on mobile
+    async function positionOnboardingTooltip() {
+        await tick();
+        const anchorButton = getOnboardingAnchorEl();
+        const tooltip = onboardingTooltip?.getTooltipEl() ?? null;
+        if (!anchorButton || !tooltip) return;
+
+        const buttonRect = anchorButton.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+
+        const isMobile = window.innerWidth < 640;
+        let tooltipLeft = 0;
+        let tooltipTop = 0;
+        let tooltipAboveButton = false;
+
+        if (isMobile) {
+            tooltipLeft = window.innerWidth / 2 - tooltipRect.width / 2;
+            tooltipTop = buttonRect.top - tooltipRect.height - 20;
+            tooltipAboveButton = true;
+            if (tooltipTop < 10) {
+                tooltipTop = buttonRect.bottom + 20;
+                tooltipAboveButton = false;
+            }
+        } else {
+            // below the toolbar button, right edge aligned with the button
+            tooltipTop = buttonRect.bottom + 16;
+            tooltipLeft = buttonRect.right - tooltipRect.width;
+        }
+
+        if (tooltipTop < 10) tooltipTop = 10;
+        if (tooltipLeft < 10) tooltipLeft = 10;
+        if (tooltipLeft + tooltipRect.width > window.innerWidth - 10) {
+            tooltipLeft = window.innerWidth - tooltipRect.width - 10;
+        }
+
+        onboardingTooltipStyle = `left: ${tooltipLeft}px; top: ${tooltipTop}px;`;
+
+        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+        const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+        const tooltipCenterX = tooltipLeft + tooltipRect.width / 2;
+
+        const arrowStartX = isMobile ? tooltipCenterX : buttonCenterX;
+        const arrowStartY = isMobile ? (tooltipAboveButton ? tooltipTop + tooltipRect.height : tooltipTop) : tooltipTop;
+        const arrowEndX = isMobile ? buttonRect.left + buttonRect.width * 0.25 : buttonCenterX;
+        const arrowEndY = isMobile ? buttonCenterY : buttonRect.bottom;
+
+        const controlX1 = arrowStartX + (arrowEndX - arrowStartX) * 0.5;
+        const controlY1 = arrowStartY + (arrowEndY - arrowStartY) * 0.3;
+        const controlX2 = arrowStartX + (arrowEndX - arrowStartX) * 0.7;
+        const controlY2 = arrowStartY + (arrowEndY - arrowStartY) * 0.7;
+
+        onboardingArrowPath = `M ${arrowStartX} ${arrowStartY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${arrowEndX} ${arrowEndY}`;
+    }
+
+    function checkScreenSize() {
+        isMobileScreen = window.innerWidth < 640;
+        if (!isMobileScreen) {
+            isMobileSearchOpen = false;
+        }
+    }
+
+    async function toggleMobileSearch() {
+        isMobileSearchOpen = !isMobileSearchOpen;
+        if (isMobileSearchOpen) {
+            await tick();
+            mobileSearchBar?.focus();
+        } else {
+            isSearchFocused = false;
+        }
+    }
+
+    function handleSearchClickOutside(event: MouseEvent) {
+        const target = event.target as Node | null;
+        const insideSearch =
+            (searchContainer?.contains(target) ?? false) || (inlineSearchContainer?.contains(target) ?? false);
+        if (!insideSearch) {
+            isSearchFocused = false;
         }
     }
 
@@ -1307,6 +1400,9 @@
         }
     );
 
+    useEventListener(window, "resize", checkScreenSize);
+    useEventListener(document, "click", handleSearchClickOutside);
+
     function teardownTabToolbarHostWatcher() {
         tabToolbarMq = null;
         tabToolbarHostReady = false;
@@ -1332,6 +1428,7 @@
 
     onMount(async () => {
         setupTabToolbarHostWatcher();
+        checkScreenSize();
         initOpenLayers();
         void ensureGeoCoordsReady().then(() => {
             geoWasmEpoch += 1;
@@ -1341,7 +1438,7 @@
         await loadSavedState();
         await reloadTelemetry();
         await loadMBTiles();
-        checkOnboardingTooltip();
+        void checkOnboardingTooltip();
         await tick();
         refreshTabToolbarHost();
         setTimeout(refreshTabToolbarHost, 100);
@@ -1407,30 +1504,56 @@
     });
 </script>
 
+{#snippet searchBar()}
+    <div bind:this={inlineSearchContainer} class="hidden sm:block sm:w-56 md:w-64 lg:w-72 xl:w-80 min-w-0">
+        <MapSearchBar
+            bind:modelValue={searchQuery}
+            results={searchResults}
+            error={searchError}
+            searching={isSearching}
+            showResults={isSearchFocused}
+            placeholder={offlineEnabled ? t("map.search_placeholder_offline") : t("map.search_placeholder")}
+            oninput={() => handleSearch(searchQuery)}
+            onsearch={() => handleSearch(searchQuery)}
+            onclear={() => (searchResults = [])}
+            onfocus={() => (isSearchFocused = true)}
+            onselect={selectSearchResult}
+        />
+    </div>
+{/snippet}
+
 <div class="flex flex-col h-full w-full bg-sem-surface overflow-hidden">
     {#if useTabToolbar}
         <MapPortal targetId="map-browser-toolbar-host" enabled={useTabToolbar}>
             <MapToolbarControls
+                bind:this={mapToolbarControls}
                 {discoveredVisible}
                 {offlineEnabled}
                 compact={true}
+                searchOpen={isMobileSearchOpen}
+                {searchBar}
                 ontogglediscovered={toggleDiscovered}
                 ontoggleoffline={toggleOffline}
                 ontogglemotools={() => (isMapToolsOpen = !isMapToolsOpen)}
                 ontogglesettings={() => (isSettingsOpen = !isSettingsOpen)}
+                ontogglesearch={toggleMobileSearch}
                 onshare={shareMapView}
             />
         </MapPortal>
     {:else}
         <MapHeaderBar
+            bind:this={mapHeaderBar}
             {embedded}
             {tabTitle}
             {discoveredVisible}
             {offlineEnabled}
+            searchOpen={isMobileSearchOpen}
+            {searchBar}
             ontogglediscovered={toggleDiscovered}
             ontoggleoffline={toggleOffline}
             ontogglemotools={() => (isMapToolsOpen = !isMapToolsOpen)}
             ontogglesettings={() => (isSettingsOpen = !isSettingsOpen)}
+            ontogglesearch={toggleMobileSearch}
             onshare={shareMapView}
         />
     {/if}
@@ -1439,6 +1562,7 @@
 
     <div class="relative flex-1 min-h-0 h-full">
         <MapDrawingToolbar
+            class={isMobileSearchOpen ? "max-sm:top-30" : ""}
             tools={drawingTools}
             {drawType}
             measuring={isMeasuring}
@@ -1501,6 +1625,7 @@
         />
 
         <MapOnboardingTooltip
+            bind:this={onboardingTooltip}
             show={showOnboardingTooltip}
             style={onboardingTooltipStyle}
             arrowPath={onboardingArrowPath}
@@ -1508,23 +1633,27 @@
             ondismiss={dismissOnboardingTooltip}
         />
 
-        <div
-            class="absolute left-4 right-4 top-[calc(0.5rem+2.75rem+0.5rem)] z-30 sm:top-2 sm:left-auto sm:right-4 sm:w-80 md:max-lg:w-72 lg:w-80"
-        >
-            <MapSearchBar
-                bind:modelValue={searchQuery}
-                results={searchResults}
-                error={searchError}
-                searching={isSearching}
-                showResults={isSearchFocused}
-                placeholder={offlineEnabled ? t("map.search_placeholder_offline") : t("map.search_placeholder")}
-                oninput={() => handleSearch(searchQuery)}
-                onsearch={() => handleSearch(searchQuery)}
-                onclear={() => (searchResults = [])}
-                onfocus={() => (isSearchFocused = true)}
-                onselect={selectSearchResult}
-            />
-        </div>
+        {#if isMobileSearchOpen}
+            <div
+                bind:this={searchContainer}
+                class="absolute left-4 right-4 top-[calc(0.5rem+2.75rem+0.5rem)] z-30 sm:hidden"
+            >
+                <MapSearchBar
+                    bind:this={mobileSearchBar}
+                    bind:modelValue={searchQuery}
+                    results={searchResults}
+                    error={searchError}
+                    searching={isSearching}
+                    showResults={isSearchFocused}
+                    placeholder={offlineEnabled ? t("map.search_placeholder_offline") : t("map.search_placeholder")}
+                    oninput={() => handleSearch(searchQuery)}
+                    onsearch={() => handleSearch(searchQuery)}
+                    onclear={() => (searchResults = [])}
+                    onfocus={() => (isSearchFocused = true)}
+                    onselect={selectSearchResult}
+                />
+            </div>
+        {/if}
 
         <div
             bind:this={mapContainer}

@@ -7,8 +7,10 @@ import {
     consumeDownloadChunksAsBase64,
     discardDownloadChunks,
     formatBytes,
+    resendInFlightDownloadRequests,
     sendNomadWs,
     type NomadChunkBuffers,
+    type NomadInFlightDownloadContext,
 } from "./nomadPageDownloads.js";
 
 export type NomadImagePolicy = "never" | "manual" | "auto" | "always";
@@ -27,11 +29,10 @@ export interface NomadCrashTabImage {
     profile?: string;
 }
 
-export interface NomadImageDownloadContext {
+export interface NomadImageDownloadContext extends NomadInFlightDownloadContext {
     destinationHash: string;
     filePath: string;
     requestId: string;
-    downloadId: number | string | null;
 }
 
 export function sanitizeNomadImagePolicy(value: unknown): NomadImagePolicy | null {
@@ -359,8 +360,18 @@ export class NomadImageLoader {
         if (image.profile) {
             data.image_profile = image.profile;
         }
-        this.callbacks[index] = { destinationHash, filePath, requestId, downloadId: null };
-        sendNomadWs(createNomadImageDownloadPayload(destinationHash, filePath, this.deps.isPrivate(), data));
+        const context: NomadImageDownloadContext = { destinationHash, filePath, requestId, downloadId: null };
+        this.callbacks[index] = context;
+        const payload = createNomadImageDownloadPayload(destinationHash, filePath, this.deps.isPrivate(), data);
+        if (sendNomadWs(payload)) {
+            // kept so resendInFlightDownloads() can re-issue this request
+            // after a websocket reconnect
+            context.payload = payload;
+            context.sent = true;
+            return;
+        }
+        delete this.callbacks[index];
+        this.deps.setImage(index, "error", { reason: t("nomadnet.websocket_not_connected") });
     }
 
     /**
@@ -448,6 +459,13 @@ export class NomadImageLoader {
         delete this.callbacks[imageId];
         this.deps.setImage(imageId, "error", {
             reason: typeof reason === "string" && reason ? reason : t("nomadnet.image_load_failed"),
+        });
+    }
+
+    /** Re-issue in-flight image downloads after a websocket reconnect. */
+    resendInFlightDownloads(): void {
+        resendInFlightDownloadRequests(this.callbacks, this.deps.chunkBuffers, (index) => {
+            this.deps.setImage(index, "error", { reason: t("nomadnet.websocket_not_connected") });
         });
     }
 

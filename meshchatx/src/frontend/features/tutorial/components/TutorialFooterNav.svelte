@@ -22,7 +22,7 @@
 
 <div
     class={page
-        ? "flex justify-between items-center mt-12 border-t border-sem-border dark:border-zinc-900 pt-8"
+        ? "flex justify-between items-center"
         : "flex w-full shrink-0 justify-between border-t border-gray-100 bg-gray-50 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-zinc-900 dark:bg-zinc-950/50 sm:px-6 sm:py-6"}
 >
     {#if state.currentStep > 1 && state.currentStep < state.totalSteps}

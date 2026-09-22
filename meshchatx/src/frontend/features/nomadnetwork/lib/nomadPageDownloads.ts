@@ -196,6 +196,45 @@ export function createArchiveAddPayload(destinationHash: string, pagePath: strin
     };
 }
 
+export interface NomadInFlightDownloadContext {
+    downloadId: number | string | null;
+    requestId?: string | number | null;
+    payload?: Record<string, unknown>;
+    sent?: boolean;
+}
+
+/**
+ * Entries sent on the previous socket report to the dead client and never
+ * arrive, so the download would spin forever. Cancel the orphaned backend
+ * transfer and re-issue the recorded request on the new socket.
+ */
+export function resendInFlightDownloadRequests(
+    callbacks: Record<number, NomadInFlightDownloadContext> | null | undefined,
+    chunkBuffers: NomadChunkBuffers,
+    onFailure?: (key: number) => void
+): void {
+    const map = callbacks || {};
+    for (const key of Object.keys(map)) {
+        const index = Number(key);
+        const context = map[index];
+        if (!context || !context.sent || !context.payload) {
+            continue;
+        }
+        const oldDownloadId = context.downloadId;
+        // Clearing the id first keeps the stale "cancelled" event for the
+        // old download from purging the resent entry.
+        context.downloadId = null;
+        if (oldDownloadId != null) {
+            discardDownloadChunks(chunkBuffers, oldDownloadId);
+            sendNomadWs(createCancelDownloadPayload(oldDownloadId, context.requestId));
+        }
+        if (!sendNomadWs(context.payload)) {
+            delete map[index];
+            onFailure?.(index);
+        }
+    }
+}
+
 /** Send a Nomad WS payload as a JSON string (raw WebSocket requires a string). */
 export function sendNomadWs(payload: Record<string, unknown>): boolean {
     try {

@@ -8,12 +8,14 @@
     import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
     import { computeCaret, type ContextMenuCaret } from "../../../js/contextMenuCaret.js";
     import { t } from "../../../js/i18n.js";
+    import { loadNomadAnnouncesSort, saveNomadAnnouncesSort } from "../../../js/browserLayoutStore.js";
     import NomadAnnounceRow from "./NomadAnnounceRow.svelte";
     import {
         blockNodeDestination,
         unblockNodeDestination,
         bulkBlockNodeDestinations,
     } from "../lib/nomadSidebarActions.js";
+    import { sortAnnouncesNodes } from "../lib/nomadAnnouncesSort.js";
     import type { NomadFavourite, NomadNode } from "../lib/types.js";
 
     interface Props {
@@ -64,14 +66,14 @@
     let menuTop = $state(0);
     let menuCaret: ContextMenuCaret | null = $state(null);
 
-    const orderedNodes = $derived.by(() => {
-        const list = Object.values(nodes);
-        return list.slice().sort((a, b) => {
-            const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-            const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-            return tb - ta;
-        });
-    });
+    let announcesSort = $state(loadNomadAnnouncesSort());
+
+    function onAnnouncesSortChange(e: Event) {
+        announcesSort = (e.target as HTMLSelectElement).value;
+        saveNomadAnnouncesSort(announcesSort);
+    }
+
+    const orderedNodes = $derived(sortAnnouncesNodes(nodes, announcesSort));
 
     const searchedNodes = $derived.by(() => {
         const s = (nodesSearchTerm || "").toLowerCase().trim();
@@ -220,6 +222,17 @@
                 </span>
             </button>
         </div>
+        <select
+            value={announcesSort}
+            class="input-field w-full min-w-0 rounded-none text-[11px] leading-tight py-0.5 px-2"
+            title={t("nomadnet.sort_announces")}
+            onchange={onAnnouncesSortChange}
+        >
+            <option value="last_announced">{t("nomadnet.sort_last_announced")}</option>
+            <option value="newest_discovered">{t("nomadnet.sort_newest_discovered")}</option>
+            <option value="most_announced">{t("nomadnet.sort_most_announced")}</option>
+            <option value="name">{t("nomadnet.sort_name")}</option>
+        </select>
 
         {#if selectionMode}
             <div class="flex flex-col gap-2 px-2 py-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg">

@@ -13,6 +13,12 @@
     }
 
     let { show = false, style = "", arrowPath = null, isMobileScreen = false, ondismiss }: Props = $props();
+
+    let tooltipEl = $state<HTMLDivElement | null>(null);
+
+    export function getTooltipEl() {
+        return tooltipEl;
+    }
 </script>
 
 {#if show}
@@ -28,6 +34,7 @@
         <div class="absolute inset-0 bg-black/50 pointer-events-auto"></div>
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events -->
         <div
+            bind:this={tooltipEl}
             class="absolute bg-sem-surface rounded-xl shadow-2xl border border-sem-border p-4 pointer-events-auto max-w-xs sm:max-w-sm"
             {style}
             role="dialog"
