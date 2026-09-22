@@ -8,14 +8,6 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/rnode_flasher_title"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:paddingBottom="4dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:text="@string/rnode_flasher_subtitle"
         android:textSize="13sp"
         android:paddingBottom="12dp" />
