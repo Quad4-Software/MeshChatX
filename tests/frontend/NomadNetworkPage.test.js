@@ -2,7 +2,9 @@
 import { render, cleanup, waitFor, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import NomadNetworkPage from "@/features/nomadnetwork/components/NomadNetworkPage.svelte";
+import NomadPageRendererHost from "@/features/nomadnetwork/components/NomadPageRendererHost.svelte";
 import WebSocketConnection from "@/js/WebSocketConnection";
+import GlobalEmitter from "@/js/GlobalEmitter";
 import { dispatchWsEvent } from "@/js/registries/wsEventRegistry";
 import { resetWsEventBridgeForTests } from "@/js/registries/wsEventBridge";
 import GlobalState from "@/js/GlobalState";
@@ -797,6 +799,375 @@ describe("NomadNetworkPage.svelte", () => {
                 );
             });
             expect(document.body.querySelector(".context-menu-panel")).toBeFalsy();
+        });
+    });
+
+    describe("websocket reconnect resend", () => {
+        const IMG_HASH = "a".repeat(32);
+
+        function sentPayloads() {
+            return WebSocketConnection.send.mock.calls
+                .map((call) => String(call[0] || ""))
+                .filter((raw) => raw.startsWith("{"))
+                .map((raw) => JSON.parse(raw));
+        }
+
+        function emitReconnect() {
+            GlobalEmitter.emit("websocket-reconnected", { degraded: false, failed: [] });
+        }
+
+        function pageEvent(downloadId, status, extra = {}) {
+            return {
+                type: "nomadnet.page.download",
+                download_id: downloadId,
+                nomadnet_page_download: {
+                    status,
+                    destination_hash: TEST_DESTINATION_HASH,
+                    page_path: "/page/index.mu",
+                    ...extra,
+                },
+            };
+        }
+
+        // Mounts the page and lets the initial page download reach the
+        // "started" stage so the download id is tracked as in-flight.
+        async function renderPageDownload(downloadId) {
+            const view = render(NomadNetworkPage, {
+                destinationHash: TEST_DESTINATION_HASH,
+                pagePath: "/page/index.mu",
+            });
+            await waitFor(() => {
+                expect(WebSocketConnection.send).toHaveBeenCalled();
+            });
+            if (downloadId != null) {
+                await dispatchWsEvent("nomadnet.page.download", pageEvent(downloadId, "started"));
+            }
+            return view;
+        }
+
+        it("cancels the orphaned page download and resends it on reconnect", async () => {
+            await renderPageDownload(61);
+            WebSocketConnection.send.mockClear();
+
+            emitReconnect();
+
+            const sent = sentPayloads();
+            expect(sent).toContainEqual({ type: "nomadnet.download.cancel", download_id: 61 });
+            expect(sent).toContainEqual(
+                expect.objectContaining({
+                    type: "nomadnet.page.download",
+                    nomadnet_page_download: expect.objectContaining({
+                        destination_hash: TEST_DESTINATION_HASH,
+                        page_path: "/page/index.mu",
+                    }),
+                })
+            );
+        });
+
+        it("resends without a cancel when no download id was assigned yet", async () => {
+            await renderPageDownload(null);
+            WebSocketConnection.send.mockClear();
+
+            emitReconnect();
+
+            const sent = sentPayloads();
+            expect(sent.some((msg) => msg.type === "nomadnet.download.cancel")).toBe(false);
+            expect(sent).toContainEqual(expect.objectContaining({ type: "nomadnet.page.download" }));
+        });
+
+        it("cancels the orphaned file download and resends it on reconnect", async () => {
+            let pageMenu = null;
+            const view = render(NomadNetworkPage, {
+                destinationHash: TEST_DESTINATION_HASH,
+                pagePath: "/page/index.mu",
+                onpagecontextmenu: (menu) => {
+                    pageMenu = menu;
+                },
+            });
+            await waitFor(() => {
+                expect(WebSocketConnection.send).toHaveBeenCalled();
+            });
+            await dispatchWsEvent("nomadnet.page.download", pageEvent(71, "started"));
+            await dispatchWsEvent("nomadnet.page.download", pageEvent(71, "success", { page_content: ">#!\n# Hi" }));
+
+            const region = view.container.querySelector('[aria-label="Nomad page content"]');
+            await fireEvent.contextMenu(region);
+            expect(pageMenu?.canDownloadPage).toBe(true);
+            pageMenu.downloadPage();
+
+            const filePayload = sentPayloads().find((msg) => msg.type === "nomadnet.file.download");
+            expect(filePayload).toBeTruthy();
+
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 72,
+                nomadnet_file_download: {
+                    status: "started",
+                    destination_hash: TEST_DESTINATION_HASH,
+                    file_path: "/page/index.mu",
+                },
+            });
+            WebSocketConnection.send.mockClear();
+
+            emitReconnect();
+
+            const sent = sentPayloads();
+            expect(sent).toContainEqual({ type: "nomadnet.download.cancel", download_id: 72 });
+            expect(sent.find((msg) => msg.type === "nomadnet.file.download")).toEqual(filePayload);
+        });
+
+        it("cancels and resends in-flight image downloads on reconnect", async () => {
+            GlobalState.config.nomad_image_loading_policy = "auto";
+            const view = render(NomadNetworkPage, {
+                destinationHash: IMG_HASH,
+                pagePath: "/page/index.mu",
+            });
+            await waitFor(() => {
+                expect(WebSocketConnection.send).toHaveBeenCalled();
+            });
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 41,
+                nomadnet_page_download: {
+                    status: "started",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
+                },
+            });
+            await dispatchWsEvent("nomadnet.page.download", {
+                type: "nomadnet.page.download",
+                download_id: 41,
+                nomadnet_page_download: {
+                    status: "success",
+                    destination_hash: IMG_HASH,
+                    page_path: "/page/index.mu",
+                    page_content: ">#!\n# Hi",
+                },
+            });
+            let frame = null;
+            await waitFor(() => {
+                frame = document.body.querySelector("iframe");
+                expect(frame).toBeTruthy();
+            });
+            const fakeWindow = { postMessage: vi.fn() };
+            Object.defineProperty(frame, "contentWindow", {
+                configurable: true,
+                get: () => fakeWindow,
+            });
+            const frameEvent = new MessageEvent("message", {
+                data: {
+                    channel: NOMAD_CRASH_TAB_CHANNEL,
+                    type: "render-done",
+                    partials: [],
+                    images: [{ url: ":/file/img.webp", alt: "test" }],
+                },
+            });
+            Object.defineProperty(frameEvent, "source", { value: fakeWindow, configurable: true });
+            Object.defineProperty(frameEvent, "origin", { value: "null", configurable: true });
+            window.dispatchEvent(frameEvent);
+
+            await waitFor(() => {
+                expect(sentPayloads().filter((msg) => msg.type === "nomadnet.file.download").length).toBe(1);
+            });
+            const imagePayload = sentPayloads().find((msg) => msg.type === "nomadnet.file.download");
+            const requestId = imagePayload.nomadnet_file_download.data.request_id;
+
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 81,
+                request_id: requestId,
+                nomadnet_file_download: {
+                    status: "started",
+                    destination_hash: IMG_HASH,
+                    file_path: "/file/img.webp",
+                    data: { image_id: 0, request_id: requestId },
+                },
+            });
+            WebSocketConnection.send.mockClear();
+
+            emitReconnect();
+
+            const sent = sentPayloads();
+            expect(sent).toContainEqual({
+                type: "nomadnet.download.cancel",
+                download_id: 81,
+                request_id: requestId,
+            });
+            const resent = sent.find((msg) => msg.type === "nomadnet.file.download");
+            expect(resent).toEqual(imagePayload);
+            delete GlobalState.config.nomad_image_loading_policy;
+        });
+
+        it("keeps the resent download when the stale cancelled event arrives", async () => {
+            const view = await renderPageDownload(61);
+
+            emitReconnect();
+            await dispatchWsEvent("nomadnet.download.cancelled", {
+                type: "nomadnet.download.cancelled",
+                download_id: 61,
+            });
+
+            // the cancelled event for the old id must not flash cancelled UI
+            // or purge the resent transfer: the page is still loading
+            expect(view.queryByText(/cancelled|stopped/i)).toBeNull();
+
+            await dispatchWsEvent("nomadnet.page.download", pageEvent(62, "started"));
+            await dispatchWsEvent(
+                "nomadnet.page.download",
+                pageEvent(62, "success", { page_content: ">#!\n# Resent" })
+            );
+            await waitFor(() => {
+                expect(document.body.querySelector("iframe")).toBeTruthy();
+            });
+        });
+
+        it("settles the page load when the resend hits a dead socket", async () => {
+            const ToastUtils = (await import("@/js/ToastUtils")).default;
+            const view = await renderPageDownload(61);
+            WebSocketConnection.send.mockReturnValue(false);
+
+            emitReconnect();
+
+            await waitFor(() => {
+                expect(view.getByRole("alert")).toBeTruthy();
+            });
+            expect(ToastUtils.error).toHaveBeenCalled();
+            WebSocketConnection.send.mockReturnValue(true);
+        });
+
+        it("settles the file download when the resend hits a dead socket", async () => {
+            const ToastUtils = (await import("@/js/ToastUtils")).default;
+            let pageMenu = null;
+            const view = render(NomadNetworkPage, {
+                destinationHash: TEST_DESTINATION_HASH,
+                pagePath: "/page/index.mu",
+                onpagecontextmenu: (menu) => {
+                    pageMenu = menu;
+                },
+            });
+            await waitFor(() => {
+                expect(WebSocketConnection.send).toHaveBeenCalled();
+            });
+            await dispatchWsEvent("nomadnet.page.download", pageEvent(71, "started"));
+            await dispatchWsEvent("nomadnet.page.download", pageEvent(71, "success", { page_content: ">#!\n# Hi" }));
+
+            const region = view.container.querySelector('[aria-label="Nomad page content"]');
+            await fireEvent.contextMenu(region);
+            pageMenu.downloadPage();
+            await dispatchWsEvent("nomadnet.file.download", {
+                type: "nomadnet.file.download",
+                download_id: 72,
+                nomadnet_file_download: {
+                    status: "started",
+                    destination_hash: TEST_DESTINATION_HASH,
+                    file_path: "/page/index.mu",
+                },
+            });
+            await waitFor(() => {
+                expect(view.getByText(/Downloading:/)).toBeTruthy();
+            });
+
+            WebSocketConnection.send.mockReturnValue(false);
+            emitReconnect();
+
+            await waitFor(() => {
+                expect(view.queryByText(/Downloading:/)).toBeNull();
+            });
+            expect(ToastUtils.error).toHaveBeenCalled();
+            WebSocketConnection.send.mockReturnValue(true);
+        });
+
+        it("sends nothing on reconnect when no download is in flight", async () => {
+            const view = await renderPageDownload(71);
+            await dispatchWsEvent("nomadnet.page.download", pageEvent(71, "success", { page_content: ">#!\n# Hi" }));
+            await waitFor(() => {
+                expect(view.container.querySelector("iframe") || document.body.querySelector("iframe")).toBeTruthy();
+            });
+            WebSocketConnection.send.mockClear();
+
+            emitReconnect();
+
+            expect(WebSocketConnection.send).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("touch gestures", () => {
+        function fireTouch(el, type, x, y) {
+            const event = new Event(type, { bubbles: true, cancelable: true });
+            Object.defineProperty(event, "touches", {
+                value: [{ clientX: x, clientY: y }],
+                configurable: true,
+            });
+            el.dispatchEvent(event);
+        }
+
+        function renderHost(props = {}) {
+            const view = render(NomadPageRendererHost, { hasHistory: true, ...props });
+            const region = view.container.querySelector('[aria-label="Nomad page content"]');
+            expect(region).toBeTruthy();
+            return { view, region };
+        }
+
+        it("completed edge swipe navigates back", () => {
+            const onback = vi.fn();
+            const { region } = renderHost({ onback });
+
+            fireTouch(region, "touchstart", 10, 100);
+            fireTouch(region, "touchmove", 110, 100);
+            fireTouch(region, "touchend", 110, 100);
+
+            expect(onback).toHaveBeenCalledTimes(1);
+        });
+
+        it("reversing direction mid-gesture cancels an armed swipe", () => {
+            const onback = vi.fn();
+            const onreload = vi.fn();
+            const { region } = renderHost({ onback, onreload });
+
+            fireTouch(region, "touchstart", 10, 100);
+            fireTouch(region, "touchmove", 110, 100);
+            // finger drifts back and up before release: the armed swipe must not survive
+            fireTouch(region, "touchmove", 30, 60);
+            fireTouch(region, "touchend", 30, 60);
+
+            expect(onback).not.toHaveBeenCalled();
+            expect(onreload).not.toHaveBeenCalled();
+        });
+
+        it("reversing direction mid-gesture cancels an armed pull", () => {
+            const onreload = vi.fn();
+            const { region } = renderHost({ onreload });
+
+            // start away from the left edge so the pull branch is evaluated
+            fireTouch(region, "touchstart", 200, 100);
+            fireTouch(region, "touchmove", 200, 220);
+            // finger drags back above the start point before release
+            fireTouch(region, "touchmove", 200, 80);
+            fireTouch(region, "touchend", 200, 80);
+
+            expect(onreload).not.toHaveBeenCalled();
+        });
+
+        it("touchcancel does not fire an armed swipe-back", () => {
+            const onback = vi.fn();
+            const { region } = renderHost({ onback });
+
+            fireTouch(region, "touchstart", 10, 100);
+            fireTouch(region, "touchmove", 110, 100);
+            fireTouch(region, "touchcancel", 110, 100);
+
+            expect(onback).not.toHaveBeenCalled();
+        });
+
+        it("touchcancel does not fire an armed pull-to-refresh", () => {
+            const onreload = vi.fn();
+            const { region } = renderHost({ onreload });
+
+            fireTouch(region, "touchstart", 200, 100);
+            fireTouch(region, "touchmove", 200, 220);
+            fireTouch(region, "touchcancel", 200, 220);
+
+            expect(onreload).not.toHaveBeenCalled();
         });
     });
 });

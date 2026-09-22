@@ -338,6 +338,11 @@
         void fetchFavourites();
     }
 
+    function onWebsocketReconnected() {
+        void fetchNodes();
+        void fetchFavourites();
+    }
+
     // keepAlive pages are not remounted when the route target changes; the
     // onMount restore below only sees the first navigation. Re-apply the
     // route target whenever the hash, path or archive props change after that.
@@ -380,6 +385,7 @@
         window.addEventListener("keydown", handleKeydown, true);
         onWsEvent("announce", onAnnounceEvent);
         GlobalEmitter.on("identity-switched", onIdentitySwitched);
+        GlobalEmitter.on("websocket-reconnected", onWebsocketReconnected);
         GlobalEmitter.on("nomadnet-add-favourite", handleAddFavourite);
         GlobalEmitter.on("nomadnet-remove-favourite", handleRemoveFavourite);
         GlobalEmitter.on("nomadnet-favourites-changed", fetchFavourites);
@@ -409,6 +415,7 @@
         teardownViewportWatcher();
         offWsEvent("announce", onAnnounceEvent);
         GlobalEmitter.off("identity-switched", onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", onWebsocketReconnected);
         GlobalEmitter.off("nomadnet-add-favourite", handleAddFavourite);
         GlobalEmitter.off("nomadnet-remove-favourite", handleRemoveFavourite);
         GlobalEmitter.off("nomadnet-favourites-changed", fetchFavourites);

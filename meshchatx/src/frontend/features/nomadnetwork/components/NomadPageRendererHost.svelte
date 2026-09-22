@@ -162,11 +162,12 @@
             navPullDistance = 0;
             return;
         }
+        // Reversing direction mid-gesture must cancel a swipe that had
+        // already armed, otherwise touchend fires on a stale distance.
+        navSwipeBackDistance = 0;
         const el = e.currentTarget as HTMLElement;
-        if (navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx)) {
-            navPullDistance = Math.min(dy, 160);
-            navSwipeBackDistance = 0;
-        }
+        const pulling = navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx);
+        navPullDistance = pulling ? Math.min(dy, 160) : 0;
     }
 
     function onNodeContainerTouchEnd() {
@@ -175,6 +176,14 @@
         } else if (navPullDistance >= NAV_PULL_TRIGGER_PX) {
             onreload?.();
         }
+        navSwipeEdgeActive = false;
+        navSwipeBackDistance = 0;
+        navPullDistance = 0;
+    }
+
+    function onNodeContainerTouchCancel() {
+        // An interrupted gesture (alert, gesture conflict) is not a
+        // completed swipe or pull, so it must not trigger either action.
         navSwipeEdgeActive = false;
         navSwipeBackDistance = 0;
         navPullDistance = 0;
@@ -192,7 +201,7 @@
     ontouchstart={onNodeContainerTouchStart}
     ontouchmove={onNodeContainerTouchMove}
     ontouchend={onNodeContainerTouchEnd}
-    ontouchcancel={onNodeContainerTouchEnd}
+    ontouchcancel={onNodeContainerTouchCancel}
     role="region"
     aria-label="Nomad page content"
 >

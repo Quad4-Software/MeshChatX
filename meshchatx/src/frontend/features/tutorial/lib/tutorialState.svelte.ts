@@ -906,7 +906,7 @@ export class TutorialState {
         try {
             const response = await window.api.get("/api/v1/reticulum/discovery");
             const discovery = response.data?.discovery ?? {};
-            this.defaultBootstrapOnly = this.parseDiscoveryBool(discovery.default_bootstrap_only, false);
+            this.defaultBootstrapOnly = this.parseDiscoveryBool(discovery.default_bootstrap_only);
         } catch (e) {
             console.error(e);
             this.defaultBootstrapOnly = false;

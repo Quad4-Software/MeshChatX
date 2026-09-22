@@ -4250,7 +4250,7 @@
         "bootstrap_search_no_match": "No nodes match your search",
         "bootstrap_search_clear": "Clear search",
         "bootstrap_only_label": "Bootstrap-only for added interfaces",
-        "bootstrap_only_hint": "On by default. Bootstrap interfaces are temporary starting points; Reticulum can drop them after it finds enough stable links. Leave this on to avoid holding many TCP connections open. Turn it off if you want a persistent link to a chosen node. The default is adjustable in Interfaces, Discovery settings.",
+        "bootstrap_only_hint": "Off by default. Bootstrap interfaces are temporary starting points; Reticulum can drop them after it finds enough stable links. Turn this on to avoid holding many TCP connections open. Leave it off if you want a persistent link to a chosen node. The default is adjustable in Interfaces, Discovery settings.",
         "bootstrap_desc_page": "Bootstrap nodes give Reticulum a starting point so it can discover the rest of the network. Select one or more from discovered or community nodes below.",
         "bootstrap_discovered": "Discovered Nodes",
         "bootstrap_community": "Community Nodes",

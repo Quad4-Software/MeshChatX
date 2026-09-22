@@ -269,6 +269,62 @@ export function onNomadFileDownloadEvent(access: NomadPageDownloadAccess, json: 
     }
 }
 
+export type NomadResendDeps = {
+    pagePayload: Record<string, unknown> | null;
+    filePayload: Record<string, unknown> | null;
+    resendImages?: () => void;
+    armPageLoadTimeout?: () => void;
+    onPageResendFailed?: () => void;
+    onFileResendFailed?: () => void;
+};
+
+/**
+ * Downloads sent on the previous socket report their results to the dead
+ * client and never arrive here, so the page/file/image would spin forever.
+ * Cancel the orphaned backend transfer and re-issue the request on the new
+ * socket.
+ */
+export function resendInFlightNomadDownloads(access: NomadPageDownloadAccess, deps: NomadResendDeps): void {
+    const s = access.get();
+    if (deps.pagePayload && s.isLoadingNodePage) {
+        const oldPageDownloadId = s.currentPageDownloadId;
+        // Clearing ids first keeps the stale "cancelled" event for the old
+        // download from purging the resent transfer or flashing cancelled UI.
+        access.apply({ currentPageDownloadId: null });
+        if (oldPageDownloadId != null) {
+            discardDownloadChunks(s.nomadPageDownloadChunkBuffers, oldPageDownloadId);
+            sendNomadWs(createCancelDownloadPayload(oldPageDownloadId));
+        }
+        if (sendNomadWs(deps.pagePayload)) {
+            deps.armPageLoadTimeout?.();
+        } else {
+            // The socket died between the reconnect event and this resend:
+            // settle like a failed initial send so the page does not spin.
+            deps.onPageResendFailed?.();
+            access.clearPageLoadTimeout();
+            access.apply({
+                isLoadingNodePage: false,
+                nodePageContent: t("nomadnet.failed_to_load_page"),
+            });
+            ToastUtils.error(t("nomadnet.websocket_not_connected"));
+        }
+    }
+    if (deps.filePayload) {
+        const oldFileDownloadId = s.currentFileDownloadId;
+        access.apply({ currentFileDownloadId: null });
+        if (oldFileDownloadId != null) {
+            discardDownloadChunks(s.nomadFileDownloadChunkBuffers, oldFileDownloadId);
+            sendNomadWs(createCancelDownloadPayload(oldFileDownloadId));
+        }
+        if (!sendNomadWs(deps.filePayload)) {
+            deps.onFileResendFailed?.();
+            access.apply({ isDownloadingNodeFile: false });
+            ToastUtils.error(t("nomadnet.websocket_not_connected"));
+        }
+    }
+    deps.resendImages?.();
+}
+
 /** Cancel any in-flight page/file download, or abort a running frame render. */
 export function cancelNomadActiveDownload(
     access: NomadPageDownloadAccess,

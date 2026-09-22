@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import type { Snippet } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";
 
@@ -8,10 +9,13 @@
         discoveredVisible?: boolean;
         offlineEnabled?: boolean;
         compact?: boolean;
+        searchOpen?: boolean;
+        searchBar?: Snippet;
         ontogglediscovered?: () => void;
         ontoggleoffline?: (enabled: boolean) => void;
         ontogglemotools?: () => void;
         ontogglesettings?: () => void;
+        ontogglesearch?: () => void;
         onshare?: () => void;
     }
 
@@ -19,12 +23,21 @@
         discoveredVisible = false,
         offlineEnabled = false,
         compact = false,
+        searchOpen = false,
+        searchBar,
         ontogglediscovered,
         ontoggleoffline,
         ontogglemotools,
         ontogglesettings,
+        ontogglesearch,
         onshare,
     }: Props = $props();
+
+    let mapToolsButton = $state<HTMLButtonElement | null>(null);
+
+    export function getMapToolsButtonEl() {
+        return mapToolsButton;
+    }
 </script>
 
 <div
@@ -63,10 +76,28 @@
         </button>
     </div>
 
+    <!-- location search: inline on tablet/desktop; mobile uses the map overlay -->
+    {@render searchBar?.()}
+
     <button type="button" class="toolbar-icon-btn cursor-pointer" title={t("map.share_view")} onclick={onshare}>
         <MaterialDesignIcon iconName="share-variant" class="size-5" />
     </button>
-    <button type="button" class="toolbar-icon-btn cursor-pointer" title={t("map.side_panel")} onclick={ontogglemotools}>
+    <!-- search toggle (mobile only) -->
+    <button
+        type="button"
+        class="toolbar-icon-btn cursor-pointer sm:hidden"
+        title={t("map.search_placeholder")}
+        onclick={ontogglesearch}
+    >
+        <MaterialDesignIcon iconName={searchOpen ? "close" : "magnify"} class="size-5" />
+    </button>
+    <button
+        bind:this={mapToolsButton}
+        type="button"
+        class="toolbar-icon-btn cursor-pointer"
+        title={t("map.side_panel")}
+        onclick={ontogglemotools}
+    >
         <MaterialDesignIcon iconName="layers-triple" class="size-5" />
     </button>
     <button type="button" class="toolbar-icon-btn cursor-pointer" title={t("map.settings")} onclick={ontogglesettings}>
