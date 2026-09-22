@@ -65,7 +65,11 @@ async def test_websocket_session_authorized_uses_attached_request(mock_app):
 
     client = MagicMock(spec=["send_str", "_meshchatx_request"])
     client._meshchatx_request = MagicMock()
-    session = {"authenticated": True, "identity_hash": identity_hash}
+    session = {
+        "authenticated": True,
+        "identity_hash": identity_hash,
+        "session_epoch": mock_app._current_auth_session_epoch(),
+    }
 
     with patch("meshchatx.meshchat.get_session", AsyncMock(return_value=session)):
         assert await mock_app._websocket_session_authorized(client) is True
@@ -88,7 +92,11 @@ async def test_nomadnet_page_download_not_rejected_when_ws_request_attached(mock
     client = MagicMock(spec=["send_str", "_meshchatx_request"])
     client._meshchatx_request = MagicMock()
     client.send_str = AsyncMock()
-    session = {"authenticated": True, "identity_hash": identity_hash}
+    session = {
+        "authenticated": True,
+        "identity_hash": identity_hash,
+        "session_epoch": mock_app._current_auth_session_epoch(),
+    }
 
     with (
         patch("meshchatx.meshchat.get_session", AsyncMock(return_value=session)),
