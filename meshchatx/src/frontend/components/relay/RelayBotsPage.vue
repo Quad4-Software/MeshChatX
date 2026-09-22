@@ -111,63 +111,64 @@
                 <MaterialDesignIcon icon-name="robot-off" class="size-10 opacity-40" />
                 {{ $t("relay_chat.bots_none") }}
             </div>
-            <div
-                v-for="bot in rrcBots"
-                v-else-if="rrcBots.length > 0"
-                :key="bot.id"
-                class="rounded-xl border border-sem-border bg-sem-canvas p-4 space-y-3"
-            >
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="size-2 shrink-0 rounded-full"
-                                :class="bot.running ? 'bg-sem-success' : 'bg-sem-fg-muted'"
-                            ></span>
-                            <span class="font-semibold truncate">{{ bot.name }}</span>
-                            <span v-if="bot.rrc?.nick" class="text-xs text-sem-fg-muted">@{{ bot.rrc.nick }}</span>
-                        </div>
-                        <div class="mt-1 space-y-0.5 text-xs text-sem-fg-muted">
-                            <div v-if="bot.rrc?.hub" class="font-mono truncate">
-                                {{ $t("relay_chat.bots_hub") }}: {{ formatHash(bot.rrc.hub) }}
+            <template v-else>
+                <div
+                    v-for="bot in rrcBots"
+                    :key="bot.id"
+                    class="rounded-xl border border-sem-border bg-sem-canvas p-4 space-y-3"
+                >
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="size-2 shrink-0 rounded-full"
+                                    :class="bot.running ? 'bg-sem-success' : 'bg-sem-fg-muted'"
+                                ></span>
+                                <span class="font-semibold truncate">{{ bot.name }}</span>
+                                <span v-if="bot.rrc?.nick" class="text-xs text-sem-fg-muted">@{{ bot.rrc.nick }}</span>
                             </div>
-                            <div v-if="bot.rrc?.rooms?.length">
-                                {{ $t("relay_chat.bots_rooms") }}:
-                                {{ bot.rrc.rooms.map((r) => "#" + r.replace(/^#/, "")).join(", ") }}
+                            <div class="mt-1 space-y-0.5 text-xs text-sem-fg-muted">
+                                <div v-if="bot.rrc?.hub" class="font-mono truncate">
+                                    {{ $t("relay_chat.bots_hub") }}: {{ formatHash(bot.rrc.hub) }}
+                                </div>
+                                <div v-if="bot.rrc?.rooms?.length">
+                                    {{ $t("relay_chat.bots_rooms") }}:
+                                    {{ bot.rrc.rooms.map((r) => "#" + r.replace(/^#/, "")).join(", ") }}
+                                </div>
+                                <div v-if="bot.last_error" class="text-sem-danger break-all">{{ bot.last_error }}</div>
                             </div>
-                            <div v-if="bot.last_error" class="text-sem-danger break-all">{{ bot.last_error }}</div>
                         </div>
-                    </div>
-                    <div class="flex shrink-0 items-center gap-1.5">
-                        <button
-                            v-if="!bot.running"
-                            type="button"
-                            :class="[btnSecondary, 'px-2.5! py-1.5! text-xs!']"
-                            @click="startBot(bot)"
-                        >
-                            <MaterialDesignIcon icon-name="play" class="size-4" />
-                            {{ $t("relay_chat.host_start") }}
-                        </button>
-                        <button
-                            v-else
-                            type="button"
-                            :class="[btnSecondary, 'px-2.5! py-1.5! text-xs!']"
-                            @click="stopBot(bot)"
-                        >
-                            <MaterialDesignIcon icon-name="stop" class="size-4" />
-                            {{ $t("relay_chat.host_stop") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="btnIcon"
-                            :title="$t('bots.delete_bot')"
-                            @click="confirmDelete(bot)"
-                        >
-                            <MaterialDesignIcon icon-name="delete" class="size-4" />
-                        </button>
+                        <div class="flex shrink-0 items-center gap-1.5">
+                            <button
+                                v-if="!bot.running"
+                                type="button"
+                                :class="[btnSecondary, 'px-2.5! py-1.5! text-xs!']"
+                                @click="startBot(bot)"
+                            >
+                                <MaterialDesignIcon icon-name="play" class="size-4" />
+                                {{ $t("relay_chat.host_start") }}
+                            </button>
+                            <button
+                                v-else
+                                type="button"
+                                :class="[btnSecondary, 'px-2.5! py-1.5! text-xs!']"
+                                @click="stopBot(bot)"
+                            >
+                                <MaterialDesignIcon icon-name="stop" class="size-4" />
+                                {{ $t("relay_chat.host_stop") }}
+                            </button>
+                            <button
+                                type="button"
+                                :class="btnIcon"
+                                :title="$t('bots.delete_bot')"
+                                @click="confirmDelete(bot)"
+                            >
+                                <MaterialDesignIcon icon-name="delete" class="size-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </div>
     </div>
 </template>

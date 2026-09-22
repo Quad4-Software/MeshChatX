@@ -445,7 +445,7 @@ describe("ContactsPage edit contact name", () => {
         expect(axiosMock.patch).toHaveBeenCalled();
     });
 
-    it("editContactName with empty string still calls patch but not custom display name", async () => {
+    it("editContactName with empty string does nothing", async () => {
         DialogUtils.prompt.mockResolvedValue("");
 
         const wrapper = mountPage();
@@ -460,9 +460,7 @@ describe("ContactsPage edit contact name", () => {
 
         await wrapper.vm.editContactName(contact);
 
-        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/7", {
-            name: "",
-        });
+        expect(axiosMock.patch).not.toHaveBeenCalled();
         expect(axiosMock.post).not.toHaveBeenCalled();
     });
 

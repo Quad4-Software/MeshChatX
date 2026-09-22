@@ -49,7 +49,31 @@ export function relayMessageAlreadyPresent(messages, incoming) {
 }
 
 /**
- * Append extras that are not already represented in base (by seq / fallback key).
+ * True when existing should sort after msg. Compares by seq first and
+ * falls back to the timestamp for payloads without seq.
+ * @param {object} existing
+ * @param {object} msg
+ * @returns {boolean}
+ */
+function relayMessageSortsAfter(existing, msg) {
+    const existingSeq = typeof existing?.seq === "number" ? existing.seq : null;
+    const msgSeq = typeof msg?.seq === "number" ? msg.seq : null;
+    if (existingSeq !== null && msgSeq !== null) {
+        return existingSeq > msgSeq;
+    }
+    const existingTs = Number(existing?.ts);
+    const msgTs = Number(msg?.ts);
+    if (Number.isFinite(existingTs) && Number.isFinite(msgTs)) {
+        return existingTs > msgTs;
+    }
+    return false;
+}
+
+/**
+ * Merge extras that are not already represented in base (by seq / fallback
+ * key). New entries land in seq/timestamp order instead of always at the
+ * tail so an un-ignored peer's historical messages do not appear below
+ * newer arrivals.
  * @param {object[]} base
  * @param {object[]} extras
  * @returns {object[]}
@@ -60,9 +84,17 @@ export function mergeRelayMessages(base, extras) {
         return out;
     }
     for (const msg of extras) {
-        if (msg && !relayMessageAlreadyPresent(out, msg)) {
-            out.push(msg);
+        if (!msg || relayMessageAlreadyPresent(out, msg)) {
+            continue;
         }
+        let idx = out.length;
+        for (let i = 0; i < out.length; i++) {
+            if (relayMessageSortsAfter(out[i], msg)) {
+                idx = i;
+                break;
+            }
+        }
+        out.splice(idx, 0, msg);
     }
     return out;
 }
@@ -228,7 +260,21 @@ export function relayMessageTimelineSignature(messages) {
     }
     let minSeq = null;
     let maxSeq = null;
+    // Rolling fingerprint over per-message fields that affect grouping.
+    // Length+min/max alone misses in-place edits (flag flips, text updates)
+    // and leaves the cached timeline stale.
+    let fingerprint = 0;
     for (const msg of messages) {
+        const seq = typeof msg?.seq === "number" ? msg.seq : 0;
+        const textLen = typeof msg?.text === "string" ? msg.text.length : 0;
+        fingerprint =
+            (fingerprint * 31 +
+                seq +
+                textLen * 7 +
+                (msg?.highlighted ? 1 : 0) +
+                (msg?.localMention ? 2 : 0) +
+                (msg?.event ? 4 : 0)) |
+            0;
         if (typeof msg?.seq !== "number") {
             continue;
         }
@@ -239,7 +285,7 @@ export function relayMessageTimelineSignature(messages) {
             maxSeq = msg.seq;
         }
     }
-    return `${messages.length}\u241f${minSeq ?? ""}\u241f${maxSeq ?? ""}`;
+    return `${messages.length}\u241f${minSeq ?? ""}\u241f${maxSeq ?? ""}\u241f${fingerprint}`;
 }
 
 /**
@@ -310,6 +356,51 @@ export function prependRelayMessageTimeline(existingTimeline, prependedMessagesO
         lastPrefix.dayKey === firstExisting.dayKey
     ) {
         return prefixTimeline.slice(0, -1).concat(existing);
+    }
+    // A contiguous presence run can straddle the page boundary. Without this
+    // merge it renders as two adjacent groups. The existing timeline usually
+    // opens with a dateDivider, so look past it before checking for presence.
+    const prefixPresence =
+        lastPrefix?.type === "presenceGroup"
+            ? lastPrefix.messages
+            : lastPrefix?.type === "message" && isRelayPresenceSystemMessage(lastPrefix.msg)
+              ? [lastPrefix.msg]
+              : null;
+    let leadDivider = null;
+    let existingHead = existing;
+    if (firstExisting?.type === "dateDivider" && existing.length > 1) {
+        leadDivider = firstExisting;
+        existingHead = existing.slice(1);
+    }
+    const headFirst = existingHead[0];
+    const existingPresence =
+        headFirst?.type === "presenceGroup"
+            ? headFirst.messages
+            : headFirst?.type === "message" && isRelayPresenceSystemMessage(headFirst.msg)
+              ? [headFirst.msg]
+              : null;
+    // Do not merge across a day boundary: the divider must match the day of
+    // the presence messages on both sides of the seam.
+    const dayKeyOf = (msg) => {
+        const ms = typeof msg?.ts === "number" ? msg.ts : Number(msg?.ts);
+        const d = new Date(ms);
+        return Number.isNaN(d.getTime()) ? null : calendarDayKeyFromDate(d);
+    };
+    if (
+        prefixPresence &&
+        existingPresence &&
+        dayKeyOf(prefixPresence[prefixPresence.length - 1]) === dayKeyOf(existingPresence[0]) &&
+        (leadDivider === null || leadDivider.dayKey === dayKeyOf(existingPresence[0]))
+    ) {
+        const merged = buildPresenceGroup(prefixPresence.concat(existingPresence));
+        // Keep the already-rendered group's id: expansion state is keyed
+        // by it, and a fresh id would collapse the group when older
+        // history is prepended.
+        if (headFirst?.type === "presenceGroup" && headFirst.id) {
+            merged.id = headFirst.id;
+        }
+        const head = leadDivider ? [leadDivider] : [];
+        return prefixTimeline.slice(0, -1).concat(head, [merged], existingHead.slice(1));
     }
     return prefixTimeline.concat(existing);
 }

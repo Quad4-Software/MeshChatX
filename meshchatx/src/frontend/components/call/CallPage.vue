@@ -1982,6 +1982,7 @@ export default {
         GlobalEmitter.on(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.getVoicemails);
         GlobalEmitter.on(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.markMissedCallsViewed);
         GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
 
         this.startStatusPollInterval();
         this._liveTransportReadyWatch = this.$watch(
@@ -2024,6 +2025,7 @@ export default {
         GlobalEmitter.off(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.getVoicemails);
         GlobalEmitter.off(EMITTER_EVENTS.TELEPHONE_HISTORY_UPDATED, this.markMissedCallsViewed);
         GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         if (typeof this._liveTransportReadyWatch === "function") {
             this._liveTransportReadyWatch();
             this._liveTransportReadyWatch = null;
@@ -2886,6 +2888,14 @@ export default {
             } catch (e) {
                 console.log(e);
             }
+        },
+        onIdentitySwitched() {
+            // Config, contacts, and call history are per-identity; the
+            // mount-time copies belong to the previous identity.
+            this.getConfig();
+            this.getContacts();
+            this.getHistory();
+            this.getVoicemails();
         },
         async updateConfig(config) {
             try {

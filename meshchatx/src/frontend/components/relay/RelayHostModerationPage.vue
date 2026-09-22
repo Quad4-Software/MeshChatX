@@ -529,6 +529,7 @@ export default {
             selectedRoom: null,
             selectedMember: null,
             memberMessages: [],
+            memberMessagesGen: 0,
             newRoom: { name: "", topic: "", key: "" },
             localIdentityHash: "",
             uptimeTick: 0,
@@ -649,8 +650,14 @@ export default {
     watch: {
         hub: {
             immediate: true,
-            handler() {
+            handler(val, old) {
                 this.uptimeAnchorMs = Date.now();
+                // The parent's fetchServers swaps in a fresh object for
+                // the same hub; only a different hub or a start/stop flip
+                // needs a full reload.
+                if (val && old && val.id === old.id && Boolean(val.running) === Boolean(old.running)) {
+                    return;
+                }
                 this.reload();
             },
         },
@@ -710,6 +717,7 @@ export default {
             this.selectedRoom = null;
             this.selectedMember = null;
             this.memberMessages = [];
+            this.memberMessagesGen += 1;
             this.newRoom = { name: "", topic: "", key: "" };
             this.showAddRoomForm = false;
             this.roomsSearch = "";
@@ -801,11 +809,13 @@ export default {
             if (!this.hub?.id || !this.selectedRoom) {
                 return;
             }
-            const entered = await DialogUtils.prompt(
-                this.$t("relay_chat.host_room_key_prompt", { room: this.selectedRoom }),
-                "",
-                { inputType: "password" }
-            );
+            // Capture the room before the dialog awaits; re-reading
+            // selectedRoom after would apply the key to whatever room the
+            // user clicked while the prompt was open.
+            const room = this.selectedRoom;
+            const entered = await DialogUtils.prompt(this.$t("relay_chat.host_room_key_prompt", { room }), "", {
+                inputType: "password",
+            });
             if (entered == null) {
                 return;
             }
@@ -815,10 +825,9 @@ export default {
                 return;
             }
             try {
-                await window.api.put(
-                    apiPath(`/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(this.selectedRoom)}/key`),
-                    { key }
-                );
+                await window.api.put(apiPath(`/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(room)}/key`), {
+                    key,
+                });
                 ToastUtils.success(this.$t("relay_chat.host_room_key_saved"));
                 this.$emit("refresh");
                 await this.fetchActivity();
@@ -830,15 +839,15 @@ export default {
             if (!this.hub?.id || !this.selectedRoom) {
                 return;
             }
+            const room = this.selectedRoom;
             const confirmed = await DialogUtils.confirm(this.$t("relay_chat.host_clear_room_key_confirm"));
             if (!confirmed) {
                 return;
             }
             try {
-                await window.api.put(
-                    apiPath(`/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(this.selectedRoom)}/key`),
-                    { key: null }
-                );
+                await window.api.put(apiPath(`/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(room)}/key`), {
+                    key: null,
+                });
                 ToastUtils.success(this.$t("relay_chat.host_room_key_cleared"));
                 this.$emit("refresh");
                 await this.fetchActivity();
@@ -868,23 +877,34 @@ export default {
             this.loadMemberMessages();
         },
         async loadMemberMessages() {
-            if (!this.selectedMember || !this.hub?.id) {
+            const member = this.selectedMember;
+            if (!member || !this.hub?.id) {
                 return;
             }
+            // Fast member switching fires overlapping loads; only the last
+            // request for the still-selected member may write the pane.
+            const gen = ++this.memberMessagesGen;
             this.messagesLoading = true;
             try {
-                const params = { peer: this.selectedMember.hash, limit: 200 };
+                const params = { peer: member.hash, limit: 200 };
                 if (this.roomFilter) {
                     params.room = this.roomFilter;
                 }
                 const response = await rrcApi.getServersMessages(this.hub.id, {
                     params,
                 });
+                if (gen !== this.memberMessagesGen || this.selectedMember?.hash !== member.hash) {
+                    return;
+                }
                 this.memberMessages = response.data?.messages || [];
             } catch {
-                this.memberMessages = [];
+                if (gen === this.memberMessagesGen) {
+                    this.memberMessages = [];
+                }
             } finally {
-                this.messagesLoading = false;
+                if (gen === this.memberMessagesGen) {
+                    this.messagesLoading = false;
+                }
             }
         },
         async ensureLocalIdentity() {
