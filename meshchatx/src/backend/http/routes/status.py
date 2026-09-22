@@ -134,5 +134,12 @@ def register_status_routes(routes, app):
 
     @routes.get(API_V1_PREFIX + "/self-test")
     async def self_test(request):
-        results = app.run_self_test()
+        import asyncio
+
+        # run_self_test is a long synchronous routine; running it inline
+        # would freeze the event loop (and starve every client and the
+        # probe server's broadcast forwarding) for the whole check.
+        results = await asyncio.get_running_loop().run_in_executor(
+            None, app.run_self_test
+        )
         return web.json_response(results)
