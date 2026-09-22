@@ -427,7 +427,7 @@ def apply_landlock_sandbox(
     if not landlock_requested():
         return False
 
-    if landlockpy is None:
+    if landlockpy is None or Ruleset is None or AccessFS is None:
         logger.warning("Landlock requested but landlockpy is not installed")
         return False
 
@@ -437,6 +437,8 @@ def apply_landlock_sandbox(
         return False
 
     handled = _handled_access_fs_for_abi(abi)
+    if not isinstance(handled, AccessFS):
+        return False
     read_access = _read_access_for_handled(handled)
     rw_access = _rw_access_for_handled(handled)
     try:
