@@ -87,7 +87,10 @@ def register_spam_routes(routes, app):
         is_spam = data.get("is_spam", False)
 
         try:
-            message = app.database.messages.get_lxmf_message_by_hash(message_hash)
+            # stored hashes are lowercase hex; normalize so mixed-case paths hit
+            message = app.database.messages.get_lxmf_message_by_hash(
+                message_hash.lower(),
+            )
             if message:
                 message_data = dict(message)
                 message_data["is_spam"] = 1 if is_spam else 0

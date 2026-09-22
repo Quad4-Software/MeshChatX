@@ -46,8 +46,11 @@ def _destinations():
     return src_identity, dst_identity, src, dst
 
 
-def _stored_row(lxm) -> dict:
-    row = convert_lxmf_message_to_dict(lxm, include_attachments=True)
+def _stored_row(lxm, include_attachments: bool = True) -> dict:
+    row = convert_lxmf_message_to_dict(
+        lxm,
+        include_attachments=include_attachments,
+    )
     row["is_incoming"] = 0
     row["fields"] = json.dumps(row["fields"])
     row.setdefault("reply_to_hash", None)
@@ -104,10 +107,7 @@ def test_rebuild_paper_uri_roundtrip(monkeypatch):
     payload = msgpack.unpackb(packed_payload)
     assert payload[0] == lxm.timestamp
     content = payload[2]
-    assert (
-        content == "hello paper world"
-        or content == b"hello paper world"
-    )
+    assert content == "hello paper world" or content == b"hello paper world"
     # Same timestamp and payload keep the original message hash so ingest
     # dedupes instead of duplicating.
     hashed_part = dest_hash + source_hash + packed_payload
@@ -140,6 +140,86 @@ def test_rebuild_paper_uri_preserves_image_field(monkeypatch):
     uri, err = rebuild_paper_uri_from_db_lxmf_message(app, row)
     assert err is None
     assert uri.startswith("lxm://")
+
+
+def test_rebuild_paper_uri_preserves_icon_appearance(monkeypatch):
+    _src_identity, dst_identity, src, dst = _destinations()
+    lxm = LXMF.LXMessage(
+        dst,
+        src,
+        "with icon",
+        title="",
+        desired_method=LXMF.LXMessage.DIRECT,
+    )
+    lxm.fields = {
+        LXMF.FIELD_RENDERER: LXMF.RENDERER_MARKDOWN,
+        LXMF.FIELD_ICON_APPEARANCE: ["Robot", b"\x11\x22\x33", b"\xaa\xbb\xcc"],
+    }
+    lxm.pack()
+    row = _stored_row(lxm)
+
+    fields = parse_stored_lxmf_fields(row["fields"])
+    wire = lxmf_wire_fields_from_stored(fields, row)
+    assert wire[LXMF.FIELD_ICON_APPEARANCE] == [
+        "Robot",
+        b"\x11\x22\x33",
+        b"\xaa\xbb\xcc",
+    ]
+
+    app = _app_for(src, dst_identity, monkeypatch)
+    uri, err = rebuild_paper_uri_from_db_lxmf_message(app, row)
+    assert err is None
+    # The rebuilt payload must reproduce the original hash, or ingest would
+    # duplicate rather than dedupe.
+    assert uri is not None
+
+
+def test_rebuild_paper_uri_rejects_stripped_attachment(monkeypatch):
+    """A row without attachment bytes cannot reproduce the original hash."""
+    _src_identity, dst_identity, src, dst = _destinations()
+    lxm = LXMF.LXMessage(
+        dst,
+        src,
+        "with image",
+        title="",
+        desired_method=LXMF.LXMessage.DIRECT,
+    )
+    lxm.fields = {
+        LXMF.FIELD_RENDERER: LXMF.RENDERER_MARKDOWN,
+        LXMF.FIELD_IMAGE: ["png", b"\x89PNG\r\n\x1a\nfakepngdata"],
+    }
+    lxm.pack()
+    # Imported/backed-up rows can lack the byte payloads the real insert
+    # path stores; the hash guard must reject rather than emit a wrong URI.
+    row = _stored_row(lxm, include_attachments=False)
+
+    app = _app_for(src, dst_identity, monkeypatch)
+    uri, err = rebuild_paper_uri_from_db_lxmf_message(app, row)
+    assert uri is None
+    assert "reproduce" in err.lower()
+
+
+def test_rebuild_paper_uri_rejects_hash_drift(monkeypatch):
+    """Any stored shape that cannot reproduce the original payload is rejected."""
+    _src_identity, dst_identity, src, dst = _destinations()
+    lxm = LXMF.LXMessage(
+        dst,
+        src,
+        "original content",
+        title="",
+        desired_method=LXMF.LXMessage.DIRECT,
+    )
+    lxm.fields = {LXMF.FIELD_RENDERER: LXMF.RENDERER_MARKDOWN}
+    lxm.pack()
+    row = _stored_row(lxm)
+    # Simulate an old/corrupt row whose stored content diverged from the
+    # packed payload that produced the stored hash.
+    row["content"] = "tampered content"
+
+    app = _app_for(src, dst_identity, monkeypatch)
+    uri, err = rebuild_paper_uri_from_db_lxmf_message(app, row)
+    assert uri is None
+    assert "reproduce" in err.lower()
 
 
 def test_rebuild_paper_uri_rejects_incoming(monkeypatch):
@@ -205,7 +285,9 @@ def test_rebuild_paper_uri_recovers_identity_from_announces(monkeypatch):
         title="",
         desired_method=LXMF.LXMessage.DIRECT,
     )
-    lxm.fields = {}
+    # Real outbound sends always carry the renderer field; the stored dict
+    # drops it, so the rebuild re-adds it and the hash must still match.
+    lxm.fields = {LXMF.FIELD_RENDERER: LXMF.RENDERER_MARKDOWN}
     lxm.pack()
     row = _stored_row(lxm)
 
@@ -243,9 +325,7 @@ def _route_app(src, dst_identity, row, monkeypatch):
         database=SimpleNamespace(
             announces=SimpleNamespace(get_announce_by_hash=lambda h: None),
             messages=SimpleNamespace(
-                get_lxmf_message_by_hash=lambda h: row
-                if h == row["hash"]
-                else None,
+                get_lxmf_message_by_hash=lambda h: row if h == row["hash"] else None,
             ),
         ),
         local_lxmf_destination=src,
