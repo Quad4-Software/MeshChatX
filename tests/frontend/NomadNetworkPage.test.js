@@ -1617,16 +1617,51 @@ describe("NomadNetworkPage.vue", () => {
             expect(payload.nomadnet_file_download.file_path).toBe("/file/img.webp");
             expect(payload.nomadnet_file_download.data.image_id).toBe(0);
             expect(payload.nomadnet_file_download.data.image_profile).toBe("fast");
+            // upstream /media handlers reject requests without a key field
+            expect(payload.nomadnet_file_download.data.key).toBeNull();
         });
 
-        it("rejects non-webp and traversal image URLs", () => {
+        it("sends the micron k= value as the media request key", async () => {
             const hash = "a".repeat(32);
             const wrapper = mountNomadNetworkPage({ destinationHash: hash });
             wrapper.vm.selectedNode = { destination_hash: hash };
-            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.png").destinationHash).toBe("");
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            wrapper.vm.crashTabImages = [
+                {
+                    url: ":/media/img/forum/x.webp",
+                    alt: "keyed",
+                    w: null,
+                    h: null,
+                    size: null,
+                    key: "map1",
+                    align: "left",
+                    profile: "",
+                },
+            ];
+            wrapper.vm.setCrashTabImage = vi.fn();
+            wrapper.vm.loadNomadImage(wrapper.vm.crashTabImages[0], 0);
+            const calls = WebSocketConnection.send.mock.calls.filter((c) =>
+                String(c[0]).includes('"nomadnet.file.download"')
+            );
+            expect(calls.length).toBe(1);
+            const payload = JSON.parse(calls[0][0]);
+            expect(payload.nomadnet_file_download.file_path).toBe("/media/img/forum/x.webp");
+            expect(payload.nomadnet_file_download.data.key).toBe("map1");
+        });
+
+        it("rejects non-image and traversal image URLs", () => {
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash };
+            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.png").destinationHash).toBe(hash);
+            expect(wrapper.vm.resolveNomadImageDestination(":/file/img.exe").destinationHash).toBe("");
             expect(wrapper.vm.resolveNomadImageDestination(":/page/index.mu").destinationHash).toBe("");
             expect(wrapper.vm.resolveNomadImageDestination(":/file/../etc/shadow.webp").destinationHash).toBe("");
             expect(wrapper.vm.resolveNomadImageDestination(":/file/img.webp?x=1").destinationHash).toBe(hash);
+            expect(wrapper.vm.resolveNomadImageDestination(":/media/img/forum/x.webp").destinationHash).toBe(hash);
+            expect(wrapper.vm.resolveNomadImageDestination(":/media/img/forum/x.webp").filePath).toBe(
+                "/media/img/forum/x.webp"
+            );
         });
 
         it("sets the per-node image policy from the toolbar dropdown", async () => {

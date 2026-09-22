@@ -149,6 +149,69 @@ async def test_nomadnet_file_download_with_data_passed_to_downloader(
 
 
 @pytest.mark.asyncio
+async def test_nomadnet_media_download_routes_to_media_handler_with_key(
+    mock_app,
+    monkeypatch,
+):
+    """/media/ paths must go to the /media request handler with a key field.
+
+    Upstream NomadNet 1.4.x media handlers reject requests missing "key",
+    so the payload must always carry one (None when the micron k= field
+    is absent).
+    """
+    mock_app._try_serve_local_page_node_file = MagicMock(return_value=None)
+
+    from meshchatx.src.backend import nomadnet_downloader
+
+    captured = {}
+    orig_init = nomadnet_downloader.NomadnetFileDownloader.__init__
+
+    def capturing_init(self, *args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        self.is_cancelled = False
+        self.destination_hash = args[0]
+        self.path = args[1]
+        self.data = kwargs.get("data")
+
+    monkeypatch.setattr(
+        nomadnet_downloader.NomadnetFileDownloader,
+        "__init__",
+        capturing_init,
+    )
+
+    mock_ws = MagicMock()
+    mock_ws.send_str = AsyncMock()
+
+    dh = "d" * 32
+    await mock_app.on_websocket_data_received(
+        mock_ws,
+        {
+            "type": "nomadnet.file.download",
+            "nomadnet_file_download": {
+                "destination_hash": dh,
+                "file_path": "/media/img/forum/x.webp",
+                "data": {"image_id": 0, "page_path": "/page/index.mu"},
+            },
+        },
+    )
+
+    assert captured["args"][1] == "/media"
+    data = captured["kwargs"].get("data")
+    assert data is not None
+    assert data["path"] == "/media/img/forum/x.webp"
+    assert "key" in data
+    assert data["key"] is None
+    assert data["image_id"] == 0
+
+    monkeypatch.setattr(
+        nomadnet_downloader.NomadnetFileDownloader,
+        "__init__",
+        orig_init,
+    )
+
+
+@pytest.mark.asyncio
 async def test_private_page_download_skips_archive_on_local_serve(mock_app):
     mock_app._try_serve_local_page_node = MagicMock(return_value="# private page")
     mock_app.archive_page = MagicMock()

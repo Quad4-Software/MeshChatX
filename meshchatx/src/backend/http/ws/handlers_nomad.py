@@ -640,6 +640,10 @@ async def handle_nomadnet_file_download(app, client, data):
         media_payload = {"path": file_path}
         if isinstance(request_data, dict):
             media_payload.update(request_data)
+        # Upstream NomadNet 1.4.x media handlers reject requests that carry
+        # no key at all; None is the accepted default when the micron image
+        # field k= is absent.
+        media_payload.setdefault("key", None)
         rns_data = media_payload
 
     # download the file
