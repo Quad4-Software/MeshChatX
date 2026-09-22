@@ -3917,7 +3917,8 @@ class ReticulumMeshChat:
                         ctx.config.nomad_default_page_path.get() or "/page/index.mu"
                     )
                     # Sweep announced nodes. Policy decides whether to queue.
-                    known_nodes = ctx.database.announces.get_announces(
+                    known_nodes = await asyncio.to_thread(
+                        ctx.database.announces.get_announces,
                         aspect="nomadnetwork.node",
                     )
                     for node in known_nodes:
@@ -3949,7 +3950,8 @@ class ReticulumMeshChat:
                             max_concurrent=max_concurrent,
                         )
                     else:
-                        tasks = ctx.database.misc.get_pending_or_failed_crawl_tasks(
+                        tasks = await asyncio.to_thread(
+                            ctx.database.misc.get_pending_or_failed_crawl_tasks,
                             max_retries=max_retries,
                             max_concurrent=max_concurrent,
                         )
@@ -6009,7 +6011,11 @@ class ReticulumMeshChat:
                         ctx.identity_hash,
                     )
                     max_count = ctx.config.backup_max_count.get()
-                    ctx.database.backup_database(ctx.storage_path, max_count=max_count)
+                    await asyncio.to_thread(
+                        ctx.database.backup_database,
+                        ctx.storage_path,
+                        max_count=max_count,
+                    )
             except Exception:
                 logger.exception("Auto-backup failed")
 
@@ -6049,7 +6055,8 @@ class ReticulumMeshChat:
 
                 else:
                     _cancel = None
-                lmr.apply_local_message_retention(
+                await asyncio.to_thread(
+                    lmr.apply_local_message_retention,
                     ctx.database.messages,
                     _cancel,
                     value=int(v),
@@ -6074,7 +6081,9 @@ class ReticulumMeshChat:
                     continue
 
                 # Get all tracked peers
-                tracked_peers = ctx.database.telemetry.get_tracked_peers()
+                tracked_peers = await asyncio.to_thread(
+                    ctx.database.telemetry.get_tracked_peers,
+                )
                 now = time.time()
 
                 for peer in tracked_peers:
@@ -6094,7 +6103,11 @@ class ReticulumMeshChat:
                             context=ctx,
                         )
                         # Update last request time
-                        ctx.database.telemetry.update_last_request_at(dest_hash, now)
+                        await asyncio.to_thread(
+                            ctx.database.telemetry.update_last_request_at,
+                            dest_hash,
+                            now,
+                        )
 
             except Exception as e:
                 print(f"Telemetry tracking loop error: {e}")

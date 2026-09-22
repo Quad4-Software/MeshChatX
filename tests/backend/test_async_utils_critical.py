@@ -113,6 +113,60 @@ async def test_run_async_with_running_loop_executes_coroutine():
     assert outcomes == [7]
 
 
+def test_spawn_background_runs_coroutine_on_shared_loop():
+    """Many periodic coroutines share one background loop and thread."""
+    results: list[int] = []
+
+    async def worker(n):
+        await asyncio.sleep(0.01)
+        results.append(n)
+
+    AsyncUtils.ensure_background_loop()
+    futures = [AsyncUtils.spawn_background(worker(i)) for i in range(4)]
+
+    deadline = time.time() + 3.0
+    while time.time() < deadline and len(results) < 4:
+        time.sleep(0.05)
+
+    assert sorted(results) == [0, 1, 2, 3]
+    assert all(f.done() for f in futures)
+    assert AsyncUtils._background_thread is not None
+    assert threading.active_count() < 4 + 3
+
+
+def test_spawn_background_logs_task_exception():
+    async def boom():
+        raise RuntimeError("task exploded")
+
+    AsyncUtils.ensure_background_loop()
+    future = AsyncUtils.spawn_background(boom())
+
+    deadline = time.time() + 3.0
+    while time.time() < deadline and not future.done():
+        time.sleep(0.05)
+
+    assert future.done()
+    assert isinstance(future.exception(), RuntimeError)
+
+
+def test_spawn_background_falls_back_to_thread_without_loop(monkeypatch):
+    """No background loop (early teardown/tests) still runs the task."""
+    monkeypatch.setattr(AsyncUtils, "ensure_background_loop", lambda: None)
+    AsyncUtils._background_loop = None
+
+    seen: list[bool] = []
+
+    async def worker():
+        seen.append(True)
+
+    AsyncUtils.spawn_background(worker())
+
+    deadline = time.time() + 2.0
+    while time.time() < deadline and not seen:
+        time.sleep(0.05)
+    assert seen == [True]
+
+
 @pytest.mark.asyncio
 async def test_pending_futures_list_sheds_completed_entries():
     AsyncUtils.set_main_loop(asyncio.get_running_loop())
