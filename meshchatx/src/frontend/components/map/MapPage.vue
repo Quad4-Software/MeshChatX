@@ -404,6 +404,7 @@
 
             <!-- context menu -->
             <ContextMenuPanel
+                v-click-outside="{ handler: closeContextMenu, capture: true }"
                 :show="showContextMenu"
                 :x="contextMenuPos.x"
                 :y="contextMenuPos.y"
@@ -4736,6 +4737,10 @@ export default {
                 return;
             }
             const loc = await this.resolveMyLocationWgs84();
+            // the map may have been torn down while the lookup was in flight
+            if (!this.map) {
+                return;
+            }
             if (!loc) {
                 ToastUtils.warning(this.$t("map.location_not_determined"));
                 return;
@@ -5420,6 +5425,9 @@ export default {
             if (this.config?.location_source === "android") {
                 try {
                     const pos = await getAndroidPosition();
+                    if (!this.map) {
+                        return;
+                    }
                     this.map.getView().animate({
                         center: fromLonLat([pos.longitude, pos.latitude]),
                         zoom: 15,
@@ -5435,6 +5443,9 @@ export default {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
+                        if (!this.map) {
+                            return;
+                        }
                         this.map.getView().animate({
                             center: fromLonLat([pos.coords.longitude, pos.coords.latitude]),
                             zoom: 15,

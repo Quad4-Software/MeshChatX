@@ -2048,4 +2048,88 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("download bookkeeping", () => {
+        it("fetchArchives does not leave the spinner running on an unparseable path", async () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32) };
+            wrapper.vm.nodePagePath = "not a parseable path";
+            wrapper.vm.fetchArchives();
+            expect(wrapper.vm.isLoadingArchives).toBe(false);
+            wrapper.unmount();
+        });
+
+        it("fetchArchives sets the spinner only when the request is sent", async () => {
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32) };
+            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
+            WebSocketConnection.send.mockClear();
+            wrapper.vm.fetchArchives();
+            expect(wrapper.vm.isLoadingArchives).toBe(true);
+            expect(WebSocketConnection.send).toHaveBeenCalledWith(
+                expect.stringContaining("nomadnet.page.archives.get")
+            );
+            wrapper.unmount();
+        });
+
+        it("cancelStaleImageDownloads purges the sibling file callback and id", async () => {
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            const wrapper = mountNomadNetworkPage();
+            const dest = "a".repeat(32);
+            const fileKey = `${dest}:media/x.png`;
+            wrapper.vm.nomadImageDownloadCallbacks[0] = {
+                destinationHash: dest,
+                filePath: "media/x.png",
+                requestId: "r1",
+                downloadId: 42,
+            };
+            wrapper.vm.nomadnetFileDownloadCallbacks[fileKey] = { downloadId: 42 };
+            wrapper.vm.currentFileDownloadId = 42;
+            WebSocketConnection.send.mockClear();
+            wrapper.vm.cancelStaleImageDownloads();
+            expect(wrapper.vm.nomadnetFileDownloadCallbacks[fileKey]).toBeUndefined();
+            expect(wrapper.vm.nomadImageDownloadCallbacks[0]).toBeUndefined();
+            expect(wrapper.vm.currentFileDownloadId).toBeNull();
+            const sent = WebSocketConnection.send.mock.calls.map((c) => JSON.parse(c[0]));
+            expect(sent.some((p) => p.type === "nomadnet.download.cancel" && p.download_id === 42)).toBe(true);
+            wrapper.unmount();
+        });
+
+        it("downloadNomadNetPage cancels the previous in-flight transfer on replace", async () => {
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            const wrapper = mountNomadNetworkPage();
+            const dest = "a".repeat(32);
+            const key = wrapper.vm.getNomadnetPageDownloadCallbackKey(dest, "/page/a.mu");
+            wrapper.vm.nomadnetPageDownloadCallbacks[key] = { downloadId: 7, primary: true };
+            wrapper.vm.currentPageDownloadId = 7;
+            WebSocketConnection.send.mockClear();
+            wrapper.vm.downloadNomadNetPage(
+                dest,
+                "/page/a.mu",
+                null,
+                () => {},
+                () => {},
+                () => {},
+                {
+                    primary: true,
+                }
+            );
+            const sent = WebSocketConnection.send.mock.calls.map((c) => JSON.parse(c[0]));
+            expect(sent.some((p) => p.type === "nomadnet.download.cancel" && p.download_id === 7)).toBe(true);
+            expect(wrapper.vm.currentPageDownloadId).toBeNull();
+            wrapper.vm.nomadnetPageDownloadCallbacks[key]?.cancelPendingSend?.();
+            wrapper.unmount();
+        });
+
+        it("page history is bounded to the most recent entries", async () => {
+            const wrapper = mountNomadNetworkPage();
+            const dest = "a".repeat(32);
+            wrapper.vm.nodePagePath = `${dest}:/page/current.mu`;
+            wrapper.vm.nodePagePathHistory = Array.from({ length: 120 }, (_, i) => `${dest}:/page/p${i}.mu`);
+            await wrapper.vm.loadNodePage(dest, "/page/next.mu", null, true, false);
+            expect(wrapper.vm.nodePagePathHistory.length).toBeLessThanOrEqual(100);
+            wrapper.unmount();
+        });
+    });
 });

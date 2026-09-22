@@ -283,12 +283,18 @@ export default {
                 return;
             }
             const activeHash = (this.activeTab?.destinationHash || "").trim();
+            const routePath = route.query?.path || null;
             if (destinationHash === activeHash) {
+                // Same node, different page: drive the existing tab to the
+                // requested path instead of showing its stale page.
+                if (routePath && this.activeTab && routePath !== this.activeTab.path) {
+                    this.loadPathInTab(this.activeTab, destinationHash, routePath);
+                }
                 return;
             }
             this.onOpenNode({
                 destinationHash,
-                pagePath: route.query?.path || null,
+                pagePath: routePath,
                 activate: true,
             });
         },
@@ -376,6 +382,11 @@ export default {
                     if (payload?.title) {
                         existing.title = payload.title;
                     }
+                    const pagePath =
+                        typeof payload?.pagePath === "string" && payload.pagePath ? payload.pagePath : null;
+                    if (pagePath && pagePath !== existing.path) {
+                        this.loadPathInTab(existing, destinationHash, pagePath);
+                    }
                     if (payload?.activate !== false) {
                         this.selectTab(existing.id);
                     }
@@ -390,6 +401,20 @@ export default {
                 payload?.activate !== false,
                 openPrivate
             );
+        },
+        // Drives an existing tab to a different page on the same node. The
+        // tab record is updated so unmounted tabs pick the path up when they
+        // mount, and the live page component loads it when mounted.
+        loadPathInTab(tab, destinationHash, pagePath) {
+            if (!tab || !pagePath) {
+                return;
+            }
+            tab.initialPath = pagePath;
+            tab.path = pagePath;
+            const page = this.pageRefs[tab.id];
+            if (page && typeof page.onNodePageUrlClick === "function") {
+                page.onNodePageUrlClick(`${destinationHash}:${pagePath}`);
+            }
         },
         selectRelativeTab(offset) {
             if (this.tabs.length < 2) {
