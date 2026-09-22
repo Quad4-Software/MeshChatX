@@ -847,6 +847,40 @@ describe("ConversationViewer.vue", () => {
         expect(wrapper.vm.isRawMessageModalOpen).toBe(false);
     });
 
+    it("showRawMessage skips the uri request for incoming messages", async () => {
+        const peer = "a".repeat(32);
+        const msgHash = "b".repeat(32);
+        axiosMock.get.mockImplementation(() => Promise.resolve({ data: {} }));
+        const wrapper = mountConversationViewer({
+            selectedPeer: { destination_hash: peer, display_name: "Peer" },
+            myLxmfAddressHash: "c".repeat(32),
+        });
+        let guard = 0;
+        while (wrapper.vm.initialLoadActive && guard < 200) {
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+            guard += 1;
+        }
+        const getCallsBefore = axiosMock.get.mock.calls.length;
+        await wrapper.vm.showRawMessage({
+            lxmf_message: {
+                hash: msgHash,
+                source_hash: "d".repeat(32),
+                destination_hash: peer,
+                is_incoming: true,
+                state: "delivered",
+                method: "direct",
+                content: "hi",
+                fields: {},
+                id: 43,
+            },
+        });
+        expect(wrapper.vm.isRawMessageModalOpen).toBe(true);
+        expect(wrapper.vm.rawMessageData.raw_uri).toBeUndefined();
+        const callsDuringRaw = axiosMock.get.mock.calls.slice(getCallsBefore);
+        expect(callsDuringRaw.some((c) => String(c[0]).includes("/uri"))).toBe(false);
+    });
+
     it("isMessageBodyTooLargeForDisplay is true only above display limit", () => {
         const wrapper = mountConversationViewer();
         const atLimit = { lxmf_message: { content: "x".repeat(MESSAGE_BODY_MAX_DISPLAY_CHARS) } };
