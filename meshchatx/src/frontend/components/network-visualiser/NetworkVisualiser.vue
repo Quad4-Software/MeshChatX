@@ -82,6 +82,8 @@ import {
     VIZ_PATH_TABLE_SOFT_CAP,
     buildFullGraph,
     computeLodUpdates,
+    computeRadialPositions,
+    declutterLabelBoxes,
     lodLevelFromScale,
     pathHashesWithinHopFilter,
     layoutSpringLength,
@@ -100,6 +102,7 @@ import {
 } from "../../js/settings/batterySaverPrefs.js";
 import {
     loadVisualiserDisplayPrefs,
+    normalizeVisualiserViewMode,
     persistVisualiserAutoReload,
     persistVisualiserLiveLayout,
     persistVisualiserRenderer,
@@ -218,7 +221,7 @@ export default {
             isLoading: false,
             enablePhysics: displayPrefs.enablePhysics,
             preferredRenderer: displayPrefs.renderer || "auto",
-            viewMode: displayPrefs.viewMode === "planet" ? "planet" : "flat",
+            viewMode: normalizeVisualiserViewMode(displayPrefs.viewMode),
             showDisabledInterfaces: displayPrefs.showDisabledInterfaces,
             showDiscoveredInterfaces: displayPrefs.showDiscoveredInterfaces,
             loadingStatus: "Initializing...",
@@ -261,6 +264,7 @@ export default {
             fpsFrameCount: 0,
             fpsLastSampleMs: 0,
             cachedPositions: {},
+            resetCameraOnNextGraph: false,
             batterySaverPrefs: loadBatterySaverPrefs(),
             suppressLiveLayoutPersist: false,
             suppressAutoReloadPersist: false,
@@ -953,7 +957,7 @@ export default {
             this.enablePhysics = p.enablePhysics;
             this.autoReload = p.autoReload;
             this.preferredRenderer = p.renderer || "auto";
-            this.viewMode = p.viewMode === "planet" ? "planet" : "flat";
+            this.viewMode = normalizeVisualiserViewMode(p.viewMode);
         },
         async onPreferredRendererChange(next) {
             const normalized = next === "webgl" || next === "vis" || next === "auto" ? next : "auto";
@@ -963,11 +967,19 @@ export default {
             await this.reinitRenderer();
         },
         onViewModeChange(next) {
-            const normalized = next === "planet" ? "planet" : "flat";
+            const normalized = normalizeVisualiserViewMode(next);
             if (normalized === this.viewMode) return;
+            const wasRadial = this.viewMode === "radial";
             this.viewMode = normalized;
             persistVisualiserViewMode(normalized, { emit: false });
             this.webglEngine?.setViewMode?.(normalized);
+            // Radial swaps force layout for pinned hop rings, so switching to
+            // or from it needs a rebuild plus a camera reset.
+            if (normalized === "radial" || wasRadial) {
+                this.resetCameraOnNextGraph = true;
+                this.refreshPhysicsEnabled();
+                this.processVisualization();
+            }
         },
         destroyActiveRenderer() {
             this.hoverTooltip = null;
@@ -998,7 +1010,7 @@ export default {
             }
             try {
                 this.webglEngine = createVisualiserWebGLEngine(canvas, {
-                    getLiveLayout: () => this.enablePhysics === true,
+                    getLiveLayout: () => this.enablePhysics === true && this.viewMode !== "radial",
                     isDark: () => this.resolveVisualiserIsDark(),
                     onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
                     onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
@@ -1034,7 +1046,7 @@ export default {
                 this.snapshotNetworkPositions();
             }
             this.network.setOptions({
-                physics: { enabled: this.enablePhysics },
+                physics: { enabled: this.enablePhysics && this.viewMode !== "radial" },
                 edges: { smooth: VIZ_EDGE_SMOOTH },
             });
         },
@@ -1314,14 +1326,19 @@ export default {
             if (typeof this.network.getScale !== "function") return;
             const scale = this.network.getScale();
             const newLOD = lodLevelFromScale(scale);
-
-            if (this.currentLOD === newLOD) return;
+            const lodChanged = this.currentLOD !== newLOD;
             this.currentLOD = newLOD;
+
+            // At high zoom, keep only labels that fit without overlapping so
+            // dense clusters stay readable instead of stacking into a wall of
+            // names. Recomputed on every zoom change, not just band crossings.
+            const labelAllow = newLOD === "high" ? this.visibleLabelIds(scale) : null;
+            if (!lodChanged && !labelAllow) return;
 
             // Only mutate nodes whose LOD props actually change (avoids O(N)
             // DataSet churn + full redraw when zooming across thresholds).
             const isDarkMode = document.documentElement.classList.contains("dark");
-            const updates = computeLodUpdates(this.nodes.get(), newLOD, isDarkMode);
+            const updates = computeLodUpdates(this.nodes.get(), newLOD, isDarkMode, labelAllow);
             if (updates.length > 0) {
                 this.nodes.update(updates);
             }
@@ -1329,6 +1346,46 @@ export default {
             if (newLOD === "high" && this.iconQueue.length > 0) {
                 this.scheduleIconQueue();
             }
+        },
+        visibleLabelIds(scale) {
+            if (!this.network) return null;
+            if (typeof this.network.getPositions !== "function" || typeof this.network.canvasToDOM !== "function") {
+                return null;
+            }
+            const all = this.nodes.get();
+            if (!all.length) return null;
+            const positions = this.network.getPositions();
+            if (!positions) return null;
+            const hopsById = {};
+            for (const entry of this.pathTable) {
+                if (entry?.hash && entry.hops != null) hopsById[entry.hash] = entry.hops;
+            }
+            const items = [];
+            for (const n of all) {
+                const label = n?.originalLabel ?? n?.label;
+                if (!n?.id || !label) continue;
+                const p = positions[n.id];
+                if (!p) continue;
+                const dom = this.network.canvasToDOM(p);
+                const fontSize = n.id === "me" ? 16 : 11;
+                items.push({
+                    id: n.id,
+                    sx: dom.x,
+                    sy: dom.y + (Number(n.size) || 10) * scale + 4 + fontSize * 0.6,
+                    w: String(label).length * fontSize * 0.56,
+                    h: fontSize * 1.35,
+                    pri:
+                        n.id === "me"
+                            ? 0
+                            : n.group === "interface" || n.group === "discovered"
+                              ? 2
+                              : hopsById[n.id] === 1
+                                ? 3
+                                : 4,
+                });
+            }
+            items.sort((a, b) => a.pri - b.pri);
+            return declutterLabelBoxes(items, 4);
         },
         nodeColor(border, background) {
             return {
@@ -1657,6 +1714,21 @@ export default {
                 }
             }
 
+            const radial = this.viewMode === "radial";
+            if (radial) {
+                // Radial view overrides every position with deterministic hop
+                // rings around me, so nothing is missing and settle is skipped.
+                const radialPos = computeRadialPositions({
+                    interfaces: [...interfacesPayload.map((i) => i.name), ...pathOnlyPayload.map((i) => i.name)],
+                    discovered: discoveredPayload.map((d) => d.id),
+                    pathTable: this.pathTable,
+                    hopMax: this.hopFilterMax,
+                });
+                for (const [id, p] of Object.entries(radialPos)) {
+                    posById[id] = p;
+                }
+            }
+
             const meLabel = this.config?.display_name ?? "Local Node";
             const fullReq = {
                 me_label: meLabel,
@@ -1787,7 +1859,7 @@ export default {
                     x: n.x,
                     y: n.y,
                     mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : 1,
-                    fixed: n.id === "me",
+                    fixed: radial || n.id === "me",
                     radius: Number.isFinite(n.size) ? n.size : 22,
                 }));
                 graph.layout_edges = graphEdges.map((e) => ({
@@ -1795,6 +1867,13 @@ export default {
                     to: e.to,
                     length: layoutSpringLength(e.width),
                 }));
+            }
+            // Radial pins every node so hop rings stay put under live layout
+            // and scene ticks.
+            if (radial) {
+                for (const node of graphNodes) {
+                    node.fixed = true;
+                }
             }
 
             if (!silent) {
@@ -1860,7 +1939,9 @@ export default {
                 if (!silent) {
                     this.loadingStatus = "Uploading scene...";
                 }
-                this.webglEngine.setGraph(graphNodes, graphEdges);
+                const resetCamera = this.resetCameraOnNextGraph === true;
+                this.resetCameraOnNextGraph = false;
+                this.webglEngine.setGraph(graphNodes, graphEdges, { preserveCamera: !resetCamera });
                 const counts = this.webglEngine.getCounts();
                 this.graphNodeCount = counts.nodes;
                 this.graphEdgeCount = counts.edges;
@@ -1924,7 +2005,7 @@ export default {
             } finally {
                 if (pauseSilentPhysics && this.network && !this.physicsPausedForDrag) {
                     this.network.setOptions({
-                        physics: { enabled: this.enablePhysics },
+                        physics: { enabled: this.enablePhysics && this.viewMode !== "radial" },
                         edges: { smooth: VIZ_EDGE_SMOOTH },
                     });
                 }
@@ -1935,6 +2016,11 @@ export default {
             if (nodesToRemove.length > 0) this.nodes.remove(nodesToRemove);
             const edgesToRemove = this.edges.getIds().filter((id) => !processedEdgeIds.has(id));
             if (edgesToRemove.length > 0) this.edges.remove(edgesToRemove);
+
+            if (this.resetCameraOnNextGraph) {
+                this.resetCameraOnNextGraph = false;
+                this.network?.fit?.();
+            }
 
             this.graphNodeCount = this.nodes.length;
             this.graphEdgeCount = this.edges.length;

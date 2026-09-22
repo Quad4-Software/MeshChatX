@@ -3190,6 +3190,7 @@ import { useBatterySaver } from "../../js/settings/useBatterySaver.js";
 import { useReticulumInstance } from "../../js/settings/useReticulumInstance.js";
 import {
     loadVisualiserDisplayPrefs,
+    normalizeVisualiserViewMode,
     persistVisualiserShowDisabled,
     persistVisualiserShowDiscovered,
     persistVisualiserRenderer,
@@ -3825,7 +3826,7 @@ export default {
             this.visualiserShowDisabledInterfaces = p.showDisabledInterfaces;
             this.visualiserShowDiscoveredInterfaces = p.showDiscoveredInterfaces;
             this.visualiserRenderer = p.renderer || "auto";
-            this.visualiserViewMode = p.viewMode === "planet" ? "planet" : "flat";
+            this.visualiserViewMode = normalizeVisualiserViewMode(p.viewMode);
         },
         onVisualiserShowDisabledChange(val) {
             this.visualiserShowDisabledInterfaces = val;

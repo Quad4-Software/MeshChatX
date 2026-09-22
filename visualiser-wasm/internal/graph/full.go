@@ -228,7 +228,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 			if !filter.MatchesSearch(searchLower, disc.Label) {
 				continue
 			}
-			x, y := hashpos.XY(disc.ID, 480, 160)
+			x, y := hashpos.XY(disc.ID, 560, 240)
 			p := resolveOr(pos, disc.ID, x, y)
 			node := NodeOut{
 				ID:            disc.ID,

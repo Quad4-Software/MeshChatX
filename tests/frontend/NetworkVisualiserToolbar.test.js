@@ -125,6 +125,7 @@ describe("NetworkVisualiserToolbar", () => {
         const webgl = mountToolbar({ engineMode: "webgl", viewMode: "flat" });
         expect(webgl.find("#visualiser-view-flat").exists()).toBe(true);
         expect(webgl.find("#visualiser-view-planet").exists()).toBe(true);
+        expect(webgl.find("#visualiser-view-radial").exists()).toBe(true);
         expect(webgl.find("#visualiser-view-flat").attributes("aria-pressed")).toBe("true");
         expect(webgl.find("#visualiser-view-planet").attributes("aria-pressed")).toBe("false");
     });
@@ -133,5 +134,12 @@ describe("NetworkVisualiserToolbar", () => {
         const w = mountToolbar({ engineMode: "webgl", viewMode: "flat" });
         await w.find("#visualiser-view-planet").trigger("click");
         expect(w.emitted("update:viewMode")?.[0]).toEqual(["planet"]);
+    });
+
+    it("emits radial view mode from the WebGL toolbar", async () => {
+        const w = mountToolbar({ engineMode: "webgl", viewMode: "radial" });
+        expect(w.find("#visualiser-view-radial").attributes("aria-pressed")).toBe("true");
+        await w.find("#visualiser-view-radial").trigger("click");
+        expect(w.emitted("update:viewMode")?.[0]).toEqual(["radial"]);
     });
 });

@@ -650,6 +650,76 @@ describe("NetworkVisualiser.vue", () => {
         expect(processSpy).toHaveBeenCalledWith({ silent: true });
     });
 
+    it("radial view pins nodes on hop rings around me", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            redraw: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+            getScale: vi.fn().mockReturnValue(1),
+            fit: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [{ name: "eth0", status: true, bitrate: 1000, txb: 0, rxb: 0 }];
+        wrapper.vm.pathTable = [
+            { hash: "node1", interface: "eth0", hops: 1 },
+            { hash: "node2", interface: "eth0", hops: 2 },
+        ];
+        wrapper.vm.announces = {
+            node1: {
+                destination_hash: "node1",
+                aspect: "lxmf.delivery",
+                display_name: "Near",
+                updated_at: new Date().toISOString(),
+            },
+            node2: {
+                destination_hash: "node2",
+                aspect: "lxmf.delivery",
+                display_name: "Far",
+                updated_at: new Date().toISOString(),
+            },
+        };
+        wrapper.vm.viewMode = "radial";
+        await wrapper.vm.processVisualization();
+
+        const me = wrapper.vm.nodes.get("me");
+        const iface = wrapper.vm.nodes.get("eth0");
+        const n1 = wrapper.vm.nodes.get("node1");
+        const n2 = wrapper.vm.nodes.get("node2");
+        expect(me.x).toBe(0);
+        expect(me.y).toBe(0);
+        expect(Math.hypot(iface.x, iface.y)).toBeCloseTo(300, 1);
+        expect(Math.hypot(n1.x, n1.y)).toBeCloseTo(560, 1);
+        expect(Math.hypot(n2.x, n2.y)).toBeCloseTo(790, 1);
+        for (const n of wrapper.vm.nodes.get()) {
+            expect(n.fixed).toBe(true);
+        }
+        wrapper.unmount();
+    });
+
+    it("onViewModeChange to radial rebuilds the graph with a camera reset", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        const proc = vi.spyOn(wrapper.vm, "processVisualization").mockResolvedValue();
+        wrapper.vm.onViewModeChange("planet");
+        // Flat -> planet is render-only and must not rebuild.
+        expect(proc).not.toHaveBeenCalled();
+        expect(wrapper.vm.resetCameraOnNextGraph).toBe(false);
+        wrapper.vm.onViewModeChange("radial");
+        expect(wrapper.vm.viewMode).toBe("radial");
+        expect(wrapper.vm.resetCameraOnNextGraph).toBe(true);
+        expect(proc).toHaveBeenCalled();
+        // Leaving radial restores force layout, so it rebuilds too.
+        wrapper.vm.resetCameraOnNextGraph = false;
+        proc.mockClear();
+        wrapper.vm.onViewModeChange("flat");
+        expect(proc).toHaveBeenCalled();
+        wrapper.unmount();
+    });
+
     it("clears identity-scoped graph state on identity switch", async () => {
         vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
         const wrapper = mountVisualiser();

@@ -12,10 +12,10 @@ export const VIZ_ANNOUNCE_ASPECTS = ["lxmf.delivery", "nomadnetwork.node"];
 export const ANNOUNCE_HASH_CHUNK_SIZE = 500;
 
 /** Must match visualiser-wasm layout.DefaultHubSpringLen. */
-export const VIZ_HUB_SPRING_LEN = 200;
+export const VIZ_HUB_SPRING_LEN = 250;
 
 /** Must match visualiser-wasm layout.DefaultSpringLen. */
-export const VIZ_PEER_SPRING_LEN = 240;
+export const VIZ_PEER_SPRING_LEN = 300;
 
 /**
  * vis-style edge width to WASM spring rest length.
@@ -246,11 +246,11 @@ export function buildPathGraphJs(req) {
             const ip = positions[entry.interface];
             const angle = hashAngle(entry.hash);
             if (ip && Number.isFinite(ip.x) && Number.isFinite(ip.y)) {
-                const dist = 140 + hash01(entry.hash, "r") * 90;
+                const dist = 200 + hash01(entry.hash, "r") * 140;
                 x = ip.x + Math.cos(angle) * dist;
                 y = ip.y + Math.sin(angle) * dist;
             } else {
-                const dist = 400 + hash01(entry.hash, "r") * 160;
+                const dist = 560 + hash01(entry.hash, "r") * 240;
                 x = Math.cos(angle) * dist;
                 y = Math.sin(angle) * dist;
             }
@@ -424,9 +424,11 @@ export function settleLayout(req) {
  * @param {object[]} nodes
  * @param {string} lod
  * @param {boolean} darkMode
+ * @param {Set<string>|null|undefined} labelAllow when set at high LOD, only
+ * listed node ids keep their label so dense clusters stay readable
  * @returns {object[]}
  */
-export function computeLodUpdatesJs(nodes, lod, darkMode) {
+export function computeLodUpdatesJs(nodes, lod, darkMode, labelAllow) {
     if (!Array.isArray(nodes) || nodes.length === 0) {
         return [];
     }
@@ -456,11 +458,12 @@ export function computeLodUpdatesJs(nodes, lod, darkMode) {
                 font: { size: 0 },
             };
         } else {
+            const showLabel = labelAllow == null || labelAllow.has(node.id);
             next = {
                 id: node.id,
                 shape: node._originalShape || "circularImage",
                 size: node._originalSize || (node.id === "me" ? 50 : 25),
-                font: { size: node.id === "me" ? 16 : 11, color: fontColor },
+                font: { size: showLabel ? (node.id === "me" ? 16 : 11) : 0, color: fontColor },
             };
         }
         const shapeChanged = next.shape != null && next.shape !== node.shape;
@@ -478,9 +481,11 @@ export function computeLodUpdatesJs(nodes, lod, darkMode) {
  * @param {object[]} nodes
  * @param {string} lod
  * @param {boolean} darkMode
+ * @param {Set<string>|null|undefined} labelAllow label allowlist; forces the
+ * JS path because the WASM LOD call does not accept one
  */
-export function computeLodUpdates(nodes, lod, darkMode) {
-    if (isVisualiserWasmReady()) {
+export function computeLodUpdates(nodes, lod, darkMode, labelAllow) {
+    if (labelAllow == null && isVisualiserWasmReady()) {
         const got = callVisualiserWasmJson(
             "meshchatxVisualiserLODUpdates",
             JSON.stringify({ nodes, lod, dark_mode: !!darkMode })
@@ -489,7 +494,118 @@ export function computeLodUpdates(nodes, lod, darkMode) {
             return got;
         }
     }
-    return computeLodUpdatesJs(nodes, lod, darkMode);
+    return computeLodUpdatesJs(nodes, lod, darkMode, labelAllow);
+}
+
+/**
+ * Greedy screen-space label declutter. Items are tried in order, so callers
+ * should sort by importance first; the first label to claim a spot wins.
+ * @param {{id: string, sx: number, sy: number, w: number, h: number}[]} items
+ *   label boxes centred on (sx, sy) in screen pixels
+ * @param {number} spacing extra padding around each placed box
+ * @returns {Set<string>} ids of labels that did not collide
+ */
+export function declutterLabelBoxes(items, spacing = 6) {
+    const keep = new Set();
+    if (!Array.isArray(items) || items.length === 0) {
+        return keep;
+    }
+    const cell = 96;
+    const grid = new Map();
+    for (const it of items) {
+        if (!it || it.id == null) continue;
+        const w = Number(it.w) || 0;
+        const h = Number(it.h) || 0;
+        const l = it.sx - w / 2 - spacing;
+        const r = it.sx + w / 2 + spacing;
+        const t = it.sy - h / 2 - spacing;
+        const b = it.sy + h / 2 + spacing;
+        const cx0 = Math.floor(l / cell);
+        const cx1 = Math.floor(r / cell);
+        const cy0 = Math.floor(t / cell);
+        const cy1 = Math.floor(b / cell);
+        let hit = false;
+        for (let cy = cy0; cy <= cy1 && !hit; cy++) {
+            for (let cx = cx0; cx <= cx1 && !hit; cx++) {
+                const bucket = grid.get(`${cx},${cy}`);
+                if (!bucket) continue;
+                for (const p of bucket) {
+                    if (l < p.r && r > p.l && t < p.b && b > p.t) {
+                        hit = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (hit) continue;
+        keep.add(it.id);
+        const rect = { l, r, t, b };
+        for (let cy = cy0; cy <= cy1; cy++) {
+            for (let cx = cx0; cx <= cx1; cx++) {
+                const key = `${cx},${cy}`;
+                let bucket = grid.get(key);
+                if (!bucket) {
+                    bucket = [];
+                    grid.set(key, bucket);
+                }
+                bucket.push(rect);
+            }
+        }
+    }
+    return keep;
+}
+
+/**
+ * Deterministic radial layout: me at the centre, interfaces and discovered
+ * nodes on the first ring, then announce peers grouped into one ring per hop
+ * count. Returns a positions map for injection into the graph builders.
+ * @param {{interfaces?: string[], discovered?: string[], pathTable?: object[], hopMax?: number|null}} req
+ * @returns {Record<string, {x: number, y: number}>}
+ */
+export function computeRadialPositions(req) {
+    const positions = { me: { x: 0, y: 0 } };
+    const inner = [];
+    for (const id of req?.interfaces || []) {
+        if (typeof id === "string" && id) inner.push(id);
+    }
+    for (const id of req?.discovered || []) {
+        if (typeof id === "string" && id) inner.push(id);
+    }
+    const innerRadius = 300;
+    inner.forEach((id, i) => {
+        const a = (i / inner.length) * Math.PI * 2 - Math.PI / 2;
+        positions[id] = { x: Math.cos(a) * innerRadius, y: Math.sin(a) * innerRadius };
+    });
+
+    const hopMax = req?.hopMax;
+    const byHop = new Map();
+    for (const entry of req?.pathTable || []) {
+        if (!entry || !entry.hash || entry.hops == null) continue;
+        if (hopMax != null && entry.hops > hopMax) continue;
+        const hops = Math.max(1, Math.round(entry.hops));
+        let ring = byHop.get(hops);
+        if (!ring) {
+            ring = [];
+            byHop.set(hops, ring);
+        }
+        ring.push(entry);
+    }
+    const baseRadius = 560;
+    const ringStep = 230;
+    for (const [hops, entries] of [...byHop.entries()].sort((a, b) => a[0] - b[0])) {
+        // Sort by parent interface then hash so same-interface peers cluster.
+        entries.sort(
+            (a, b) =>
+                String(a.interface).localeCompare(String(b.interface)) || String(a.hash).localeCompare(String(b.hash))
+        );
+        const r = baseRadius + (hops - 1) * ringStep;
+        const offset = ((hops * 137.508) % 360) * (Math.PI / 180);
+        entries.forEach((entry, i) => {
+            const a = offset + (i / entries.length) * Math.PI * 2;
+            positions[entry.hash] = { x: Math.cos(a) * r, y: Math.sin(a) * r };
+        });
+    }
+    return positions;
 }
 
 /**

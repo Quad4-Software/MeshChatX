@@ -4,7 +4,7 @@
  */
 
 import { callVisualiserWasmJson, isVisualiserWebGLSceneReady } from "./VisualiserWasmLoader.js";
-import { lodLevelFromScale } from "./networkVisualiserPerf.js";
+import { declutterLabelBoxes, lodLevelFromScale } from "./networkVisualiserPerf.js";
 import {
     createNetworkVisualiserWebGL,
     mergeSceneNodesWithTextures,
@@ -56,6 +56,9 @@ export function truncateWebGLLabel(text, maxChars = WEBGL_LABEL_MAX_CHARS) {
 /**
  * Build overlay labels using the same LOD bands as the vis-network canvas path.
  * low: none, medium: me + hover only, high: all in-scene labels.
+ * When camX/camY/viewWidth/viewHeight are supplied, high-LOD labels are
+ * decluttered in screen space so dense clusters do not stack into a wall of
+ * text. me and the hovered node always keep their label.
  *
  * @param {{
  *   zoom: number,
@@ -64,6 +67,10 @@ export function truncateWebGLLabel(text, maxChars = WEBGL_LABEL_MAX_CHARS) {
  *   labelByIndex: (string|null|undefined)[],
  *   idByIndex: (string|null|undefined)[],
  *   hoverId?: string|null,
+ *   camX?: number,
+ *   camY?: number,
+ *   viewWidth?: number,
+ *   viewHeight?: number,
  * }} opts
  * @returns {{x:number,y:number,size:number,text:string,fontSize:number}[]}
  */
@@ -77,6 +84,13 @@ export function collectWebGLLabels(opts) {
     const labelByIndex = opts?.labelByIndex || [];
     const idByIndex = opts?.idByIndex || [];
     const hoverId = opts?.hoverId ? String(opts.hoverId) : null;
+    const canDeclutter =
+        lod === "high" &&
+        Number.isFinite(opts?.camX) &&
+        Number.isFinite(opts?.camY) &&
+        opts?.viewWidth > 0 &&
+        opts?.viewHeight > 0;
+    const items = canDeclutter ? [] : null;
     const out = [];
 
     for (let i = 0; i < sceneCount; i++) {
@@ -90,15 +104,45 @@ export function collectWebGLLabels(opts) {
         if (!text) continue;
 
         const o = i * SCENE_NODE_STRIDE;
-        out.push({
+        const rec = {
             x: nodes?.[o] ?? 0,
             y: nodes?.[o + 1] ?? 0,
             size: nodes?.[o + 2] ?? 10,
             text,
             fontSize: isMe ? 16 : 11,
+        };
+        if (!items) {
+            out.push(rec);
+            continue;
+        }
+        const kind = nodes?.[o + 7] | 0;
+        const pri =
+            isHover && !isMe
+                ? 0
+                : isMe
+                  ? 1
+                  : kind === KIND_IFACE_ON || kind === KIND_IFACE_OFF || kind === KIND_DISCOVERED
+                    ? 2
+                    : 3;
+        // Label boxes sit below the node glyph, centred on it. The renderer
+        // scales the glyph radius by zoom before offsetting the text.
+        const sx = (rec.x - opts.camX) * zoom + opts.viewWidth / 2;
+        const sy =
+            (rec.y - opts.camY) * zoom + opts.viewHeight / 2 + Math.max(rec.size, 6) * zoom + 4 + rec.fontSize * 0.6;
+        items.push({
+            id: id ?? String(i),
+            sx,
+            sy,
+            w: text.length * rec.fontSize * 0.56,
+            h: rec.fontSize * 1.35,
+            pri,
+            rec,
         });
     }
-    return out;
+    if (!items) return out;
+    items.sort((a, b) => a.pri - b.pri);
+    const keep = declutterLabelBoxes(items, 4);
+    return items.filter((it) => keep.has(it.id)).map((it) => it.rec);
 }
 
 const DEFAULT_ICON_BY_KIND = {
@@ -241,7 +285,7 @@ export function graphToSceneRequest(graphNodes, graphEdges, view) {
             x: Number.isFinite(n.x) ? n.x : 0,
             y: Number.isFinite(n.y) ? n.y : 0,
             mass: n.id === "me" ? 4 : n.group === "interface" ? 2.5 : 1,
-            fixed: n.id === "me",
+            fixed: n.id === "me" || n.fixed === true,
             kind,
             size: sizeForNode(n, kind),
             r: rgb.r,
@@ -578,6 +622,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             paintLabels = [];
             const lod = lodLevelFromScale(labelZoom);
             if (lod !== "low") {
+                const items = [];
                 for (let i = 0; i < planetProjected.length; i++) {
                     const rec = planetProjected[i];
                     if (!rec?.front) continue;
@@ -589,13 +634,30 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                     if (lod === "medium" && !isMe && !isIface && !isHover) continue;
                     const text = truncateWebGLLabel(labelByIndex[i]);
                     if (!text) continue;
-                    const draw = screenToDrawWorld(rec.sx, rec.sy, css.width, css.height);
+                    const fontSize = isMe ? 16 : isIface ? 13 : 11;
+                    items.push({
+                        id: id ?? String(i),
+                        sx: rec.sx,
+                        sy: rec.sy + rec.size + 4 + fontSize * 0.6,
+                        w: text.length * fontSize * 0.56,
+                        h: fontSize * 1.35,
+                        pri: isHover && !isMe ? 0 : isMe ? 1 : isIface ? 2 : 3,
+                        rec,
+                        text,
+                        fontSize,
+                    });
+                }
+                items.sort((a, b) => a.pri - b.pri);
+                const keep = declutterLabelBoxes(items, 4);
+                for (const it of items) {
+                    if (!keep.has(it.id)) continue;
+                    const draw = screenToDrawWorld(it.rec.sx, it.rec.sy, css.width, css.height);
                     paintLabels.push({
                         x: draw.x,
                         y: draw.y,
-                        size: rec.size,
-                        text,
-                        fontSize: isMe ? 16 : isIface ? 13 : 11,
+                        size: it.rec.size,
+                        text: it.text,
+                        fontSize: it.fontSize,
                     });
                 }
             }
@@ -607,6 +669,10 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                 labelByIndex,
                 idByIndex,
                 hoverId,
+                camX: camera.x,
+                camY: camera.y,
+                viewWidth: css.width,
+                viewHeight: css.height,
             });
         }
         const size = renderer.draw(paintNodes, drawEdges, camera, dark, paintLabels);
