@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import MicronParser from "./MicronParser.js";
+import { renderMarkdownInWorker } from "./micronRenderWorkerClient.js";
 import { scrubNetworkCss } from "./nomadCssSecurity.js";
 
 marked.setOptions({
@@ -389,4 +390,59 @@ export function renderNomadPageByPath(
         return `<pre class="whitespace-pre-wrap text-gray-900 dark:text-gray-100">${escapeHtmlText(content)}</pre>`;
     }
     return escapeHtmlText(content);
+}
+
+/**
+ * Async variant of renderNomadPageByPath. Micron mu segments run through the
+ * render worker's WASM instance when useWasm is set, markdown parses in the
+ * worker via marked, and the DOM-fused JS micron path yields between chunks.
+ * Sanitization stays on the main thread; the sync renderer is untouched and
+ * remains the fallback (the crash-tab iframe has no worker support).
+ */
+export async function renderNomadPageByPathAsync(
+    pagePathWithoutData,
+    content,
+    pagePartials,
+    MicronParserClass,
+    renderOptions: any = {}
+) {
+    const renderMarkdown = renderOptions.renderMarkdown !== false;
+    const renderHtml = renderOptions.renderHtml !== false;
+    const renderPlaintext = renderOptions.renderPlaintext !== false;
+    const nomadDestinationHash = renderOptions.nomadDestinationHash || null;
+    const linkOpts: any = { destinationHash: nomadDestinationHash };
+    const micronOpts: any = {
+        useWasm: renderOptions.nomad_micron_wasm_use === true,
+    };
+    const p = (pagePathWithoutData || "").toLowerCase();
+    if (p.endsWith(".mu")) {
+        const muParser = new MicronParserClass();
+        let out = await muParser.convertMicronToHtmlAsync(content, pagePartials, micronOpts);
+        if (nomadDestinationHash) {
+            out = isolateNomadLinksInHtml(out, nomadDestinationHash);
+        }
+        return out;
+    }
+    if (p.endsWith(".md")) {
+        if (renderMarkdown) {
+            try {
+                const raw = await renderMarkdownInWorker(normalizeMarkdownInput(content ?? ""));
+                let inner = sanitizeNomadHtmlFragment(raw);
+                if (nomadDestinationHash) {
+                    inner = isolateNomadLinksInHtml(inner, nomadDestinationHash);
+                }
+                return `<div class="nomad-markdown">${inner}</div>`;
+            } catch {
+                return renderNomadMarkdown(content, linkOpts);
+            }
+        }
+        return escapeNomadPlainText(content);
+    }
+    return renderNomadPageByPath(
+        pagePathWithoutData,
+        content,
+        pagePartials,
+        MicronParserClass,
+        renderOptions,
+    );
 }
