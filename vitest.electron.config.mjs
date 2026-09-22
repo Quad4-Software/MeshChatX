@@ -1,9 +1,12 @@
 import { defineConfig } from "vitest/config";
 
+process.env.NODE_COMPILE_CACHE ??= "node_modules/.cache/node-compile-cache";
+
 export default defineConfig({
     test: {
         globals: true,
         environment: "node",
+        fsModuleCache: true,
         // Same vitest-worker teardown race as vitest.config.mjs: ignore
         // pending console-log RPC rejections at worker shutdown.
         onUnhandledError(error) {

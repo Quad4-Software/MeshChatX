@@ -4,6 +4,10 @@ import path from "path";
 import fs from "fs";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
 
+// Persist Node's on-disk compile cache between runs; Vitest propagates the
+// variable to every worker. node_modules is already gitignored.
+process.env.NODE_COMPILE_CACHE ??= "node_modules/.cache/node-compile-cache";
+
 function isMicronWasmBundledResolved(repoRoot) {
     const wasmDir = path.join(repoRoot, "meshchatx", "src", "frontend", "public", "vendor", "micron-parser-go");
     const wasmFile = path.join(wasmDir, "micron-parser-go.wasm");
@@ -43,6 +47,20 @@ function loadMicronWasmIntegrity(repoRoot) {
 const micronWasmIntegrity = loadMicronWasmIntegrity(import.meta.dirname);
 const appBuildTimeIso = new Date().toISOString();
 
+// These files stub window/location by replacing the whole global, which is
+// impossible inside a vmThreads realm where window is a getter-only VM global.
+// They run on the default forks pool in a dedicated project.
+const WINDOW_REPLACING_TESTS = [
+    "tests/frontend/apiClientCsrfRecovery.test.js",
+    "tests/frontend/apiClientMutationTimeout.test.js",
+    "tests/frontend/AuthPage.test.js",
+    "tests/frontend/BergamotBacking.test.js",
+    "tests/frontend/FatalErrorPage.test.js",
+    "tests/frontend/IdentitiesPage.test.js",
+    "tests/frontend/identitySwitchUiContracts.test.js",
+    "tests/frontend/WebSocketConnection.test.js",
+];
+
 export default defineConfig({
     define: {
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
@@ -63,6 +81,9 @@ export default defineConfig({
         teardownTimeout: 30000,
         globals: true,
         environment: "jsdom",
+        // Persist the transform cache between runs so unchanged modules are
+        // not re-transformed on every invocation.
+        fsModuleCache: true,
         // vitest-worker teardown race: a console log RPC still in flight
         // when the worker closes surfaces as an unhandled rejection even
         // though every test passed. Ignore only that specific race.
@@ -72,9 +93,36 @@ export default defineConfig({
                 return false;
             }
         },
-        include: ["tests/frontend/**/*.{test,spec}.{js,ts,jsx,tsx}"],
-        exclude: ["tests/frontend/browser/**", "**/*.browser.test.*", "**/*.browser.spec.*"],
         setupFiles: ["tests/frontend/setup.js"],
+        // vmThreads creates the jsdom environment once per worker instead of
+        // once per file while still giving every file a fresh window. With
+        // 300+ test files this removes most of the environment phase cost.
+        // Files that replace the window or location globals outright cannot
+        // run in a VM realm, so they stay on the forks pool.
+        projects: [
+            {
+                extends: true,
+                test: {
+                    name: "dom",
+                    pool: "vmThreads",
+                    include: ["tests/frontend/**/*.{test,spec}.{js,ts,jsx,tsx}"],
+                    exclude: [
+                        "tests/frontend/browser/**",
+                        "**/*.browser.test.*",
+                        "**/*.browser.spec.*",
+                        ...WINDOW_REPLACING_TESTS,
+                    ],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "dom-forks",
+                    pool: "forks",
+                    include: WINDOW_REPLACING_TESTS,
+                },
+            },
+        ],
         ui: false,
         open: false,
         coverage: {

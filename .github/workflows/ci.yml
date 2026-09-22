@@ -94,6 +94,17 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
+            - name: Restore Vitest module and compile caches
+              if: matrix.task.id == 'frontend-tests'
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: |
+                      node_modules/.vite/vitest
+                      node_modules/.cache/node-compile-cache
+                  key: ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.mjs', 'vitest.electron.config.mjs') }}
+                  restore-keys: |
+                      ${{ runner.os }}-vitest-
+
             - name: Run matrix task
               env:
                   PR_BASE_REF: ${{ github.event.pull_request.base.ref }}

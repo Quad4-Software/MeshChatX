@@ -121,6 +121,31 @@ global.performance.getEntriesByName = vi.fn(() => []);
 global.performance.clearMarks = vi.fn();
 global.performance.clearMeasures = vi.fn();
 
+// The vmThreads pool runs tests in a VM realm where some Node/web globals are
+// absent; fill them so SRI, hashing, and decompression code paths work.
+try {
+    if (typeof globalThis.crypto === "object" && globalThis.crypto && !globalThis.crypto.subtle) {
+        const { webcrypto } = await import("node:crypto");
+        Object.defineProperty(globalThis.crypto, "subtle", {
+            value: webcrypto.subtle,
+            configurable: true,
+        });
+    }
+    if (typeof globalThis.DecompressionStream === "undefined") {
+        const streams = await import("node:stream/web");
+        globalThis.DecompressionStream = streams.DecompressionStream;
+        globalThis.CompressionStream = streams.CompressionStream;
+    }
+    if (typeof globalThis.ReadableStream === "undefined") {
+        const streams = await import("node:stream/web");
+        globalThis.ReadableStream = streams.ReadableStream;
+        globalThis.WritableStream = streams.WritableStream;
+        globalThis.TransformStream = streams.TransformStream;
+    }
+} catch {
+    // Best effort; tests that need these globals will fail loudly on their own.
+}
+
 // Mock window.api by default to prevent TypeErrors
 global.api = {
     get: vi.fn().mockResolvedValue({ data: {} }),
@@ -132,9 +157,11 @@ global.api = {
 };
 window.api = global.api;
 
-// Mock window.matchMedia
+// Mock window.matchMedia. configurable is required under the vmThreads pool:
+// window is the VM global there, so vi.stubGlobal must be able to redefine it.
 Object.defineProperty(window, "matchMedia", {
     writable: true,
+    configurable: true,
     value: vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,

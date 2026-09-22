@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
+process.env.NODE_COMPILE_CACHE ??= "node_modules/.cache/node-compile-cache";
+
 export default defineConfig({
     plugins: [svelte()],
     test: {
@@ -16,6 +18,7 @@ export default defineConfig({
         browser: {
             enabled: true,
             provider: playwright(),
+            ui: false,
             instances: [{ browser: "chromium", headless: true }],
         },
     },
