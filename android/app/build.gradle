@@ -47,7 +47,7 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.meshchatx"
+        applicationId System.getenv("MESHCHATX_APPLICATION_ID") ?: "com.meshchatx"
         minSdk 24
         targetSdk 35
         versionCode 49001
