@@ -192,13 +192,18 @@ describe("wsLiveSync references", () => {
             });
             handle.clearCursor();
             handlers.ready();
-            handlers.ready();
-            expect(connection.sendQueued).toHaveBeenCalledTimes(1);
-
-            // Watchdog frees the flag when the reply never arrives.
-            await vi.advanceTimersByTimeAsync(16000);
+            // A second ready means a fresh session: the latched subscribe was
+            // sent on a dead socket so it is released and re-issued rather
+            // than waiting out the watchdog.
             handlers.ready();
             expect(connection.sendQueued).toHaveBeenCalledTimes(2);
+
+            // The reply releases the flag as well.
+            const sent = JSON.parse(connection.sendQueued.mock.calls.at(-1)[0]);
+            handlers.message({
+                data: JSON.stringify({ type: "sync.subscribe", request_id: sent.request_id, status: "ok" }),
+            });
+            await vi.advanceTimersByTimeAsync(0);
             handle.dispose();
         } finally {
             vi.useRealTimers();

@@ -103,6 +103,38 @@ describe("WebSocketConnection live send bridge", () => {
         WebSocketConnection.setLiveSendBridge(null);
         expect(WebSocketConnection.send("bye")).toBe(false);
     });
+
+    it("drains the stranded outbound queue through the bridge when set", () => {
+        const sent = [];
+        const expired = [];
+        const onExpired = (e) => expired.push(e.request_id);
+        WebSocketConnection.on("queue_expired", onExpired);
+        try {
+            WebSocketConnection.destroyed = false;
+            WebSocketConnection.ws = null;
+            // Queue one live entry and one already-expired entry.
+            WebSocketConnection.sendQueued(JSON.stringify({ type: "x", request_id: "live-1" }));
+            WebSocketConnection._outboundQueue.push({
+                message: JSON.stringify({ type: "x", request_id: "stale-1" }),
+                requestId: "stale-1",
+                expiresAt: Date.now() - 1,
+            });
+            WebSocketConnection.setLiveSendBridge({
+                send: (message) => {
+                    sent.push(message);
+                    return true;
+                },
+                isOpen: () => true,
+            });
+            expect(sent.map((m) => JSON.parse(m).request_id)).toEqual(["live-1"]);
+            expect(expired).toEqual(["stale-1"]);
+            expect(WebSocketConnection._outboundQueue).toHaveLength(0);
+        } finally {
+            WebSocketConnection.off("queue_expired", onExpired);
+            WebSocketConnection.setLiveSendBridge(null);
+            WebSocketConnection._outboundQueue = [];
+        }
+    });
 });
 
 describe("LiveTransport WebTransport candidate lifecycle", () => {
@@ -186,6 +218,28 @@ describe("LiveTransport WebTransport candidate lifecycle", () => {
         expect(r1.superseded).toBe(true);
 
         expect(events).toHaveLength(0);
+    });
+
+    it("falls back to WebSocket when the active WebTransport session dies", async () => {
+        const fallbacks = [];
+        liveTransport.on("transport_fallback", (e) => fallbacks.push(e));
+
+        const p = liveTransport.connect();
+        MockWebTransport.instances[0]._resolveReady();
+        await p;
+        expect(liveTransport.activeTransport).toBe("webtransport");
+
+        const session = liveTransport._wt;
+        session.emit("disconnected");
+
+        expect(liveTransport.activeTransport).toBe("websocket");
+        expect(fallbacks).toEqual([{ from: "webtransport", to: "websocket" }]);
+        expect(WebSocketConnection.connect).toHaveBeenCalled();
+        // The next WS open must be flagged as a reconnect so resync fires.
+        expect(WebSocketConnection._pendingReconnectUi).toBe(true);
+        expect(MockWebTransport.instances[0].closed).toBe(true);
+        expect(session.destroyed).toBe(true);
+        expect(liveTransport.fellBackThisSession).toBe(true);
     });
 
     it("re-registers WebSocket forwards after destroy() then connect()", async () => {

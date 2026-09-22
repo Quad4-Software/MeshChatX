@@ -2,6 +2,8 @@
 
 import { apiPath } from "./constants.js";
 
+const PER_POLL_TIMEOUT_MS = 8000;
+
 export const STARTUP_STAGE_LABELS = {
     http: "Getting things ready…",
     starting: "Getting RNS ready…",
@@ -97,8 +99,15 @@ export async function waitForNetworkReady(options = {}) {
     const deadline = now() + timeoutMs;
     let delayMs = 200;
     while (now() < deadline) {
+        // Bound each poll so a stalled response or body read cannot park the
+        // boot past the overall deadline.
+        const controller = typeof AbortController === "function" ? new AbortController() : null;
+        const perPollTimer = controller ? setTimeout(() => controller.abort(), PER_POLL_TIMEOUT_MS) : null;
         try {
-            const response = await fetchImpl(statusUrl, { cache: "no-store" });
+            const response = await fetchImpl(statusUrl, {
+                cache: "no-store",
+                signal: controller ? controller.signal : undefined,
+            });
             if (response.ok) {
                 const data = await response.json();
                 const interpreted = interpretStartupStatus(data);
@@ -125,6 +134,10 @@ export async function waitForNetworkReady(options = {}) {
             }
         } catch {
             onLine("Still starting…");
+        } finally {
+            if (perPollTimer != null) {
+                clearTimeout(perPollTimer);
+            }
         }
         await sleep(delayMs);
         delayMs = Math.min(delayMs + 100, 1000);

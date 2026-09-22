@@ -39,12 +39,40 @@ class WebSocketConnection {
      */
     setLiveSendBridge(bridge) {
         this._liveSendBridge = bridge;
+        // Drain entries queued while the socket was dead so they are not
+        // stranded forever once sends route through the bridge.
+        if (bridge && this._outboundQueue.length) {
+            const now = Date.now();
+            const pending = this._outboundQueue;
+            this._outboundQueue = [];
+            for (const item of pending) {
+                if (item.expiresAt != null && item.expiresAt < now) {
+                    this.emit("queue_expired", { request_id: item.requestId });
+                    continue;
+                }
+                try {
+                    if (typeof bridge.sendQueued === "function") {
+                        bridge.sendQueued(item.message);
+                    } else {
+                        bridge.send(item.message);
+                    }
+                } catch {
+                    // drop
+                }
+            }
+        }
     }
 
     async connect() {
         this.destroyed = false;
+        // A fresh connect must not inherit a stale backoff stage from a
+        // previous session.
+        this._reconnectAttempt = 0;
 
         if (typeof window === "undefined" || !window.api) {
+            if (this._bootstrapRetryTimeout != null) {
+                clearTimeout(this._bootstrapRetryTimeout);
+            }
             this._bootstrapRetryTimeout = setTimeout(() => {
                 this._bootstrapRetryTimeout = null;
                 this.connect();
@@ -339,6 +367,7 @@ class WebSocketConnection {
         this._hadSuccessfulOpen = false;
         this._pendingReconnectUi = false;
         this._sessionReady = false;
+        this._reconnectAttempt = 0;
         this._outboundQueue = [];
         this._stopHeartbeat();
         if (this._reconnectTimeout != null) {
