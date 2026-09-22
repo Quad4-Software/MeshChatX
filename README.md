@@ -41,6 +41,14 @@ docker run -d --name reticulum-meshchatx \
 
 Container Images: `quad4io/meshchatx` (Docker Hub) and `ghcr.io/quad4-software/meshchatx`. Hardened and extra tags are in [Installation](docs/en/installation.md).
 
+### Kubernetes / k3s
+
+```bash
+helm install meshchatx ./helm/meshchatx
+```
+
+A StatefulSet chart with a /config PVC ships in [helm/meshchatx](helm/meshchatx). See [Installation](docs/en/installation.md#helm-chart-kubernetes-and-k3s) for overrides.
+
 ### PyPI (pip, pipx, uv)
 
 ```bash

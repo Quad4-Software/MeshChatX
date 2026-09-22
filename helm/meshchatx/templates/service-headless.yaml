@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: {{ include "meshchatx.fullname" . }}-headless
+    labels:
+        {{- include "meshchatx.labels" . | nindent 8 }}
+spec:
+    clusterIP: None
+    ports:
+        - name: https
+          port: {{ .Values.service.port }}
+          targetPort: https
+          protocol: TCP
+        {{- with .Values.reticulum.extraServicePorts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    selector:
+        {{- include "meshchatx.selectorLabels" . | nindent 8 }}
+    publishNotReadyAddresses: true

@@ -136,6 +136,56 @@ jobs:
             - name: Verify workspace clean
               uses: $/.github/actions/verify-workspace-clean
 
+    helm-chart:
+        name: Helm chart lint
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Setup helm
+              run: sh scripts/ci/setup-helm.sh
+
+            - name: Lint chart
+              run: helm lint helm/meshchatx
+
+            - name: Check chart appVersion matches pyproject
+              run: |
+                  set -euo pipefail
+                  app_ver="$(awk -F'"' '/^appVersion:/ { print $2 }' helm/meshchatx/Chart.yaml)"
+                  pkg_ver="$(awk -F'"' '/^version = / { print $2; exit }' pyproject.toml)"
+                  if [ "$app_ver" != "$pkg_ver" ]; then
+                    echo "Chart.yaml appVersion ($app_ver) != pyproject version ($pkg_ver)" >&2
+                    exit 1
+                  fi
+
+            - name: Render chart variants
+              run: |
+                  set -euo pipefail
+                  helm template helm/meshchatx > /dev/null
+                  helm template helm/meshchatx --set ingress.enabled=true > /dev/null
+                  helm template helm/meshchatx --set persistence.existingClaim=my-pvc > /dev/null
+                  helm template helm/meshchatx --set persistence.enabled=false > /dev/null
+                  helm template helm/meshchatx --set networkPolicy.enabled=true > /dev/null
+                  helm template helm/meshchatx \
+                    --set reticulum.hostNetwork=true \
+                    --set 'reticulum.extraContainerPorts[0].name=rns-tcp' \
+                    --set 'reticulum.extraContainerPorts[0].containerPort=4242' \
+                    --set 'reticulum.extraServicePorts[0].name=rns-tcp' \
+                    --set 'reticulum.extraServicePorts[0].port=4242' > /dev/null
+
+            - name: Verify workspace clean
+              uses: $/.github/actions/verify-workspace-clean
+
     visualiser-wasm:
         name: Visualiser WASM (Go)
         runs-on: ubuntu-latest

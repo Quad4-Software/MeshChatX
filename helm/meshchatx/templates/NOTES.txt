@@ -1,0 +1,28 @@
+MeshChatX has been installed.
+
+The pod serves self-signed HTTPS on port {{ .Values.service.port }}.
+
+Port-forward to reach it locally:
+
+    kubectl port-forward svc/{{ include "meshchatx.fullname" . }} {{ .Values.service.port }}:https -n {{ .Release.Namespace }}
+
+Then open:
+
+    https://localhost:{{ .Values.service.port }}
+
+Your browser will warn about the self-signed certificate.
+
+{{- if .Values.ingress.enabled }}
+Ingress is enabled. The backend requires an HTTPS upstream; the default
+values ship the nginx backend-protocol annotation. Other controllers need
+the equivalent setting.
+{{- else }}
+Ingress is disabled. Enable it with --set ingress.enabled=true and set
+ingress.hosts.
+{{- end }}
+
+{{- if not .Values.persistence.enabled }}
+
+WARNING: persistence.enabled is false. All Reticulum and MeshChatX state
+under /config is ephemeral and will be lost when the pod is replaced.
+{{- end }}

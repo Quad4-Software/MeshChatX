@@ -1,0 +1,36 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: {{ include "meshchatx.fullname" . }}
+    labels:
+        {{- include "meshchatx.labels" . | nindent 8 }}
+spec:
+    podSelector:
+        matchLabels:
+            {{- include "meshchatx.selectorLabels" . | nindent 12 }}
+    policyTypes:
+        - Ingress
+        - Egress
+    ingress:
+        - ports:
+              - port: https
+                protocol: TCP
+              {{- range .Values.reticulum.extraContainerPorts }}
+              - port: {{ .containerPort }}
+                protocol: {{ .protocol | default "TCP" }}
+              {{- end }}
+        {{- with .Values.networkPolicy.extraIngress }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    egress:
+        # DNS for resolver lookups.
+        - ports:
+              - port: 53
+                protocol: UDP
+              - port: 53
+                protocol: TCP
+        {{- with .Values.networkPolicy.extraEgress }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}
