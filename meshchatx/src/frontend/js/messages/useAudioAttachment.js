@@ -148,7 +148,12 @@ export function useAudioAttachment(options = {}) {
         if (androidNativeOpusAttachment.value) {
             androidNativeOpusAttachment.value = false;
             const p = new Promise((resolve) => {
+                let timer = null;
                 const done = () => {
+                    if (timer !== null) {
+                        clearTimeout(timer);
+                        timer = null;
+                    }
                     try {
                         if (window.__meshchatXNative) {
                             window.__meshchatXNative = undefined;
@@ -192,7 +197,13 @@ export function useAudioAttachment(options = {}) {
                 } catch {
                     DialogUtils.alert(buildAudioRecordingFailureMessage());
                     done();
+                    return;
                 }
+                // A silent native bridge must not hang the stop forever.
+                timer = setTimeout(() => {
+                    console.warn("native wav attachment stop timed out");
+                    done();
+                }, 10000);
             });
             await p;
             audioAttachmentMicrophoneRecorder.value = null;
