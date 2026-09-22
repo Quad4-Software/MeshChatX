@@ -166,7 +166,50 @@ scan_apk() {
 		exit 1
 	}
 	echo "verify-package-contents.sh: scanning apk $apk"
-	scan_archive_listing "$apk" "$APK_DENY_RE"
+	# An apk is concatenated gzip members: [signature,] control, data.
+	# List the data member's tar entries; unzip cannot read this format.
+	# app.asar.unpacked/node_modules is legitimate Electron packaging
+	# (asar-unpacked binaries), not a vendored source tree.
+	_apk_list="$(mktemp "${TMPDIR:-/tmp}/apk-list.XXXXXX")"
+	if ! python3 - "$apk" >"$_apk_list" <<'PYEOF'
+import io
+import sys
+import tarfile
+import zlib
+
+data = open(sys.argv[1], "rb").read()
+off = 0
+last = None
+while off < len(data):
+    if data[off : off + 2] != b"\x1f\x8b":
+        break
+    d = zlib.decompressobj(31)
+    body = d.decompress(data[off:])
+    consumed = len(data[off:]) - len(d.unused_data)
+    last = body
+    off += consumed
+if last is None:
+    sys.exit("no gzip members found")
+with tarfile.open(fileobj=io.BytesIO(last)) as t:
+    for m in t.getmembers():
+        if m.type == tarfile.XHDTYPE:
+            continue
+        print(m.name)
+PYEOF
+	then
+		echo "verify-package-contents.sh: could not parse apk $apk" >&2
+		rm -f "$_apk_list"
+		exit 1
+	fi
+	if ! grep -q . "$_apk_list"; then
+		echo "verify-package-contents.sh: apk data member is empty: $apk" >&2
+		rm -f "$_apk_list"
+		exit 1
+	fi
+	scan_path_list "$APK_DENY_RE" < <(
+		grep -v 'app\.asar\.unpacked/node_modules' "$_apk_list" || true
+	)
+	rm -f "$_apk_list"
 }
 
 scan_deb() {
