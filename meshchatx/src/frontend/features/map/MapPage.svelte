@@ -849,6 +849,9 @@
         if (Object.prototype.hasOwnProperty.call(cfg, "announce_store_map_data")) {
             announceListenEnabled = Boolean(cfg.announce_store_map_data);
         }
+        if (Object.prototype.hasOwnProperty.call(cfg, "map_mbtiles_dir")) {
+            mbtilesDir = cfg.map_mbtiles_dir || "";
+        }
     }
 
     function layersTagForShare() {
@@ -1456,6 +1459,7 @@
             geoWasmEpoch += 1;
         });
         announceListenEnabled = Boolean((GlobalState.config as any)?.announce_store_map_data);
+        mbtilesDir = (GlobalState.config as any)?.map_mbtiles_dir || "";
         GlobalEmitter.on("config-updated", onConfigUpdatedExternally);
         await loadSavedState();
         await reloadTelemetry();

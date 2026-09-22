@@ -514,6 +514,11 @@ async def apply_config_update(app: Any, data):
     if "map_mbtiles_dir" in data:
         app.config.map_mbtiles_dir.set(data["map_mbtiles_dir"])
 
+    if "map_coordinate_format" in data:
+        _coord_format = data["map_coordinate_format"]
+        if _coord_format in ("wgs84", "utm"):
+            app.config.map_coordinate_format.set(_coord_format)
+
     if "map_tile_cache_enabled" in data:
         app.config.map_tile_cache_enabled.set(
             app._parse_bool(data["map_tile_cache_enabled"]),
@@ -1083,6 +1088,15 @@ async def apply_config_update(app: Any, data):
         app.config.libretranslate_api_key.set(norm)
         if hasattr(app, "translator_handler"):
             app.translator_handler.libretranslate_api_key = norm
+
+    if "gitea_base_url" in data:
+        raw = data["gitea_base_url"]
+        value = None
+        if isinstance(raw, str):
+            trimmed = raw.strip()
+            if trimmed.startswith("http://") or trimmed.startswith("https://"):
+                value = trimmed
+        app.config.gitea_base_url.set(value)
 
     # send config to websocket clients
     await app.send_config_to_websocket_clients()
