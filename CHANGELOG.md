@@ -41,12 +41,17 @@ All notable changes to this project will be documented in this file.
 - UI: stuck-state follow-through in MiniChat (send failures now toast and fresh timestamps render), ContactsPage lxma import, NomadNet archives spinner, and the archived-pages flush result toast.
 - CI: alpine APKs are built without fpm and verified by actually installing them in an apk-tools container.
 - Locale files gained the missing aware/nearby permission strings in all 15 locales.
+- Backend: a wedged SQLite pool could leave every API call answering 503 until a manual restart. When WAL or SHM files get unlinked under open connections, every statement fails with a disk I/O error and per-connection retries never recover. The provider now spots failures that persist on fresh connections, resets the whole connection pool at once, and if that is not enough restarts the process. Restart attempts are bounded, so a permanently broken store keeps serving retryable 503s instead of crash-looping.
 
 ### Changed
 
 - The Landlock sandbox now uses `landlockpy` instead of the custom ctypes plumbing; the enforced filesystem policy is unchanged and Android is unaffected.
 - Visualiser layout spacing widened to match node size, WASM and JS paths gained LOD color, NaN guard, edge-filtering, and dead-scene fallback parity, and `visualiser.wasm` was rebuilt.
 - UI lighthouse, performance, and heap suites run against the production bundle instead of the Vite dev server, and service workers are unregistered before audits so scores cannot be nulled by a controlled navigation.
+- Backend: the eight per-identity periodic loops (auto-announce, propagation sync, crawler, auto-backup, telemetry, retention, flood cooldown, auto propagation selection) now share one background event loop instead of one thread each. Backups, retention sweeps, and announce table reads run in worker threads so they cannot stall the shared loop. This cuts several threads and thread-local database connections per identity.
+- Backend: debug log writes to SQLite are batched into one transaction per flush, the retention sweep runs at most every ten minutes instead of every five seconds, and MESHCHAT_LOG_DB=0 disables database logging entirely. On SD-card installs this removes a steady stream of small writes.
+- Backend: after identity setup finishes, startup objects are frozen out of the cyclic garbage collector's scan set, and the periodic cleanup calls malloc_trim so freed memory returns to the OS instead of sitting in allocator arenas.
+- Docker images and the Raspberry Pi installer set MALLOC_ARENA_MAX=2 and OPENBLAS_NUM_THREADS=1, and the Pi guide documents both plus MESHCHAT_LOG_DB=0 for low-memory and SD-card deployments.
 
 ## [4.9.1] - 2026-09-21 [released]
 
