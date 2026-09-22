@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import MicronParser from "../../../js/MicronParser.js";
-import { isolateNomadLinksInHtml, renderNomadPageByPath } from "../../../js/NomadPageRenderer.js";
+import { isolateNomadLinksInHtml, renderNomadPageByPath, renderNomadPageByPathAsync } from "../../../js/NomadPageRenderer.js";
 import Utils from "../../../js/Utils.js";
 import type { ArchiveItem, NomadRenderOptions } from "./types.js";
 
@@ -143,6 +143,45 @@ export function renderFullContent(
             renderOptions,
             wasmActive
         );
+    } catch (e) {
+        console.error("Archive render failed", e);
+        return escapeHtml(archive.content);
+    }
+}
+
+/**
+ * Async full-content render: micron mu segments and markdown parse off the
+ * main thread in the render worker, with main-thread sanitize unchanged.
+ * Falls back to the synchronous renderer on worker failure.
+ */
+export async function renderFullContentAsync(
+    archive: ArchiveItem | null | undefined,
+    renderOptions: NomadRenderOptions,
+    wasmActive: boolean
+): Promise<string> {
+    if (!archive?.content) {
+        return "";
+    }
+    try {
+        const dest = archive.destination_hash || null;
+        const pathPart = (archive.page_path || "").split("`")[0];
+        const pl = pathPart.toLowerCase();
+        if (!/\.(mu|md|txt|html)$/.test(pl)) {
+            let out = await new MicronParser().convertMicronToHtmlAsync(
+                archive.content,
+                {},
+                { useWasm: wasmActive }
+            );
+            if (dest) {
+                out = isolateNomadLinksInHtml(out, dest);
+            }
+            return out;
+        }
+        return await renderNomadPageByPathAsync(pathPart, archive.content, {}, MicronParser, {
+            ...renderOptions,
+            nomad_micron_wasm_use: wasmActive,
+            nomadDestinationHash: dest || renderOptions.nomadDestinationHash,
+        });
     } catch (e) {
         console.error("Archive render failed", e);
         return escapeHtml(archive.content);

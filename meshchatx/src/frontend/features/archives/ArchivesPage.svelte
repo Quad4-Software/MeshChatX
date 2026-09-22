@@ -14,7 +14,7 @@
     import ArchiveViewer from "./components/ArchiveViewer.svelte";
     import { exportArchiveAsMu } from "./lib/archiveExport.js";
     import { handleArchiveContentClick, openInNomadnet, type RouterLike } from "./lib/archiveNavigation.js";
-    import { renderFullContent, shortHash } from "./lib/archiveRender.js";
+    import { renderFullContentAsync, shortHash } from "./lib/archiveRender.js";
     import { router as hashRouter } from "../../shell/hashRouter.js";
     import {
         API_NOMADNET_ARCHIVES,
@@ -189,7 +189,7 @@
             const full = (response.data as ArchiveItemApiResponse | undefined)?.archive;
             if (full) {
                 viewingArchive = full;
-                renderedContent = renderFullContent(full, nomadRenderOptions, nomadMicronWasmActive);
+                renderedContent = await renderFullContentAsync(full, nomadRenderOptions, nomadMicronWasmActive);
             }
         } catch (e) {
             console.error("Failed to load archive:", e);
@@ -222,7 +222,7 @@
             ToastUtils.success(t("archives.recrawl_done"));
             if (next) {
                 viewingArchive = next;
-                renderedContent = renderFullContent(next, nomadRenderOptions, nomadMicronWasmActive);
+                renderedContent = await renderFullContentAsync(next, nomadRenderOptions, nomadMicronWasmActive);
                 const idx = archives.findIndex(
                     (a) => a.destination_hash === next.destination_hash && a.page_path === next.page_path
                 );
@@ -308,12 +308,12 @@
 
         const cfg = (GlobalState.config || {}) as Record<string, unknown>;
         if (isMicronWasmBundled() && cfg.nomad_micron_wasm_enabled === true) {
-            preloadNomadMicronWasm().then((ok) => {
+            preloadNomadMicronWasm().then(async (ok) => {
                 nomadMicronWasmReady = ok === true;
                 cardPreviewCache = {};
                 const currentArchive = viewingArchive;
                 if (currentArchive && ok) {
-                    renderedContent = renderFullContent(currentArchive, nomadRenderOptions, nomadMicronWasmActive);
+                    renderedContent = await renderFullContentAsync(currentArchive, nomadRenderOptions, nomadMicronWasmActive);
                 }
             });
         }

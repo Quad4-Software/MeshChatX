@@ -1,6 +1,9 @@
 import DOMPurify from "dompurify";
 import BaseMicronParser from "micron-parser";
 import { inlineStyleHasNetworkPaint, scrubNetworkCss as scrubNetworkCssBody } from "./nomadCssSecurity.js";
+import { splitMicronWasmSegments } from "./micronSegments.js";
+import { convertMicronWasmSegmentsInWorker } from "./micronRenderWorkerClient.js";
+import { yieldToMainThread } from "./schedulerYield.js";
 
 const ALLOWED_URI_REGEXP =
     /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z.+-]+(?:[^a-z.+\-:]|$))/i;
@@ -370,28 +373,7 @@ export default class MicronParser extends BaseMicronParser {
      * Split Micron source into blocks for WASM conversion, keeping MeshChat partial-include lines on the JS path.
      */
     static splitMicronMarkupWasmSegments(markup) {
-        if (markup == null) {
-            return [];
-        }
-        const lines = String(markup).split("\n");
-        const segments: Array<{ type: "mu"; text: string } | { type: "partial"; line: string }> = [];
-        let buf: string[] = [];
-        for (const line of lines) {
-            const trimmed = line.trim();
-            if (MicronParser.PARTIAL_LINE_REGEX.test(trimmed)) {
-                if (buf.length) {
-                    segments.push({ type: "mu", text: buf.join("\n") });
-                    buf = [];
-                }
-                segments.push({ type: "partial", line });
-            } else {
-                buf.push(line);
-            }
-        }
-        if (buf.length) {
-            segments.push({ type: "mu", text: buf.join("\n") });
-        }
-        return segments;
+        return splitMicronWasmSegments(markup);
     }
 
     injectMonospaceStyles() {
@@ -549,8 +531,28 @@ export default class MicronParser extends BaseMicronParser {
         return MicronParser.sanitizeRenderedMicronHtml(wrap.outerHTML);
     }
 
-    _convertMicronToHtmlJs(markup, partialContents: any = {}, options: any = {}) {
-        const build = () => {
+    _micronParseFallback(markup) {
+        const escaped = escapeHtmlForFallback(markup);
+        try {
+            return DOMPurify.sanitize(
+                `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`,
+                {
+                    USE_PROFILES: { html: true },
+                    ALLOWED_URI_REGEXP,
+                }
+            );
+        } catch {
+            return `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`;
+        }
+    }
+
+    /**
+     * Generator so the JS build can run drained synchronously or yielded to
+     * the main thread between line chunks. Each yield is a scheduling point;
+     * the return value is the sanitized HTML string.
+     */
+    *_micronBuildJs(markup, partialContents: any = {}, options: any = {}) {
+        {
             markup = markup.replace(/\r\n?/g, "\n");
             let headerColors: any = { fg: null, bg: null };
             try {
@@ -600,7 +602,17 @@ export default class MicronParser extends BaseMicronParser {
                 tempContainer.style.backgroundColor = this.colorToCss(defaultBg);
             }
 
+            let chunkStart = Date.now();
+            let lineCount = 0;
             for (let line of lines) {
+                // Cooperative scheduling point: drained for free by the sync
+                // caller, awaited by the chunked async caller.
+                lineCount += 1;
+                if (lineCount >= 24 && Date.now() - chunkStart > 6) {
+                    lineCount = 0;
+                    chunkStart = Date.now();
+                    yield;
+                }
                 let lineOutput;
                 try {
                     lineOutput = this.parseLine(line, state);
@@ -658,25 +670,62 @@ export default class MicronParser extends BaseMicronParser {
             MicronParser.enhanceA11y(tempContainer, options);
             const html = tempContainer.outerHTML;
             return MicronParser.sanitizeRenderedMicronHtml(html);
-        };
+        }
+    }
 
+    _convertMicronToHtmlJs(markup, partialContents: any = {}, options: any = {}) {
         try {
-            return build();
+            const gen = this._micronBuildJs(markup, partialContents, options);
+            let step = gen.next();
+            while (!step.done) {
+                step = gen.next();
+            }
+            return step.value;
         } catch (e) {
             console.warn("MicronParser: convertMicronToHtml failed", e);
-            const escaped = escapeHtmlForFallback(markup);
-            try {
-                return DOMPurify.sanitize(
-                    `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`,
-                    {
-                        USE_PROFILES: { html: true },
-                        ALLOWED_URI_REGEXP,
-                    }
-                );
-            } catch {
-                return `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`;
+            return this._micronParseFallback(markup);
+        }
+    }
+
+    /**
+     * Async variant: yields to the event loop between line chunks so a large
+     * page cannot monopolize the main thread, then sanitizes as usual.
+     */
+    async _convertMicronToHtmlJsChunked(markup, partialContents: any = {}, options: any = {}) {
+        try {
+            const gen = this._micronBuildJs(markup, partialContents, options);
+            let step = gen.next();
+            while (!step.done) {
+                await yieldToMainThread();
+                step = gen.next();
+            }
+            return step.value;
+        } catch (e) {
+            console.warn("MicronParser: convertMicronToHtml failed", e);
+            return this._micronParseFallback(markup);
+        }
+    }
+
+    /**
+     * Worker-backed WASM hybrid: mu segments convert off the main thread in
+     * the render worker's own WASM instance; partial-include lines and all
+     * sanitization stay here where a real DOM exists.
+     */
+    async _convertMicronToHtmlWasmWorker(markup, partialContents: any = {}, options: any = {}) {
+        const segments = await convertMicronWasmSegmentsInWorker(
+            markup,
+            this.darkTheme,
+            this.enableForceMonospace,
+        );
+        let html = "";
+        for (const seg of segments) {
+            if (seg.type === "html") {
+                html += MicronParser.sanitizeRenderedMicronHtml(seg.html);
+            } else {
+                html += this._convertMicronToHtmlJs(seg.line + "\n", partialContents, options);
             }
         }
+        return this._wrapMicronPageShell(markup, html, options);
     }
 
     convertMicronToHtml(markup, partialContents: any = {}, options: any = {}) {
@@ -693,6 +742,27 @@ export default class MicronParser extends BaseMicronParser {
         }
 
         return this._convertMicronToHtmlJs(markup, partialContents, options);
+    }
+
+    /**
+     * Async render entry point. With useWasm the mu segments run in the
+     * render worker (own WASM instance, SRI-verified); without it the JS
+     * parser runs chunked with main-thread yields. Both paths sanitize on
+     * the main thread exactly like convertMicronToHtml.
+     */
+    async convertMicronToHtmlAsync(markup, partialContents: any = {}, options: any = {}) {
+        if (markup == null) return "";
+        if (typeof markup !== "string") markup = String(markup);
+
+        if (options.useWasm === true) {
+            try {
+                return await this._convertMicronToHtmlWasmWorker(markup, partialContents, options);
+            } catch (e) {
+                console.warn("MicronParser: worker WASM render failed, using JS parser", e);
+            }
+        }
+
+        return this._convertMicronToHtmlJsChunked(markup, partialContents, options);
     }
 
     convertMicronToFragment(markup, options = {}) {

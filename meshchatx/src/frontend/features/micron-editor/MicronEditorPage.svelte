@@ -59,27 +59,48 @@
         }
     }
 
+    let renderToken = 0;
+    let renderTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function schedulePreviewRender(delayMs = 0): void {
+        if (renderTimer) {
+            clearTimeout(renderTimer);
+            renderTimer = null;
+        }
+        const token = ++renderToken;
+        const run = async (): Promise<void> => {
+            if (tabs.length === 0 || !tabs[activeTabIndex]) {
+                if (token === renderToken) renderedContent = "";
+                return;
+            }
+            try {
+                const parser = new MicronParser(true);
+                const html = await parser.convertMicronToHtmlAsync(
+                    tabs[activeTabIndex].content,
+                    {},
+                    { useWasm: useWasm },
+                );
+                if (token === renderToken) renderedContent = html;
+            } catch (error: any) {
+                console.error("Error rendering micron:", error);
+                const msg = String(error?.message ?? error ?? "unknown error")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+                if (token === renderToken)
+                    renderedContent = `<p style="color: red;">Error rendering: ${msg}</p>`;
+            }
+        };
+        if (delayMs > 0) {
+            renderTimer = setTimeout(() => void run(), delayMs);
+        } else {
+            void run();
+        }
+    }
+
     export function renderActiveTab(): void {
-        if (tabs.length === 0 || !tabs[activeTabIndex]) {
-            renderedContent = "";
-            return;
-        }
-        try {
-            const parser = new MicronParser(true);
-            renderedContent = parser.convertMicronToHtml(
-                tabs[activeTabIndex].content,
-                {},
-                { useWasm: useWasm && wasmReady }
-            );
-        } catch (error: any) {
-            console.error("Error rendering micron:", error);
-            const msg = String(error?.message ?? error ?? "unknown error")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;");
-            renderedContent = `<p style="color: red;">Error rendering: ${msg}</p>`;
-        }
+        schedulePreviewRender(0);
     }
 
     export async function saveContent(): Promise<void> {
@@ -151,7 +172,9 @@
     }
 
     export function handleInput(): void {
-        renderActiveTab();
+        // Debounce keystroke renders; the worker/async path also keeps large
+        // documents from blocking typing.
+        schedulePreviewRender(120);
         void saveContent();
     }
 
