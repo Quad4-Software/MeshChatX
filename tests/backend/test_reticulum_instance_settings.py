@@ -148,7 +148,7 @@ async def test_reticulum_instance_get_and_patch(temp_dir):
         )
         assert get_handler and patch_handler
 
-        get_response = await get_handler(MagicMock())
+        get_response = await get_handler(MagicMock(remote="127.0.0.1"))
         get_data = json.loads(get_response.body)
         assert get_data["instance"]["share_instance"] is True
         assert get_data["instance"]["local_hops_delta"] is False
