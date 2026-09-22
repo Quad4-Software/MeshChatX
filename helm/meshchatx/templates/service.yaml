@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: {{ include "meshchatx.fullname" . }}
+    labels:
+        {{- include "meshchatx.labels" . | nindent 8 }}
+    {{- with .Values.service.annotations }}
+    annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+spec:
+    type: {{ .Values.service.type }}
+    ports:
+        - name: https
+          port: {{ .Values.service.port }}
+          targetPort: https
+          protocol: TCP
+        {{- with .Values.reticulum.extraServicePorts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    selector:
+        {{- include "meshchatx.selectorLabels" . | nindent 8 }}

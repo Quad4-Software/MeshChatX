@@ -1,0 +1,150 @@
+# Default values for meshchatx.
+#
+# The container speaks self-signed HTTPS on port 8000 and keeps all
+# Reticulum and MeshChatX state under /config. Probes and ingress must
+# therefore use the HTTPS scheme/backend protocol.
+
+image:
+    repository: ghcr.io/quad4-software/meshchatx
+    # Defaults to the chart appVersion. Published tags include latest, dev,
+    # sha-*, X.Y.Z, vX.Y.Z, X.Y, and vX.Y.
+    tag: ""
+    pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+    automountToken: false
+
+service:
+    type: ClusterIP
+    port: 8000
+    annotations: {}
+
+ingress:
+    enabled: false
+    className: ""
+    annotations:
+        # The backend only serves HTTPS with a self-signed certificate.
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    hosts:
+        - host: meshchatx.local
+          paths:
+              - path: /
+                pathType: Prefix
+    tls: []
+    #  - secretName: meshchatx-tls
+    #    hosts:
+    #      - meshchatx.local
+
+persistence:
+    enabled: true
+    # Set to reuse an existing claim instead of the StatefulSet volume
+    # claim template.
+    existingClaim: ""
+    storageClass: ""
+    size: 5Gi
+    accessModes:
+        - ReadWriteOnce
+    annotations: {}
+
+# Container args. Defaults match docker/Dockerfile CMD.
+args:
+    - meshchatx
+    - --host=0.0.0.0
+    - --reticulum-config-dir=/config/.reticulum
+    - --storage-dir=/config/.reticulum-meshchatx
+    - --headless
+
+extraEnv: []
+#   - name: MESHCHAT_LOG_LEVEL
+#     value: debug
+
+# Extra mounts, e.g. TLS material for --ssl-cert/--ssl-key args or a
+# hostPath mbtiles directory.
+extraVolumeMounts: []
+#   - name: tls
+#     mountPath: /tls
+#     readOnly: true
+extraVolumes: []
+#   - name: tls
+#     secret:
+#       secretName: meshchatx-tls
+
+# Reticulum listener interfaces (TCP/UDP) may need extra published ports
+# or host networking. Empty by default; a client-only node needs neither.
+reticulum:
+    hostNetwork: false
+    # Extra container ports on the pod, e.g. a Reticulum TCP listener.
+    extraContainerPorts: []
+    #   - name: rns-tcp
+    #     containerPort: 4242
+    #     protocol: TCP
+    # Extra ports on the client-facing Service.
+    extraServicePorts: []
+    #   - name: rns-tcp
+    #     port: 4242
+    #     targetPort: rns-tcp
+    #     protocol: TCP
+
+resources:
+    requests:
+        cpu: 250m
+        memory: 256Mi
+    limits:
+        cpu: "2"
+        memory: 1Gi
+
+# Mirrors docker-compose.yml: uid/gid 1000, read-only root filesystem,
+# dropped capabilities, tmpfs-backed /tmp and /home/meshchat.
+podSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+        type: RuntimeDefault
+
+securityContext:
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+        drop:
+            - ALL
+
+probes:
+    # start_period in compose is 90s; startupProbe gives the app up to
+    # periodSeconds * failureThreshold to come up before liveness applies.
+    startup:
+        periodSeconds: 10
+        failureThreshold: 30
+        timeoutSeconds: 5
+    liveness:
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+    readiness:
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+
+networkPolicy:
+    enabled: false
+    # Extra egress rules appended after the default DNS allow rule, e.g.
+    # Reticulum upstream peers.
+    extraEgress: []
+    # Extra ingress rules appended after the Service-port allow rule.
+    extraIngress: []
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

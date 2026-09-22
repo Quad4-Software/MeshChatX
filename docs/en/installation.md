@@ -117,6 +117,39 @@ volumes:
           secretName: meshchatx-tls
 ```
 
+#### Helm chart (Kubernetes and k3s)
+
+A chart ships in [helm/meshchatx](../../helm/meshchatx). It deploys a single-replica StatefulSet with a /config PVC, matching the Docker hardening: UID 1000, read-only root filesystem, dropped capabilities, and HTTPS probes on /api/v1/status.
+
+```bash
+helm install meshchatx ./helm/meshchatx
+kubectl port-forward svc/meshchatx 8000:https
+```
+
+Then open https://localhost:8000 and accept the self-signed certificate warning.
+
+Useful overrides:
+
+```bash
+# image tag, defaults to the chart appVersion
+--set image.tag=latest
+
+# persistence off for ephemeral demos (state is lost on pod restart)
+--set persistence.enabled=false
+
+# ingress with TLS upstream, e.g. nginx
+--set ingress.enabled=true --set ingress.hosts[0].host=meshchatx.example.com
+
+# Reticulum listener interfaces that need real ports or host networking
+--set reticulum.hostNetwork=true
+--set reticulum.extraContainerPorts[0].name=rns-tcp
+--set reticulum.extraContainerPorts[0].containerPort=4242
+--set reticulum.extraServicePorts[0].name=rns-tcp
+--set reticulum.extraServicePorts[0].port=4242
+```
+
+See [helm/meshchatx/values.yaml](../../helm/meshchatx/values.yaml) for all options.
+
 ### Public demo instance (Coolify)
 
 For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [docker/docker-compose.demo.yml](../../docker/docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [docker/docker-compose.coolify.yml](../../docker/docker-compose.coolify.yml).

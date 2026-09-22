@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: {{ include "meshchatx.fullname" . }}
+    labels:
+        {{- include "meshchatx.labels" . | nindent 8 }}
+    {{- with .Values.ingress.annotations }}
+    annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+spec:
+    {{- with .Values.ingress.className }}
+    ingressClassName: {{ . }}
+    {{- end }}
+    {{- with .Values.ingress.tls }}
+    tls:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    rules:
+        {{- range .Values.ingress.hosts }}
+        - host: {{ .host | quote }}
+          http:
+              paths:
+                  {{- range .paths }}
+                  - path: {{ .path }}
+                    pathType: {{ .pathType }}
+                    backend:
+                        service:
+                            name: {{ include "meshchatx.fullname" $ }}
+                            port:
+                                name: https
+                  {{- end }}
+        {{- end }}
+{{- end }}
