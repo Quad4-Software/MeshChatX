@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { reactive } from "vue";
 import AndroidBridge from "@/js/rnode/AndroidBridge.js";
 
 describe("AndroidBridge", () => {
@@ -116,6 +117,30 @@ describe("AndroidBridge", () => {
         const env = { MeshChatXAndroid: { hasBluetoothPermissions: () => true } };
         const ab = new AndroidBridge(null, env);
         expect(ab.isAvailable()).toBe(true);
+    });
+
+    it("still reaches the bridge when the wrapper lives in reactive state", async () => {
+        // Vue wraps data() values in reactive proxies, and nested objects
+        // get wrapped lazily on access. The WebView only invokes bridge
+        // methods on the injected object itself, so a proxied receiver
+        // used to throw and safeCall returned a silent "unsupported".
+        const rawBridge = {};
+        const needsRaw = (name, value) =>
+            vi.fn(function () {
+                if (this !== rawBridge) {
+                    throw new Error("Java bridge method can't be invoked on a non-injected object");
+                }
+                return value;
+            });
+        rawBridge.hasNearbyWifiPermissions = needsRaw("hasNearbyWifiPermissions", false);
+        rawBridge.requestNearbyWifiPermissions = needsRaw("requestNearbyWifiPermissions", "requested");
+        rawBridge.openRNodeFlasher = needsRaw("openRNodeFlasher", "ok");
+        const proxied = reactive(new AndroidBridge(rawBridge, {}));
+        expect(proxied.hasPermission(AndroidBridge.PERM_NEARBY_WIFI)).toBe(false);
+        await expect(proxied.requestPermission(AndroidBridge.PERM_NEARBY_WIFI)).resolves.toBe("requested");
+        expect(proxied.openRNodeFlasher()).toBe(true);
+        expect(rawBridge.requestNearbyWifiPermissions).toHaveBeenCalled();
+        expect(rawBridge.openRNodeFlasher).toHaveBeenCalled();
     });
 
     it("privacy helpers default to false when methods are missing", () => {
