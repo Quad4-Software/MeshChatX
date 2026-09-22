@@ -200,6 +200,9 @@ class ConfigManager:
         self.auth_enabled = self.BoolConfig(self, "auth_enabled", False)
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
+        # Bumped whenever credentials change; session cookies carry the epoch
+        # they were minted under and are rejected once it moves on.
+        self.auth_session_epoch = self.IntConfig(self, "auth_session_epoch", 0)
         self.oidc_enabled = self.BoolConfig(self, "oidc_enabled", False)
         self.oidc_issuer_url = self.StringConfig(self, "oidc_issuer_url", None)
         self.oidc_client_id = self.StringConfig(self, "oidc_client_id", None)
