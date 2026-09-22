@@ -8,6 +8,11 @@ cd "$ROOT"
 export CI=1
 export MESHCHAT_SKIP_STORAGE_LOCK=1
 export MESHCHAT_UI_CI=1
+# Serve the prebuilt frontend artifact through the backend so smoke, perf,
+# heap, and Lighthouse all measure the production bundle. Without this the
+# ui config falls back to the Vite dev server, where Vue devtools retention
+# inflates listener and DOM-node counts in the heap profile.
+export MESHCHAT_UI_PROD=1
 export MESHCHAT_LH_SKIP_BUILD="${MESHCHAT_LH_SKIP_BUILD:-0}"
 export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-18079}"
 export LH_DEBUG_PORT="${LH_DEBUG_PORT:-9222}"
