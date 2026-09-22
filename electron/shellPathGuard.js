@@ -16,9 +16,31 @@ function resolveDirForPrefixCheck(dirPath) {
     }
 }
 
+function realpathOrNearest(targetPath) {
+    // Resolve symlinks on the candidate itself; for paths that do not exist
+    // yet, realpath the nearest existing ancestor and rejoin the tail so a
+    // symlinked parent cannot smuggle the jail root.
+    let current = path.resolve(targetPath);
+    const tail = [];
+    for (let depth = 0; depth < 64; depth += 1) {
+        try {
+            const real = fs.realpathSync.native ? fs.realpathSync.native(current) : fs.realpathSync(current);
+            return tail.length ? path.join(real, ...tail.reverse()) : real;
+        } catch {
+            const parent = path.dirname(current);
+            if (parent === current) {
+                return path.resolve(targetPath);
+            }
+            tail.push(path.basename(current));
+            current = parent;
+        }
+    }
+    return path.resolve(targetPath);
+}
+
 function isResolvedPathUnderRoot(resolvedCandidate, rootPath) {
     const root = resolveDirForPrefixCheck(rootPath);
-    const file = path.resolve(resolvedCandidate);
+    const file = realpathOrNearest(resolvedCandidate);
     const rel = path.relative(root, file);
     return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== "..");
 }
@@ -38,9 +60,14 @@ function pairedLegacyStorageDir(defaultStorageDir) {
  * @param {() => string} ctx.getDefaultStorageDir
  * @param {() => string} ctx.getDefaultReticulumConfigDir
  * @param {(argv: string[]) => string[]} ctx.getUserProvidedArguments
+ * @param {object} [options]
+ * @param {boolean} [options.broadRoots] Also allow temp and the parent
+ *   Downloads/Documents folders. Needed for reveal-in-folder and for reading
+ *   user-picked files, but not for open-path execution.
  * @returns {boolean}
  */
-function isAllowedShellPath(targetPath, ctx) {
+function isAllowedShellPath(targetPath, ctx, options = {}) {
+    const broadRoots = options.broadRoots !== false;
     if (typeof targetPath !== "string" || !targetPath.trim()) {
         return false;
     }
@@ -59,9 +86,9 @@ function isAllowedShellPath(targetPath, ctx) {
     add(pairedLegacyStorageDir(ctx.getDefaultStorageDir()));
     add(ctx.getDefaultReticulumConfigDir());
     add(ctx.app.getPath("userData"));
-    add(ctx.app.getPath("temp"));
-    // Prefer app-owned exchange folders. Keep parent Downloads/Documents so
-    // reveal-in-folder still works for browser saves that landed outside them.
+    // App-owned exchange folders are always allowed. The parent
+    // Downloads/Documents folders and temp stay reveal-only: shell.openPath
+    // executes targets, so it must not reach arbitrary downloaded files.
     const downloads = ctx.app.getPath("downloads");
     const documents = ctx.app.getPath("documents");
     add(path.join(downloads, "MeshChatX"));
@@ -71,8 +98,11 @@ function isAllowedShellPath(targetPath, ctx) {
     } catch {
         // pictures may be unavailable in some Electron test fakes
     }
-    add(downloads);
-    add(documents);
+    if (broadRoots) {
+        add(ctx.app.getPath("temp"));
+        add(downloads);
+        add(documents);
+    }
 
     const portable = process.env.PORTABLE_EXECUTABLE_DIR;
     if (portable) {

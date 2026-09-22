@@ -43,6 +43,17 @@ describe("safeConsole", () => {
         expect(handlers).toHaveLength(1);
     });
 
+    it("installBrokenPipeGuards rethrows non-EPIPE stream errors", () => {
+        const handlers = [];
+        const stream = {
+            on(event, handler) {
+                handlers.push([event, handler]);
+            },
+        };
+        installBrokenPipeGuards({ stdout: stream, stderr: null });
+        expect(() => handlers[0][1](new Error("write EIO"))).toThrow("write EIO");
+    });
+
     it("safeConsoleLog swallows EPIPE from console.log", () => {
         const spy = vi.spyOn(console, "log").mockImplementation(() => {
             const err = new Error("write EPIPE");

@@ -64,10 +64,15 @@ function listUnixBackendPids(ownPid = null) {
     }
 }
 
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * @param {number[]} pids
+ * @returns {Promise<void>}
  */
-function killUnixPids(pids) {
+async function killUnixPids(pids) {
     if (!Array.isArray(pids)) {
         return;
     }
@@ -92,10 +97,8 @@ function killUnixPids(pids) {
         if (remaining === 0) {
             return;
         }
-        const spinUntil = Date.now() + 50;
-        while (Date.now() < spinUntil) {
-            /* brief wait for SIGTERM to take effect */
-        }
+        // Yield instead of spinning so the main-process loop stays responsive.
+        await sleep(50);
     }
     for (const pid of pids) {
         try {
@@ -107,15 +110,16 @@ function killUnixPids(pids) {
 }
 
 /**
- * @param {number|null|undefined} ownPid
- * @returns {number}
+ * @param {number|null|undefined} ownPid Pid to exclude (own backend or a
+ *   maintenance child that must not be reaped).
+ * @returns {Promise<number>}
  */
-function killOrphanBackendProcesses(ownPid = null) {
+async function killOrphanBackendProcesses(ownPid = null) {
     if (process.platform === "win32") {
         return killOrphanBackendProcessesWin(ownPid);
     }
     const pids = listUnixBackendPids(ownPid);
-    killUnixPids(pids);
+    await killUnixPids(pids);
     return pids.length;
 }
 
