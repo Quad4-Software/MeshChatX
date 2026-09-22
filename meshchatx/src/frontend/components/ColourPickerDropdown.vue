@@ -102,7 +102,11 @@ export default {
         },
         onClickOutsideMenu(event) {
             if (this.isShowingMenu) {
-                event.preventDefault();
+                // Do not suppress contextmenu: right-click outside the picker
+                // should dismiss it without killing the native context menu.
+                if (event.type === "click") {
+                    event.preventDefault();
+                }
                 this.hideMenu();
             }
         },

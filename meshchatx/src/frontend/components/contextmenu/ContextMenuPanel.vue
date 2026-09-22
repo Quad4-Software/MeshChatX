@@ -1,17 +1,22 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div v-if="show" ref="panel" class="context-menu-panel" :class="panelClass" :style="panelStyle" v-bind="$attrs">
-        <slot name="header" />
-        <slot />
+    <!-- Single element root: directives like v-click-outside are ignored on
+         fragment roots. display:contents keeps this wrapper box-free so fixed
+         positioning and layout are unchanged. -->
+    <div class="contents">
+        <div v-if="show" ref="panel" class="context-menu-panel" :class="panelClass" :style="panelStyle" v-bind="$attrs">
+            <slot name="header" />
+            <slot />
+        </div>
+        <div
+            v-if="show && caretStyle"
+            class="dropdown-caret fixed z-300 border-sem-border"
+            :class="caretBorderClass"
+            :style="caretStyle"
+            aria-hidden="true"
+        ></div>
     </div>
-    <div
-        v-if="show && caretStyle"
-        class="dropdown-caret fixed z-300 border-sem-border"
-        :class="caretBorderClass"
-        :style="caretStyle"
-        aria-hidden="true"
-    ></div>
 </template>
 
 <script>

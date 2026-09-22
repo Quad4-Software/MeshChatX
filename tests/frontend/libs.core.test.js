@@ -465,6 +465,37 @@ describe("libs/clickOutside", () => {
         expect(handler2).toHaveBeenCalledTimes(1);
     });
 
+    it("unit: DEFAULT_EVENTS include contextmenu so right-click dismisses panels", () => {
+        expect(DEFAULT_EVENTS).toContain("contextmenu");
+    });
+
+    it("lifecycle: default binding fires on outside contextmenu (right-click dismiss)", () => {
+        const el = document.createElement("div");
+        document.body.appendChild(el);
+        const outside = document.createElement("button");
+        document.body.appendChild(outside);
+        const handler = vi.fn();
+
+        beforeMount(el, { value: { handler, detectIframe: false } });
+        vi.runAllTimers();
+
+        const ctxEvent = new MouseEvent("contextmenu", { bubbles: true });
+        Object.defineProperty(ctxEvent, "composedPath", {
+            value: () => [outside, document.body, document.documentElement],
+        });
+        document.documentElement.dispatchEvent(ctxEvent);
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        const insideEvent = new MouseEvent("contextmenu", { bubbles: true });
+        Object.defineProperty(insideEvent, "composedPath", {
+            value: () => [el, document.body, document.documentElement],
+        });
+        document.documentElement.dispatchEvent(insideEvent);
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        unmounted(el);
+    });
+
     it("lifecycle: isActive false skips listeners", () => {
         const el = document.createElement("div");
         document.body.appendChild(el);
