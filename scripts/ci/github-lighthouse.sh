@@ -16,3 +16,4 @@ pnpm exec playwright install chromium --with-deps
 
 pnpm exec playwright test --config playwright.ui.config.js tests/ui/pages.smoke.spec.js
 pnpm exec playwright test --config playwright.lighthouse.config.js
+MESHCHAT_UI_PROD=1 pnpm exec playwright test --config playwright.ui.config.js tests/ui/heap-profile.spec.js
