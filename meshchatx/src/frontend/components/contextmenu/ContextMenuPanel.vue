@@ -130,14 +130,17 @@ export default {
         updateCaret(left, top, width, height) {
             const ox = this.x;
             const oy = this.y;
-            const insideX = ox > left + 4 && ox < left + width - 4;
-            const insideY = oy > top + 4 && oy < top + height - 4;
+            // An anchor inside or on the panel edge has nothing to point at.
+            const insideX = ox >= left && ox <= left + width;
+            const insideY = oy >= top && oy <= top + height;
             if (insideX && insideY) {
                 this.caretStyle = null;
                 return;
             }
             const size = 5;
-            const margin = 12;
+            // Keep the caret on the straight part of the edge: rounded-xl
+            // corners span 12px and the caret is 10px wide.
+            const margin = 18;
             if (oy <= top) {
                 const cx = Math.min(Math.max(ox, left + margin), left + width - margin);
                 this.caretStyle = { left: `${cx - size}px`, top: `${top - size}px` };

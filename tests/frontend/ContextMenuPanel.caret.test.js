@@ -46,8 +46,23 @@ describe("ContextMenuPanel caret", () => {
         // Origin far above and to the right: caret stays within the top edge.
         const ctx = callUpdateCaret(1000, 50, 100, 110, 200, 100);
         expect(ctx.caretStyle.top).toBe("105px");
-        // clamped to left + width - margin (100 + 200 - 12 = 288, minus half size 5)
-        expect(ctx.caretStyle.left).toBe("283px");
+        // clamped to left + width - margin (100 + 200 - 18 = 282, minus half size 5)
+        expect(ctx.caretStyle.left).toBe("277px");
         expect(ctx.caretBorderClass).toBe("border-t border-l");
+    });
+
+    it("keeps the caret off the rounded corner on a clamped left edge", () => {
+        // Origin above and far left: caret clamps to left + margin (100 + 18
+        // = 118, minus half size 5 = 113), clearing the 12px corner curve.
+        const ctx = callUpdateCaret(0, 50, 100, 110, 200, 100);
+        expect(ctx.caretStyle).toEqual({ left: "113px", top: "105px" });
+        expect(ctx.caretBorderClass).toBe("border-t border-l");
+    });
+
+    it("hides the caret when the origin sits on the panel edge", () => {
+        // Right-click menus anchor at the cursor, which lands on the panel
+        // corner or edge. A caret there points at the panel itself.
+        const ctx = callUpdateCaret(100, 110, 100, 110, 200, 100);
+        expect(ctx.caretStyle).toBeNull();
     });
 });
