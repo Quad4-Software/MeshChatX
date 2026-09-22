@@ -31,3 +31,7 @@ tests/backend/test_landlock_integration_surfaces.py
 
 Implementation: `meshchatx/src/backend/landlock_sandbox.py`.
 User docs: `docs/en/`. Agent docs: `.agents/` only.
+
+## Commits
+
+Conventional Commits with a short subject: `type(scope): subject`, imperative, no trailing period, aim for 50 characters or less, hard cap 72. Split a large diff into one commit per logical change. Full rules: `.agents/conventions/commits.md`.
