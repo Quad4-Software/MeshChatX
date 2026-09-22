@@ -21,7 +21,9 @@ describe("NotificationSoundUtils", () => {
             audioInstances.push(player);
             return player;
         });
-        globalThis.window = globalThis.window || {};
+        if (typeof globalThis.window === "undefined") {
+            globalThis.window = {};
+        }
         globalThis.window.api = {
             get: vi.fn(),
         };
