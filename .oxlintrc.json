@@ -1,8 +1,13 @@
 {
     "$schema": "./node_modules/oxlint/configuration_schema.json",
-    "plugins": ["eslint"],
+    "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "promise", "node", "vitest"],
     "categories": {
-        "correctness": "error"
+        "correctness": "error",
+        "suspicious": "warn",
+        "perf": "warn"
+    },
+    "options": {
+        "typeAware": true
     },
     "ignorePatterns": [
         "**/vendor/**",
@@ -25,11 +30,42 @@
         "**/temp-tests/**",
         "**/.pnpm-store/**",
         "**/packaging/**",
-        "**/tests/**",
         "**/*.svelte"
     ],
     "rules": {
         "no-unused-vars": "warn",
-        "no-console": "off"
+        "no-console": "off",
+        "no-underscore-dangle": "off",
+        "import/default": "off",
+        "import/no-unassigned-import": "off",
+        "promise/no-callback-in-promise": "warn",
+        "typescript/no-useless-default-assignment": "off",
+        "typescript/no-floating-promises": "warn",
+        "typescript/no-base-to-string": "warn",
+        "typescript/await-thenable": "warn",
+        "typescript/unbound-method": "warn",
+        "typescript/no-misused-spread": "warn",
+        "typescript/no-this-alias": "warn",
+        "typescript/no-redundant-type-constituents": "warn",
+        "typescript/restrict-template-expressions": "warn",
+        "typescript/no-unnecessary-type-conversion": "warn",
+        "typescript/no-unnecessary-type-assertion": "warn",
+        "typescript/no-unsafe-type-assertion": "warn",
+        "typescript/no-unnecessary-boolean-literal-compare": "warn",
+        "typescript/no-meaningless-void-operator": "warn",
+        "typescript/no-duplicate-type-constituents": "warn",
+        "unicorn/no-new-array": "warn",
+        "unicorn/prefer-add-event-listener": "warn",
+        "unicorn/consistent-function-scoping": "warn",
+        "unicorn/no-array-sort": "warn",
+        "unicorn/require-post-message-target-origin": "warn",
+        "eslint/no-await-in-loop": "warn",
+        "vitest/no-focused-tests": "error",
+        "vitest/no-disabled-tests": "warn",
+        "vitest/no-commented-out-tests": "warn",
+        "vitest/no-conditional-expect": "warn",
+        "vitest/valid-expect": "warn",
+        "vitest/expect-expect": "warn",
+        "vitest/require-to-throw-message": "warn"
     }
 }

@@ -269,6 +269,9 @@ export function subscribe(listener: RouteListener): () => void {
 }
 
 function notify(): void {
+    // Snapshot so a listener that unregisters itself mid-dispatch still
+    // receives the current notification.
+    // oxlint-disable-next-line unicorn/no-useless-spread
     for (const listener of [...listeners]) {
         try {
             listener(currentRoute);
@@ -433,7 +436,7 @@ export const router = {
             path: record.path,
             mount: "svelte",
             load,
-            meta: { ...(record.meta || {}) },
+            meta: { ...record.meta },
             routeProps: record.props && typeof record.props === "object" ? record.props : undefined,
         });
     },

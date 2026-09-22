@@ -84,7 +84,7 @@ export function okResponse(body, init = {}) {
     return new Response(body, {
         status: 200,
         statusText: "OK",
-        headers: { "content-type": "text/plain", ...(init.headers || {}) },
+        headers: { "content-type": "text/plain", ...init.headers },
         ...init,
     });
 }

@@ -20,6 +20,15 @@ export default defineConfig({
             provider: "v8",
             reporter: ["text", "json-summary"],
             reportsDirectory: "./coverage-electron",
+            reportOnFailure: true,
+            // Ratchet: floor just under current totals (lines 47.6,
+            // stmts 47.6, funcs 48.5, branches 46.0).
+            thresholds: {
+                lines: 47,
+                statements: 47,
+                functions: 48,
+                branches: 45,
+            },
             include: ["electron/**/*.js"],
             exclude: ["electron/assets/**"],
         },

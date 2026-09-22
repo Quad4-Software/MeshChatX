@@ -258,9 +258,10 @@ export function orbitEye(yaw: number, pitch: number, dist: number): Vec3 {
 export function cameraBasis(eye: Vec3): CameraBasis {
     const fl = Math.hypot(eye.x, eye.y, eye.z) || 1;
     const forward: Vec3 = { x: -eye.x / fl, y: -eye.y / fl, z: -eye.z / fl };
-    let cx = forward.y * 0 - forward.z * 1;
-    let cy = forward.z * 0 - forward.x * 0;
-    let cz = forward.x * 1 - forward.y * 0;
+    // cross(forward, up) with up = (0, 1, 0), simplified
+    let cx = -forward.z;
+    let cy = 0;
+    let cz = forward.x;
     let rl = Math.hypot(cx, cy, cz);
     if (rl < 1e-6) {
         cx = 1;

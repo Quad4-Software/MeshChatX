@@ -13,7 +13,6 @@
         "isolatedModules": true,
         "resolveJsonModule": true,
         "ignoreDeprecations": "6.0",
-        "baseUrl": ".",
         "paths": {
             "@/*": ["./meshchatx/src/frontend/*"],
             "micron-parser": ["./node_modules/micron-parser/js/micron-parser.js"]

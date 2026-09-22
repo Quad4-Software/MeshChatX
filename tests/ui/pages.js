@@ -137,11 +137,11 @@ const UI_PAGES = [
 ];
 
 function budgetsFor(page) {
-    return { ...DEFAULT_BUDGETS, ...(page.budgets || {}) };
+    return { ...DEFAULT_BUDGETS, ...page.budgets };
 }
 
 function vitalBudgetsFor(page) {
-    return { ...DEFAULT_VITAL_BUDGETS, ...(page.vitals || {}) };
+    return { ...DEFAULT_VITAL_BUDGETS, ...page.vitals };
 }
 
 function pagesForCi() {

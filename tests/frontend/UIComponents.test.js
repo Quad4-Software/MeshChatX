@@ -50,7 +50,7 @@ function mountSendMessageButton(options = {}) {
         emitted[name].push(value === undefined ? [] : [value]);
     };
     const view = render(SendMessageButton, {
-        ...(options.props || {}),
+        ...options.props,
         onsend: () => emit("send"),
         ondeliverymethodchanged: (method) => emit("delivery-method-changed", method),
         onsendcommandorrequest: () => emit("send-command-or-request"),

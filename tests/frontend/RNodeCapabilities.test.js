@@ -10,7 +10,7 @@ import {
 
 const mkEnv = (overrides = {}) => ({
     isSecureContext: true,
-    navigator: { userAgent: "Mozilla/5.0", ...(overrides.navigator || {}) },
+    navigator: { userAgent: "Mozilla/5.0", ...overrides.navigator },
     ...overrides,
 });
 
