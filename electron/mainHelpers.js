@@ -13,24 +13,69 @@ const IGNORED_CLI_ARGUMENTS = new Set([
     "--enable-logging=stderr",
 ]);
 
+// URL-like argv entries (lxmf://..., rns://...) arrive from cold-start deep
+// links. The backend runs argparse in strict mode, so forwarding them would
+// exit the backend with code 2.
+const URL_SCHEME_ARG_PATTERN = /^\w[\w+.-]*:\/\//;
+
+// Deep link schemes this app registers via setAsDefaultProtocolClient and the
+// packaged CFBundleURLTypes / desktop file.
+const PROTOCOL_URL_ARG_PATTERN = /^(?:lxmf|rns):\/\//i;
+
 /**
- * Arguments after argv[0], excluding known Chromium/Electron noise flags.
+ * Arguments after argv[0], excluding known Chromium/Electron noise flags and
+ * URL-scheme deep link arguments that the backend parser would reject.
  * @param {string[]} argv Typically process.argv
  * @returns {string[]}
  */
 function getUserProvidedArguments(argv) {
     const list = Array.isArray(argv) ? argv : [];
-    return list.slice(1).filter((arg) => !IGNORED_CLI_ARGUMENTS.has(arg));
+    return list.slice(1).filter((arg) => !IGNORED_CLI_ARGUMENTS.has(arg) && !URL_SCHEME_ARG_PATTERN.test(arg));
 }
 
 /**
- * Read a "--flag value" pair from argv. Does not match "--flag=value" forms.
+ * First deep link URL in argv (lxmf:// or rns://), or null.
+ * @param {string[]} argv
+ * @returns {string | null}
+ */
+function findProtocolUrlArg(argv) {
+    const list = Array.isArray(argv) ? argv : [];
+    for (const arg of list) {
+        if (typeof arg === "string" && PROTOCOL_URL_ARG_PATTERN.test(arg)) {
+            return arg;
+        }
+    }
+    return null;
+}
+
+/**
+ * Whether argv contains "--flag" or "--flag=value" for flagName.
+ * @param {string[]} argv
+ * @param {string} flagName
+ * @returns {boolean}
+ */
+function hasArgvFlag(argv, flagName) {
+    const list = Array.isArray(argv) ? argv : [];
+    const prefix = `${flagName}=`;
+    return list.some((arg) => arg === flagName || (typeof arg === "string" && arg.startsWith(prefix)));
+}
+
+/**
+ * Read a flag value from argv. Supports both "--flag value" and "--flag=value"
+ * forms so Electron resolves the same paths the backend argparse accepts.
  * @param {string[]} argv
  * @param {string} flagName
  * @returns {string | null}
  */
 function parseArgvFlag(argv, flagName) {
     const list = Array.isArray(argv) ? argv : [];
+    const prefix = `${flagName}=`;
+    for (const arg of list) {
+        if (typeof arg === "string" && arg.startsWith(prefix)) {
+            const value = arg.slice(prefix.length);
+            return value ? value : null;
+        }
+    }
     const idx = list.indexOf(flagName);
     if (idx === -1 || idx + 1 >= list.length) {
         return null;
@@ -140,6 +185,8 @@ const {
 
 module.exports = {
     getUserProvidedArguments,
+    findProtocolUrlArg,
+    hasArgvFlag,
     parseArgvFlag,
     resolvePortableStorageRoots,
     formatRenderProcessGoneDetails,
