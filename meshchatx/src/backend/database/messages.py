@@ -896,10 +896,13 @@ class MessageDAO:
         return arrival_ts is not None and arrival_ts > last_read_at.timestamp()
 
     def mark_stuck_messages_as_failed(self):
+        # Incoming rows marked failed were already received; mapping them
+        # to the transient generating state would leave them stuck, since
+        # nothing ever advances an incoming generating row.
         self.provider.execute(
             """
             UPDATE lxmf_messages
-            SET state = 'generating'
+            SET state = 'delivered'
             WHERE is_incoming = 1 AND state = 'failed'
             """,
         )

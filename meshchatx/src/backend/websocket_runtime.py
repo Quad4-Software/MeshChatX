@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import secrets
 import time
 from collections import deque
 from typing import Any
@@ -269,6 +270,9 @@ def init_client_runtime(client) -> TokenBucket:
         client._meshchatx_ws_topics = None
         client._meshchatx_last_activity = time.monotonic()
         client._meshchatx_binary_rns_link = False
+        # Random per-connection key for page file grants: id() values get
+        # recycled after GC, so a fresh socket could inherit stale grants.
+        client._meshchatx_page_grant_token = secrets.token_hex(16)
         # Serializes broadcast writes so two concurrent broadcasts cannot
         # interleave frames (and their seq ordering) on one socket.
         client._meshchatx_send_lock = asyncio.Lock()

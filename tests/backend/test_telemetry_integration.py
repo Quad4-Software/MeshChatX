@@ -6,6 +6,10 @@ from unittest.mock import MagicMock
 import pytest
 
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.database.telemetry import (
+    TELEMETRY_MAX_FUTURE_SEC,
+    TELEMETRY_MAX_PAST_SEC,
+)
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
 
@@ -103,6 +107,37 @@ async def test_process_incoming_telemetry_stream(mock_app):
         )
 
     assert mock_app.database.telemetry.upsert_telemetry.call_count == 2
+
+
+def test_process_incoming_telemetry_clamps_remote_timestamp(mock_app):
+    """Remote-controlled timestamps must be clamped near time.time()."""
+    source_hash = "source_hash"
+    packed_telemetry = Telemeter.pack(
+        location={"latitude": 1.0, "longitude": 1.0},
+    )
+    mock_lxmf_message = MagicMock()
+    mock_lxmf_message.hash = b"msg_hash"
+
+    now = time.time()
+    mock_app.process_incoming_telemetry(
+        source_hash,
+        packed_telemetry,
+        mock_lxmf_message,
+        timestamp_override=int(now + 10 * 24 * 3600),
+    )
+    ts = mock_app.database.telemetry.upsert_telemetry.call_args.kwargs["timestamp"]
+    assert ts <= now + TELEMETRY_MAX_FUTURE_SEC + 5
+    assert ts > now
+
+    mock_app.process_incoming_telemetry(
+        source_hash,
+        packed_telemetry,
+        mock_lxmf_message,
+        timestamp_override=int(now - 365 * 24 * 3600),
+    )
+    ts = mock_app.database.telemetry.upsert_telemetry.call_args.kwargs["timestamp"]
+    assert ts >= now - TELEMETRY_MAX_PAST_SEC - 5
+    assert ts < now
 
 
 @pytest.mark.asyncio
