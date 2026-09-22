@@ -43,6 +43,8 @@
         "test:e2e:install": "playwright install chromium",
         "pretest:ui:pages": "playwright install chromium",
         "test:ui:pages": "playwright test --config playwright.ui.config.js tests/ui/pages.smoke.spec.js",
+        "test:ui:perf": "playwright test --config playwright.ui.config.js tests/ui/perf.spec.js",
+        "test:ui:heap": "playwright test --config playwright.ui.config.js tests/ui/heap-profile.spec.js",
         "test:ui:screenshots": "playwright test --config playwright.screenshots.config.js",
         "test:ui:lighthouse": "playwright test --config playwright.lighthouse.config.js",
         "test:ui:lighthouse:ci": "MESHCHAT_UI_CI=1 playwright test --config playwright.lighthouse.config.js",
@@ -153,6 +155,15 @@
                 }
             ],
             "identity": "-",
+            "protocols": [
+                {
+                    "name": "MeshChatX",
+                    "schemes": [
+                        "lxmf",
+                        "rns"
+                    ]
+                }
+            ],
             "artifactName": "ReticulumMeshChatX-v${version}-mac-${arch}.${ext}",
             "entitlements": "electron/build/entitlements.mac.plist",
             "entitlementsInherit": "electron/build/entitlements.mac.plist",
