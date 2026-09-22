@@ -490,7 +490,7 @@ async def test_auth_middleware_returns_401_for_api_without_session_when_auth_ena
     app.config.auth_enabled.set(True)
 
     routes = web.RouteTableDef()
-    bad_mw, sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = (
+    bad_mw, sqlite_mw, auth_mw, mime_mw, _cache_mw, sec_mw, csrf_mw, ip_mw, demo_mw = (
         app._define_routes(routes)
     )
     aio_app = web.Application(
@@ -499,6 +499,7 @@ async def test_auth_middleware_returns_401_for_api_without_session_when_auth_ena
             sqlite_mw,
             auth_mw,
             mime_mw,
+            _cache_mw,
             sec_mw,
             csrf_mw,
             ip_mw,
