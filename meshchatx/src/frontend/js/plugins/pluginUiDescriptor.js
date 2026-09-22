@@ -143,18 +143,30 @@ export function validateUiDescriptor(descriptor, options = {}) {
         if (Array.isArray(node.items)) {
             childLists.push(node.items);
         }
-        if (Array.isArray(node.tabs)) {
-            childLists.push(node.tabs);
+        // tabs entries are {id, label} definitions, not nodes.
+        // panels entries are {id, children} containers, or a node when type is set.
+        if (type === "tabs" && Array.isArray(node.panels)) {
+            for (const panel of node.panels) {
+                if (panel && typeof panel === "object" && !Array.isArray(panel)) {
+                    if (panel.type) {
+                        childLists.push([panel]);
+                    } else if (Array.isArray(panel.children)) {
+                        childLists.push(panel.children);
+                    }
+                }
+            }
         }
-        if (Array.isArray(node.panels)) {
-            childLists.push(node.panels);
-        }
-        if (Array.isArray(node.rows)) {
+        if (type === "table" && Array.isArray(node.rows)) {
             for (const row of node.rows) {
-                if (Array.isArray(row)) {
-                    childLists.push(row);
-                } else if (row && typeof row === "object" && Array.isArray(row.cells)) {
-                    childLists.push(row.cells);
+                const cells = Array.isArray(row)
+                    ? row
+                    : row && typeof row === "object" && Array.isArray(row.cells)
+                      ? row.cells
+                      : null;
+                if (cells) {
+                    // Cells may be primitives rendered as text; only node
+                    // objects get walked.
+                    childLists.push(cells.filter((cell) => cell && typeof cell === "object"));
                 }
             }
         }

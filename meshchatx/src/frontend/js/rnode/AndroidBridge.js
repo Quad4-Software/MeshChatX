@@ -37,6 +37,23 @@ export default class AndroidBridge {
     constructor(bridge = null, env = null) {
         this.env = env || pickEnv();
         this.bridge = bridge || this.env.MeshChatXAndroid || null;
+        // The WebView only invokes bridge methods on the injected object
+        // itself. When the wrapper lives in Vue reactive state, this and
+        // this.bridge become proxies and every call fails silently.
+        // Marking both objects non-reactive plus binding the methods to
+        // the raw instance keeps the receiver intact no matter where the
+        // wrapper is stored.
+        this.__v_skip = true;
+        try {
+            if (this.bridge && typeof this.bridge === "object") {
+                this.bridge.__v_skip = true;
+            }
+        } catch {}
+        for (const key of Object.getOwnPropertyNames(AndroidBridge.prototype)) {
+            if (key !== "constructor" && typeof this[key] === "function") {
+                this[key] = this[key].bind(this);
+            }
+        }
     }
 
     isAvailable() {

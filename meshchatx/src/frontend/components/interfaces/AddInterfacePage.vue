@@ -2678,6 +2678,8 @@ export default {
                     await this.loadLocalLinkCapabilities();
                 } else if (result === "settings") {
                     ToastUtils.warning(this.$t("tools.nearby.permission_settings"));
+                } else if (result !== "requested") {
+                    ToastUtils.warning(this.$t("interfaces.aware_permission_failed"));
                 }
             } finally {
                 this.awarePermissionRequesting = false;

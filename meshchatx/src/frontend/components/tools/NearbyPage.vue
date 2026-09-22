@@ -737,6 +737,8 @@ export default {
                     await this.loadCapabilities();
                 } else if (result === "settings") {
                     ToastUtils.warning(this.$t("tools.nearby.permission_settings"));
+                } else if (result !== "requested") {
+                    ToastUtils.warning(this.$t("tools.nearby.permission_failed"));
                 }
             } finally {
                 this.requestingPermission = false;
