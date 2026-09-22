@@ -16,12 +16,22 @@ describe("usePaperIngest", () => {
     });
 
     it("ingest sends lxm.ingest_uri and tracks the pending hash", async () => {
+        WebSocketConnection.send.mockReturnValue(true);
         const p = usePaperIngest({ getIdentityKey: () => "idA" });
         await p.ingestPaperMessage("lxm://hash:payload", "aa".repeat(16));
         expect(WebSocketConnection.send).toHaveBeenCalled();
         const sent = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
         expect(sent.type).toBe("lxm.ingest_uri");
         expect(p.pendingPaperIngestMessageHash.value).toBe("aa".repeat(16));
+    });
+
+    it("ingest does not track the hash when the socket is not open", async () => {
+        WebSocketConnection.send.mockReturnValue(false);
+        const p = usePaperIngest({ getIdentityKey: () => "idA" });
+        await p.ingestPaperMessage("lxm://hash:payload", "aa".repeat(16));
+        // A dropped send must not mark the message pending, or an unrelated
+        // ingest result could flash a false ingested badge.
+        expect(p.pendingPaperIngestMessageHash.value).toBeNull();
     });
 
     it("successful ingest result marks the hash ingested", () => {

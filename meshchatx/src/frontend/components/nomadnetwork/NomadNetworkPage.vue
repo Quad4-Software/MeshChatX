@@ -4266,13 +4266,16 @@ export default {
             if (!parsed) return;
             this.isLoadingArchives = true;
 
-            WebSocketConnection.send(
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "nomadnet.page.archives.get",
                     destination_hash: this.selectedNode.destination_hash,
                     page_path: parsed.path,
                 })
             );
+            if (!sent) {
+                this.isLoadingArchives = false;
+            }
         },
         loadArchivedPage(archiveId) {
             if (this.isPrivate) {

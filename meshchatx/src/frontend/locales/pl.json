@@ -2224,6 +2224,7 @@
         "view_on_map": "Zobacz na mapie",
         "request": "Poproś",
         "generate_paper_message": "Wygeneruj wiadomość papierową (LXM)",
+        "failed_generate_paper_uri": "Nie udało się wygenerować wiadomości papierowej",
         "ingest_paper_message": "Wczytaj wiadomość papierową",
         "scan_qr": "Zeskanuj kod QR",
         "scanner_hint": "Skieruj kamerę na kod QR zawierający URI lxmf://, lxma:// lub lxm://.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Szukaj w ustawieniach...",
         "no_search_results": "Nie znaleziono ustawień pasujących do wyszukiwania",
         "try_different_search": "Spróbuj innego zapytania",
-        "clear_search": "Wyczyść wyszukiwanie"
+        "clear_search": "Wyczyść wyszukiwanie",
+        "archived_pages_flush_failed": "Nie udało się wyczyścić zarchiwizowanych stron"
     },
     "debug": {
         "title": "Dzienniki debugowania",

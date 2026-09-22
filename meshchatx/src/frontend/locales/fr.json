@@ -2224,6 +2224,7 @@
         "view_on_map": "Vue sur la carte",
         "request": "Demande",
         "generate_paper_message": "Générer un message papier (LXM)",
+        "failed_generate_paper_uri": "Échec de la génération du message papier",
         "ingest_paper_message": "ingérer le message papier",
         "scan_qr": "Scanner le code QR",
         "scanner_hint": "Pointez votre appareil photo à lxmf://, lxma:// ou lxm:// QR code.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Rechercher dans les paramètres...",
         "no_search_results": "Aucun paramètre ne correspond à votre recherche",
         "try_different_search": "Essayez une autre recherche",
-        "clear_search": "Effacer la recherche"
+        "clear_search": "Effacer la recherche",
+        "archived_pages_flush_failed": "Échec du vidage des pages archivées"
     },
     "debug": {
         "title": "Débogues",

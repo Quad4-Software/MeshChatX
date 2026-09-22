@@ -2224,6 +2224,7 @@
         "view_on_map": "지도에서 보기",
         "request": "요청",
         "generate_paper_message": "종이 메시지 생성 (LXM)",
+        "failed_generate_paper_uri": "종이 메시지 생성에 실패했습니다",
         "ingest_paper_message": "종이 메시지 가져오기",
         "scan_qr": "QR 코드 스캔",
         "scanner_hint": "카메라를 lxmf://, lxma:// 또는 lxm:// QR 코드에 향하세요.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "설정 검색...",
         "no_search_results": "검색과 일치하는 설정이 없습니다",
         "try_different_search": "다른 검색어로 시도해 보세요",
-        "clear_search": "검색 지우기"
+        "clear_search": "검색 지우기",
+        "archived_pages_flush_failed": "보관된 페이지 비우기에 실패했습니다"
     },
     "debug": {
         "title": "디버그 로그",

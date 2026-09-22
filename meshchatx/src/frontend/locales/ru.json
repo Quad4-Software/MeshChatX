@@ -2224,6 +2224,7 @@
         "view_on_map": "Показать на карте",
         "request": "Запрос",
         "generate_paper_message": "Создать бумажное сообщение (LXM)",
+        "failed_generate_paper_uri": "Не удалось создать бумажное сообщение",
         "ingest_paper_message": "Загрузить бумажное сообщение",
         "scan_qr": "Сканировать QR-код",
         "scanner_hint": "Наведите камеру на QR-код lxmf://, lxma:// или lxm://.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Поиск настроек...",
         "no_search_results": "Настройки по вашему запросу не найдены",
         "try_different_search": "Попробуйте изменить поисковый запрос",
-        "clear_search": "Очистить поиск"
+        "clear_search": "Очистить поиск",
+        "archived_pages_flush_failed": "Не удалось очистить архивные страницы"
     },
     "debug": {
         "title": "Журнал отладки",

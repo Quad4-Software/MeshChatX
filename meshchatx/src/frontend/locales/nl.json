@@ -2224,6 +2224,7 @@
         "view_on_map": "Bekijk op kaart",
         "request": "Verzoek",
         "generate_paper_message": "Papierbericht genereren (LXM)",
+        "failed_generate_paper_uri": "Papieren bericht genereren mislukt",
         "ingest_paper_message": "Papierbericht invoeren",
         "scan_qr": "Scan QR-code",
         "scanner_hint": "Richt uw camera op een lxmf://, lxma://, of lxm:// QR code.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Instellingen zoeken...",
         "no_search_results": "Geen instellingen gevonden die overeenkomen met uw zoekopdracht",
         "try_different_search": "Probeer een andere zoekopdracht",
-        "clear_search": "Zoekopdracht wissen"
+        "clear_search": "Zoekopdracht wissen",
+        "archived_pages_flush_failed": "Gearchiveerde pagina's konden niet worden leeggemaakt"
     },
     "debug": {
         "title": "Debuglogs",

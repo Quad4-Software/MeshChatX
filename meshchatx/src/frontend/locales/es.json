@@ -2224,6 +2224,7 @@
         "view_on_map": "Mapa",
         "request": "Solicitud",
         "generate_paper_message": "Generar mensaje de papel (LXM)",
+        "failed_generate_paper_uri": "No se pudo generar el mensaje en papel",
         "ingest_paper_message": "Mensaje de papel ingerido",
         "scan_qr": "Escanear código QR",
         "scanner_hint": "Indique su cámara en un código lxmf://, lxma:// o lxm:// QR.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Buscar ajustes...",
         "no_search_results": "No hay ajustes que coincidan con tu búsqueda",
         "try_different_search": "Prueba con otra búsqueda",
-        "clear_search": "Borrar búsqueda"
+        "clear_search": "Borrar búsqueda",
+        "archived_pages_flush_failed": "No se pudieron limpiar las páginas archivadas"
     },
     "debug": {
         "title": "Registros de depuración",

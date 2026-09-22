@@ -2224,6 +2224,7 @@
         "view_on_map": "Näytä kartalla",
         "request": "Pyyntö",
         "generate_paper_message": "Tee paperiviesti (LXM)",
+        "failed_generate_paper_uri": "Paperiviestin luonti epäonnistui",
         "ingest_paper_message": "Lue paperiviesti",
         "scan_qr": "Lue QR-koodi",
         "scanner_hint": "Osoita kamerasi lxmf://, lxma://, or lxm:// -QR-koodiin.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Hae asetuksista...",
         "no_search_results": "Hakua vastaavia asetuksia ei löytynyt",
         "try_different_search": "Kokeile toista hakuehtoa",
-        "clear_search": "Tyhjennä haku"
+        "clear_search": "Tyhjennä haku",
+        "archived_pages_flush_failed": "Arkiston tyhjennys epäonnistui"
     },
     "debug": {
         "title": "Vianetsintälokit",

@@ -52,13 +52,19 @@ export function usePaperIngest(options = {}) {
     async function ingestPaperMessage(uri, messageHash = null) {
         try {
             const hash = normalizePaperIngestMessageHash(messageHash);
-            pendingPaperIngestMessageHash.value = hash || null;
-            WebSocketConnection.send(
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "lxm.ingest_uri",
                     uri: uri,
                 })
             );
+            if (!sent) {
+                ToastUtils.error(t("messages.failed_ingest_paper"));
+                return;
+            }
+            // Only mark the hash pending once the request is on the wire so
+            // an unrelated result cannot set a false ingested badge.
+            pendingPaperIngestMessageHash.value = hash || null;
             ToastUtils.info(t("messages.ingesting_paper_message"));
         } catch (e) {
             console.error(e);

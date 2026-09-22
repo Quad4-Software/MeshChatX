@@ -153,8 +153,8 @@
                     </div>
                     <h4 class="text-lg font-bold text-sem-fg mb-2">Message Not Available</h4>
                     <p class="text-sm text-sem-fg-muted max-w-xs">
-                        The original message bytes are no longer available in the router queue to generate a signed
-                        paper message.
+                        A signed paper message could not be generated for this message. Only outbound messages with
+                        retained payloads can be represented as a paper URI.
                     </p>
                     <button
                         type="button"
@@ -200,7 +200,9 @@ export default {
     data() {
         return {
             uri: this.initialUri,
-            isLoading: !this.initialUri,
+            // No uri and no hash means there is nothing to load; show the
+            // unavailable state instead of a spinner that never clears.
+            isLoading: !this.initialUri && Boolean(this.messageHash),
             isSending: false,
         };
     },

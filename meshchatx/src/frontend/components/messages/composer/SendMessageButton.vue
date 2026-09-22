@@ -157,7 +157,7 @@
                         <button
                             type="button"
                             class="w-full block text-left px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
-                            :disabled="!canSendMessage"
+                            :disabled="!canGeneratePaper"
                             @click="emitPaperCompose"
                         >
                             {{ $t("messages.send_menu_paper_compose") }}
@@ -186,6 +186,10 @@ export default {
                 "Resolving route to peer (finding path). This can take a while on first contact or after links change. Paths are remembered until they expire.",
         },
         canOpenSendMenu: {
+            type: Boolean,
+            default: false,
+        },
+        canGeneratePaper: {
             type: Boolean,
             default: false,
         },

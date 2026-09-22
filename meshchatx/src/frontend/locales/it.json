@@ -2224,6 +2224,7 @@
         "view_on_map": "Visualizza sulla Mappa",
         "request": "Richiesta",
         "generate_paper_message": "Genera Messaggio Cartaceo (LXM)",
+        "failed_generate_paper_uri": "Generazione del messaggio cartaceo non riuscita",
         "ingest_paper_message": "Inserisci messaggio cartaceo",
         "scan_qr": "Scansiona codice QR",
         "scanner_hint": "Inquadra con la fotocamera un codice QR lxmf://, lxma:// o lxm://.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Cerca impostazioni...",
         "no_search_results": "Nessuna impostazione corrisponde alla ricerca",
         "try_different_search": "Prova con una ricerca diversa",
-        "clear_search": "Cancella ricerca"
+        "clear_search": "Cancella ricerca",
+        "archived_pages_flush_failed": "Impossibile svuotare le pagine archiviate"
     },
     "debug": {
         "title": "Log di Debug",

@@ -2224,6 +2224,7 @@
         "view_on_map": "Haritada Görüntüle",
         "request": "İste",
         "generate_paper_message": "Kağıt İleti Oluştur (LXM)",
+        "failed_generate_paper_uri": "Kağıt mesaj oluşturulamadı",
         "ingest_paper_message": "Kağıt İletiyi İçe Aktar",
         "scan_qr": "QR Kodunu Tara",
         "scanner_hint": "Kameranı bir lxmf://, lxma:// veya lxm:// QR koduna doğrult.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Ayarları ara...",
         "no_search_results": "Aramanla eşleşen ayar bulunamadı",
         "try_different_search": "Farklı bir arama sorgusu dene",
-        "clear_search": "Aramayı temizle"
+        "clear_search": "Aramayı temizle",
+        "archived_pages_flush_failed": "Arşivlenen sayfalar temizlenemedi"
     },
     "debug": {
         "title": "Hata Ayıklama Günlükleri",

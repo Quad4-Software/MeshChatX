@@ -2224,6 +2224,7 @@
         "view_on_map": "Ver no Mapa",
         "request": "Solicitar",
         "generate_paper_message": "Gerar Mensagem de Papel (LXM)",
+        "failed_generate_paper_uri": "Falha ao gerar a mensagem em papel",
         "ingest_paper_message": "Importar Mensagem de Papel",
         "scan_qr": "Escanear Código QR",
         "scanner_hint": "Aponte a câmera para um código QR lxmf://, lxma:// ou lxm://.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Buscar configurações...",
         "no_search_results": "Nenhuma configuração encontrada correspondente à sua busca",
         "try_different_search": "Tente uma consulta de busca diferente",
-        "clear_search": "Limpar busca"
+        "clear_search": "Limpar busca",
+        "archived_pages_flush_failed": "Falha ao limpar as páginas arquivadas"
     },
     "debug": {
         "title": "Logs de Depuração",

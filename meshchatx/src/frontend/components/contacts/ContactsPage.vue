@@ -567,6 +567,7 @@ export default {
             scannerStream: null,
             scannerAnimationFrame: null,
             pendingLxmaImport: false,
+            lxmaImportTimeout: null,
 
             contextMenu: {
                 visible: false,
@@ -608,6 +609,7 @@ export default {
     beforeUnmount() {
         offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResult);
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
+        clearTimeout(this.lxmaImportTimeout);
         document.removeEventListener("click", this.closeContextMenu);
         document.removeEventListener("contextmenu", this.closeContextMenu, true);
         this.stopScanner();
@@ -790,14 +792,28 @@ export default {
             try {
                 const lxmaData = this.parseLxmaUri(this.newContactInput);
                 if (lxmaData) {
-                    this.pendingLxmaImport = true;
-                    WebSocketConnection.send(
+                    const sent = WebSocketConnection.send(
                         JSON.stringify({
                             type: "lxm.ingest_uri",
                             uri: lxmaData.normalizedUri,
                         })
                     );
+                    if (!sent) {
+                        this.isSubmitting = false;
+                        ToastUtils.error(this.$t("contacts.failed_add_contact"));
+                        return;
+                    }
+                    this.pendingLxmaImport = true;
                     ToastUtils.info(this.$t("contacts.importing_lxma"));
+                    // No result arrives when the request is dropped, so bound
+                    // the wait instead of leaving the submit button spinning.
+                    clearTimeout(this.lxmaImportTimeout);
+                    this.lxmaImportTimeout = setTimeout(() => {
+                        if (this.pendingLxmaImport) {
+                            this.pendingLxmaImport = false;
+                            this.isSubmitting = false;
+                        }
+                    }, 30000);
                     return;
                 }
 
@@ -832,6 +848,7 @@ export default {
             }
             this.pendingLxmaImport = false;
             this.isSubmitting = false;
+            clearTimeout(this.lxmaImportTimeout);
             if (json.status === "success" && json.ingest_type === "lxma_contact") {
                 ToastUtils.success(json.message || this.$t("contacts.contact_added"));
                 this.closeAddDialog();
