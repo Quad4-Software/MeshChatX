@@ -88,6 +88,10 @@ _WinCapabilityPrivateNetworkClientServerSid = 87
 
 _INFINITE = 0xFFFFFFFF
 _WAIT_OBJECT_0 = 0
+_WAIT_TIMEOUT = 0x00000102
+# Sentinel reported as the child exit code when a bounded wait gives up and
+# the sandboxed child has to be terminated.
+_CHILD_WAIT_TIMEOUT_EXIT = 0xDEAD10
 
 _MITIGATION_POLICY_EXTENSION_POINT_DISABLE = 6
 _MITIGATION_POLICY_IMAGE_LOAD = 10
@@ -812,9 +816,18 @@ def _build_command_line(exe: str, args: list[str]) -> str:
     return " ".join(quote(p) for p in parts)
 
 
-def _wait_process(handle: ctypes.c_void_p) -> int:
+def _wait_process(handle: ctypes.c_void_p, timeout_ms: int | None = None) -> int:
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    wait = kernel32.WaitForSingleObject(handle, _INFINITE)
+    wait = kernel32.WaitForSingleObject(
+        handle, _INFINITE if timeout_ms is None else timeout_ms
+    )
+    if wait == _WAIT_TIMEOUT:
+        # A wedged sandboxed child must not hang the caller forever. Kill it
+        # and report the sentinel so the caller can distinguish a timeout
+        # from a real exit status.
+        kernel32.TerminateProcess(handle, _CHILD_WAIT_TIMEOUT_EXIT)
+        kernel32.WaitForSingleObject(handle, 5000)
+        return _CHILD_WAIT_TIMEOUT_EXIT
     if wait != _WAIT_OBJECT_0:
         raise OSError(ctypes.get_last_error(), "WaitForSingleObject failed")
     code = ctypes.c_ulong()
@@ -1127,6 +1140,7 @@ def launch_backend_sandboxed(
     env: dict[str, str] | None = None,
     extra_ro_roots: list[str] | None = None,
     child_log_path: str | None = None,
+    wait_timeout_s: float | None = None,
 ) -> LaunchResult:
     """Grant ACLs, launch into AppContainer, wait, revoke ACLs.
 
@@ -1134,6 +1148,9 @@ def launch_backend_sandboxed(
     forced=False): use AppContainer when it is supported and fall back to
     unsandboxed when setup fails.
     Forced mode: return error without fallback.
+
+    wait_timeout_s bounds the child wait for short-lived probe children.
+    Leave it None for the real backend, which is expected to keep running.
     """
     if forced is None:
         forced = appcontainer_forced()
@@ -1317,7 +1334,8 @@ def launch_backend_sandboxed(
                 raise
         try:
             close_handle(h_thread)
-            exit_code = _wait_process(h_process)
+            timeout_ms = None if wait_timeout_s is None else int(wait_timeout_s * 1000)
+            exit_code = _wait_process(h_process, timeout_ms)
         finally:
             close_handle(h_process)
         elapsed = time.monotonic() - started

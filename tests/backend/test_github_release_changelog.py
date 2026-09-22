@@ -132,7 +132,9 @@ def test_draft_notes_only_includes_changelog_then_checksums():
         assert "<summary><strong>SHA256 Checksums</strong></summary>" in body
         assert "<summary><strong>Verification</strong></summary>" in body
         assert "dummy-asset.bin" in body
-        assert body.index("Changelog</strong>") < body.index("SHA256 Checksums</strong>")
+        assert body.index("Changelog</strong>") < body.index(
+            "SHA256 Checksums</strong>"
+        )
         assert body.index("SHA256 Checksums</strong>") < body.index(
             "Verification</strong>"
         )
