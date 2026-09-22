@@ -189,6 +189,7 @@ class IdentityContext:
             self.database = Database(":memory:")
         else:
             self.database = Database(self.database_path)
+            self.database.provider.on_unrecoverable = self.app._database_unrecoverable
 
         # Critical integrity only at boot (full walk deferred)
         if not getattr(self.app, "emergency", False):

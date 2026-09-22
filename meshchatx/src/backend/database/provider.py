@@ -24,6 +24,20 @@ _IDLE_REAP_INTERVAL_SECONDS = 30
 _IDLE_CONNECTION_TIMEOUT_SECONDS = 120
 _MAX_CONNECTIONS_SOFT = 64
 
+# Wedge detection: when a WAL/SHM file is unlinked underneath open
+# connections (observed after a crash-recovery or a second process touching
+# the same database), every statement on those connections fails with
+# "disk I/O error" and fresh connections can land on a different wal-index
+# generation, so the single-connection drop-and-retry in
+# _call_with_reconnect never recovers. Detection requires failures that
+# persist even on a fresh connection, sustained over _WEDGE_DETECT_SECONDS.
+_WEDGE_DETECT_SECONDS = 15.0
+_WEDGE_MIN_FAILURES = 4
+_WEDGE_RESET_COOLDOWN = 60.0
+# Failures still occurring this long after a full reset mean the wedge is
+# not fixable in-process, so the app is told once via on_unrecoverable.
+_WEDGE_ESCALATE_DELAY = 30.0
+
 
 class DatabaseProvider:
     _instance = None
@@ -40,6 +54,14 @@ class DatabaseProvider:
         self._by_ident: dict[int, sqlite3.Connection] = {}
         self._close_generation = 0
         self._memory_connection = None
+        # Set by the app to escalate a wedge that survived a connection
+        # reset (e.g. schedule a process restart). Called at most once.
+        self.on_unrecoverable = None
+        self._wedge_suppressed = False
+        self._persistent_failure_started = None
+        self._persistent_failures = 0
+        self._wedge_reset_at = 0.0
+        self._unrecoverable_notified = False
         # Per-connection default. Worker threads opened via asyncio.to_thread
         # never see Database._tune_sqlite_pragmas(), so this must be set here.
         # FILE temp under Landlock often fails with "unable to open database file"
@@ -320,9 +342,77 @@ class DatabaseProvider:
                 return local_conn
             return self._open_file_connection()
 
+    def _force_connection_reset(self) -> None:
+        """Close every tracked connection so the next use opens fresh handles.
+
+        Unlike close_all this keeps the reaper running and does not suppress
+        wedge recovery. It exists to recover from a WAL/SHM generation split
+        where live connections hold deleted inodes.
+        """
+        with self._lock:
+            self._close_generation += 1
+            for conn in list(self._connection_meta.keys()):
+                self._close_tracked_connection(conn)
+            self._connection_meta.clear()
+            self._by_ident.clear()
+            if hasattr(self._local, "connection"):
+                del self._local.connection
+
+    def _note_persistent_failure(self) -> None:
+        """Record a retryable failure that survived a fresh connection.
+
+        A single failed statement after drop-and-retry means the problem is
+        not the thread's connection but the on-disk state seen by every
+        connection, which is the wedge signature.
+        """
+        if self.db_path == ":memory:" or self._wedge_suppressed:
+            return
+        now = time.monotonic()
+        with self._lock:
+            if self._persistent_failure_started is None:
+                self._persistent_failure_started = now
+                self._persistent_failures = 0
+            self._persistent_failures += 1
+            if (
+                now - self._persistent_failure_started < _WEDGE_DETECT_SECONDS
+                or self._persistent_failures < _WEDGE_MIN_FAILURES
+            ):
+                return
+            reset_due = now - self._wedge_reset_at >= _WEDGE_RESET_COOLDOWN
+            escalate = (
+                self._wedge_reset_at > 0
+                and now - self._wedge_reset_at >= _WEDGE_ESCALATE_DELAY
+                and not self._unrecoverable_notified
+            )
+            if escalate:
+                self._unrecoverable_notified = True
+            if reset_due:
+                self._wedge_reset_at = now
+        if reset_due:
+            logger.warning(
+                "SQLite statements keep failing on fresh connections for %.0fs. "
+                "closing all connections to recover",
+                now - self._persistent_failure_started,
+            )
+            self._force_connection_reset()
+        if escalate:
+            callback = self.on_unrecoverable
+            if callback is not None:
+                try:
+                    callback()
+                except Exception:
+                    logger.exception("on_unrecoverable callback failed")
+
+    def _clear_persistent_failures(self) -> None:
+        if self._persistent_failure_started is None:
+            return
+        with self._lock:
+            self._persistent_failure_started = None
+            self._persistent_failures = 0
+
     def _call_with_reconnect(self, fn):
         try:
-            return fn()
+            result = fn()
         except (sqlite3.ProgrammingError, sqlite3.OperationalError) as exc:
             if not sqlite_error_is_retryable(exc):
                 raise
@@ -335,7 +425,14 @@ class DatabaseProvider:
             if conn is not None and conn.in_transaction:
                 raise
             self._drop_local_connection()
-            return fn()
+            try:
+                result = fn()
+            except (sqlite3.ProgrammingError, sqlite3.OperationalError) as exc2:
+                if sqlite_error_is_retryable(exc2):
+                    self._note_persistent_failure()
+                raise
+        self._clear_persistent_failures()
+        return result
 
     def execute(self, query, params=None, commit=None):
         def _run():
@@ -443,6 +540,9 @@ class DatabaseProvider:
 
     def close(self):
         self._stop_reaper()
+        # A provider being torn down must not escalate stale-handle errors
+        # into a wedge reset or a process restart.
+        self._wedge_suppressed = True
         if self.db_path == ":memory:" and self._memory_connection:
             try:
                 self._memory_connection.commit()
@@ -463,6 +563,7 @@ class DatabaseProvider:
 
     def close_all(self):
         self._stop_reaper()
+        self._wedge_suppressed = True
         with self._lock:
             self._close_generation += 1
             if self._memory_connection:
