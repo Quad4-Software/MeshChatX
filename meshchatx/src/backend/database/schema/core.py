@@ -1872,9 +1872,7 @@ class DatabaseSchema:
                     "CREATE VIRTUAL TABLE temp._fts5_probe "
                     "USING fts5(x, tokenize='trigram')",
                 )
-                self.provider.execute(
-                    "DROP TABLE temp._fts5_probe"
-                )  # migration-safety: allow-destructive
+                self.provider.execute("DROP TABLE temp._fts5_probe")  # fmt: skip  # migration-safety: allow-destructive
                 fts5_ok = True
             except Exception:
                 fts5_ok = False
