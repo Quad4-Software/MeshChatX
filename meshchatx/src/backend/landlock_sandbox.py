@@ -4,100 +4,61 @@
 
 from __future__ import annotations
 
-import ctypes
-import ctypes.util
 import logging
 import os
 import site
 import sys
 import tempfile
 
+try:
+    import landlockpy
+    from landlockpy import AccessFS, AccessNet, Ruleset, Scope
+except ImportError:  # pragma: no cover - dependency is declared, guard anyway
+    landlockpy = None
+    AccessFS = AccessNet = Ruleset = Scope = None
+
 from meshchatx.src.env_utils import env_str
 from meshchatx.src.path_utils import realpath_or_none
 
 logger = logging.getLogger("meshchatx.landlock")
 
-_LANDLOCK_ACCESS_FS_EXECUTE = 1 << 0
-_LANDLOCK_ACCESS_FS_WRITE_FILE = 1 << 1
-_LANDLOCK_ACCESS_FS_READ_FILE = 1 << 2
-_LANDLOCK_ACCESS_FS_READ_DIR = 1 << 3
-_LANDLOCK_ACCESS_FS_REMOVE_DIR = 1 << 4
-_LANDLOCK_ACCESS_FS_REMOVE_FILE = 1 << 5
-_LANDLOCK_ACCESS_FS_MAKE_CHAR = 1 << 6
-_LANDLOCK_ACCESS_FS_MAKE_DIR = 1 << 7
-_LANDLOCK_ACCESS_FS_MAKE_REG = 1 << 8
-_LANDLOCK_ACCESS_FS_MAKE_SOCK = 1 << 9
-_LANDLOCK_ACCESS_FS_MAKE_FIFO = 1 << 10
-_LANDLOCK_ACCESS_FS_MAKE_BLOCK = 1 << 11
-_LANDLOCK_ACCESS_FS_MAKE_SYM = 1 << 12
-_LANDLOCK_ACCESS_FS_REFER = 1 << 13
-_LANDLOCK_ACCESS_FS_TRUNCATE = 1 << 14
-_LANDLOCK_ACCESS_FS_IOCTL_DEV = 1 << 15
+if landlockpy is not None:
+    # ABI v1 filesystem rights. Newer rights are added only when the running
+    # ABI supports them, and only granted on paths that already need write
+    # or /dev.
+    _FS_ACCESS_ABI1 = (
+        AccessFS.EXECUTE
+        | AccessFS.WRITE_FILE
+        | AccessFS.READ_FILE
+        | AccessFS.READ_DIR
+        | AccessFS.REMOVE_DIR
+        | AccessFS.REMOVE_FILE
+        | AccessFS.MAKE_CHAR
+        | AccessFS.MAKE_DIR
+        | AccessFS.MAKE_REG
+        | AccessFS.MAKE_SOCK
+        | AccessFS.MAKE_FIFO
+        | AccessFS.MAKE_BLOCK
+        | AccessFS.MAKE_SYM
+    )
 
-_LANDLOCK_CREATE_RULESET_VERSION = 1 << 0
-_LANDLOCK_RULE_PATH_BENEATH = 1
-
-_PR_SET_NO_NEW_PRIVS = 38
-
-# ABI v1 filesystem rights. Newer rights are added only when the running ABI
-# supports them, and only granted on paths that already need write or /dev.
-_FS_ACCESS_ABI1 = (
-    _LANDLOCK_ACCESS_FS_EXECUTE
-    | _LANDLOCK_ACCESS_FS_WRITE_FILE
-    | _LANDLOCK_ACCESS_FS_READ_FILE
-    | _LANDLOCK_ACCESS_FS_READ_DIR
-    | _LANDLOCK_ACCESS_FS_REMOVE_DIR
-    | _LANDLOCK_ACCESS_FS_REMOVE_FILE
-    | _LANDLOCK_ACCESS_FS_MAKE_CHAR
-    | _LANDLOCK_ACCESS_FS_MAKE_DIR
-    | _LANDLOCK_ACCESS_FS_MAKE_REG
-    | _LANDLOCK_ACCESS_FS_MAKE_SOCK
-    | _LANDLOCK_ACCESS_FS_MAKE_FIFO
-    | _LANDLOCK_ACCESS_FS_MAKE_BLOCK
-    | _LANDLOCK_ACCESS_FS_MAKE_SYM
-)
-
-_READ_ACCESS_BASE = (
-    _LANDLOCK_ACCESS_FS_READ_FILE
-    | _LANDLOCK_ACCESS_FS_READ_DIR
-    | _LANDLOCK_ACCESS_FS_EXECUTE
-)
-_RW_ACCESS_BASE = _READ_ACCESS_BASE | (
-    _LANDLOCK_ACCESS_FS_WRITE_FILE
-    | _LANDLOCK_ACCESS_FS_REMOVE_DIR
-    | _LANDLOCK_ACCESS_FS_REMOVE_FILE
-    | _LANDLOCK_ACCESS_FS_MAKE_CHAR
-    | _LANDLOCK_ACCESS_FS_MAKE_DIR
-    | _LANDLOCK_ACCESS_FS_MAKE_REG
-    | _LANDLOCK_ACCESS_FS_MAKE_SOCK
-    | _LANDLOCK_ACCESS_FS_MAKE_FIFO
-    | _LANDLOCK_ACCESS_FS_MAKE_BLOCK
-    | _LANDLOCK_ACCESS_FS_MAKE_SYM
-)
-
-_SYSCALL_NUMBERS = {
-    "x86_64": (444, 445, 446),
-    "aarch64": (444, 445, 446),
-    "arm": (383, 384, 385),
-    "riscv64": (444, 445, 446),
-}
-
-
-class _LandlockRulesetAttr(ctypes.Structure):
-    _fields_ = [
-        ("handled_access_fs", ctypes.c_uint64),
-        ("handled_access_net", ctypes.c_uint64),
-        ("scoped", ctypes.c_uint64),
-    ]
-
-
-class _LandlockPathBeneathAttr(ctypes.Structure):
-    _fields_ = [
-        ("allowed_access", ctypes.c_uint64),
-        ("parent_fd", ctypes.c_int32),
-    ]
-    _pack_ = 1
-    _layout_ = "ms"
+    _READ_ACCESS_BASE = AccessFS.READ_FILE | AccessFS.READ_DIR | AccessFS.EXECUTE
+    _RW_ACCESS_BASE = _READ_ACCESS_BASE | (
+        AccessFS.WRITE_FILE
+        | AccessFS.REMOVE_DIR
+        | AccessFS.REMOVE_FILE
+        | AccessFS.MAKE_CHAR
+        | AccessFS.MAKE_DIR
+        | AccessFS.MAKE_REG
+        | AccessFS.MAKE_SOCK
+        | AccessFS.MAKE_FIFO
+        | AccessFS.MAKE_BLOCK
+        | AccessFS.MAKE_SYM
+    )
+else:
+    _FS_ACCESS_ABI1 = 0
+    _READ_ACCESS_BASE = 0
+    _RW_ACCESS_BASE = 0
 
 
 def _parse_kernel_version(release: str) -> tuple[int, int, int]:
@@ -145,81 +106,41 @@ _landlock_support_cached: bool | None = None
 _landlock_abi_cached: int | None = None
 
 
-def _syscall_numbers():
-    machine = os.uname().machine.lower()
-    if machine in _SYSCALL_NUMBERS:
-        return _SYSCALL_NUMBERS[machine]
-    return _SYSCALL_NUMBERS.get("x86_64")
-
-
-def _libc():
-    name = ctypes.util.find_library("c")
-    try:
-        if name:
-            libc = ctypes.CDLL(name, use_errno=True)
-        else:
-            # On some systems (like Alpine/musl) find_library("c") fails.
-            # Loading None gives us access to symbols already in the process.
-            libc = ctypes.CDLL(None, use_errno=True)
-    except OSError:
-        return None
-
-    if not hasattr(libc, "syscall"):
-        return None
-
-    libc.syscall.restype = ctypes.c_long
-    return libc
-
-
-def _syscall(libc, nr: int, *args):
-    rc = libc.syscall(nr, *args)
-    if rc < 0:
-        err = ctypes.get_errno()
-        msg = f"landlock syscall {nr} failed: errno {err}"
-        raise OSError(err, os.strerror(err), msg)
-    return rc
-
-
-def _handled_access_fs_for_abi(abi: int) -> int:
+def _handled_access_fs_for_abi(abi: int):
     """Return handled FS rights for a best-effort sandbox on this ABI.
 
     Intentionally omits network port rules and IPC scoping so mesh traffic,
     Unix sockets, and signals keep working. Omits RESOLVE_UNIX for the same
     reason. Rights we do handle are also granted on RW roots (including /dev).
     """
-    if abi < 1:
-        return 0
+    if landlockpy is None or abi < 1:
+        return AccessFS.NONE if landlockpy is not None else 0
     handled = _FS_ACCESS_ABI1
     if abi >= 2:
-        handled |= _LANDLOCK_ACCESS_FS_REFER
+        handled |= AccessFS.REFER
     if abi >= 3:
-        handled |= _LANDLOCK_ACCESS_FS_TRUNCATE
+        handled |= AccessFS.TRUNCATE
     if abi >= 5:
-        handled |= _LANDLOCK_ACCESS_FS_IOCTL_DEV
+        handled |= AccessFS.IOCTL_DEV
     return handled
 
 
-def _ruleset_attr_size(abi: int) -> int:
-    """Bytes of landlock_ruleset_attr the running ABI understands."""
-    if abi >= 6:
-        return ctypes.sizeof(_LandlockRulesetAttr)
-    if abi >= 4:
-        return ctypes.sizeof(ctypes.c_uint64) * 2
-    return ctypes.sizeof(ctypes.c_uint64)
-
-
-def _read_access_for_handled(handled: int) -> int:
+def _read_access_for_handled(handled):
+    if landlockpy is None:
+        return 0
     return _READ_ACCESS_BASE & handled
 
 
-def _rw_access_for_handled(handled: int) -> int:
+def _rw_access_for_handled(handled):
+    if landlockpy is None:
+        return 0
     access = _RW_ACCESS_BASE
-    if handled & _LANDLOCK_ACCESS_FS_REFER:
-        access |= _LANDLOCK_ACCESS_FS_REFER
-    if handled & _LANDLOCK_ACCESS_FS_TRUNCATE:
-        access |= _LANDLOCK_ACCESS_FS_TRUNCATE
-    if handled & _LANDLOCK_ACCESS_FS_IOCTL_DEV:
-        access |= _LANDLOCK_ACCESS_FS_IOCTL_DEV
+    if handled & AccessFS.REFER:
+        access |= AccessFS.REFER
+    if handled & AccessFS.TRUNCATE:
+        access |= AccessFS.TRUNCATE
+    if handled & AccessFS.IOCTL_DEV:
+        access |= AccessFS.IOCTL_DEV
     return access & handled
 
 
@@ -228,26 +149,11 @@ def _probe_landlock_abi() -> int:
     global _landlock_abi_cached
     if _landlock_abi_cached is not None:
         return _landlock_abi_cached
-    libc = _libc()
-    nums = _syscall_numbers()
-    if libc is None or nums is None:
+    if landlockpy is None:
         _landlock_abi_cached = 0
         return 0
-    create_nr, _, _ = nums
-    try:
-        abi = int(_syscall(libc, create_nr, 0, 0, _LANDLOCK_CREATE_RULESET_VERSION))
-    except OSError:
-        _landlock_abi_cached = 0
-        return 0
-    if abi < 1:
-        _landlock_abi_cached = 0
-        return 0
-    _landlock_abi_cached = abi
-    return abi
-
-
-def _probe_landlock_create_ruleset() -> bool:
-    return _probe_landlock_abi() >= 1
+    _landlock_abi_cached = int(landlockpy.abi_version())
+    return _landlock_abi_cached
 
 
 def _is_android() -> bool:
@@ -282,7 +188,10 @@ def landlock_kernel_supported() -> bool:
     if not _kernel_version_meets_minimum():
         _landlock_support_cached = False
         return False
-    _landlock_support_cached = _probe_landlock_create_ruleset()
+    if landlockpy is None:
+        _landlock_support_cached = False
+        return False
+    _landlock_support_cached = _probe_landlock_abi() >= 1
     return _landlock_support_cached
 
 
@@ -303,14 +212,6 @@ def landlock_auto_enabled() -> bool:
 
 def landlock_disabled_by_env() -> bool:
     return _landlock_env_override() is False
-
-
-def _set_no_new_privs(libc) -> None:
-    rc = libc.prctl(_PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
-    if rc != 0:
-        err = ctypes.get_errno()
-        msg = f"prctl(PR_SET_NO_NEW_PRIVS) failed: errno {err}"
-        raise OSError(msg)
 
 
 def _existing_dir(path: str | None) -> str | None:
@@ -439,51 +340,33 @@ def _collect_rw_roots(
     return paths
 
 
-def _file_access_from_dir_access(access: int, handled: int) -> int:
+def _file_access_from_dir_access(access, handled):
     """Map a directory access mask to rights valid on a non-directory path."""
-    file_bits = _LANDLOCK_ACCESS_FS_READ_FILE | _LANDLOCK_ACCESS_FS_WRITE_FILE
-    if access & _LANDLOCK_ACCESS_FS_EXECUTE:
-        file_bits |= _LANDLOCK_ACCESS_FS_EXECUTE
-    if access & _LANDLOCK_ACCESS_FS_TRUNCATE:
-        file_bits |= _LANDLOCK_ACCESS_FS_TRUNCATE
-    if access & _LANDLOCK_ACCESS_FS_IOCTL_DEV:
-        file_bits |= _LANDLOCK_ACCESS_FS_IOCTL_DEV
+    file_bits = AccessFS.READ_FILE | AccessFS.WRITE_FILE
+    if access & AccessFS.EXECUTE:
+        file_bits |= AccessFS.EXECUTE
+    if access & AccessFS.TRUNCATE:
+        file_bits |= AccessFS.TRUNCATE
+    if access & AccessFS.IOCTL_DEV:
+        file_bits |= AccessFS.IOCTL_DEV
     return file_bits & access & handled
 
 
-def _add_path_beneath_rule(
-    libc,
-    add_rule_nr: int,
-    ruleset_fd: int,
-    path: str,
-    access: int,
-    handled: int,
-) -> None:
+def _add_path_beneath_rule(ruleset, path: str, access, handled) -> None:
     if not path or not os.path.exists(path):
         return
     if not os.path.isdir(path):
         effective_access = _file_access_from_dir_access(access, handled)
     else:
         effective_access = access & handled
-    if effective_access == 0:
+    if not effective_access:
         return
-    open_flags = os.O_PATH | os.O_CLOEXEC | os.O_RDONLY
     try:
-        fd = os.open(path, open_flags)
+        ruleset.allow_path(path, effective_access)
+    except landlockpy.LandlockError:
+        raise
     except OSError:
         return
-    try:
-        attr = _LandlockPathBeneathAttr(allowed_access=effective_access, parent_fd=fd)
-        _syscall(
-            libc,
-            add_rule_nr,
-            ruleset_fd,
-            _LANDLOCK_RULE_PATH_BENEATH,
-            ctypes.byref(attr),
-            0,
-        )
-    finally:
-        os.close(fd)
 
 
 def _normalize_extra_landlock_read_root(path: str) -> str | None:
@@ -544,17 +427,8 @@ def apply_landlock_sandbox(
     if not landlock_requested():
         return False
 
-    libc = _libc()
-    nums = _syscall_numbers()
-    if libc is None or nums is None:
-        logger.warning("Landlock requested but libc or syscall numbers are unavailable")
-        return False
-
-    create_nr, add_rule_nr, restrict_nr = nums
-    try:
-        _set_no_new_privs(libc)
-    except OSError as exc:
-        logger.warning("Landlock disabled: %s", exc)
+    if landlockpy is None:
+        logger.warning("Landlock requested but landlockpy is not installed")
         return False
 
     abi = _probe_landlock_abi()
@@ -565,14 +439,11 @@ def apply_landlock_sandbox(
     handled = _handled_access_fs_for_abi(abi)
     read_access = _read_access_for_handled(handled)
     rw_access = _rw_access_for_handled(handled)
-    attr = _LandlockRulesetAttr(handled_access_fs=handled)
     try:
-        ruleset_fd = _syscall(
-            libc,
-            create_nr,
-            ctypes.byref(attr),
-            _ruleset_attr_size(abi),
-            0,
+        ruleset = Ruleset(
+            handled_fs=handled,
+            handled_net=AccessNet.NONE,
+            scoped=Scope.NONE,
         )
     except OSError as exc:
         logger.warning("Landlock disabled: %s", exc)
@@ -587,14 +458,7 @@ def apply_landlock_sandbox(
             if resolved and resolved not in read_roots:
                 read_roots.append(resolved)
         for root in read_roots:
-            _add_path_beneath_rule(
-                libc,
-                add_rule_nr,
-                ruleset_fd,
-                root,
-                read_access,
-                handled,
-            )
+            _add_path_beneath_rule(ruleset, root, read_access, handled)
         rw_roots = _collect_rw_roots(storage_dir, reticulum_config_dir, log_dir)
         public_existing = _existing_dir(public_dir)
         if public_existing and public_existing not in rw_roots:
@@ -606,27 +470,14 @@ def apply_landlock_sandbox(
             if resolved and resolved not in rw_roots:
                 rw_roots.append(resolved)
         for root in rw_roots:
-            _add_path_beneath_rule(
-                libc,
-                add_rule_nr,
-                ruleset_fd,
-                root,
-                rw_access,
-                handled,
-            )
-        _syscall(libc, restrict_nr, ruleset_fd, 0)
+            _add_path_beneath_rule(ruleset, root, rw_access, handled)
+        ruleset.restrict()
     except OSError as exc:
         logger.warning("Landlock disabled while adding rules: %s", exc)
-        try:
-            os.close(ruleset_fd)
-        except OSError:
-            pass
+        ruleset.close()
         return False
 
-    try:
-        os.close(ruleset_fd)
-    except OSError:
-        pass
+    ruleset.close()
 
     if landlock_auto_enabled():
         logger.info(
