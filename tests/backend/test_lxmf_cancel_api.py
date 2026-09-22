@@ -13,7 +13,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 def _build_aio_app(app):
     routes = web.RouteTableDef()
-    bad_mw, sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = (
+    bad_mw, sqlite_mw, auth_mw, mime_mw, _cache_mw, sec_mw, csrf_mw, ip_mw, demo_mw = (
         app._define_routes(routes)
     )
     aio_app = web.Application(
@@ -22,6 +22,7 @@ def _build_aio_app(app):
             sqlite_mw,
             auth_mw,
             mime_mw,
+            _cache_mw,
             sec_mw,
             csrf_mw,
             ip_mw,

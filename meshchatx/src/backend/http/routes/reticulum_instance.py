@@ -12,6 +12,7 @@ from aiohttp import web
 from RNS.Discovery import InterfaceDiscovery
 
 from meshchatx.src.backend import i2p_support, reticulum_config_versions
+from meshchatx.src.backend.app_security_settings import get_trusted_proxy_cidrs
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
@@ -28,7 +29,6 @@ from meshchatx.src.backend.http.uploads import (
 )
 from meshchatx.src.backend.interface_editor import InterfaceEditor
 from meshchatx.src.path_utils import request_client_ip
-from meshchatx.src.backend.app_security_settings import get_trusted_proxy_cidrs
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,9 @@ def _is_loopback_ip(ip: str) -> bool:
 
 
 def _request_may_receive_secrets(request, app) -> bool:
-    """Loopback clients always may; when auth is enabled the session check in
+    """Decide whether the caller may see plaintext config secrets.
+
+    Loopback clients always may; when auth is enabled the session check in
     auth middleware already ran, so reaching the handler means authenticated.
     Only an unauthenticated non-loopback caller (LAN bind + auth off) is denied.
     """
@@ -81,8 +83,11 @@ def _redact_config_secrets(content: str) -> str:
 
 
 def _restore_redacted_secrets(content: str, existing: str) -> str:
-    """PUT round-trip safety: a body that still contains REDACTED_SENTINEL for a
-    key keeps the value from the current file instead of writing the sentinel."""
+    """Restore real values for keys still holding REDACTED_SENTINEL.
+
+    PUT round-trip safety: a body that still contains REDACTED_SENTINEL for a
+    key keeps the value from the current file instead of writing the sentinel.
+    """
     existing_values = {}
     for line in existing.splitlines():
         stripped = line.lstrip()
