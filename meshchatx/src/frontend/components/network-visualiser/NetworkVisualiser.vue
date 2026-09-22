@@ -611,7 +611,12 @@ export default {
             if (!identityHash) return;
             const pathTable = this.pathTable;
             const announces = this.announces;
-            const positions = { ...this.cachedPositions, ...this.snapshotNodePositions() };
+            // Radial ring positions must not overwrite the cached force
+            // layout, or flat view would reopen stuck on the rings.
+            const positions =
+                this.viewMode === "radial"
+                    ? { ...this.cachedPositions }
+                    : { ...this.cachedPositions, ...this.snapshotNodePositions() };
             this.cachedPositions = positions;
             await saveVisualiserCache({
                 identityHash,
@@ -1945,8 +1950,12 @@ export default {
                 const counts = this.webglEngine.getCounts();
                 this.graphNodeCount = counts.nodes;
                 this.graphEdgeCount = counts.edges;
-                const snap = this.webglEngine.getPositions() || {};
-                this.cachedPositions = { ...this.cachedPositions, ...snap };
+                // Radial ring positions must not overwrite the cached force
+                // layout, or flat view would reopen stuck on the rings.
+                if (!radial) {
+                    const snap = this.webglEngine.getPositions() || {};
+                    this.cachedPositions = { ...this.cachedPositions, ...snap };
+                }
                 this.loadedNodesCount = this.pathTable.length;
                 this.totalNodesToLoad = 0;
                 this.loadedNodesCount = 0;
