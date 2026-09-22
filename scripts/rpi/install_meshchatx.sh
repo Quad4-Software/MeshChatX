@@ -398,6 +398,8 @@ User=${RUN_USER}
 Group=${RUN_GROUP}
 WorkingDirectory=${workdir}
 Environment="PATH=${path_value}"
+Environment="MALLOC_ARENA_MAX=2"
+Environment="OPENBLAS_NUM_THREADS=1"
 ExecStart=${exec_cmd}
 Restart=always
 RestartSec=3
@@ -423,6 +425,8 @@ After=network-online.target
 Type=simple
 WorkingDirectory=${workdir}
 Environment=\"PATH=${path_value}\"
+Environment=\"MALLOC_ARENA_MAX=2\"
+Environment=\"OPENBLAS_NUM_THREADS=1\"
 ExecStart=${exec_cmd}
 Restart=always
 RestartSec=3
