@@ -18,6 +18,18 @@ describe("electron/mainHelpers", () => {
         expect(getUserProvidedArguments(argv)).toEqual(["--no-https", "--port", "1"]);
     });
 
+    it("getUserProvidedArguments drops chromium gpu flags so the backend never sees them", () => {
+        const argv = [
+            "/app/electron",
+            "--disable-gpu",
+            "--disable-gpu-sandbox",
+            "--enable-logging",
+            "--storage-dir",
+            "D:/data",
+        ];
+        expect(getUserProvidedArguments(argv)).toEqual(["--storage-dir", "D:/data"]);
+    });
+
     it("formatRenderProcessGoneDetails handles null/undefined", () => {
         expect(formatRenderProcessGoneDetails(null)).toBe("no details");
         expect(formatRenderProcessGoneDetails(undefined)).toBe("no details");

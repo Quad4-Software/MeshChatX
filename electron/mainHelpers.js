@@ -2,7 +2,16 @@
 
 const path = require("node:path");
 
-const IGNORED_CLI_ARGUMENTS = new Set(["--no-sandbox", "--ozone-platform-hint=auto"]);
+const IGNORED_CLI_ARGUMENTS = new Set([
+    "--no-sandbox",
+    "--ozone-platform-hint=auto",
+    "--disable-gpu",
+    "--disable-gpu-sandbox",
+    "--disable-gpu-compositing",
+    "--disable-software-rasterizer",
+    "--enable-logging",
+    "--enable-logging=stderr",
+]);
 
 /**
  * Arguments after argv[0], excluding known Chromium/Electron noise flags.

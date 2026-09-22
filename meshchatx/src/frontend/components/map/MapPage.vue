@@ -67,6 +67,25 @@
                     </button>
                 </div>
 
+                <!-- location search: inline on tablet/desktop; mobile uses the overlay below -->
+                <div class="hidden sm:block sm:w-56 md:w-64 lg:w-72 xl:w-80 min-w-0">
+                    <MapSearchBar
+                        v-model="searchQuery"
+                        :results="searchResults"
+                        :error="searchError"
+                        :searching="isSearching"
+                        :show-results="isSearchFocused"
+                        :placeholder="
+                            offlineEnabled ? $t('map.search_placeholder_offline') : $t('map.search_placeholder')
+                        "
+                        @input="onSearchInput"
+                        @search="performSearch"
+                        @clear="clearSearch"
+                        @focus="isSearchFocused = true"
+                        @select="selectSearchResult"
+                    />
+                </div>
+
                 <input ref="fileInput" type="file" accept=".mbtiles" class="hidden" @change="onFileSelected" />
 
                 <button
@@ -88,6 +107,7 @@
                     <MaterialDesignIcon :icon-name="isMobileSearchOpen ? 'close' : 'magnify'" class="size-[18px]" />
                 </button>
                 <button
+                    ref="mapToolsButton"
                     type="button"
                     class="p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-full transition-colors shrink-0"
                     :title="$t('map.side_panel')"
@@ -137,9 +157,9 @@
             />
 
             <div
-                v-show="!isMobileScreen || isMobileSearchOpen"
+                v-show="isMobileSearchOpen"
                 ref="searchContainer"
-                class="absolute left-4 right-4 top-[calc(0.5rem+2.75rem+0.5rem)] z-30 sm:top-2 sm:left-auto sm:right-4 sm:w-80 md:max-lg:w-72 lg:w-80"
+                class="absolute left-4 right-4 top-[calc(0.5rem+2.75rem+0.5rem)] z-30 sm:hidden"
             >
                 <MapSearchBar
                     v-model="searchQuery"
@@ -2577,12 +2597,8 @@ export default {
             }
             return normalized;
         },
-        getExportToolButtonEl() {
-            const toolbar = this.$refs.mapDrawingToolbar;
-            if (!toolbar) return null;
-            const ref = toolbar.$refs.exportToolButton;
-            if (!ref) return null;
-            return Array.isArray(ref) ? ref[0] : ref;
+        getOnboardingAnchorEl() {
+            return this.$refs.mapToolsButton || null;
         },
         usesOfflineMbtilesRaster() {
             if (!this.offlineEnabled) return false;
@@ -3377,11 +3393,11 @@ export default {
         },
         positionOnboardingTooltip() {
             this.$nextTick(() => {
-                const exportButton = this.getExportToolButtonEl();
-                if (!exportButton || !this.$refs.tooltipElement) return;
+                const anchorButton = this.getOnboardingAnchorEl();
+                if (!anchorButton || !this.$refs.tooltipElement) return;
 
                 const tooltip = this.$refs.tooltipElement;
-                const buttonRect = exportButton.getBoundingClientRect();
+                const buttonRect = anchorButton.getBoundingClientRect();
                 const tooltipRect = tooltip.getBoundingClientRect();
 
                 const isMobile = window.innerWidth < 640;
@@ -3397,8 +3413,9 @@ export default {
                         tooltipAboveButton = false;
                     }
                 } else {
-                    tooltipLeft = buttonRect.left - tooltipRect.width - 20;
-                    tooltipTop = buttonRect.top + buttonRect.height / 2 - tooltipRect.height / 2;
+                    // below the toolbar button, right edge aligned with the button
+                    tooltipTop = buttonRect.bottom + 16;
+                    tooltipLeft = buttonRect.right - tooltipRect.width;
                 }
 
                 if (tooltipTop < 10) tooltipTop = 10;
@@ -3412,19 +3429,19 @@ export default {
                     top: `${tooltipTop}px`,
                 };
 
+                const buttonCenterX = buttonRect.left + buttonRect.width / 2;
                 const buttonCenterY = buttonRect.top + buttonRect.height / 2;
                 const tooltipCenterX = tooltipLeft + tooltipRect.width / 2;
-                const tooltipCenterY = tooltipTop + tooltipRect.height / 2;
 
-                const arrowStartX = isMobile ? tooltipCenterX : tooltipLeft + tooltipRect.width;
+                const arrowStartX = isMobile ? tooltipCenterX : buttonCenterX;
                 const arrowStartY = isMobile
                     ? tooltipAboveButton
                         ? tooltipTop + tooltipRect.height
                         : tooltipTop
-                    : tooltipCenterY;
+                    : tooltipTop;
 
-                const arrowEndX = buttonRect.left + buttonRect.width * 0.25;
-                const arrowEndY = buttonCenterY;
+                const arrowEndX = isMobile ? buttonRect.left + buttonRect.width * 0.25 : buttonCenterX;
+                const arrowEndY = isMobile ? buttonCenterY : buttonRect.bottom;
 
                 const minX = Math.min(arrowStartX, arrowEndX) - 20;
                 const maxX = Math.max(arrowStartX, arrowEndX) + 20;

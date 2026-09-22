@@ -10,6 +10,7 @@ from collections.abc import Callable
 import RNS
 
 from meshchatx.src.backend import reticulum_pathfinding
+from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.path_utils import (
     link_establishment_window,
     path_response_window,
@@ -30,6 +31,10 @@ LINK_IDLE_TTL_S = 30 * 60
 
 # Wait granularity while polling for path / link (seconds). Smaller = faster reaction, slightly more wakeups.
 _POLL_INTERVAL_S = 0.02
+
+# Floor for the request watchdog. RNS scales the window by link RTT, but a
+# zero-ish RTT on loopback/test links would otherwise cut off slow nodes.
+_MIN_REQUEST_WATCHDOG_S = 30.0
 
 logger = logging.getLogger(__name__)
 
@@ -465,14 +470,77 @@ class NomadnetDownloader:
 
         self._maybe_identify(link)
 
-        self.request_receipt = link.request(
-            self.path,
-            data=self.data,
-            response_callback=self.on_response,
-            failed_callback=self.on_failed,
-            progress_callback=self.on_progress,
-            timeout=self.timeout,
-        )
+        try:
+            receipt = link.request(
+                self.path,
+                data=self.data,
+                response_callback=self.on_response,
+                failed_callback=self.on_failed,
+                progress_callback=self.on_progress,
+                timeout=self.timeout,
+            )
+        except Exception as exc:
+            _uncache_link_if_matches(self.destination_hash, link)
+            self._deliver_failure(str(exc) or "Could not send request to node.")
+            self._maybe_teardown_abandoned_link()
+            return
+        if not receipt:
+            _uncache_link_if_matches(self.destination_hash, link)
+            self._deliver_failure("Could not send request to node.")
+            self._maybe_teardown_abandoned_link()
+            return
+        self.request_receipt = receipt
+        AsyncUtils.run_async(self._watch_request_receipt(link))
+
+    async def _watch_request_receipt(self, link) -> None:
+        """Bound the wait for a link request to conclude.
+
+        RNS invokes failed_callback only once a receipt reaches DELIVERED.
+        A packet request stuck in SENT, an unanswered request, or a link
+        torn down mid-request, never times out upstream, so enforce the
+        window here.
+        """
+        receipt = self.request_receipt
+        if receipt is None:
+            return
+        try:
+            if self.timeout is not None:
+                window = float(self.timeout)
+            else:
+                rtt = getattr(link, "rtt", None) or 0.0
+                factor = getattr(
+                    link,
+                    "traffic_timeout_factor",
+                    RNS.Link.TRAFFIC_TIMEOUT_FACTOR,
+                )
+                window = rtt * factor + RNS.Resource.RESPONSE_MAX_GRACE_TIME * 1.125
+            window = max(window, _MIN_REQUEST_WATCHDOG_S)
+        except Exception:
+            window = _MIN_REQUEST_WATCHDOG_S
+
+        deadline = time.monotonic() + window
+        last_progress = getattr(receipt, "progress", None) or 0.0
+        reason = None
+        while not self._outcome_delivered and not self.is_cancelled:
+            if link.status is RNS.Link.CLOSED:
+                reason = "Link to node closed before the request completed."
+                break
+            if time.monotonic() > deadline:
+                reason = "Request timed out. The node did not respond."
+                break
+            await asyncio.sleep(_POLL_INTERVAL_S)
+            progress = getattr(receipt, "progress", None) or 0.0
+            if progress != last_progress:
+                last_progress = progress
+                deadline = time.monotonic() + window
+
+        if reason is None or self.is_cancelled or self._outcome_delivered:
+            return
+        # A request that never concluded means the link is dead or
+        # half-open: evict it so the next attempt does not reuse it.
+        _uncache_link_if_matches(self.destination_hash, link)
+        self._deliver_failure(reason)
+        self._maybe_teardown_abandoned_link()
 
     def on_response(self, request_receipt: RNS.RequestReceipt):
         if self.is_cancelled or self._outcome_delivered:

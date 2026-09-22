@@ -1842,4 +1842,210 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("resendInFlightNomadDownloads", () => {
+        let WebSocketConnection;
+
+        beforeEach(async () => {
+            WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            WebSocketConnection.send.mockClear();
+        });
+
+        it("cancels orphaned transfers and resends in-flight downloads", () => {
+            const wrapper = mountNomadNetworkPage();
+            const pagePayload = JSON.stringify({ type: "nomadnet.page.download" });
+            const filePayload = JSON.stringify({ type: "nomadnet.file.download" });
+            const pageEntry = { sent: true, payload: pagePayload, downloadId: "dl-old", primary: true };
+            const fileEntry = { sent: true, payload: filePayload, downloadId: "dl-file" };
+            wrapper.vm.nomadnetPageDownloadCallbacks["p1"] = pageEntry;
+            wrapper.vm.nomadnetFileDownloadCallbacks["f1"] = fileEntry;
+            wrapper.vm.currentPageDownloadId = "dl-old";
+            wrapper.vm.currentFileDownloadId = "dl-file";
+            wrapper.vm.nomadImageDownloadCallbacks["i1"] = { downloadId: "dl-old" };
+
+            wrapper.vm.resendInFlightNomadDownloads();
+
+            const sent = WebSocketConnection.send.mock.calls.map((call) => JSON.parse(call[0]));
+            expect(sent).toContainEqual({ type: "nomadnet.download.cancel", download_id: "dl-old" });
+            expect(sent).toContainEqual({ type: "nomadnet.download.cancel", download_id: "dl-file" });
+            expect(sent).toContainEqual({ type: "nomadnet.page.download" });
+            expect(sent).toContainEqual({ type: "nomadnet.file.download" });
+            expect(pageEntry.downloadId).toBeNull();
+            expect(fileEntry.downloadId).toBeNull();
+            expect(wrapper.vm.currentPageDownloadId).toBeNull();
+            expect(wrapper.vm.currentFileDownloadId).toBeNull();
+            expect(wrapper.vm.nomadImageDownloadCallbacks["i1"].downloadId).toBeNull();
+            wrapper.unmount();
+        });
+
+        it("keeps the resent entry when the stale cancelled event arrives", async () => {
+            const wrapper = mountNomadNetworkPage();
+            const entry = {
+                sent: true,
+                payload: JSON.stringify({ type: "nomadnet.page.download" }),
+                downloadId: "dl-old",
+            };
+            wrapper.vm.nomadnetPageDownloadCallbacks["p1"] = entry;
+
+            wrapper.vm.resendInFlightNomadDownloads();
+            await dispatchWsEvent("nomadnet.download.cancelled", { download_id: "dl-old" });
+
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks["p1"]).toStrictEqual(entry);
+            wrapper.unmount();
+        });
+
+        it("settles entries whose resend fails on a dead socket", () => {
+            const wrapper = mountNomadNetworkPage();
+            const onFailure = vi.fn();
+            wrapper.vm.nomadnetFileDownloadCallbacks["f1"] = {
+                sent: true,
+                payload: JSON.stringify({ type: "nomadnet.file.download" }),
+                downloadId: "dl-file",
+                onFailureCallback: onFailure,
+            };
+            WebSocketConnection.send.mockReturnValue(false);
+
+            wrapper.vm.resendInFlightNomadDownloads();
+
+            expect(wrapper.vm.nomadnetFileDownloadCallbacks["f1"]).toBeUndefined();
+            expect(onFailure).toHaveBeenCalledWith("nomadnet.websocket_not_connected");
+            wrapper.unmount();
+        });
+
+        it("clears the loading state for primary page entries without a failure callback", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.isLoadingNodePage = true;
+            wrapper.vm.nodePageLoadPhase = "request";
+            wrapper.vm.nomadnetPageDownloadCallbacks["p1"] = {
+                sent: true,
+                payload: JSON.stringify({ type: "nomadnet.page.download" }),
+                primary: true,
+            };
+            WebSocketConnection.send.mockReturnValue(false);
+
+            wrapper.vm.resendInFlightNomadDownloads();
+
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks["p1"]).toBeUndefined();
+            expect(wrapper.vm.isLoadingNodePage).toBe(false);
+            expect(wrapper.vm.nodePageLoadPhase).toBeNull();
+            expect(wrapper.vm.nodePageContent).toBe("Failed loading page: nomadnet.websocket_not_connected");
+            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.failed_to_load_page");
+            wrapper.unmount();
+        });
+
+        it("skips entries that were never sent or have no payload", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nomadnetPageDownloadCallbacks["p1"] = { sent: false, payload: "{}" };
+            wrapper.vm.nomadnetFileDownloadCallbacks["f1"] = { sent: true };
+
+            wrapper.vm.resendInFlightNomadDownloads();
+
+            expect(WebSocketConnection.send).not.toHaveBeenCalled();
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks["p1"]).toBeDefined();
+            expect(wrapper.vm.nomadnetFileDownloadCallbacks["f1"]).toBeDefined();
+            wrapper.unmount();
+        });
+    });
+
+    describe("touch gestures", () => {
+        const makeContainer = () => ({
+            scrollTop: 0,
+            getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600 }),
+        });
+        const touchEvent = (x, y, el) => ({
+            touches: [{ clientX: x, clientY: y }],
+            currentTarget: el,
+        });
+
+        it("completed edge swipe still navigates back", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(10, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(110, 100, el));
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+
+            wrapper.vm.onNodeContainerTouchEnd();
+            expect(navSpy).toHaveBeenCalledTimes(1);
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            wrapper.unmount();
+        });
+
+        it("reversing direction mid-gesture cancels an armed swipe", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(10, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(110, 100, el));
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+
+            // finger drifts back and up before release: the armed distance must not survive
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(30, 60, el));
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+
+            wrapper.vm.onNodeContainerTouchEnd();
+            expect(navSpy).not.toHaveBeenCalled();
+            expect(reloadSpy).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        it("reversing direction mid-gesture cancels an armed pull", () => {
+            const wrapper = mountNomadNetworkPage();
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            // start away from the left edge so the pull branch is evaluated
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(200, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(200, 220, el));
+            expect(wrapper.vm.navPullDistance).toBe(120);
+
+            // finger drags back above the start point before release
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(200, 80, el));
+            expect(wrapper.vm.navPullDistance).toBe(0);
+
+            wrapper.vm.onNodeContainerTouchEnd();
+            expect(reloadSpy).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        it("touchcancel does not fire an armed swipe-back", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(10, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(110, 100, el));
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+
+            wrapper.vm.onNodeContainerTouchCancel();
+            expect(navSpy).not.toHaveBeenCalled();
+            expect(wrapper.vm.navSwipeEdgeActive).toBe(false);
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            wrapper.unmount();
+        });
+
+        it("touchcancel does not fire an armed pull-to-refresh", () => {
+            const wrapper = mountNomadNetworkPage();
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+            const el = makeContainer();
+
+            wrapper.vm.onNodeContainerTouchStart(touchEvent(200, 100, el));
+            wrapper.vm.onNodeContainerTouchMove(touchEvent(200, 220, el));
+            expect(wrapper.vm.navPullDistance).toBe(120);
+
+            wrapper.vm.onNodeContainerTouchCancel();
+            expect(reloadSpy).not.toHaveBeenCalled();
+            expect(wrapper.vm.navSwipeEdgeActive).toBe(false);
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            wrapper.unmount();
+        });
+    });
 });
