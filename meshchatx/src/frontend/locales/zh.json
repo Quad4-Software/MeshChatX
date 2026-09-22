@@ -2224,6 +2224,7 @@
         "view_on_map": "在地图上查看",
         "request": "请求",
         "generate_paper_message": "生成纸质消息 (LXM)",
+        "failed_generate_paper_uri": "生成纸面消息失败",
         "ingest_paper_message": "摄取纸质消息",
         "scan_qr": "扫描二维码",
         "scanner_hint": "将相机指向 lxmf://、lxma:// 或 lxm:// 二维码。",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "搜索设置...",
         "no_search_results": "没有与您搜索匹配的设置",
         "try_different_search": "请尝试其他搜索词",
-        "clear_search": "清除搜索"
+        "clear_search": "清除搜索",
+        "archived_pages_flush_failed": "清空存档页面失败"
     },
     "debug": {
         "title": "调试日志",

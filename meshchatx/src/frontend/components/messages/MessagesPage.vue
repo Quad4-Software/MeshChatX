@@ -1663,12 +1663,16 @@ export default {
             if (!this.ingestUri) return;
 
             try {
-                WebSocketConnection.send(
+                const sent = WebSocketConnection.send(
                     JSON.stringify({
                         type: "lxm.ingest_uri",
                         uri: this.ingestUri,
                     })
                 );
+                if (!sent) {
+                    ToastUtils.error(this.$t("messages.failed_send_ingest"));
+                    return;
+                }
                 this.isIngestModalOpen = false;
             } catch {
                 ToastUtils.error(this.$t("messages.failed_send_ingest"));

@@ -2224,6 +2224,7 @@
         "view_on_map": "Переглянути на карті",
         "request": "Запит",
         "generate_paper_message": "Створити паперове повідомлення (LXM)",
+        "failed_generate_paper_uri": "Не вдалося створити паперове повідомлення",
         "ingest_paper_message": "Ввести паперове повідомлення",
         "scan_qr": "Сканувати QR-код",
         "scanner_hint": "Спрямуйте камеру на QR-код lxmf://, lxma:// або lxm://.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Пошук налаштувань...",
         "no_search_results": "Налаштувань, що відповідають вашому пошуку, не знайдено",
         "try_different_search": "Спробуйте інший пошуковий запит",
-        "clear_search": "Очистити пошук"
+        "clear_search": "Очистити пошук",
+        "archived_pages_flush_failed": "Не вдалося очистити архівовані сторінки"
     },
     "debug": {
         "title": "Журнали налагодження",

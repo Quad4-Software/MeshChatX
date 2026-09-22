@@ -2224,6 +2224,7 @@
         "view_on_map": "View on Map",
         "request": "Request",
         "generate_paper_message": "Generate Paper Message (LXM)",
+        "failed_generate_paper_uri": "Failed to generate paper message",
         "ingest_paper_message": "Ingest Paper Message",
         "scan_qr": "Scan QR Code",
         "scanner_hint": "Point your camera at an lxmf://, lxma://, or lxm:// QR code.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Search settings...",
         "no_search_results": "No settings found matching your search",
         "try_different_search": "Try a different search query",
-        "clear_search": "Clear search"
+        "clear_search": "Clear search",
+        "archived_pages_flush_failed": "Failed to flush archived pages"
     },
     "debug": {
         "title": "Debug Logs",

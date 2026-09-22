@@ -2224,6 +2224,7 @@
         "view_on_map": "地図で表示",
         "request": "リクエスト",
         "generate_paper_message": "ペーパーメッセージを生成 (LXM)",
+        "failed_generate_paper_uri": "紙メッセージの生成に失敗しました",
         "ingest_paper_message": "ペーパーメッセージを取り込む",
         "scan_qr": "QR コードをスキャン",
         "scanner_hint": "カメラを lxmf://、lxma://、または lxm:// の QR コードに向けてください。",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "設定を検索...",
         "no_search_results": "検索に一致する設定が見つかりません",
         "try_different_search": "別の検索語を試してください",
-        "clear_search": "検索をクリア"
+        "clear_search": "検索をクリア",
+        "archived_pages_flush_failed": "アーカイブ済みページの破棄に失敗しました"
     },
     "debug": {
         "title": "デバッグログ",

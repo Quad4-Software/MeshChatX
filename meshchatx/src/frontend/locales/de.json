@@ -2224,6 +2224,7 @@
         "view_on_map": "Auf Karte anzeigen",
         "request": "Anfordern",
         "generate_paper_message": "Papier-Nachricht erstellen (LXM)",
+        "failed_generate_paper_uri": "Papiernachricht konnte nicht erstellt werden",
         "ingest_paper_message": "Papier-Nachricht erfassen",
         "scan_qr": "QR-Code scannen",
         "scanner_hint": "Richten Sie die Kamera auf einen lxmf://-, lxma://- oder lxm://-QR-Code.",
@@ -2607,7 +2608,8 @@
         "search_placeholder": "Einstellungen durchsuchen...",
         "no_search_results": "Keine passenden Einstellungen gefunden",
         "try_different_search": "Versuchen Sie einen anderen Suchbegriff",
-        "clear_search": "Suche löschen"
+        "clear_search": "Suche löschen",
+        "archived_pages_flush_failed": "Archivierte Seiten konnten nicht geleert werden"
     },
     "debug": {
         "title": "Debug-Protokolle",

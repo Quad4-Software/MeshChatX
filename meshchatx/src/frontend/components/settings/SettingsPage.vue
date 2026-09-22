@@ -5424,12 +5424,16 @@ export default {
             if (!(await DialogUtils.confirm(this.$t("settings.flush_archived_pages_confirm")))) {
                 return;
             }
-            WebSocketConnection.send(
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "nomadnet.page.archive.flush",
                 })
             );
-            ToastUtils.success(this.$t("settings.archived_pages_flushed"));
+            if (sent) {
+                ToastUtils.success(this.$t("settings.archived_pages_flushed"));
+            } else {
+                ToastUtils.error(this.$t("settings.archived_pages_flush_failed"));
+            }
         },
         async onIsTransportEnabledChangeWrapper(value) {
             this.config.is_transport_enabled = value;
