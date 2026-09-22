@@ -66,6 +66,22 @@ describe("shellPathGuard", () => {
         expect(isAllowedShellPath(p, ctx)).toBe(false);
     });
 
+    it("open-path mode keeps exchange folders but drops broad roots", () => {
+        const opts = { broadRoots: false };
+        const exchange = path.join(home, "Downloads", "MeshChatX", "attachment.bin");
+        const looseDownload = path.join(home, "Downloads", "random.bin");
+        const looseDocument = path.join(home, "Documents", "random.docx");
+        const tempFile = path.join(os.tmpdir(), "random.bin");
+        expect(isAllowedShellPath(exchange, ctx, opts)).toBe(true);
+        expect(isAllowedShellPath(path.join(storage, "rncp_received", "f.bin"), ctx, opts)).toBe(true);
+        expect(isAllowedShellPath(looseDownload, ctx, opts)).toBe(false);
+        expect(isAllowedShellPath(looseDocument, ctx, opts)).toBe(false);
+        expect(isAllowedShellPath(tempFile, ctx, opts)).toBe(false);
+        // The same paths stay allowed in the default reveal-in-folder mode.
+        expect(isAllowedShellPath(looseDownload, ctx)).toBe(true);
+        expect(isAllowedShellPath(looseDocument, ctx)).toBe(true);
+    });
+
     it("allows temp directory files", () => {
         const p = path.join(os.tmpdir(), `meshchatx-shell-guard-${process.pid}.txt`);
         fs.writeFileSync(p, "x");

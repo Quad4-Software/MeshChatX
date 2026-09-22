@@ -1,5 +1,7 @@
 "use strict";
 
+const { isLocalBackendUrl } = require("./shellOrigin");
+
 const HARDWARE_PERMISSIONS = new Set(["serial", "usb", "bluetooth", "hid"]);
 const SESSION_PERMISSIONS = new Set([
     ...HARDWARE_PERMISSIONS,
@@ -86,10 +88,34 @@ function attachHardwareDevicePermissionHandlers(ses, deps) {
     const dialogApi = deps.dialog;
     const getParentWindow = deps.getParentWindow;
 
-    ses.setPermissionCheckHandler((_webContents, permission) => {
+    // Permissions are granted only to the local backend origin; any other
+    // origin (a remote page, an unexpected file: load) is denied even when the
+    // permission name itself is allowlisted.
+    ses.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+        const origin =
+            typeof requestingOrigin === "string" && requestingOrigin
+                ? requestingOrigin
+                : details && typeof details.requestingUrl === "string"
+                  ? details.requestingUrl
+                  : webContents && typeof webContents.getURL === "function"
+                    ? webContents.getURL()
+                    : "";
+        if (!isLocalBackendUrl(origin)) {
+            return false;
+        }
         return SESSION_PERMISSIONS.has(permission);
     });
-    ses.setPermissionRequestHandler((_webContents, permission, callback) => {
+    ses.setPermissionRequestHandler((webContents, permission, callback, details) => {
+        const origin =
+            details && typeof details.requestingUrl === "string" && details.requestingUrl
+                ? details.requestingUrl
+                : webContents && typeof webContents.getURL === "function"
+                  ? webContents.getURL()
+                  : "";
+        if (!isLocalBackendUrl(origin)) {
+            callback(false);
+            return;
+        }
         callback(SESSION_PERMISSIONS.has(permission));
     });
 

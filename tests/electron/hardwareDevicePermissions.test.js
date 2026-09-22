@@ -52,6 +52,37 @@ describe("electron/hardwareDevicePermissions", () => {
         expect(SESSION_PERMISSIONS.has("media")).toBe(true);
     });
 
+    it("permission handlers only grant the local backend origin", () => {
+        const ses = new EventEmitter();
+        let checkHandler = null;
+        let requestHandler = null;
+        ses.setPermissionCheckHandler = (fn) => {
+            checkHandler = fn;
+        };
+        ses.setPermissionRequestHandler = (fn) => {
+            requestHandler = fn;
+        };
+        attachHardwareDevicePermissionHandlers(ses, {
+            dialog: { showMessageBox: vi.fn() },
+            getParentWindow: () => null,
+        });
+
+        expect(checkHandler(null, "serial", "http://127.0.0.1:9337")).toBe(true);
+        expect(checkHandler(null, "media", "https://localhost:9337/")).toBe(true);
+        expect(checkHandler(null, "geolocation", "http://127.0.0.1:9337")).toBe(false);
+        expect(checkHandler(null, "serial", "https://evil.example")).toBe(false);
+        expect(checkHandler(null, "serial", "")).toBe(false);
+        expect(checkHandler(null, "serial", "http://127.0.0.1:9337@evil.example")).toBe(false);
+
+        const callback = vi.fn();
+        requestHandler(null, "media", callback, { requestingUrl: "https://evil.example" });
+        expect(callback).toHaveBeenLastCalledWith(false);
+        requestHandler(null, "media", callback, { requestingUrl: "http://localhost:9337/" });
+        expect(callback).toHaveBeenLastCalledWith(true);
+        requestHandler(null, "media", callback, { requestingUrl: "" });
+        expect(callback).toHaveBeenLastCalledWith(false);
+    });
+
     it("select-serial-port with an empty list callbacks empty immediately", () => {
         const ses = new EventEmitter();
         ses.setPermissionCheckHandler = vi.fn();
