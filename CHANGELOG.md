@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 - **Nomad crash tab**: Calls onrenderdone when the render finishes and is posted.
 
-## [4.9.1] - [unreleased]
+## [4.9.1] - 2026-09-21 [released]
 
 ### Added
 
@@ -81,6 +81,11 @@ All notable changes to this project will be documented in this file.
 - Mobile shows one toast at a time, and settings sections collapse to icon buttons on small screens.
 - Service worker: HEAD probes on hashed assets no longer reject the fetch, fixing the emoji picker data load.
 - Windows: the AppContainer backend sandbox is off by default again after loader-init crashes on some systems. Set MESHCHAT_APPCONTAINER=1 to require it, or auto to enable it with an unsandboxed fallback.
+- Desktop: Chromium GPU and logging flags injected by a crash-fallback relaunch no longer leak into backend arguments, which could break the Windows backend spawn under a Job Object.
+- NomadNet: page and file downloads in flight resume on the new socket after a websocket reconnect instead of spinning forever, and a resend that lands on a dead socket fails the download cleanly.
+- NomadNet: requests that never get a response now fail on a watchdog timeout instead of hanging, and dead links are evicted so the next attempt reconnects.
+- Tutorial: navigation buttons stay pinned below the scroll area in page mode, and the bootstrap-only toggle follows the backend default of off.
+- Map: location search sits inline in the header on desktop and tablet, and the first-run tooltip anchors to the map tools button.
 
 ### Changed
 
@@ -88,8 +93,9 @@ All notable changes to this project will be documented in this file.
 - Long sessions bound per-view state (announces, map markers, NomadNet pages, MiniChat, toasts) and clean up timers and streams on unmount.
 - Bump rns to 1.5.4 and lxst to 0.5.3.
 - Hardcoded palette colors across calls, contacts, toasts, voice notes, and docs controls now use semantic theme tokens that follow the active theme.
-- Headless self-check gains an AppContainer Launch probe that spawns a real sandboxed child on Windows so loader-init regressions surface via `--self-check` and CI.
-- CI verifies the packaged Electron backend tree against `backend-manifest.json` before the unpacked staging dir is pruned.
+- Headless self-check gains a Windows AppContainer launch probe so loader-init failures show up in `--self-check` and CI.
+- CI checks the packaged Electron backend tree against `backend-manifest.json` before staging is pruned.
+- GHCR container images publish zstd-compressed OCI layers for faster pulls on modern runtimes. Docker Hub stays on gzip for compatibility.
 
 ## [4.9.0] - 2026-09-12 [released]
 
