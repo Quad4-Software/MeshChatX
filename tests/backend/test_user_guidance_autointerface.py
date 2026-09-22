@@ -23,6 +23,10 @@ def _make_app(config_interfaces):
     app._detect_failed_autointerfaces = (
         ReticulumMeshChat._detect_failed_autointerfaces.__get__(app)
     )
+    # staticmethod, so expose the plain function rather than a bound method.
+    app._normalize_reticulum_config_dir = (
+        ReticulumMeshChat._normalize_reticulum_config_dir
+    )
     return app
 
 
@@ -96,12 +100,13 @@ def test_empty_interfaces_section_is_safe():
         assert app._detect_failed_autointerfaces() == []
 
 
-def test_guidance_message_emitted_for_failed_autointerface():
+def test_guidance_message_emitted_for_failed_autointerface(tmp_path):
     app = _make_app(
         {
             "Default Interface": {"type": "AutoInterface", "enabled": "yes"},
         },
     )
+    app.reticulum_config_dir = str(tmp_path)
     app.config = MagicMock()
     app.config.auto_announce_enabled.get.return_value = True
     app.build_user_guidance_messages = (
@@ -121,12 +126,13 @@ def test_guidance_message_emitted_for_failed_autointerface():
     assert "Sideband" in msg["description"]
 
 
-def test_guidance_message_absent_when_autointerface_running():
+def test_guidance_message_absent_when_autointerface_running(tmp_path):
     app = _make_app(
         {
             "Default Interface": {"type": "AutoInterface", "enabled": "yes"},
         },
     )
+    app.reticulum_config_dir = str(tmp_path)
     app.config = MagicMock()
     app.config.auto_announce_enabled.get.return_value = True
     app.build_user_guidance_messages = (

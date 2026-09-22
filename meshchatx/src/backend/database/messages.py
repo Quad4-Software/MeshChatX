@@ -283,6 +283,15 @@ class MessageDAO:
 
     @staticmethod
     def _lxmf_upsert_update_expr(field: str) -> str:
+        # A same-hash inbound delivery (replayed own message, self-delivery
+        # via exotic routing) must not demote an outbound row to incoming or
+        # repoint it at a different peer.
+        if field in ("is_incoming", "peer_hash", "source_hash", "destination_hash"):
+            return (
+                f"{field} = CASE WHEN lxmf_messages.is_incoming = 0 "
+                f"AND EXCLUDED.is_incoming = 1 "
+                f"THEN lxmf_messages.{field} ELSE EXCLUDED.{field} END"
+            )
         if field not in _LXMF_KEEP_IF_INCOMING_BLANK:
             return f"{field} = EXCLUDED.{field}"
         if field in ("fields", "fields_meta"):
@@ -516,6 +525,9 @@ class MessageDAO:
             self.refresh_conversation_summary(row["peer_hash"])
 
     def get_lxmf_message_by_hash(self, message_hash):
+        # stored hashes are lowercase hex; normalize mixed-case lookups
+        if isinstance(message_hash, str):
+            message_hash = message_hash.lower()
         return self.provider.fetchone(
             "SELECT * FROM lxmf_messages WHERE hash = ?",
             (message_hash,),
@@ -638,6 +650,8 @@ class MessageDAO:
         )
 
     def delete_lxmf_message_by_hash(self, message_hash):
+        if isinstance(message_hash, str):
+            message_hash = message_hash.lower()
         row = self.provider.fetchone(
             "SELECT peer_hash FROM lxmf_messages WHERE hash = ?",
             (message_hash,),
@@ -908,7 +922,12 @@ class MessageDAO:
         )
 
         # Only outbound messages can get stuck mid-send, as incoming messages are
-        # never failed (we already received them).
+        # never failed (we already received them). sent+direct and
+        # sent+opportunistic both mean transmitted-but-unproven; the router
+        # memory holding them is gone after a restart so they can never
+        # advance or be retried. Marking failed risks a duplicate resend of a
+        # message that did arrive, which is the accepted tradeoff so the user
+        # has a recourse instead of a permanently stuck row.
         self.provider.execute(
             """
             UPDATE lxmf_messages
@@ -916,7 +935,7 @@ class MessageDAO:
             WHERE is_incoming = 0
             AND (
                 state = 'outbound'
-                OR (state = 'sent' AND method = 'opportunistic')
+                OR (state = 'sent' AND method IN ('opportunistic', 'direct'))
                 OR state = 'sending'
                 OR state = 'generating'
             )
