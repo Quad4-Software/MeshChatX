@@ -123,7 +123,6 @@
         tabStorageId?: string;
         tabTitle?: string;
         isActiveTab?: boolean;
-        onupdatetitle?: (title: string) => void;
         onUpdateTitle?: (title: string) => void;
     }
 
@@ -132,7 +131,6 @@
         tabStorageId = "",
         tabTitle = "",
         isActiveTab: _isActiveTab = true,
-        onupdatetitle,
         onUpdateTitle,
     }: Props = $props();
 
@@ -1130,7 +1128,7 @@
         }
         searchResults = [];
         isSearchFocused = false;
-        (onupdatetitle || onUpdateTitle)?.(res.display_name?.split(",")?.[0] || "");
+        onUpdateTitle?.(res.display_name?.split(",")?.[0] || "");
     }
 
     function toggleExportMode() {
