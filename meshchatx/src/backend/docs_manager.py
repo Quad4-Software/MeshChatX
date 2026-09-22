@@ -18,6 +18,8 @@ from meshchatx.src.path_utils import (
     resolve_under_root,
 )
 
+logger = logging.getLogger(__name__)
+
 BUNDLED_DOCS_SUBDIR = os.path.join("reticulum-docs-bundled", "current")
 MANIFEST_FILENAME = "manifest.json"
 DOC_FILE_SUFFIXES = (".md", ".txt")
@@ -81,7 +83,7 @@ class DocsManager:
                 self._update_current_link()
 
         except OSError as e:
-            logging.exception(f"Failed to create documentation directories: {e}")
+            logger.exception("Failed to create documentation directories: %s", e)
             self.last_error = str(e)
 
         if populate:
@@ -188,7 +190,7 @@ class DocsManager:
 
             return True
         except Exception as e:
-            logging.exception(f"Failed to delete docs version {version}: {e}")
+            logger.exception("Failed to delete docs version %s: %s", version, e)
             return False
 
     def clear_reticulum_docs(self):
@@ -209,7 +211,7 @@ class DocsManager:
                         os.makedirs(d)
                 return True
         except Exception as e:
-            logging.exception(f"Failed to clear Reticulum docs: {e}")
+            logger.exception("Failed to clear Reticulum docs: %s", e)
             return False
 
     def populate_meshchatx_docs(self):
@@ -227,7 +229,7 @@ class DocsManager:
 
         candidate_dirs = [p for p in search_paths if os.path.isdir(p)]
         if not candidate_dirs:
-            logging.warning("MeshChatX docs source directory not found.")
+            logger.warning("MeshChatX docs source directory not found.")
             return
 
         src_docs = candidate_dirs[0]
@@ -237,14 +239,14 @@ class DocsManager:
                 break
 
         if not os.access(self.meshchatx_docs_dir, os.W_OK):
-            logging.warning("MeshChatX docs directory is not writable.")
+            logger.warning("MeshChatX docs directory is not writable.")
             return
 
         try:
             self._sync_docs_tree(src_docs, self.meshchatx_docs_dir)
             self._render_meshchatx_html_exports()
         except Exception as e:
-            logging.exception(f"Failed to populate MeshChatX docs: {e}")
+            logger.exception("Failed to populate MeshChatX docs: %s", e)
 
     def _sync_docs_tree(self, src_docs, dest_dir):
         """Copy manifest, markdown, and text files from src_docs into dest_dir.
@@ -345,7 +347,7 @@ class DocsManager:
                 f.write(doc_html)
             return html_file
         except Exception as e:
-            logging.exception(f"Failed to render {rel_path} to HTML: {e}")
+            logger.exception("Failed to render %s to HTML: %s", rel_path, e)
             return None
 
     @staticmethod
@@ -464,10 +466,10 @@ class DocsManager:
                 return None, "Manifest must be a JSON object"
             return data, None
         except json.JSONDecodeError as e:
-            logging.exception(f"Failed to parse docs manifest: {e}")
+            logger.exception("Failed to parse docs manifest: %s", e)
             return None, "Invalid manifest JSON"
         except OSError as e:
-            logging.exception(f"Failed to read docs manifest: {e}")
+            logger.exception("Failed to read docs manifest: %s", e)
             return None, "Could not read manifest file"
 
     def _collect_flat_docs(self):
@@ -590,7 +592,7 @@ class DocsManager:
             with open(full_path, encoding="utf-8", errors="ignore") as f:
                 content = f.read()
         except OSError as e:
-            logging.exception(f"Failed to read MeshChatX doc {path}: {e}")
+            logger.exception("Failed to read MeshChatX doc %s: %s", path, e)
             return None
 
         try:
@@ -606,7 +608,7 @@ class DocsManager:
                 "type": "text",
             }
         except Exception as e:
-            logging.exception(f"Failed to render MeshChatX doc {path}: {e}")
+            logger.exception("Failed to render MeshChatX doc %s: %s", path, e)
             return None
 
     def export_docs(self):
@@ -705,7 +707,9 @@ class DocsManager:
                                     },
                                 )
                     except Exception as e:
-                        logging.exception(f"Error searching MeshChatX doc {file}: {e}")
+                        logger.exception(
+                            "Error searching MeshChatX doc %s: %s", file, e
+                        )
 
         active_docs_dir = self._active_reticulum_docs_dir()
         if active_docs_dir and os.path.isdir(active_docs_dir):
@@ -783,9 +787,9 @@ class DocsManager:
                                 if len(results) >= 25:
                                     break
                     except Exception as e:
-                        logging.exception(f"Error searching file {file_path}: {e}")
+                        logger.exception("Error searching file %s: %s", file_path, e)
             except Exception as e:
-                logging.exception(f"Search failed: {e}")
+                logger.exception("Search failed: %s", e)
 
         return results
 
@@ -849,7 +853,7 @@ class DocsManager:
         except Exception as e:
             self.last_error = str(e)
             self.upload_status = "error"
-            logging.exception(f"Failed to upload docs: {e}")
+            logger.exception("Failed to upload docs: %s", e)
             return False
 
     def _extract_docs(self, zip_path, version):

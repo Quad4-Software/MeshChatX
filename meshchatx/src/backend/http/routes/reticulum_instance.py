@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 import time
+from pathlib import Path
 
 from aiohttp import web
 from RNS.Discovery import InterfaceDiscovery
@@ -291,7 +292,7 @@ def register_reticulum_instance_routes(routes, app):
                     "Discovery settings saved but RNS reload failed", reloaded=False
                 )
         except Exception as e:
-            logger.debug(f"Failed to reload RNS after discovery config update: {e}")
+            logger.debug("Failed to reload RNS after discovery config update: %s", e)
             return http_unexpected(
                 "Discovery settings saved but RNS reload failed", reloaded=False
             )
@@ -499,7 +500,7 @@ def register_reticulum_instance_routes(routes, app):
         try:
             reloaded = await app.reload_reticulum()
         except Exception as e:
-            logger.debug(f"Failed to reload RNS after enabling transport: {e}")
+            logger.debug("Failed to reload RNS after enabling transport: %s", e)
             reloaded = False
 
         if not reloaded:
@@ -557,7 +558,7 @@ def register_reticulum_instance_routes(routes, app):
         try:
             reloaded = await app.reload_reticulum()
         except Exception as e:
-            logger.debug(f"Failed to reload RNS after disabling transport: {e}")
+            logger.debug("Failed to reload RNS after disabling transport: %s", e)
             reloaded = False
 
         if not reloaded:
@@ -670,7 +671,7 @@ def register_reticulum_instance_routes(routes, app):
         try:
             reloaded = await app.reload_reticulum()
         except Exception as e:
-            logger.debug(f"Failed to reload RNS after instance config update: {e}")
+            logger.debug("Failed to reload RNS after instance config update: %s", e)
             reloaded = False
 
         if not reloaded:
@@ -730,7 +731,7 @@ def register_reticulum_instance_routes(routes, app):
         try:
             success = await app.reload_reticulum()
         except Exception as e:
-            logger.debug(f"Failed to reload RNS on request: {e}")
+            logger.debug("Failed to reload RNS on request: %s", e)
             success = False
         if success:
             return web.json_response({"message": "Reticulum reloaded successfully"})
@@ -749,8 +750,7 @@ def register_reticulum_instance_routes(routes, app):
             config_path = app._reticulum_config_file_path()
             if not os.path.exists(config_path):
                 return http_not_found(f"Reticulum config not found at {config_path}")
-            with open(config_path) as f:
-                content = f.read()
+            content = await asyncio.to_thread(Path(config_path).read_text)
             if not _request_may_receive_secrets(request, app):
                 content = _redact_config_secrets(content)
             return web.json_response(
@@ -792,8 +792,8 @@ def register_reticulum_instance_routes(routes, app):
         if REDACTED_SENTINEL in content:
             config_path = app._reticulum_config_file_path()
             if os.path.isfile(config_path):
-                with open(config_path) as f:
-                    content = _restore_redacted_secrets(content, f.read())
+                existing = await asyncio.to_thread(Path(config_path).read_text)
+                content = _restore_redacted_secrets(content, existing)
 
         try:
             config_dir = app._normalize_reticulum_config_dir(
@@ -821,8 +821,7 @@ def register_reticulum_instance_routes(routes, app):
             reticulum_config_versions.snapshot_config(
                 config_dir, config_path, label="before save"
             )
-            with open(config_path, "w") as f:
-                f.write(content)
+            await asyncio.to_thread(Path(config_path).write_text, content)
             i2p_support.guard_i2p_interfaces_in_config(config_path)
             app._sync_interfaces_from_disk(replace=True)
             return web.json_response(
@@ -911,8 +910,7 @@ def register_reticulum_instance_routes(routes, app):
             reticulum_config_versions.snapshot_config(
                 config_dir, config_path, label="before restore"
             )
-            with open(config_path, "w") as f:
-                f.write(content)
+            await asyncio.to_thread(Path(config_path).write_text, content)
             i2p_support.guard_i2p_interfaces_in_config(config_path)
             app._sync_interfaces_from_disk(replace=True)
             return web.json_response(
