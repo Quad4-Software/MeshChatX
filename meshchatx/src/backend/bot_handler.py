@@ -691,7 +691,12 @@ class BotHandler:
             "pid": proc.pid,
             "proc": proc,
         }
-        logger.info(f"Started bot {bot_id} (template: {template_id}) pid={proc.pid}")
+        logger.info(
+            "Started bot %s (template: %s) pid=%s",
+            bot_id,
+            template_id,
+            proc.pid,
+        )
         return bot_id
 
     def stop_bot(self, bot_id):

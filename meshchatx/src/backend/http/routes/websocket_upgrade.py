@@ -35,6 +35,8 @@ from meshchatx.src.backend.websocket_runtime import (
 )
 from meshchatx.src.path_utils import is_loopback_bind_host
 
+logger = logging.getLogger(__name__)
+
 
 async def _reject_forbidden_ws_session(app, request):
     """Defense in depth: identity-bound session when password auth is on."""
@@ -361,8 +363,9 @@ def register_websocket_upgrade_routes(routes, app):
                                 json.dumps({"type": "pong"}),
                             )
                     except Exception as e:
-                        logging.exception(
-                            f"Error processing websocket text message: {e}",
+                        logger.exception(
+                            "Error processing websocket text message: %s",
+                            e,
                         )
         finally:
             app.web_audio_bridge.detach_client(websocket_response)

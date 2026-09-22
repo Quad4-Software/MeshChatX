@@ -563,7 +563,7 @@ class RNCPHandler:
                 on_progress(progress)
 
         resource = RNS.Resource(
-            open(file_path, "rb"),
+            await asyncio.to_thread(open, file_path, "rb"),
             link,
             metadata=metadata,
             callback=progress_callback,

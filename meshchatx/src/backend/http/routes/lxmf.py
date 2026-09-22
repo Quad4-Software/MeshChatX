@@ -1524,7 +1524,7 @@ def register_lxmf_routes(routes, app):
             try:
                 app.database.messages.create_folder(f["name"])
             except Exception as e:
-                logger.debug(f"Folder '{f['name']}' likely already exists: {e}")
+                logger.debug("Folder %s likely already exists: %s", f["name"], e)
 
         # Refresh folder list to get new IDs
         all_folders = app.database.messages.get_all_folders()

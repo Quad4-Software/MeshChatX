@@ -355,7 +355,7 @@ def _windows_known_folder(folder_id: str) -> str | None:
         ole32 = ctypes.WinDLL("ole32", use_last_error=True)
         path_ptr = ctypes.c_wchar_p()
         fid = _parse_guid(folder_id)
-        # KF_FLAG_DEFAULT = 0
+        # zero means KF_FLAG_DEFAULT
         hr = shell32.SHGetKnownFolderPath(
             ctypes.byref(fid),
             0,
@@ -530,7 +530,7 @@ def ensure_appcontainer_profile(
         0,
         ctypes.byref(sid),
     )
-    # HRESULT: S_OK (0) or HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
+    # HRESULT codes S_OK (0) and HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS) apply
     if hr == 0 and sid.value:
         return sid
     # Already exists or create returned SID unset: derive it.
@@ -1394,7 +1394,7 @@ def apply_windows_process_mitigations() -> bool:
 
     applied = False
 
-    # DisableExtensionPoints = 1
+    # DisableExtensionPoints flag value is 1
     ext = _PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY()
     ext.Flags = 0x1
     if kernel32.SetProcessMitigationPolicy(

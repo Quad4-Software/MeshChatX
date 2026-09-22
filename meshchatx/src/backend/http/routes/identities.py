@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import io
 import os
 import shutil
@@ -10,6 +11,7 @@ import sys
 import threading
 import time
 import zipfile
+from pathlib import Path
 
 from aiohttp import web
 
@@ -37,8 +39,7 @@ def register_identities_routes(routes, app):
     async def identity_backup_download(request):
         try:
             info = app.backup_identity()
-            with open(info["path"], "rb") as f:
-                data = f.read()
+            data = await asyncio.to_thread(Path(info["path"]).read_bytes)
             return web.Response(
                 body=data,
                 headers={

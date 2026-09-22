@@ -1086,7 +1086,7 @@ def register_telephone_routes(routes, app):
                 },
             )
         except Exception as e:
-            logger.error(f"Error in telephone_ringtone_status: {e}")
+            logger.error("Error in telephone_ringtone_status: %s", e)
             return web.json_response(
                 {
                     "has_custom_ringtone": False,
@@ -1268,7 +1268,7 @@ def register_telephone_routes(routes, app):
                 },
             )
         except Exception as e:
-            logger.error(f"Error in notification_sound_status: {e}")
+            logger.error("Error in notification_sound_status: %s", e)
             return web.json_response(
                 {
                     "has_sound": False,

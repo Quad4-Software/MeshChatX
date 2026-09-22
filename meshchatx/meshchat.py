@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # SPDX-License-Identifier: 0BSD AND MIT
 
 import argparse
@@ -5197,7 +5196,7 @@ class ReticulumMeshChat:
         try:
             self.web_audio_bridge.on_call_ended()
         except Exception as e:
-            logging.exception(f"Error in web_audio_bridge.on_call_ended: {e}")
+            logger.exception("Error in web_audio_bridge.on_call_ended: %s", e)
 
         # Record call history
         if caller_identity:
@@ -7100,13 +7099,16 @@ class ReticulumMeshChat:
             self.config.desktop_hardware_acceleration_enabled.set(enabled)
 
             # write flag for electron to read on next launch
-            try:
+            def _update_gpu_flag():
                 disable_gpu_file = os.path.join(self.storage_dir, "disable-gpu")
                 if not enabled:
                     with open(disable_gpu_file, "w") as f:
                         f.write("true")
                 elif os.path.exists(disable_gpu_file):
                     os.remove(disable_gpu_file)
+
+            try:
+                await asyncio.to_thread(_update_gpu_flag)
             except Exception as e:
                 print(f"Failed to update GPU disable flag: {e}")
 
@@ -7292,7 +7294,7 @@ class ReticulumMeshChat:
             await self.send_active_sessions_to_websocket_clients()
 
     # converts nomadnetwork page variables from a string to a map
-    # converts: "field1=123|field2=456"
+    # converts field1=123|field2=456 style strings
     # to the following map:
     # - var_field1: 123
     # - var_field2: 456

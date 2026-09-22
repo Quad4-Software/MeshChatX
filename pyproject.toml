@@ -129,6 +129,17 @@ select = [
     "A",    # builtins shadowing
     "S",    # bandit security
     "D",    # pydocstyle (partial, see ignore)
+    "ASYNC",# blocking calls inside async functions
+    "G",    # logging format (lazy %s args, no f-strings)
+    "LOG",  # logging hygiene
+    "ERA",  # commented-out code
+    "NPY",  # numpy deprecations
+    "SLOT", # __slots__ suggestions
+    "YTT",  # sys.version pitfalls
+    "ICN",  # import conventions
+    "ISC",  # implicit string concatenation
+    "TID",  # tidy imports
+    "EXE",  # shebang/executable-bit consistency
 ]
 ignore = [
     "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
@@ -137,12 +148,15 @@ ignore = [
     "S112",  # try-except-continue: same
     "S603",  # subprocess calls are audited; Landlock/AppContainer sandbox applies
     "S608",  # SQL text uses bound parameters; bandit flags any non-literal
+    "ASYNC109",  # timeout-parameter naming is a trio convention, not asyncio
+    "ASYNC110",  # sleep-poll loops wait on RNS worker threads, no Event exists
+    "ASYNC240",  # os.path calls on the loop are sub-ms; trio.Path does not apply
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S", "E402"]
+"tests/**" = ["S", "E402", "ASYNC", "ERA", "G", "LOG"]
 "cx_setup.py" = ["E402"]
-"scripts/**" = ["E402"]
+"scripts/**" = ["E402", "EXE"]
 "meshchatx/src/backend/web_audio_bridge.py" = ["E731"]
 
 [tool.coverage.run]
