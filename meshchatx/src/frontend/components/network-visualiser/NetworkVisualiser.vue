@@ -84,6 +84,7 @@ import {
     computeLodUpdates,
     computeRadialPositions,
     declutterLabelBoxes,
+    hashposXY,
     lodLevelFromScale,
     pathHashesWithinHopFilter,
     layoutSpringLength,
@@ -265,6 +266,7 @@ export default {
             fpsLastSampleMs: 0,
             cachedPositions: {},
             resetCameraOnNextGraph: false,
+            leavingRadialLayout: false,
             batterySaverPrefs: loadBatterySaverPrefs(),
             suppressLiveLayoutPersist: false,
             suppressAutoReloadPersist: false,
@@ -427,11 +429,26 @@ export default {
             const prevRenderer = this.preferredRenderer;
             const prevDisabled = this.showDisabledInterfaces;
             const prevDiscovered = this.showDiscoveredInterfaces;
+            const prevViewMode = this.viewMode;
             this.loadVisualiserDisplayPrefs();
             this.applyBatterySaverVisualiserPrefs();
             this.webglEngine?.setViewMode?.(this.viewMode);
             if (this.preferredRenderer !== prevRenderer) {
                 await this.reinitRenderer();
+                return;
+            }
+            if (this.viewMode !== prevViewMode && this.hasRenderer) {
+                // Same transition rules as onViewModeChange: preserve the
+                // force layout when entering radial, keep ring positions out
+                // of the cache when leaving it, then rebuild.
+                const wasRadial = prevViewMode === "radial";
+                if (this.viewMode === "radial") {
+                    this.snapshotLivePositions();
+                }
+                this.leavingRadialLayout = wasRadial;
+                this.resetCameraOnNextGraph = true;
+                this.refreshPhysicsEnabled({ skipSnapshot: true });
+                this.processVisualization();
                 return;
             }
             const filtersChanged =
@@ -658,7 +675,7 @@ export default {
             } catch {
                 /* DataSet may already be destroyed */
             }
-            void this.update({ silent: false });
+            void this.manualUpdate();
         },
         onUserHopMaxFilterChange(v) {
             this.hopMaxFilter = v;
@@ -927,12 +944,7 @@ export default {
                     ctx.shadowOffsetY = 0;
 
                     URL.revokeObjectURL(url);
-
-                    canvas.toBlob((blob) => {
-                        const blobUrl = URL.createObjectURL(blob);
-                        this.iconCache[cacheKey] = blobUrl;
-                        resolve(blobUrl);
-                    }, "image/png");
+                    this.canvasToIconUrl(canvas, cacheKey, resolve);
                 };
                 img.onerror = () => {
                     if (this.abortController.signal.aborted) {
@@ -941,14 +953,28 @@ export default {
                         return;
                     }
                     URL.revokeObjectURL(url);
-                    canvas.toBlob((blob) => {
-                        const blobUrl = URL.createObjectURL(blob);
-                        this.iconCache[cacheKey] = blobUrl;
-                        resolve(blobUrl);
-                    }, "image/png");
+                    this.canvasToIconUrl(canvas, cacheKey, resolve);
                 };
                 img.src = url;
             });
+        },
+        canvasToIconUrl(canvas, cacheKey, resolve) {
+            // toBlob can yield null (empty or tainted canvas) and
+            // createObjectURL can throw; resolving null keeps the icon queue
+            // from stalling on a promise that never settles.
+            canvas.toBlob((blob) => {
+                try {
+                    if (!blob) {
+                        resolve(null);
+                        return;
+                    }
+                    const blobUrl = URL.createObjectURL(blob);
+                    this.iconCache[cacheKey] = blobUrl;
+                    resolve(blobUrl);
+                } catch {
+                    resolve(null);
+                }
+            }, "image/png");
         },
         getMdiIconSvg(iconName, foregroundColor) {
             const iconPath = getMdiIconPath(iconName);
@@ -975,14 +1001,20 @@ export default {
             const normalized = normalizeVisualiserViewMode(next);
             if (normalized === this.viewMode) return;
             const wasRadial = this.viewMode === "radial";
+            if (normalized === "radial") {
+                // Preserve the live force layout so flat can restore it on
+                // the way back instead of reopening on ring coordinates.
+                this.snapshotLivePositions();
+            }
             this.viewMode = normalized;
             persistVisualiserViewMode(normalized, { emit: false });
             this.webglEngine?.setViewMode?.(normalized);
             // Radial swaps force layout for pinned hop rings, so switching to
             // or from it needs a rebuild plus a camera reset.
             if (normalized === "radial" || wasRadial) {
+                this.leavingRadialLayout = wasRadial;
                 this.resetCameraOnNextGraph = true;
-                this.refreshPhysicsEnabled();
+                this.refreshPhysicsEnabled({ skipSnapshot: true });
                 this.processVisualization();
             }
         },
@@ -1019,6 +1051,7 @@ export default {
                     isDark: () => this.resolveVisualiserIsDark(),
                     onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
                     onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
+                    onSceneFailure: (err) => this.onWebGLSceneFailure(err),
                 });
                 this.webglEngine.setViewMode(this.viewMode);
                 this.rendererMode = "webgl";
@@ -1034,10 +1067,14 @@ export default {
                 return false;
             }
         },
-        refreshPhysicsEnabled() {
+        refreshPhysicsEnabled(options = {}) {
+            // Ring coordinates must never enter the force-position cache:
+            // not while radial is active, and not during the radial-to-flat
+            // transition where the live snapshot is still the ring layout.
+            const skipSnapshot = options.skipSnapshot === true || this.viewMode === "radial";
             if (this.webglEngine) {
                 this.webglEngine.setLiveLayout(this.enablePhysics);
-                if (!this.enablePhysics) {
+                if (!this.enablePhysics && !skipSnapshot) {
                     const snap = this.webglEngine.getPositions() || {};
                     this.cachedPositions = { ...this.cachedPositions, ...snap };
                 }
@@ -1047,13 +1084,25 @@ export default {
             if (this.physicsPausedForDrag) return;
             // Freeze current coordinates before stopping the solver so peers
             // stay where the live layout left them.
-            if (!this.enablePhysics) {
+            if (!this.enablePhysics && !skipSnapshot) {
                 this.snapshotNetworkPositions();
             }
             this.network.setOptions({
                 physics: { enabled: this.enablePhysics && this.viewMode !== "radial" },
                 edges: { smooth: VIZ_EDGE_SMOOTH },
             });
+        },
+        snapshotLivePositions() {
+            if (this.webglEngine) {
+                const snap = this.webglEngine.getPositions() || {};
+                for (const [id, p] of Object.entries(snap)) {
+                    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                        this.cachedPositions[id] = { x: p.x, y: p.y };
+                    }
+                }
+                return;
+            }
+            this.snapshotNetworkPositions();
         },
         snapshotNetworkPositions() {
             if (!this.network || typeof this.network.getPositions !== "function") return;
@@ -1143,6 +1192,17 @@ export default {
                 ToastUtils.warning(this.$t("visualiser.renderer_webgl_unavailable"));
             }
             await this.initVisNetwork();
+        },
+        onWebGLSceneFailure(err) {
+            if (this.rendererMode !== "webgl") return;
+            console.warn("WebGL scene failed, falling back to vis-network:", err);
+            this.destroyActiveRenderer();
+            if (this.preferredRenderer === "webgl") {
+                ToastUtils.warning(this.$t("visualiser.renderer_webgl_unavailable"));
+            }
+            this.initVisNetwork()
+                .then(() => this.processVisualization({ silent: true }))
+                .catch((e) => console.warn("vis-network fallback failed:", e));
         },
         onWebGLNodeActivate(id, meta) {
             const announce = meta?.announce;
@@ -1373,12 +1433,15 @@ export default {
                 if (!p) continue;
                 const dom = this.network.canvasToDOM(p);
                 const fontSize = n.id === "me" ? 16 : 11;
+                // vis-network scales label font by camera zoom, so the
+                // collision boxes must scale too or they under-cover at
+                // high zoom and overlapping labels pass the test.
                 items.push({
                     id: n.id,
                     sx: dom.x,
-                    sy: dom.y + (Number(n.size) || 10) * scale + 4 + fontSize * 0.6,
-                    w: String(label).length * fontSize * 0.56,
-                    h: fontSize * 1.35,
+                    sy: dom.y + (Number(n.size) || 10) * scale + 4 + fontSize * 0.6 * scale,
+                    w: String(label).length * fontSize * 0.56 * scale,
+                    h: fontSize * 1.35 * scale,
                     pri:
                         n.id === "me"
                             ? 0
@@ -1452,19 +1515,27 @@ export default {
                     color: baseColor,
                 };
             } else if (lod === "medium") {
-                return {
+                const props = {
                     id: node.id,
                     shape: node._originalShape || "circularImage",
                     size: node._originalSize || (node.id === "me" ? 50 : 25),
                     font: { size: 0 },
                 };
+                // Low LOD stamps a generic blue over node.color; hand back
+                // the semantic color stashed at build time.
+                const semantic = node._originalColor || node.color;
+                if (semantic) props.color = semantic;
+                return props;
             } else {
-                return {
+                const props = {
                     id: node.id,
                     shape: node._originalShape || "circularImage",
                     size: node._originalSize || (node.id === "me" ? 50 : 25),
                     font: { size: node.id === "me" ? 16 : 11, color: fontColor },
                 };
+                const semantic = node._originalColor || node.color;
+                if (semantic) props.color = semantic;
+                return props;
             }
         },
         async update(options = {}) {
@@ -1598,15 +1669,19 @@ export default {
                     posById[id] = { x: p.x, y: p.y };
                 }
             }
+            // Leaving radial: the live snapshot is still the ring layout.
+            // Skip it so the cached force positions win the rebuild.
+            const skipLiveOverlay = this.leavingRadialLayout === true;
+            this.leavingRadialLayout = false;
             const existingNodeIds = this.nodes.getIds();
-            if (this.webglEngine) {
+            if (!skipLiveOverlay && this.webglEngine) {
                 const snap = this.webglEngine.getPositions() || {};
                 for (const [id, p] of Object.entries(snap)) {
                     if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
                         posById[id] = { x: p.x, y: p.y };
                     }
                 }
-            } else if (this.network) {
+            } else if (!skipLiveOverlay && this.network) {
                 const snap = this.network.getPositions(existingNodeIds);
                 if (snap) {
                     for (const id of existingNodeIds) {
@@ -1715,6 +1790,8 @@ export default {
                         title: `Discovered: ${discLabel}\nType: ${disc.type || "Unknown"}\nHops: ${disc.hops ?? "?"}\nStatus: ${isConnected ? "Connected" : disc.status || "Available"}${disc.reachable_on ? `\nAddress: ${disc.reachable_on}:${disc.port}` : ""}`,
                         connected: isConnected,
                         hops: disc.hops ?? null,
+                        reachable_on: disc.reachable_on ?? null,
+                        transport_id: disc.transport_id ?? null,
                     });
                 }
             }
@@ -1758,25 +1835,20 @@ export default {
                 show_discovered: this.showDiscoveredInterfaces,
             };
 
-            let graph;
-            if (isVisualiserWasmReady()) {
-                graph = buildFullGraph(fullReq);
-            } else {
-                // JS fallback keeps the previous path-only WASM/JS builder plus local shells.
-                graph = buildFullGraph(fullReq);
-                if (!graph.nodes?.some((n) => n.id === "me")) {
-                    // buildFullGraph JS fallback only emits path nodes when WASM is down
-                }
-            }
+            // WASM emits the whole graph; the JS fallback only emits path
+            // nodes, so me/ifaces/discovered are synthesized below.
+            const graph = buildFullGraph(fullReq);
             if (!isCurrentRun()) return;
 
             let graphNodes = Array.isArray(graph.nodes) ? graph.nodes : [];
             let graphEdges = Array.isArray(graph.edges) ? graph.edges : [];
 
             // When WASM full-graph is unavailable, synthesize me/ifaces/discovered in JS.
+            // Mirrors visualiser-wasm internal/graph/full.go BuildFullGraph.
             if (!isVisualiserWasmReady()) {
                 const localNodes = [];
                 const localEdges = [];
+                let meAdded = false;
                 if (matchesSearch(meLabel) || matchesSearch(this.config?.identity_hash)) {
                     const mp = this.pickStablePosition("me", posById, () => ({ x: 0, y: 0 }));
                     let meNode = {
@@ -1794,11 +1866,22 @@ export default {
                         x: mp.x,
                         y: mp.y,
                     };
-                    meNode = { ...meNode, ...this.getNodeLODProps(meNode, this.currentLOD) };
+                    meNode = {
+                        ...meNode,
+                        _originalColor: meNode.color,
+                        ...this.getNodeLODProps(meNode, this.currentLOD),
+                    };
                     localNodes.push(meNode);
+                    meAdded = true;
                 }
-                for (const entry of interfacesPayload) {
-                    const pos = this.pickStablePosition(entry.name, posById, () => ({ x: 520, y: 0 }));
+                // New interfaces spread on a circle like the WASM builder.
+                const ifaceRadius = 210;
+                interfacesPayload.forEach((entry, j) => {
+                    const angle = (j / interfacesPayload.length) * Math.PI * 2;
+                    const pos = this.pickStablePosition(entry.name, posById, () => ({
+                        x: Math.cos(angle) * ifaceRadius,
+                        y: Math.sin(angle) * ifaceRadius,
+                    }));
                     let n = {
                         id: entry.name,
                         group: "interface",
@@ -1811,26 +1894,34 @@ export default {
                         image: entry.online
                             ? "/assets/images/network-visualiser/interface_connected.png"
                             : "/assets/images/network-visualiser/interface_disconnected.png",
-                        color: this.nodeColor(entry.online ? "#10b981" : "#ef4444", isDarkMode ? "#064e3b" : "#ecfdf5"),
+                        color: entry.online
+                            ? this.nodeColor("#10b981", isDarkMode ? "#064e3b" : "#ecfdf5")
+                            : this.nodeColor("#ef4444", isDarkMode ? "#7f1d1d" : "#fef2f2"),
                         font: { color: isDarkMode ? "#ffffff" : "#000000", size: 12, bold: true },
                         x: pos.x,
                         y: pos.y,
                     };
-                    n = { ...n, ...this.getNodeLODProps(n, this.currentLOD) };
+                    n = { ...n, _originalColor: n.color, ...this.getNodeLODProps(n, this.currentLOD) };
                     localNodes.push(n);
-                    localEdges.push({
-                        id: `me~${entry.name}`,
-                        from: "me",
-                        to: entry.name,
-                        color: entry.online
-                            ? this.directEdgeColor(isDarkMode)
-                            : { color: isDarkMode ? "#f87171" : "#ef4444", opacity: 1 },
-                        width: 3,
-                        hidden: false,
-                    });
-                }
-                for (const entry of pathOnlyPayload) {
-                    const pos = this.pickStablePosition(entry.name, posById, () => ({ x: 520, y: 0 }));
+                    if (meAdded) {
+                        localEdges.push({
+                            id: `me~${entry.name}`,
+                            from: "me",
+                            to: entry.name,
+                            color: entry.online
+                                ? this.directEdgeColor(isDarkMode)
+                                : { color: isDarkMode ? "#f87171" : "#ef4444", opacity: 1 },
+                            width: 3,
+                            hidden: false,
+                        });
+                    }
+                });
+                pathOnlyPayload.forEach((entry, j) => {
+                    const angle = (j / pathOnlyPayload.length) * Math.PI * 2;
+                    const pos = this.pickStablePosition(entry.name, posById, () => ({
+                        x: Math.cos(angle) * ifaceRadius,
+                        y: Math.sin(angle) * ifaceRadius,
+                    }));
                     let n = {
                         id: entry.name,
                         group: "interface",
@@ -1846,24 +1937,78 @@ export default {
                         x: pos.x,
                         y: pos.y,
                     };
-                    n = { ...n, ...this.getNodeLODProps(n, this.currentLOD) };
+                    n = { ...n, _originalColor: n.color, ...this.getNodeLODProps(n, this.currentLOD) };
                     localNodes.push(n);
-                    localEdges.push({
-                        id: `me~${entry.name}`,
-                        from: "me",
-                        to: entry.name,
-                        color: this.directEdgeColor(isDarkMode),
-                        width: 3,
-                        hidden: false,
-                    });
+                    if (meAdded) {
+                        localEdges.push({
+                            id: `me~${entry.name}`,
+                            from: "me",
+                            to: entry.name,
+                            color: this.directEdgeColor(isDarkMode),
+                            width: 3,
+                            hidden: false,
+                        });
+                    }
+                });
+                if (this.showDiscoveredInterfaces) {
+                    const hopMax = this.hopFilterMax;
+                    for (const disc of discoveredPayload) {
+                        if (hopMax != null && disc.hops != null && disc.hops > hopMax) continue;
+                        if (
+                            !matchesSearch(disc.label) &&
+                            !matchesSearch(disc.reachable_on) &&
+                            !matchesSearch(disc.transport_id)
+                        ) {
+                            continue;
+                        }
+                        const pos = this.pickStablePosition(disc.id, posById, () => hashposXY(disc.id, 560, 240));
+                        let n = {
+                            id: disc.id,
+                            group: "discovered",
+                            label: disc.label,
+                            title: disc.title,
+                            size: 25,
+                            _originalSize: 25,
+                            shape: "circularImage",
+                            _originalShape: "circularImage",
+                            image: disc.connected
+                                ? "/assets/images/network-visualiser/interface_connected.png"
+                                : "/assets/images/network-visualiser/interface_disconnected.png",
+                            color: disc.connected
+                                ? this.nodeColor("#06b6d4", isDarkMode ? "#164e63" : "#ecfeff")
+                                : this.nodeColor("#64748b", isDarkMode ? "#1e293b" : "#f1f5f9"),
+                            font: { color: isDarkMode ? "#ffffff" : "#000000", size: 10 },
+                            x: pos.x,
+                            y: pos.y,
+                        };
+                        n = { ...n, _originalColor: n.color, ...this.getNodeLODProps(n, this.currentLOD) };
+                        localNodes.push(n);
+                        if (meAdded) {
+                            localEdges.push({
+                                id: `me~${disc.id}`,
+                                from: "me",
+                                to: disc.id,
+                                color: { color: isDarkMode ? "#155e75" : "#06b6d4", opacity: 0.35 },
+                                width: 1,
+                                hidden: false,
+                            });
+                        }
+                    }
                 }
                 graphNodes = [...localNodes, ...graphNodes];
                 graphEdges = [...localEdges, ...graphEdges];
+                // Path edges can point at interface nodes the search filter
+                // dropped. Drop them before the layout edge list is built.
+                const mergedNodeIds = new Set();
+                for (const n of graphNodes) {
+                    if (n?.id) mergedNodeIds.add(n.id);
+                }
+                graphEdges = graphEdges.filter((e) => e && mergedNodeIds.has(e.from) && mergedNodeIds.has(e.to));
                 graph.layout_nodes = graphNodes.map((n) => ({
                     id: n.id,
                     x: n.x,
                     y: n.y,
-                    mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : 1,
+                    mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : n.group === "discovered" ? 1.2 : 1,
                     fixed: radial || n.id === "me",
                     radius: Number.isFinite(n.size) ? n.size : 22,
                 }));
@@ -1873,12 +2018,20 @@ export default {
                     length: layoutSpringLength(e.width),
                 }));
             }
+            // Path edges can point at interface nodes the search filter
+            // dropped. A dangling endpoint breaks vis-network updates and
+            // skews the WebGL edge count, so drop those edges here.
+            const graphNodeIds = new Set();
+            for (const n of graphNodes) {
+                if (n?.id) graphNodeIds.add(n.id);
+            }
+            graphEdges = graphEdges.filter((e) => e && graphNodeIds.has(e.from) && graphNodeIds.has(e.to));
             // Radial pins every node so hop rings stay put under live layout
-            // and scene ticks.
-            if (radial) {
-                for (const node of graphNodes) {
-                    node.fixed = true;
-                }
+            // and scene ticks. Flat must emit fixed explicitly: vis-network
+            // deep-merges node updates, so a stale fixed pin from radial
+            // would otherwise survive the switch back.
+            for (const node of graphNodes) {
+                node.fixed = radial || node.id === "me";
             }
 
             if (!silent) {

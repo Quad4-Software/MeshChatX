@@ -523,7 +523,7 @@ export function spreadSphereLocals(points, minAngle) {
         g.push(i);
     }
     for (const g of groups.values()) {
-        if (g.length < 2) return;
+        if (g.length < 2) continue;
         const mean = points[g[0]];
         const b = tangentBasis(mean.x, mean.y, mean.z);
         const cap = Math.min(0.78, minAngle * Math.sqrt(g.length));

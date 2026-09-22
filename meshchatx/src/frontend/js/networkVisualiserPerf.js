@@ -144,19 +144,54 @@ export function pickAdaptiveFetchConcurrency() {
     return 6;
 }
 
-/** FNV-1a style deterministic unit fraction for stable layout without Math.random. */
-function hash01(id, salt = "") {
+const utf8Encoder = new TextEncoder();
+
+/** FNV-1a 32-bit hash over UTF-8 bytes; matches the Go visualiser-wasm hashpos helper. */
+function fnv1a32(str) {
     let h = 2166136261;
-    const s = String(id) + "\0" + String(salt);
-    for (let i = 0; i < s.length; i++) {
-        h ^= s.charCodeAt(i);
+    for (const b of utf8Encoder.encode(String(str))) {
+        h ^= b;
         h = Math.imul(h, 16777619);
     }
-    return ((h >>> 0) % 10000) / 10000;
+    return h >>> 0;
 }
 
+/** Salted deterministic unit fraction; mirrors Go hashpos.Dist01 (id + NUL + salt). */
+function hash01(id, salt = "") {
+    return (fnv1a32(String(id) + "\0" + String(salt)) % 10000) / 10000;
+}
+
+/** Deterministic ring angle; mirrors Go hashpos.Angle01 (unsalted hash). */
 function hashAngle(id) {
-    return hash01(id) * Math.PI * 2;
+    return ((fnv1a32(String(id)) % 10000) / 10000) * Math.PI * 2;
+}
+
+/**
+ * Deterministic scatter position around the origin; mirrors Go hashpos.XY.
+ * @param {string} id
+ * @param {number} base
+ * @param {number} span
+ * @returns {{x: number, y: number}}
+ */
+export function hashposXY(id, base, span) {
+    const a = hashAngle(id);
+    const d = base + hash01(id, "r") * span;
+    return { x: Math.cos(a) * d, y: Math.sin(a) * d };
+}
+
+/**
+ * Deterministic scatter position near a parent point; mirrors Go hashpos.Around.
+ * @param {string} id
+ * @param {number} px
+ * @param {number} py
+ * @param {number} base
+ * @param {number} span
+ * @returns {{x: number, y: number}}
+ */
+export function hashposAround(id, px, py, base, span) {
+    const a = hashAngle(id);
+    const d = base + hash01(id, "r") * span;
+    return { x: px + Math.cos(a) * d, y: py + Math.sin(a) * d };
 }
 
 function nodeColor(border, background) {
@@ -173,6 +208,22 @@ function edgeColor(direct, darkMode) {
         return { color: darkMode ? "#34d399" : "#10b981", opacity: 1 };
     }
     return { color: darkMode ? "#60a5fa" : "#3b82f6", opacity: 0.5 };
+}
+
+/**
+ * Deep-compare two vis-network color objects (border/background plus nested
+ * highlight/hover maps) so LOD patches only flag real color changes.
+ */
+function sameNodeColor(a, b) {
+    if (a == null || b == null) return a == b;
+    if (typeof a !== "object" || typeof b !== "object") return a === b;
+    const ka = Object.keys(a);
+    const kb = Object.keys(b);
+    if (ka.length !== kb.length) return false;
+    for (const k of ka) {
+        if (!sameNodeColor(a[k], b[k])) return false;
+    }
+    return true;
 }
 
 function applyLodToAnnounceNode(node, lod, fontColor) {
@@ -227,7 +278,7 @@ export function buildPathGraphJs(req) {
         const announce = announces[entry.hash];
         if (!announce || !aspectSet.has(announce.aspect)) continue;
 
-        const displayName = announce.custom_display_name ?? announce.display_name;
+        const displayName = announce.custom_display_name || announce.display_name;
         if (
             !matchesSearch(displayName) &&
             !matchesSearch(announce.destination_hash) &&
@@ -244,16 +295,12 @@ export function buildPathGraphJs(req) {
             y = prev.y;
         } else {
             const ip = positions[entry.interface];
-            const angle = hashAngle(entry.hash);
-            if (ip && Number.isFinite(ip.x) && Number.isFinite(ip.y)) {
-                const dist = 200 + hash01(entry.hash, "r") * 140;
-                x = ip.x + Math.cos(angle) * dist;
-                y = ip.y + Math.sin(angle) * dist;
-            } else {
-                const dist = 560 + hash01(entry.hash, "r") * 240;
-                x = Math.cos(angle) * dist;
-                y = Math.sin(angle) * dist;
-            }
+            const p =
+                ip && Number.isFinite(ip.x) && Number.isFinite(ip.y)
+                    ? hashposAround(entry.hash, ip.x, ip.y, 200, 140)
+                    : hashposXY(entry.hash, 560, 240);
+            x = p.x;
+            y = p.y;
             positions[entry.hash] = { x, y };
         }
 
@@ -321,6 +368,9 @@ export function buildPathGraphJs(req) {
             );
         }
 
+        // Stash the semantic color so a low-LOD blue stamp can be restored
+        // when zooming back to medium/high.
+        node._originalColor = node.color;
         applyLodToAnnounceNode(node, lod, fontColor);
         nodes.push(node);
         processedNodeIds.push(node.id);
@@ -466,11 +516,18 @@ export function computeLodUpdatesJs(nodes, lod, darkMode, labelAllow) {
                 font: { size: showLabel ? (node.id === "me" ? 16 : 11) : 0, color: fontColor },
             };
         }
+        // Low LOD stamps a generic blue over node.color; medium and high
+        // hand back the semantic color stashed at build time.
+        if (lod !== "low") {
+            const semantic = node._originalColor || node.color;
+            if (semantic) next.color = semantic;
+        }
         const shapeChanged = next.shape != null && next.shape !== node.shape;
         const sizeChanged = next.size != null && next.size !== node.size;
         const fontSize = next.font?.size;
         const fontChanged = fontSize != null && fontSize !== (node.font?.size ?? null);
-        if (shapeChanged || sizeChanged || fontChanged) {
+        const colorChanged = next.color != null && !sameNodeColor(next.color, node.color);
+        if (shapeChanged || sizeChanged || fontChanged || colorChanged) {
             updates.push(next);
         }
     }
@@ -514,6 +571,9 @@ export function declutterLabelBoxes(items, spacing = 6) {
     const grid = new Map();
     for (const it of items) {
         if (!it || it.id == null) continue;
+        // A NaN box would neither collide nor claim space; drop it entirely
+        // so it cannot pass through as an always-kept invisible label.
+        if (!Number.isFinite(it.sx) || !Number.isFinite(it.sy)) continue;
         const w = Number(it.w) || 0;
         const h = Number(it.h) || 0;
         const l = it.sx - w / 2 - spacing;
@@ -580,7 +640,7 @@ export function computeRadialPositions(req) {
     const hopMax = req?.hopMax;
     const byHop = new Map();
     for (const entry of req?.pathTable || []) {
-        if (!entry || !entry.hash || entry.hops == null) continue;
+        if (!entry || !entry.hash || !Number.isFinite(entry.hops)) continue;
         if (hopMax != null && entry.hops > hopMax) continue;
         const hops = Math.max(1, Math.round(entry.hops));
         let ring = byHop.get(hops);
