@@ -308,6 +308,12 @@ jobs:
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:assembleRelease
 
+            - name: Verify release dex keeps reflection classes
+              if: ${{ (github.ref_type == 'tag' && (steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev')) || (github.ref_type != 'tag' && (github.event_name != 'workflow_dispatch' || inputs.build_release)) }}
+              working-directory: android
+              run: |
+                  bash ../scripts/android/verify-release-dex.sh app/build/outputs/apk/release/*.apk
+
             - name: Sign release APKs
               if: ${{ github.ref_type == 'tag' && (steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev') && steps.android_signing.outputs.ready == 'true' }}
               env:
