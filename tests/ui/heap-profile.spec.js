@@ -20,9 +20,32 @@ const { gotoUiPage } = require("./ready");
 const CYCLES = Number(process.env.MESHCHAT_HEAP_CYCLES || 5);
 const NEUTRAL_PATH = "/about";
 
+// Per-page growth budgets measured after CYCLES mount/unmount rounds. The
+// warm cycle absorbs one-time mount costs (including keepAlive pages), so a
+// healthy page trends to zero. Override via MESHCHAT_HEAP_MAX_* env vars.
+const LIMITS = {
+    heapDelta: Number(process.env.MESHCHAT_HEAP_MAX_DELTA_MB || 8) * 1024 * 1024,
+    nodes: Number(process.env.MESHCHAT_HEAP_MAX_NODES || 500),
+    listeners: Number(process.env.MESHCHAT_HEAP_MAX_LISTENERS || 60),
+    timeouts: Number(process.env.MESHCHAT_HEAP_MAX_TIMEOUTS || 5),
+    intervals: Number(process.env.MESHCHAT_HEAP_MAX_INTERVALS || 2),
+    rafs: Number(process.env.MESHCHAT_HEAP_MAX_RAFS || 2),
+    objectUrls: Number(process.env.MESHCHAT_HEAP_MAX_OBJECT_URLS || 30),
+};
+
 const INSTRUMENT = `
 (() => {
-    const c = { listeners: 0, timeouts: 0, intervals: 0, rafs: 0 };
+    const c = { listeners: 0, timeouts: 0, intervals: 0, rafs: 0, objectUrls: 0 };
+    const createUrl = URL.createObjectURL;
+    const revokeUrl = URL.revokeObjectURL;
+    URL.createObjectURL = function (...a) {
+        c.objectUrls++;
+        return createUrl.apply(this, a);
+    };
+    URL.revokeObjectURL = function (...a) {
+        c.objectUrls--;
+        return revokeUrl.apply(this, a);
+    };
     const add = EventTarget.prototype.addEventListener;
     const del = EventTarget.prototype.removeEventListener;
     EventTarget.prototype.addEventListener = function (...a) {
@@ -91,6 +114,7 @@ async function measure(page, cdp) {
         timeouts: counters.timeouts,
         intervals: counters.intervals,
         rafs: counters.rafs,
+        objectUrls: counters.objectUrls,
     };
 }
 
@@ -152,9 +176,11 @@ test.describe("heap profile across pages", () => {
                 timeouts: after.timeouts - before.timeouts,
                 intervals: after.intervals - before.intervals,
                 rafs: after.rafs - before.rafs,
+                objectUrls: after.objectUrls - before.objectUrls,
             });
         }
 
+        const failures = [];
         for (const row of report) {
             if (row.skipped) {
                 console.log(`heap-profile | ${row.page.padEnd(24)} SKIPPED ${row.skipped}`);
@@ -166,8 +192,25 @@ test.describe("heap profile across pages", () => {
                     `listeners ${String(row.listeners).padStart(4)} ` +
                     `timeouts ${String(row.timeouts).padStart(4)} ` +
                     `intervals ${String(row.intervals).padStart(3)} ` +
-                    `rafs ${String(row.rafs).padStart(4)}`
+                    `rafs ${String(row.rafs).padStart(4)} ` +
+                    `objurls ${String(row.objectUrls).padStart(4)}`
             );
+            const breaches = [];
+            if (row.heapDelta > LIMITS.heapDelta)
+                breaches.push(`heap ${fmt(row.heapDelta)} > ${fmt(LIMITS.heapDelta)}`);
+            if (row.nodes > LIMITS.nodes) breaches.push(`nodes ${row.nodes} > ${LIMITS.nodes}`);
+            if (row.listeners > LIMITS.listeners) breaches.push(`listeners ${row.listeners} > ${LIMITS.listeners}`);
+            if (row.timeouts > LIMITS.timeouts) breaches.push(`timeouts ${row.timeouts} > ${LIMITS.timeouts}`);
+            if (row.intervals > LIMITS.intervals) breaches.push(`intervals ${row.intervals} > ${LIMITS.intervals}`);
+            if (row.rafs > LIMITS.rafs) breaches.push(`rafs ${row.rafs} > ${LIMITS.rafs}`);
+            if (row.objectUrls > LIMITS.objectUrls)
+                breaches.push(`objectUrls ${row.objectUrls} > ${LIMITS.objectUrls}`);
+            if (breaches.length > 0) {
+                failures.push(`${row.page}: ${breaches.join(", ")}`);
+            }
+        }
+        if (failures.length > 0) {
+            throw new Error(`heap growth budgets exceeded: ${failures.join("; ")}`);
         }
     });
 });

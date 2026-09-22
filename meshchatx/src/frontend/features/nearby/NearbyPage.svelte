@@ -432,7 +432,7 @@
                 <div class="flex items-center gap-3">
                     <div class="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30">
                         <MaterialDesignIcon
-                            iconName="wifi-tethering"
+                            iconName="access-point"
                             class="w-5 h-5 text-violet-600 dark:text-violet-400"
                         />
                     </div>
@@ -450,7 +450,7 @@
                             disabled={page.startingP2p || !p2pUsable}
                             onclick={() => void startP2p(page)}
                         >
-                            <MaterialDesignIcon iconName="wifi-tethering" class="w-4 h-4" />
+                            <MaterialDesignIcon iconName="access-point" class="w-4 h-4" />
                             {page.startingP2p ? t("tools.nearby.starting") : t("tools.nearby.start_group")}
                         </button>
                     </div>

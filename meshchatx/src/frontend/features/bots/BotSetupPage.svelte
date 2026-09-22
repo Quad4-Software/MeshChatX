@@ -137,7 +137,7 @@
 
 <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
     <ToolsPageHeader
-        icon="robot-plus"
+        icon="robot"
         title={t("bots.setup_title")}
         description={t("bots.setup_description")}
         accent="blue"
@@ -257,7 +257,7 @@
                                     class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
                                 ></span>
                             {:else}
-                                <MaterialDesignIcon iconName="robot-plus" class="size-4" />
+                                <MaterialDesignIcon iconName="robot" class="size-4" />
                             {/if}
                             {t("bots.create_and_start")}
                         </button>

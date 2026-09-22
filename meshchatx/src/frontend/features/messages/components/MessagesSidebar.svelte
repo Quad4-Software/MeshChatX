@@ -110,12 +110,18 @@
     const edgeBorderClass = $derived(isRightSidebar ? "border-l" : "border-r");
     const peerList = $derived(Object.values(peers || {}));
     let peersScrollEl: HTMLDivElement | undefined = $state();
+    let conversationsScrollEl: HTMLDivElement | undefined = $state();
     const useVirtualPeerList = $derived(peerList.length >= MIN_VIRTUAL_SIDEBAR_ITEMS);
-    const messageIconStyle = $derived.by(() => {
+    const messageIconSize = $derived.by(() => {
         const cfg = GlobalState.config as { message_icon_size?: number } | null | undefined;
-        const size = Number(cfg?.message_icon_size) || 28;
-        return { width: `${size}px`, height: `${size}px` };
+        return Number(cfg?.message_icon_size) || 28;
     });
+    const messageIconStyle = $derived.by(() => {
+        return { width: `${messageIconSize}px`, height: `${messageIconSize}px` };
+    });
+    const useVirtualConversationList = $derived((conversations || []).length >= MIN_VIRTUAL_SIDEBAR_ITEMS);
+    // Two text lines (~38px) or the icon, plus py-2 padding and the divider.
+    const conversationRowHeight = $derived(Math.max(38, messageIconSize) + 17);
     const collapsedIconStyle = $derived({ width: "36px", height: "36px" });
 
     const sortedConversations = $derived.by(() => {
@@ -491,7 +497,11 @@
                     </div>
                 </div>
 
-                <div class="flex-1 min-h-0 overflow-y-auto" onscroll={onConversationsScroll}>
+                <div
+                    bind:this={conversationsScrollEl}
+                    class="flex-1 min-h-0 overflow-y-auto"
+                    onscroll={onConversationsScroll}
+                >
                     {#if isLoading && conversations.length === 0}
                         <LoadingState />
                     {:else if conversations.length === 0}
@@ -499,65 +509,27 @@
                             icon="message-text-outline"
                             title={t("messages.no_conversations") || "No conversations"}
                         />
+                    {:else if useVirtualConversationList}
+                        <ContactsWindowedList
+                            items={sortedConversations as unknown as Array<Record<string, unknown>>}
+                            getScrollElement={() => conversationsScrollEl}
+                            itemKey={(item) => String(item.destination_hash)}
+                            rowHeight={conversationRowHeight}
+                        >
+                            {#snippet children({ item })}
+                                {@render conversationRow(item as unknown as Conversation)}
+                            {/snippet}
+                        </ContactsWindowedList>
                     {:else}
                         <ul class="divide-y divide-sem-border">
                             {#each sortedConversations as c (c.destination_hash)}
                                 <li>
-                                    <div
-                                        class="group w-full text-left px-3 py-2 flex gap-2 items-center transition-colors hover:bg-sem-surface-muted {selectedDestinationHash ===
-                                        c.destination_hash
-                                            ? 'bg-sem-accent/10'
-                                            : ''}"
-                                    >
-                                        <button
-                                            type="button"
-                                            class="flex min-w-0 flex-1 gap-2 items-center text-left rounded-sm focus-ring-sem"
-                                            onclick={() => onconversationClick?.(c)}
-                                        >
-                                            <LxmfUserIcon
-                                                customImage={peerContactImage(c)}
-                                                iconName={peerIconName(c)}
-                                                iconForegroundColour={peerIconForeground(c)}
-                                                iconBackgroundColour={peerIconBackground(c)}
-                                                iconClass="shrink-0"
-                                                iconStyle={messageIconStyle}
-                                            />
-                                            <div class="min-w-0 flex-1">
-                                                <div class="flex items-center gap-1">
-                                                    <span class="truncate text-sm font-medium text-sem-fg"
-                                                        >{displayName(c)}</span
-                                                    >
-                                                    {#if c.is_unread}
-                                                        <span class="size-2 rounded-full bg-sem-accent shrink-0"></span>
-                                                    {/if}
-                                                </div>
-                                                <div class="truncate text-xs text-sem-fg-muted mt-0.5">
-                                                    {c.latest_message_preview ||
-                                                        c.latest_message_title ||
-                                                        Utils.formatDestinationHash(c.destination_hash || "")}
-                                                </div>
-                                            </div>
-                                        </button>
-                                        {#if c.destination_hash}
-                                            <button
-                                                type="button"
-                                                class="p-1 text-sem-fg-muted hover:text-sem-fg rounded-lg transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-ring-sem {selectedDestinationHash ===
-                                                c.destination_hash
-                                                    ? 'opacity-100'
-                                                    : ''}"
-                                                title={t("messages.pin_conversation")}
-                                                onclick={() => ontoggleConversationPin?.(c.destination_hash || "")}
-                                            >
-                                                <MaterialDesignIcon
-                                                    iconName={isPinned(c.destination_hash) ? "pin" : "pin-outline"}
-                                                    class="size-4"
-                                                />
-                                            </button>
-                                        {/if}
-                                    </div>
+                                    {@render conversationRow(c)}
                                 </li>
                             {/each}
                         </ul>
+                    {/if}
+                    {#if conversations.length > 0}
                         {#if isLoadingMore}
                             <div class="p-3 text-center text-xs text-sem-fg-muted">{t("common.loading")}</div>
                         {:else if hasMoreConversations}
@@ -657,4 +629,54 @@
             </div>
         </div>
     </button>
+{/snippet}
+
+{#snippet conversationRow(c: Conversation)}
+    <div
+        class="group w-full text-left px-3 py-2 flex gap-2 items-center transition-colors hover:bg-sem-surface-muted {selectedDestinationHash ===
+        c.destination_hash
+            ? 'bg-sem-accent/10'
+            : ''}"
+    >
+        <button
+            type="button"
+            class="flex min-w-0 flex-1 gap-2 items-center text-left rounded-sm focus-ring-sem"
+            onclick={() => onconversationClick?.(c)}
+        >
+            <LxmfUserIcon
+                customImage={peerContactImage(c)}
+                iconName={peerIconName(c)}
+                iconForegroundColour={peerIconForeground(c)}
+                iconBackgroundColour={peerIconBackground(c)}
+                iconClass="shrink-0"
+                iconStyle={messageIconStyle}
+            />
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1">
+                    <span class="truncate text-sm font-medium text-sem-fg">{displayName(c)}</span>
+                    {#if c.is_unread}
+                        <span class="size-2 rounded-full bg-sem-accent shrink-0"></span>
+                    {/if}
+                </div>
+                <div class="truncate text-xs text-sem-fg-muted mt-0.5">
+                    {c.latest_message_preview ||
+                        c.latest_message_title ||
+                        Utils.formatDestinationHash(c.destination_hash || "")}
+                </div>
+            </div>
+        </button>
+        {#if c.destination_hash}
+            <button
+                type="button"
+                class="p-1 text-sem-fg-muted hover:text-sem-fg rounded-lg transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-ring-sem {selectedDestinationHash ===
+                c.destination_hash
+                    ? 'opacity-100'
+                    : ''}"
+                title={t("messages.pin_conversation")}
+                onclick={() => ontoggleConversationPin?.(c.destination_hash || "")}
+            >
+                <MaterialDesignIcon iconName={isPinned(c.destination_hash) ? "pin" : "pin-outline"} class="size-4" />
+            </button>
+        {/if}
+    </div>
 {/snippet}

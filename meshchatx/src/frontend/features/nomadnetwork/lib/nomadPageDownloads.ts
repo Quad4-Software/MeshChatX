@@ -247,7 +247,13 @@ export function sendNomadWs(payload: Record<string, unknown>): boolean {
 export type NomadChunkBuffers = Record<string | number, { chunks: Uint8Array[] }>;
 
 export function decodeBase64ToBytes(base64: string | null | undefined): Uint8Array {
-    const binary = atob(base64 || "");
+    let binary = "";
+    try {
+        binary = atob(base64 || "");
+    } catch {
+        // A malformed chunk must not crash the ws handler; treat it as empty.
+        return new Uint8Array(0);
+    }
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);

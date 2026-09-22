@@ -1,6 +1,6 @@
 const { test } = require("@playwright/test");
 const { dismissMapOnboardingTooltip } = require("../e2e/helpers");
-const { resolvePages, budgetsFor } = require("./pages");
+const { resolvePages, budgetsFor, vitalBudgetsFor } = require("./pages");
 const { seedUiSimulatedData } = require("./seed");
 const { gotoUiPage } = require("./ready");
 const {
@@ -9,6 +9,7 @@ const {
     scoresFromLhr,
     vitalsFromLhr,
     assertBudgets,
+    assertVitalBudgets,
     writeReports,
 } = require("./lighthouse-helper");
 
@@ -44,11 +45,13 @@ test.describe("Lighthouse page scores (simulated data)", () => {
             // eslint-disable-next-line no-console
             console.log(
                 `LH ${entry.id}: perf=${scores.performance} a11y=${scores.accessibility} bp=${scores["best-practices"]} ` +
-                    `FCP=${vitals.fcp} LCP=${vitals.lcp} TBT=${vitals.tbt} CLS=${vitals.cls} SI=${vitals.si} ` +
+                    `FCP=${vitals.fcp.display} LCP=${vitals.lcp.display} TBT=${vitals.tbt.display} ` +
+                    `CLS=${vitals.cls.display} SI=${vitals.si.display} ` +
                     `report=${paths.htmlPath}`
             );
 
             assertBudgets(scores, budgetsFor(entry), entry.id);
+            assertVitalBudgets(vitals, vitalBudgetsFor(entry), entry.id);
         });
     }
 });

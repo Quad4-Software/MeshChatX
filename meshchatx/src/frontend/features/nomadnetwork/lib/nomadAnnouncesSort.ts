@@ -2,32 +2,43 @@
 
 import type { NomadNode } from "./types.js";
 
-function createdTs(n: NomadNode): number {
-    const ts = new Date(n.created_at || n.updated_at || "").getTime();
+function parseTs(value: string | undefined | null): number {
+    if (!value) return 0;
+    const ts = Date.parse(value);
     return Number.isFinite(ts) ? ts : 0;
+}
+
+interface SortableNode {
+    node: NomadNode;
+    name: string;
+    created: number;
+    updated: number;
+    count: number;
+}
+
+function toSortable(n: NomadNode): SortableNode {
+    return {
+        node: n,
+        name: n.custom_display_name || n.display_name || "",
+        created: parseTs(n.created_at) || parseTs(n.updated_at),
+        updated: parseTs(n.updated_at),
+        count: Number(n.announce_count) || 0,
+    };
 }
 
 /** Order announces list nodes by the persisted sidebar sort mode. */
 export function sortAnnouncesNodes(nodes: Record<string, NomadNode>, sort: string): NomadNode[] {
-    const list = Object.values(nodes).slice();
+    const keyed = Object.values(nodes).map(toSortable);
     if (sort === "name") {
-        return list.sort((a, b) =>
-            (a.custom_display_name || a.display_name || "").localeCompare(b.custom_display_name || b.display_name || "")
-        );
-    }
-    if (sort === "most_announced") {
-        return list.sort(
-            (a, b) => (Number(b.announce_count) || 0) - (Number(a.announce_count) || 0) || createdTs(b) - createdTs(a)
-        );
-    }
-    if (sort === "newest_discovered") {
+        keyed.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sort === "most_announced") {
+        keyed.sort((a, b) => b.count - a.count || b.created - a.created);
+    } else if (sort === "newest_discovered") {
         // first-seen wins, so a re-announce of a known node does not jump back to the top.
-        return list.sort((a, b) => createdTs(b) - createdTs(a));
+        keyed.sort((a, b) => b.created - a.created);
+    } else {
+        // last_announced
+        keyed.sort((a, b) => b.updated - a.updated);
     }
-    // last_announced
-    return list.sort((a, b) => {
-        const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-        const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-        return tb - ta;
-    });
+    return keyed.map((k) => k.node);
 }

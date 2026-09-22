@@ -164,13 +164,15 @@
                 window as unknown as { api?: { get: (url: string, config?: unknown) => Promise<{ data: unknown }> } }
             ).api;
             if (!api) return;
-            const peerResponse = await api.get("/api/v1/announces", {
-                params: { aspect: "lxmf.delivery", limit: 20 },
-            });
+            const [peerResponse, contactResponse] = await Promise.all([
+                api.get("/api/v1/announces", {
+                    params: { aspect: "lxmf.delivery", limit: 20 },
+                }),
+                api.get("/api/v1/telephone/contacts"),
+            ]);
             const pData = peerResponse?.data as { announces?: PeerAnnounce[] } | undefined;
             peers = pData?.announces || [];
 
-            const contactResponse = await api.get("/api/v1/telephone/contacts");
             const cData = contactResponse?.data as { contacts?: Contact[] } | Contact[] | undefined;
             if (Array.isArray(cData)) {
                 contacts = cData;

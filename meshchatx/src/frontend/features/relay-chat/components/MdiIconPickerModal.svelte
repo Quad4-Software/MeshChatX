@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
-    import { buildMdiIconNames } from "../../../js/mdiIconNames.js";
+    import { buildMdiIconNames, ensureFullMdi } from "../../../js/mdiIconNames.js";
     import { t } from "../../../js/i18n.js";
     import { BTN_SECONDARY } from "../lib/constants.js";
 
@@ -36,6 +36,7 @@
     $effect(() => {
         if (open) {
             search = "";
+            void ensureFullMdi();
             if (iconNames.length === 0) {
                 iconNames = buildMdiIconNames();
             }

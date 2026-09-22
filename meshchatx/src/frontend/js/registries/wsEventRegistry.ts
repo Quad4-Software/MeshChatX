@@ -16,19 +16,29 @@ export function offWsEvent(type: string, handler: WsEventHandler): void {
 }
 
 export async function dispatchWsEvent(type: string, payload: Record<string, unknown>): Promise<void> {
-    const handlers = emitter.all.get(type);
+    const handlers = emitter.all.get(type)?.slice();
     if (!handlers || handlers.length === 0) {
         return;
     }
+    // Handlers are invoked in registration order but their async work runs
+    // concurrently so a slow handler cannot starve the rest. One faulty
+    // handler must not starve the other listeners for this event type.
+    const pending: Promise<void>[] = [];
     for (const handler of handlers) {
-        // One faulty handler must not starve the rest of the listeners for
-        // this event type.
         try {
-            await (handler as WsEventHandler)(payload);
+            const result = (handler as WsEventHandler)(payload);
+            if (result && typeof result.then === "function") {
+                pending.push(
+                    result.catch((e) => {
+                        console.error(`wsEventRegistry handler for "${type}" failed`, e);
+                    })
+                );
+            }
         } catch (e) {
             console.error(`wsEventRegistry handler for "${type}" failed`, e);
         }
     }
+    await Promise.all(pending);
 }
 
 export function listRegisteredWsEventTypes(): string[] {

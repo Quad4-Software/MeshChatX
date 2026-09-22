@@ -288,11 +288,24 @@
         }
     }
 
+    // Announces arrive in bursts; coalesce the identity bump so N announces in
+    // one task produce one downstream re-derive instead of N.
+    let peersBumpScheduled = false;
+
+    function schedulePeersBump() {
+        if (peersBumpScheduled) return;
+        peersBumpScheduled = true;
+        queueMicrotask(() => {
+            peersBumpScheduled = false;
+            peers = { ...peers };
+        });
+    }
+
     function onAnnounceEvent(json: { announce?: Peer & { aspect?: string } }) {
         const aspect = json.announce?.aspect;
         if (aspect === "lxmf.delivery" && json.announce) {
             updatePeerFromAnnounce(peers, json.announce);
-            peers = { ...peers };
+            schedulePeersBump();
         }
     }
 

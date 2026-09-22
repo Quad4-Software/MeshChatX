@@ -23,7 +23,7 @@
     import ColourPickerDropdown from "./ColourPickerDropdown.svelte";
     import LxmfUserIcon from "./LxmfUserIcon.svelte";
     import SearchInput from "./SearchInput.svelte";
-    import { buildMdiIconNames } from "../../js/mdiIconNames.js";
+    import { buildMdiIconNames, ensureFullMdi } from "../../js/mdiIconNames.js";
     import { t } from "../../js/i18n.js";
 
     interface Props {
@@ -35,6 +35,7 @@
     let search = $state("");
     const maxSearchResults = 200;
     const iconNames = buildMdiIconNames();
+    void ensureFullMdi();
 
     const draft = $derived<LxmfIconDraft>({
         icon_name: value?.icon_name ? value.icon_name : "",

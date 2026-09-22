@@ -2,6 +2,7 @@
 
 <script>
     import { getMdiIconPath } from "../../js/mdiIconNames.js";
+    import { mdiIconState } from "../../js/mdiIconState.svelte.js";
 
     /**
      * @type {{
@@ -24,7 +25,10 @@
 
     const resolvedIconName = $derived(iconName && String(iconName).trim() ? String(iconName).trim() : "account");
     const hasCustomIcon = $derived(Boolean(iconName && String(iconName).trim()));
-    const iconPath = $derived(getMdiIconPath(resolvedIconName));
+    const iconPath = $derived.by(() => {
+        mdiIconState.fullReady;
+        return getMdiIconPath(resolvedIconName);
+    });
 
     const shellPx = $derived.by(() => {
         if (iconStyle && typeof iconStyle === "object") {

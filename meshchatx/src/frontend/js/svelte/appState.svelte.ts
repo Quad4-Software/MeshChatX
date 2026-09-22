@@ -5,7 +5,7 @@
  * Import from .svelte / .svelte.js modules only (not from plain kernel .ts/.js).
  */
 
-import globalState from "../GlobalState.js";
+import globalState, { batchGlobalState } from "../GlobalState.js";
 import { subscribeAppState, getAppState, patchAppState, patchAppConfig, type AppStateSnapshot } from "../appState.js";
 
 export const appState: AppStateSnapshot = $state({ ...getAppState(globalState as AppStateSnapshot) });
@@ -18,9 +18,9 @@ subscribeAppState(globalState as AppStateSnapshot, (snapshot) => {
 });
 
 export function patchState(patch: Record<string, unknown>): void {
-    patchAppState(globalState as AppStateSnapshot, patch);
+    batchGlobalState(() => patchAppState(globalState as AppStateSnapshot, patch));
 }
 
 export function patchConfig(next: Record<string, unknown>): void {
-    patchAppConfig(globalState as AppStateSnapshot, next);
+    batchGlobalState(() => patchAppConfig(globalState as AppStateSnapshot, next));
 }

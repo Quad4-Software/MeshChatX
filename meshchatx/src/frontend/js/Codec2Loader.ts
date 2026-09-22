@@ -43,27 +43,10 @@ async function verifySri(buf: ArrayBuffer, expectedHash: string | undefined, nam
     }
 }
 
-async function injectScript(src: string): Promise<void> {
-    if (typeof document === "undefined") {
-        return Promise.resolve();
-    }
+const SCRIPT_ATTR = "data-codec2-src";
+const LOADED_ATTR = "data-codec2-loaded";
 
-    const attrName = "data-codec2-src";
-    const loadedAttr = "data-codec2-loaded";
-    const existing = document.querySelector(`script[${attrName}="${src}"]`);
-
-    if (existing) {
-        if (existing.getAttribute(loadedAttr) === "true") {
-            return Promise.resolve();
-        }
-        return new Promise<void>((resolve, reject) => {
-            existing.addEventListener("load", () => resolve(), { once: true });
-            existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
-        });
-    }
-
-    // Fetch, verify SRI, then inject as blob
-    const integrity = await loadIntegrityHashes();
+async function prepareScriptBlob(src: string, integrity: Record<string, string> | null): Promise<string> {
     const filename = src.split("/").pop();
     const expectedHash = filename ? integrity?.[filename] : undefined;
 
@@ -74,18 +57,31 @@ async function injectScript(src: string): Promise<void> {
     const buf = await res.arrayBuffer();
     await verifySri(buf, expectedHash, filename);
 
-    // Create blob URL for verified content
     const blob = new Blob([buf], { type: "application/javascript" });
-    const blobUrl = URL.createObjectURL(blob);
+    return URL.createObjectURL(blob);
+}
+
+async function injectPreparedScript(src: string, blobUrl: string): Promise<void> {
+    const existing = document.querySelector(`script[${SCRIPT_ATTR}="${src}"]`);
+    if (existing) {
+        URL.revokeObjectURL(blobUrl);
+        if (existing.getAttribute(LOADED_ATTR) === "true") {
+            return Promise.resolve();
+        }
+        return new Promise<void>((resolve, reject) => {
+            existing.addEventListener("load", () => resolve(), { once: true });
+            existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
+        });
+    }
 
     return new Promise<void>((resolve, reject) => {
         const script = document.createElement("script");
         script.src = blobUrl;
         script.async = false;
-        script.setAttribute(attrName, src);
+        script.setAttribute(SCRIPT_ATTR, src);
         script.addEventListener("load", () => {
             URL.revokeObjectURL(blobUrl);
-            script.setAttribute(loadedAttr, "true");
+            script.setAttribute(LOADED_ATTR, "true");
             resolve();
         });
         script.addEventListener("error", () => {
@@ -97,8 +93,30 @@ async function injectScript(src: string): Promise<void> {
     });
 }
 
-function loadChain(): Promise<void> {
-    return codec2ScriptPaths.reduce((chain, src) => chain.then(() => injectScript(src)), Promise.resolve());
+// Fetches and SRI verification run in parallel; injection stays sequential so
+// script execution order is preserved.
+async function loadChain(): Promise<void> {
+    if (typeof document === "undefined") {
+        return;
+    }
+    const pending = codec2ScriptPaths.filter(
+        (src) => !document.querySelector(`script[${SCRIPT_ATTR}="${src}"][${LOADED_ATTR}="true"]`)
+    );
+    if (pending.length === 0) {
+        return;
+    }
+    const integrity = await loadIntegrityHashes();
+    const blobUrls = await Promise.all(pending.map((src) => prepareScriptBlob(src, integrity)));
+    for (let i = 0; i < pending.length; i++) {
+        try {
+            await injectPreparedScript(pending[i], blobUrls[i]);
+        } catch (e) {
+            for (let j = i + 1; j < blobUrls.length; j++) {
+                URL.revokeObjectURL(blobUrls[j]);
+            }
+            throw e;
+        }
+    }
 }
 
 export type Codec2RetryOptions = {

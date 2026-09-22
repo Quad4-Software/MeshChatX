@@ -91,7 +91,7 @@ export const TRANSPORT_TYPE_OPTIONS: TransportTypeOption[] = [
     {
         id: "AwareInterface",
         name: "WiFi Aware",
-        icon: "wifi-tethering",
+        icon: "access-point",
         color: "text-lime-500",
     },
 ];
