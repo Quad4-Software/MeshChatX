@@ -173,8 +173,9 @@ function isAllowedImageDataUrl(url) {
     if (typeof url !== "string" || !url) {
         return false;
     }
-    // Only allow base64 data URLs for recognized image types.
-    return /^data:image\/(webp|png|jpeg|jpg|gif|svg\+xml);base64,/i.test(url);
+    // Only allow base64 data URLs for image types the browser can render.
+    // TIFF is fetched but not renderable, so it stays outside the allowlist.
+    return /^data:image\/(webp|png|jpeg|jpg|gif|bmp|svg\+xml);base64,/i.test(url);
 }
 
 function sanitizeImageErrorReason(reason) {
@@ -483,16 +484,17 @@ window.addEventListener("message", (ev) => {
                 load.textContent = progress ? `Loading... ${progress}` : "Loading...";
             }
         } else if (d.state === "loaded") {
-            if (img) {
-                const dataUrl = d.dataUrl || "";
-                if (isAllowedImageDataUrl(dataUrl)) {
-                    img.src = dataUrl;
-                    img.removeAttribute("hidden");
-                }
+            const dataUrl = d.dataUrl || "";
+            const allowed = isAllowedImageDataUrl(dataUrl);
+            if (img && allowed) {
+                img.src = dataUrl;
+                img.removeAttribute("hidden");
             }
             if (load) {
-                load.textContent = "Loaded";
-                load.setAttribute("data-mu-image-action", "view");
+                load.textContent = allowed ? "Loaded" : "Error: unsupported image type";
+                if (allowed) {
+                    load.setAttribute("data-mu-image-action", "view");
+                }
             }
             const size = el.querySelector(".mu-image-size");
             if (size && d.actualSize != null) {
