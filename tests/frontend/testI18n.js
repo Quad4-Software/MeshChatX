@@ -1,24 +1,21 @@
-import { createI18n } from "vue-i18n";
 import en from "../../meshchatx/src/frontend/locales/en.json";
+import { registerFallbackMessages, t } from "../../meshchatx/src/frontend/js/i18n.js";
 
+/**
+ * Ensure the framework-free t() lookup has English messages for tests.
+ * setup.js already registers en on boot. Call again when a test clears translators.
+ */
 export function createTestI18n() {
-    return createI18n({
-        legacy: false,
-        locale: "en",
-        fallbackLocale: "en",
-        messages: { en },
-    });
+    registerFallbackMessages(en);
+    return { t, locale: "en" };
 }
 
 export function mountToolsPageGlobals() {
-    const i18n = createTestI18n();
+    createTestI18n();
     return {
-        plugins: [i18n],
+        t,
         stubs: {
-            MaterialDesignIcon: {
-                template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                props: ["iconName"],
-            },
+            MaterialDesignIcon: true,
         },
     };
 }

@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from meshchatx.src.backend.websocket_runtime import (
@@ -11,6 +13,7 @@ from meshchatx.src.backend.websocket_runtime import (
     CoalesceBuffer,
     TokenBucket,
     apply_subscribe,
+    broadcast_to_websocket_clients,
     client_allows_topic,
     default_subscriptions,
     message_rate_cost,
@@ -252,3 +255,113 @@ def test_default_subscriptions_complete():
     assert "config" in subs
     assert "lxmf" in subs
     assert "control" in subs
+
+
+# --- broadcast fan-out -----------------------------------------------------
+
+
+class _FakeWsClient:
+    def __init__(self, delay: float = 0.0, fail: bool = False):
+        self.sent: list[str] = []
+        self.delay = delay
+        self.fail = fail
+        self.closed = False
+
+    async def send_str(self, data: str):
+        if self.fail:
+            raise RuntimeError("send boom")
+        if self.delay:
+            await asyncio.sleep(self.delay)
+        self.sent.append(data)
+
+    async def close(self, code=None):
+        self.closed = True
+
+
+class _FakeApp:
+    def __init__(self, clients):
+        import asyncio as _asyncio
+
+        self._websocket_broadcast_lock = _asyncio.Lock()
+        self.websocket_clients = list(clients)
+        self._detached = []
+
+    def _detach_active_session(self, client):
+        self._detached.append(client)
+        return False
+
+    async def send_active_sessions_to_websocket_clients(self):
+        pass
+
+
+@pytest.mark.asyncio
+async def test_broadcast_releases_lock_while_sends_are_in_flight():
+    """A stalled client send must not hold the broadcast lock."""
+    slow = _FakeWsClient(delay=0.3)
+    app = _FakeApp([slow])
+
+    task = asyncio.create_task(
+        broadcast_to_websocket_clients(app, {"type": "ping"}, _skip_coalesce=True)
+    )
+    await asyncio.sleep(0.05)  # let the send start
+
+    async def _try_lock():
+        async with app._websocket_broadcast_lock:
+            return True
+
+    # If the lock were held across send_str, this would wait out the stall.
+    assert await asyncio.wait_for(_try_lock(), timeout=0.1) is True
+    await task
+    assert slow.sent
+
+
+@pytest.mark.asyncio
+async def test_broadcast_drops_failed_client_but_still_reaches_fast_client():
+    fast = _FakeWsClient()
+    dead = _FakeWsClient(fail=True)
+    app = _FakeApp([fast, dead])
+
+    await broadcast_to_websocket_clients(app, {"type": "ping"}, _skip_coalesce=True)
+
+    assert len(fast.sent) == 1
+    assert dead in app._detached
+    assert dead.closed
+    assert dead not in app.websocket_clients
+    assert fast in app.websocket_clients
+
+
+@pytest.mark.asyncio
+async def test_broadcast_times_out_stalled_client_without_blocking_others(
+    monkeypatch,
+):
+    import meshchatx.src.backend.websocket_runtime as wsrt
+
+    monkeypatch.setattr(wsrt, "WS_BROADCAST_SEND_TIMEOUT_SEC", 0.05)
+    fast = _FakeWsClient()
+    stalled = _FakeWsClient(delay=5.0)
+    app = _FakeApp([fast, stalled])
+
+    await asyncio.wait_for(
+        broadcast_to_websocket_clients(app, {"type": "ping"}, _skip_coalesce=True),
+        timeout=2.0,
+    )
+
+    assert len(fast.sent) == 1
+    assert stalled not in app.websocket_clients
+    assert stalled.closed
+
+
+@pytest.mark.asyncio
+async def test_broadcast_respects_topic_subscriptions():
+    subscribed = _FakeWsClient()
+    subscribed._meshchatx_ws_topics = {"lxmf"}
+    unsubscribed = _FakeWsClient()
+    unsubscribed._meshchatx_ws_topics = {"config"}
+    app = _FakeApp([subscribed, unsubscribed])
+
+    await broadcast_to_websocket_clients(
+        app, {"type": "lxmf_message_created"}, _skip_coalesce=True
+    )
+
+    assert len(subscribed.sent) == 1
+    assert unsubscribed.sent == []

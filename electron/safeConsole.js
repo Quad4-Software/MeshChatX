@@ -29,7 +29,7 @@ function isBrokenPipeError(err) {
 /**
  * Attach no-op error listeners so closed stdout/stderr do not become
  * uncaughtException dialogs when a write races the pipe close.
- * @param {{ stdout?: NodeJS.WritableStream, stderr?: NodeJS.WritableStream } | null | undefined} [proc]
+ * @param {{ stdout?: NodeJS.WritableStream, stderr?: NodeJS.WritableStream } | null} [proc]
  */
 function installBrokenPipeGuards(proc = process) {
     const attach = (stream) => {
@@ -53,7 +53,7 @@ function installBrokenPipeGuards(proc = process) {
 /**
  * True when stdout is a live terminal, or MESHCHAT_FORCE_STDOUT_LOG=1.
  * Packaged AppImage / desktop launches usually have isTTY false.
- * @param {{ stdout?: { isTTY?: boolean } } | null | undefined} [proc]
+ * @param {{ stdout?: { isTTY?: boolean } } | null} [proc]
  * @param {NodeJS.ProcessEnv} [env]
  */
 function shouldMirrorStdout(proc = process, env = process.env) {

@@ -78,16 +78,16 @@ async def test_initiate_passes_preferred_profile_to_lxst_call(tm):
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=True,
         ),
         patch.object(TelephoneManager, "codec2_available", return_value=True),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Destination",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Destination",
         ) as dest_cls,
     ):
         dest_cls.return_value.hash = destination_hash
@@ -103,7 +103,7 @@ def test_init_telephone_stores_preferred_profile_not_idle_switch(tmp_path):
     cfg.telephone_audio_profile_id.get.return_value = Profiles.QUALITY_MAX
 
     with patch(
-        "meshchatx.src.backend.telephone_manager.Telephone",
+        "meshchatx.src.backend.telephone_manager.core.Telephone",
     ) as telephone_cls:
         telephone = telephone_cls.return_value
         manager = TelephoneManager(

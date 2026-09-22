@@ -2,12 +2,11 @@ import "fake-indexeddb/auto";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { beforeEach, afterEach, vi } from "vitest";
-import { createPinia, setActivePinia } from "pinia";
-import { config } from "@vue/test-utils";
 import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
-import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
-import { clearConversationPrefetchCache } from "../../meshchatx/src/frontend/js/conversationPrefetch.js";
+import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
+import en from "../../meshchatx/src/frontend/locales/en.json";
+import { registerFallbackMessages } from "../../meshchatx/src/frontend/js/i18n.ts";
 
 // CI and slower local machines can need more than the default 1000ms for async
 // conditions. Extend vitest's waitFor default while still allowing overrides.
@@ -15,25 +14,14 @@ const _originalWaitFor = vi.waitFor;
 vi.waitFor = (callback, options) => _originalWaitFor(callback, { timeout: 5000, ...options });
 
 injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
-
-// Domain state lives in Pinia stores; activate a fresh one per test.
-// Installing the plugin covers inject(piniaSymbol) and this.$pinia for
-// mapStores, while setActivePinia keeps bare use*Store() calls in sync.
-setActivePinia(createPinia());
-beforeEach(() => {
-    const pinia = createPinia();
-    setActivePinia(pinia);
-    config.global.plugins = [pinia];
-});
+registerFallbackMessages(en);
 
 // App shell tests assume auth is settled with auth disabled unless a case overrides.
 beforeEach(() => {
-    const authStore = useAuthStore();
-    authStore.authSessionResolved = true;
-    authStore.authEnabled = false;
-    authStore.authenticated = false;
-    authStore.demoMode = false;
-    clearConversationPrefetchCache();
+    GlobalState.authSessionResolved = true;
+    GlobalState.authEnabled = false;
+    GlobalState.authenticated = false;
+    GlobalState.demoMode = false;
 });
 
 // Some tests enable fake timers and may throw before calling useRealTimers().
@@ -41,6 +29,33 @@ beforeEach(() => {
 afterEach(() => {
     vi.useRealTimers();
 });
+
+if (typeof window !== "undefined" && typeof window.PointerEvent === "undefined") {
+    window.PointerEvent = class PointerEvent extends MouseEvent {
+        constructor(type, params = {}) {
+            super(type, { bubbles: true, cancelable: true, composed: true, ...params });
+            this.pointerType = params.pointerType || "mouse";
+            Object.defineProperty(this, "clientX", { value: params.clientX || 0, configurable: true });
+            Object.defineProperty(this, "clientY", { value: params.clientY || 0, configurable: true });
+            Object.defineProperty(this, "button", { value: params.button || 0, configurable: true });
+        }
+    };
+    global.PointerEvent = window.PointerEvent;
+}
+
+if (typeof Element !== "undefined" && !Element.prototype.animate) {
+    Element.prototype.animate = function () {
+        return {
+            finished: Promise.resolve(),
+            cancel: () => {},
+            onfinish: null,
+            play: () => {},
+            pause: () => {},
+            reverse: () => {},
+            finish: () => {},
+        };
+    };
+}
 
 if (typeof Blob !== "undefined" && typeof Blob.prototype.stream !== "function") {
     Blob.prototype.stream = function streamPolyfill() {
@@ -106,6 +121,31 @@ global.performance.getEntriesByName = vi.fn(() => []);
 global.performance.clearMarks = vi.fn();
 global.performance.clearMeasures = vi.fn();
 
+// The vmThreads pool runs tests in a VM realm where some Node/web globals are
+// absent; fill them so SRI, hashing, and decompression code paths work.
+try {
+    if (typeof globalThis.crypto === "object" && globalThis.crypto && !globalThis.crypto.subtle) {
+        const { webcrypto } = await import("node:crypto");
+        Object.defineProperty(globalThis.crypto, "subtle", {
+            value: webcrypto.subtle,
+            configurable: true,
+        });
+    }
+    if (typeof globalThis.DecompressionStream === "undefined") {
+        const streams = await import("node:stream/web");
+        globalThis.DecompressionStream = streams.DecompressionStream;
+        globalThis.CompressionStream = streams.CompressionStream;
+    }
+    if (typeof globalThis.ReadableStream === "undefined") {
+        const streams = await import("node:stream/web");
+        globalThis.ReadableStream = streams.ReadableStream;
+        globalThis.WritableStream = streams.WritableStream;
+        globalThis.TransformStream = streams.TransformStream;
+    }
+} catch {
+    // Best effort; tests that need these globals will fail loudly on their own.
+}
+
 // Mock window.api by default to prevent TypeErrors
 global.api = {
     get: vi.fn().mockResolvedValue({ data: {} }),
@@ -117,22 +157,11 @@ global.api = {
 };
 window.api = global.api;
 
-config.global.stubs = {
-    MaterialDesignIcon: { template: '<div class="mdi-stub"><slot /></div>' },
-    RouterLink: { template: "<a><slot /></a>" },
-    RouterView: { template: "<div><slot /></div>" },
-    AppModal: {
-        template: '<div class="app-modal-stub"><slot /><slot name="header" /><slot name="actions" /></div>',
-        props: ["modelValue"],
-    },
-    ClickPopover: {
-        template: '<div class="click-popover-stub"><slot name="activator" /><slot /></div>',
-    },
-};
-
-// Mock window.matchMedia
+// Mock window.matchMedia. configurable is required under the vmThreads pool:
+// window is the VM global there, so vi.stubGlobal must be able to redefine it.
 Object.defineProperty(window, "matchMedia", {
     writable: true,
+    configurable: true,
     value: vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,

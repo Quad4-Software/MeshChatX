@@ -8,6 +8,9 @@ from .database import Database
 class ArchiverManager:
     def __init__(self, db: Database):
         self.db = db
+        # The byte cap is enforced approximately: a full SUM(LENGTH(content))
+        # scan on every insert is O(archive size), so it runs every Nth insert.
+        self._inserts_since_size_check = 0
 
     def archive_page(
         self,
@@ -30,18 +33,23 @@ class ArchiverManager:
         # Insert new version
         self.db.misc.archive_page(destination_hash, page_path, content, content_hash)
 
-        # Enforce max versions per page
-        versions = self.db.misc.get_archived_page_versions(destination_hash, page_path)
+        # Enforce max versions per page (id-only read; content is not needed)
+        versions = self.db.misc.get_archived_page_version_ids(
+            destination_hash, page_path
+        )
         if len(versions) > max_versions:
-            # Delete older versions
-            to_delete = versions[max_versions:]
-            for version in to_delete:
+            for version in versions[max_versions:]:
                 self.db.provider.execute(
                     "DELETE FROM archived_pages WHERE id = ?",
                     (version["id"],),
                 )
 
         # Enforce total storage limit (approximate)
+        self._inserts_since_size_check += 1
+        if self._inserts_since_size_check < 10:
+            return
+        self._inserts_since_size_check = 0
+
         total_size_row = self.db.provider.fetchone(
             "SELECT SUM(LENGTH(content)) as total_size FROM archived_pages",
         )

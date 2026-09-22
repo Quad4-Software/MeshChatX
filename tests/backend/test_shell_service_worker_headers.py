@@ -7,7 +7,9 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SHELL_PY = ROOT / "meshchatx" / "src" / "backend" / "http" / "routes" / "shell.py"
+SHELL_PY = (
+    ROOT / "meshchatx" / "src" / "backend" / "http" / "routes" / "shell" / "static.py"
+)
 
 
 def test_service_worker_route_sets_revalidate_cache_control() -> None:

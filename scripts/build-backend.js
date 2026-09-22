@@ -39,7 +39,7 @@ function stripMeshchatxFrontendSources(buildDir) {
         buf = fs.readFileSync(keepPath);
     }
     console.log(
-        "Trimming meshchatx/src/frontend to repository-server-index.html only (Vue sources are unused at runtime)."
+        "Trimming meshchatx/src/frontend to repository-server-index.html only (frontend sources are unused at runtime)."
     );
     fs.rmSync(fe, { recursive: true, force: true });
     if (buf) {

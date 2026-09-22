@@ -33,8 +33,9 @@ module_present() {
     local hit
 
     hit="$(
-        find "${LIB_DIR}" -type f \
-            \( -name "${stem}.py" -o -name "${stem}.pyc" -o -name "${stem}.*.pyc" \) \
+        find "${LIB_DIR}" \
+            \( -type d -name "${stem}" \) -o \
+            \( -type f \( -name "${stem}.py" -o -name "${stem}.pyc" -o -name "${stem}.*.pyc" \) \) \
             2>/dev/null | head -n 1 || true
     )"
     if [[ -n "${hit}" ]]; then
@@ -43,7 +44,7 @@ module_present() {
     fi
 
     if [[ -f "${LIBRARY_ZIP}" ]]; then
-        if unzip -l "${LIBRARY_ZIP}" | grep -Eiq "${stem}\\.(py|pyc)([^[:alnum:_].]|$)"; then
+        if unzip -l "${LIBRARY_ZIP}" | grep -Eiq "${stem}(/|\\.(py|pyc)([^[:alnum:]_.]|$))"; then
             echo "found ${stem} in library.zip"
             return 0
         fi

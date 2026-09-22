@@ -9,7 +9,7 @@ import {
     resolveTopNavItemIds,
     saveTopNavItemIds,
     topNavLayoutState,
-} from "../../meshchatx/src/frontend/js/appTopNavLayout.js";
+} from "../../meshchatx/src/frontend/js/appTopNavLayout.svelte.js";
 
 const item = (id) => ({ id });
 

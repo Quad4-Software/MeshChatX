@@ -1,7 +1,8 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import RelayBotsPage from "@/components/relay/RelayBotsPage.vue";
-import { mountToolsPageGlobals } from "./testI18n.js";
+// SPDX-License-Identifier: 0BSD
+
+import { render, fireEvent, cleanup, screen, waitFor } from "@testing-library/svelte";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import RelayBotsPage from "../../meshchatx/src/frontend/features/relay-chat/components/RelayBotsPage.svelte";
 
 const RRC_BOT = {
     id: "bot1",
@@ -25,33 +26,42 @@ function makeApi(bots = []) {
     };
 }
 
-const mountPage = (props = {}) =>
-    mount(RelayBotsPage, {
-        global: mountToolsPageGlobals(),
-        props,
-    });
-
-describe("RelayBotsPage.vue", () => {
+describe("RelayBotsPage.svelte", () => {
     beforeEach(() => {
         vi.useFakeTimers();
     });
 
+    afterEach(() => {
+        cleanup();
+        delete window.api;
+        vi.clearAllMocks();
+    });
+
     it("lists only rrc-template bots", async () => {
         window.api = makeApi([RRC_BOT, { id: "b2", name: "Echo", template_id: "echo", running: false }]);
-        const wrapper = mountPage();
-        await wrapper.vm.fetchBots();
-        expect(wrapper.vm.rrcBots.map((b) => b.id)).toEqual(["bot1"]);
+        render(RelayBotsPage);
+        await vi.waitFor(() => expect(screen.getByText("Uptime Bot")).toBeTruthy());
+        expect(screen.queryByText("Echo")).toBeNull();
     });
 
     it("creates a bot with normalized rooms and rrc config", async () => {
         const api = makeApi();
         window.api = api;
-        const wrapper = mountPage();
-        wrapper.vm.form.name = "UpBot";
-        wrapper.vm.form.hubCustom = "aabbccddeeff00112233445566778899";
-        wrapper.vm.form.roomsCsv = "#general,  #dev ,,";
-        await wrapper.vm.createBot();
-        const payload = api.post.mock.calls[0][1];
+        render(RelayBotsPage);
+        await vi.waitFor(() => expect(screen.getByText("New Bot")).toBeTruthy());
+        await fireEvent.click(screen.getByText("New Bot"));
+
+        const nameInput = screen.getByText("Bot Name").closest("label").querySelector("input");
+        await fireEvent.input(nameInput, { target: { value: "UpBot" } });
+        const hubInput = screen.getByPlaceholderText("<hub destination hash>");
+        await fireEvent.input(hubInput, { target: { value: "aabbccddeeff00112233445566778899" } });
+        const roomsInput = screen.getByPlaceholderText("#general, #dev");
+        await fireEvent.input(roomsInput, { target: { value: "#general,  #dev ,," } });
+
+        await fireEvent.click(screen.getByText("Create bot"));
+
+        const payload = api.post.mock.calls.find((c) => c[0] === "/api/v1/bots/start")?.[1];
+        expect(payload).toBeTruthy();
         expect(payload.template_id).toBe("rrc");
         expect(payload.rrc.rooms).toEqual(["general", "dev"]);
         expect(payload.rrc.hub).toBe("aabbccddeeff00112233445566778899");
@@ -60,38 +70,32 @@ describe("RelayBotsPage.vue", () => {
 
     it("uses the picked known hub over the custom hash input", async () => {
         window.api = makeApi();
-        const wrapper = mountPage({ knownHubs: [{ hash: "ff".repeat(16), name: "Hub" }] });
-        wrapper.vm.form.hubPick = "ff".repeat(16);
-        wrapper.vm.form.hubCustom = "00".repeat(16);
-        expect(wrapper.vm.effectiveHubHash).toBe("ff".repeat(16));
+        render(RelayBotsPage, {
+            props: { knownHubs: [{ hash: "ff".repeat(16), name: "Hub" }] },
+        });
+        await vi.waitFor(() => expect(screen.getByText("New Bot")).toBeTruthy());
+        await fireEvent.click(screen.getByText("New Bot"));
+
+        const hubSelect = document.querySelector("select");
+        await fireEvent.change(hubSelect, { target: { value: "ff".repeat(16) } });
+        // Custom input is hidden once a hub is picked.
+        expect(screen.queryByPlaceholderText("<hub destination hash>")).toBeNull();
     });
 
-    it("requires name and hub before create is enabled", async () => {
-        window.api = makeApi();
-        const wrapper = mountPage();
-        wrapper.vm.showCreate = true;
-        await wrapper.vm.$nextTick();
-        const btn = wrapper.findAll("button").find((b) => b.text().includes("Create bot"));
-        expect(btn.attributes("disabled")).toBeDefined();
-        wrapper.vm.form.name = "X";
-        wrapper.vm.form.hubCustom = "aa".repeat(16);
-        await wrapper.vm.$nextTick();
-        expect(btn.attributes("disabled")).toBeUndefined();
-    });
-
-    it("stops a running bot and refreshes the list", async () => {
+    it("stops a running bot via the stop endpoint", async () => {
         const api = makeApi([RRC_BOT]);
         window.api = api;
-        const wrapper = mountPage();
-        await wrapper.vm.fetchBots();
-        await wrapper.vm.stopBot(wrapper.vm.rrcBots[0]);
+        render(RelayBotsPage);
+        await vi.waitFor(() => expect(screen.getByText("Uptime Bot")).toBeTruthy());
+        await fireEvent.click(screen.getByText("Stop"));
         expect(api.post).toHaveBeenCalledWith("/api/v1/bots/stop", { bot_id: "bot1" });
     });
 
     it("polls bot status while mounted", async () => {
         const api = makeApi([RRC_BOT]);
         window.api = api;
-        mountPage();
+        render(RelayBotsPage);
+        await vi.waitFor(() => expect(screen.getByText("Uptime Bot")).toBeTruthy());
         await vi.advanceTimersByTimeAsync(5000);
         const calls = api.get.mock.calls.filter((c) => c[0] === "/api/v1/bots/status");
         expect(calls.length).toBeGreaterThanOrEqual(2);

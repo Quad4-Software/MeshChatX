@@ -3,7 +3,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import NetworkVisualiser from "../../meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue";
+import { resolveVisualiserIsDark } from "../../meshchatx/src/frontend/features/network-visualiser/lib/visualiserPrefs.js";
+import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import {
     expectedBootTheme,
     docLangCorruptsUiLocale,
@@ -12,7 +13,6 @@ import {
     expectedVisualiserIsDark,
 } from "../../meshchatx/src/frontend/js/localeThemeExpectations.js";
 import { normalizeUiLocaleCode, listLocaleCodes } from "../../meshchatx/src/frontend/js/localeLoader.js";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const BOOT_THEME_JS = resolve(ROOT, "meshchatx/src/frontend/public/boot-theme.js");
@@ -34,7 +34,7 @@ function runBootTheme(storedTheme, androidTheme = null) {
     Function(code)();
 }
 
-describe("localeTheme references", () => {
+describe("localeTheme oracles", () => {
     describe("expectedBootTheme vs boot-theme.js", () => {
         beforeEach(() => {
             document.documentElement.className = "";
@@ -55,14 +55,14 @@ describe("localeTheme references", () => {
             ["light", "light"],
             ["dark", "dark"],
         ])("stored %j resolves to mode %s", (stored, expectedMode) => {
-            const reference = expectedBootTheme(stored);
-            expect(reference.mode).toBe(expectedMode);
+            const oracle = expectedBootTheme(stored);
+            expect(oracle.mode).toBe(expectedMode);
             runBootTheme(stored);
             expect(document.documentElement.dataset.bootTheme).toBe(expectedMode);
-            expect(document.documentElement.classList.contains("dark")).toBe(reference.htmlDark);
+            expect(document.documentElement.classList.contains("dark")).toBe(oracle.htmlDark);
         });
 
-        it("system theme follows prefers-color-scheme reference", () => {
+        it("system theme follows prefers-color-scheme oracle", () => {
             Object.defineProperty(window, "matchMedia", {
                 writable: true,
                 value: (query) => ({
@@ -71,24 +71,24 @@ describe("localeTheme references", () => {
                     removeEventListener: () => {},
                 }),
             });
-            const reference = expectedBootTheme("system", true);
-            expect(reference.mode).toBe("dark");
+            const oracle = expectedBootTheme("system", true);
+            expect(oracle.mode).toBe("dark");
             runBootTheme("system");
             expect(document.documentElement.dataset.bootTheme).toBe("dark");
         });
 
-        it("light reference requires html.dark removed even when pre-seeded", () => {
+        it("light oracle requires html.dark removed even when pre-seeded", () => {
             document.documentElement.classList.add("dark");
-            const reference = expectedBootTheme("light");
-            expect(reference.htmlDark).toBe(false);
+            const oracle = expectedBootTheme("light");
+            expect(oracle.htmlDark).toBe(false);
             runBootTheme("light");
             expect(document.documentElement.classList.contains("dark")).toBe(false);
         });
     });
 
-    describe("expectedVisualiserIsDark vs NetworkVisualiser.resolveVisualiserIsDark", () => {
+    describe("expectedVisualiserIsDark vs resolveVisualiserIsDark", () => {
         afterEach(() => {
-            useConfigStore().config = {};
+            GlobalState.config = {};
             document.documentElement.classList.remove("dark");
         });
 
@@ -100,14 +100,14 @@ describe("localeTheme references", () => {
             [undefined, false, false],
             ["", true, true],
         ])("config.theme=%j html.dark=%s => %s", (theme, htmlDark, expected) => {
-            useConfigStore().config = theme === undefined ? {} : { theme };
+            GlobalState.config = theme === undefined ? {} : { theme };
             if (htmlDark) {
                 document.documentElement.classList.add("dark");
             } else {
                 document.documentElement.classList.remove("dark");
             }
             expect(expectedVisualiserIsDark(theme, htmlDark)).toBe(expected);
-            expect(NetworkVisualiser.methods.resolveVisualiserIsDark()).toBe(expected);
+            expect(resolveVisualiserIsDark()).toBe(expected);
         });
     });
 

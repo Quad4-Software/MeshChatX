@@ -1,41 +1,45 @@
 # Frontend conventions
 
-Applies when editing `meshchatx/src/frontend/**/*.{vue,js}`.
+Applies when editing `meshchatx/src/frontend/**/*.{js,ts,svelte}`.
 
-- Vue 3 Options API is dominant in existing pages. Match the file you edit there. New components use Composition API (`<script setup>`) and composables; do not convert an existing component inside a mechanical extract.
-- Composable-first modernization: shared or extractable logic lives in `use*` functions under `js/<feature>/` (for example `js/messages/useConversationSearch.js`). Options API hosts consume composables by adding a `setup()` that returns their bindings; the returned values merge onto `this`, so the host keeps `data`/`methods`/`computed` for the rest. Never convert a component to `<script setup>` as part of an extraction.
-- Test-callable surface is a hard constraint: many tests invoke `Component.methods.X()` or `Component.computed.X()` on the bare options object. A symbol only moves into a composable if no test calls it that way, or if a thin delegating method stays behind. Check test call sites before moving any named option.
-- API calls go through `window.api` via the endpoint modules under `js/api/` (not ad-hoc axios imports or raw fetch in pages). Add a domain module function instead of a new inline path string.
-- Shared state lives in Pinia stores under `js/stores/` (authStore, networkStore, configStore, unreadStore, identityStore, interfaceChangesStore). Options API pages expose stores via `mapStores`/`mapState` for templates and call `useXStore()` inline in methods. New cross-page state gets a domain store, not a loose singleton.
-- Wire strings live in `js/constants.js` (API_V1_PREFIX, apiPath, WS_EVENTS, EMITTER_EVENTS, STORAGE_KEYS). Add new ones there, not inline literals.
+- Live UI is Svelte 5 (runes). Boot is `main.ts` -> `features/app-shell/App.svelte` + `shell/hashRouter.ts` + `shell/PageOutlet.svelte`.
+- Do not add Vue SFCs, vue-router, vue-i18n, or Vue test-utils.
+- Feature modules, `ui/svelte/`, and the `js/` kernel use TypeScript (`.ts`, `lang="ts"` in `.svelte`). Do not grow new plain `.js` under `js/` or `features/`.
+- New routes use `registerFeature` / `routeRegistry` with `mount: "svelte"`. Do not hardcode routes in `main.ts`.
+- i18n is `svelte-i18n` via `js/localeLoader.ts` (`initSvelteI18n`, `setLocale`). Pages use `t()` from `js/i18n.ts`.
+- API calls go through `window.api` (not ad-hoc axios imports in pages).
 - Toasts: `ToastUtils.success|error|warning|info|loading|dismiss`.
-- New top-level pages need: route in `main.js`, nav entry when discoverable, `en.json` keys, frontend tests.
+- New top-level pages need: feature registration, nav entry when discoverable, `en.json` keys, frontend tests.
 - When adding user-visible strings, update `en.json` and the other maintained locale files under `meshchatx/src/frontend/locales/` with real translations (not English copies).
-- Sidebar unread pills live on nav entries in `coreNavEntries.js` and counters in the unread store (`js/stores/unreadStore.js`). Do not bring back a header notification bell for that job.
-- Do not use `_`-prefixed keys in Vue `data()` (`vue/no-reserved-keys`).
-- Identity-scoped persistence: localStorage state that belongs to an identity (drafts, ignore lists, per-room prefs) must be bucketed under the identity hash, and the identity key must be captured when the state is loaded, never re-read from the config store at save time. A deferred save (on room switch, route leave, unmount, or identity switch) that resolves the live identity can write one identity's data into another's bucket. `js/identityScope.js` (`useIdentityScope`) is the canonical primitive: `beginIdentity` captures the identity at load time and `keyForWrite` resolves saves against the captured key. `js/messages/useMessageDrafts.js` is the reference consumer. Any new per-identity store must use the scope (or the same capture rule) plus a regression test that switches identity between load and save.
+- Sidebar unread pills live on nav entries in `coreNavEntries.js` and counters in `GlobalState`. Do not bring back a header notification bell for that job.
+- Identity-scoped persistence: localStorage state that belongs to an identity (drafts, ignore lists, per-room prefs) must be bucketed under the identity hash, and the identity key must be captured when the state is loaded, never re-read from the config store at save time. A deferred save (on room switch, route leave, unmount, or identity switch) that resolves the live identity can write one identity's data into another's bucket. `js/identityScope.js` (`useIdentityScope`) is the canonical primitive: `beginIdentity` captures the identity at load time and `keyForWrite` resolves saves against the captured key. `features/messages/lib/conversationDrafts.ts` shows the same capture rule applied to compose drafts. Any new per-identity store must use the scope (or the same capture rule) plus a regression test that switches identity between load and save.
 - File inputs: prefer broad `accept` for identity keys (`.bin,.key,.identity,application/octet-stream,*/*`). Database restore stays `.zip`.
 - Prefer existing MaterialDesignIcon / layout patterns over new design systems.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
+
+## Layers
+
+| Layer    | Location                                                    | May import                     |
+| -------- | ----------------------------------------------------------- | ------------------------------ |
+| Kernel   | `js/` (api, registries, toast, theme, state, i18n) as `.ts` | other kernel only              |
+| UI       | `ui/svelte/`                                                | kernel                         |
+| Features | `features/<id>/`                                            | kernel, ui, own files          |
+| Shell    | `features/app-shell/`, `shell/`, boot (`main.ts`)           | kernel, registries, PageOutlet |
+
+Cross-feature UI imports are forbidden. Share through kernel events, registries, or `ui/`.
+
+## Svelte
+
+- `pnpm run svelte-check` and `pnpm run format:check:svelte` in `task lint:frontend`. Runes mode only.
+- Prefer small `features/<id>/components/` and `lib/` pieces. Do not grow Svelte god pages.
+- Feature `lib/` and `index` files are TypeScript. Svelte scripts use `lang="ts"`.
+- Host flip gate: `tests/frontend/hostFlipReadiness.test.js` and `tests/frontend/svelteShellMigrationRegressions.test.js`.
+- Skill: `.agents/skills/svelte-feature-modules/SKILL.md`.
 
 ## Shared UI primitives
 
 Prefer these over ad-hoc gray/blue utilities on new or touched surfaces:
 
-- `EmptyState`, `LoadingState`, `Skeleton` for empty / loading / placeholder rows
-- `IconButton` for icon-only controls (includes `focus-ring-sem` and 44px touch target)
-- CSS helpers in `style.css`: `input-field`, `primary-chip` / `secondary-chip` / `danger-chip`, `focus-ring-sem`, `press-feedback`, `page-canvas`
-- Focus rings: `focus-ring-sem` or `focus:ring-sem-focus`, not `focus:ring-blue-500`
-- Primary actions: `primary-chip` or `bg-sem-action-primary`, not raw `bg-blue-600`
-- Honor `prefers-reduced-motion` on new animation (route fade and chip press already do)
-
-## Mega-page extracts
-
-When splitting large page shells, follow `.agents/skills/vue-mega-page-split/SKILL.md`
-and the Frontend mega-pages table in `.agents/module-ownership.md`.
-
-- Mechanical extract only. Move or behaviour change, never both in the same change.
-- Prefer `internal/` or `settings/sections/` for page-private UI. Prefer colocated or `js/<feature>/` for pure helpers.
-- Aim shells toward under about 2000 lines across multiple PRs. Prefer slices of about 150 to 300 lines.
-- Verify with ownership contracts in `tests/frontend/frontendOwnershipContract.test.js` plus focused page tests.
-- Do not treat `task test:quick` alone as enough coverage for map, settings, call, or conversation extracts.
+- Semantic tokens (`sem-*`) from the theme engine
+- `ui/svelte/` Modal, Toast, ConfirmDialog, MaterialDesignIcon, SettingToggleRow patterns
+- Feature-local panels under `features/<id>/components/`

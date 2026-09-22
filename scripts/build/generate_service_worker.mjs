@@ -26,7 +26,7 @@ export const SW_POLICY_PATH = path.join(
     "frontend",
     "js",
     "pwa",
-    "swCachePolicy.js"
+    "swCachePolicy.ts"
 );
 
 export const SW_RUNTIME_PATH = path.join(
@@ -36,7 +36,7 @@ export const SW_RUNTIME_PATH = path.join(
     "frontend",
     "js",
     "pwa",
-    "swShellRuntime.js"
+    "swShellRuntime.ts"
 );
 
 export const SW_PUBLIC_PATH = path.join(
@@ -68,6 +68,7 @@ export function stripEsmForServiceWorker(source) {
         .replace(/^export\s+const\s+/gm, "const ")
         .replace(/^export\s+\{[^}]*\}\s*;?\s*$/gm, "")
         .replace(/^\/\/ SPDX-License-Identifier:.*$/gm, "")
+        .replace(/^\/\/ @ts-nocheck\s*$/gm, "")
         .trim();
 }
 

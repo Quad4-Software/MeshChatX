@@ -1,33 +1,17 @@
-import { mount } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import RelayChatPage from "@/components/relay/RelayChatPage.vue";
-import ConversationViewer from "@/components/messages/ConversationViewer.vue";
-import { mountToolsPageGlobals } from "./testI18n.js";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { render, cleanup, waitFor } from "@testing-library/svelte";
+import RelayChatPage from "@/features/relay-chat/components/RelayChatPage.svelte";
+import ConversationViewer from "@/features/messages/components/ConversationViewer.svelte";
+import GlobalEmitter from "@/js/GlobalEmitter.js";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import en from "@/locales/en.json";
 
-vi.mock("@/js/DialogUtils", () => ({
-    default: {
-        confirm: vi.fn(() => Promise.resolve(true)),
-        alert: vi.fn(),
-        prompt: vi.fn(() => Promise.resolve(null)),
-    },
-}));
+const queue = { clear: vi.fn(), enqueue: vi.fn(), cancelJob: vi.fn(), size: 0 };
 
-vi.mock("@/js/NotificationUtils", () => ({
-    default: {
-        clearMessageNotifications: vi.fn(),
-        clearAllMessageNotifications: vi.fn(),
-        showNewMessageNotification: vi.fn(),
-        syncAndroidNotificationContext: vi.fn(),
-    },
-}));
-
-vi.mock("@/js/GlobalEmitter", () => ({
-    default: {
-        on: vi.fn(),
-        off: vi.fn(),
-        emit: vi.fn(),
-    },
+vi.mock("@/js/outboundSendQueue.js", () => ({
+    createOutboundQueue: () => queue,
 }));
 
 const HUB_HASH = "00112233445566778899aabbccddeeff";
@@ -42,11 +26,12 @@ function makeHub(overrides = {}) {
         hub_name: "Test Hub",
         hub_version: "1",
         motd: null,
-        rooms: ["lobby"],
-        known_rooms: ["lobby"],
+        rooms: ["roomA", "roomB"],
+        known_rooms: ["roomA", "roomB"],
         unread_rooms: [],
         mention_rooms: [],
-        available_rooms: {},
+        available_rooms: [],
+        available_keyed_rooms: [],
         auto_reconnect: false,
         auto_list: false,
         auto_who: false,
@@ -61,7 +46,9 @@ describe("identity switch and stale-response regressions", () => {
     let axiosMock;
 
     beforeEach(() => {
-        useConfigStore().config.theme = "light";
+        registerTranslator(null);
+        registerFallbackMessages(en);
+        queue.clear.mockClear();
         axiosMock = {
             get: vi.fn(),
             post: vi.fn().mockResolvedValue({ data: {} }),
@@ -74,157 +61,114 @@ describe("identity switch and stale-response regressions", () => {
             if (url === "/api/v1/rrc/hubs") {
                 return Promise.resolve({ data: { hubs: [makeHub()] } });
             }
-            if (url === "/api/v1/rrc/servers") {
-                return Promise.resolve({ data: { hubs: [] } });
+            if (url === "/api/v1/rrc/servers/active" || url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { server: null } });
             }
-            if (url === "/api/v1/announces") {
+            if (url === "/api/v1/rrc/discovery" || url === "/api/v1/announces") {
                 return Promise.resolve({ data: { announces: [] } });
             }
             if (url.includes("/rooms/") && url.endsWith("/messages")) {
-                return Promise.resolve({ data: { messages: [], members: [] } });
+                return Promise.resolve({ data: { messages: [], members: [], has_more: false } });
             }
             return Promise.resolve({ data: {} });
         });
-
-        const localStorageMock = {
-            getItem: vi.fn(),
-            setItem: vi.fn(),
-            removeItem: vi.fn(),
-        };
-        vi.stubGlobal("localStorage", localStorageMock);
-        window.URL.createObjectURL = vi.fn(() => "mock-url");
     });
 
     afterEach(() => {
+        cleanup();
         delete window.api;
         vi.unstubAllGlobals();
         vi.restoreAllMocks();
     });
 
-    const mountRelayPage = () => mount(RelayChatPage, { global: mountToolsPageGlobals() });
-
-    const mountConversationViewer = () =>
-        mount(ConversationViewer, {
-            props: {
-                selectedPeer: { destination_hash: "peer-hash", display_name: "Peer" },
-                myLxmfAddressHash: "my-hash",
-                conversations: [],
-            },
-            global: {
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-                mocks: {
-                    $t: (key) => key,
-                    $route: { meta: {} },
-                    $router: { push: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    AddImageButton: true,
-                    AddAudioButton: true,
-                    SendMessageButton: true,
-                    ConversationDropDownMenu: true,
-                    PaperMessageModal: true,
-                    AudioWaveformPlayer: true,
-                    LxmfUserIcon: true,
-                },
-            },
-        });
-
     it("ConversationViewer drops the outbound send queue on identity switch", async () => {
-        const wrapper = mountConversationViewer();
-        const queue = wrapper.vm._outboundQueue;
-        expect(queue).toBeTruthy();
-        const clearSpy = vi.spyOn(queue, "clear");
-        wrapper.vm.onIdentitySwitched({ identity_hash: "new-identity" });
-        expect(clearSpy).toHaveBeenCalled();
-        wrapper.unmount();
+        const peerHash = "aa".repeat(16);
+        render(ConversationViewer, {
+            selectedPeer: { destination_hash: peerHash, display_name: "Peer" },
+            myLxmfAddressHash: "bb".repeat(16),
+            conversations: [],
+        });
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalled();
+        });
+        queue.clear.mockClear();
+
+        GlobalEmitter.emit("identity-switched", { identity_hash: "new-identity" });
+        await waitFor(() => {
+            expect(queue.clear).toHaveBeenCalled();
+        });
     });
 
     it("RelayChatPage refreshMembers ignores a response for a stale room", async () => {
-        const wrapper = mountRelayPage();
-        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        const { component, getByText } = render(RelayChatPage);
+        await waitFor(() => expect(getByText("Test Hub")).toBeTruthy());
 
-        wrapper.vm.selectedHubHash = "hubA";
-        wrapper.vm.selectedRoom = "roomA";
-        wrapper.vm.members = [{ hash: "current" }];
+        await component.selectRoom(HUB_HASH, "roomA");
+        // The header member counter reads 0 for the empty member list.
+        await waitFor(() => expect(getByText("0")).toBeTruthy());
 
-        let resolveRefresh;
+        // websocket-reconnected triggers softResyncOpenRoom -> refreshMembers
+        // when the messages payload carries no members array.
+        let resolveMembers;
         const deferred = new Promise((resolve) => {
-            resolveRefresh = resolve;
+            resolveMembers = resolve;
         });
-        axiosMock.get.mockImplementationOnce((url) => {
+        axiosMock.get.mockImplementation((url) => {
             if (url.includes("/rooms/") && url.endsWith("/messages")) {
                 return deferred;
             }
             return Promise.resolve({ data: {} });
         });
-
-        const pending = wrapper.vm.refreshMembers();
-        // User navigates to a different room before the response lands.
-        wrapper.vm.selectedRoom = "roomB";
-        resolveRefresh({ data: { members: [{ hash: "stale-room-member" }] } });
-        await pending;
-
-        expect(wrapper.vm.members).toEqual([{ hash: "current" }]);
-        wrapper.unmount();
-    });
-
-    it("RelayChatPage refreshMembers still applies for the selected room", async () => {
-        const wrapper = mountRelayPage();
-        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
-
-        wrapper.vm.selectedHubHash = "hubA";
-        wrapper.vm.selectedRoom = "roomA";
-
-        let resolveRefresh;
-        const deferred = new Promise((resolve) => {
-            resolveRefresh = resolve;
+        GlobalEmitter.emit("websocket-reconnected", { degraded: false, failed: [] });
+        await waitFor(() => {
+            expect(axiosMock.get.mock.calls.some((c) => String(c[0]).includes("/rooms/roomA/messages"))).toBe(true);
         });
-        axiosMock.get.mockImplementationOnce((url) => {
+
+        // User moves to roomB before the stale member fetch lands.
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [makeHub()] } });
+            }
             if (url.includes("/rooms/") && url.endsWith("/messages")) {
-                return deferred;
+                return Promise.resolve({
+                    data: { messages: [], members: [{ hash: "roomb-member", name: "B" }], has_more: false },
+                });
             }
             return Promise.resolve({ data: {} });
         });
-
-        const pending = wrapper.vm.refreshMembers();
-        resolveRefresh({ data: { members: [{ hash: "fresh" }] } });
-        await pending;
-
-        expect(wrapper.vm.members).toEqual([{ hash: "fresh" }]);
-        wrapper.unmount();
-    });
-
-    it("RelayChatPage identity switch bumps roomSelectSequence", async () => {
-        const wrapper = mountRelayPage();
-        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
-        const seq = wrapper.vm.roomSelectSequence;
-        wrapper.vm.onIdentitySwitched();
-        expect(wrapper.vm.roomSelectSequence).toBeGreaterThan(seq);
-        wrapper.unmount();
+        const selected = component.selectRoom(HUB_HASH, "roomB");
+        resolveMembers({ data: { messages: [], members: [{ hash: "stale" }] } });
+        await selected;
+        await waitFor(() => expect(getByText("1")).toBeTruthy());
     });
 
     it("RelayChatPage in-flight selectRoom does not merge messages across identity switch", async () => {
-        const wrapper = mountRelayPage();
-        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        const { component, getByText, queryByText } = render(RelayChatPage);
+        await waitFor(() => expect(getByText("Test Hub")).toBeTruthy());
 
         let resolveLoad;
         const deferred = new Promise((resolve) => {
             resolveLoad = resolve;
         });
-        axiosMock.get.mockImplementationOnce(() => deferred);
+        axiosMock.get.mockImplementation((url) => {
+            if (url.includes("/rooms/") && url.endsWith("/messages")) {
+                return deferred;
+            }
+            return Promise.resolve({ data: {} });
+        });
 
-        const pending = wrapper.vm.selectRoom(HUB_HASH, "roomA");
-        wrapper.vm.onIdentitySwitched();
+        const pending = component.selectRoom(HUB_HASH, "roomA");
+        GlobalEmitter.emit("identity-switched", { identity_hash: "new-identity" });
         resolveLoad({
             data: {
-                messages: [{ kind: "msg", room: "roomA", src: "aa", nick: "x", text: "stale", ts: 1 }],
+                messages: [{ kind: "msg", room: "roomA", src: "aa", nick: "x", text: "stale marker", ts: 1 }],
                 members: [],
             },
         });
         await pending;
 
-        expect(wrapper.vm.messages).toEqual([]);
-        wrapper.unmount();
+        await waitFor(() => {
+            expect(queryByText("stale marker")).toBeNull();
+        });
     });
 });

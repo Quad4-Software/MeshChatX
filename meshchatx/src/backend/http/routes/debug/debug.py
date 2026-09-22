@@ -1,0 +1,279 @@
+# SPDX-License-Identifier: 0BSD
+"""HTTP routes: debug/debug."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+    http_payload_too_large,
+    parse_int_param,
+)
+
+# ruff: noqa: F403, F405
+from meshchatx.src.backend.http.routes.debug._names import *
+from meshchatx.src.backend.http.uploads import (
+    PayloadTooLargeError,
+    read_json_limited,
+)
+from meshchatx.src.backend.meshchat_utils import parse_bool_query_param
+from meshchatx.src.backend.persistent_log_handler import memory_log_handler
+
+
+def register_debug_debug_routes(routes: Any, app: Any) -> None:
+    # serve debug logs
+    @routes.get(API_V1_PREFIX + "/debug/logs")
+    async def get_debug_logs(request):
+        search = request.query.get("search")
+        level = request.query.get("level")
+        module = request.query.get("module")
+        is_anomaly = parse_bool_query_param(request.query.get("is_anomaly"))
+        limit = parse_int_param(request.query.get("limit"), 100, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request("limit and offset must be non-negative integers")
+
+        logs = memory_log_handler.get_logs(
+            limit=limit,
+            offset=offset,
+            search=search,
+            level=level,
+            module=module,
+            is_anomaly=is_anomaly,
+        )
+        total = memory_log_handler.get_total_count(
+            search=search,
+            level=level,
+            module=module,
+            is_anomaly=is_anomaly,
+        )
+
+        from meshchatx.src.backend.log_redaction import redact_diagnostic_text
+
+        redacted_logs = []
+        for entry in logs or []:
+            if not isinstance(entry, dict):
+                redacted_logs.append(entry)
+                continue
+            entry_copy = dict(entry)
+            message = entry_copy.get("message")
+            if isinstance(message, str):
+                entry_copy["message"] = redact_diagnostic_text(message)
+            redacted_logs.append(entry_copy)
+
+        return web.json_response(
+            {
+                "logs": redacted_logs,
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            },
+        )
+
+    @routes.get(API_V1_PREFIX + "/debug/websocket")
+    async def get_websocket_debug(request):
+        counters = getattr(app, "ws_counters", None)
+        clients = getattr(app, "websocket_clients", None) or []
+        snap = (
+            counters.snapshot(client_count=len(clients))
+            if counters is not None
+            else {"clients": len(clients)}
+        )
+        seq_state = getattr(app, "ws_seq_state", None)
+        if seq_state is not None:
+            snap["seq"] = int(seq_state.seq)
+        snap["max_msg_size"] = int(
+            getattr(app, "websocket_max_msg_size", 0) or 0,
+        )
+        wt = getattr(app, "webtransport_state", None)
+        if wt is not None:
+            snap["webtransport"] = wt.status_dict()
+        return web.json_response({"websocket": snap})
+
+    @routes.get(API_V1_PREFIX + "/debug/access-attempts")
+    async def get_access_attempts(request):
+        search = request.query.get("search")
+        outcome = request.query.get("outcome") or None
+        limit = parse_int_param(request.query.get("limit"), 100, minimum=0)
+        offset = parse_int_param(request.query.get("offset"), 0, minimum=0)
+        if limit is None or offset is None:
+            return http_bad_request("limit and offset must be non-negative integers")
+        if not app.database:
+            return web.json_response(
+                {"attempts": [], "total": 0, "limit": limit, "offset": offset},
+            )
+        dao = app.database.access_attempts
+        attempts = dao.list_attempts(
+            limit=limit,
+            offset=offset,
+            search=search,
+            outcome=outcome,
+        )
+        total = dao.count_attempts(search=search, outcome=outcome)
+        return web.json_response(
+            {
+                "attempts": attempts,
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            },
+        )
+
+    # -- Memory diagnostics (only when --memory-diag is active) ----------
+
+    @routes.get(API_V1_PREFIX + "/diagnostics/memory")
+    async def get_memory_diagnostics(request):
+        if app._mem_diag is None:
+            return web.json_response(
+                {"enabled": False, "message": "Pass --memory-diag to enable"},
+            )
+        # tracemalloc.snapshot() + gc.get_objects() are CPU-bound and
+        # block the event loop for tens of seconds, so run off-loop.
+        report = await asyncio.to_thread(app._mem_diag.report)
+        return web.json_response(report)
+
+    @routes.post(API_V1_PREFIX + "/diagnostics/memory/snapshot")
+    async def take_memory_snapshot(request):
+        if app._mem_diag is None or not app._mem_diag.enabled:
+            return http_bad_request("Memory diagnostics not enabled")
+        await asyncio.to_thread(app._mem_diag.snapshot)
+        gc_result = await asyncio.to_thread(app._mem_diag.find_cyclic_garbage)
+        stats = await asyncio.to_thread(app._mem_diag.gc_stats)
+        return web.json_response(
+            {
+                "status": "ok",
+                "snapshot_count": len(app._mem_diag._snapshots),
+                "gc_collected": gc_result,
+                "gc_stats": stats,
+            },
+        )
+
+    @routes.get(API_V1_PREFIX + "/diagnostics/memory/heap")
+    async def get_heap_analysis(request):
+        if app._mem_diag is None or not app._mem_diag.enabled:
+            return http_bad_request("Memory diagnostics not enabled")
+        top_n = parse_int_param(request.query.get("top_n"), 40, minimum=1)
+        if top_n is None:
+            return http_bad_request("top_n must be a positive integer")
+        by_type = await asyncio.to_thread(app._mem_diag.heap_by_type, top_n=top_n)
+        by_cat = await asyncio.to_thread(app._mem_diag.heap_by_category)
+        acc = await asyncio.to_thread(app._mem_diag.accumulating_types)
+        growth = await asyncio.to_thread(app._mem_diag.type_growth_since_start)
+        return web.json_response(
+            {
+                "by_type": by_type,
+                "by_category": by_cat,
+                "accumulating": acc,
+                "growth_since_start": growth,
+            },
+        )
+
+    @routes.get(API_V1_PREFIX + "/diagnostics/memory/gc")
+    async def get_gc_stats(request):
+        if app._mem_diag is None or not app._mem_diag.enabled:
+            return web.json_response(
+                {"enabled": False, "message": "Pass --memory-diag to enable"},
+            )
+        stats = await asyncio.to_thread(app._mem_diag.gc_stats)
+        return web.json_response(stats)
+
+    @routes.post(API_V1_PREFIX + "/diagnostics/memory/gc/collect")
+    async def force_gc_collect(request):
+        if app._mem_diag is None or not app._mem_diag.enabled:
+            return http_bad_request("Memory diagnostics not enabled")
+        result = await asyncio.to_thread(app._mem_diag.find_cyclic_garbage)
+        if app._mem_diag.enabled:
+            await asyncio.to_thread(app._mem_diag.snapshot)
+        stats = await asyncio.to_thread(app._mem_diag.gc_stats)
+        return web.json_response(
+            {
+                "status": "ok",
+                "gc_collected": result,
+                "gc_stats": stats,
+                "snapshot_count": len(app._mem_diag._snapshots),
+            },
+        )
+
+    @routes.get(API_V1_PREFIX + "/diagnostics/memory/referrers")
+    async def get_referrers(request):
+        if app._mem_diag is None or not app._mem_diag.enabled:
+            return http_bad_request("Memory diagnostics not enabled")
+        type_name = request.query.get("type", "")
+        if not type_name:
+            return http_bad_request("Specify ?type=<TypeName>")
+        result = await asyncio.to_thread(
+            app._mem_diag.find_referrers,
+            type_name,
+        )
+        return web.json_response(result)
+
+    @routes.post(API_V1_PREFIX + "/diagnostics/memory/reset")
+    async def reset_memory_diagnostics(request):
+        if app._mem_diag is None:
+            return http_bad_request("Memory diagnostics not enabled")
+        await asyncio.to_thread(app._mem_diag.reset)
+        await asyncio.to_thread(app._mem_diag.start)
+        return web.json_response({"status": "ok", "message": "Diagnostics reset"})
+
+    def _bug_manager():
+        manager = getattr(app, "bug_report_manager", None)
+        if manager is None:
+            from meshchatx.src.backend.bug_report_manager import BugReportManager
+
+            manager = BugReportManager(app)
+            app.bug_report_manager = manager
+        return manager
+
+    @routes.get(API_V1_PREFIX + "/bug-reports/issues")
+    async def list_bug_issues(request):
+        manager = _bug_manager()
+        limit = parse_int_param(request.query.get("limit"), 50, minimum=0)
+        if limit is None:
+            return http_bad_request("limit must be a non-negative integer")
+        status = request.query.get("status") or None
+        return web.json_response(manager.list_issues(limit=limit, status=status))
+
+    @routes.get(API_V1_PREFIX + "/bug-reports/issues/{fingerprint}")
+    async def get_bug_issue(request):
+        manager = _bug_manager()
+        fingerprint = request.match_info.get("fingerprint") or ""
+        try:
+            return web.json_response(manager.get_issue(fingerprint))
+        except LookupError:
+            return http_not_found("issue not found")
+
+    @routes.post(API_V1_PREFIX + "/bug-reports/local")
+    async def record_local_bug(request):
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        manager = _bug_manager()
+        result = await asyncio.to_thread(manager.record_local, data)
+        return web.json_response(result)
+
+    @routes.post(API_V1_PREFIX + "/bug-reports/issues/{fingerprint}/status")
+    async def set_bug_issue_status(request):
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            data = {}
+        manager = _bug_manager()
+        fingerprint = request.match_info.get("fingerprint") or ""
+        status = str((data or {}).get("status") or "")
+        try:
+            result = manager.set_issue_status(fingerprint, status)
+            return web.json_response(result)
+        except LookupError:
+            return http_not_found("issue not found")
+        except ValueError as exc:
+            return http_bad_request(str(exc))

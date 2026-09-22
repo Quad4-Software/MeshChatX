@@ -5,7 +5,7 @@ import {
     defaultLxmfConfigDraft,
     draftFromBotLxmfConfig,
     parseAdminsDraft,
-} from "../../meshchatx/src/frontend/components/tools/internal/botLxmfConfigForm.js";
+} from "../../meshchatx/src/frontend/features/bots/lib/botLxmfConfigForm.js";
 
 describe("botLxmfConfigForm", () => {
     it("returns empty patch for default draft", () => {

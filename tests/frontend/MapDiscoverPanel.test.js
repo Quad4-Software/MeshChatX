@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount, flushPromises } from "@vue/test-utils";
+import { render, cleanup, fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import MapDiscoverPanel from "@/components/map/internal/MapDiscoverPanel.vue";
+import MapDiscoverPanel from "@/features/map/components/MapDiscoverPanel.svelte";
 import ToastUtils from "@/js/ToastUtils";
+import { t, registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import en from "@/locales/en.json";
 
 const HASH = "ab".repeat(16);
 
@@ -20,8 +22,9 @@ vi.mock("@/js/ToastUtils", () => ({
 
 describe("MapDiscoverPanel", () => {
     beforeEach(() => {
-        vi.useFakeTimers();
         vi.clearAllMocks();
+        registerTranslator(null);
+        registerFallbackMessages(en);
         window.api = {
             get: vi.fn().mockResolvedValue({
                 data: {
@@ -33,63 +36,77 @@ describe("MapDiscoverPanel", () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
+        cleanup();
         delete window.api;
     });
 
     it("loads heard map-data-v1 announces through window.api", async () => {
-        const wrapper = mount(MapDiscoverPanel, {
-            props: { listenEnabled: true },
-            global: { mocks: { $t: (key) => key } },
+        const { container } = render(MapDiscoverPanel, {
+            listenEnabled: true,
         });
-        await vi.advanceTimersByTimeAsync(250);
-        await flushPromises();
-        expect(window.api.get).toHaveBeenCalledWith("/api/v1/map/data/heard", {
-            params: { search: undefined, limit: 250 },
+
+        await waitFor(() => {
+            expect(window.api.get).toHaveBeenCalledWith("/api/v1/map/data/heard", {
+                params: { search: undefined, limit: 250 },
+            });
+            expect(container.textContent).toContain("Camp maps");
+            expect(container.textContent).toContain(HASH);
         });
-        expect(wrapper.text()).toContain("Camp maps");
-        expect(wrapper.text()).toContain(HASH);
     });
 
     it("fetches a catalog over window.api.post", async () => {
-        const wrapper = mount(MapDiscoverPanel, {
-            props: { listenEnabled: true },
-            global: { mocks: { $t: (key) => key } },
+        const { container } = render(MapDiscoverPanel, {
+            listenEnabled: true,
         });
-        await vi.advanceTimersByTimeAsync(250);
-        await flushPromises();
-        await wrapper.find("button").trigger("click");
-        await flushPromises();
-        expect(window.api.post).toHaveBeenCalledWith("/api/v1/map/data/catalog", {
-            destination_hash: HASH,
+
+        await waitFor(() => {
+            expect(container.textContent).toContain("Camp maps");
         });
-        expect(wrapper.text()).toContain("Camp");
-        expect(ToastUtils.loading).toHaveBeenCalled();
-        expect(ToastUtils.success).toHaveBeenCalled();
+
+        const fetchButton = container.querySelector("button");
+        if (fetchButton) {
+            await fireEvent.click(fetchButton);
+        }
+
+        await waitFor(() => {
+            expect(window.api.post).toHaveBeenCalledWith("/api/v1/map/data/catalog", {
+                destination_hash: HASH,
+            });
+            expect(container.textContent).toContain("Camp");
+            expect(ToastUtils.loading).toHaveBeenCalled();
+            expect(ToastUtils.success).toHaveBeenCalled();
+        });
     });
 
     it("shows empty catalog copy when the node lists no maps", async () => {
         window.api.post = vi.fn().mockResolvedValue({ data: { maps: [] } });
-        const wrapper = mount(MapDiscoverPanel, {
-            props: { listenEnabled: true },
-            global: { mocks: { $t: (key) => key } },
+        const { container } = render(MapDiscoverPanel, {
+            listenEnabled: true,
         });
-        await vi.advanceTimersByTimeAsync(250);
-        await flushPromises();
-        await wrapper.find("button").trigger("click");
-        await flushPromises();
-        expect(wrapper.text()).toContain("map.data_catalog_empty");
-        expect(ToastUtils.info).toHaveBeenCalled();
+
+        await waitFor(() => {
+            expect(container.textContent).toContain("Camp maps");
+        });
+
+        const fetchButton = container.querySelector("button");
+        if (fetchButton) {
+            await fireEvent.click(fetchButton);
+        }
+
+        await waitFor(() => {
+            expect(container.textContent).toContain(t("map.data_catalog_empty"));
+            expect(ToastUtils.info).toHaveBeenCalled();
+        });
     });
 
     it("does not fetch heard announces while listening is off", async () => {
-        const wrapper = mount(MapDiscoverPanel, {
-            props: { listenEnabled: false },
-            global: { mocks: { $t: (key) => key } },
+        const { container } = render(MapDiscoverPanel, {
+            listenEnabled: false,
         });
-        await vi.advanceTimersByTimeAsync(250);
-        await flushPromises();
-        expect(window.api.get).not.toHaveBeenCalled();
-        expect(wrapper.text()).toContain("map.data_listen_off");
+
+        await waitFor(() => {
+            expect(window.api.get).not.toHaveBeenCalled();
+            expect(container.textContent).toContain(t("map.data_listen_off"));
+        });
     });
 });

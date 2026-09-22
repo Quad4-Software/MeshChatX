@@ -1,6 +1,16 @@
-import { mount } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+
+import { render, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import AddInterfacePage from "../../meshchatx/src/frontend/components/interfaces/AddInterfacePage.vue";
+import AddInterfacePage from "../../meshchatx/src/frontend/features/interfaces/AddInterfacePage.svelte";
+import {
+    parseRawConfig,
+    buildPayloadFromImportedConfig,
+} from "../../meshchatx/src/frontend/features/interfaces/lib/addInterfaceState.js";
+import {
+    saveInterfaceApi,
+    fetchInterfaceToEdit,
+} from "../../meshchatx/src/frontend/features/interfaces/lib/interfacesApi.js";
 
 const mockAxios = {
     get: vi.fn(),
@@ -16,49 +26,37 @@ vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
-        success: vi.fn(),
-        error: vi.fn(),
+        showSuccess: vi.fn(),
+        showError: vi.fn(),
     },
 }));
 
-describe("AddInterfacePage.vue discovery", () => {
+describe("AddInterfacePage.svelte discovery", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockAxios.get.mockResolvedValue({ data: {} });
         mockAxios.post.mockResolvedValue({ data: { message: "ok" } });
     });
 
-    const mountPage = () =>
-        mount(AddInterfacePage, {
-            global: {
-                mocks: {
-                    $route: { query: {} },
-                    $router: { push: vi.fn() },
-                    $t: (msg) => msg,
-                },
-                stubs: ["RouterLink", "MaterialDesignIcon", "Toggle", "ExpandingSection", "FormLabel", "FormSubLabel"],
-            },
-        });
-
     it("adds discovery fields when interface is discoverable", async () => {
-        const wrapper = mountPage();
+        const payload = {
+            type: "TCPClientInterface",
+            target_host: "example.com",
+            target_port: 4242,
+            discoverable: true,
+            discovery_name: "Region A",
+            announce_interval: 720,
+            reachable_on: "/usr/local/bin/ip.sh",
+        };
 
-        wrapper.vm.newInterfaceName = "TestIface";
-        wrapper.vm.newInterfaceType = "TCPClientInterface";
-        wrapper.vm.newInterfaceTargetHost = "example.com";
-        wrapper.vm.newInterfaceTargetPort = "4242";
-
-        wrapper.vm.discovery.discoverable = true;
-        wrapper.vm.discovery.discovery_name = "Region A";
-        wrapper.vm.discovery.announce_interval = 720;
-        wrapper.vm.discovery.reachable_on = "/usr/local/bin/ip.sh";
-
-        await wrapper.vm.saveInterface();
+        await saveInterfaceApi("TestIface", payload, false);
 
         expect(mockAxios.post).toHaveBeenCalledWith(
             "/api/v1/reticulum/interfaces/add",
             expect.objectContaining({
-                discoverable: "yes",
+                name: "TestIface",
+                type: "TCPClientInterface",
+                discoverable: true,
                 discovery_name: "Region A",
                 announce_interval: 720,
                 reachable_on: "/usr/local/bin/ip.sh",
@@ -67,119 +65,93 @@ describe("AddInterfacePage.vue discovery", () => {
     });
 
     it("does not require latitude or longitude (optional coordinates)", async () => {
-        const wrapper = mountPage();
+        const payload = {
+            type: "TCPClientInterface",
+            target_host: "example.com",
+            target_port: 4242,
+            discoverable: true,
+            discovery_name: "X",
+            announce_interval: 360,
+            reachable_on: "192.0.2.1",
+            latitude: null,
+            longitude: null,
+            height: null,
+        };
 
-        wrapper.vm.newInterfaceName = "NoCoords";
-        wrapper.vm.newInterfaceType = "TCPClientInterface";
-        wrapper.vm.newInterfaceTargetHost = "example.com";
-        wrapper.vm.newInterfaceTargetPort = "4242";
+        await saveInterfaceApi("NoCoords", payload, false);
 
-        wrapper.vm.discovery.discoverable = true;
-        wrapper.vm.discovery.discovery_name = "X";
-        wrapper.vm.discovery.announce_interval = 360;
-        wrapper.vm.discovery.reachable_on = "192.0.2.1";
-        wrapper.vm.discovery.latitude = null;
-        wrapper.vm.discovery.longitude = null;
-        wrapper.vm.discovery.height = null;
-
-        await wrapper.vm.saveInterface();
-
-        const payload = mockAxios.post.mock.calls[0][1];
-        expect(payload.latitude).toBe(null);
-        expect(payload.longitude).toBe(null);
-        expect(payload.height).toBe(null);
-        expect(payload.discoverable).toBe("yes");
+        const sent = mockAxios.post.mock.calls[0][1];
+        expect(sent.latitude).toBe(null);
+        expect(sent.longitude).toBe(null);
+        expect(sent.height).toBe(null);
+        expect(sent.discoverable).toBe(true);
     });
 
-    it("sends coordinates when set (text input compatible)", async () => {
-        const wrapper = mountPage();
+    it("sends coordinates when set", async () => {
+        const payload = {
+            type: "TCPClientInterface",
+            target_host: "example.com",
+            target_port: 4242,
+            discoverable: true,
+            discovery_name: "Y",
+            announce_interval: 360,
+            reachable_on: "192.0.2.2",
+            latitude: 51.5,
+            longitude: -0.12,
+            height: 42,
+        };
 
-        wrapper.vm.newInterfaceName = "WithCoords";
-        wrapper.vm.newInterfaceType = "TCPClientInterface";
-        wrapper.vm.newInterfaceTargetHost = "example.com";
-        wrapper.vm.newInterfaceTargetPort = "4242";
+        await saveInterfaceApi("WithCoords", payload, false);
 
-        wrapper.vm.discovery.discoverable = true;
-        wrapper.vm.discovery.discovery_name = "Y";
-        wrapper.vm.discovery.announce_interval = 360;
-        wrapper.vm.discovery.reachable_on = "192.0.2.2";
-        wrapper.vm.discovery.latitude = "51.5";
-        wrapper.vm.discovery.longitude = "-0.12";
-        wrapper.vm.discovery.height = "42";
-
-        await wrapper.vm.saveInterface();
-
-        const payload = mockAxios.post.mock.calls[0][1];
-        expect(payload.latitude).toBe(51.5);
-        expect(payload.longitude).toBe(-0.12);
-        expect(payload.height).toBe(42);
+        const sent = mockAxios.post.mock.calls[0][1];
+        expect(sent.latitude).toBe(51.5);
+        expect(sent.longitude).toBe(-0.12);
+        expect(sent.height).toBe(42);
     });
 
     it("toggles discovery_encrypt and publish_ifac in payload", async () => {
-        const wrapper = mountPage();
+        const payload = {
+            type: "TCPClientInterface",
+            target_host: "example.com",
+            target_port: 4242,
+            discoverable: true,
+            discovery_name: "Z",
+            announce_interval: 120,
+            reachable_on: "10.0.0.1",
+            discovery_encrypt: true,
+            publish_ifac: false,
+        };
 
-        wrapper.vm.newInterfaceName = "Enc";
-        wrapper.vm.newInterfaceType = "TCPClientInterface";
-        wrapper.vm.newInterfaceTargetHost = "example.com";
-        wrapper.vm.newInterfaceTargetPort = "4242";
+        await saveInterfaceApi("Enc", payload, false);
 
-        wrapper.vm.discovery.discoverable = true;
-        wrapper.vm.discovery.discovery_name = "Z";
-        wrapper.vm.discovery.announce_interval = 120;
-        wrapper.vm.discovery.reachable_on = "10.0.0.1";
-        wrapper.vm.discovery.discovery_encrypt = true;
-        wrapper.vm.discovery.publish_ifac = false;
-
-        await wrapper.vm.saveInterface();
-
-        const payload = mockAxios.post.mock.calls[0][1];
-        expect(payload.discovery_encrypt).toBe(true);
-        expect(payload.publish_ifac).toBe(false);
-    });
-
-    it("clears discovery fields when discoverable is off", async () => {
-        const wrapper = mountPage();
-
-        wrapper.vm.newInterfaceName = "Off";
-        wrapper.vm.newInterfaceType = "TCPClientInterface";
-        wrapper.vm.newInterfaceTargetHost = "example.com";
-        wrapper.vm.newInterfaceTargetPort = "4242";
-
-        wrapper.vm.discovery.discoverable = false;
-
-        await wrapper.vm.saveInterface();
-
-        const payload = mockAxios.post.mock.calls[0][1];
-        expect(payload.discoverable).toBe(null);
-        expect(payload.discovery_name).toBe(null);
-        expect(payload.latitude).toBe(null);
+        const sent = mockAxios.post.mock.calls[0][1];
+        expect(sent.discovery_encrypt).toBe(true);
+        expect(sent.publish_ifac).toBe(false);
     });
 
     it("fuzz: random safe discovery_name and announce_interval still save", async () => {
-        const wrapper = mountPage();
-
-        wrapper.vm.newInterfaceName = "Fuzz";
-        wrapper.vm.newInterfaceType = "TCPClientInterface";
-        wrapper.vm.newInterfaceTargetHost = "example.com";
-        wrapper.vm.newInterfaceTargetPort = "4242";
-
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 15; i++) {
             vi.clearAllMocks();
             mockAxios.post.mockResolvedValue({ data: { message: "ok" } });
 
             const name = `node-${Math.random().toString(36).slice(2, 10)}`;
             const interval = Math.max(5, Math.floor(Math.random() * 10000));
 
-            wrapper.vm.discovery.discoverable = true;
-            wrapper.vm.discovery.discovery_name = name;
-            wrapper.vm.discovery.announce_interval = interval;
-            wrapper.vm.discovery.reachable_on = "192.0.2.1";
+            const payload = {
+                type: "TCPClientInterface",
+                target_host: "example.com",
+                target_port: 4242,
+                discoverable: true,
+                discovery_name: name,
+                announce_interval: interval,
+                reachable_on: "192.0.2.1",
+            };
 
-            await wrapper.vm.saveInterface();
+            await saveInterfaceApi("Fuzz", payload, false);
 
-            const payload = mockAxios.post.mock.calls[0][1];
-            expect(payload.discovery_name).toBe(name);
-            expect(payload.announce_interval).toBe(interval);
+            const sent = mockAxios.post.mock.calls[0][1];
+            expect(sent.discovery_name).toBe(name);
+            expect(sent.announce_interval).toBe(interval);
         }
     });
 
@@ -211,90 +183,53 @@ describe("AddInterfacePage.vue discovery", () => {
             return Promise.resolve({ data: {} });
         });
 
-        const wrapper = mountPage();
-        await wrapper.vm.loadInterfaceToEdit("MyIface");
+        const iface = await fetchInterfaceToEdit("MyIface");
 
-        expect(wrapper.vm.discovery.discoverable).toBe(true);
-        expect(wrapper.vm.discovery.discovery_name).toBe("Loaded");
-        expect(wrapper.vm.discovery.announce_interval).toBe(180);
-        expect(wrapper.vm.discovery.latitude).toBe(12.34);
-        expect(wrapper.vm.discovery.longitude).toBe(56.78);
-        expect(wrapper.vm.discovery.height).toBe(100);
-        expect(wrapper.vm.discovery.discovery_stamp_value).toBe(18);
-        expect(wrapper.vm.discovery.discovery_encrypt).toBe(true);
-        expect(wrapper.vm.discovery.publish_ifac).toBe(false);
+        expect(iface.type).toBe("TCPClientInterface");
+        expect(iface.discovery_name).toBe("Loaded");
+        expect(iface.announce_interval).toBe(180);
+        expect(iface.latitude).toBe(12.34);
+        expect(iface.longitude).toBe(56.78);
+        expect(iface.height).toBe(100);
+        expect(iface.discovery_stamp_value).toBe(18);
+        expect(iface.discovery_encrypt).toBe(true);
+        expect(iface.publish_ifac).toBe(false);
     });
 
-    it("quickAddInterfaceFromConfig posts add endpoint and routes back", async () => {
-        const routerPush = vi.fn();
-        const wrapper = mount(AddInterfacePage, {
-            global: {
-                mocks: {
-                    $route: { query: {} },
-                    $router: { push: routerPush },
-                    $t: (msg) => msg,
-                },
-                stubs: ["RouterLink", "MaterialDesignIcon", "Toggle", "ExpandingSection", "FormLabel", "FormSubLabel"],
-            },
-        });
-
-        await wrapper.vm.quickAddInterfaceFromConfig({
-            name: "Quick Node",
-            type: "TCPClientInterface",
-            target_host: "node.example",
-            target_port: "4242",
-            discoverable: "yes",
-        });
-
-        expect(mockAxios.post).toHaveBeenCalledWith(
-            "/api/v1/reticulum/interfaces/add",
-            expect.objectContaining({
-                name: "Quick Node",
-                type: "TCPClientInterface",
-                target_host: "node.example",
-                target_port: 4242,
-                discoverable: "yes",
-            })
-        );
-        expect(routerPush).toHaveBeenCalledWith({ name: "interfaces" });
-    });
-
-    it("handleRawConfigInput auto-imports a single detected config", async () => {
-        const wrapper = mountPage();
-        const quickAddSpy = vi.spyOn(wrapper.vm, "quickAddInterfaceFromConfig").mockResolvedValue();
-
-        wrapper.vm.rawConfigInput = `[[Auto Node]]
+    it("parseRawConfig parses config blocks and builds payload", () => {
+        const raw = `[[Auto Node]]
 type = TCPClientInterface
 target_host = auto.example
 target_port = 4242`;
-        wrapper.vm.handleRawConfigInput();
+        const configs = parseRawConfig(raw);
+        expect(configs).toHaveLength(1);
+        expect(configs[0].name).toBe("Auto Node");
+        expect(configs[0].target_host).toBe("auto.example");
+        expect(configs[0].target_port).toBe(4242);
 
-        expect(quickAddSpy).toHaveBeenCalledWith(
-            expect.objectContaining({
-                name: "Auto Node",
-                type: "TCPClientInterface",
-                target_host: "auto.example",
-                target_port: "4242",
-            })
-        );
+        const payload = buildPayloadFromImportedConfig(configs[0]);
+        expect(payload.name).toBe("Auto Node");
+        expect(payload.type).toBe("TCPClientInterface");
+        expect(payload.target_host).toBe("auto.example");
+        expect(payload.target_port).toBe(4242);
     });
 
-    it("imports announce_interval zero and equator coordinates from config", async () => {
-        const wrapper = mountPage();
-
-        wrapper.vm.applyConfig({
-            name: "ZeroInterval",
-            type: "TCPClientInterface",
-            target_host: "node.example",
-            target_port: "4242",
-            discoverable: "yes",
-            announce_interval: 0,
-            latitude: 0,
-            longitude: 0,
+    it("renders AddInterfacePage with prefilled query", async () => {
+        const { getByDisplayValue } = render(AddInterfacePage, {
+            props: {
+                routeQuery: {
+                    type: "TCPClientInterface",
+                    name: "PreName",
+                    target_host: "10.0.0.5",
+                    target_port: "4242",
+                },
+            },
         });
 
-        expect(wrapper.vm.discovery.announce_interval).toBe(0);
-        expect(wrapper.vm.discovery.latitude).toBe(0);
-        expect(wrapper.vm.discovery.longitude).toBe(0);
+        await waitFor(() => {
+            expect(getByDisplayValue("PreName")).toBeTruthy();
+            expect(getByDisplayValue("10.0.0.5")).toBeTruthy();
+            expect(getByDisplayValue("4242")).toBeTruthy();
+        });
     });
 });

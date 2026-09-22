@@ -16,7 +16,7 @@ function buildLhConfig(formFactor) {
     return {
         ...base,
         settings: {
-            ...(base.settings || {}),
+            ...base.settings,
             onlyCategories: ["performance", "accessibility", "best-practices"],
             formFactor: formFactor || "desktop",
             throttlingMethod: "simulate",
@@ -82,15 +82,63 @@ function scoresFromLhr(lhr) {
 
 function vitalsFromLhr(lhr) {
     const m = lhr.audits || {};
-    const display = (id) => (m[id] && m[id].displayValue ? m[id].displayValue : null);
-    return {
-        fcp: display("first-contentful-paint"),
-        lcp: display("largest-contentful-paint"),
-        tbt: display("total-blocking-time"),
-        cls: display("cumulative-layout-shift"),
-        si: display("speed-index"),
-        tti: display("interactive"),
+    const entry = (id) => {
+        const audit = m[id];
+        if (!audit) {
+            return { display: null, value: null };
+        }
+        const value =
+            typeof audit.numericValue === "number" && Number.isFinite(audit.numericValue) ? audit.numericValue : null;
+        return { display: audit.displayValue || null, value };
     };
+    return {
+        fcp: entry("first-contentful-paint"),
+        lcp: entry("largest-contentful-paint"),
+        tbt: entry("total-blocking-time"),
+        cls: entry("cumulative-layout-shift"),
+        si: entry("speed-index"),
+        tti: entry("interactive"),
+    };
+}
+
+function envVitalOverrides() {
+    const map = {
+        fcp: "LH_MAX_FCP_MS",
+        lcp: "LH_MAX_LCP_MS",
+        tbt: "LH_MAX_TBT_MS",
+        cls: "LH_MAX_CLS",
+        si: "LH_MAX_SI_MS",
+        tti: "LH_MAX_TTI_MS",
+    };
+    const overrides = {};
+    for (const [key, env] of Object.entries(map)) {
+        const raw = process.env[env];
+        if (raw !== undefined && raw !== "") {
+            const parsed = Number(raw);
+            if (Number.isFinite(parsed)) {
+                overrides[key] = parsed;
+            }
+        }
+    }
+    return overrides;
+}
+
+function assertVitalBudgets(vitals, budgets, pageId) {
+    const failures = [];
+    const effective = { ...budgets, ...envVitalOverrides() };
+    for (const [key, max] of Object.entries(effective)) {
+        const actual = vitals[key] && vitals[key].value;
+        if (actual === null || actual === undefined) {
+            failures.push(`${key}: missing numeric value`);
+            continue;
+        }
+        if (actual > max) {
+            failures.push(`${key}: ${Math.round(actual)} > ${max}`);
+        }
+    }
+    if (failures.length > 0) {
+        throw new Error(`Lighthouse vitals budgets failed for ${pageId}: ${failures.join("; ")}`);
+    }
 }
 
 function assertBudgets(scores, budgets, pageId) {
@@ -133,5 +181,6 @@ module.exports = {
     scoresFromLhr,
     vitalsFromLhr,
     assertBudgets,
+    assertVitalBudgets,
     writeReports,
 };

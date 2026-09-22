@@ -45,15 +45,15 @@ async def test_initiate_retries_path_requests_during_lookup(telephone_manager):
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             side_effect=has_path,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.request_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.request_path",
         ) as request_path,
     ):
         await telephone_manager.initiate(destination_hash, timeout_seconds=1)
@@ -73,15 +73,15 @@ async def test_initiate_cancels_quickly_while_finding_path_identity(telephone_ma
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=None,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=False,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.request_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.request_path",
             side_effect=request_path_and_cancel,
         ),
     ):
@@ -105,11 +105,11 @@ async def test_initiate_cancels_quickly_while_dialling(telephone_manager):
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=True,
         ),
     ):
@@ -142,11 +142,11 @@ async def test_cancel_between_identity_resolved_and_path_request(telephone_manag
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=False,
         ),
         patch.object(telephone_manager, "_await_path", side_effect=cancel_during_path),
@@ -179,15 +179,15 @@ async def test_initiate_path_wait_uses_adaptive_window_not_ten_second_cap(
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=False,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.path_response_window",
+            "meshchatx.src.backend.telephone_manager.core.path_response_window",
             return_value=86.8,
         ),
         patch.object(telephone_manager, "_await_path", side_effect=fake_await_path),
@@ -209,11 +209,11 @@ async def test_cancel_after_path_found_before_dialling_stabilizes(telephone_mana
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=True,
         ),
     ):
@@ -255,15 +255,15 @@ async def test_request_path_exceptions_do_not_abort_discovery(telephone_manager)
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             side_effect=has_path,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.request_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.request_path",
             side_effect=request_path,
         ) as mocked_request_path,
     ):
@@ -293,14 +293,16 @@ async def test_flapping_path_state_recovers_and_dials(telephone_manager):
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             side_effect=has_path,
         ),
-        patch("meshchatx.src.backend.telephone_manager.RNS.Transport.request_path"),
+        patch(
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.request_path"
+        ),
     ):
         result = await asyncio.wait_for(
             telephone_manager.initiate(destination_hash, timeout_seconds=1),
@@ -321,15 +323,15 @@ async def test_call_thread_exception_surfaces_without_hanging(telephone_manager)
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=True,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.asyncio.sleep",
+            "meshchatx.src.backend.telephone_manager.core.asyncio.sleep",
             side_effect=no_wait,
         ),
     ):
@@ -356,15 +358,15 @@ async def test_inconsistent_call_status_finishes_within_timeout(telephone_manage
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=True,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.asyncio.sleep",
+            "meshchatx.src.backend.telephone_manager.core.asyncio.sleep",
             side_effect=no_wait,
         ),
     ):
@@ -393,11 +395,11 @@ async def test_lxst_status_mapping_updates_ui_initiation_states(telephone_manage
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=True,
         ),
     ):
@@ -429,11 +431,11 @@ async def test_lxst_busy_and_rejected_end_without_stuck_status(telephone_manager
 
         with (
             patch(
-                "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+                "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
                 return_value=MagicMock(),
             ),
             patch(
-                "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+                "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
                 return_value=True,
             ),
         ):
@@ -460,11 +462,11 @@ async def test_rapid_dial_cancel_soak_has_bounded_memory(telephone_manager):
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=True,
         ),
     ):
@@ -516,15 +518,15 @@ async def test_initiate_checks_path_for_lxst_telephony_destination(telephone_man
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=destination_identity,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Destination",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Destination",
             return_value=fake_destination,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             side_effect=has_path,
         ),
     ):
@@ -536,7 +538,7 @@ async def test_initiate_checks_path_for_lxst_telephony_destination(telephone_man
     assert telephony_destination_hash in observed_hashes
 
 
-@patch("meshchatx.src.backend.telephone_manager.Telephone")
+@patch("meshchatx.src.backend.telephone_manager.core.Telephone")
 def test_init_telephone_skips_when_disabled(mock_tel_class, tmp_path):
     storage_dir = tmp_path / "tel"
     storage_dir.mkdir()
@@ -548,7 +550,7 @@ def test_init_telephone_skips_when_disabled(mock_tel_class, tmp_path):
     mock_tel_class.assert_not_called()
 
 
-@patch("meshchatx.src.backend.telephone_manager.Telephone")
+@patch("meshchatx.src.backend.telephone_manager.core.Telephone")
 def test_init_telephone_creates_when_enabled(mock_tel_class, tmp_path):
     storage_dir = tmp_path / "tel"
     storage_dir.mkdir()
@@ -580,11 +582,11 @@ async def test_initiate_keeps_status_while_ringing_without_active_call(
 
     with (
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
             return_value=MagicMock(),
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
             return_value=True,
         ),
     ):

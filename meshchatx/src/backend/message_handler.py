@@ -94,15 +94,24 @@ class MessageHandler:
     def search_messages(self, local_hash, search_term, limit=500):
         search_term = _strip_utf16_surrogates(search_term) or ""
         like_term = f"%{search_term}%"
-        query = """
+        fts_match = self.db.messages.lxmf_fts_match(search_term)
+        if fts_match is not None:
+            body_clause = (
+                "id IN (SELECT rowid FROM lxmf_messages_fts "
+                "WHERE lxmf_messages_fts MATCH ?)"
+            )
+            params = [like_term, fts_match, limit]
+        else:
+            body_clause = "(title LIKE ? OR content LIKE ?)"
+            params = [like_term, like_term, like_term, limit]
+        query = f"""
             SELECT peer_hash, MAX(timestamp) as max_ts
             FROM lxmf_messages
-            WHERE title LIKE ? OR content LIKE ? OR peer_hash LIKE ?
+            WHERE peer_hash LIKE ? OR {body_clause}
             GROUP BY peer_hash
             ORDER BY max_ts DESC
             LIMIT ?
         """
-        params = [like_term, like_term, like_term, limit]
         return self.db.provider.fetchall(query, params)
 
     # Keep conversation-list payloads small. Full fields often embeds
@@ -264,6 +273,22 @@ class MessageHandler:
             search = _strip_utf16_surrogates(search) or ""
             if search:
                 like_term = f"%{search}%"
+                fts_match = self.db.messages.lxmf_fts_match(search)
+                if fts_match is not None:
+                    # Trigram FTS index: same substring semantics as LIKE
+                    # but indexed instead of a full lxmf_messages scan.
+                    history_clause = """s.peer_hash IN (
+                        SELECT m.peer_hash FROM lxmf_messages m
+                        JOIN lxmf_messages_fts f ON f.rowid = m.id
+                        WHERE lxmf_messages_fts MATCH ?
+                     )"""
+                    history_params = [fts_match]
+                else:
+                    history_clause = """s.peer_hash IN (
+                        SELECT peer_hash FROM lxmf_messages
+                        WHERE title LIKE ? OR content LIKE ?
+                     )"""
+                    history_params = [like_term, like_term]
                 # Search latest summary fields or any historical message for the peer
                 where_clauses.append(f"""
                     (s.title LIKE ? OR s.content_preview LIKE ? OR s.peer_hash LIKE ?
@@ -272,10 +297,7 @@ class MessageHandler:
                         SELECT 1 FROM contacts con
                         WHERE {self._CONTACT_MATCH_SQL} AND con.name LIKE ?
                      )
-                     OR s.peer_hash IN (
-                        SELECT peer_hash FROM lxmf_messages
-                        WHERE title LIKE ? OR content LIKE ?
-                     ))
+                     OR {history_clause})
                 """)
                 params.extend(
                     [
@@ -284,8 +306,7 @@ class MessageHandler:
                         like_term,
                         like_term,
                         like_term,
-                        like_term,
-                        like_term,
+                        *history_params,
                     ],
                 )
 

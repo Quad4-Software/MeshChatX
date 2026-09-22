@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: 0BSD
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 let TranslationService;
@@ -123,5 +125,24 @@ describe("TranslationService", () => {
         const [_url, body, config] = post.mock.calls[0];
         expect(body).toBeInstanceOf(FormData);
         expect(config?.headers?.["Content-Type"]).toBeUndefined();
+    });
+
+    it("lists packs via the versioned packs endpoint", async () => {
+        const get = vi.fn().mockResolvedValue({ data: { packs: [{ pair: "enes" }] } });
+        vi.stubGlobal("api", { get });
+
+        const packs = await TranslationService.listPacks();
+
+        expect(get).toHaveBeenCalledWith("/api/v1/translation/packs");
+        expect(packs).toEqual([{ pair: "enes" }]);
+    });
+
+    it("removes packs through the pair-scoped delete endpoint", async () => {
+        const del = vi.fn().mockResolvedValue({ data: { removed: "enes" } });
+        vi.stubGlobal("api", { delete: del });
+
+        await TranslationService.removePack("enes");
+
+        expect(del).toHaveBeenCalledWith("/api/v1/translation/packs/enes");
     });
 });

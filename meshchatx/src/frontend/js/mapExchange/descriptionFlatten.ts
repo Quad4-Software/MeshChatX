@@ -1,0 +1,300 @@
+// SPDX-License-Identifier: 0BSD
+
+const NULLISH_RE = /^(?:&lt;null&gt;|<null>|null|n\/?a|undefined|none|-)$/i;
+const TABLE_ROW_RE = /<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi;
+const CELL_RE = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]\s*>/gi;
+const BLOCK_BREAK_RE = /<\/(?:p|div|li|h[1-6]|br|tr)\s*>/gi;
+const BR_RE = /<br\s*\/?>/gi;
+const TAG_RE = /<[^>]+>/g;
+const WS_RE = /\s+/g;
+const ENTITY_RE = /&(#x?[0-9a-f]+|[a-z]+);/gi;
+const SCRIPT_LIKE_RE =
+    /(?:^|\n)\s*function\s+\w+\s*\([^)]*\)\s*\{[\s\S]*?\n\s*\}|(?:document|window)\.\w+\s*\(|getElementById\s*\(/i;
+const MASHED_NULL_KEY_RE = /((?:&lt;Null&gt;|<Null>|null|&lt;null&gt;))\s*(?=[A-Za-z_][\w.-]{0,48}:)/gi;
+const MASHED_VALUE_KEY_RE = /([^\s:])([A-Z][A-Za-z0-9_]{1,40}:)/g;
+const FONT_FIELD_RE =
+    /<(?:font|b|strong|span)\b[^>]*>\s*([^<:]{1,64}?)\s*:?\s*<\/(?:font|b|strong|span)>\s*:?\s*([^<]{0,200}?)(?=<|$)/gi;
+const SCRIPT_BLOCK_RE = /<script\b[^>]*>[\s\S]*?(?:<\/script[^>]*>|$)/gi;
+const STYLE_BLOCK_RE = /<style\b[^>]*>[\s\S]*?(?:<\/style[^>]*>|$)/gi;
+
+export type KeyValuePair = {
+    key: string;
+    value: string;
+};
+
+export type ExtractedKeyedLines = {
+    leftover: string;
+    pairs: KeyValuePair[];
+};
+
+export function isNullishMapValue(value: unknown): boolean {
+    const t = String(value ?? "")
+        .trim()
+        .replace(/\u00a0/g, " ");
+    if (!t) {
+        return true;
+    }
+    return NULLISH_RE.test(t);
+}
+
+function decodeBasicEntities(html: string): string {
+    return String(html).replace(ENTITY_RE, (full, name) => {
+        const n = String(name).toLowerCase();
+        if (n === "amp") {
+            return "&";
+        }
+        if (n === "lt") {
+            return "<";
+        }
+        if (n === "gt") {
+            return ">";
+        }
+        if (n === "quot") {
+            return '"';
+        }
+        if (n === "apos" || n === "#39") {
+            return "'";
+        }
+        if (n === "nbsp") {
+            return " ";
+        }
+        if (n.startsWith("#x")) {
+            const code = Number.parseInt(n.slice(2), 16);
+            return Number.isFinite(code) ? String.fromCodePoint(code) : full;
+        }
+        if (n.startsWith("#")) {
+            const code = Number.parseInt(n.slice(1), 10);
+            return Number.isFinite(code) ? String.fromCodePoint(code) : full;
+        }
+        return full;
+    });
+}
+
+/**
+ * Drop script and style nodes before flattening to plain text.
+ * Uses the DOM when available so nested or malformed tags are not left behind
+ * by a single-pass regex replace.
+ */
+function dropScriptAndStyle(html: string): string {
+    const s = String(html || "");
+    if (!s) {
+        return s;
+    }
+    if (typeof DOMParser !== "undefined") {
+        const doc = new DOMParser().parseFromString(s, "text/html");
+        for (const el of doc.querySelectorAll("script, style")) {
+            el.remove();
+        }
+        return doc.body ? doc.body.innerHTML : s;
+    }
+    let out = s;
+    let prev = s;
+    do {
+        prev = out;
+        out = out.replace(SCRIPT_BLOCK_RE, "").replace(STYLE_BLOCK_RE, "");
+    } while (out !== prev);
+    return out;
+}
+
+function cellPlain(cellHtml: string): string {
+    return decodeBasicEntities(String(cellHtml).replace(TAG_RE, " ").replace(WS_RE, " ").trim());
+}
+
+/** Pull ArcGIS FONT/BR balloon fields when no table rows are present. */
+function extractFontFields(html: string): string[] {
+    const rows: string[] = [];
+    String(html).replace(FONT_FIELD_RE, (_full, keyRaw, valRaw) => {
+        const key = cellPlain(keyRaw);
+        const val = cellPlain(valRaw);
+        if (key && !isNullishMapValue(val)) {
+            rows.push(`${key}: ${val}`);
+        }
+        return "";
+    });
+    return rows;
+}
+
+/**
+ * Insert newlines between mashed Key:&lt;Null&gt;Key:value runs (common after tag strip).
+ * Only splits after nullish placeholders so CamelCase keys like AttackType stay intact.
+ */
+export function unmashKeyedDescription(text: string | null | undefined): string {
+    const s = String(text || "");
+    if (!s) {
+        return "";
+    }
+    return s.replace(MASHED_NULL_KEY_RE, "$1\n");
+}
+
+/** Drop leftover balloon script text that survived as plain text. */
+function dropScriptLikePlainText(text: string): string {
+    let s = String(text || "");
+    if (!s) {
+        return "";
+    }
+    s = s.replace(/function\s+\w+\s*\([^)]*\)\s*\{[\s\S]*?\}/g, " ");
+    s = s.replace(/(?:document|window)\.\w+\s*\([^;)\n]*\)\s*;?/gi, " ");
+    s = s.replace(/getElementById\s*\([^)\n]*\)/gi, " ");
+    const lines = s.split(/\n+/);
+    const kept: string[] = [];
+    for (const raw of lines) {
+        const line = raw.replace(WS_RE, " ").trim();
+        if (!line) {
+            continue;
+        }
+        if (/^function\s+\w+\s*\(/.test(line) || SCRIPT_LIKE_RE.test(line)) {
+            continue;
+        }
+        kept.push(line);
+    }
+    return kept.join("\n");
+}
+
+/**
+ * Turn ArcGIS / balloon HTML descriptions into readable plain text.
+ * Drops script and style blocks. Prefer table rows as "Key: Value" lines.
+ * Output is plain text (callers XML-escape when writing markup).
+ */
+export function flattenHtmlDescription(html: string | null | undefined): string {
+    let s = String(html || "");
+    if (!s.trim()) {
+        return "";
+    }
+    s = dropScriptAndStyle(s);
+    const rows: string[] = [];
+    s.replace(TABLE_ROW_RE, (_full, rowInner) => {
+        const cells: string[] = [];
+        String(rowInner).replace(CELL_RE, (_c, cellInner) => {
+            const plain = cellPlain(cellInner);
+            if (plain) {
+                cells.push(plain);
+            }
+            return "";
+        });
+        if (cells.length >= 2) {
+            const key = cells[0];
+            const val = cells.slice(1).join(" ");
+            if (key && !isNullishMapValue(val)) {
+                rows.push(`${key}: ${val}`);
+            }
+        } else if (cells.length === 1 && !isNullishMapValue(cells[0])) {
+            rows.push(cells[0]);
+        }
+        return "";
+    });
+    if (rows.length) {
+        return dropScriptLikePlainText(rows.join("\n"));
+    }
+    const fontRows = extractFontFields(s);
+    if (fontRows.length) {
+        return dropScriptLikePlainText(fontRows.join("\n"));
+    }
+    s = s.replace(BR_RE, "\n").replace(BLOCK_BREAK_RE, "\n");
+    s = decodeBasicEntities(s.replace(TAG_RE, " "));
+    s = unmashKeyedDescription(s);
+    s = dropScriptLikePlainText(
+        s
+            .split(/\n+/)
+            .map((line) => line.replace(WS_RE, " ").trim())
+            .filter((line) => line && !isNullishMapValue(line))
+            .join("\n")
+    );
+    return s;
+}
+
+/** True when description still looks like balloon HTML or mashed entity soup. */
+export function descriptionNeedsFlatten(text: string | null | undefined): boolean {
+    const s = String(text || "");
+    if (!s.trim()) {
+        return false;
+    }
+    if (/<\/?[a-z][\s\S]*>/i.test(s.replace(/<\/?null>/gi, ""))) {
+        return true;
+    }
+    if (/&lt;|&gt;|&amp;nbsp;/i.test(s)) {
+        return true;
+    }
+    if (/function\s+\w+\s*\(|getElementById\s*\(/.test(s)) {
+        return true;
+    }
+    if (/[A-Za-z_][\w.-]{0,40}:(?:&lt;Null&gt;|<Null>|null)[A-Za-z_]/i.test(s)) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Split "Key: Value" lines out of a flattened description.
+ * Rejects URL-like keys so "See https://host:port/path" stays as description text.
+ */
+export function extractKeyedDescriptionLines(description: string | null | undefined): ExtractedKeyedLines {
+    const pairs: KeyValuePair[] = [];
+    const leftover: string[] = [];
+    for (const rawLine of String(description || "").split(/\n+/)) {
+        const line = rawLine.trim();
+        if (!line) {
+            continue;
+        }
+        const keyMatch = line.match(/^([^:]{1,80}):\s*(.+)$/);
+        if (keyMatch && (keyMatch[2].match(MASHED_VALUE_KEY_RE) || keyMatch[2].match(MASHED_NULL_KEY_RE))) {
+            const unmashed = unmashKeyedDescription(line);
+            if (unmashed !== line) {
+                for (const rawSub of unmashed.split(/\n+/)) {
+                    const sub = rawSub.trim();
+                    if (!sub) {
+                        continue;
+                    }
+                    const m = sub.match(/^([^:]{1,80}):\s*(.+)$/);
+                    if (m) {
+                        const key = m[1].trim();
+                        const value = decodeBasicEntities(m[2].trim());
+                        if (key && !isNullishMapValue(value) && isPlausiblePropertyKey(key, value)) {
+                            pairs.push({ key, value });
+                            continue;
+                        }
+                        if (key && isNullishMapValue(value)) {
+                            continue;
+                        }
+                    }
+                    if (!isNullishMapValue(sub) && !SCRIPT_LIKE_RE.test(sub)) {
+                        leftover.push(decodeBasicEntities(sub));
+                    }
+                }
+                continue;
+            }
+        }
+        const m = line.match(/^([^:]{1,80}):\s*(.+)$/);
+        if (m) {
+            const key = m[1].trim();
+            const value = decodeBasicEntities(m[2].trim());
+            if (key && !isNullishMapValue(value) && isPlausiblePropertyKey(key, value)) {
+                pairs.push({ key, value });
+                continue;
+            }
+            if (key && isNullishMapValue(value)) {
+                continue;
+            }
+        }
+        if (!isNullishMapValue(line) && !SCRIPT_LIKE_RE.test(line)) {
+            leftover.push(decodeBasicEntities(line));
+        }
+    }
+    return { leftover: leftover.join("\n"), pairs };
+}
+
+function isPlausiblePropertyKey(key: string, value: string): boolean {
+    const k = String(key || "").trim();
+    if (!k || k.length > 64) {
+        return false;
+    }
+    if (/https?/i.test(k) || k.includes("/") || k.includes("\\")) {
+        return false;
+    }
+    const v = String(value || "").trim();
+    if (v.startsWith("//") || /^https?:\/\//i.test(v)) {
+        if (!/^[A-Za-z_][\w.-]{0,63}$/.test(k)) {
+            return false;
+        }
+    }
+    return /^[A-Za-z_][\w\s.-]{0,63}$/.test(k);
+}

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.0.0] - 2026-12-TBD [unreleased]
+
+### Added
+
+- Schema v60: FTS5 trigram index (`lxmf_messages_fts`) over message bodies. Conversation and peer search use indexed substring matching instead of full `lxmf_messages` LIKE scans, with LIKE fallback for queries under 3 characters and SQLite builds without FTS5.
+
+### Changed
+
+- **Frontend stack**: Migrated from Vue 3 and JSDoc to Svelte 5 and TypeScript. All new pages and shared UI now use Svelte 5 and TypeScript.
+- **Backend refactor**: Broke down large Python god files into smaller, maintainable modules.
+- **Dependencies**: Major bump to Electron 44.2.0, Vitest 5.0.0, vis-data 8.0.5, vis-network 10.1.2, jsdom 30.0.1, and other compatible packages.
+
+### Fixed
+
+- **Nomad crash tab**: Calls onrenderdone when the render finishes and is posted.
+
 ## [4.9.1] - 2026-09-21 [released]
 
 ### Added
@@ -26,18 +42,18 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Windows desktop: the AppContainer child no longer dies at loader init (0xC0000142) when the LPAC token lacks window station access. A failed sandbox still falls back to an unsandboxed backend in auto mode.
+- Windows desktop: the AppContainer child no longer dies during loader init (exit 0xC0000142) on hosts where the LPAC token lacks window station and desktop access. The launcher now grants the package SID explicit access to the interactive winsta and desktop, and a sandboxed child that still fails to start falls back to an unsandboxed backend in auto mode.
 - Desktop: a crashed renderer now offers relaunch, relaunch without GPU acceleration, or quit instead of leaving a dead window. Crash minidumps are kept locally under the Crashpad folder, and GPU process deaths are logged.
 - Desktop: a crash-looping GPU process (which takes the window's renderer down with it) now triggers an automatic fallback, the app disables hardware acceleration once via the disable-gpu marker and relaunches.
-- Packaged builds: `.gitkeep` placeholders are no longer hashed into `backend-manifest.json`, so a dropped marker cannot block onboarding.
-- Relay chat: hosted hub announce intervals show hours and days, and accept values like "6h" or "1d".
-- Messages: reopening a conversation no longer shows a stale first page that misses messages sent while the pane was closed.
-- NomadNet: the path-finder menu hides on small screens, and the mobile sidebar gains a URL entry row.
-- Relay chat: Host, Bots, and Search tabs collapse into the overflow menu on narrow screens.
-- Android: a failed Chaquopy start or missing WebView no longer closes the app with no message. Startup and renderer crashes show a readable error.
-- NomadNet: closing a node opened from the announce list returns to that list instead of a new Favourites tab. The sidebar reopens on the last used tab.
-- NomadNet: leaving the browser and coming back no longer reloads the page. Scroll position and field contents survive.
-- Relay chat: backing out of a room opened from Search or Discovery returns to that view.
+- Packaged builds: `.gitkeep` keep-marker placeholders are no longer hashed into `backend-manifest.json`, so a dropped placeholder cannot produce a Missing integrity warning that blocks onboarding.
+- Relay chat: the hosted hub announce interval now displays hours and days (for example "6 h", "1 h 30 min", "1 d") and the input accepts unit-suffixed values like "6h" or "1d" instead of raw minutes only.
+- Messages: reopening a conversation could paint a stale cached first page and never merge messages sent while the pane was closed, so the sidebar showed the new message but the chat view did not. The stash is now invalidated on message events, a soft resync runs whenever a cached page was painted, and the resync refreshes the stash instead of renewing the stale snapshot.
+- NomadNet: the path-finder menu now hides below xl so the URL input keeps usable width on small screens, and the mobile sidebar gains a direct URL entry row since the empty-state input only exists in the hidden viewer pane.
+- Relay chat: on narrow screens the Host, Bots and Search tabs collapse into the overflow menu so the tab bar no longer scrolls horizontally on phones.
+- Android: tapping the app icon or the "running" notification could close the app with no message when the Chaquopy runtime or WebView failed before the UI came up. `Python.start` now catches `Throwable` (native link failures are `Error`s, not `Exception`s, and escaped the old catch), a missing or updating WebView provider shows a readable startup error, the storage migration tolerates `SecurityException`, and a WebView renderer crash surfaces instead of killing the process.
+- NomadNet: closing a node opened from the announce list destroyed the whole tab and landed on a fresh tab showing Favourites. Browse tabs now keep their list and close only returns to it; tabs that were opened directly on a node still close. The sidebar also reopens on the last used tab instead of always defaulting to Favourites.
+- NomadNet: leaving the browser route and coming back reloaded the crash tab renderer and repainted the page because detaching the DOM kills the iframe document. The renderer frame now lives outside the keep-alive subtree and is parked over its slot, so scroll position, expanded sections and field contents survive navigation with no reload.
+- Relay chat: backing out of a room that was opened from Search or Discovery returns to that view instead of always landing on Chat.
 - Reverse proxy: trusted proxies can pass X-Forwarded-Proto and X-Forwarded-Port, so TLS-terminating ingress no longer gets 403 on `/ws` upgrades.
 - Docker: the entrypoint prepends `meshchatx` when argv starts with a flag, so `docker run image --flag` and Kubernetes args no longer crash su-exec.
 - Landlock: parent directories of `--ssl-cert` and `--ssl-key` are granted as read roots, so TLS files outside the usual roots load.
@@ -308,7 +324,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - **Local developer tooling**: [Vue DevTools](https://devtools.vuejs.org/) overlay on task dev (localhost Vite only, MESHCHAT_VUE_DEVTOOLS=0 to disable). task debug attaches debugpy on 127.0.0.1:5678. Debugger launch config: MeshChatX: Vite + Python. Playwright e2e keeps DevTools off.
-- **Public demo mode**: Read-only mesh showcase via MESHCHAT_DEMO_MODE or --demo. Optional ALTCHA on login/setup, login page hint text, and [docker-compose.demo.yml](docker-compose.demo.yml) for Coolify.
+- **Public demo mode**: Read-only mesh showcase via MESHCHAT_DEMO_MODE or --demo. Login page hint text and [docker/docker-compose.demo.yml](docker/docker-compose.demo.yml) for Coolify.
 - **Database upgrades**: Automatic zip backup before schema migrations (skip with MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1). CLI --list-backups and --export-backup for rollback. Post-migrate checks, retention of five pre-migrate zips by default, storage lock for single-writer volumes, and N-1/N-2 upgrade tests.
 - **App sidebar**: Grouped layout is the default (Communicate, Explore, Network, App, plus More). Appearance can switch back to Classic. Compact identity footer with announce, QR, and auto-announce interval. Press and hold to reorder links and groups while expanded.
 - **Tools page**: Tools are listed under Diagnostics, Transfer, Messaging, Network, and Other instead of one ungrouped grid.

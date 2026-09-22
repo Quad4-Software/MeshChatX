@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount, flushPromises } from "@vue/test-utils";
+import { render, cleanup, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import MapPublishPanel from "@/components/map/internal/MapPublishPanel.vue";
+import MapPublishPanel from "@/features/map/components/MapPublishPanel.svelte";
 import ToastUtils from "@/js/ToastUtils";
+import { t, registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import en from "@/locales/en.json";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
@@ -19,6 +21,8 @@ vi.mock("@/js/ToastUtils", () => ({
 describe("MapPublishPanel", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        registerTranslator(null);
+        registerFallbackMessages(en);
         window.api = {
             get: vi.fn().mockImplementation((url) => {
                 if (url.includes("/status")) {
@@ -40,20 +44,23 @@ describe("MapPublishPanel", () => {
     });
 
     afterEach(() => {
+        cleanup();
         delete window.api;
     });
 
     it("keeps announce controls off until a map is published", async () => {
-        const wrapper = mount(MapPublishPanel, {
-            global: { mocks: { $t: (key) => key } },
+        const { container } = render(MapPublishPanel);
+
+        await waitFor(() => {
+            const checkbox = container.querySelector('input[type="checkbox"]');
+            expect(checkbox).toBeTruthy();
+            expect(checkbox.checked).toBe(false);
+            expect(checkbox.disabled).toBe(true);
+            expect(container.textContent).toContain(t("map.data_announce_needs_publish"));
+            const buttons = Array.from(container.querySelectorAll("button"));
+            const announceNow = buttons.find((btn) => btn.textContent?.includes(t("map.data_announce_now")));
+            expect(announceNow?.hasAttribute("disabled")).toBe(true);
         });
-        await flushPromises();
-        const checkbox = wrapper.find('input[type="checkbox"]');
-        expect(checkbox.element.checked).toBe(false);
-        expect(checkbox.element.disabled).toBe(true);
-        expect(wrapper.text()).toContain("map.data_announce_needs_publish");
-        const announceNow = wrapper.findAll("button").find((btn) => btn.text() === "map.data_announce_now");
-        expect(announceNow.attributes("disabled")).toBeDefined();
     });
 
     it("enables announce after a published map is listed", async () => {
@@ -72,13 +79,16 @@ describe("MapPublishPanel", () => {
                 data: { maps: [{ map_id: "a".repeat(16), name: "Camp", format: "geojson", size: 12 }] },
             });
         });
-        const wrapper = mount(MapPublishPanel, {
-            global: { mocks: { $t: (key) => key } },
+
+        const { container } = render(MapPublishPanel);
+
+        await waitFor(() => {
+            const checkbox = container.querySelector('input[type="checkbox"]');
+            expect(checkbox).toBeTruthy();
+            expect(checkbox.disabled).toBe(false);
+            const buttons = Array.from(container.querySelectorAll("button"));
+            const announceNow = buttons.find((btn) => btn.textContent?.includes(t("map.data_announce_now")));
+            expect(announceNow?.hasAttribute("disabled")).toBe(false);
         });
-        await flushPromises();
-        const checkbox = wrapper.find('input[type="checkbox"]');
-        expect(checkbox.element.disabled).toBe(false);
-        const announceNow = wrapper.findAll("button").find((btn) => btn.text() === "map.data_announce_now");
-        expect(announceNow.attributes("disabled")).toBeUndefined();
     });
 });

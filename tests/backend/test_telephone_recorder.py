@@ -49,7 +49,7 @@ def test_telephone_manager_init(mock_identity, mock_config, temp_storage):
     assert os.path.exists(tm.recordings_dir)
 
 
-@patch("meshchatx.src.backend.telephone_manager.Telephone")
+@patch("meshchatx.src.backend.telephone_manager.core.Telephone")
 def test_call_recording_lifecycle(
     mock_telephone_class,
     mock_identity,
@@ -118,7 +118,7 @@ def test_call_recording_disabled(mock_identity, mock_config, mock_db, temp_stora
 
 def test_audio_profile_persistence(mock_identity, mock_config, temp_storage):
     with patch(
-        "meshchatx.src.backend.telephone_manager.Telephone",
+        "meshchatx.src.backend.telephone_manager.core.Telephone",
     ) as mock_telephone_class:
         mock_telephone = mock_telephone_class.return_value
         mock_config.telephone_audio_profile_id.get.return_value = 80
@@ -135,7 +135,7 @@ def test_audio_profile_persistence(mock_identity, mock_config, temp_storage):
         mock_telephone.switch_profile.assert_not_called()
 
 
-@patch("meshchatx.src.backend.telephone_manager.Telephone")
+@patch("meshchatx.src.backend.telephone_manager.core.Telephone")
 def test_call_recording_saves_after_disconnect(
     mock_telephone_class,
     mock_identity,
@@ -183,7 +183,7 @@ def test_call_recording_saves_after_disconnect(
     # assert mock_db.telephone.add_call_recording.called # Disabled for now as recording is disabled
 
 
-@patch("meshchatx.src.backend.telephone_manager.Telephone")
+@patch("meshchatx.src.backend.telephone_manager.core.Telephone")
 def test_manual_mute_overrides(
     mock_telephone_class,
     mock_identity,

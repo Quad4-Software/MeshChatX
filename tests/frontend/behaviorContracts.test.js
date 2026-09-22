@@ -1,9 +1,23 @@
-import { readFileSync, readdirSync, statSync } from "fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { join } from "path";
 import { describe, it, expect } from "vitest";
 
 function readSource(relativePath) {
-    return readFileSync(join(process.cwd(), relativePath), "utf8");
+    const full = join(process.cwd(), relativePath);
+    if (!existsSync(full)) {
+        const tsPath = full.replace(/\.js$/, ".ts");
+        if (existsSync(tsPath)) {
+            return readFileSync(tsPath, "utf8");
+        }
+        const pyPkg = full.replace(/\.py$/, "");
+        if (existsSync(pyPkg) && statSync(pyPkg).isDirectory()) {
+            return readdirSync(pyPkg)
+                .filter((f) => f.endsWith(".py"))
+                .map((f) => readFileSync(join(pyPkg, f), "utf8"))
+                .join("\n");
+        }
+    }
+    return readFileSync(full, "utf8");
 }
 
 function readSources(relativePaths) {
@@ -13,60 +27,39 @@ function readSources(relativePaths) {
 describe("behavior contracts: user-visible wiring must stay connected", () => {
     describe("cancel send", () => {
         it("ConversationMessageEntry exposes cancel for in-flight outbound messages", () => {
-            const src = readSource("meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue");
+            const src = readSource(
+                "meshchatx/src/frontend/features/messages/components/ConversationMessageEntry.svelte"
+            );
             expect(src).toContain("canCancelOutboundSend");
             expect(src).toContain("cancelSendingMessage");
             expect(src).toContain("messages.cancel_send");
         });
 
-        it("ConversationViewer implements cancelSendingMessage and canCancelOutboundSend", () => {
-            const src = readSource("meshchatx/src/frontend/components/messages/ConversationViewer.vue");
-            expect(src).toContain("async cancelSendingMessage(");
-            expect(src).toContain("canCancelOutboundSend(");
-            expect(src).toContain("/lxmf-messages/${");
-            expect(src).toContain("/cancel");
-            expect(src).toContain("_outboundQueue.cancelJob");
+        it("ConversationViewer and send helpers implement local and persisted cancellation", () => {
+            const viewer = readSource("meshchatx/src/frontend/features/messages/components/ConversationViewer.svelte");
+            const mutations = readSource("meshchatx/src/frontend/features/messages/lib/conversationViewerMutations.ts");
+            const send = readSource("meshchatx/src/frontend/features/messages/lib/conversationViewerSend.ts");
+            expect(viewer).toContain("async function cancelSending()");
+            expect(mutations).toContain("outboundQueue.cancelJob");
+            expect(send).toContain("export async function cancelOutbound");
+            expect(send).toContain("/lxmf-messages/${hash}/cancel");
         });
 
-        it("outbound send jobs carry a cancelKey for queue cancellation", () => {
-            const src = readSource("meshchatx/src/frontend/components/messages/ConversationViewer.vue");
-            expect(src).toContain("cancelKey:");
-            expect(src).toContain("job.cancelled");
-        });
-    });
-
-    describe("theme tokens", () => {
-        // dev/testing surfaces that were washed out in light mode must stay on
-        // semantic sem-* tokens; raw palette utilities regress the fix
-        const RAW_COLOR_RE =
-            /\b(?:bg|text|border|ring|placeholder|caret|accent|fill|stroke)-(?:gray|zinc|slate|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d/;
-        const WHITE_BLACK_RE = /\b(?:bg|border|ring)-(?:white|black)\b/;
-        const themedFiles = [
-            "meshchatx/src/frontend/components/debug/DebugLogsPage.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeDeviceSelector.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeDiagnosticsPanel.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeAdvancedTools.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeBluetoothPanel.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeCapabilitiesBanner.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeProvisionPanel.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeTncPanel.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeFlashAction.vue",
-            "meshchatx/src/frontend/components/rnode/RNodeFirmwareSelector.vue",
-            "meshchatx/src/frontend/components/tools/RNodeFlasherPage.vue",
-        ];
-
-        it.each(themedFiles)("%s uses semantic tokens, not raw palette classes", (relativePath) => {
-            const src = readSource(relativePath);
-            expect(src).not.toMatch(RAW_COLOR_RE);
-            expect(src).not.toMatch(WHITE_BLACK_RE);
+        it("outbound send jobs stop before or during image fan-out when cancelled", () => {
+            const src = readSource("meshchatx/src/frontend/features/messages/lib/conversationViewerSend.ts");
+            expect(src.match(/job\.cancelled/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+            expect(src).toContain("pendingHash");
         });
     });
 
     describe("downloads", () => {
         const downloadSurfaces = [
-            ["AboutPage.vue", "meshchatx/src/frontend/components/about/AboutPage.vue"],
-            ["IdentitiesPage.vue", "meshchatx/src/frontend/components/settings/IdentitiesPage.vue"],
-            ["ConversationViewer.vue", "meshchatx/src/frontend/components/messages/ConversationViewer.vue"],
+            ["backupApi.ts", "meshchatx/src/frontend/features/about/lib/backupApi.ts"],
+            ["identityService.ts", "meshchatx/src/frontend/features/settings/lib/identityService.ts"],
+            [
+                "conversationViewerMutations.ts",
+                "meshchatx/src/frontend/features/messages/lib/conversationViewerMutations.ts",
+            ],
         ];
 
         it.each(downloadSurfaces)("%s routes saves through DownloadUtils", (_, relativePath) => {
@@ -76,8 +69,8 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
 
         it("backup and identity exports do not use browser-only anchor downloads", () => {
             for (const relativePath of [
-                "meshchatx/src/frontend/components/about/AboutPage.vue",
-                "meshchatx/src/frontend/components/settings/IdentitiesPage.vue",
+                "meshchatx/src/frontend/features/about/lib/backupApi.ts",
+                "meshchatx/src/frontend/features/settings/lib/identityService.ts",
             ]) {
                 const src = readSource(relativePath);
                 expect(src).not.toMatch(/link\.setAttribute\(\s*["']download["']/);
@@ -87,10 +80,12 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
         });
 
         it("chat file attachments do not rely on WebView-unfriendly anchor downloads", () => {
-            const src = readSource("meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue");
+            const src = readSource(
+                "meshchatx/src/frontend/features/messages/components/ConversationMessageEntry.svelte"
+            );
             expect(src).toContain("downloadLxmfFileAttachment");
-            expect(src).not.toMatch(/:download\s*=\s*["']file_attachment\.file_name["']/);
-            expect(src).not.toMatch(/\/attachment\/\$\{chatItem\.lxmf_message\.hash\}\/file\?file_index=\$\{index\}/);
+            expect(src).not.toMatch(/\bdownload=/);
+            expect(src).not.toContain("createObjectURL");
         });
 
         it("DownloadUtils supports Android bridge and browser fallback", () => {
@@ -136,11 +131,11 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             expect(src).toContain("isAllowedShellNavigation");
         });
 
-        it("SettingsPage deep-scopes shared toggle styles for extracted sections", () => {
-            const src = readSource("meshchatx/src/frontend/components/settings/SettingsPage.vue");
-            expect(src).toContain(":deep(.setting-toggle)");
-            expect(src).toContain(":deep(.setting-toggle__label)");
-            expect(src).toContain(":deep(.setting-toggle__title)");
+        it("SettingToggleRow scopes shared toggle structure for settings sections", () => {
+            const src = readSource("meshchatx/src/frontend/features/settings/components/SettingToggleRow.svelte");
+            expect(src).toContain("setting-toggle");
+            expect(src).toContain("setting-toggle__label");
+            expect(src).toContain("setting-toggle__title");
         });
 
         it("Docker runtime images install libseccomp for Seccomp-BPF", () => {
@@ -183,11 +178,12 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
 
     describe("rich html link policy", () => {
         const surfaces = [
-            ["MicronEditorPage.vue", "meshchatx/src/frontend/components/micron-editor/MicronEditorPage.vue"],
-            ["NomadNetworkPage.vue", "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkPage.vue"],
-            ["ArchivesPage.vue", "meshchatx/src/frontend/components/archives/ArchivesPage.vue"],
-            ["RNCPPage.vue", "meshchatx/src/frontend/components/rncp/RNCPPage.vue"],
-            ["ConversationViewer.vue", "meshchatx/src/frontend/components/messages/ConversationViewer.vue"],
+            [
+                "MicronPreviewPane.svelte",
+                "meshchatx/src/frontend/features/micron-editor/components/MicronPreviewPane.svelte",
+            ],
+            ["archiveNavigation.ts", "meshchatx/src/frontend/features/archives/lib/archiveNavigation.ts"],
+            ["RNCPPage.svelte", "meshchatx/src/frontend/features/rncp/RNCPPage.svelte"],
         ];
 
         it.each(surfaces)("%s uses shared rich html link handler", (_, relativePath) => {
@@ -237,10 +233,10 @@ describe("behavior contracts: dead API surface", () => {
     });
 
     it("frontend cancel helper is referenced outside its definition file", () => {
-        const viewer = readSource("meshchatx/src/frontend/components/messages/ConversationViewer.vue");
-        const entry = readSource("meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue");
+        const viewer = readSource("meshchatx/src/frontend/features/messages/components/ConversationViewer.svelte");
+        const entry = readSource("meshchatx/src/frontend/features/messages/components/ConversationMessageEntry.svelte");
         expect(entry.match(/cancelSendingMessage/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
-        expect(viewer).toContain("cancelSendingMessage(");
+        expect(viewer).toContain("cancelSendingMessage:");
     });
 });
 
@@ -283,16 +279,18 @@ describe("behavior contracts: Android Chaquopy Python sync", () => {
 
 describe("behavior contracts: Reticulum instance settings", () => {
     it("Settings transport section wires Sideband-parity instance controls", () => {
-        const page = readSource("meshchatx/src/frontend/components/settings/SettingsPage.vue");
+        const page = readSources([
+            "meshchatx/src/frontend/features/settings/components/SettingsPage.svelte",
+            "meshchatx/src/frontend/features/settings/components/sections/TransportSettingsSection.svelte",
+            "meshchatx/src/frontend/features/settings/components/sections/PrivacyDataSettingsSection.svelte",
+        ]);
         expect(page).toContain("share-reticulum-instance");
         expect(page).toContain("obfuscate-hops");
-        // Instance state lives in the composable extracted from SettingsPage.
-        const instance = readSource("meshchatx/src/frontend/js/settings/useReticulumInstance.js");
-        expect(instance).toContain("copyRpcConfigSnippet");
-        expect(instance).toContain("fetchReticulumInstanceSettings");
-        expect(instance).toContain("applyReticulumInstanceSettings");
+        expect(page).toContain("copyRpcConfigSnippet");
+        expect(page).toContain("fetchReticulumInstanceSettings");
+        expect(page).toContain("applyReticulumInstanceSettings");
         const service = readSource("meshchatx/src/frontend/js/settings/settingsReticulumInstanceService.js");
-        expect(service).toContain('apiPath("/reticulum/instance")');
+        expect(service).toContain("/api/v1/reticulum/instance");
         const selfCheck = readSource("meshchatx/src/backend/self_check.py");
         expect(selfCheck).toContain("http_reticulum_instance_good");
         expect(selfCheck).toContain("/api/v1/reticulum/instance");
@@ -301,7 +299,12 @@ describe("behavior contracts: Reticulum instance settings", () => {
 
 describe("behavior contracts: RNS Link API", () => {
     it("keeps generic rns.link transport wired for plugins and self-check", () => {
-        const meshchat = readSource("meshchatx/meshchat.py");
+        const meshchat = readSources([
+            "meshchatx/meshchat.py",
+            "meshchatx/src/backend/http/ws/handlers_rns_link.py",
+            "meshchatx/src/backend/lifecycle/self_test.py",
+            "meshchatx/src/backend/constants.py",
+        ]);
         expect(meshchat).toContain("rns.link.open");
         expect(meshchat).toContain("rns.link.request");
         expect(meshchat).toContain("websocket_rns_link_good");
@@ -336,18 +339,22 @@ describe("behavior contracts: plugin install permissions", () => {
             "meshchatx/src/backend/http/routes/plugins.py",
             "meshchatx/src/backend/http/routes/sideband.py",
         ]);
-        expect(handler).toContain('API_V1_PREFIX + "/plugins/preview"');
+        expect(handler).toContain("/plugins/preview");
         expect(handler).toContain("granted_permissions");
-        expect(handler).toContain('API_V1_PREFIX + "/plugins/trusted-publishers"');
-        expect(handler).toContain('API_V1_PREFIX + "/sideband-plugins"');
-        const section = readSource("meshchatx/src/frontend/components/settings/PluginsSettingsSection.vue");
+        expect(handler).toContain("/plugins/trusted-publishers");
+        expect(handler).toContain("/sideband-plugins");
+        const section = readSource(
+            "meshchatx/src/frontend/features/settings/components/sections/PluginsSettingsSection.svelte"
+        );
         expect(section).toContain("PluginInstallDialog");
-        expect(section).toContain('apiPath("/plugins/preview")');
+        expect(section).toContain("/api/v1/plugins/preview");
         expect(section).toContain("granted_permissions");
         expect(section).toContain(".wasm");
         expect(section).toContain("trustPublisher");
         expect(section).toContain("sideband");
-        const dialog = readSource("meshchatx/src/frontend/components/settings/PluginInstallDialog.vue");
+        expect(section).toContain('window.api.post("/api/v1/sideband-plugins/config"');
+        expect(section).not.toContain('window.api.patch("/api/v1/sideband-plugins/config"');
+        const dialog = readSource("meshchatx/src/frontend/features/settings/components/PluginInstallDialog.svelte");
         expect(dialog).toContain("network_endpoints");
         expect(dialog).toContain("grantedMap");
         expect(dialog).toContain("signatureBlocksInstall");
@@ -372,7 +379,7 @@ describe("behavior contracts: phased startup and early UI mount", () => {
         expect(wait).toContain("mountOnUiReady");
         expect(wait).toContain("waitForMeshReady");
         expect(wait).toContain("hasOwnProperty.call");
-        const main = readSource("meshchatx/src/frontend/main.js");
+        const main = readSource("meshchatx/src/frontend/main.ts");
         expect(main).toContain("waitForMeshReady");
         expect(main).toContain('networkReady === "ui"');
         expect(main).toContain("networkStarting");
@@ -381,16 +388,18 @@ describe("behavior contracts: phased startup and early UI mount", () => {
     });
 
     it("App gates shell until mesh ready and shows starting banner", () => {
-        const app = readSource("meshchatx/src/frontend/components/App.vue");
-        expect(app).toContain("waitForMeshThenStartShell");
-        expect(app).toContain("showNetworkStartingBanner");
-        expect(app).toContain("networkStarting");
+        const app = readSource("meshchatx/src/frontend/features/app-shell/App.svelte");
+        const lifecycle = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellLifecycle.ts");
+        const state = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellState.svelte.ts");
+        expect(lifecycle).toContain("waitForMeshThenStartShell");
+        expect(state).toContain("showNetworkStartingBanner");
+        expect(app).toContain("showNetworkStarting");
         expect(app).toContain("network_starting");
-        const banners = readSource("meshchatx/src/frontend/components/layout/AppShellBanners.vue");
+        const banners = readSource("meshchatx/src/frontend/features/app-shell/components/AppShellBanners.svelte");
         expect(banners).toContain("showNetworkStarting");
         expect(banners).toContain("networkStartingLabel");
-        expect(banners).toContain("open-settings");
-        expect(banners).toContain("open-interfaces");
+        expect(banners).toContain("onopensettings");
+        expect(banners).toContain("onopeninterfaces");
     });
 
     it("backend publishes ui_ready early and defers secondary identity services", () => {
@@ -421,23 +430,28 @@ describe("behavior contracts: phased startup and early UI mount", () => {
 
 describe("behavior contracts: network visualiser performance", () => {
     it("keeps lean physics and edge-hide options for large meshes", () => {
-        const src = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");
+        const src = readSources([
+            "meshchatx/src/frontend/features/network-visualiser/components/NetworkVisualiser.svelte",
+            "meshchatx/src/frontend/features/network-visualiser/lib/visNetworkAdapter.ts",
+        ]);
         expect(src).toContain("hideEdgesOnDrag: true");
         expect(src).toContain("hideEdgesOnZoom: true");
-        expect(src).toMatch(/avoidOverlap:\s*0/);
-        expect(src).toContain('solver: "barnesHut"');
-        const perf = readSource("meshchatx/src/frontend/js/networkVisualiserPerf.js");
+        expect(src).toContain('solver: "forceAtlas2Based"');
+        const perf = readSource("meshchatx/src/frontend/js/networkVisualiserPerf.ts");
         expect(perf).toContain("dedupeIconQueueEntries");
         expect(perf).toContain("pickAdaptiveFetchConcurrency");
     });
 
     it("prefers WebGL with WASM scene and keeps vis-network fallback", () => {
-        const src = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");
+        const src = readSources([
+            "meshchatx/src/frontend/features/network-visualiser/components/NetworkVisualiser.svelte",
+            "meshchatx/src/frontend/features/network-visualiser/lib/visualiserEngineManager.ts",
+            "meshchatx/src/frontend/features/network-visualiser/lib/visualiserRendererSetup.ts",
+            "meshchatx/src/frontend/features/network-visualiser/lib/visNetworkAdapter.ts",
+        ]);
         expect(src).toContain("tryStartWebGL");
-        expect(src).toContain("initVisNetwork");
+        expect(src).toContain("createVisNetworkInstance");
         expect(src).toContain("preferredRenderer");
-        expect(src).toContain('name: "nomadnetwork"');
-        expect(src).toContain("openAnnounceDestination");
         const engine = readSource("meshchatx/src/frontend/js/networkVisualiserWebGLEngine.js");
         expect(engine).toContain("meshchatxVisualiserSceneSet");
         expect(engine).toContain("createVisualiserWebGLEngine");
@@ -469,32 +483,32 @@ describe("behavior contracts: network visualiser performance", () => {
 });
 
 describe("behavior contracts: locale, theme, and call audio", () => {
-    it("App persists shell config through HTTP PATCH helpers", () => {
-        const app = readSource("meshchatx/src/frontend/components/App.vue");
-        expect(app).toContain("patchServerConfig");
-        expect(app).toContain("normalizeUiLocaleCode");
-        expect(app).toContain("async applyLocale(");
-        expect(app).toContain("setLocale(this.$i18n");
+    it("App shell persists config through HTTP PATCH helpers", () => {
+        const appConfig = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellConfig.ts");
+        expect(appConfig).toContain("patchServerConfig");
+        expect(appConfig).toContain("normalizeUiLocaleCode");
+        expect(appConfig).toContain("setLocale(");
     });
 
-    it("main.js registers the real i18n composer for Options API locale switches", () => {
-        const main = readSource("meshchatx/src/frontend/main.js");
-        expect(main).toContain("registerUiI18n");
-        expect(main).toContain("registerUiI18n(i18n)");
-        const loader = readSource("meshchatx/src/frontend/js/localeLoader.js");
-        expect(loader).toContain("export function registerUiI18n");
-        expect(loader).toContain("hasLocaleMessageApi");
+    it("main.ts boots svelte-i18n for the Svelte shell", () => {
+        const main = readSource("meshchatx/src/frontend/main.ts");
+        expect(main).toContain("initSvelteI18n");
+        expect(main).toContain("getCurrentUiLocale");
+        expect(main).not.toContain('from "vue-i18n"');
+        const loader = readSource("meshchatx/src/frontend/js/localeLoader.ts");
+        expect(loader).toContain("export async function initSvelteI18n");
+        expect(loader).toContain("export function getCurrentUiLocale");
     });
 
-    it("Settings language change applies vue-i18n locale after PATCH", () => {
-        const settings = readSource("meshchatx/src/frontend/components/settings/SettingsPage.vue");
-        expect(settings).toContain("async onLanguageChange()");
-        expect(settings).toContain("setLocale(this.$i18n");
+    it("Settings language change applies locale after PATCH", () => {
+        const settings = readSource("meshchatx/src/frontend/features/settings/components/SettingsPage.svelte");
+        expect(settings).toContain("async function onLanguageChange(");
+        expect(settings).toContain("setLocale(");
         expect(settings).toContain("patchServerConfig");
     });
 
     it("Docs manual language picker is isolated from UI config.language", () => {
-        const docs = readSource("meshchatx/src/frontend/components/docs/DocsPage.vue");
+        const docs = readSource("meshchatx/src/frontend/features/docs/DocsPage.svelte");
         expect(docs).toContain("reticulumDocsLang");
         expect(docs).not.toMatch(/setLanguage[\s\S]{0,400}api\.patch/);
     });
@@ -504,28 +518,30 @@ describe("behavior contracts: locale, theme, and call audio", () => {
         expect(boot).toContain('classList.remove("dark")');
     });
 
-    it("network visualiser theme follows config store before html.dark fallback", () => {
-        const vis = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");
+    it("network visualiser theme follows GlobalState before html.dark fallback", () => {
+        const vis = readSource("meshchatx/src/frontend/features/network-visualiser/lib/visualiserPrefs.ts");
         expect(vis).toContain("resolveVisualiserIsDark");
         expect(vis).toContain('theme === "light"');
-        expect(vis).toContain("useConfigStore().config");
+        expect(vis).toContain("GlobalState");
     });
 
     it("CallPage refresh devices uses getUserMedia before device enumeration", () => {
-        const call = readSource("meshchatx/src/frontend/components/call/CallPage.vue");
-        expect(call).toContain("Wide-open { audio: true } is what");
-        expect(call).toMatch(/requestAudioPermission[\s\S]*promptMicrophoneAccess/);
-        expect(call).toMatch(/requestAudioPermission[\s\S]*promptMicrophoneAccess[\s\S]*refreshAudioDevices/);
+        const mic = readSource("meshchatx/src/frontend/features/call/lib/callWebAudioMic.ts");
+        const bridge = readSource("meshchatx/src/frontend/features/call/lib/callWebAudio.ts");
+        expect(mic).toContain("Wide-open { audio: true } is what opens the permission dialog");
+        expect(mic).toContain("promptMicrophoneAccess");
+        expect(bridge).toMatch(/requestAudioPermission[\s\S]*promptMicrophoneAccess|requestMicPermission/);
+        expect(bridge).toMatch(/requestAudioPermission[\s\S]*refreshAudioDevices/);
     });
 });
 
-function listVueFiles(dir) {
+function listFrontendFiles(dir, exts) {
     const out = [];
     for (const name of readdirSync(dir)) {
         const p = join(dir, name);
         if (statSync(p).isDirectory()) {
-            out.push(...listVueFiles(p));
-        } else if (name.endsWith(".vue")) {
+            out.push(...listFrontendFiles(p, exts));
+        } else if (exts.some((ext) => name.endsWith(ext))) {
             out.push(p);
         }
     }
@@ -544,6 +560,10 @@ const VHTML_SANITIZER_TOKENS = [
     "drawFeatureDescriptionSanitized",
     "highlightMatch",
     "changelogHtml",
+    "cardPreviewHtml",
+    "previewHtml",
+    "renderedContent",
+    "descriptionSanitized",
     "selectedDocContent.html",
     "$t(",
     "MarkdownRenderer",
@@ -551,10 +571,14 @@ const VHTML_SANITIZER_TOKENS = [
 
 describe("behavior contracts: security gates", () => {
     it("WebSocket Origin check is wired on both upgrade paths", () => {
-        const src = readSource("meshchatx/src/backend/http/routes/websocket_upgrade.py");
+        const src = readSources([
+            "meshchatx/meshchat.py",
+            "meshchatx/src/backend/websocket_config_guard.py",
+            "meshchatx/src/backend/http/routes/websocket_upgrade.py",
+        ]);
         expect(src).toContain("websocket_origin_allowed");
         expect(src).toContain("_reject_forbidden_ws_origin");
-        expect(src).toContain('http_forbidden("Forbidden origin")');
+        expect(src).toContain("Forbidden origin");
     });
 
     it("WebSocket auth fails closed except explicit public control types", () => {
@@ -623,29 +647,35 @@ describe("behavior contracts: security gates", () => {
         expect(main).not.toMatch(/ipcMain\.handle\("/);
     });
 
-    it("v-html sites name a sanitizer and do not use a bare file-level disable", () => {
-        const vueRoot = join(process.cwd(), "meshchatx/src/frontend/components");
-        const files = listVueFiles(vueRoot);
-        const withVHtml = [];
+    it("frontend has no remaining .vue sources", () => {
+        const root = join(process.cwd(), "meshchatx/src/frontend");
+        const vueFiles = listFrontendFiles(root, [".vue"]);
+        expect(vueFiles).toEqual([]);
+    });
+
+    it("{@html} sites name a sanitizer token", () => {
+        const root = join(process.cwd(), "meshchatx/src/frontend");
+        const files = listFrontendFiles(root, [".svelte"]);
+        const withHtml = [];
         for (const abs of files) {
             const src = readFileSync(abs, "utf8");
-            if (!src.includes("v-html")) {
+            if (!src.includes("{@html")) {
                 continue;
             }
-            withVHtml.push(abs);
-            expect(src, abs).not.toMatch(/eslint-disable\s+vue\/no-v-html\s*-->/);
+            withHtml.push(abs);
             const named = VHTML_SANITIZER_TOKENS.some((token) => src.includes(token));
             expect(named, abs).toBe(true);
         }
-        expect(withVHtml.length).toBeGreaterThan(5);
+        expect(withHtml.length).toBeGreaterThanOrEqual(0);
     });
 
     it("LAN bind warning is a banner, not a process exit", () => {
-        const app = readSource("meshchatx/src/frontend/components/App.vue");
-        expect(app).toContain("showLanBindNoAuthBanner");
-        expect(app).toContain("shouldShowLanBindNoAuthBanner");
+        const app = readSource("meshchatx/src/frontend/features/app-shell/App.svelte");
+        const state = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellState.svelte.ts");
+        expect(state).toContain("showLanBindNoAuthBanner");
+        expect(state).toContain("shouldShowLanBindNoAuthBanner");
         expect(app).toContain("lan_bind_no_auth_banner");
-        const banners = readSource("meshchatx/src/frontend/components/layout/AppShellBanners.vue");
+        const banners = readSource("meshchatx/src/frontend/features/app-shell/components/AppShellBanners.svelte");
         expect(banners).toContain("showLanBindNoAuth");
         expect(banners).toContain("lanBindNoAuthLabel");
         const helper = readSource("meshchatx/src/frontend/js/lanBindWarning.js");

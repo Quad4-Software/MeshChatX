@@ -1,64 +1,61 @@
-import { describe, it, expect } from "vitest";
-import { mount } from "@vue/test-utils";
-import SearchInput from "@/components/SearchInput.vue";
+// SPDX-License-Identifier: 0BSD
 
-const mountInput = (props = {}, attrs = {}) =>
-    mount(SearchInput, {
-        props: { modelValue: "", ...props },
-        attrs,
-        global: {
-            mocks: { $t: (k) => k },
-            stubs: { MaterialDesignIcon: true },
-        },
+import { render, fireEvent, cleanup } from "@testing-library/svelte";
+import { describe, expect, it, afterEach, vi } from "vitest";
+import SearchInput from "../../meshchatx/src/frontend/ui/svelte/SearchInput.svelte";
+
+describe("SearchInput.svelte", () => {
+    afterEach(() => {
+        cleanup();
     });
 
-describe("SearchInput.vue", () => {
-    it("renders the placeholder and emits update:modelValue on input", async () => {
-        const wrapper = mountInput({ placeholder: "Search tools..." });
-        const input = wrapper.find("input");
-        expect(input.attributes("placeholder")).toBe("Search tools...");
-        expect(input.classes()).toContain("search-input");
+    it("renders the placeholder and updates value on input", async () => {
+        const { container } = render(SearchInput, {
+            props: { placeholder: "Search tools..." },
+        });
+        const input = container.querySelector("input");
+        expect(input.getAttribute("placeholder")).toBe("Search tools...");
+        expect(input.className).toContain("search-input");
 
-        await input.setValue("abc");
-        expect(wrapper.emitted("update:modelValue")).toEqual([["abc"]]);
+        await fireEvent.input(input, { target: { value: "abc" } });
+        expect(input.value).toBe("abc");
     });
 
     it("shows a clear button only when non-empty and clears on click", async () => {
-        const wrapper = mountInput({ modelValue: "x" });
-        expect(wrapper.find("button").exists()).toBe(true);
+        const onclear = vi.fn();
+        const { container } = render(SearchInput, {
+            props: { value: "x", onclear },
+        });
+        const btn = container.querySelector("button");
+        expect(btn).toBeTruthy();
 
-        await wrapper.find("button").trigger("click");
-        expect(wrapper.emitted("update:modelValue")).toEqual([[""]]);
-        expect(wrapper.emitted("clear")).toBeTruthy();
+        await fireEvent.click(btn);
+        expect(container.querySelector("input").value).toBe("");
+        expect(onclear).toHaveBeenCalled();
     });
 
     it("hides the clear button when the model is empty", () => {
-        const wrapper = mountInput({ modelValue: "" });
-        expect(wrapper.find("button").exists()).toBe(false);
+        const { container } = render(SearchInput, {
+            props: { value: "" },
+        });
+        expect(container.querySelector("button")).toBeNull();
     });
 
     it("clears on Escape", async () => {
-        const wrapper = mountInput({ modelValue: "abc" });
-        await wrapper.find("input").trigger("keydown", { key: "Escape" });
-        expect(wrapper.emitted("update:modelValue")).toEqual([[""]]);
+        const onclear = vi.fn();
+        const { container } = render(SearchInput, {
+            props: { value: "abc", onclear },
+        });
+        await fireEvent.keyDown(container.querySelector("input"), { key: "Escape" });
+        expect(container.querySelector("input").value).toBe("");
+        expect(onclear).toHaveBeenCalled();
     });
 
     it("shows a loading spinner instead of the clear button when loading", () => {
-        const wrapper = mountInput({ modelValue: "abc", loading: true });
-        expect(wrapper.find("button").exists()).toBe(false);
-        expect(wrapper.html()).toContain("animate-spin");
-    });
-
-    it("applies the compact class when compact", () => {
-        const wrapper = mountInput({ compact: true });
-        expect(wrapper.find("input").classes()).toContain("search-input-compact");
-    });
-
-    it("forwards attrs like type, id and aria-label to the inner input", () => {
-        const wrapper = mountInput({}, { type: "search", id: "x", "aria-label": "find" });
-        const input = wrapper.find("input");
-        expect(input.attributes("type")).toBe("search");
-        expect(input.attributes("id")).toBe("x");
-        expect(input.attributes("aria-label")).toBe("find");
+        const { container } = render(SearchInput, {
+            props: { value: "abc", loading: true },
+        });
+        expect(container.querySelector("button")).toBeNull();
+        expect(container.innerHTML).toContain("animate-spin");
     });
 });

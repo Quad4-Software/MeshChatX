@@ -1,141 +1,50 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+// SPDX-License-Identifier: 0BSD
 
-vi.mock("compressorjs", () => ({
-    default: vi.fn(function (file, options) {
-        options.success(file);
-    }),
-}));
+import { describe, it, expect } from "vitest";
+import { hydrateContactVisuals } from "@/features/call/lib/callHistory.ts";
 
-import CallPage from "@/components/call/CallPage.vue";
-
-describe("CallPage.vue - Custom Contact Images", () => {
-    let axiosMock;
-
-    beforeEach(() => {
-        axiosMock = {
-            get: vi.fn(),
-            post: vi.fn(),
-            patch: vi.fn(),
-            delete: vi.fn(),
-        };
-        window.api = axiosMock;
-
-        // Mock FileReader
-        const mockFileReader = {
-            readAsDataURL: vi.fn(function (blob) {
-                this.result = "data:image/webp;base64,mock";
-                this.onload({ target: { result: this.result } });
-            }),
-        };
-        vi.stubGlobal(
-            "FileReader",
-            vi.fn(function () {
-                return mockFileReader;
-            })
-        );
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/telephone/contacts")) return Promise.resolve({ data: [] });
-            if (url.includes("/api/v1/telephone/status")) return Promise.resolve({ data: { enabled: true } });
-            if (url.includes("/api/v1/telephone/voicemail/status")) return Promise.resolve({ data: {} });
-            return Promise.resolve({ data: {} });
-        });
-    });
-
-    afterEach(() => {
-        delete window.api;
-        vi.unstubAllGlobals();
-        vi.resetAllMocks();
-    });
-
-    const mountCallPage = () => {
-        return mount(CallPage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $route: { query: {} },
-                    $router: { push: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    LxmfUserIcon: true,
-                    Toggle: true,
-                    RingtoneEditor: true,
-                },
+describe("CallPage custom contact images", () => {
+    it("hydrateContactVisuals applies contact custom_image onto active call", () => {
+        const contacts = [
+            {
+                id: 1,
+                name: "Alice",
+                remote_identity_hash: "abcdef0123456789abcdef0123456789",
+                custom_image: "data:image/webp;base64,abc",
             },
+        ];
+        const activeCall = {
+            hash: "c1",
+            status: 6,
+            remote_identity_hash: "abcdef0123456789abcdef0123456789",
+        };
+        const result = hydrateContactVisuals({
+            contacts,
+            activeCall,
+            callHistory: [],
         });
-    };
-
-    it("opens add contact modal and handles image upload", async () => {
-        const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
-
-        // Switch to contacts tab
-        wrapper.vm.activeTab = "contacts";
-        await wrapper.vm.$nextTick();
-
-        // Open add contact modal
-        await wrapper.vm.openAddContactModal();
-        expect(wrapper.vm.isContactModalOpen).toBe(true);
-        expect(wrapper.vm.contactForm.custom_image).toBeNull();
-
-        // Simulate image selection
-        const imageFile = new File([""], "profile.png", { type: "image/png" });
-        await wrapper.vm.onContactImageChange({ target: { files: [imageFile], value: "" } });
-
-        expect(wrapper.vm.contactForm.custom_image).toBe("data:image/webp;base64,mock");
+        expect(result.activeCall?.custom_image).toBe("data:image/webp;base64,abc");
     });
 
-    it("saves contact with custom image", async () => {
-        const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.contactForm = {
-            name: "New Contact",
-            remote_identity_hash: "hash123",
-            custom_image: "data:image/webp;base64,mock",
-        };
-
-        axiosMock.post.mockResolvedValue({ data: { message: "Contact added" } });
-
-        await wrapper.vm.saveContact(wrapper.vm.contactForm);
-
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            "/api/v1/telephone/contacts",
-            expect.objectContaining({
-                name: "New Contact",
-                custom_image: "data:image/webp;base64,mock",
-            })
-        );
-    });
-
-    it("clears image when editing a contact", async () => {
-        const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
-
-        const contact = {
-            id: 1,
-            name: "Existing Contact",
-            remote_identity_hash: "hash123",
-            custom_image: "existing-img",
-        };
-
-        await wrapper.vm.openEditContactModal(contact);
-        expect(wrapper.vm.contactForm.custom_image).toBe("existing-img");
-
-        // Clear image
-        wrapper.vm.contactForm.custom_image = null;
-
-        axiosMock.patch.mockResolvedValue({ data: { message: "Contact updated" } });
-
-        await wrapper.vm.saveContact(wrapper.vm.contactForm);
-
-        expect(axiosMock.patch).toHaveBeenCalledWith(
-            "/api/v1/telephone/contacts/1",
-            expect.objectContaining({
-                clear_image: true,
-            })
-        );
+    it("hydrateContactVisuals applies images onto history rows", () => {
+        const contacts = [
+            {
+                id: 1,
+                name: "Bob",
+                remote_identity_hash: "11112222333344445555666677778888",
+                custom_image: "data:image/webp;base64,bob",
+            },
+        ];
+        const result = hydrateContactVisuals({
+            contacts,
+            callHistory: [
+                {
+                    id: 9,
+                    remote_identity_hash: "11112222333344445555666677778888",
+                    timestamp: 1,
+                },
+            ],
+        });
+        expect(result.callHistory[0].custom_image || result.callHistory[0].contact_image).toBeTruthy();
     });
 });

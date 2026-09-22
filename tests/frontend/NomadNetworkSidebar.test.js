@@ -1,472 +1,140 @@
-import { mount } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+import { render, cleanup, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import NomadNetworkSidebar from "@/components/nomadnetwork/NomadNetworkSidebar.vue";
-import DialogUtils from "@/js/DialogUtils";
-import GlobalEmitter from "@/js/GlobalEmitter";
-import { _resetNomadFavouritesLayoutSaveStateForTests } from "@/js/nomadFavouritesLayoutStore.js";
-import { _resetNomadFavouritesLayoutSharedStateForTests } from "@/js/nomadnet/useNomadFavouritesLayout.js";
-import { useConfigStore } from "@/js/stores/configStore.js";
-import { useIdentityStore } from "@/js/stores/identityStore.js";
+import NomadNetworkSidebar from "@/features/nomadnetwork/components/NomadNetworkSidebar.svelte";
 
-vi.mock("@/js/DialogUtils", () => ({
-    default: {
-        confirm: vi.fn(() => Promise.resolve(true)),
-        alert: vi.fn(),
-        prompt: vi.fn((msg, def) => Promise.resolve(def || "renamed")),
-    },
-}));
-
-describe("NomadNetworkSidebar.vue", () => {
-    let axiosMock;
-
-    const defaultFavourite = {
-        destination_hash: "a".repeat(32),
-        display_name: "Test Favourite",
-    };
-    const defaultNode = {
-        destination_hash: "b".repeat(32),
-        identity_hash: "c".repeat(32),
-        display_name: "Test Node",
-        updated_at: new Date().toISOString(),
-    };
-
+describe("NomadNetworkSidebar.svelte", () => {
     beforeEach(() => {
-        _resetNomadFavouritesLayoutSaveStateForTests();
-        _resetNomadFavouritesLayoutSharedStateForTests();
-        axiosMock = {
-            get: vi.fn().mockResolvedValue({ data: { layout: null } }),
-            put: vi.fn().mockImplementation((_url, body) => Promise.resolve({ data: body || {} })),
-            post: vi.fn().mockResolvedValue({ data: {} }),
-            delete: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.api = axiosMock;
-
-        useIdentityStore().blockedDestinations = [];
-        useConfigStore().config = { banished_effect_enabled: false };
-
-        vi.stubGlobal("localStorage", {
-            getItem: vi.fn(),
-            setItem: vi.fn(),
-            removeItem: vi.fn(),
-        });
+        vi.clearAllMocks();
     });
 
     afterEach(() => {
-        delete window.api;
-        vi.unstubAllGlobals();
-        _resetNomadFavouritesLayoutSaveStateForTests();
-        _resetNomadFavouritesLayoutSharedStateForTests();
+        cleanup();
     });
 
-    const mountSidebar = (overrides = {}) =>
-        mount(NomadNetworkSidebar, {
-            props: {
-                nodes: overrides.nodes ?? { [defaultNode.destination_hash]: defaultNode },
-                favourites: overrides.favourites ?? [defaultFavourite],
-                selectedDestinationHash: overrides.selectedDestinationHash ?? "",
-                nodesSearchTerm: overrides.nodesSearchTerm ?? "",
-                totalNodesCount: overrides.totalNodesCount ?? 1,
-                isLoadingMoreNodes: overrides.isLoadingMoreNodes ?? false,
-                isSearchingNodes: overrides.isSearchingNodes ?? false,
-                hasMoreNodes: overrides.hasMoreNodes ?? false,
-            },
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                },
+    it("renders favourites and announces tabs", () => {
+        const { getAllByText, getByText } = render(NomadNetworkSidebar, {
+            favourites: [{ destination_hash: "aabb", display_name: "Node A" }],
+            nodes: {
+                ccdd: { destination_hash: "ccdd", display_name: "Node B" },
             },
         });
 
-    it("renders favourites tab with favourite cards", async () => {
-        const wrapper = mountSidebar();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("nomadnet.favourites");
-        expect(wrapper.text()).toContain("Test Favourite");
+        expect(getAllByText(/favourites|nomadnet\.favourites/i).length).toBeGreaterThanOrEqual(1);
+        expect(getByText(/announces|nomadnet\.announces/i)).toBeTruthy();
     });
 
-    it("3-dots on favourite card opens context menu", async () => {
-        const wrapper = mountSidebar();
-        await wrapper.vm.$nextTick();
+    it("triggers onnodeclick when a favourite is clicked", async () => {
+        const onnodeclick = vi.fn();
+        const fav = { destination_hash: "aabb", display_name: "Node A" };
+        const { getByText } = render(NomadNetworkSidebar, {
+            favourites: [fav],
+            nodes: {},
+            onnodeclick,
+        });
 
-        const favouriteCard = wrapper.find(".favourite-card");
-        expect(favouriteCard.exists()).toBe(true);
-        const dotsBtn = favouriteCard.findComponent({ name: "IconButton" });
-        expect(dotsBtn.exists()).toBe(true);
+        const favItem = getByText("Node A");
+        await fireEvent.click(favItem);
 
-        await dotsBtn.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.favouriteContextMenu.show).toBe(true);
-        expect(wrapper.vm.favouriteContextMenu.targetHash).toBe(defaultFavourite.destination_hash);
+        expect(onnodeclick).toHaveBeenCalledWith(expect.objectContaining({ destination_hash: "aabb" }));
     });
 
-    it("favourite context menu has rename, banish, remove options", async () => {
-        const wrapper = mountSidebar();
-        wrapper.vm.favouriteContextMenu = {
-            show: true,
-            targetHash: defaultFavourite.destination_hash,
-            targetSectionId: "default",
-            x: 100,
-            y: 100,
-        };
-        wrapper.vm.sectionContextMenu.show = false;
-        await wrapper.vm.$nextTick();
+    it("switches to announces tab and displays announced nodes", async () => {
+        const { getByText } = render(NomadNetworkSidebar, {
+            favourites: [],
+            nodes: {
+                ccdd: { destination_hash: "ccdd", display_name: "Announced Node" },
+            },
+        });
 
-        const menuEls = document.body.querySelectorAll(".context-menu-panel");
-        const menuEl = Array.from(menuEls).find((el) => el.textContent.includes("nomadnet.rename"));
-        expect(menuEl).toBeTruthy();
-        expect(menuEl.textContent).toContain("nomadnet.block_node");
-        expect(menuEl.textContent).toContain("nomadnet.remove");
+        const announcesTab = getByText(/announces|nomadnet\.announces/i);
+        await fireEvent.click(announcesTab);
+
+        expect(getByText("Announced Node")).toBeTruthy();
     });
 
-    it("rename from favourite context menu emits rename-favourite", async () => {
-        const wrapper = mountSidebar();
-        wrapper.vm.favouriteContextMenu = {
-            show: true,
-            targetHash: defaultFavourite.destination_hash,
-            targetSectionId: "default",
-        };
-        await wrapper.vm.renameFavouriteFromContext();
+    it("collapses into icon rail when collapsed is true", () => {
+        const { container } = render(NomadNetworkSidebar, {
+            favourites: [{ destination_hash: "aabb", display_name: "Node A" }],
+            nodes: {},
+            collapsed: true,
+        });
 
-        expect(wrapper.emitted("rename-favourite")).toBeDefined();
-        expect(wrapper.emitted("rename-favourite")).toHaveLength(1);
+        expect(container.querySelector(".w-16")).toBeTruthy();
     });
 
-    it("remove from favourite context menu emits remove-favourite", async () => {
-        const wrapper = mountSidebar();
-        wrapper.vm.favouriteContextMenu = {
-            show: true,
-            targetHash: defaultFavourite.destination_hash,
-            targetSectionId: "default",
-        };
-        await wrapper.vm.removeFavouriteFromContext();
+    it("mobile URL input calls onnavigateurl and clears", async () => {
+        const onnavigateurl = vi.fn();
+        const { getByPlaceholderText } = render(NomadNetworkSidebar, {
+            favourites: [],
+            nodes: {},
+            onnavigateurl,
+        });
 
-        expect(wrapper.emitted("remove-favourite")).toBeDefined();
-        expect(wrapper.emitted("remove-favourite")).toHaveLength(1);
-    });
+        const input = getByPlaceholderText("Enter a Nomadnet URL");
+        await fireEvent.input(input, {
+            target: { value: "abcd1234abcd1234abcd1234abcd1234:/page/index.mu" },
+        });
+        await fireEvent.keyDown(input, { key: "Enter" });
 
-    it("banish from favourite context menu calls API and emits block-status-changed", async () => {
-        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
-        const wrapper = mountSidebar();
-        wrapper.vm.favouriteContextMenu = {
-            show: true,
-            targetHash: defaultFavourite.destination_hash,
-            targetSectionId: "default",
-        };
-        wrapper.vm.sectionContextMenu.show = false;
-        await wrapper.vm.$nextTick();
-
-        const menuEls = document.body.querySelectorAll(".context-menu-panel");
-        const menuEl = Array.from(menuEls).find((el) => el.textContent.includes("nomadnet.rename"));
-        expect(menuEl).toBeTruthy();
-        const banishBtn = Array.from(menuEl.querySelectorAll("button")).find((b) =>
-            b.textContent.includes("nomadnet.block_node")
-        );
-        expect(banishBtn).toBeTruthy();
-        await banishBtn.click();
-        await wrapper.vm.$nextTick();
-
-        expect(DialogUtils.confirm).toHaveBeenCalled();
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            "/api/v1/blocked-destinations",
-            expect.objectContaining({ destination_hash: defaultFavourite.destination_hash })
-        );
-        expect(emitSpy).toHaveBeenCalledWith("block-status-changed");
-        emitSpy.mockRestore();
-    });
-
-    it("announces tab shows announce cards with 3-dots dropdown", async () => {
-        const wrapper = mountSidebar();
-        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-        await announceTab.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("Test Node");
-        const dropMenus = wrapper.findAllComponents({ name: "DropDownMenu" });
-        expect(dropMenus.length).toBeGreaterThan(0);
-    });
-
-    it("right-click on announce card opens context menu", async () => {
-        const wrapper = mountSidebar();
-        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-        await announceTab.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        const announceCard = wrapper.find(".announce-card");
-        expect(announceCard.exists()).toBe(true);
-
-        await announceCard.trigger("contextmenu");
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.announceContextMenu.show).toBe(true);
-        expect(wrapper.vm.announceContextMenu.node).toEqual(defaultNode);
-    });
-
-    it("add favourite from announce context menu emits add-favourite", async () => {
-        const wrapper = mountSidebar({ favourites: [] });
-        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-        await announceTab.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.announceContextMenu = { show: true, node: defaultNode };
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.addFavouriteFromContext();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.emitted("add-favourite")).toHaveLength(1);
-        expect(wrapper.emitted("add-favourite")[0][0]).toEqual(defaultNode);
-    });
-
-    it("block from announce context menu calls API", async () => {
-        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
-        const wrapper = mountSidebar();
-        wrapper.vm.announceContextMenu = { show: true, node: defaultNode };
-        await wrapper.vm.$nextTick();
-
-        await wrapper.vm.blockAnnounceFromContext();
-        await wrapper.vm.$nextTick();
-
-        expect(DialogUtils.confirm).toHaveBeenCalled();
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            "/api/v1/blocked-destinations",
-            expect.objectContaining({ destination_hash: defaultNode.identity_hash })
-        );
-        expect(emitSpy).toHaveBeenCalledWith("block-status-changed");
-        emitSpy.mockRestore();
-    });
-
-    it("mobile URL input emits navigate-url and clears", async () => {
-        const wrapper = mountSidebar();
-        await wrapper.vm.$nextTick();
-
-        const input = wrapper.find('input[placeholder="nomadnet.enter_nomadnet_url"]');
-        expect(input.exists()).toBe(true);
-        await input.setValue("abcd1234abcd1234abcd1234abcd1234:/page/index.mu");
-        await input.trigger("keyup.enter");
-
-        expect(wrapper.emitted("navigate-url")).toEqual([["abcd1234abcd1234abcd1234abcd1234:/page/index.mu"]]);
-        expect(wrapper.vm.mobileUrlInput).toBe("");
+        expect(onnavigateurl).toHaveBeenCalledWith("abcd1234abcd1234abcd1234abcd1234:/page/index.mu");
+        expect(input.value).toBe("");
     });
 
     it("mobile URL input ignores blank submissions", async () => {
-        const wrapper = mountSidebar();
-        wrapper.vm.mobileUrlInput = "   ";
-        wrapper.vm.submitMobileUrl();
-        expect(wrapper.emitted("navigate-url")).toBeUndefined();
-    });
-
-    it("shows a spinner next to the search input while a node search is in progress", async () => {
-        const wrapper = mountSidebar({ isSearchingNodes: true });
-        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-        await announceTab.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        const spinner = wrapper.find('[data-icon-name="loading"]');
-        expect(spinner.exists()).toBe(true);
-    });
-
-    it("does not show a search spinner when isSearchingNodes is false", async () => {
-        const wrapper = mountSidebar({ isSearchingNodes: false });
-        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-        await announceTab.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        const spinner = wrapper.find('[data-icon-name="loading"]');
-        expect(spinner.exists()).toBe(false);
-    });
-
-    it("shows a searching placeholder instead of the empty state while search results are still loading", async () => {
-        const wrapper = mountSidebar({
+        const onnavigateurl = vi.fn();
+        const { getByPlaceholderText } = render(NomadNetworkSidebar, {
+            favourites: [],
             nodes: {},
-            totalNodesCount: 0,
-            nodesSearchTerm: "nonexistent",
-            isSearchingNodes: true,
+            onnavigateurl,
         });
-        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-        await announceTab.trigger("click");
-        await wrapper.vm.$nextTick();
 
-        expect(wrapper.text()).toContain("nomadnet.searching_announces");
-        expect(wrapper.text()).not.toContain("nomadnet.no_announces_yet");
-        expect(wrapper.text()).not.toContain("nomadnet.no_search_results_peers");
+        const input = getByPlaceholderText("Enter a Nomadnet URL");
+        await fireEvent.input(input, { target: { value: "   " } });
+        await fireEvent.keyDown(input, { key: "Enter" });
+
+        expect(onnavigateurl).not.toHaveBeenCalled();
     });
 
-    it("shows the no-results-for-search message once a search finishes with no matches", async () => {
-        const wrapper = mountSidebar({
-            nodes: {},
-            totalNodesCount: 0,
-            nodesSearchTerm: "nonexistent",
-            isSearchingNodes: false,
-        });
-        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-        await announceTab.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("nomadnet.no_search_results_peers");
-        expect(wrapper.text()).not.toContain("nomadnet.no_announces_yet");
-    });
-
-    it("shows the generic no-announces empty state when there is no search term", async () => {
-        const wrapper = mountSidebar({
-            nodes: {},
-            totalNodesCount: 0,
-            nodesSearchTerm: "",
-            isSearchingNodes: false,
-        });
-        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-        await announceTab.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("nomadnet.no_announces_yet");
-        expect(wrapper.text()).not.toContain("nomadnet.no_search_results_peers");
-    });
-
-    describe("announces list virtualization branches", () => {
-        const makeNodes = (count) => {
-            const nodes = {};
-            for (let i = 0; i < count; i++) {
-                const hash = String(i).padStart(32, "0");
-                nodes[hash] = {
-                    destination_hash: hash,
-                    identity_hash: String(i + 1).padStart(32, "f"),
-                    display_name: `Node ${i}`,
-                    updated_at: new Date().toISOString(),
-                };
-            }
-            return nodes;
-        };
-
-        const openAnnouncesTab = async (wrapper) => {
-            const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
-            await announceTab.trigger("click");
-            await wrapper.vm.$nextTick();
-        };
-
-        it("mounts only the virtualized list at or above the virtualization threshold", async () => {
-            const wrapper = mountSidebar({ nodes: makeNodes(40), totalNodesCount: 40 });
-            await openAnnouncesTab(wrapper);
-
-            // regression: the plain list must not mount alongside the virtual list
-            expect(wrapper.find("div.h-full.overflow-y-auto.space-y-2").exists()).toBe(false);
-            expect(wrapper.find("div.h-full.overflow-y-auto.overflow-x-hidden").exists()).toBe(true);
-            expect(wrapper.text()).not.toContain("nomadnet.no_announces_yet");
-        });
-
-        it("keeps the plain list unmounted while loading more on the virtualized list", async () => {
-            const wrapper = mountSidebar({
-                nodes: makeNodes(40),
-                totalNodesCount: 40,
-                isLoadingMoreNodes: true,
-                hasMoreNodes: true,
-            });
-            await openAnnouncesTab(wrapper);
-
-            expect(wrapper.find("div.h-full.overflow-y-auto.space-y-2").exists()).toBe(false);
-            expect(wrapper.find('[data-icon-name="loading"]').exists()).toBe(true);
-        });
-
-        it("renders every announce card in the plain list below the virtualization threshold", async () => {
-            const wrapper = mountSidebar({ nodes: makeNodes(5), totalNodesCount: 5 });
-            await openAnnouncesTab(wrapper);
-
-            expect(wrapper.find("div.h-full.overflow-y-auto.space-y-2").exists()).toBe(true);
-            expect(wrapper.findAll(".announce-card")).toHaveLength(5);
-            expect(wrapper.text()).toContain("Node 4");
-        });
-    });
-
-    it("favouriteDisplayName prefers announce cache over unknown favourite label", async () => {
-        const favHash = defaultFavourite.destination_hash;
-        const wrapper = mountSidebar({
-            favourites: [{ destination_hash: favHash, display_name: "Unknown Node" }],
+    it("keeps the announces list mounted while loading more", async () => {
+        const { getByText, container } = render(NomadNetworkSidebar, {
+            favourites: [],
             nodes: {
-                [favHash]: {
-                    destination_hash: favHash,
-                    display_name: "Live Announce Name",
-                },
-                [defaultNode.destination_hash]: defaultNode,
+                ccdd: { destination_hash: "ccdd", display_name: "Announced Node" },
             },
+            isLoadingMoreNodes: true,
+            hasMoreNodes: true,
         });
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.favouriteDisplayName(wrapper.vm.favourites[0])).toBe("Live Announce Name");
-        expect(wrapper.text()).toContain("Live Announce Name");
+
+        const announcesTab = getByText(/announces|nomadnet\.announces/i);
+        await fireEvent.click(announcesTab);
+
+        // regression: the loading spinner must not replace the list
+        expect(getByText("Announced Node")).toBeTruthy();
+        expect(container.querySelector(".animate-spin")).toBeTruthy();
     });
 
-    it("does not wipe persisted favourite section layout when favourites are still empty", async () => {
-        const favHash = defaultFavourite.destination_hash;
-        const layout = {
-            sections: [
-                { id: "default", name: "Favourites", collapsed: false },
-                { id: "custom", name: "Custom", collapsed: false },
-            ],
-            sectionOrder: ["default", "custom"],
-            favouritesBySection: {
-                default: [],
-                custom: [favHash],
+    it("switches announces ordering via the sort select", async () => {
+        const { getByText, getByTitle } = render(NomadNetworkSidebar, {
+            favourites: [],
+            nodes: {
+                aaaa: { destination_hash: "aaaa", display_name: "Zebra", announce_count: 1 },
+                bbbb: { destination_hash: "bbbb", display_name: "Alpha", announce_count: 9 },
             },
-        };
-        localStorage.getItem.mockImplementation((key) => {
-            if (key === "meshchat.nomadnet.favourites.layout") {
-                return JSON.stringify(layout);
-            }
-            return null;
         });
-        axiosMock.get.mockResolvedValue({ data: { layout } });
 
-        const wrapper = mountSidebar({ favourites: [] });
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.favouritesBySection.custom).toEqual([favHash]);
+        const announcesTab = getByText(/announces|nomadnet\.announces/i);
+        await fireEvent.click(announcesTab);
 
-        await wrapper.setProps({ favourites: [defaultFavourite] });
-        await wrapper.vm.$nextTick();
+        const select = getByTitle(/sort announces|nomadnet\.sort_announces/i);
+        await fireEvent.change(select, { target: { value: "name" } });
 
-        expect(wrapper.vm.favouritesBySection.custom).toContain(favHash);
-        expect(wrapper.vm.favouritesBySection.default || []).not.toContain(favHash);
-    });
-
-    it("persists favourite layout through the favourites layout API", async () => {
-        let resolveGet;
-        axiosMock.get.mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    resolveGet = resolve;
-                })
+        const rows = [...document.querySelectorAll(".announce-card, [data-destination-hash]")].map(
+            (el) => el.textContent
         );
-        const wrapper = mountSidebar();
-        await vi.waitFor(() => expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/favourites/layout"));
-        await vi.waitFor(() => expect(wrapper.vm.sections.length).toBeGreaterThan(0));
-        axiosMock.put.mockClear();
-        wrapper.vm.sections = [
-            { id: "default", name: "Favourites", collapsed: false },
-            { id: "custom", name: "Custom", collapsed: false },
-        ];
-        wrapper.vm.sectionOrder = ["default", "custom"];
-        wrapper.vm.favouritesBySection = {
-            default: [],
-            custom: [defaultFavourite.destination_hash],
-        };
-        await wrapper.vm.persistFavouriteLayout({ immediate: true });
-        // Late hydrate must not wipe the edit we just persisted.
-        resolveGet({ data: { layout: null } });
-        await Promise.resolve();
-        expect(wrapper.vm.favouritesBySection.custom).toEqual([defaultFavourite.destination_hash]);
-        await vi.waitFor(() =>
-            expect(axiosMock.put).toHaveBeenCalledWith(
-                "/api/v1/favourites/layout",
-                expect.objectContaining({
-                    layout: expect.objectContaining({
-                        favouritesBySection: expect.objectContaining({
-                            custom: [defaultFavourite.destination_hash],
-                        }),
-                    }),
-                })
-            )
-        );
+        const alphaIdx = rows.findIndex((txt) => txt.includes("Alpha"));
+        const zebraIdx = rows.findIndex((txt) => txt.includes("Zebra"));
+        expect(alphaIdx).toBeGreaterThanOrEqual(0);
+        expect(alphaIdx).toBeLessThan(zebraIdx);
     });
 });

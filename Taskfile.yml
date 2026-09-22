@@ -19,6 +19,8 @@ vars:
         sh: echo "${DOCKER_COMPOSE_CMD:-docker compose}"
     DOCKER_COMPOSE_FILE:
         sh: echo "${DOCKER_COMPOSE_FILE:-docker/docker-compose.yml}"
+    DOCKER_COMPOSE_DEV_FILE:
+        sh: echo "${DOCKER_COMPOSE_DEV_FILE:-docker/docker-compose.dev.yml}"
     DOCKER_IMAGE:
         sh: echo "${DOCKER_IMAGE:-reticulum-meshchatx:local}"
     DOCKER_BUILDER:
@@ -183,7 +185,7 @@ tasks:
             - uv run python -m meshchatx.meshchat
 
     dev:
-        desc: Vite HMR + backend (http://127.0.0.1:5173) with Vue DevTools
+        desc: Vite HMR + backend (http://127.0.0.1:5173)
         cmds:
             - bash scripts/dev-local.sh
 
@@ -226,7 +228,7 @@ tasks:
 
     format:frontend:
         aliases: [fmt:fe, format:fe]
-        desc: Format frontend code (Prettier/ESLint)
+        desc: Format frontend code (Prettier incl. Svelte, ESLint --fix)
         cmds:
             - "{{.NPM}} run format"
             - "{{.NPM}} run lint:fix"
@@ -239,24 +241,37 @@ tasks:
             - uv run ruff check --fix .
 
     lint:
-        desc: Run all linters (ESLint, vue-tsc, knip, Ruff, basedpyright)
+        desc: Run all linters (ESLint, Prettier check, svelte-check, knip, Ruff, basedpyright)
         aliases: [lint:all]
         deps: [lint:frontend, lint:backend]
 
     lint:frontend:
         aliases: [lint:fe]
-        desc: Lint frontend code (ESLint, vue-tsc, knip, format-token and git-dep pin checks)
+        desc: Lint frontend (oxlint, ESLint, Prettier, svelte-check, features strict check, knip, dpdm cycles, format-token and git-dep pins)
         cmds:
             - "{{.NPM}} run lint"
+            - "{{.NPM}} run format:check"
             - "{{.NPM}} run typecheck"
-            - "{{.NPM}} exec vue-tsc --noEmit -p tsconfig.libs.json"
-            - "{{.NPM}} exec knip"
+            - "{{.NPM}} run svelte-check"
+            - "{{.NPM}} run typecheck:features"
+            - "{{.NPM}} run knip"
+            - "{{.NPM}} run deps:cycles"
             - task: check:format-tokens
             - task: deps:git-pins
 
+    check:svelte:
+        desc: Run svelte-check (Svelte 5 runes)
+        cmds:
+            - "{{.NPM}} run svelte-check"
+
+    check:frontend-bundle:
+        desc: Assert Vite chunk size budgets (requires prior build-frontend)
+        cmds:
+            - "{{.NPM}} run check:bundle-budgets"
+
     lint:backend:
         aliases: [lint:be]
-        desc: Lint Python code (Ruff + basedpyright)
+        desc: Lint Python code (Ruff D/B/UP + basedpyright)
         cmds:
             - uv run python scripts/ci/check_schema_migrations.py
             - uv run ruff check .
@@ -279,6 +294,21 @@ tasks:
         desc: Playwright E2E (starts MeshChat backend + Vite, requires uv, curl, pnpm exec playwright install chromium)
         cmds:
             - "{{.NPM}} run test:e2e"
+
+    test:e2e:electron:
+        desc: Playwright Electron shell smoke (harness window, no Python backend)
+        cmds:
+            - "{{.NPM}} run test:e2e:electron"
+
+    test:browser:
+        desc: Vitest browser-mode Svelte component smoke (Playwright Chromium)
+        cmds:
+            - "{{.NPM}} run test:browser"
+
+    test:openapi:
+        desc: OpenAPI core contract checks (optional live Schemathesis with MESHCHAT_OPENAPI_LIVE=1)
+        cmds:
+            - uv run pytest tests/backend/test_openapi_core_contract.py tests/backend/test_openapi_schemathesis.py -q --tb=short
 
     test:ui:all:
         desc: UI page smoke + Lighthouse audits with simulated data (Playwright)
@@ -376,11 +406,10 @@ tasks:
             - uv run pytest tests/backend/eect/live/test_lv_ladder.py -m live_validation -k "l0" -q --tb=short
 
     test:quick:fe:
-        desc: Full frontend unit suite without coverage (excludes LoadTimePerformance and i18n, see test:lang)
+        desc: Full frontend unit suite without coverage (excludes i18n, see test:lang)
         cmds:
             - >-
                 {{.NPM}} exec vitest run
-                --exclude tests/frontend/LoadTimePerformance.test.js
                 --exclude tests/frontend/i18n.test.js
 
     test:backend:
@@ -446,7 +475,7 @@ tasks:
 
     test:frontend:
         aliases: [test:fe]
-        desc: Run frontend + Electron shell unit tests (vitest with coverage, excludes i18n, see test:lang, excludes LoadTimePerformance, use test:fe:loadtime locally)
+        desc: Run frontend + Electron shell unit tests (vitest with coverage, excludes i18n, see test:lang)
         cmds:
             - "{{.NPM}} exec vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
             - "{{.NPM}} exec vitest run --config vitest.electron.config.mjs --coverage"
@@ -455,11 +484,6 @@ tasks:
         desc: Vitest UI runner for frontend unit tests
         cmds:
             - "{{.NPM}} run test:ui"
-
-    test:fe:loadtime:
-        desc: Optional frontend load-time / sidebar performance tests (not run in CI)
-        cmds:
-            - "{{.NPM}} run test:loadtime"
 
     test:be:media-fuzz:
         desc: Hypothesis fuzz tests for stickers, TGS/Lottie JSON, WebM, GIFs, pack exports
@@ -493,7 +517,7 @@ tasks:
             - uv run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
 
     test:cov:
-        desc: Run all tests with coverage (Python + frontend JS/Vue + translation pytest)
+        desc: Run all tests with coverage (Python + frontend JS + translation pytest)
         deps: [test:be:cov, test:fe:cov]
         cmds:
             - "uv run pytest tests/backend/test_translation_http.py tests/backend/test_translation_pack_manager.py"
@@ -786,7 +810,7 @@ tasks:
     docker:run:dev:
         desc: Run Docker container (dev compose)
         cmds:
-            - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f docker/docker-compose.dev.yml up --build --remove-orphans reticulum-meshchatx'
+            - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f {{.DOCKER_COMPOSE_DEV_FILE}} up --build --remove-orphans reticulum-meshchatx'
 
     docker:build:env:
         desc: Build containerized build environment

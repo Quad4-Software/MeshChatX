@@ -54,7 +54,7 @@ def test_blackhole_status_missing_api(mock_reticulum_instance):
     # But we can patch the RNS object inside rnstatus_handler module.
 
     with patch(
-        "meshchatx.src.backend.rnstatus_handler.RNS.Reticulum",
+        "meshchatx.src.backend.rnstatus_handler.core.RNS.Reticulum",
     ) as mock_rns_class:
         del mock_rns_class.publish_blackhole_enabled
 

@@ -1,0 +1,18 @@
+apiVersion: v2
+name: meshchatx
+description: MeshChatX is an all-in-one Reticulum client (LXMF messaging, NomadNet pages, maps, telephony).
+type: application
+version: 0.1.0
+appVersion: "4.9.1"
+home: https://github.com/Quad4-Software/MeshChatX
+icon: https://raw.githubusercontent.com/Quad4-Software/MeshChatX/master/logo/logo.png
+sources:
+    - https://github.com/Quad4-Software/MeshChatX
+keywords:
+    - reticulum
+    - lxmf
+    - mesh-networking
+    - nomadnet
+maintainers:
+    - name: Quad4
+      url: https://github.com/Quad4-Software

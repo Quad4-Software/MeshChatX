@@ -1,0 +1,401 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
+<script lang="ts">
+    import { onMount } from "svelte";
+    import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
+    import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
+    import ToastUtils from "../../js/ToastUtils.js";
+    import DialogUtils from "../../js/DialogUtils.js";
+    import GlobalState from "../../js/GlobalState.js";
+    import { t } from "../../js/i18n.js";
+    import {
+        RETICULUM_CONFIG_RAW_ENDPOINT,
+        RETICULUM_CONFIG_RESET_ENDPOINT,
+        RETICULUM_CONFIG_VERSIONS_ENDPOINT,
+        RETICULUM_RELOAD_ENDPOINT,
+        reticulumConfigVersionEndpoint,
+        reticulumConfigVersionRestoreEndpoint,
+        TOAST_ID_CONFIG_SAVE,
+        TOAST_ID_CONFIG_RESTORE,
+        TOAST_ID_CONFIG_RELOAD,
+    } from "./lib/constants.js";
+    import {
+        insertTabAtSelection,
+        isConfigDirty,
+        shouldShowRestartReminder,
+        extractErrorMessage,
+    } from "./lib/configFormat.js";
+    import type {
+        ReticulumConfigRawResponse,
+        ReticulumConfigResetResponse,
+        ReticulumConfigVersion,
+        ReticulumConfigVersionResponse,
+        ReticulumConfigVersionsResponse,
+        ReticulumReloadResponse,
+    } from "./lib/types.js";
+
+    let content = $state("");
+    let originalContent = $state("");
+    let configPath = $state("");
+    let loading = $state(false);
+    let saving = $state(false);
+    let resetting = $state(false);
+    let reloadingRns = $state(false);
+    let hasSavedChanges = $state(false);
+    let showVersions = $state(false);
+    let versions = $state<ReticulumConfigVersion[]>([]);
+    let versionsLoading = $state(false);
+    let restoringVersionId = $state<string | null>(null);
+
+    const isDirty = $derived(isConfigDirty(content, originalContent));
+    const showRestartReminder = $derived(
+        shouldShowRestartReminder(hasSavedChanges, Boolean(GlobalState.hasPendingInterfaceChanges))
+    );
+
+    async function loadConfig(): Promise<void> {
+        if (loading) return;
+        try {
+            loading = true;
+            const response = await window.api.get(RETICULUM_CONFIG_RAW_ENDPOINT);
+            const data = (response.data || {}) as ReticulumConfigRawResponse;
+            content = data.content || "";
+            originalContent = content;
+            configPath = data.path || "";
+        } catch (e) {
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_load")));
+        } finally {
+            loading = false;
+        }
+    }
+
+    async function saveConfig(): Promise<void> {
+        if (saving || !isDirty) return;
+        try {
+            saving = true;
+            ToastUtils.loading(t("tools.reticulum_config_editor.saving"), 0, TOAST_ID_CONFIG_SAVE);
+            const response = await window.api.put(RETICULUM_CONFIG_RAW_ENDPOINT, {
+                content,
+            });
+            const data = (response.data || {}) as ReticulumConfigRawResponse;
+            originalContent = content;
+            configPath = data.path || configPath;
+            hasSavedChanges = true;
+            GlobalState.hasPendingInterfaceChanges = true;
+            ToastUtils.success(data.message || t("tools.reticulum_config_editor.saved"));
+        } catch (e) {
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_save")));
+        } finally {
+            ToastUtils.dismiss(TOAST_ID_CONFIG_SAVE);
+            saving = false;
+        }
+    }
+
+    async function restoreDefaults(): Promise<void> {
+        if (resetting) return;
+        const confirmed = await DialogUtils.confirm(t("tools.reticulum_config_editor.confirm_restore"));
+        if (!confirmed) return;
+        try {
+            resetting = true;
+            ToastUtils.loading(t("tools.reticulum_config_editor.restoring"), 0, TOAST_ID_CONFIG_RESTORE);
+            const response = await window.api.post(RETICULUM_CONFIG_RESET_ENDPOINT);
+            const data = (response.data || {}) as ReticulumConfigResetResponse;
+            content = data.content || "";
+            originalContent = content;
+            configPath = data.path || configPath;
+            hasSavedChanges = true;
+            GlobalState.hasPendingInterfaceChanges = true;
+            ToastUtils.success(data.message || t("tools.reticulum_config_editor.restored"));
+        } catch (e) {
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_restore")));
+        } finally {
+            ToastUtils.dismiss(TOAST_ID_CONFIG_RESTORE);
+            resetting = false;
+        }
+    }
+
+    async function toggleVersions(): Promise<void> {
+        showVersions = !showVersions;
+        if (showVersions) {
+            await loadVersions();
+        }
+    }
+
+    async function loadVersions(): Promise<void> {
+        if (versionsLoading) return;
+        try {
+            versionsLoading = true;
+            const response = await window.api.get(RETICULUM_CONFIG_VERSIONS_ENDPOINT);
+            const data = (response.data || {}) as ReticulumConfigVersionsResponse;
+            versions = Array.isArray(data.versions) ? data.versions : [];
+        } catch (e) {
+            versions = [];
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_versions")));
+        } finally {
+            versionsLoading = false;
+        }
+    }
+
+    function formatVersionTime(iso: string | undefined): string {
+        const date = new Date(iso || "");
+        if (Number.isNaN(date.getTime())) {
+            return iso || "";
+        }
+        return date.toLocaleString();
+    }
+
+    async function previewVersion(version: ReticulumConfigVersion): Promise<void> {
+        try {
+            const response = await window.api.get(reticulumConfigVersionEndpoint(version.id));
+            const data = (response.data || {}) as ReticulumConfigVersionResponse;
+            const versionContent = data.version?.content;
+            if (typeof versionContent === "string") {
+                content = versionContent;
+            }
+        } catch (e) {
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_versions")));
+        }
+    }
+
+    async function restoreVersion(version: ReticulumConfigVersion): Promise<void> {
+        if (restoringVersionId != null) return;
+        const confirmed = await DialogUtils.confirm(t("tools.reticulum_config_editor.confirm_restore_version"));
+        if (!confirmed) return;
+        try {
+            restoringVersionId = version.id;
+            const response = await window.api.post(reticulumConfigVersionRestoreEndpoint(version.id));
+            const data = (response.data || {}) as ReticulumConfigResetResponse;
+            content = data.content || "";
+            originalContent = content;
+            configPath = data.path || configPath;
+            hasSavedChanges = true;
+            GlobalState.hasPendingInterfaceChanges = true;
+            ToastUtils.success(data.message || t("tools.reticulum_config_editor.restored"));
+            await loadVersions();
+        } catch (e) {
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_restore")));
+        } finally {
+            restoringVersionId = null;
+        }
+    }
+
+    function discardChanges(): void {
+        if (!isDirty) return;
+        content = originalContent;
+    }
+
+    async function reloadRns(): Promise<void> {
+        if (reloadingRns) return;
+        try {
+            reloadingRns = true;
+            ToastUtils.loading(t("app.reloading_rns"), 0, TOAST_ID_CONFIG_RELOAD);
+            const response = await window.api.post(RETICULUM_RELOAD_ENDPOINT);
+            const data = (response.data || {}) as ReticulumReloadResponse;
+            ToastUtils.success(data.message || t("tools.reticulum_config_editor.restart_done"));
+            hasSavedChanges = false;
+            GlobalState.hasPendingInterfaceChanges = false;
+            if (GlobalState.modifiedInterfaceNames?.clear) {
+                GlobalState.modifiedInterfaceNames.clear();
+            }
+            await loadConfig();
+        } catch (e) {
+            ToastUtils.error(extractErrorMessage(e, t("tools.reticulum_config_editor.failed_restart")));
+        } finally {
+            ToastUtils.dismiss(TOAST_ID_CONFIG_RELOAD);
+            reloadingRns = false;
+        }
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+        if (event.key === "Tab") {
+            event.preventDefault();
+            const target = event.target as HTMLTextAreaElement | null;
+            if (!target) return;
+            const start = target.selectionStart ?? 0;
+            const end = target.selectionEnd ?? 0;
+            const result = insertTabAtSelection(content, start, end);
+            content = result.content;
+            queueMicrotask(() => {
+                target.selectionStart = target.selectionEnd = result.newCursor;
+            });
+        }
+    }
+
+    onMount(() => {
+        void loadConfig();
+    });
+</script>
+
+<div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas" data-testid="reticulum-config-editor-page">
+    <ToolsPageHeader
+        icon="file-cog"
+        title={t("tools.reticulum_config_editor.title")}
+        description={t("tools.reticulum_config_editor.description")}
+        accent="blue"
+    >
+        <button type="button" class="secondary-chip focus-ring-sem py-1! px-3!" disabled={loading} onclick={loadConfig}>
+            <MaterialDesignIcon iconName="refresh" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{t("tools.reticulum_config_editor.reload")}</span>
+        </button>
+        <button
+            type="button"
+            class="secondary-chip focus-ring-sem py-1! px-3! {showVersions ? 'ring-1 ring-sem-accent/40' : ''}"
+            disabled={loading}
+            onclick={toggleVersions}
+        >
+            <MaterialDesignIcon iconName="history" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{t("tools.reticulum_config_editor.versions")}</span>
+        </button>
+        <button
+            type="button"
+            class="danger-chip focus-ring-sem py-1! px-3!"
+            disabled={loading || resetting}
+            onclick={restoreDefaults}
+        >
+            <MaterialDesignIcon iconName="restore" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{t("tools.reticulum_config_editor.restore_defaults")}</span>
+        </button>
+        <button
+            type="button"
+            class="secondary-chip focus-ring-sem py-1! px-3!"
+            disabled={!isDirty || saving}
+            onclick={discardChanges}
+        >
+            <MaterialDesignIcon iconName="undo" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{t("tools.reticulum_config_editor.discard")}</span>
+        </button>
+        <button
+            type="button"
+            class="primary-chip focus-ring-sem py-1! px-3!"
+            disabled={!isDirty || saving}
+            title={!isDirty ? t("tools.reticulum_config_editor.saved") : undefined}
+            onclick={saveConfig}
+        >
+            <MaterialDesignIcon iconName="content-save" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">
+                {saving ? t("tools.reticulum_config_editor.saving") : t("tools.reticulum_config_editor.save")}
+            </span>
+        </button>
+    </ToolsPageHeader>
+
+    <div
+        class="flex-1 min-h-0 overflow-hidden w-full px-3 sm:px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col"
+    >
+        <div class="space-y-4 w-full min-w-0 max-w-6xl mx-auto flex-1 min-h-0 flex flex-col">
+            {#if configPath}
+                <p class="text-xs text-sem-fg-muted font-mono truncate shrink-0" title={configPath}>
+                    {configPath}
+                </p>
+            {/if}
+            {#if showRestartReminder}
+                <div
+                    class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center shrink-0"
+                >
+                    <div class="flex items-center gap-3">
+                        <MaterialDesignIcon iconName="alert" class="w-6 h-6" />
+                        <div>
+                            <div class="text-lg font-semibold">
+                                {t("tools.reticulum_config_editor.restart_required")}
+                            </div>
+                            <div class="text-sm">
+                                {t("tools.reticulum_config_editor.restart_description")}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-xs disabled:opacity-50 {reloadingRns
+                            ? ''
+                            : 'animate-pulse motion-reduce:animate-none'}"
+                        disabled={reloadingRns}
+                        onclick={reloadRns}
+                    >
+                        <MaterialDesignIcon iconName="restart" class="w-4 h-4" />
+                        {reloadingRns ? t("app.reloading_rns") : t("tools.reticulum_config_editor.restart_now")}
+                    </button>
+                </div>
+            {/if}
+
+            {#if showVersions}
+                <div class="rounded-xl border border-sem-border bg-sem-surface shrink-0 max-h-56 overflow-y-auto">
+                    <div
+                        class="flex items-center gap-1.5 px-3 py-2 border-b border-sem-border bg-sem-surface-muted/60 text-xs font-semibold text-sem-fg-secondary"
+                    >
+                        <MaterialDesignIcon iconName="history" class="w-3.5 h-3.5" />
+                        {t("tools.reticulum_config_editor.versions")}
+                    </div>
+                    {#if versionsLoading}
+                        <div class="px-3 py-3 text-xs text-sem-fg-muted">
+                            {t("tools.reticulum_config_editor.loading")}
+                        </div>
+                    {:else if !versions.length}
+                        <div class="px-3 py-3 text-xs text-sem-fg-muted">
+                            {t("tools.reticulum_config_editor.versions_empty")}
+                        </div>
+                    {:else}
+                        <ul class="divide-y divide-sem-border">
+                            {#each versions as version (version.id)}
+                                <li class="flex items-center gap-2 px-3 py-2 text-xs">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-semibold text-sem-fg truncate">
+                                            {formatVersionTime(version.created_at)}
+                                        </div>
+                                        <div class="text-sem-fg-muted truncate">
+                                            {version.label || version.id}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip focus-ring-sem py-1! px-2!"
+                                        disabled={restoringVersionId != null}
+                                        onclick={() => previewVersion(version)}
+                                    >
+                                        {t("tools.reticulum_config_editor.preview")}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip focus-ring-sem py-1! px-2!"
+                                        disabled={restoringVersionId != null}
+                                        onclick={() => restoreVersion(version)}
+                                    >
+                                        {#if restoringVersionId === version.id}
+                                            <MaterialDesignIcon iconName="loading" class="w-3.5 h-3.5 animate-spin" />
+                                        {/if}
+                                        {t("tools.reticulum_config_editor.restore_version")}
+                                    </button>
+                                </li>
+                            {/each}
+                        </ul>
+                    {/if}
+                </div>
+            {/if}
+
+            <div
+                class="rounded-xl border border-sem-border bg-sem-surface overflow-hidden flex-1 min-h-0 flex flex-col"
+            >
+                <div
+                    class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-sem-border bg-sem-surface-muted/60 text-xs text-sem-fg-muted shrink-0"
+                >
+                    <span class="flex items-center gap-1.5">
+                        <MaterialDesignIcon iconName="information-outline" class="w-3.5 h-3.5" />
+                        {t("tools.reticulum_config_editor.info")}
+                    </span>
+                    {#if isDirty}
+                        <span class="text-amber-600 dark:text-amber-400 font-semibold">
+                            {t("tools.reticulum_config_editor.unsaved")}
+                        </span>
+                    {/if}
+                </div>
+                <div class="relative flex-1 min-h-[12rem]">
+                    <textarea
+                        bind:value={content}
+                        spellcheck="false"
+                        autocapitalize="off"
+                        autocomplete="off"
+                        placeholder={loading ? t("tools.reticulum_config_editor.loading") : ""}
+                        class="absolute inset-0 w-full h-full bg-sem-surface text-sem-fg p-4 font-mono text-xs sm:text-sm resize-none focus:outline-hidden"
+                        onkeydown={handleKeyDown}></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,1246 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
+<script lang="ts">
+    import "../lib/conversationViewerGlobals.js";
+    import { onMount, tick, untrack } from "svelte";
+    import { onClickOutside } from "runed";
+    import DialogUtils from "../../../js/DialogUtils.js";
+    import GlobalEmitter from "../../../js/GlobalEmitter.js";
+    import GlobalState, { subscribeGlobalState } from "../../../js/GlobalState.js";
+    import ToastUtils from "../../../js/ToastUtils.js";
+    import { copyTextToClipboard } from "../../../js/clipboardUtils.js";
+    import { createOutboundQueue } from "../../../js/outboundSendQueue.js";
+    import { offWsEvent, onWsEvent } from "../../../js/registries/wsEventRegistry.js";
+    import { t } from "../../../js/i18n.js";
+    import ConversationViewerEmptyHost from "./ConversationViewerEmptyHost.svelte";
+    import ConversationViewerHeaderHost from "./ConversationViewerHeaderHost.svelte";
+    import type { MessageDisplayEntry } from "./ConversationMessageEntry.svelte";
+    import ConversationViewerListPane from "./ConversationViewerListPane.svelte";
+    import ConversationViewerComposerHost from "./ConversationViewerComposerHost.svelte";
+    import ConversationViewerModalsBridge from "./ConversationViewerModalsBridge.svelte";
+    import {
+        defaultTranslateTarget,
+        loadTranslatorLanguages,
+        persistTranslateTarget,
+        translateText,
+        type LangOption,
+    } from "../lib/conversationTranslate.js";
+    import {
+        deleteWsMessage,
+        fetchConversationPage,
+        applyWsMessage,
+        prependConversationPage,
+        updateWsMessage,
+        visibleConversationItems,
+    } from "../lib/conversationViewerMessages.js";
+    import { stashConversationFirstPage } from "../../../js/conversationPrefetch.js";
+    import { loadPeerNetworkInfo, runPeerPathAction } from "../lib/conversationViewerPath.js";
+    import {
+        banishPeerDestination,
+        deletePeerConversationHistory,
+        pingPeerDestination,
+        unbanishPeerDestination,
+    } from "../lib/conversationViewerPeerOps.js";
+    import { optimisticMessage, type OutboundJob } from "../lib/conversationViewerSend.js";
+    import { loadDraft, saveDraft } from "../lib/conversationDrafts.js";
+    import { buildDisplayGroupsNewestFirst } from "../lib/conversationDisplayGroups.js";
+    import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "../lib/conversationScroll.js";
+    import { createConversationViewerActions } from "../lib/conversationViewerActions.js";
+    import { latestConversationCards } from "../lib/conversationViewerUi.js";
+    import {
+        clearAudioAttachmentCache,
+        downloadAndDecodeMessageAudio,
+        rememberAudioAttachment,
+    } from "../lib/conversationAudioDecode.js";
+    import { EMOJI_PICKER_DATA_URL, emojiPickerThemeClass, unicodeFromEmojiClickEvent } from "../lib/emojiPicker.js";
+    import {
+        openContextMenu as openContextMenuFn,
+        toggleChatItemActions as toggleChatItemActionsFn,
+        replyToMessage as replyToMessageFn,
+        showRawMessage as showRawMessageFn,
+        openReactionPicker as openReactionPickerFn,
+        scrollToMessage as scrollToMessageFn,
+    } from "../lib/conversationViewerShellHandlers.js";
+    import {
+        sendReactionToMessage,
+        deleteMessageItem,
+        cancelOutboundMessageItem,
+        downloadMessageImageAttachment,
+        downloadMessageFileAttachment,
+        updatePeerCustomDisplayName,
+        addStrangerContact,
+        addSharedContactEntry,
+        generatePaperMessagePayload,
+        formatSharedContactString,
+        buildMapLocationHash,
+        executeOutboundSendJob,
+        copyMessageImageToClipboard,
+        saveMessageImageToStickers,
+        saveMessageImageToGifs,
+        retryOutboundMessageItem,
+        listFailedOrCancelledOutbound,
+    } from "../lib/conversationViewerMutations.js";
+    import {
+        formatPeerPathClickAlert,
+        formatSignalMetricsAlert,
+        formatStampInfoAlert,
+    } from "../lib/conversationPathActions.js";
+    import {
+        markConversationAsRead as markConversationAsReadSession,
+        fetchTelephoneContacts,
+        filterContactsList,
+        filterSelectedPeerTelemetry,
+        buildComposeAddressSuggestions,
+        formatTimeAgo,
+        isPeerBlockedInState,
+        prepareOpenConversationState,
+        runLoadPreviousPage,
+    } from "../lib/conversationViewerSession.js";
+    import {
+        initialImageLightboxState,
+        initialLightboxContextMenuState,
+        lightboxActiveChatItem,
+        openLightboxContextMenu,
+        openImageLightbox as openImageLightboxState,
+        navigateImageLightbox as navigateImageLightboxState,
+    } from "../lib/conversationViewerLightbox.js";
+    import type { LxmfMessage, ViewerChatItem, ViewerPathSnapshot } from "../lib/conversationViewerCtx.js";
+    import { messageKey, sameHash } from "../lib/conversationViewerCtx.js";
+    import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "../lib/messageListVirtual.js";
+    import { MAX_CHAT_ITEMS } from "../lib/constants.js";
+    import type { Conversation, MessagesConfig, Peer } from "../lib/types.js";
+    import type { MessageChatItem } from "../lib/viewerActions.js";
+
+    export type ConversationViewerApi = {
+        markConversationAsRead: (conversation: Conversation | Peer, opts?: { force?: boolean }) => void | Promise<void>;
+    };
+
+    type Props = {
+        config?: MessagesConfig | null;
+        myLxmfAddressHash?: string;
+        selectedPeer?: Peer | null;
+        conversations?: Conversation[];
+        isPopout?: boolean;
+        onupdateSelectedPeer?: (peer: Peer | null) => void;
+        onupdatePeerTracking?: (payload: { destination_hash: string; is_tracking: boolean }) => void;
+        onclose?: () => void;
+        onreloadConversations?: () => void;
+        onoutboundComposeEnqueued?: (payload: Record<string, unknown>) => void;
+        onviewerReady?: (api: ConversationViewerApi | null) => void;
+    };
+
+    let {
+        config = null,
+        myLxmfAddressHash = "",
+        selectedPeer = null,
+        conversations = [],
+        isPopout = false,
+        onupdateSelectedPeer,
+        onupdatePeerTracking,
+        onclose,
+        onreloadConversations,
+        onoutboundComposeEnqueued,
+        onviewerReady,
+    }: Props = $props();
+
+    let messagesScroll: HTMLDivElement | undefined = $state();
+    let chatItems = $state.raw<ViewerChatItem[]>([]);
+    let isLoadingPrevious = $state(false);
+    let hasMorePrevious = $state(true);
+    let autoScrollOnNewMessage = $state(true);
+    let messagesViewportReady = $state(true);
+    // Scrollback loading trims the newest tail once the window is full; when
+    // the user returns to the bottom we reset to the latest page.
+    let chatWindowTailTrimmed = $state(false);
+    let chatHeadTrimQueued = false;
+    let newMessageText = $state("");
+    let replyingTo = $state<ViewerChatItem | null>(null);
+    let mobileAttachmentMenuOpen = $state(false);
+    let fileAttachmentInput: HTMLInputElement | null = $state(null);
+    let unmounted = false;
+
+    let listPane: ConversationViewerListPane | undefined = $state();
+    let composerHost: ConversationViewerComposerHost | undefined = $state();
+    let translateOptions = $state.raw<LangOption[]>([]);
+    let hasTranslator = $state(false);
+    let bubbleTranslate = $state({
+        open: false,
+        targetLang: "",
+        chatItem: null as ViewerChatItem | null,
+        working: false,
+    });
+    let reactionPicker = $state({
+        open: false,
+        style: "",
+        chatItem: null as ViewerChatItem | null,
+    });
+    let peerPathSnapshot = $state<ViewerPathSnapshot | null>(null);
+    let peerPathLoading = $state(false);
+    let peerPathWarming = $state(false);
+    let selectedPeerLxmfStampInfo = $state<Record<string, unknown> | null>(null);
+    let selectedPeerSignalMetrics = $state<Record<string, unknown> | null>(null);
+    let pathfinderInProgress = $state(false);
+    let composeAddress = $state("");
+    let isComposeInputFocused = $state(false);
+    let selectedComposeSuggestionIndex = $state(-1);
+    let contacts = $state.raw<Array<Record<string, unknown>>>([]);
+    let isStrangerPeer = $state(false);
+    let strangerBannerDismissed = $state(false);
+    let isRawMessageModalOpen = $state(false);
+    let rawMessageData = $state<LxmfMessage>({});
+    let imageLightbox = $state(initialImageLightboxState());
+    let lightboxContextMenu = $state(initialLightboxContextMenuState());
+    let contextMenu = $state({
+        show: false,
+        x: 0,
+        y: 0,
+        chatItem: null as ViewerChatItem | null,
+        justOpened: false,
+    });
+    let generatedPaperMessageUri = $state<string | null>(null);
+    let isPaperMessageResultModalOpen = $state(false);
+    let isShareContactModalOpen = $state(false);
+    let contactsSearch = $state("");
+    let isTelemetryHistoryModalOpen = $state(false);
+    let showTelemetryInChat = $state(false);
+    let requestSequence = 0;
+    let openedPeerHash = "";
+    let openedIdentityKey = "";
+    let loadPreviousPromise: Promise<void> | null = null;
+    let paintedFirstPageFromCache = false;
+    let audioAttachmentCache = $state.raw<Record<string, string>>({});
+    let audioAttachmentOrder: string[] = [];
+    let audioDownloadInFlight = new Set<string>();
+    let blockedDestinations = $state<unknown[]>(GlobalState.blockedDestinations);
+
+    $effect(() => {
+        return subscribeGlobalState(() => {
+            blockedDestinations = GlobalState.blockedDestinations;
+        });
+    });
+
+    const selectedHash = $derived(String(selectedPeer?.destination_hash || ""));
+    const identityKey = $derived(String(config?.identity_hash || myLxmfAddressHash || "_"));
+    const selectedMessages = $derived(visibleConversationItems(chatItems, selectedHash, showTelemetryInChat));
+    const filteredContacts = $derived(filterContactsList(contacts, contactsSearch));
+    const selectedPeerTelemetryItems = $derived(filterSelectedPeerTelemetry(chatItems, selectedHash));
+    const emojiPickerDataUrl = EMOJI_PICKER_DATA_URL;
+    const emojiThemeClass = $derived(emojiPickerThemeClass());
+    const actions = $derived(
+        createConversationViewerActions({
+            chatItems: selectedMessages as unknown as MessageChatItem[],
+            selectedPeer,
+            conversations,
+            myLxmfAddressHash,
+            messageFontSize: Number(config?.message_font_size) || 14,
+            audioAttachmentUrls: audioAttachmentCache,
+            openImage,
+            onMessageContextMenu: (event, item, suppressToggle) =>
+                openContextMenu(event, item as ViewerChatItem, suppressToggle),
+            onChatItemClick: toggleChatItemActions,
+            openReactionPicker,
+            replyToMessage,
+            retrySendingMessage: (item) => {
+                void retryMessage(item as ViewerChatItem);
+            },
+            cancelSendingMessage: (item) => {
+                contextMenu.chatItem = item as ViewerChatItem;
+                void cancelSending();
+            },
+            deleteChatItem: (item) => {
+                contextMenu.chatItem = item as ViewerChatItem;
+                void deleteMessage();
+            },
+            showRawMessage,
+            scrollToMessage,
+            copyText: copyTextToClipboard,
+            downloadMessageImage,
+            downloadLxmfFileAttachment: (item, index, name) => downloadFile(item as ViewerChatItem, index, name),
+            addContact: addSharedContact,
+            onupdatePeerTracking,
+            isStrangerPeer,
+            isPopout,
+            onSetBubbleMessageShowOriginal: (hash, showOriginal) => {
+                chatItems = chatItems.map((candidate) =>
+                    candidate.lxmf_message.hash === hash
+                        ? {
+                              ...candidate,
+                              lxmf_message: {
+                                  ...candidate.lxmf_message,
+                                  _translation: {
+                                      ...(candidate.lxmf_message as { _translation?: Record<string, unknown> })
+                                          ._translation,
+                                      showOriginal,
+                                  },
+                              },
+                          }
+                        : candidate
+                );
+            },
+        })
+    );
+    const groupsNewestFirst = $derived(
+        buildDisplayGroupsNewestFirst(selectedMessages, (item) =>
+            actions.canMergeImageIntoImageStrip(item as MessageChatItem)
+        )
+    );
+    const groups = $derived(displayGroupsOldestFirst(groupsNewestFirst) as MessageDisplayEntry[]);
+    const useVirtualMessageList = $derived(groups.length >= MIN_VIRTUAL_DISPLAY_GROUPS);
+    const hasFailedOrCancelledMessages = $derived(
+        selectedMessages.some(
+            (item) => item.is_outbound && ["failed", "cancelled"].includes(String(item.lxmf_message.state || ""))
+        )
+    );
+    const latestConversations = $derived(latestConversationCards(conversations));
+    const composeSuggestions = $derived(
+        buildComposeAddressSuggestions(contacts, conversations, composeAddress, isComposeInputFocused)
+    );
+    const isSelectedPeerBlocked = $derived(isPeerBlockedInState(blockedDestinations, selectedHash));
+    const outboundQueue = createOutboundQueue((job: OutboundJob) => executeSendJob(job));
+    const viewerApi: ConversationViewerApi = { markConversationAsRead };
+
+    $effect(() => {
+        const peerHash = selectedHash;
+        const nextIdentity = identityKey;
+        untrack(() => void openConversation(peerHash, nextIdentity));
+    });
+
+    $effect(() => {
+        if (selectedHash) {
+            saveDraft(selectedHash, identityKey, newMessageText);
+        }
+    });
+
+    $effect(() => {
+        const items = selectedMessages;
+        untrack(() => {
+            void autoLoadAudioAttachments(items);
+        });
+    });
+
+    onMount(() => {
+        onviewerReady?.(viewerApi);
+        const wsHandlers: Array<[string, (payload: Record<string, unknown>) => void | Promise<void>]> = [
+            ["announce", onAnnounce],
+            ["lxmf.delivery", onDelivery],
+            ["lxmf_message_created", onCreated],
+            ["lxmf_message_state_updated", onStateUpdated],
+            ["lxmf_message_deleted", onDeleted],
+            ["lxm.generate_paper_uri.result", onPaperResult],
+        ];
+        for (const [type, handler] of wsHandlers) onWsEvent(type, handler);
+        GlobalEmitter.on("websocket-reconnected", softResync);
+        GlobalEmitter.on("identity-switched", onIdentitySwitched);
+        void fetchContacts();
+        void loadTranslateOptions();
+        return () => {
+            unmounted = true;
+            onviewerReady?.(null);
+            for (const [type, handler] of wsHandlers) offWsEvent(type, handler);
+            GlobalEmitter.off("websocket-reconnected", softResync);
+            GlobalEmitter.off("identity-switched", onIdentitySwitched);
+            // Unmounting while a send is in flight: let the server keep it
+            // (the send POST already ran); just stop touching view state.
+            outboundQueue.clear();
+            if (openedPeerHash) saveDraft(openedPeerHash, openedIdentityKey, newMessageText);
+            clearAudioAttachmentCache(audioAttachmentOrder, audioAttachmentCache);
+            audioAttachmentCache = {};
+            audioAttachmentOrder = [];
+            audioDownloadInFlight.clear();
+        };
+    });
+
+    async function openConversation(peerHash: string, nextIdentity: string) {
+        if (openedPeerHash) saveDraft(openedPeerHash, openedIdentityKey, newMessageText);
+        openedPeerHash = peerHash;
+        openedIdentityKey = nextIdentity;
+        requestSequence += 1;
+        // Queued sends were composed under the previous peer or identity.
+        // The queue marks them dropped so the executor resolves quietly.
+        outboundQueue.clear();
+        loadPreviousPromise = null;
+        isLoadingPrevious = false;
+        chatWindowTailTrimmed = false;
+        clearAudioAttachmentCache(audioAttachmentOrder, audioAttachmentCache);
+        audioAttachmentCache = {};
+        audioAttachmentOrder = [];
+        audioDownloadInFlight.clear();
+        const seed = prepareOpenConversationState({
+            peerHash,
+            nextIdentity,
+            contacts,
+            loadDraft,
+        });
+        chatItems = seed.chatItems;
+        hasMorePrevious = seed.hasMorePrevious;
+        autoScrollOnNewMessage = seed.autoScrollOnNewMessage;
+        messagesViewportReady = seed.messagesViewportReady;
+        peerPathSnapshot = seed.peerPathSnapshot;
+        selectedPeerLxmfStampInfo = seed.selectedPeerLxmfStampInfo;
+        selectedPeerSignalMetrics = seed.selectedPeerSignalMetrics;
+        strangerBannerDismissed = seed.strangerBannerDismissed;
+        newMessageText = seed.newMessageText;
+        isStrangerPeer = seed.isStrangerPeer;
+        if (!peerHash) return;
+        void refreshPeerNetwork(true);
+        void markConversationAsRead(selectedPeer || { destination_hash: peerHash }, { force: true });
+        paintedFirstPageFromCache = false;
+        await loadPrevious();
+
+        // A stashed or hover-prefetched first page can be older than the
+        // server state (messages sent or received while the pane was closed
+        // never reached this viewer). Merge anything newer now.
+        if (paintedFirstPageFromCache) {
+            paintedFirstPageFromCache = false;
+            void softResync();
+        }
+
+        await tick();
+        scrollMessagesToBottom();
+        messagesViewportReady = true;
+    }
+
+    async function autoLoadAudioAttachments(items: ViewerChatItem[]) {
+        for (const item of items) {
+            const hash = String(item.lxmf_message.hash || "");
+            const audioField = item.lxmf_message.fields?.audio as
+                { audio_mode?: number; audio_bytes?: string | ArrayBuffer | Uint8Array } | undefined;
+            if (!hash || !audioField) continue;
+            if (audioAttachmentCache[hash] || audioDownloadInFlight.has(hash)) continue;
+            audioDownloadInFlight.add(hash);
+            try {
+                const objectUrl = await downloadAndDecodeMessageAudio(window.api, hash, audioField);
+                if (!objectUrl) continue;
+                if (!sameHash(openedPeerHash, selectedHash)) {
+                    URL.revokeObjectURL(objectUrl);
+                    continue;
+                }
+                const next = rememberAudioAttachment(audioAttachmentOrder, audioAttachmentCache, hash, objectUrl);
+                audioAttachmentOrder = next.order;
+                audioAttachmentCache = next.cache;
+            } finally {
+                audioDownloadInFlight.delete(hash);
+            }
+        }
+    }
+
+    async function loadPrevious() {
+        if (!selectedHash || !hasMorePrevious || loadPreviousPromise) return;
+        const peerHash = selectedHash;
+        const seq = requestSequence;
+        isLoadingPrevious = true;
+        let pending: Promise<void> | null = null;
+        pending = (async () => {
+            try {
+                const result = await runLoadPreviousPage({
+                    api: window.api,
+                    peerHash,
+                    myLxmfAddressHash,
+                    chatItems,
+                    requestSequence: seq,
+                    currentSelectedHash: selectedHash,
+                    messagesScroll,
+                    tick,
+                });
+                if (!result) return;
+                if (seq !== requestSequence) {
+                    // A resync or reload landed while this page was in flight;
+                    // prepend the fetched older rows onto the live window
+                    // instead of discarding them. A conversation switch also
+                    // bumps the sequence, so only merge for the same peer.
+                    if (sameHash(selectedHash, peerHash)) {
+                        chatItems = prependConversationPage(chatItems, result.items).items;
+                        hasMorePrevious = result.hasMorePrevious;
+                    }
+                    return;
+                }
+                chatItems = result.items;
+                hasMorePrevious = result.hasMorePrevious;
+                if (result.paintedFromCache) {
+                    paintedFirstPageFromCache = true;
+                }
+                trimChatWindowTail();
+            } finally {
+                if (loadPreviousPromise === pending) {
+                    isLoadingPrevious = false;
+                    loadPreviousPromise = null;
+                }
+            }
+        })();
+        loadPreviousPromise = pending;
+        await pending;
+    }
+
+    // Rows are plain JS objects; an unbounded live window is what grows
+    // memory and render cost in long sessions. Trim oldest rows off the
+    // head after appends and re-anchor the scroll position so the visible
+    // region does not jump.
+    function trimChatWindowHead() {
+        if (chatItems.length <= MAX_CHAT_ITEMS || chatHeadTrimQueued) return;
+        chatHeadTrimQueued = true;
+        void tick().then(() => {
+            chatHeadTrimQueued = false;
+            const drop = chatItems.length - MAX_CHAT_ITEMS;
+            if (drop <= 0) return;
+            const scrollEl = messagesScroll;
+            const prevScrollHeight = scrollEl?.scrollHeight ?? 0;
+            const prevScrollTop = scrollEl?.scrollTop ?? 0;
+            chatItems = chatItems.slice(drop);
+            if (!scrollEl) return;
+            void tick().then(() => {
+                scrollEl.scrollTop = Math.max(0, prevScrollTop - (prevScrollHeight - scrollEl.scrollHeight));
+            });
+        });
+    }
+
+    // When the user is paging upward through history, keep the window
+    // bounded by dropping the newest tail instead of the rows just loaded.
+    // Return-to-bottom reloads the latest page.
+    function trimChatWindowTail() {
+        if (chatItems.length <= MAX_CHAT_ITEMS) return;
+        chatItems = chatItems.slice(0, MAX_CHAT_ITEMS);
+        chatWindowTailTrimmed = true;
+    }
+
+    async function reloadLatestPage() {
+        const peerHash = selectedHash;
+        if (!peerHash || isLoadingPrevious) return;
+        requestSequence += 1;
+        loadPreviousPromise = null;
+        isLoadingPrevious = false;
+        chatWindowTailTrimmed = false;
+        audioDownloadInFlight.clear();
+        const seq = requestSequence;
+        chatItems = [];
+        hasMorePrevious = true;
+        await loadPrevious();
+        if (seq !== requestSequence) return;
+        await tick();
+        scrollMessagesToBottom();
+    }
+
+    function onMessagesScroll() {
+        const nearBottom = isNearBottom(messagesScroll);
+        autoScrollOnNewMessage = nearBottom;
+        if (shouldLoadPreviousMessages(messagesScroll)) void loadPrevious();
+        if (nearBottom && chatWindowTailTrimmed && !isLoadingPrevious) {
+            void reloadLatestPage();
+        }
+    }
+
+    async function scrollMessagesToBottom() {
+        autoScrollOnNewMessage = true;
+        await tick();
+        requestAnimationFrame(() => scrollContainerToBottom(messagesScroll));
+    }
+
+    async function softResync() {
+        const peerHash = selectedHash;
+        if (!peerHash) return;
+        try {
+            const seq = ++requestSequence;
+            const page = await fetchConversationPage(window.api, peerHash, myLxmfAddressHash, null);
+            if (seq !== requestSequence) return;
+            if (!sameHash(selectedHash, peerHash)) return;
+            // Refresh the warm-start stash so the next open paints the
+            // page we just merged rather than an older snapshot.
+            stashConversationFirstPage(peerHash, page.data);
+            // If the newest page does not overlap the painted tail and older
+            // rows still exist, more than a page arrived while the pane was
+            // closed. A partial merge would leave an unreachable middle gap,
+            // so fall back to a full reload.
+            const pageKeys = new Set(page.items.map((item) => messageKey(item.lxmf_message)).filter(Boolean));
+            const overlapsPainted = chatItems.some((item) => pageKeys.has(messageKey(item.lxmf_message)));
+            if (!overlapsPainted && page.hasMore && chatItems.length > 0) {
+                await reloadLatestPage();
+                await refreshPeerNetwork(false);
+                return;
+            }
+            let added = false;
+            let next = chatItems;
+            // Page items are chronological; apply in order so append order
+            // stays chronological.
+            for (const item of page.items) {
+                if (!item.lxmf_message.hash) continue;
+                const result = applyWsMessage(next, item.lxmf_message, peerHash, myLxmfAddressHash);
+                if (result.items.length > next.length) added = true;
+                next = result.items;
+            }
+            chatItems = next;
+            if (added) {
+                trimChatWindowHead();
+                if (autoScrollOnNewMessage) void scrollMessagesToBottom();
+            }
+            await refreshPeerNetwork(false);
+        } catch {
+            // Soft resync is best effort; the next WS event catches up.
+        }
+    }
+
+    async function applyLiveMessage(message: LxmfMessage) {
+        const result = applyWsMessage(chatItems, message, selectedHash, myLxmfAddressHash);
+        if (!result.changed) return;
+        const appended = result.items.length > chatItems.length;
+        chatItems = result.items;
+        if (appended) trimChatWindowHead();
+        if (result.incoming) {
+            const conversation = conversations.find((candidate) => sameHash(candidate.destination_hash, selectedHash));
+            await markConversationAsRead(conversation || selectedPeer || { destination_hash: selectedHash }, {
+                force: true,
+            });
+        }
+        if (autoScrollOnNewMessage) void scrollMessagesToBottom();
+    }
+
+    async function onDelivery(payload: Record<string, unknown>) {
+        await applyLiveMessage((payload.lxmf_message || {}) as LxmfMessage);
+        void refreshPeerNetwork(false);
+    }
+
+    async function onCreated(payload: Record<string, unknown>) {
+        await applyLiveMessage((payload.lxmf_message || {}) as LxmfMessage);
+        void refreshPeerNetwork(false);
+    }
+
+    function onStateUpdated(payload: Record<string, unknown>) {
+        chatItems = updateWsMessage(chatItems, (payload.lxmf_message || {}) as LxmfMessage);
+    }
+
+    function onDeleted(payload: Record<string, unknown>) {
+        chatItems = deleteWsMessage(chatItems, payload.hash);
+    }
+
+    async function onAnnounce(payload: Record<string, unknown>) {
+        const announce = payload.announce as Record<string, unknown> | undefined;
+        if (sameHash(announce?.destination_hash, selectedHash)) await refreshPeerNetwork(true);
+    }
+
+    function onIdentitySwitched(payload: Record<string, unknown>) {
+        const nextIdentity = String(payload.identity_hash || identityKey);
+        void openConversation(selectedHash, nextIdentity);
+    }
+
+    async function refreshPeerNetwork(warm: boolean) {
+        if (!selectedHash) return;
+        const hash = selectedHash;
+        peerPathLoading = true;
+        peerPathWarming = warm;
+        try {
+            const info = await loadPeerNetworkInfo(window.api, hash, warm);
+            if (!sameHash(hash, selectedHash)) return;
+            peerPathSnapshot = info.path;
+            selectedPeerLxmfStampInfo = info.stampInfo;
+            selectedPeerSignalMetrics = info.signalMetrics;
+        } catch {
+            peerPathSnapshot = null;
+        } finally {
+            if (sameHash(hash, selectedHash)) {
+                peerPathLoading = false;
+                peerPathWarming = false;
+            }
+        }
+    }
+
+    async function runPathAction(action: "quick" | "force" | "drop_then_request") {
+        if (!selectedHash || pathfinderInProgress) return;
+        pathfinderInProgress = true;
+        try {
+            peerPathSnapshot = await runPeerPathAction(window.api, selectedHash, action);
+            ToastUtils.success(
+                action === "force" && peerPathSnapshot?.path
+                    ? t("nomadnet.path_finder_found")
+                    : t("nomadnet.path_finder_request_sent")
+            );
+        } catch {
+            ToastUtils.error(t("nomadnet.path_finder_failed"));
+        } finally {
+            pathfinderInProgress = false;
+        }
+    }
+
+    let pingInFlight = false;
+
+    async function pingSelectedPeer() {
+        if (!selectedHash || pingInFlight) return;
+        pingInFlight = true;
+        try {
+            await pingPeerDestination({
+                api: window.api,
+                destinationHash: selectedHash,
+                t,
+                DialogUtils,
+                ToastUtils,
+            });
+        } finally {
+            pingInFlight = false;
+        }
+    }
+
+    async function startCallWithSelectedPeer() {
+        if (!selectedHash) return;
+        try {
+            await window.api.post(`/api/v1/telephone/call/${selectedHash}`);
+        } catch (e: any) {
+            const message = e?.response?.data?.message ?? t("call.failed_to_initiate_call");
+            void DialogUtils.alert(message);
+        }
+    }
+
+    function openConversationPopout() {
+        if (!selectedHash || isPopout) return;
+        const encodedHash = encodeURIComponent(selectedHash);
+        const url = `${window.location.origin}${window.location.pathname}#/popout/messages/${encodedHash}`;
+        window.open(url, "_blank", "width=960,height=720,noopener");
+    }
+
+    async function banishSelectedPeer() {
+        if (!selectedHash) return;
+        await banishPeerDestination({
+            api: window.api,
+            destinationHash: selectedHash,
+            t,
+            DialogUtils,
+            emitBlockChanged: () => GlobalEmitter.emit("block-status-changed"),
+        });
+    }
+
+    async function unbanishSelectedPeer() {
+        if (!selectedHash) return;
+        await unbanishPeerDestination({
+            api: window.api,
+            destinationHash: selectedHash,
+            t,
+            DialogUtils,
+            emitBlockChanged: () => GlobalEmitter.emit("block-status-changed"),
+        });
+    }
+
+    async function deleteMessageHistory() {
+        if (!selectedHash) return;
+        await deletePeerConversationHistory({
+            api: window.api,
+            destinationHash: selectedHash,
+            t,
+            DialogUtils,
+            onDone: () => {
+                onreloadConversations?.();
+                onclose?.();
+            },
+        });
+    }
+
+    async function openShareContactModal() {
+        contacts = await fetchTelephoneContacts(window.api);
+        if (contacts.length === 0) {
+            ToastUtils.info(t("messages.no_contacts_telephone"));
+            return;
+        }
+        contactsSearch = "";
+        isShareContactModalOpen = true;
+    }
+
+    function shareContact(contact) {
+        newMessageText = formatSharedContactString(contact, conversations);
+        isShareContactModalOpen = false;
+        void tick().then(() => composerHost?.sendNow?.());
+    }
+
+    function viewLocationOnMap(coords) {
+        window.location.hash = buildMapLocationHash(coords);
+    }
+
+    async function executeSendJob(job: OutboundJob) {
+        const next = await executeOutboundSendJob({
+            api: window.api,
+            job,
+            peerPathSnapshot,
+            chatItems,
+            myLxmfAddressHash,
+            refreshPeerNetwork,
+            DialogUtils,
+            t,
+            applyWsMessage,
+            getPropagationHash: () =>
+                (GlobalState.config as Record<string, unknown> | undefined)
+                    ?.lxmf_preferred_propagation_node_destination_hash,
+        });
+        // View went away mid-send; backend already accepted the message, so
+        // leave it alone. Live events update the pane if it reopens.
+        if (job.dropped || job.cancelled || unmounted) return;
+        chatItems = next;
+        trimChatWindowHead();
+    }
+
+    async function markConversationAsRead(
+        conversation: Conversation | Peer | { destination_hash?: string; is_unread?: boolean } | null | undefined,
+        opts: { force?: boolean } = {}
+    ) {
+        await markConversationAsReadSession(window.api, conversation, opts);
+    }
+
+    async function fetchContacts() {
+        contacts = await fetchTelephoneContacts(window.api);
+        isStrangerPeer =
+            Boolean(selectedHash) && !contacts.some((contact) => sameHash(contact.remote_identity_hash, selectedHash));
+    }
+
+    async function addStrangerAsContact() {
+        const ok = await addStrangerContact({
+            api: window.api,
+            destinationHash: selectedHash,
+            displayName: selectedPeer?.display_name ? String(selectedPeer.display_name) : null,
+            identityHash: selectedPeer?.identity_hash ? String(selectedPeer.identity_hash) : null,
+            onSuccess: () => {
+                isStrangerPeer = false;
+                onreloadConversations?.();
+            },
+        });
+        void ok;
+    }
+
+    async function addSharedContact(
+        name?: string,
+        hash?: string,
+        lxmfAddress?: string,
+        lxstAddress?: string,
+        icon?: { icon_name?: string; foreground_colour?: string; background_colour?: string } | null
+    ) {
+        await addSharedContactEntry({
+            api: window.api,
+            name,
+            hash,
+            lxmfAddress,
+            lxstAddress,
+            icon,
+            onSuccess: () => onreloadConversations?.(),
+        });
+    }
+
+    async function updateCustomDisplayName() {
+        await updatePeerCustomDisplayName(window.api, selectedHash, (displayName) => {
+            onupdateSelectedPeer?.({ ...selectedPeer, custom_display_name: displayName });
+            onreloadConversations?.();
+        });
+    }
+
+    function shellBag() {
+        return {
+            chatItems,
+            setChatItems: (items) => {
+                chatItems = items;
+            },
+            contextMenu,
+            setContextMenu: (value) => {
+                contextMenu = value;
+            },
+            reactionPicker,
+            setReactionPicker: (value) => {
+                reactionPicker = value;
+            },
+            setReplyingTo: (item) => {
+                replyingTo = item;
+            },
+            setRawMessageData: (data) => {
+                rawMessageData = data;
+            },
+            setIsRawMessageModalOpen: (open) => {
+                isRawMessageModalOpen = open;
+            },
+            useVirtualMessageList,
+            listPane,
+        };
+    }
+
+    function openContextMenu(event: MouseEvent, item: ViewerChatItem, suppressToggle = false) {
+        openContextMenuFn(shellBag(), event, item, suppressToggle, toggleChatItemActions);
+    }
+
+    function toggleChatItemActions(item: MessageChatItem) {
+        toggleChatItemActionsFn(shellBag(), item);
+    }
+
+    function replyToMessage(item: MessageChatItem) {
+        replyToMessageFn(shellBag(), item);
+    }
+
+    function showRawMessage(item: MessageChatItem) {
+        showRawMessageFn(shellBag(), item);
+    }
+
+    function openReactionPicker(item: MessageChatItem) {
+        openReactionPickerFn(shellBag(), item);
+    }
+
+    function scrollToMessage(hash: string) {
+        scrollToMessageFn(shellBag(), hash);
+    }
+
+    function openImage(src: string, gallery: string[] = [], items: MessageChatItem[] = []) {
+        lightboxContextMenu = initialLightboxContextMenuState();
+        imageLightbox = openImageLightboxState(src, gallery, items);
+    }
+
+    function navigateImageLightbox(delta: number) {
+        lightboxContextMenu = initialLightboxContextMenuState();
+        imageLightbox = navigateImageLightboxState(imageLightbox, delta);
+    }
+
+    function closeImageLightbox() {
+        lightboxContextMenu = initialLightboxContextMenuState();
+        imageLightbox = initialImageLightboxState();
+    }
+
+    function onImageLightboxContextMenu(event: MouseEvent) {
+        if (!lightboxActiveChatItem(imageLightbox)) {
+            return;
+        }
+        lightboxContextMenu = openLightboxContextMenu(event);
+    }
+
+    function downloadLightboxImage() {
+        const item = lightboxActiveChatItem(imageLightbox);
+        lightboxContextMenu = initialLightboxContextMenuState();
+        if (item) void downloadMessageImage(item);
+    }
+
+    function copyLightboxImage() {
+        const item = lightboxActiveChatItem(imageLightbox);
+        lightboxContextMenu = initialLightboxContextMenuState();
+        if (item) void copyMessageImageToClipboard(window.api, item);
+    }
+
+    async function downloadMessageImage(item: MessageChatItem) {
+        await downloadMessageImageAttachment(window.api, item);
+    }
+
+    async function downloadFile(item: ViewerChatItem, index: number, name: string) {
+        await downloadMessageFileAttachment(window.api, item, index, name);
+    }
+
+    async function sendReaction(emoji: string, targetItem: ViewerChatItem | null = null) {
+        const item = targetItem || contextMenu.chatItem;
+        contextMenu.show = false;
+        if (!item) return;
+        chatItems = await sendReactionToMessage({
+            api: window.api,
+            destinationHash: selectedHash,
+            myLxmfAddressHash,
+            emoji,
+            targetItem: item,
+            currentItems: chatItems,
+        });
+        trimChatWindowHead();
+    }
+
+    async function deleteMessage() {
+        const item = contextMenu.chatItem;
+        contextMenu.show = false;
+        if (!item) return;
+        const next = await deleteMessageItem({ api: window.api, item, currentItems: chatItems });
+        if (next) chatItems = next;
+    }
+
+    async function retryMessage(itemOverride: ViewerChatItem | null = null) {
+        const item = itemOverride || contextMenu.chatItem;
+        contextMenu.show = false;
+        if (!item) return;
+        const replyHash = item.lxmf_message.reply_to_hash;
+        const replied = replyHash
+            ? chatItems.find((candidate) => sameHash(candidate.lxmf_message.hash, replyHash))?.lxmf_message
+            : null;
+        const replyQuoted =
+            (item.lxmf_message.fields as { reply_quoted_content?: string } | undefined)?.reply_quoted_content ||
+            replied?.content ||
+            null;
+        const next = await retryOutboundMessageItem({
+            api: window.api,
+            item,
+            currentItems: chatItems,
+            replyQuotedContent: replyQuoted,
+        });
+        if (next) {
+            chatItems = next;
+            trimChatWindowHead();
+            void scrollMessagesToBottom();
+        }
+    }
+
+    async function retryAllFailedOrCancelledMessages() {
+        const failedItems = listFailedOrCancelledOutbound(selectedMessages);
+        if (failedItems.length === 0) return;
+        if (!(await DialogUtils.confirm(t("messages.retry_failed_confirm", { count: failedItems.length })))) {
+            return;
+        }
+        for (const item of failedItems) {
+            await retryMessage(item);
+        }
+    }
+
+    async function cancelSending() {
+        const item = contextMenu.chatItem;
+        contextMenu.show = false;
+        if (!item) return;
+        chatItems = await cancelOutboundMessageItem({
+            api: window.api,
+            item,
+            currentItems: chatItems,
+            outboundQueue,
+        });
+    }
+
+    function formatConversationTime(value: unknown) {
+        return formatTimeAgo(value);
+    }
+
+    function handleComposeAddress() {
+        const suggestion = composeSuggestions[selectedComposeSuggestionIndex];
+        const hash = suggestion?.hash || composeAddress.trim().replace(/[^a-fA-F0-9]/g, "");
+        if (hash.length !== 32) {
+            void DialogUtils.alert(t("common.invalid_address"));
+            return;
+        }
+        composeAddress = "";
+        GlobalEmitter.emit("compose-new-message", hash.toLowerCase());
+    }
+
+    function onPaperResult(payload: Record<string, unknown>) {
+        if (payload.status === "success" && typeof payload.uri === "string") {
+            generatedPaperMessageUri = payload.uri;
+            isPaperMessageResultModalOpen = true;
+        } else if (payload.message) {
+            ToastUtils.error(String(payload.message));
+        }
+    }
+
+    function handleJobCreated(job: OutboundJob, pending: ReturnType<typeof optimisticMessage>) {
+        chatItems = chatItems.concat({
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: pending,
+        });
+        trimChatWindowHead();
+        onoutboundComposeEnqueued?.({
+            peerHash: job.destinationHash,
+            previewText: job.text,
+            title: "",
+            fields: job.fields,
+            pendingHash: job.pendingHash,
+        });
+        outboundQueue.enqueue(job);
+        void scrollMessagesToBottom();
+    }
+
+    async function confirmBubbleTranslate() {
+        const item = bubbleTranslate.chatItem;
+        if (!item) return;
+        bubbleTranslate.working = true;
+        try {
+            persistTranslateTarget(bubbleTranslate.targetLang);
+            const result = await translateText({
+                text: String(item.lxmf_message.content || ""),
+                targetPair: bubbleTranslate.targetLang,
+            });
+            const hash = String(item.lxmf_message.hash || "");
+            if (hash && result.translatedText) {
+                chatItems = chatItems.map((candidate) =>
+                    candidate.lxmf_message.hash === hash
+                        ? {
+                              ...candidate,
+                              lxmf_message: {
+                                  ...candidate.lxmf_message,
+                                  _translation: { translatedText: result.translatedText, showOriginal: false },
+                              },
+                          }
+                        : candidate
+                );
+            }
+            bubbleTranslate.open = false;
+        } catch {
+            ToastUtils.error(t("translator.translation_failed"));
+        } finally {
+            bubbleTranslate.working = false;
+        }
+    }
+
+    async function loadTranslateOptions() {
+        const loaded = await loadTranslatorLanguages();
+        translateOptions = loaded.languages;
+        hasTranslator = loaded.hasTranslator;
+        if (loaded.languages.length && !loaded.languages.some((opt) => opt.value === bubbleTranslate.targetLang)) {
+            bubbleTranslate = { ...bubbleTranslate, targetLang: defaultTranslateTarget(loaded.languages) };
+        }
+    }
+
+    function generatePaperMessage() {
+        generatePaperMessagePayload(selectedHash, newMessageText);
+    }
+</script>
+
+{#if selectedPeer}
+    <div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-sem-canvas">
+        <ConversationViewerHeaderHost
+            selectedPeer={selectedPeer as Peer}
+            {hasFailedOrCancelledMessages}
+            {peerPathSnapshot}
+            {peerPathLoading}
+            {peerPathWarming}
+            {selectedPeerSignalMetrics}
+            {selectedPeerLxmfStampInfo}
+            {pathfinderInProgress}
+            {isPopout}
+            isPeerBlocked={isSelectedPeerBlocked}
+            {isStrangerPeer}
+            {strangerBannerDismissed}
+            oneditdisplayname={updateCustomDisplayName}
+            oncopyhash={(hash) => void copyTextToClipboard(hash)}
+            ondestinationpathclick={(path) => {
+                void DialogUtils.alert(formatPeerPathClickAlert(path as never, peerPathSnapshot, t));
+            }}
+            onsignalmetricsclick={(metrics) => {
+                void DialogUtils.alert(formatSignalMetricsAlert(metrics as never, t));
+            }}
+            onstampinfoclick={(info) => {
+                void DialogUtils.alert(formatStampInfoAlert(info as never));
+            }}
+            onpathfinderquick={() => void runPathAction("quick")}
+            onpathfinderforce={() => void runPathAction("force")}
+            onpathfinderdrop={() => void runPathAction("drop_then_request")}
+            onping={() => void pingSelectedPeer()}
+            onstartcall={() => void startCallWithSelectedPeer()}
+            onsharecontact={() => void openShareContactModal()}
+            onopentelemetryhistory={() => {
+                isTelemetryHistoryModalOpen = true;
+            }}
+            onbanish={() => void banishSelectedPeer()}
+            onunbanish={() => void unbanishSelectedPeer()}
+            onconversationdeleted={() => void deleteMessageHistory()}
+            onretryfailed={() => void retryAllFailedOrCancelledMessages()}
+            onpopout={() => openConversationPopout()}
+            onclose={() => onclose?.()}
+            onaddstranger={() => void addStrangerAsContact()}
+            ondismissstranger={() => {
+                isStrangerPeer = false;
+            }}
+        />
+
+        <ConversationViewerListPane
+            bind:messagesScroll
+            bind:this={listPane}
+            {groups}
+            conversationKey={selectedHash}
+            {useVirtualMessageList}
+            {hasMorePrevious}
+            {isLoadingPrevious}
+            {autoScrollOnNewMessage}
+            {messagesViewportReady}
+            {actions}
+            onloadprevious={() => void loadPrevious()}
+            onscrolltobottom={() => void scrollMessagesToBottom()}
+            onscroll={onMessagesScroll}
+        />
+
+        <ConversationViewerComposerHost
+            bind:this={composerHost}
+            bind:text={newMessageText}
+            bind:replyingTo
+            {selectedPeer}
+            {selectedHash}
+            {myLxmfAddressHash}
+            {peerPathSnapshot}
+            {isSelectedPeerBlocked}
+            {config}
+            {translateOptions}
+            {hasTranslator}
+            onjobCreated={handleJobCreated}
+            onsendpapercompose={generatePaperMessage}
+            onscrolltobottom={() => void scrollMessagesToBottom()}
+        />
+    </div>
+{:else}
+    <ConversationViewerEmptyHost
+        {latestConversations}
+        bind:composeAddress
+        bind:isComposeInputFocused
+        {composeSuggestions}
+        bind:selectedComposeSuggestionIndex
+        {myLxmfAddressHash}
+        formatTimeAgo={formatConversationTime}
+        {onupdateSelectedPeer}
+        oncomposeenter={handleComposeAddress}
+    />
+{/if}
+
+<ConversationViewerModalsBridge
+    {imageLightbox}
+    bind:lightboxContextMenu
+    bind:contextMenu
+    bind:reactionPicker
+    bind:bubbleTranslate
+    bind:isRawMessageModalOpen
+    bind:rawMessageData
+    bind:isPaperMessageResultModalOpen
+    bind:generatedPaperMessageUri
+    bind:isShareContactModalOpen
+    bind:contactsSearch
+    bind:isTelemetryHistoryModalOpen
+    bind:showTelemetryInChat
+    {selectedHash}
+    {isSelectedPeerBlocked}
+    {translateOptions}
+    {filteredContacts}
+    {conversations}
+    {selectedPeerTelemetryItems}
+    {emojiPickerDataUrl}
+    emojiPickerThemeClass={emojiThemeClass}
+    oncloselightbox={closeImageLightbox}
+    onnavigatelightbox={navigateImageLightbox}
+    ondownloadlightbox={downloadLightboxImage}
+    oncontextmenulightbox={onImageLightboxContextMenu}
+    oncopylightbox={copyLightboxImage}
+    onreply={() => {
+        replyingTo = contextMenu.chatItem;
+        contextMenu.show = false;
+    }}
+    oncopy={() => {
+        void copyTextToClipboard(String(contextMenu.chatItem?.lxmf_message.content || ""));
+        contextMenu.show = false;
+    }}
+    onreact={(emoji) => void sendReaction(emoji)}
+    onopenreactionpicker={() => {
+        if (contextMenu.chatItem) openReactionPicker(contextMenu.chatItem as MessageChatItem);
+        contextMenu.show = false;
+    }}
+    onviewraw={() => {
+        rawMessageData = contextMenu.chatItem?.lxmf_message || {};
+        isRawMessageModalOpen = true;
+        contextMenu.show = false;
+    }}
+    ondownloadimage={() => {
+        if (contextMenu.chatItem) void downloadMessageImage(contextMenu.chatItem as MessageChatItem);
+        contextMenu.show = false;
+    }}
+    oncopyimage={() => {
+        if (contextMenu.chatItem) void copyMessageImageToClipboard(window.api, contextMenu.chatItem);
+        contextMenu.show = false;
+    }}
+    onsavesticker={() => {
+        if (contextMenu.chatItem) void saveMessageImageToStickers(window.api, contextMenu.chatItem);
+        contextMenu.show = false;
+    }}
+    onsavegif={() => {
+        if (contextMenu.chatItem) void saveMessageImageToGifs(window.api, contextMenu.chatItem);
+        contextMenu.show = false;
+    }}
+    oncancelsend={() => void cancelSending()}
+    onretry={() => void retryMessage()}
+    onliftbanishment={() => void unbanishSelectedPeer()}
+    ondelete={() => void deleteMessage()}
+    onemojireaction={(event) => {
+        const char = unicodeFromEmojiClickEvent(event);
+        if (char && reactionPicker.chatItem) void sendReaction(char, reactionPicker.chatItem);
+        reactionPicker = { ...reactionPicker, open: false };
+    }}
+    onsharecontact={(contact) => shareContact(contact)}
+    onlocationclicktelemetry={viewLocationOnMap}
+    onconfirmbubbletranslate={() => void confirmBubbleTranslate()}
+/>

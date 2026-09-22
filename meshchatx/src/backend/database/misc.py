@@ -169,6 +169,12 @@ class MiscDAO:
             (destination_hash, page_path),
         )
 
+    def get_archived_page_version_ids(self, destination_hash, page_path):
+        return self.provider.fetchall(
+            "SELECT id FROM archived_pages WHERE destination_hash = ? AND page_path = ? ORDER BY created_at DESC",
+            (destination_hash, page_path),
+        )
+
     def count_archived_distinct_paths(self, destination_hash):
         row = self.provider.fetchone(
             "SELECT COUNT(DISTINCT page_path) AS n FROM archived_pages WHERE destination_hash = ?",

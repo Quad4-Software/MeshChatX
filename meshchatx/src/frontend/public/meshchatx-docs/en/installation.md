@@ -36,7 +36,7 @@ Release images are published to Docker Hub (quad4io/meshchatx) and GHCR (ghcr.io
 Quick start with Compose:
 
 ```bash
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 Basic run:
@@ -117,9 +117,42 @@ volumes:
           secretName: meshchatx-tls
 ```
 
+#### Helm chart (Kubernetes and k3s)
+
+A chart ships in [helm/meshchatx](../../helm/meshchatx). It deploys a single-replica StatefulSet with a /config PVC, matching the Docker hardening: UID 1000, read-only root filesystem, dropped capabilities, and HTTPS probes on /api/v1/status.
+
+```bash
+helm install meshchatx ./helm/meshchatx
+kubectl port-forward svc/meshchatx 8000:https
+```
+
+Then open https://localhost:8000 and accept the self-signed certificate warning.
+
+Useful overrides:
+
+```bash
+# image tag, defaults to the chart appVersion
+--set image.tag=latest
+
+# persistence off for ephemeral demos (state is lost on pod restart)
+--set persistence.enabled=false
+
+# ingress with TLS upstream, e.g. nginx
+--set ingress.enabled=true --set ingress.hosts[0].host=meshchatx.example.com
+
+# Reticulum listener interfaces that need real ports or host networking
+--set reticulum.hostNetwork=true
+--set reticulum.extraContainerPorts[0].name=rns-tcp
+--set reticulum.extraContainerPorts[0].containerPort=4242
+--set reticulum.extraServicePorts[0].name=rns-tcp
+--set reticulum.extraServicePorts[0].port=4242
+```
+
+See [helm/meshchatx/values.yaml](../../helm/meshchatx/values.yaml) for all options.
+
 ### Public demo instance (Coolify)
 
-For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [docker-compose.demo.yml](../../docker/docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [docker-compose.coolify.yml](../../docker/docker-compose.coolify.yml).
+For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [docker/docker-compose.demo.yml](../../docker/docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [docker/docker-compose.coolify.yml](../../docker/docker-compose.coolify.yml).
 
 Demo compose expects settings like:
 
@@ -302,7 +335,7 @@ task install
 task dev
 ```
 
-task dev starts the HTTPS backend on 127.0.0.1:8000 and Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173). Open that Vite URL. The [Vue DevTools](https://devtools.vuejs.org/) overlay is injected for this serve only. vite build / task run never ship it (**VUE_PROD_DEVTOOLS** is false). Set MESHCHAT_VUE_DEVTOOLS=0 to hide the overlay. Click a component in the inspector to open it in the editor (LAUNCH_EDITOR, default code).
+task dev starts the HTTPS backend on 127.0.0.1:8000 and Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173). Open that Vite URL for HMR during development. vite build / task run serve the production frontend bundle.
 
 Python breakpoints: task debug is the same stack with [debugpy](https://github.com/microsoft/debugpy) listening on 127.0.0.1:5678 (never 0.0.0.0). Run **MeshChatX: Vite + Python** from the debugger, or start task debug and attach **Backend: Attach debugpy**. task debug:wait pauses the backend until that attach happens.
 

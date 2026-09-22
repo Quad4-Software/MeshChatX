@@ -1,6 +1,6 @@
 /**
  * UI page catalog for smoke + Lighthouse audits.
- * Paths are Vue hash routes (without the leading #).
+ * Paths are hash routes (without the leading #).
  * Lighthouse always runs against production-built assets (playwright.lighthouse.config.js).
  */
 
@@ -8,6 +8,20 @@ const DEFAULT_BUDGETS = {
     performance: 50,
     accessibility: 75,
     "best-practices": 70,
+};
+
+/**
+ * Upper bounds on Lighthouse numeric audit values under simulated desktop
+ * throttling. Generous enough for shared CI runners while still catching
+ * large regressions. Per-page overrides via `vitals` and env overrides via
+ * LH_MAX_* (see lighthouse-helper.js).
+ */
+const DEFAULT_VITAL_BUDGETS = {
+    fcp: 3000,
+    lcp: 8000,
+    tbt: 2000,
+    cls: 0.1,
+    si: 6000,
 };
 
 /**
@@ -19,6 +33,7 @@ const DEFAULT_BUDGETS = {
  * @property {string} [readyName] for role locators
  * @property {boolean} [ci] include in CI lighthouse subset
  * @property {Partial<typeof DEFAULT_BUDGETS>} [budgets]
+ * @property {Partial<typeof DEFAULT_VITAL_BUDGETS>} [vitals]
  */
 
 /** @type {UiPage[]} */
@@ -67,6 +82,7 @@ const UI_PAGES = [
         readyKind: "heading",
         ready: "Map",
         budgets: { performance: 40 },
+        vitals: { lcp: 9000, si: 9000 },
     },
     {
         id: "identities",
@@ -104,6 +120,7 @@ const UI_PAGES = [
         readyKind: "text",
         ready: "Reticulum Mesh",
         budgets: { performance: 35 },
+        vitals: { lcp: 9000, si: 9000, tbt: 3000 },
     },
     {
         id: "archives",
@@ -120,7 +137,11 @@ const UI_PAGES = [
 ];
 
 function budgetsFor(page) {
-    return { ...DEFAULT_BUDGETS, ...(page.budgets || {}) };
+    return { ...DEFAULT_BUDGETS, ...page.budgets };
+}
+
+function vitalBudgetsFor(page) {
+    return { ...DEFAULT_VITAL_BUDGETS, ...page.vitals };
 }
 
 function pagesForCi() {
@@ -140,8 +161,10 @@ function resolvePages(opts = {}) {
 
 module.exports = {
     DEFAULT_BUDGETS,
+    DEFAULT_VITAL_BUDGETS,
     UI_PAGES,
     budgetsFor,
+    vitalBudgetsFor,
     pagesForCi,
     resolvePages,
 };

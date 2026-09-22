@@ -27,9 +27,8 @@
 //     review the diff before enabling either flag; third-party SPDX lines
 //     in vendored or generated files must not be silently stripped.
 //
-//  3. The default base license is "0BSD AND MIT", which means BOTH licenses
-//     apply simultaneously to their respective contributions. This is the
-//     safe default for files where provenance cannot be cleanly separated.
+//  3. The default base license is "0BSD". Files that still score at or above
+//     the mixed threshold are labeled "0BSD AND MIT" until rewritten.
 package main
 
 import (
@@ -203,7 +202,7 @@ var commentStyleByExt = map[string]string{
 	".less":  "block",
 	".html":  "html",
 	".xml":   "html",
-	".vue":   "html",
+	".svelte": "html",
 	".md":    "html",
 }
 
@@ -369,8 +368,8 @@ func parseConfig() (config, error) {
 	flag.StringVar(&cfg.upstreamURL, "upstream-url", envString("UPSTREAM_URL", defaultUpstreamURL), "Upstream git URL")
 	flag.StringVar(&cfg.upstreamBranch, "upstream-branch", envString("UPSTREAM_BRANCH", "master"), "Upstream branch")
 	flag.DurationVar(&cfg.cloneTimeout, "clone-timeout", envDuration("CLONE_TIMEOUT", 2*time.Minute), "Timeout for upstream clone")
-	flag.StringVar(&cfg.scanExtsRaw, "scan-exts", envString("SCAN_EXTS", ".py,.vue"), "Comma-separated extensions for similarity analysis")
-	flag.StringVar(&cfg.headerExtsRaw, "header-exts", envString("HEADER_EXTS", ".py,.vue"), "Comma-separated extensions eligible for SPDX headers")
+	flag.StringVar(&cfg.scanExtsRaw, "scan-exts", envString("SCAN_EXTS", ".py,.svelte"), "Comma-separated extensions for similarity analysis")
+	flag.StringVar(&cfg.headerExtsRaw, "header-exts", envString("HEADER_EXTS", ".py,.svelte"), "Comma-separated extensions eligible for SPDX headers")
 	flag.StringVar(&cfg.excludeDirsRaw, "exclude-dirs", envString("EXCLUDE_DIRS", ".git,.idea,.vscode,.local,.pnpm-store,.flatpak-builder,node_modules,dist,build,.venv,venv,__pycache__,.pytest_cache,.mypy_cache,.ruff_cache"), "Comma-separated directories to skip")
 	flag.StringVar(&cfg.excludePathsRaw, "exclude-path-contains", envString("EXCLUDE_PATH_CONTAINS", ""), "Comma-separated path substrings to skip")
 	flag.Int64Var(&cfg.maxFileSizeBytes, "max-file-size-bytes", envInt64("MAX_FILE_SIZE_BYTES", 2_000_000), "Max file size for analysis")
@@ -379,7 +378,7 @@ func parseConfig() (config, error) {
 	flag.BoolVar(&cfg.allowPure0BSD, "allow-pure-0bsd", envBool("ALLOW_PURE_0BSD", false), "Allow pure 0BSD classification for files with very low similarity and no direct path match. Disabled by default because textual similarity is not a legal test for derivative-work status.")
 	flag.BoolVar(&cfg.pure0BSDConfirmNoDerivation, "pure-0bsd-confirm-no-derivation", envBool("PURE_0BSD_CONFIRM_NO_DERIVATION", false), "Required acknowledgement that files classified as pure 0BSD are not derivative works of upstream sources. Without this flag --allow-pure-0bsd is ignored.")
 	flag.Float64Var(&cfg.pure0BSDThreshold, "pure-0bsd-threshold", envFloat("PURE_0BSD_THRESHOLD", 1.0), "Max similarity percent for pure 0BSD")
-	flag.StringVar(&cfg.baseLicense, "base-license", envString("BASE_LICENSE", "0BSD AND MIT"), "Default SPDX license below mixed threshold")
+	flag.StringVar(&cfg.baseLicense, "base-license", envString("BASE_LICENSE", "0BSD"), "Default SPDX license below mixed threshold")
 	flag.IntVar(&cfg.maxNameCandidates, "max-name-candidates", envInt("MAX_NAME_CANDIDATES", 200), "Max basename candidates when direct path match missing")
 	flag.BoolVar(&cfg.writeHeaders, "write-headers", envBool("WRITE_HEADERS", false), "Write SPDX headers")
 	flag.BoolVar(&cfg.replaceExisting, "replace-existing", envBool("REPLACE_EXISTING", false), "Replace existing SPDX header")

@@ -5,7 +5,7 @@ description = "A simple mesh network communications app powered by the Reticulum
 authors = [
   {name = "Quad4"}
 ]
-license = "0BSD AND MIT"
+license = "0BSD"
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = ["reticulum", "meshchat", "meshchatx", "lxmf", "rns"]
@@ -91,6 +91,7 @@ dev = [
     "debugpy>=1.8.16",
     "mutmut>=3.7.0; python_version < '4.0'",
     "basedpyright>=1.39.10",
+    "schemathesis>=4.25.2",
 ]
 
 [tool.ruff]
@@ -182,7 +183,7 @@ also_copy = [
     "meshchatx/src/path_utils.py",
     "meshchatx/src/ssl_self_signed.py",
     "meshchatx/src/version.py",
-    "meshchatx/src/frontend/components/",
+    "meshchatx/src/frontend/features/",
     "meshchatx/src/frontend/js/",
 ]
 pytest_add_cli_args = [

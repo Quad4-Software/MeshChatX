@@ -1,0 +1,8 @@
+.DS_Store
+.git/
+.gitignore
+*.md
+*.swp
+*.bak
+*.tmp
+*.orig

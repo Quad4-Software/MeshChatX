@@ -41,6 +41,14 @@ docker run -d --name reticulum-meshchatx \
 
 Container Images: `quad4io/meshchatx` (Docker Hub) and `ghcr.io/quad4-software/meshchatx`. Hardened and extra tags are in [Installation](docs/en/installation.md).
 
+### Kubernetes / k3s
+
+```bash
+helm install meshchatx ./helm/meshchatx
+```
+
+A StatefulSet chart with a /config PVC ships in [helm/meshchatx](helm/meshchatx). See [Installation](docs/en/installation.md#helm-chart-kubernetes-and-k3s) for overrides.
+
 ### PyPI (pip, pipx, uv)
 
 ```bash
@@ -105,5 +113,5 @@ AppImage, deb, rpm, Flatpak, Electron, and Android: [Installation](docs/en/insta
 ## Security, license, credits
 
 - [SECURITY.md](SECURITY.md) · [LEGAL.md](LEGAL.md) · [donate.md](donate.md)
-- Project-owned code is 0BSD. Upstream MeshChat portions remain MIT. Full text: [LICENSE](LICENSE).
+- Project-owned code is 0BSD. Bundled third-party embeds keep their own licenses. Full text: [LICENSE](LICENSE).
 - Credits: [Liam Cottle](https://github.com/liamcottle) (original MeshChat), [RFnexus](https://github.com/RFnexus) (micron parser JS), [markqvist](https://github.com/markqvist) (Reticulum, LXMF, LXST).

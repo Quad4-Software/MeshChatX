@@ -10,6 +10,7 @@ import pytest
 from tests.backend.http_api_contract_helpers import (
     extract_frontend_api_paths,
     extract_meshchat_http_routes,
+    frontend_path_covered_by_backend,
     load_route_fixture,
     path_matches_aiohttp_route,
     write_route_fixture,
@@ -52,6 +53,6 @@ def test_frontend_api_paths_exist_on_backend():
     missing = [
         fp
         for fp in sorted(frontend_paths)
-        if not any(path_matches_aiohttp_route(br, fp) for br in backend_paths)
+        if not frontend_path_covered_by_backend(fp, backend_paths)
     ]
     assert not missing, f"Frontend references unknown HTTP paths: {missing}"

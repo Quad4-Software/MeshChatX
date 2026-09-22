@@ -18,7 +18,7 @@ def mock_db():
 def test_archive_page_new(mock_db):
     manager = ArchiverManager(mock_db)
     mock_db.provider.fetchone.side_effect = [None, {"total_size": 100}]
-    mock_db.misc.get_archived_page_versions.return_value = []
+    mock_db.misc.get_archived_page_version_ids.return_value = []
 
     manager.archive_page("dest", "/path", "content")
 
@@ -41,7 +41,7 @@ def test_archive_page_enforce_max_versions(mock_db):
     manager = ArchiverManager(mock_db)
     mock_db.provider.fetchone.side_effect = [None, {"total_size": 100}]
     # 6 versions, max is 5
-    mock_db.misc.get_archived_page_versions.return_value = [
+    mock_db.misc.get_archived_page_version_ids.return_value = [
         {"id": 1},
         {"id": 2},
         {"id": 3},
@@ -61,12 +61,14 @@ def test_archive_page_enforce_max_versions(mock_db):
 
 def test_archive_page_enforce_storage_limit(mock_db):
     manager = ArchiverManager(mock_db)
+    # The byte cap scan is amortized; prime the counter so this insert runs it.
+    manager._inserts_since_size_check = 9
     mock_db.provider.fetchone.side_effect = [
         None,  # existing check
         {"total_size": 2 * 1024 * 1024 * 1024},  # total size (2GB)
         {"id": 10, "size": 1 * 1024 * 1024 * 1024},  # oldest
     ]
-    mock_db.misc.get_archived_page_versions.return_value = []
+    mock_db.misc.get_archived_page_version_ids.return_value = []
 
     # max storage 1GB
     manager.archive_page("dest", "/path", "content", max_storage_gb=1)
@@ -75,3 +77,15 @@ def test_archive_page_enforce_storage_limit(mock_db):
         "DELETE FROM archived_pages WHERE id = ?",
         (10,),
     )
+
+
+def test_archive_page_skips_size_scan_between_checks(mock_db):
+    manager = ArchiverManager(mock_db)
+    mock_db.provider.fetchone.side_effect = [None] * 20
+    mock_db.misc.get_archived_page_version_ids.return_value = []
+
+    for _ in range(9):
+        manager.archive_page("dest", "/path", "content")
+
+    calls = [str(c) for c in mock_db.provider.fetchone.call_args_list]
+    assert not any("SUM(LENGTH(content))" in c for c in calls)

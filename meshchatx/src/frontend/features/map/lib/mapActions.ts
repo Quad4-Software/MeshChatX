@@ -1,0 +1,200 @@
+// SPDX-License-Identifier: 0BSD
+
+import { getLength, getArea } from "ol/sphere";
+import type Geometry from "ol/geom/Geometry.js";
+import type OlMap from "ol/Map.js";
+import { getAndroidPosition } from "../../../js/androidLocation.js";
+import { isValidLatLon } from "../../../js/mapGeoCoords.js";
+import type { RemoteOverlayEntry, TelemetryPeer } from "./types.js";
+import type { RemoteOverlayLayerEntry } from "./mapRemoteOverlays.js";
+
+export async function resolveMyLocationWgs84(ctx: {
+    config?: {
+        location_source?: string;
+        location_manual_lat?: string | number | null;
+        location_manual_lon?: string | number | null;
+        lxmf_address_hash?: string;
+        identity_hash?: string;
+    };
+    telemetryList?: TelemetryPeer[];
+}): Promise<{ lon: number; lat: number } | null> {
+    const cfg = ctx.config || {};
+    const list = ctx.telemetryList || [];
+
+    if (cfg.location_source === "disabled") {
+        return null;
+    }
+
+    if (cfg.location_source === "manual") {
+        const lat = parseFloat(String(cfg.location_manual_lat));
+        const lon = parseFloat(String(cfg.location_manual_lon));
+        if (isValidLatLon(lat, lon)) {
+            return { lon, lat };
+        }
+    }
+
+    if (cfg.lxmf_address_hash || cfg.identity_hash) {
+        const myHashes = new Set(
+            [cfg.lxmf_address_hash, cfg.identity_hash].filter(Boolean).map((h) => String(h).toLowerCase())
+        );
+        const myTelemetry = list.find((t) => myHashes.has(String(t.destination_hash || "").toLowerCase()));
+        const loc = myTelemetry?.telemetry?.location;
+        if (loc && isValidLatLon(loc.latitude, loc.longitude)) {
+            return { lon: Number(loc.longitude), lat: Number(loc.latitude) };
+        }
+    }
+
+    // Native Android GPS through the WebView bridge.
+    if (cfg.location_source === "android") {
+        try {
+            const pos = await getAndroidPosition();
+            return { lon: pos.longitude, lat: pos.latitude };
+        } catch {
+            return null;
+        }
+    }
+
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+        try {
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+            });
+            return { lon: pos.coords.longitude, lat: pos.coords.latitude };
+        } catch {
+            return null;
+        }
+    }
+
+    return null;
+}
+
+export async function handleRemoteOverlaysChanged(
+    ctx: {
+        map?: OlMap | null;
+        remoteOverlayLoadGeneration: number;
+        remoteOverlayLayers: Record<string, RemoteOverlayLayerEntry>;
+        removeRemoteOverlayLayer: (id: string) => void;
+        ensureRemoteOverlayLayer: (overlay: RemoteOverlayEntry) => Promise<void>;
+    },
+    overlays: RemoteOverlayEntry[]
+): Promise<void> {
+    if (!ctx.map) return;
+    const list = Array.isArray(overlays) ? overlays : [];
+    const loadGen = ++ctx.remoteOverlayLoadGeneration;
+    const keep = new Set(list.map((o) => String(o.id)));
+
+    for (const existingId of Object.keys(ctx.remoteOverlayLayers)) {
+        if (!keep.has(existingId)) {
+            ctx.removeRemoteOverlayLayer(existingId);
+        }
+    }
+
+    for (const overlay of list) {
+        if (ctx.remoteOverlayLoadGeneration !== loadGen) {
+            return;
+        }
+        const id = String(overlay.id);
+        const visible = Boolean(overlay.visible);
+        if (overlay.status !== "ready" || !overlay.format) {
+            const existing = ctx.remoteOverlayLayers[id];
+            if (existing?.layer) {
+                existing.layer.setVisible(false);
+            }
+            continue;
+        }
+        await ctx.ensureRemoteOverlayLayer(overlay);
+        if (ctx.remoteOverlayLoadGeneration !== loadGen) {
+            ctx.removeRemoteOverlayLayer(id);
+            return;
+        }
+        const entry = ctx.remoteOverlayLayers[id];
+        if (entry?.layer) {
+            entry.layer.setVisible(visible);
+        }
+    }
+}
+
+export function formatLength(line: Geometry): string {
+    const length = getLength(line);
+    let output: string;
+    let imperialOutput: string;
+
+    if (length > 100) {
+        output = Math.round((length / 1000) * 100) / 100 + " km";
+    } else {
+        output = Math.round(length * 100) / 100 + " m";
+    }
+
+    const feet = length * 3.28084;
+    if (feet > 5280) {
+        const miles = length * 0.000621371;
+        imperialOutput = Math.round(miles * 100) / 100 + " mi";
+    } else {
+        imperialOutput = Math.round(feet * 100) / 100 + " ft";
+    }
+
+    return `${output}<br/><span class="text-[10px] opacity-80">${imperialOutput}</span>`;
+}
+
+export function formatArea(polygon: Geometry): string {
+    const area = getArea(polygon);
+    let output: string;
+    let imperialOutput: string;
+
+    if (area > 10000) {
+        output = Math.round((area / 1000000) * 100) / 100 + " km²";
+    } else {
+        output = Math.round(area * 100) / 100 + " m²";
+    }
+
+    const sqFeet = area * 10.7639;
+    if (sqFeet > 27878400) {
+        const sqMiles = area * 0.000000386102;
+        imperialOutput = Math.round(sqMiles * 100) / 100 + " mi²";
+    } else {
+        imperialOutput = Math.round(sqFeet * 100) / 100 + " ft²";
+    }
+
+    return `${output}<br/><span class="text-[10px] opacity-80">${imperialOutput}</span>`;
+}
+
+export function calculateAzimuth(
+    lon1: number,
+    lat1: number,
+    lon2: number,
+    lat2: number
+): { deg: number; cardinal: string } {
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const toDeg = (r: number) => (r * 180) / Math.PI;
+
+    const phi1 = toRad(lat1);
+    const phi2 = toRad(lat2);
+    const deltaLambda = toRad(lon2 - lon1);
+
+    const y = Math.sin(deltaLambda) * Math.cos(phi2);
+    const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
+
+    let deg = (toDeg(Math.atan2(y, x)) + 360) % 360;
+    deg = Math.round(deg * 10) / 10;
+
+    const cardinals = [
+        "N",
+        "NNE",
+        "NE",
+        "ENE",
+        "E",
+        "ESE",
+        "SE",
+        "SSE",
+        "S",
+        "SSW",
+        "SW",
+        "WSW",
+        "W",
+        "WNW",
+        "NW",
+        "NNW",
+    ];
+    const index = Math.round(deg / 22.5) % 16;
+    return { deg, cardinal: cardinals[index] };
+}

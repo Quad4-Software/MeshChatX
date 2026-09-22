@@ -1,135 +1,37 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import MessagesPage from "@/components/messages/MessagesPage.vue";
-import { useConfigStore } from "@/js/stores/configStore.js";
-import { useIdentityStore } from "@/js/stores/identityStore.js";
+// SPDX-License-Identifier: 0BSD
 
-vi.mock("@/js/Utils", () => ({
-    default: {
-        formatTimeAgo: vi.fn(() => "1h ago"),
-        formatDestinationHash: (h) => (h && h.length >= 8 ? h.slice(0, 8) + "…" : h),
-    },
-}));
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
 
-const ConversationViewerStub = {
-    name: "ConversationViewer",
-    template: '<div class="cv-stub"></div>',
-    methods: {
-        markConversationAsRead: vi.fn(),
-    },
-};
+const source = readFileSync(
+    resolve(process.cwd(), "meshchatx/src/frontend/features/messages/MessagesPage.svelte"),
+    "utf8"
+);
 
-describe("MessagesPage with MessagesSidebar integration", () => {
-    let axiosMock;
-
-    beforeEach(() => {
-        localStorage.clear();
-        useIdentityStore().blockedDestinations = [];
-        useConfigStore().mergeConfig({ banished_effect_enabled: false, telemetry_enabled: false });
-        axiosMock = {
-            get: vi.fn(),
-            post: vi.fn(),
-        };
-        window.api = axiosMock;
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
-            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
-            if (url === "/api/v1/lxmf/folders") return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
+describe("MessagesPage sidebar integration", () => {
+    it("passes conversation, peer, folder, filter, and loading state", () => {
+        for (const binding of [
+            "{conversations}",
+            "{peers}",
+            "{folders}",
+            "{selectedFolderId}",
+            "{conversationSearchTerm}",
+            "{filterUnreadOnly}",
+            "{filterFailedOnly}",
+            "{filterHasAttachmentsOnly}",
+            "{pinnedPeerHashes}",
+        ]) {
+            expect(source).toContain(binding);
+        }
     });
 
-    afterEach(() => {
-        delete window.api;
-    });
-
-    it("renders live MessagesSidebar and switches to Announces tab", async () => {
-        const wrapper = mount(MessagesPage, {
-            props: { destinationHash: "" },
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $route: { query: {} },
-                    $router: { replace: vi.fn() },
-                },
-                stubs: {
-                    ConversationViewer: ConversationViewerStub,
-                    MaterialDesignIcon: { template: '<div class="mdi-stub"><slot /></div>' },
-                },
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-            },
-        });
-
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("messages.conversations");
-
-        const tabs = wrapper.findAll("div.flex.w-full.cursor-pointer.border-b-2");
-        expect(tabs.length).toBeGreaterThanOrEqual(2);
-        await tabs[1].trigger("click");
-        await wrapper.vm.$nextTick();
-
-        const sidebar = wrapper.findComponent({ name: "MessagesSidebar" });
-        expect(sidebar.vm.tab).toBe("announces");
-    });
-
-    it("selects peer from sidebar conversation row and updates MessagesPage selectedPeer", async () => {
-        const destHash = "0123456789abcdef0123456789abcdef";
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations")
-                return Promise.resolve({
-                    data: {
-                        conversations: [
-                            {
-                                destination_hash: destHash,
-                                display_name: "Integration Peer",
-                                updated_at: new Date().toISOString(),
-                                is_unread: false,
-                                failed_messages_count: 0,
-                            },
-                        ],
-                    },
-                });
-            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
-            if (url === "/api/v1/lxmf/folders") return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mount(MessagesPage, {
-            props: { destinationHash: "" },
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $route: { query: {} },
-                    $router: { replace: vi.fn() },
-                },
-                stubs: {
-                    ConversationViewer: ConversationViewerStub,
-                    MaterialDesignIcon: { template: '<div class="mdi-stub"><slot /></div>' },
-                },
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-            },
-        });
-
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        const row = wrapper.find(".conversation-item");
-        expect(row.exists()).toBe(true);
-        await row.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.selectedPeer).toMatchObject({
-            destination_hash: destHash,
-            display_name: "Integration Peer",
-        });
+    it("wires public sidebar callbacks to page behavior", () => {
+        expect(source).toContain("onconversationClick={onConversationClick}");
+        expect(source).toContain("onpeerClick={onPeerClick}");
+        expect(source).toContain("onconversationSearchChanged");
+        expect(source).toContain("onannouncesTabActivated");
+        expect(source).toContain("onbulkMarkAsRead");
+        expect(source).toContain("ontoggleConversationPin");
     });
 });

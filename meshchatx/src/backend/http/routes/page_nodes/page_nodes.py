@@ -1,0 +1,312 @@
+# SPDX-License-Identifier: 0BSD
+"""HTTP routes: page_nodes/page_nodes."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.http.errors import (
+    http_bad_request,
+    http_not_found,
+    http_payload_too_large,
+    http_unexpected,
+)
+
+# ruff: noqa: F403, F405
+from meshchatx.src.backend.http.routes.page_nodes._names import *
+from meshchatx.src.backend.http.uploads import (
+    UPLOAD_LIMITS,
+    PayloadTooLargeError,
+    read_field_limited,
+    read_json_limited,
+)
+
+
+def _json_bool(value, default=False):
+    """Coerce a JSON value to bool. bool("false") must not read as True."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return default
+
+
+def register_page_nodes_page_nodes_routes(routes: Any, app: Any) -> None:
+
+    # --- Page Node API ---
+
+    @routes.get(API_V1_PREFIX + "/page-nodes")
+    async def page_nodes_list(request):
+        return web.json_response(app.page_node_manager.list_nodes())
+
+    @routes.post(API_V1_PREFIX + "/page-nodes")
+    async def page_nodes_create(request):
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        name = data.get("name", "").strip()
+        if not name:
+            return http_bad_request("Name is required")
+        announce_enabled = _json_bool(data.get("announce_enabled"), True)
+        announce_interval_seconds = data.get("announce_interval_seconds")
+        executable_pages_enabled = _json_bool(
+            data.get("executable_pages_enabled"),
+            False,
+        )
+        node = app.page_node_manager.create_node(
+            name,
+            announce_enabled=announce_enabled,
+            announce_interval_seconds=announce_interval_seconds,
+            executable_pages_enabled=executable_pages_enabled,
+        )
+        return web.json_response(node.get_status())
+
+    @routes.get(API_V1_PREFIX + "/page-nodes/{node_id}")
+    async def page_nodes_get(request):
+        node_id = request.match_info["node_id"]
+        node = app.page_node_manager.get_node(node_id)
+        if not node:
+            return http_not_found("Node not found")
+        return web.json_response(node.get_status())
+
+    @routes.delete(API_V1_PREFIX + "/page-nodes/{node_id}")
+    async def page_nodes_delete(request):
+        node_id = request.match_info["node_id"]
+        if app.page_node_manager.delete_node(node_id):
+            return web.json_response({"message": "Node deleted"})
+        return http_not_found("Node not found")
+
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/start")
+    async def page_nodes_start(request):
+        node_id = request.match_info["node_id"]
+        try:
+            dest_hash = app.page_node_manager.start_node(node_id)
+            node = app.page_node_manager.get_node(node_id)
+            if node and node.running:
+                app._register_local_page_node_announce(node)
+            return web.json_response(
+                {"destination_hash": dest_hash, "message": "Node started"},
+            )
+        except KeyError:
+            return http_not_found("Node not found")
+
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/stop")
+    async def page_nodes_stop(request):
+        node_id = request.match_info["node_id"]
+        try:
+            app.page_node_manager.stop_node(node_id)
+            return web.json_response({"message": "Node stopped"})
+        except KeyError:
+            return http_not_found("Node not found")
+
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/announce")
+    async def page_nodes_announce(request):
+        node_id = request.match_info["node_id"]
+        try:
+            node = app.page_node_manager.get_node(node_id)
+            if node is None or not node.running:
+                return http_bad_request("Node not running")
+            node.announce()
+            app._register_local_page_node_announce(node)
+            return web.json_response({"message": "Announced"})
+        except KeyError:
+            return http_not_found("Node not found")
+
+    @routes.put(API_V1_PREFIX + "/page-nodes/{node_id}/rename")
+    async def page_nodes_rename(request):
+        node_id = request.match_info["node_id"]
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        new_name = data.get("name", "").strip()
+        if not new_name:
+            return http_bad_request("Name is required")
+        try:
+            app.page_node_manager.rename_node(node_id, new_name)
+            return web.json_response({"message": "Renamed"})
+        except KeyError:
+            return http_not_found("Node not found")
+
+    @routes.patch(API_V1_PREFIX + "/page-nodes/{node_id}/announce-settings")
+    async def page_nodes_update_announce_settings(request):
+        node_id = request.match_info["node_id"]
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception as e:
+            return http_bad_request(f"Invalid request body: {e}")
+        announce_enabled = (
+            data.get("announce_enabled") if "announce_enabled" in data else None
+        )
+        announce_interval_seconds = (
+            data.get("announce_interval_seconds")
+            if "announce_interval_seconds" in data
+            else None
+        )
+        executable_pages_enabled = (
+            data.get("executable_pages_enabled")
+            if "executable_pages_enabled" in data
+            else None
+        )
+        try:
+            node = app.page_node_manager.get_node(node_id)
+            if node is None:
+                return http_not_found("Node not found")
+            node = app.page_node_manager.set_announce_settings(
+                node_id,
+                announce_enabled=announce_enabled,
+                announce_interval_seconds=announce_interval_seconds,
+            )
+            if executable_pages_enabled is not None:
+                node = app.page_node_manager.set_executable_pages_enabled(
+                    node_id,
+                    _json_bool(executable_pages_enabled),
+                )
+            return web.json_response(node.get_status())
+        except KeyError:
+            return http_not_found("Node not found")
+
+    @routes.get(API_V1_PREFIX + "/page-nodes/{node_id}/pages")
+    async def page_nodes_list_pages(request):
+        node_id = request.match_info["node_id"]
+        node = app.page_node_manager.get_node(node_id)
+        if not node:
+            return http_not_found("Node not found")
+        return web.json_response({"pages": node.list_pages()})
+
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/pages")
+    async def page_nodes_add_page(request):
+        node_id = request.match_info["node_id"]
+        node = app.page_node_manager.get_node(node_id)
+        if not node:
+            return http_not_found("Node not found")
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception as e:
+            return http_bad_request(f"Invalid request body: {e}")
+        name = data.get("name", "")
+        content = data.get("content", "")
+        executable = (
+            _json_bool(data.get("executable")) if "executable" in data else None
+        )
+        if not name:
+            return http_bad_request("Page name is required")
+        try:
+            saved_name = node.add_page(name, content, executable=executable)
+        except ValueError as e:
+            return http_bad_request(str(e))
+        except OSError:
+            return http_unexpected("Failed to write page")
+        except Exception:
+            return http_unexpected("Failed to save page")
+        return web.json_response(
+            {
+                "name": saved_name,
+                "executable": node.is_page_executable(saved_name),
+                "message": "Page saved",
+            },
+        )
+
+    @routes.get(API_V1_PREFIX + "/page-nodes/{node_id}/pages/{page_name}")
+    async def page_nodes_get_page(request):
+        node_id = request.match_info["node_id"]
+        page_name = request.match_info["page_name"]
+        node = app.page_node_manager.get_node(node_id)
+        if not node:
+            return http_not_found("Node not found")
+        content = node.get_page_content(page_name)
+        if content is None:
+            return http_not_found("Page not found")
+        return web.json_response(
+            {
+                "name": page_name,
+                "content": content,
+                "executable": node.is_page_executable(page_name),
+            },
+        )
+
+    @routes.delete(API_V1_PREFIX + "/page-nodes/{node_id}/pages/{page_name}")
+    async def page_nodes_delete_page(request):
+        node_id = request.match_info["node_id"]
+        page_name = request.match_info["page_name"]
+        node = app.page_node_manager.get_node(node_id)
+        if not node:
+            return http_not_found("Node not found")
+        if node.remove_page(page_name):
+            return web.json_response({"message": "Page deleted"})
+        return http_not_found("Page not found")
+
+    @routes.get(API_V1_PREFIX + "/page-nodes/{node_id}/files")
+    async def page_nodes_list_files(request):
+        node_id = request.match_info["node_id"]
+        node = app.page_node_manager.get_node(node_id)
+        if not node:
+            return http_not_found("Node not found")
+        return web.json_response({"files": node.list_files()})
+
+    @routes.post(API_V1_PREFIX + "/page-nodes/{node_id}/files")
+    async def page_nodes_upload_file(request):
+        node_id = request.match_info["node_id"]
+        node = app.page_node_manager.get_node(node_id)
+        if not node:
+            return http_not_found("Node not found")
+        try:
+            reader = await request.multipart()
+        except Exception as e:
+            return http_bad_request(f"Invalid upload request: {e}")
+        filename = None
+        file_data = None
+        try:
+            while True:
+                field = await reader.next()
+                if field is None:
+                    break
+                name = field.name or ""
+                if name == "file" or field.filename:
+                    filename = field.filename or "upload"
+                    file_data = await read_field_limited(
+                        field,
+                        UPLOAD_LIMITS["page_node_file"],
+                    )
+                else:
+                    with contextlib.suppress(Exception):
+                        await read_field_limited(
+                            field,
+                            UPLOAD_LIMITS["page_node_file"],
+                        )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception as e:
+            return http_bad_request(f"Failed to read upload: {e}")
+        if file_data is None:
+            return http_bad_request("No file uploaded")
+        try:
+            saved_name = node.add_file(filename, file_data)
+        except ValueError as e:
+            return http_bad_request(str(e))
+        except OSError:
+            return http_unexpected("Failed to write file")
+        except Exception:
+            return http_unexpected("Failed to save file")
+        return web.json_response({"name": saved_name, "message": "File uploaded"})
+
+    @routes.delete(API_V1_PREFIX + "/page-nodes/{node_id}/files/{file_name}")
+    async def page_nodes_delete_file(request):
+        node_id = request.match_info["node_id"]
+        file_name = request.match_info["file_name"]
+        node = app.page_node_manager.get_node(node_id)
+        if not node:
+            return http_not_found("Node not found")
+        if node.remove_file(file_name):
+            return web.json_response({"message": "File deleted"})
+        return http_not_found("File not found")

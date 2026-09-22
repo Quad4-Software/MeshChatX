@@ -1,6 +1,6 @@
-import { mount, flushPromises } from "@vue/test-utils";
+import { render, cleanup } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import StickerView from "@/components/stickers/StickerView.vue";
+import StickerView from "../../meshchatx/src/frontend/features/stickers/components/StickerView.svelte";
 
 const origIntersectionObserver = globalThis.IntersectionObserver;
 
@@ -31,46 +31,42 @@ beforeAll(() => {
     HTMLCanvasElement.prototype.getContext = vi.fn(() => ctx);
 });
 
-describe("StickerView.vue", () => {
+describe("StickerView.svelte", () => {
     it("renders img for static sticker", () => {
-        const w = mount(StickerView, {
+        const { container } = render(StickerView, {
             props: {
                 src: "https://example.invalid/sticker.png",
                 imageType: "png",
                 alt: "x",
             },
         });
-        expect(w.find("img").exists()).toBe(true);
-        expect(w.find("video").exists()).toBe(false);
-        w.unmount();
+        expect(container.querySelector("img")).toBeTruthy();
+        expect(container.querySelector("video")).toBeNull();
     });
 
     it("renders video for webm", () => {
-        const w = mount(StickerView, {
+        const { container } = render(StickerView, {
             props: {
                 src: "https://example.invalid/s.webm",
                 imageType: "webm",
             },
         });
-        expect(w.find("video").exists()).toBe(true);
-        w.unmount();
+        expect(container.querySelector("video")).toBeTruthy();
     });
 
     it("TGS renders placeholder without fetching sticker URL", async () => {
         const baseFetch = globalThis.fetch;
         const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => baseFetch(input, init));
 
-        const w = mount(StickerView, {
+        const { container } = render(StickerView, {
             props: {
                 src: "https://example.invalid/a.tgs",
                 imageType: "tgs",
             },
-            attachTo: document.body,
         });
 
-        await flushPromises();
-        expect(w.find("img").exists()).toBe(false);
-        expect(w.find(".w-full.h-full.flex").exists()).toBe(true);
+        expect(container.querySelector("img")).toBeNull();
+        expect(container.querySelector(".w-full.h-full.flex")).toBeTruthy();
         const tgsCalls = fetchSpy.mock.calls.filter((c) => {
             const u = typeof c[0] === "string" ? c[0] : (c[0]?.url ?? "");
             return String(u).includes("example.invalid/a.tgs");
@@ -78,7 +74,6 @@ describe("StickerView.vue", () => {
         expect(tgsCalls.length).toBe(0);
 
         fetchSpy.mockRestore();
-        w.unmount();
     });
 
     it("WebM calls play when in view and pause when out", async () => {
@@ -94,30 +89,28 @@ describe("StickerView.vue", () => {
         const playSpy = vi.spyOn(HTMLVideoElement.prototype, "play").mockResolvedValue(undefined);
         const pauseSpy = vi.spyOn(HTMLVideoElement.prototype, "pause").mockImplementation(() => {});
 
-        const w = mount(StickerView, {
+        const { container } = render(StickerView, {
             props: {
                 src: "https://example.invalid/s.webm",
                 imageType: "webm",
             },
-            attachTo: document.body,
         });
 
-        await flushPromises();
-        const root = w.vm.$refs.stickerRoot;
+        const root = container.querySelector(".sticker-view");
         ioCallback([{ isIntersecting: true, target: root }]);
-        await flushPromises();
+        await Promise.resolve();
         expect(playSpy).toHaveBeenCalled();
 
         ioCallback([{ isIntersecting: false, target: root }]);
-        await flushPromises();
+        await Promise.resolve();
         expect(pauseSpy).toHaveBeenCalled();
 
         playSpy.mockRestore();
         pauseSpy.mockRestore();
-        w.unmount();
     });
 
     afterEach(() => {
+        cleanup();
         globalThis.IntersectionObserver = origIntersectionObserver;
         vi.restoreAllMocks();
     });

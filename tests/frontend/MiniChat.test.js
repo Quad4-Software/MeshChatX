@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount } from "@vue/test-utils";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import MiniChat from "@/components/map/MiniChat.vue";
+import MiniChat from "@/features/map/components/MiniChat.svelte";
 
-describe("MiniChat.vue", () => {
+describe("MiniChat.svelte", () => {
     let axiosMock;
 
     beforeEach(() => {
@@ -21,37 +21,40 @@ describe("MiniChat.vue", () => {
     });
 
     afterEach(() => {
+        cleanup();
         delete window.api;
     });
 
-    const mountMiniChat = () =>
-        mount(MiniChat, {
-            props: { destinationHash: "a".repeat(32) },
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: { MaterialDesignIcon: true },
-            },
-        });
+    const renderMiniChat = () => render(MiniChat, { props: { destinationHash: "a".repeat(32) } });
 
     it("fetches recent messages on mount", async () => {
-        mountMiniChat();
-        await vi.waitFor(() =>
+        renderMiniChat();
+        await waitFor(() =>
             expect(axiosMock.get).toHaveBeenCalledWith(expect.stringContaining("lxmf-messages/conversation"))
         );
     });
 
     it("caps the local message list at 40 entries after sending", async () => {
-        const wrapper = mountMiniChat();
-        await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
-        for (let i = 0; i < 42; i++) {
-            wrapper.vm.messages.push({ content: `msg-${i}`, timestamp: i });
-        }
+        const fetched = Array.from({ length: 40 }, (_, i) => ({
+            hash: `h${i}`,
+            content: `msg-${i}`,
+            timestamp: i,
+        }));
+        // Endpoint returns newest first; the component reverses it.
+        axiosMock.get.mockResolvedValue({ data: { lxmf_messages: [...fetched].reverse() } });
 
-        wrapper.vm.newMessage = "hello";
-        await wrapper.vm.sendMessage();
+        const { container } = renderMiniChat();
+        await waitFor(() => expect(container.querySelectorAll(".wrap-break-word").length).toBe(40));
 
-        expect(wrapper.vm.messages.length).toBeLessThanOrEqual(40);
-        expect(wrapper.vm.messages.at(-1).content).toBe("hello");
-        expect(wrapper.vm.messages[0].content).toBe("msg-3");
+        const input = container.querySelector("input[type=text]");
+        await fireEvent.input(input, { target: { value: "hello" } });
+        await fireEvent.click(container.querySelector("button[aria-label]"));
+
+        await waitFor(() => {
+            const bubbles = [...container.querySelectorAll(".wrap-break-word")];
+            expect(bubbles.length).toBeLessThanOrEqual(40);
+            expect(bubbles.at(-1).textContent.trim()).toBe("hello");
+            expect(bubbles[0].textContent.trim()).toBe("msg-1");
+        });
     });
 });

@@ -1,7 +1,34 @@
-import { mount } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import NearbyPage from "@/components/tools/NearbyPage.vue";
-import { mountToolsPageGlobals } from "./testI18n.js";
+import { render, cleanup, waitFor } from "@testing-library/svelte";
+import NearbyPage from "../../meshchatx/src/frontend/features/nearby/NearbyPage.svelte";
+import { createTestI18n } from "./testI18n.js";
+import {
+    createNearbyState,
+    createNearbyTimers,
+    nfcSharePayload,
+    nfcPayloadJoinable,
+    onQrScanned,
+    confirmJoin,
+} from "../../meshchatx/src/frontend/features/nearby/lib/nearbyActions.js";
+import {
+    startP2p,
+    startAware,
+    stopAwarePolling,
+    joinFromNfc,
+} from "../../meshchatx/src/frontend/features/nearby/lib/nearbyTransports.js";
+
+vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        showSuccess: vi.fn(),
+        showError: vi.fn(),
+    },
+}));
 
 function makeApi(caps) {
     return {
@@ -21,15 +48,6 @@ function makeApi(caps) {
     };
 }
 
-function mountPage() {
-    const globals = mountToolsPageGlobals();
-    globals.stubs = {
-        ...globals.stubs,
-        RouterLink: { template: "<a><slot/></a>", props: ["to"] },
-    };
-    return mount(NearbyPage, { global: globals });
-}
-
 const androidCaps = {
     supported: true,
     hotspot: true,
@@ -44,131 +62,134 @@ const androidCaps = {
     satellite: { feature: true, enabled: null },
 };
 
-describe("NearbyPage", () => {
+describe("NearbyPage UI", () => {
     beforeEach(() => {
+        createTestI18n();
         window.api = makeApi(androidCaps);
     });
 
     afterEach(() => {
+        cleanup();
         delete window.MeshChatXAndroid;
     });
 
     it("renders capability badges for an Android device", async () => {
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        const text = wrapper.text();
-        expect(text).toContain("Hotspot");
-        expect(text).toContain("WiFi Aware");
-        expect(text).toContain("Satellite");
-        expect(text).not.toContain("only available in the Android app");
+        const { container } = render(NearbyPage);
+        await waitFor(() => {
+            expect(container.textContent).toContain("Hotspot");
+            expect(container.textContent).toContain("Satellite");
+        });
+        expect(container.textContent).not.toContain("only available in the Android app");
     });
 
     it("shows the Android-only notice on unsupported platforms", async () => {
         window.api = makeApi({ supported: false });
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(wrapper.text()).toContain("only available in the Android app");
+        const { container } = render(NearbyPage);
+        await waitFor(() => {
+            expect(container.textContent).toContain("only available in the Android app");
+        });
     });
 
     it("shows the permission banner when nearby wifi is not granted", async () => {
         window.api = makeApi({ ...androidCaps, permission_nearby_wifi: false });
         window.MeshChatXAndroid = { hasNearbyWifiPermissions: () => false };
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(wrapper.text()).toContain("permission is required");
+        const { container } = render(NearbyPage);
+        await waitFor(() => {
+            expect(container.textContent).toContain("permission is required");
+        });
     });
 
     it("hides the permission banner when nearby wifi is granted", async () => {
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(wrapper.text()).not.toContain("permission is required");
+        const { container } = render(NearbyPage);
+        await waitFor(() => {
+            expect(container.textContent).toContain("WiFi Aware");
+        });
+        expect(container.textContent).not.toContain("permission is required");
     });
 
-    it("shows a confirm dialog with the scanned ssid before joining", async () => {
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        wrapper.vm.onQrScanned("WIFI:T:WPA;S:PeerNet;P:sekret123;;");
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.pendingJoin).not.toBeNull();
-        expect(wrapper.text()).toContain("PeerNet");
+    it("renders the wifi direct, aware, and nfc cards", async () => {
+        const { container } = render(NearbyPage);
+        await waitFor(() => {
+            expect(container.textContent).toContain("WiFi Direct group");
+        });
+        expect(container.textContent).toContain("WiFi Aware");
+        expect(container.textContent).toContain("NFC tap");
+    });
+});
+
+describe("nearbyActions", () => {
+    let state;
+    let timers;
+
+    beforeEach(() => {
+        createTestI18n();
+        window.api = makeApi(androidCaps);
+        state = createNearbyState();
+        timers = createNearbyTimers();
     });
 
-    it("rejects non-wifi QR payloads without joining", async () => {
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        wrapper.vm.onQrScanned("https://evil.example/x");
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.pendingJoin).toBeNull();
+    afterEach(() => {
+        stopAwarePolling(timers);
+        delete window.MeshChatXAndroid;
+    });
+
+    it("accepts a wifi QR payload into the pending join", () => {
+        expect(onQrScanned(state, "WIFI:T:WPA;S:PeerNet;P:sekret123;;")).toBe(true);
+        expect(state.pendingJoin).not.toBeNull();
+        expect(state.pendingJoin.ssid).toBe("PeerNet");
+        expect(state.scannerError).toBeNull();
+    });
+
+    it("rejects non-wifi QR payloads without joining", () => {
+        expect(onQrScanned(state, "https://evil.example/x")).toBe(false);
+        expect(state.pendingJoin).toBeNull();
         expect(window.api.post).not.toHaveBeenCalled();
     });
 
     it("posts a join request after confirmation", async () => {
         window.api.post = vi.fn(() => Promise.resolve({ data: { ok: true, status: "requested" } }));
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        wrapper.vm.pendingJoin = { ssid: "PeerNet", passphrase: "sekret123" };
-        await wrapper.vm.confirmJoin();
+        state.pendingJoin = { ssid: "PeerNet", passphrase: "sekret123" };
+        await confirmJoin(state);
         expect(window.api.post).toHaveBeenCalledWith("/api/v1/locallink/wifi/join", {
             ssid: "PeerNet",
             passphrase: "sekret123",
         });
-    });
-
-    it("renders the wifi direct, aware, and nfc cards", async () => {
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        const text = wrapper.text();
-        expect(text).toContain("WiFi Direct group");
-        expect(text).toContain("WiFi Aware");
-        expect(text).toContain("NFC tap");
+        expect(state.pendingJoin).toBeNull();
     });
 
     it("posts p2p group start and stores credentials", async () => {
         window.api.post = vi.fn(() =>
-            Promise.resolve({
-                data: { ok: true, ssid: "DIRECT-mc-ab", passphrase: "pskpskpsk1" },
-            })
+            Promise.resolve({ data: { ok: true, ssid: "DIRECT-mc-ab", passphrase: "pskpskpsk1" } })
         );
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        await wrapper.vm.startP2p();
+        await startP2p(state);
         expect(window.api.post).toHaveBeenCalledWith("/api/v1/locallink/p2p/start", {});
-        expect(wrapper.vm.p2pActive).toBe(true);
-        expect(wrapper.vm.p2pSsid).toBe("DIRECT-mc-ab");
+        expect(state.p2pActive).toBe(true);
+        expect(state.p2pSsid).toBe("DIRECT-mc-ab");
     });
 
     it("posts aware start with the selected mode", async () => {
         window.api.post = vi.fn(() => Promise.resolve({ data: { ok: true, role: "publish" } }));
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        wrapper.vm.awareMode = "publish";
-        await wrapper.vm.startAware();
+        state.awareMode = "publish";
+        await startAware(state);
         expect(window.api.post).toHaveBeenCalledWith("/api/v1/locallink/aware/start", {
             mode: "publish",
         });
-        expect(wrapper.vm.awareStatus.role).toBe("publish");
-        wrapper.vm.stopAwarePolling();
+        expect(state.awareStatus.role).toBe("publish");
     });
 
-    it("only shares nfc credentials when a network is active", async () => {
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(wrapper.vm.nfcSharePayload).toBeNull();
-        wrapper.vm.hotspotActive = true;
-        wrapper.vm.hotspotSsid = "Net";
-        wrapper.vm.hotspotPassphrase = "sekret123";
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.nfcSharePayload).toBe("WIFI:T:WPA;S:Net;P:sekret123;;");
+    it("only shares nfc credentials when a network is active", () => {
+        expect(nfcSharePayload(state)).toBeNull();
+        state.hotspotActive = true;
+        state.hotspotSsid = "Net";
+        state.hotspotPassphrase = "sekret123";
+        expect(nfcSharePayload(state)).toBe("WIFI:T:WPA;S:Net;P:sekret123;;");
     });
 
-    it("joins from a read nfc wifi payload via the confirm dialog", async () => {
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        wrapper.vm.nfcLastPayload = "WIFI:T:WPA;S:TapNet;P:sekret123;;";
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.nfcPayloadJoinable).toBe(true);
-        wrapper.vm.joinFromNfc();
-        expect(wrapper.vm.pendingJoin).toEqual({
+    it("joins from a read nfc wifi payload via the confirm dialog", () => {
+        state.nfcLastPayload = "WIFI:T:WPA;S:TapNet;P:sekret123;;";
+        expect(nfcPayloadJoinable(state)).toBe(true);
+        joinFromNfc(state);
+        expect(state.pendingJoin).toEqual({
             ssid: "TapNet",
             passphrase: "sekret123",
             security: "WPA",
@@ -176,11 +197,8 @@ describe("NearbyPage", () => {
         });
     });
 
-    it("does not offer join for non-wifi nfc payloads", async () => {
-        const wrapper = mountPage();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        wrapper.vm.nfcLastPayload = "just some text";
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.nfcPayloadJoinable).toBe(false);
+    it("does not offer join for non-wifi nfc payloads", () => {
+        state.nfcLastPayload = "just some text";
+        expect(nfcPayloadJoinable(state)).toBe(false);
     });
 });

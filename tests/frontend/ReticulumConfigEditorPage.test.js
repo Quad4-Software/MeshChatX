@@ -1,8 +1,25 @@
-import { mount, flushPromises } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import ReticulumConfigEditorPage from "@/components/tools/ReticulumConfigEditorPage.vue";
-import DialogUtils from "@/js/DialogUtils";
-import { useInterfaceChangesStore } from "@/js/stores/interfaceChangesStore.js";
+import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/svelte";
+import ReticulumConfigEditorPage from "@/features/reticulum-config-editor/ReticulumConfigEditorPage.svelte";
+import DialogUtils from "@/js/DialogUtils.js";
+import GlobalState from "@/js/GlobalState.js";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import {
+    extractErrorMessage,
+    insertTabAtSelection,
+    isConfigDirty,
+    shouldShowRestartReminder,
+} from "@/features/reticulum-config-editor/lib/configFormat.ts";
+import {
+    RETICULUM_CONFIG_RAW_ENDPOINT,
+    RETICULUM_CONFIG_RESET_ENDPOINT,
+    RETICULUM_RELOAD_ENDPOINT,
+} from "@/features/reticulum-config-editor/lib/constants.ts";
+import { registerReticulumConfigEditorFeature } from "@/features/reticulum-config-editor/index.ts";
+import { clearRoutes, listRoutes } from "@/js/registries/routeRegistry.js";
+import { clearFeatureIds, listFeatureIds } from "@/js/registries/featureRegistry.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -12,22 +29,124 @@ vi.mock("@/js/DialogUtils", () => ({
     },
 }));
 
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
+    },
+}));
+
 const SAMPLE_CONFIG =
     "[reticulum]\n  enable_transport = False\n\n[interfaces]\n  [[Default Interface]]\n    type = AutoInterface\n";
 const DEFAULT_CONFIG =
     "[reticulum]\n  enable_transport = False\n\n[interfaces]\n  [[Default Interface]]\n    type = AutoInterface\n    enabled = true\n";
 const CONFIG_PATH = "/tmp/.reticulum/config";
 
-describe("ReticulumConfigEditorPage.vue", () => {
+describe("reticulum-config-editor lib helpers", () => {
+    it("inserts tab at selection position", () => {
+        const text = "helloworld";
+        const result = insertTabAtSelection(text, 5, 5, "  ");
+        expect(result.content).toBe("hello  world");
+        expect(result.newCursor).toBe(7);
+    });
+
+    it("checks dirty state accurately", () => {
+        expect(isConfigDirty("abc", "abc")).toBe(false);
+        expect(isConfigDirty("abc", "abd")).toBe(true);
+    });
+
+    it("evaluates restart reminder condition", () => {
+        expect(shouldShowRestartReminder(false, false)).toBe(false);
+        expect(shouldShowRestartReminder(true, false)).toBe(true);
+        expect(shouldShowRestartReminder(false, true)).toBe(true);
+        expect(shouldShowRestartReminder(true, true)).toBe(true);
+    });
+
+    it("extracts error message from various error formats", () => {
+        expect(extractErrorMessage({ response: { data: { error: "Custom err" } } }, "fallback")).toBe("Custom err");
+        expect(extractErrorMessage({ message: "Network fail" }, "fallback")).toBe("Network fail");
+        expect(extractErrorMessage("String error", "fallback")).toBe("String error");
+        expect(extractErrorMessage(null, "fallback")).toBe("fallback");
+    });
+});
+
+describe("registerReticulumConfigEditorFeature", () => {
+    beforeEach(() => {
+        clearRoutes();
+        clearFeatureIds();
+    });
+
+    afterEach(() => {
+        clearRoutes();
+        clearFeatureIds();
+    });
+
+    it("registers reticulum-config-editor route correctly", () => {
+        registerReticulumConfigEditorFeature();
+        expect(listFeatureIds()).toContain("reticulum-config-editor");
+        const route = listRoutes().find((r) => r.name === "reticulum-config-editor");
+        expect(route).toBeTruthy();
+        expect(route?.path).toBe("/tools/reticulum-config-editor");
+        expect(route?.mount).toBe("svelte");
+    });
+});
+
+describe("ReticulumConfigEditorPage.svelte", () => {
     let axiosMock;
 
     beforeEach(() => {
+        vi.clearAllMocks();
         axiosMock = {
             get: vi.fn(),
             put: vi.fn(),
             post: vi.fn(),
         };
         window.api = axiosMock;
+
+        registerTranslator(null);
+        registerFallbackMessages({
+            app: {
+                tools: "Tools",
+                reloading_rns: "Reloading RNS...",
+            },
+            tools: {
+                back_to_tools: "Back",
+                reticulum_config_editor: {
+                    title: "Reticulum Config Editor",
+                    description: "Edit raw reticulum configuration file",
+                    reload: "Reload",
+                    restore_defaults: "Restore Defaults",
+                    discard: "Discard Changes",
+                    save: "Save",
+                    saving: "Saving...",
+                    saved: "Configuration saved",
+                    restart_required: "Restart Required",
+                    restart_description: "Restart RNS to apply interface changes",
+                    restart_now: "Restart Now",
+                    restart_done: "Restart completed",
+                    versions: "Versions",
+                    versions_empty: "No saved versions yet.",
+                    preview: "Preview",
+                    restore_version: "Restore",
+                    confirm_restore_version: "Restore this version?",
+                    failed_versions: "Failed to load versions",
+                    info: "Direct file editing",
+                    unsaved: "Unsaved Changes",
+                    loading: "Loading config...",
+                    failed_load: "Failed to load config",
+                    failed_save: "Failed to save config",
+                    failed_restore: "Failed to restore defaults",
+                    failed_restart: "Failed to restart RNS",
+                    confirm_restore: "Are you sure you want to restore defaults?",
+                    restoring: "Restoring...",
+                    restored: "Restored to defaults",
+                },
+            },
+        });
 
         axiosMock.get.mockResolvedValue({
             data: { content: SAMPLE_CONFIG, path: CONFIG_PATH },
@@ -36,7 +155,7 @@ describe("ReticulumConfigEditorPage.vue", () => {
             data: { message: "Reticulum config saved", path: CONFIG_PATH },
         });
         axiosMock.post.mockImplementation((url) => {
-            if (url === "/api/v1/reticulum/config/reset") {
+            if (url === RETICULUM_CONFIG_RESET_ENDPOINT) {
                 return Promise.resolve({
                     data: {
                         message: "Reticulum config restored to defaults",
@@ -45,7 +164,7 @@ describe("ReticulumConfigEditorPage.vue", () => {
                     },
                 });
             }
-            if (url === "/api/v1/reticulum/reload") {
+            if (url === RETICULUM_RELOAD_ENDPOINT) {
                 return Promise.resolve({
                     data: { message: "Reticulum reloaded successfully" },
                 });
@@ -53,144 +172,129 @@ describe("ReticulumConfigEditorPage.vue", () => {
             return Promise.resolve({ data: {} });
         });
 
-        useInterfaceChangesStore().hasPendingInterfaceChanges = false;
-        if (!useInterfaceChangesStore().modifiedInterfaceNames) {
-            useInterfaceChangesStore().modifiedInterfaceNames = new Set();
+        GlobalState.hasPendingInterfaceChanges = false;
+        if (!GlobalState.modifiedInterfaceNames) {
+            GlobalState.modifiedInterfaceNames = new Set();
         }
-        useInterfaceChangesStore().modifiedInterfaceNames.clear();
+        GlobalState.modifiedInterfaceNames.clear();
     });
 
     afterEach(() => {
+        cleanup();
         delete window.api;
-        vi.clearAllMocks();
     });
 
-    const mountPage = () => {
-        return mount(ReticulumConfigEditorPage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                },
-            },
+    it("loads current config on mount and displays path", async () => {
+        render(ReticulumConfigEditorPage);
+        expect(screen.getByText("Reticulum Config Editor")).toBeTruthy();
+
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
         });
-    };
 
-    it("loads the current config on mount and shows the path", async () => {
-        const wrapper = mountPage();
-        await flushPromises();
-
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/reticulum/config/raw");
-        expect(wrapper.vm.content).toBe(SAMPLE_CONFIG);
-        expect(wrapper.vm.originalContent).toBe(SAMPLE_CONFIG);
-        expect(wrapper.text()).toContain(CONFIG_PATH);
-        expect(wrapper.text()).toContain("tools.reticulum_config_editor.title");
-        const editorShell = wrapper.find(".relative.flex-1");
-        expect(editorShell.exists()).toBe(true);
-        expect(wrapper.find("textarea").classes()).toContain("absolute");
+        expect(await screen.findByText(CONFIG_PATH)).toBeTruthy();
+        const textarea = screen.getByRole("textbox");
+        expect(textarea.value).toBe(SAMPLE_CONFIG);
     });
 
-    it("marks the editor as dirty when the textarea changes", async () => {
-        const wrapper = mountPage();
-        await flushPromises();
-        expect(wrapper.vm.isDirty).toBe(false);
+    it("marks the editor as dirty and saves config", async () => {
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
 
-        const textarea = wrapper.find("textarea");
-        await textarea.setValue(SAMPLE_CONFIG + "\n# my edit\n");
+        const textarea = screen.getByRole("textbox");
+        const newContent = SAMPLE_CONFIG + "\n# my edit\n";
+        await fireEvent.input(textarea, { target: { value: newContent } });
 
-        expect(wrapper.vm.isDirty).toBe(true);
-        expect(wrapper.text()).toContain("tools.reticulum_config_editor.unsaved");
-    });
+        expect(screen.getByText("Unsaved Changes")).toBeTruthy();
 
-    it("saves config and shows the restart banner after success", async () => {
-        const wrapper = mountPage();
-        await flushPromises();
+        const saveButton = screen.getByText("Save");
+        await fireEvent.click(saveButton);
 
-        const newContent = SAMPLE_CONFIG + "\n# edit\n";
-        await wrapper.find("textarea").setValue(newContent);
-        await wrapper.vm.saveConfig();
-        await flushPromises();
+        await waitFor(() => {
+            expect(axiosMock.put).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT, {
+                content: newContent,
+            });
+        });
 
-        expect(axiosMock.put).toHaveBeenCalledWith("/api/v1/reticulum/config/raw", { content: newContent });
-        expect(wrapper.vm.hasSavedChanges).toBe(true);
-        expect(wrapper.vm.showRestartReminder).toBe(true);
-        expect(useInterfaceChangesStore().hasPendingInterfaceChanges).toBe(true);
-        expect(wrapper.text()).toContain("tools.reticulum_config_editor.restart_required");
-    });
-
-    it("does not save when the editor is not dirty", async () => {
-        const wrapper = mountPage();
-        await flushPromises();
-        await wrapper.vm.saveConfig();
-        expect(axiosMock.put).not.toHaveBeenCalled();
+        expect(GlobalState.hasPendingInterfaceChanges).toBe(true);
+        expect(await screen.findByText("Restart Required")).toBeTruthy();
     });
 
     it("restores defaults after confirmation", async () => {
         DialogUtils.confirm.mockResolvedValue(true);
-        const wrapper = mountPage();
-        await flushPromises();
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
 
-        await wrapper.vm.restoreDefaults();
-        await flushPromises();
+        const restoreBtn = screen.getByText("Restore Defaults");
+        await fireEvent.click(restoreBtn);
+
+        await waitFor(() => {
+            expect(DialogUtils.confirm).toHaveBeenCalled();
+            expect(axiosMock.post).toHaveBeenCalledWith(RETICULUM_CONFIG_RESET_ENDPOINT);
+        });
+
+        const textarea = screen.getByRole("textbox");
+        expect(textarea.value).toBe(DEFAULT_CONFIG);
+        expect(GlobalState.hasPendingInterfaceChanges).toBe(true);
+    });
+
+    it("does not restore defaults if canceled", async () => {
+        DialogUtils.confirm.mockResolvedValue(false);
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
+
+        const restoreBtn = screen.getByText("Restore Defaults");
+        await fireEvent.click(restoreBtn);
 
         expect(DialogUtils.confirm).toHaveBeenCalled();
-        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/config/reset");
-        expect(wrapper.vm.content).toBe(DEFAULT_CONFIG);
-        expect(wrapper.vm.originalContent).toBe(DEFAULT_CONFIG);
-        expect(wrapper.vm.hasSavedChanges).toBe(true);
-        expect(useInterfaceChangesStore().hasPendingInterfaceChanges).toBe(true);
+        expect(axiosMock.post).not.toHaveBeenCalledWith(RETICULUM_CONFIG_RESET_ENDPOINT);
     });
 
-    it("does not restore defaults if the user cancels", async () => {
-        DialogUtils.confirm.mockResolvedValue(false);
-        const wrapper = mountPage();
-        await flushPromises();
-
-        await wrapper.vm.restoreDefaults();
-        await flushPromises();
-
-        expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/reticulum/config/reset");
-        expect(wrapper.vm.content).toBe(SAMPLE_CONFIG);
-    });
-
-    it("reloads RNS and clears the restart banner", async () => {
-        const wrapper = mountPage();
-        await flushPromises();
-        wrapper.vm.hasSavedChanges = true;
-        await wrapper.vm.$nextTick();
-
-        await wrapper.vm.reloadRns();
-        await flushPromises();
-
-        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/reload");
-        expect(wrapper.vm.hasSavedChanges).toBe(false);
-        expect(useInterfaceChangesStore().hasPendingInterfaceChanges).toBe(false);
-    });
-
-    it("discards unsaved changes back to the original content", async () => {
-        const wrapper = mountPage();
-        await flushPromises();
-
-        await wrapper.find("textarea").setValue("[reticulum]\n[interfaces]\n# changed");
-        expect(wrapper.vm.isDirty).toBe(true);
-
-        wrapper.vm.discardChanges();
-        expect(wrapper.vm.content).toBe(SAMPLE_CONFIG);
-        expect(wrapper.vm.isDirty).toBe(false);
-    });
-
-    it("shows an error toast when load fails", async () => {
-        axiosMock.get.mockRejectedValueOnce({
-            response: { data: { error: "boom" } },
+    it("reloads RNS and clears restart banner", async () => {
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
         });
-        const wrapper = mountPage();
-        await flushPromises();
-        expect(wrapper.vm.content).toBe("");
+
+        const textarea = screen.getByRole("textbox");
+        await fireEvent.input(textarea, { target: { value: SAMPLE_CONFIG + "\n# edit" } });
+        const saveButton = screen.getByText("Save");
+        await fireEvent.click(saveButton);
+
+        await waitFor(() => {
+            expect(screen.getByText("Restart Now")).toBeTruthy();
+        });
+
+        const restartBtn = screen.getByText("Restart Now");
+        await fireEvent.click(restartBtn);
+
+        await waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith(RETICULUM_RELOAD_ENDPOINT);
+        });
+        expect(GlobalState.hasPendingInterfaceChanges).toBe(false);
+    });
+
+    it("discards unsaved changes back to original content", async () => {
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
+
+        const textarea = screen.getByRole("textbox");
+        await fireEvent.input(textarea, { target: { value: "# altered" } });
+        expect(screen.getByText("Unsaved Changes")).toBeTruthy();
+
+        const discardBtn = screen.getByText("Discard Changes");
+        await fireEvent.click(discardBtn);
+
+        expect(textarea.value).toBe(SAMPLE_CONFIG);
+        expect(screen.queryByText("Unsaved Changes")).toBeNull();
     });
 
     it("loads versions when the versions panel is toggled", async () => {
@@ -211,16 +315,18 @@ describe("ReticulumConfigEditorPage.vue", () => {
             }
             return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
         });
-        const wrapper = mountPage();
-        await flushPromises();
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
 
-        expect(wrapper.vm.showVersions).toBe(false);
-        await wrapper.vm.toggleVersions();
-        await flushPromises();
+        expect(screen.queryByText("before save")).toBeNull();
+        await fireEvent.click(screen.getByText("Versions"));
 
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/reticulum/config/versions");
-        expect(wrapper.vm.versions).toHaveLength(1);
-        expect(wrapper.text()).toContain("before save");
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/reticulum/config/versions");
+        });
+        expect(await screen.findByText("before save")).toBeTruthy();
     });
 
     it("previews a version into the editor without saving", async () => {
@@ -235,21 +341,34 @@ describe("ReticulumConfigEditorPage.vue", () => {
             }
             return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
         });
-        const wrapper = mountPage();
-        await flushPromises();
-        await wrapper.vm.toggleVersions();
-        await flushPromises();
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
 
-        await wrapper.vm.previewVersion({ id: "v1" });
-        await flushPromises();
+        await fireEvent.click(screen.getByText("Versions"));
+        await screen.findByText("x");
+        await fireEvent.click(screen.getByText("Preview"));
 
-        expect(wrapper.vm.content).toBe(DEFAULT_CONFIG);
-        expect(wrapper.vm.isDirty).toBe(true);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1");
+        });
+        const textarea = screen.getByRole("textbox");
+        expect(textarea.value).toBe(DEFAULT_CONFIG);
+        expect(screen.getByText("Unsaved Changes")).toBeTruthy();
         expect(axiosMock.put).not.toHaveBeenCalled();
     });
 
     it("restores a version after confirmation and marks restart pending", async () => {
         DialogUtils.confirm.mockResolvedValue(true);
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions") {
+                return Promise.resolve({
+                    data: { versions: [{ id: "v1", created_at: "", label: "x", size: 1 }] },
+                });
+            }
+            return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
+        });
         axiosMock.post.mockImplementation((url) => {
             if (url === "/api/v1/reticulum/config/versions/v1/restore") {
                 return Promise.resolve({
@@ -258,29 +377,50 @@ describe("ReticulumConfigEditorPage.vue", () => {
             }
             return Promise.resolve({ data: {} });
         });
-        const wrapper = mountPage();
-        await flushPromises();
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
 
-        await wrapper.vm.restoreVersion({ id: "v1" });
-        await flushPromises();
+        await fireEvent.click(screen.getByText("Versions"));
+        await screen.findByText("x");
+        await fireEvent.click(screen.getByText("Restore"));
 
+        await waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1/restore");
+        });
         expect(DialogUtils.confirm).toHaveBeenCalled();
-        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1/restore");
-        expect(wrapper.vm.content).toBe(DEFAULT_CONFIG);
-        expect(wrapper.vm.isDirty).toBe(false);
-        expect(wrapper.vm.hasSavedChanges).toBe(true);
-        expect(useInterfaceChangesStore().hasPendingInterfaceChanges).toBe(true);
+        const textarea = screen.getByRole("textbox");
+        expect(textarea.value).toBe(DEFAULT_CONFIG);
+        expect(screen.queryByText("Unsaved Changes")).toBeNull();
+        expect(await screen.findByText("Restart Required")).toBeTruthy();
+        expect(GlobalState.hasPendingInterfaceChanges).toBe(true);
     });
 
     it("does not restore a version when the user cancels", async () => {
         DialogUtils.confirm.mockResolvedValue(false);
-        const wrapper = mountPage();
-        await flushPromises();
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/config/versions") {
+                return Promise.resolve({
+                    data: { versions: [{ id: "v1", created_at: "", label: "x", size: 1 }] },
+                });
+            }
+            return Promise.resolve({ data: { content: SAMPLE_CONFIG, path: CONFIG_PATH } });
+        });
+        render(ReticulumConfigEditorPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith(RETICULUM_CONFIG_RAW_ENDPOINT);
+        });
 
-        await wrapper.vm.restoreVersion({ id: "v1" });
-        await flushPromises();
+        await fireEvent.click(screen.getByText("Versions"));
+        await screen.findByText("x");
+        await fireEvent.click(screen.getByText("Restore"));
 
+        await waitFor(() => {
+            expect(DialogUtils.confirm).toHaveBeenCalled();
+        });
         expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/reticulum/config/versions/v1/restore");
-        expect(wrapper.vm.content).toBe(SAMPLE_CONFIG);
+        const textarea = screen.getByRole("textbox");
+        expect(textarea.value).toBe(SAMPLE_CONFIG);
     });
 });

@@ -15,7 +15,7 @@ _WS_SEND_STR_RE = re.compile(
     r"client\.send_str\s*\(\s*json\.dumps\s*\(\s*(\{[\s\S]*?\})\s*,?\s*\)",
 )
 _RNS_LINK_SEND_RE = re.compile(
-    r"_rns_link_send\s*\(\s*client\s*,\s*(\{[\s\S]*?\})\s*,?\s*\)",
+    r"(?:app\.)?_rns_link_send\s*\(\s*client\s*,\s*(\{[\s\S]*?\})\s*,?\s*\)",
 )
 _WS_TYPE_LITERAL_RE = re.compile(
     r"[\"']type[\"']\s*:\s*(?:[\"']([^\"']+)[\"']|WsInboundType\.([A-Z0-9_]+))",
@@ -134,7 +134,10 @@ def extract_client_inbound_types(meshchat_py: Path) -> list[str]:
                 resolved = _resolve_ws_key(m, members)
                 if resolved:
                     types.add(resolved)
-        if "backend/http" not in path.as_posix():
+        if (
+            "backend/http" not in path.as_posix()
+            and "backend/lifecycle" not in path.as_posix()
+        ):
             continue
         if not block:
             for m in _CLIENT_HANDLER_RE.finditer(text):
@@ -183,12 +186,15 @@ def extract_client_direct_response_types(meshchat_py: Path) -> list[str]:
     members = ws_inbound_type_values(repo_root)
     types: set[str] = set()
     for path in iter_ws_source_files(repo_root):
-        if path.name == "rns_link_manager.py":
-            continue
         text = path.read_text(encoding="utf-8")
         block = _direct_response_block(text)
         scan = block or text
-        if not block and "backend/http" not in path.as_posix():
+        if (
+            not block
+            and "backend/http" not in path.as_posix()
+            and "backend/lifecycle" not in path.as_posix()
+            and path.name != "rns_link_manager.py"
+        ):
             continue
         for blob in _WS_SEND_STR_RE.findall(scan):
             msg_type = _extract_type_literals_from_dict_literal(blob, members)
