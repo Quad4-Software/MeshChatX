@@ -286,18 +286,19 @@ export function filterUniqueOlderRelayMessages(older, existingMessages) {
  *
  * @param {object[]} existingTimeline
  * @param {object[]} prependedMessagesOldestFirst
+ * @param {{ hideJoinPart?: boolean }} [options]
  * @returns {object[]}
  */
-export function prependRelayMessageTimeline(existingTimeline, prependedMessagesOldestFirst) {
+export function prependRelayMessageTimeline(existingTimeline, prependedMessagesOldestFirst, options = {}) {
     const prepended = prependedMessagesOldestFirst || [];
     const existing = existingTimeline || [];
     if (prepended.length === 0) {
         return existing;
     }
     if (existing.length === 0) {
-        return buildRelayMessageTimeline(prepended);
+        return buildRelayMessageTimeline(prepended, options);
     }
-    const prefixTimeline = buildRelayMessageTimeline(prepended);
+    const prefixTimeline = buildRelayMessageTimeline(prepended, options);
     if (prefixTimeline.length === 0) {
         return existing;
     }

@@ -325,7 +325,7 @@
                                             v-model="joinRoomName"
                                             type="text"
                                             :placeholder="$t('relay_chat.join_room_placeholder')"
-                                            class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                            class="min-w-0 flex-1 rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                         />
                                         <button
                                             type="submit"
@@ -340,7 +340,7 @@
                                         type="password"
                                         :placeholder="$t('relay_chat.join_room_key_placeholder')"
                                         autocomplete="off"
-                                        class="w-full border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                        class="w-full rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                     />
                                 </form>
                             </div>
@@ -1854,6 +1854,8 @@ export default {
             ignoredPeers: [],
             highlightWords: [],
             hideJoinPart: false,
+            relayPrefsLoadedKey: "",
+            unwatchRelayIdentity: null,
             applyingOptionsToAllHubs: false,
             localMentionRooms: new Map(),
             showChatPrefs: false,
@@ -2050,6 +2052,34 @@ export default {
         }
         this.loadTranslationPacks();
         this.loadRelayPrefs();
+        // Config (and its identity_hash) arrives after mount on slow loads.
+        // Prefs loaded under the "_" fallback bucket must be re-read under the
+        // real identity once it is known, or saved toggles never apply.
+        this.unwatchRelayIdentity = this.$watch(
+            () => useConfigStore().config?.identity_hash || "",
+            (hash) => {
+                // Only re-scope when the initial load fell back to "_". A
+                // mid-session hash change while scoped to a real identity is
+                // handled by onIdentitySwitched; re-beginning here would let a
+                // deferred write jump buckets.
+                if (!hash || this.relayPrefsLoadedKey !== "_") {
+                    return;
+                }
+                // Prefs toggled before the identity was known live under "_".
+                // Carry them into the real bucket only when it has none yet,
+                // so an existing identity's prefs are never overwritten.
+                const fallback = loadRelayPrefs("_");
+                const real = loadRelayPrefs(hash);
+                const realEmpty = real.ignored.length === 0 && real.highlightWords.length === 0 && !real.hideJoinPart;
+                const fallbackHasPrefs =
+                    fallback.ignored.length > 0 || fallback.highlightWords.length > 0 || fallback.hideJoinPart;
+                this.identityScope?.beginIdentity?.(hash);
+                if (realEmpty && fallbackHasPrefs) {
+                    saveRelayPrefs(hash, fallback);
+                }
+                this.loadRelayPrefs();
+            }
+        );
     },
     beforeUnmount() {
         this.saveCurrentRoomDraft();
@@ -2068,6 +2098,10 @@ export default {
         }
         if (this.smMq) {
             this.smMq.removeEventListener("change", this.onSmMqChange);
+        }
+        if (this.unwatchRelayIdentity) {
+            this.unwatchRelayIdentity();
+            this.unwatchRelayIdentity = null;
         }
         // Leaving the page must stop treating the last room as "viewed" so new
         // mentions while away can bump unread again.
@@ -2092,7 +2126,9 @@ export default {
                 return;
             }
             if (this.messageTimelineCache !== null) {
-                this.messageTimelineCache = prependRelayMessageTimeline(this.messageTimelineCache, prependedMessages);
+                this.messageTimelineCache = prependRelayMessageTimeline(this.messageTimelineCache, prependedMessages, {
+                    hideJoinPart: this.hideJoinPart,
+                });
                 this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
             } else {
                 this._rebuildMessageTimelineCache();
@@ -2125,7 +2161,12 @@ export default {
             this.saveDraft(this._relayDraftKey(this.selectedHubHash, this.selectedRoom), this._scopedIdentityKey());
         },
         loadRelayPrefs() {
-            const prefs = loadRelayPrefs(this._scopedIdentityKey());
+            const key = this._scopedIdentityKey();
+            // Lock the resolved bucket into the identity scope so deferred
+            // writes keep landing in the bucket these prefs were read from.
+            this.identityScope?.beginIdentity?.(key);
+            this.relayPrefsLoadedKey = key;
+            const prefs = loadRelayPrefs(key);
             this.ignoredPeers = prefs.ignored;
             this.highlightWords = prefs.highlightWords;
             this.hideJoinPart = prefs.hideJoinPart === true;
