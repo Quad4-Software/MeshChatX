@@ -262,6 +262,110 @@ interface_enabled = true
     )
 
 
+def test_reset_rns_runtime_state_clears_singleton_and_interfaces():
+    import RNS
+
+    class _FakeIface:
+        online = True
+        detached = False
+
+        def detach(self):
+            self.online = False
+
+    fake = _FakeIface()
+    saved_instance = RNS.Reticulum._Reticulum__instance
+    saved_interfaces = RNS.Transport.interfaces
+    try:
+        RNS.Reticulum._Reticulum__instance = object()
+        RNS.Transport.interfaces = [fake]
+        recovery.reset_rns_runtime_state()
+        assert RNS.Reticulum._Reticulum__instance is None
+        assert RNS.Transport.interfaces == []
+        assert RNS.Transport._should_run is True
+        assert fake.online is False
+    finally:
+        RNS.Reticulum._Reticulum__instance = saved_instance
+        RNS.Transport.interfaces = saved_interfaces
+
+
+def test_release_interface_resources_closes_bound_servers():
+    import socket
+    import socketserver
+
+    class _FakeIface:
+        pass
+
+    server = socketserver.UDPServer(
+        ("127.0.0.1", 0),
+        socketserver.BaseRequestHandler,
+    )
+    port = server.server_address[1]
+    outbound = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    iface = _FakeIface()
+    iface.interface_servers = {"lo": server}
+    iface.outbound_udp_socket = outbound
+    iface.name = "Fake"
+
+    recovery._release_interface_resources(iface)
+
+    rebound = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    rebound.bind(("127.0.0.1", port))
+    rebound.close()
+    assert outbound.fileno() == -1
+
+
+def test_recovery_retry_after_singleton_failure(tmp_path, monkeypatch):
+    import RNS
+
+    config_path = tmp_path / "config"
+    config_path.write_text(
+        """[reticulum]
+enable_transport = True
+[interfaces]
+[[AutoInterface2]]
+type = AutoInterface
+interface_enabled = true
+""",
+        encoding="utf-8",
+    )
+    saved_instance = RNS.Reticulum._Reticulum__instance
+    calls = {"n": 0}
+
+    def construct():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            # Mirrors Reticulum.__init__: the singleton is assigned first
+            # and stays set when a later interface fails to come up.
+            RNS.Reticulum._Reticulum__instance = object()
+            raise OSError(
+                'The interface "AutoInterface2" could not be created: '
+                "[Errno 98] Address already in use",
+            )
+        assert RNS.Reticulum._Reticulum__instance is None
+        return "ok"
+
+    monkeypatch.setattr(
+        RNS.Reticulum,
+        "_Reticulum__instance",
+        None,
+        raising=False,
+    )
+    try:
+        result = recovery.create_reticulum_with_recovery(
+            str(tmp_path),
+            construct=construct,
+            max_attempts=3,
+        )
+        assert result == "ok"
+        assert calls["n"] == 2
+        cfg = ConfigObj(str(config_path))
+        assert str(
+            cfg["interfaces"]["AutoInterface2"]["interface_enabled"],
+        ).lower() in ("false", "no", "0")
+    finally:
+        RNS.Reticulum._Reticulum__instance = saved_instance
+
+
 def test_sweep_orphaned_ratchet_files_removes_non_hex_names(tmp_path):
     ratchets = tmp_path / "storage" / "ratchets"
     ratchets.mkdir(parents=True)
