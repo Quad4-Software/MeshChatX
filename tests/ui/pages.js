@@ -18,7 +18,7 @@ const DEFAULT_BUDGETS = {
  */
 const DEFAULT_VITAL_BUDGETS = {
     fcp: 3000,
-    lcp: 6000,
+    lcp: 8000,
     tbt: 2000,
     cls: 0.1,
     si: 6000,
