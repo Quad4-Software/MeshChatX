@@ -99,6 +99,10 @@ export default {
         this.darkObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     },
     beforeUnmount() {
+        this._unmounted = true;
+        // Any in-flight load is superseded so it cannot create a new
+        // AudioContext or write state after this component is gone.
+        this._loadGeneration = (this._loadGeneration || 0) + 1;
         this.stopPlayback();
         window.removeEventListener("resize", this.drawWaveform);
         if (this.darkObserver) {
@@ -107,11 +111,13 @@ export default {
         }
         if (this.audioContext) {
             this.audioContext.close();
+            this.audioContext = null;
         }
     },
     methods: {
         async loadAudio() {
             if (!this.src) return;
+            const generation = (this._loadGeneration = (this._loadGeneration || 0) + 1);
             try {
                 this.loading = true;
                 this.stopPlayback();
@@ -122,11 +128,19 @@ export default {
                 }
                 const arrayBuffer = await response.arrayBuffer();
 
+                if (this._unmounted || generation !== this._loadGeneration) {
+                    return;
+                }
+
                 if (!this.audioContext) {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
 
-                this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                if (this._unmounted || generation !== this._loadGeneration) {
+                    return;
+                }
+                this.audioBuffer = audioBuffer;
                 this.totalDuration = this.audioBuffer.duration;
                 this.currentTime = 0;
                 this.progressPercent = 0;
@@ -137,7 +151,9 @@ export default {
             } catch (e) {
                 console.error("Failed to load audio for player:", e);
             } finally {
-                this.loading = false;
+                if (generation === this._loadGeneration && !this._unmounted) {
+                    this.loading = false;
+                }
             }
         },
         drawWaveform() {

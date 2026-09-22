@@ -299,10 +299,13 @@ export default {
                 }
                 return;
             }
+            const peerHash = this.peer.destination_hash;
             try {
-                const response = await window.api.get(
-                    apiPath(`/telephone/contacts/check/${this.peer.destination_hash}`)
-                );
+                const response = await window.api.get(apiPath(`/telephone/contacts/check/${peerHash}`));
+                // The peer prop can change while the request is in flight.
+                if (this.peer?.destination_hash !== peerHash) {
+                    return;
+                }
                 if (response.data.is_contact) {
                     this.contact = response.data.contact;
                 } else {
