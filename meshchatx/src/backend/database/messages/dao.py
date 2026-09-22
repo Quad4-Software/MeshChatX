@@ -85,10 +85,36 @@ def _lxmf_created_at_epoch(raw) -> float | None:
 
 
 class MessageDAO:
+    # Trigram FTS needs at least 3 characters to index a query term.
+    _FTS_MIN_QUERY_CHARS = 3
+
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
         self._lxmf_columns_cache = None
         self._lxmf_upsert_fields_cache = None
+        self._lxmf_fts_available = None
+
+    def lxmf_fts_match(self, search):
+        """FTS5 MATCH expression for a free-text body search, or None.
+
+        Returns None when the v60 trigram index is missing (SQLite built
+        without FTS5, or unmigrated DB) or the term is too short for
+        trigram matching. Callers fall back to LIKE in both cases.
+        """
+        if not search or len(search.strip()) < self._FTS_MIN_QUERY_CHARS:
+            return None
+        if self._lxmf_fts_available is None:
+            row = self.provider.fetchone(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+                "AND name = 'lxmf_messages_fts'",
+            )
+            self._lxmf_fts_available = row is not None
+        if not self._lxmf_fts_available:
+            return None
+        # Double-quote the whole term so FTS5 syntax characters in user
+        # input are treated as literal text. Trigram MATCH is a substring
+        # search, so quoting preserves the old LIKE %term% semantics.
+        return '"' + search.strip().replace('"', '""') + '"'
 
     def _lxmf_table_columns(self):
         if self._lxmf_columns_cache is None:

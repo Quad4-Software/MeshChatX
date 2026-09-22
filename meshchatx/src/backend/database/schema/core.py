@@ -47,7 +47,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 59
+    LATEST_VERSION = 60
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1858,3 +1858,67 @@ class DatabaseSchema:
                 "announce_count",
                 "INTEGER NOT NULL DEFAULT 1",
             )
+
+        if current_version < 60 and target_version >= 60:
+            # External-content FTS5 index over message bodies. Trigram
+            # tokenizer keeps substring semantics parity with the LIKE
+            # scans it replaces (queries shorter than 3 chars still use
+            # LIKE). Probe first so SQLite builds without FTS5 keep
+            # working; the search layer falls back to LIKE when the
+            # table is absent.
+            fts5_ok = False
+            try:
+                self.provider.execute(
+                    "CREATE VIRTUAL TABLE temp._fts5_probe "
+                    "USING fts5(x, tokenize='trigram')",
+                )
+                self.provider.execute(
+                    "DROP TABLE temp._fts5_probe"
+                )  # migration-safety: allow-destructive
+                fts5_ok = True
+            except Exception:
+                fts5_ok = False
+            if fts5_ok:
+                self._safe_execute("""
+                    CREATE VIRTUAL TABLE IF NOT EXISTS lxmf_messages_fts
+                    USING fts5(
+                        content,
+                        title,
+                        content='lxmf_messages',
+                        content_rowid='id',
+                        tokenize='trigram'
+                    )
+                """)
+                self._safe_execute("""
+                    CREATE TRIGGER IF NOT EXISTS lxmf_messages_fts_ai
+                    AFTER INSERT ON lxmf_messages BEGIN
+                        INSERT INTO lxmf_messages_fts(rowid, content, title)
+                        VALUES (new.id, new.content, new.title);
+                    END
+                """)
+                self._safe_execute("""
+                    CREATE TRIGGER IF NOT EXISTS lxmf_messages_fts_ad
+                    AFTER DELETE ON lxmf_messages BEGIN
+                        INSERT INTO lxmf_messages_fts(
+                            lxmf_messages_fts, rowid, content, title
+                        )
+                        VALUES ('delete', old.id, old.content, old.title);
+                    END
+                """)
+                self._safe_execute("""
+                    CREATE TRIGGER IF NOT EXISTS lxmf_messages_fts_au
+                    AFTER UPDATE ON lxmf_messages BEGIN
+                        INSERT INTO lxmf_messages_fts(
+                            lxmf_messages_fts, rowid, content, title
+                        )
+                        VALUES ('delete', old.id, old.content, old.title);
+                        INSERT INTO lxmf_messages_fts(rowid, content, title)
+                        VALUES (new.id, new.content, new.title);
+                    END
+                """)
+                # Populate from the external content table. Cheap when
+                # lxmf_messages is empty (fresh init benches).
+                self._safe_execute(
+                    "INSERT INTO lxmf_messages_fts(lxmf_messages_fts) "
+                    "VALUES ('rebuild')",
+                )

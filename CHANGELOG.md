@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Schema v60: FTS5 trigram index (`lxmf_messages_fts`) over message bodies. Conversation and peer search use indexed substring matching instead of full `lxmf_messages` LIKE scans, with LIKE fallback for queries under 3 characters and SQLite builds without FTS5.
+
 ### Changed
 
 - **Frontend stack**: Migrated from Vue 3 and JSDoc to Svelte 5 and TypeScript. All new pages and shared UI now use Svelte 5 and TypeScript.
