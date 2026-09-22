@@ -35,6 +35,16 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                 await dismissMapOnboardingTooltip(page);
             }
 
+            // The service worker registered by the initial page load can
+            // serve the audited navigation from cache, which makes CDP
+            // unable to read the document body (Network.getResponseBody:
+            // no resource with given identifier) and nulls whole category
+            // scores. Unregister so audits measure the raw network page.
+            await page.evaluate(async () => {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(regs.map((r) => r.unregister()));
+            });
+
             const url = page.url();
             const runnerResult = await runLighthouseAudit(url, { port: LH_DEBUG_PORT });
             const scores = scoresFromLhr(runnerResult.lhr);
