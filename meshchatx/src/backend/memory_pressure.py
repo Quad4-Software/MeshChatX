@@ -77,6 +77,21 @@ def _app_flag(app: Any, name: str) -> bool:
         return False
 
 
+def _malloc_trim() -> int:
+    """Ask glibc to return free arena memory to the OS. 1 on success.
+
+    Python frees objects but glibc keeps the arena pages, so RSS creeps up
+    and stays. malloc_trim(0) is a no-op on non-glibc platforms, which is
+    why this is best-effort and silent.
+    """
+    try:
+        import ctypes
+
+        return int(ctypes.CDLL("libc.so.6").malloc_trim(0))
+    except Exception:
+        return 0
+
+
 class MemoryPressureManager:
     """Coordinates link sweeps, path pruning, and SQLite disk offload."""
 
@@ -120,6 +135,7 @@ class MemoryPressureManager:
 
         held_dropped = self._maybe_drop_held_announce_queues()
         extra = self._prune_app_runtime_buffers()
+        extra["malloc_trimmed"] = _malloc_trim()
 
         self.last_stats = {
             "nomad_links_swept": max(0, before_nomad - after_nomad),

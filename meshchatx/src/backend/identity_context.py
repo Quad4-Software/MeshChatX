@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import gc
 import os
 import threading
 
@@ -505,6 +506,9 @@ class IdentityContext:
                 print(
                     f"Identity Context for {self.identity_hash} deferred setup complete.",
                 )
+                # Startup allocations survive to steady state, so move them
+                # out of the set the cyclic GC walks on every collection.
+                gc.freeze()
             else:
                 print(
                     f"Deferred setup aborted for torn-down identity {self.identity_hash}",
