@@ -3055,7 +3055,7 @@ class ReticulumMeshChat:
             # dead self.reticulum that would make setup_identity reuse a
             # torn-down stack, so clear it (and the RNS singleton) first.
             # The singleton clear must run even when self.reticulum is already
-            # gone: a failure after `del self.reticulum` but before __instance
+            # gone: a failure after del self.reticulum but before __instance
             # was reset still leaves the singleton bound to the dead stack.
             if getattr(self, "reticulum", None) is not None:
                 with contextlib.suppress(Exception):
@@ -5984,7 +5984,7 @@ class ReticulumMeshChat:
             self._mem_diag = MemoryDiagnostics()
             self._mem_diag.start()
             print(
-                "[mem_diag] Memory diagnostics enabled — "
+                "[mem_diag] Memory diagnostics enabled. "
                 "see /api/v1/diagnostics/memory for reports",
             )
 
