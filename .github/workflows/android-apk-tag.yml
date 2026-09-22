@@ -273,6 +273,12 @@ jobs:
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:assembleRelease
 
+            - name: Verify release dex keeps reflection classes
+              if: ${{ steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev' }}
+              working-directory: android
+              run: |
+                  bash ../scripts/android/verify-release-dex.sh app/build/outputs/apk/release/*.apk
+
             - name: Build debug APK
               if: ${{ steps.track.outputs.track != 'master' }}
               working-directory: android
