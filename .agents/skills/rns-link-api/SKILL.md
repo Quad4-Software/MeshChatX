@@ -16,7 +16,7 @@ Implement or consume the generic RNS Link WebSocket transport and plugin manager
 
 ## Protocol (summary)
 
-Client → server types: `rns.link.open|identify|request|send|close` with `request_id`.
+Client -> server types: `rns.link.open|identify|request|send|close` with `request_id`.
 
 - `aspect` is dot-separated RNS app name + sub-aspects (example `microrn.mgmt`).
 - Payloads are msgpack, base64-encoded (`data_b64`, `payload_b64`, `body_b64`).

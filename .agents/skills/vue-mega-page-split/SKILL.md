@@ -27,7 +27,7 @@ Also read:
 
 1. Mechanical extract only. No renames, no toast or i18n churn, no API path changes in the same change as a move.
 2. One concern per change: move or behaviour, never both.
-3. Mechanical extracts keep the parent's Options API style so the diff stays a pure move. Outside a mechanical move — new components, new stores, behaviour changes — Composition API (`<script setup>`), composables, provide/inject, and Pinia (`js/stores/`) are allowed and preferred for new code.
+3. Mechanical extracts keep the parent's Options API style so the diff stays a pure move. Outside a mechanical move (new components, new stores, behaviour changes), Composition API (`<script setup>`), composables, provide/inject, and Pinia (`js/stores/`) are allowed and preferred for new code.
 4. Follow inventory names in `.agents/module-ownership.md`. Do not invent alternate folders.
 5. Shell stays orchestration. Data ownership, `window.api`, map or canvas lifecycle init and teardown, and multi-child toast firing stay on the page shell unless a later behaviour change explicitly moves them.
 6. One slice per PR or commit series. Prefer one panel, one settings section, or one pure helper module.
@@ -86,7 +86,7 @@ Hard constraints:
   parameters or keep the calling method on the host.
 - Lifecycle hooks may live inside the composable (`onMounted`, `onUnmounted`)
   but only when the moved cluster owns that lifecycle fully.
-- Names starting with `_` must not be returned from `setup()` — Vue treats them
+- Names starting with `_` must not be returned from `setup()`. Vue treats them
   as reserved and warns. Either keep those methods on the host, or expose them
   through an options callback the host delegates to.
 - Composables get their own unit tests under `tests/frontend/`; the host's

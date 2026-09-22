@@ -21,7 +21,7 @@ Never imply identity-key import restores message history.
 - Reject empty / oversized identity payloads (client + server, max 64 KiB)
 - Normalize base32 by stripping all whitespace
 - Multipart field order must not matter
-- `ValueError` → HTTP 400
+- `ValueError` -> HTTP 400
 - Re-import must preserve existing metadata (icons/addresses)
 - Tutorial: import on Continue, activate on Finish. Split switch vs delete failures.
 - Tutorial skip/abandon with pending import: confirm activate or warn
