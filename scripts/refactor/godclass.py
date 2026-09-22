@@ -772,7 +772,84 @@ def cmd_apply(args: argparse.Namespace) -> int:
     insert_at = last_import_line - removed_before(last_import_line) - 1
     src_lines[insert_at + 1 : insert_at + 1] = ["", *import_block]
 
-    new_source = "\n".join(src_lines) + "\n"
+    # Moved methods keep the original module as their __globals__, so
+    # existing patch('pkg.<stem>.<name>') targets still reach moved code;
+    # otherwise they would resolve names in their part module namespace.
+    # Same for extracted shared helpers. Rebinding is the fidelity anchor
+    # that makes the split safe without touching a single call site.
+    rebind_block = f'''
+
+# Methods extracted to the mixin classes are rebound so this module stays
+# their global namespace: patch("{pkg}.{stem}.<name>") targets still reach
+# moved code, which would otherwise resolve names in its part module.
+# Helpers in the shared module get the same treatment. __globals__ is
+# read-only on functions, so each is rebuilt via types.FunctionType and
+# assigned back onto its mixin.
+def _rebind_moved_globals_to_this_module():
+    import sys as _sys
+    import types as _types
+
+    this_globals = globals()
+    mixin_mod_prefix = "{pkg}.{parts_pkg}."
+
+    def rebuild(fn):
+        if not hasattr(fn, "__code__"):
+            return fn
+        new_fn = _types.FunctionType(
+            fn.__code__, this_globals, fn.__name__, fn.__defaults__, fn.__closure__
+        )
+        new_fn.__kwdefaults__ = fn.__kwdefaults__
+        new_fn.__dict__.update(fn.__dict__)
+        new_fn.__module__ = fn.__module__
+        new_fn.__qualname__ = fn.__qualname__
+        new_fn.__doc__ = fn.__doc__
+        new_fn.__annotations__ = getattr(fn, "__annotations__", {{}})
+        new_fn.__type_params__ = getattr(fn, "__type_params__", ())
+        return new_fn
+
+    for mixin in {args.klass}.__mro__[1:-1]:
+        if not mixin.__module__.startswith(mixin_mod_prefix):
+            continue
+        for name, member in list(vars(mixin).items()):
+            if isinstance(member, staticmethod):
+                setattr(mixin, name, staticmethod(rebuild(member.__func__)))
+            elif isinstance(member, classmethod):
+                setattr(mixin, name, classmethod(rebuild(member.__func__)))
+            elif isinstance(member, property):
+                setattr(
+                    mixin,
+                    name,
+                    property(
+                        rebuild(member.fget) if member.fget else None,
+                        rebuild(member.fset) if member.fset else None,
+                        rebuild(member.fdel) if member.fdel else None,
+                        member.__doc__,
+                    ),
+                )
+            elif hasattr(member, "__code__") and getattr(
+                member, "__module__", None
+            ) == mixin.__module__:
+                setattr(mixin, name, rebuild(member))
+    shared_mod = _sys.modules.get("{pkg}.{shared_mod}")
+    if shared_mod is not None:
+        for name, fn in list(vars(shared_mod).items()):
+            if getattr(fn, "__module__", None) == "{pkg}.{shared_mod}" and hasattr(
+                fn, "__code__"
+            ):
+                new_fn = rebuild(fn)
+                setattr(shared_mod, name, new_fn)
+                # The from-import above bound the pre-rebind object into this
+                # module, so rebind this module's name to the rebuilt function
+                # or patch targets here would not reach moved code.
+                if name in this_globals:
+                    this_globals[name] = new_fn
+
+
+_rebind_moved_globals_to_this_module()
+del _rebind_moved_globals_to_this_module
+'''
+
+    new_source = "\n".join(src_lines) + "\n" + rebind_block
     dest = out_root / src_path.name
     if args.in_place:
         dest = src_path
