@@ -462,6 +462,9 @@ class ReticulumMeshChat:
         self.identity_file_path = identity_file_path
         self.auto_recover = auto_recover
         self.emergency = emergency
+        # MESHCHAT_LOG_DB=0 keeps log lines in the in-memory ring only,
+        # so verbose logging cannot wear an SD card.
+        memory_log_handler.db_writes_enabled = env_bool("MESHCHAT_LOG_DB", True)
         self.auth_enabled_initial = auth_enabled
         self.public_dir_override = public_dir
         self.gitea_base_url_override = gitea_base_url

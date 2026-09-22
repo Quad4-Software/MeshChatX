@@ -144,3 +144,46 @@ def test_set_database_flushes_buffered_logs_to_previous_database(tmp_path):
     assert any("identity B log" in row["message"] for row in logs_b)
 
     logger.removeHandler(handler)
+
+
+def test_flush_writes_batch_in_single_transaction(handler, db):
+    persistent_handler, logger = handler
+    for i in range(5):
+        logger.info(f"batched {i}")
+    persistent_handler._flush_to_db()
+
+    logs = persistent_handler.get_logs(limit=20)
+    messages = [log["message"] for log in logs]
+    for i in range(5):
+        assert any(f"batched {i}" in m for m in messages)
+
+
+def test_db_writes_disabled_never_flushes(handler, db):
+    persistent_handler, logger = handler
+    persistent_handler.db_writes_enabled = False
+
+    logger.info("buffered only")
+    persistent_handler._flush_to_db()
+    persistent_handler.get_logs(limit=10)  # read path must not flush either
+
+    assert db.debug_logs.get_total_count() == 0
+    assert len(persistent_handler.logs_buffer) == 1
+
+
+def test_cleanup_throttled_between_flushes(handler, db, monkeypatch):
+    persistent_handler, logger = handler
+    calls = []
+    monkeypatch.setattr(
+        db.debug_logs,
+        "cleanup_old_logs",
+        lambda *a, **k: calls.append(1),
+    )
+    logger.info("first")
+    persistent_handler._flush_to_db()
+    logger.info("second")
+    persistent_handler._flush_to_db()
+    assert calls == [1]
+    persistent_handler._last_db_cleanup = 0.0
+    logger.info("third")
+    persistent_handler._flush_to_db()
+    assert calls == [1, 1]
