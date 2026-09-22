@@ -65,6 +65,41 @@ class AsyncUtils:
                 AsyncUtils._pending_futures.append(future)
 
     @staticmethod
+    def spawn_background(coroutine: Coroutine):
+        """Schedule a long-lived coroutine on the shared background loop.
+
+        Identity-scoped periodic loops used to each get a dedicated thread
+        running asyncio.run(), where a whole event loop per timer wastes a
+        thread stack and a thread-local SQLite connection per task. They now share
+        the meshchatx-async loop. Blocking work inside them must use
+        asyncio.to_thread so the other tasks on the loop are not stalled.
+        """
+        AsyncUtils.ensure_background_loop()
+        loop = AsyncUtils._background_loop
+        if loop is None or loop.is_closed():
+            # No loop available (early teardown, tests), so keep the old
+            # behaviour and run the task on a dedicated thread.
+            thread = threading.Thread(
+                target=asyncio.run,
+                args=(coroutine,),
+                daemon=True,
+            )
+            thread.start()
+            return thread
+
+        future = asyncio.run_coroutine_threadsafe(coroutine, loop)
+
+        def _done(fut):
+            if fut.cancelled():
+                return
+            exc = fut.exception()
+            if exc is not None:
+                _logger.error("Background task failed: %s", exc)
+
+        future.add_done_callback(_done)
+        return future
+
+    @staticmethod
     def run_async(coroutine: Coroutine):
         """Schedule *coroutine* on the main event loop from any thread.
 
