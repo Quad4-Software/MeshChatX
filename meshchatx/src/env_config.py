@@ -65,6 +65,7 @@ class MeshchatEnv:
     debugpy_port: int = 5678
     debugpy_wait: bool = False
     vue_devtools: bool = True
+    log_db: bool = True
 
     @classmethod
     def load(cls) -> MeshchatEnv:
@@ -117,4 +118,5 @@ class MeshchatEnv:
             debugpy_port=env_int("MESHCHAT_DEBUGPY_PORT", 5678) or 5678,
             debugpy_wait=env_bool("MESHCHAT_DEBUGPY_WAIT"),
             vue_devtools=env_bool("MESHCHAT_VUE_DEVTOOLS", True),
+            log_db=env_bool("MESHCHAT_LOG_DB", True),
         )

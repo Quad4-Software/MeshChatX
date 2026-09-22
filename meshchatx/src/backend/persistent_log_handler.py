@@ -22,6 +22,10 @@ class PersistentLogHandler(logging.Handler):
         self.logs_buffer = collections.deque(maxlen=capacity)
         self.flush_interval = flush_interval
         self.last_flush_time = time.time()
+        # When False, log lines stay in the in-memory ring buffer only.
+        # Opt out with MESHCHAT_LOG_DB=0 to keep log traffic off an SD card.
+        self.db_writes_enabled = True
+        self._last_db_cleanup = 0.0
         self.lock = threading.RLock()
         self.flush_lock = threading.Lock()
 
@@ -83,8 +87,10 @@ class PersistentLogHandler(logging.Handler):
                     self._error_events.append(now_mono)
 
             # Periodically flush to database if available
-            if self.database and (
-                time.time() - self.last_flush_time > self.flush_interval
+            if (
+                self.database
+                and self.db_writes_enabled
+                and (time.time() - self.last_flush_time > self.flush_interval)
             ):
                 self._flush_to_db()
 
@@ -171,7 +177,7 @@ class PersistentLogHandler(logging.Handler):
         return False, None
 
     def _flush_to_db(self):
-        if not self.database:
+        if not self.database or not self.db_writes_enabled:
             return
 
         # Ensure only one thread flushes at a time
@@ -187,25 +193,31 @@ class PersistentLogHandler(logging.Handler):
             if not items_to_flush:
                 return
 
-            # Batch insert for speed
-            for entry in items_to_flush:
-                try:
-                    self.database.debug_logs.insert_log(
-                        level=entry["level"],
-                        module=entry["module"],
-                        message=entry["message"],
-                        is_anomaly=entry["is_anomaly"],
-                        anomaly_type=entry["anomaly_type"],
-                    )
-                except Exception as e:
-                    print(f"Error inserting log: {e}")
-
-            # Periodic cleanup of old logs (only every 100 flushes or similar?
-            # for now let's just keep it here but it should be fast)
+            rows = [
+                (
+                    entry["timestamp"],
+                    entry["level"],
+                    entry["module"],
+                    entry["message"],
+                    entry["is_anomaly"],
+                    entry["anomaly_type"],
+                )
+                for entry in items_to_flush
+            ]
             try:
-                self.database.debug_logs.cleanup_old_logs()
+                self.database.debug_logs.insert_logs(rows)
             except Exception as e:
-                print(f"Error cleaning up logs: {e}")
+                print(f"Error inserting logs: {e}")
+
+            # The retention sweep scans the whole table, so once per ten
+            # minutes is enough for a 10000-row cap.
+            now = time.monotonic()
+            if now - self._last_db_cleanup > 600:
+                self._last_db_cleanup = now
+                try:
+                    self.database.debug_logs.cleanup_old_logs()
+                except Exception as e:
+                    print(f"Error cleaning up logs: {e}")
 
             self.last_flush_time = time.time()
         except Exception as e:
