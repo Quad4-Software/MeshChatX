@@ -72,6 +72,7 @@ packages = [
     "cffi",
     "ply",
     "bleak",
+    "landlockpy",
     # aiohttp pulls stdlib email at runtime. Keep the full tree out of library.zip
     # so relative imports like email._policybase -> email.header work on Windows.
     "email",
