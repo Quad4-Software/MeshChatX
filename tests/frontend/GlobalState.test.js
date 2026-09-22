@@ -102,3 +102,56 @@ describe("GlobalState notifications", () => {
         }
     });
 });
+
+describe("GlobalState key-scoped subscriptions", () => {
+    it("fires only for the subscribed domain", async () => {
+        const { subscribeGlobalStateKey } = await import(
+            "../../meshchatx/src/frontend/js/GlobalState"
+        );
+        const configListener = vi.fn();
+        const unsubscribe = subscribeGlobalStateKey("config", configListener);
+        try {
+            globalState.relayChatUnreadCount = (globalState.relayChatUnreadCount || 0) + 1;
+            expect(configListener).not.toHaveBeenCalled();
+            globalState.config.some_new_key = "v";
+            expect(configListener).toHaveBeenCalledTimes(1);
+            delete globalState.config.some_new_key;
+        } finally {
+            unsubscribe();
+        }
+    });
+
+    it("fires on whole-config replacement", async () => {
+        const { subscribeGlobalStateKey } = await import(
+            "../../meshchatx/src/frontend/js/GlobalState"
+        );
+        const listener = vi.fn();
+        const unsubscribe = subscribeGlobalStateKey("config", listener);
+        try {
+            mergeGlobalConfig({ scoped_replace_probe: true });
+            expect(listener).toHaveBeenCalled();
+            delete globalState.config.scoped_replace_probe;
+        } finally {
+            unsubscribe();
+        }
+    });
+
+    it("delivers batched key notifications on flush", async () => {
+        const { subscribeGlobalStateKey } = await import(
+            "../../meshchatx/src/frontend/js/GlobalState"
+        );
+        const listener = vi.fn();
+        const unsubscribe = subscribeGlobalStateKey("config", listener);
+        try {
+            batchGlobalState(() => {
+                globalState.config.batch_probe_a = 1;
+                globalState.config.batch_probe_b = 2;
+            });
+            expect(listener).toHaveBeenCalledTimes(1);
+            delete globalState.config.batch_probe_a;
+            delete globalState.config.batch_probe_b;
+        } finally {
+            unsubscribe();
+        }
+    });
+});
