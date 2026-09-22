@@ -1,0 +1,72 @@
+title = "MeshChatX gitleaks config"
+
+[extend]
+useDefault = true
+
+# Reticulum identity backup string: base32 of the 64-byte private key,
+# which is exactly 104 base32 chars (13 groups of 8, padded). The identity
+# restore flow in identity_manager.py accepts this format directly, so a
+# committed value is a live private key.
+[[rules]]
+id = "rns-identity-base32"
+description = "Reticulum identity backup string (base32 of 64-byte private key)"
+regex = '''\b[A-Z2-7]{96,110}={0,7}\b'''
+entropy = 4.5
+
+# Reticulum/LXMF private key material assigned in hex form (64 bytes).
+# Anchored on a key-ish identifier to avoid matching sha512 digests.
+[[rules]]
+id = "rns-private-key-hex"
+description = "Reticulum/LXMF private key assigned as a 128-char hex string"
+regex = '''(?i)(?:private[_-]?key|identity[_-]?(?:key|bytes|secret)|lxmf[_-]?key)\s*[:=]\s*["']?([0-9a-fA-F]{128})'''
+secretGroup = 1
+entropy = 3.5
+
+# App-level credential fields (interface passphrases, web password,
+# plugin/api keys) assigned a literal value.
+[[rules]]
+id = "meshchatx-credential-literal"
+description = "Credential field assigned a literal value"
+regex = '''(?i)(?:passphrase|password|secret[_-]?key|api[_-]?key)\s*[:=]\s*["']([^"'\s]{8,})["']'''
+secretGroup = 1
+entropy = 3.0
+
+    # Known placeholder values used in docs, defaults, and fixtures.
+    [rules.allowlist]
+    stopWords = [
+        "changeme",
+        "password",
+        "example",
+        "placeholder",
+        "your-",
+        "dummy",
+        "test",
+        "redacted",
+    ]
+    regexes = ['''(?i)^(x+|\*+|0+|1+|same|none|null|todo|fixme)$''']
+
+# Test fixtures deliberately carry fake credentials; a real secret in a
+# test still trips the rns-identity rules above, which stay global.
+[allowlist]
+description = "Vendored, generated, and test fixture content"
+paths = [
+    '''(?i)node_modules''',
+    '''(?i)\.venv''',
+    '''(?i)dist/''',
+    '''(?i)build/''',
+    '''(?i)storage/''',
+    '''meshchatx/public/''',
+    '''meshchatx/src/frontend/public/''',
+    # Generated sha256 content manifest, not credentials.
+    '''electron/backend-manifest\.json''',
+]
+regexes = [
+    # Repeating dummy hex used by test fixtures.
+    '''(?i)^(aabbccddeeff00112233445566778899)+$''',
+    # Classic placeholder password and the ifac test netkey.
+    '''(?i)^(hunter2pass|asty8vT8spXNQdCnPVMATbCKkwUxuzG9)$''',
+    # Python release GPG public key fingerprints pinned in
+    # scripts/ci/setup-python.sh (public key material, not secrets).
+    '''^A035C8C19219BA821ECEA86B64E628F8D684696D$''',
+    '''^E3FF2839C048B25C084DEBE9B26995E310250568$''',
+]
