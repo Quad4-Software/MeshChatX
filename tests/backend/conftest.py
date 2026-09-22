@@ -366,10 +366,7 @@ async def fetch_api_csrf_headers(client):
 
 
 def extend_meshchat_middlewares(aio_app, middlewares):
-    bad_mw, sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = middlewares
-    aio_app.middlewares.extend(
-        [bad_mw, sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw]
-    )
+    aio_app.middlewares.extend(middlewares)
 
 
 def pytest_collection_modifyitems(session, config, items):

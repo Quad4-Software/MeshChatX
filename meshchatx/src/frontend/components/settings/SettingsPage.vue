@@ -3190,6 +3190,7 @@ import { useBatterySaver } from "../../js/settings/useBatterySaver.js";
 import { useReticulumInstance } from "../../js/settings/useReticulumInstance.js";
 import {
     loadVisualiserDisplayPrefs,
+    normalizeVisualiserViewMode,
     persistVisualiserShowDisabled,
     persistVisualiserShowDiscovered,
     persistVisualiserRenderer,
@@ -3664,13 +3665,9 @@ export default {
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseInfo);
         window.removeEventListener("keydown", this.onSettingsSearchHotkey);
-        // stop any pending debounced saves
-        for (const key of Object.keys(this.saveTimeouts)) {
-            if (this.saveTimeouts[key]) {
-                clearTimeout(this.saveTimeouts[key]);
-                this.saveTimeouts[key] = null;
-            }
-        }
+        // Fire any pending debounced saves instead of dropping the last
+        // edits made before leaving the page.
+        this.flushPendingConfigSaves();
     },
     mounted() {
         // listen for websocket events
@@ -3707,6 +3704,10 @@ export default {
     },
     methods: {
         onIdentitySwitched() {
+            // Debounced saves read this.config at fire time; letting them
+            // run now would PATCH the new identity with the old one's
+            // values.
+            this.cancelPendingConfigSaves();
             this.getConfig();
             this.getServerSecurity();
             this.getTrustedTelemetryPeers();
@@ -3825,7 +3826,7 @@ export default {
             this.visualiserShowDisabledInterfaces = p.showDisabledInterfaces;
             this.visualiserShowDiscoveredInterfaces = p.showDiscoveredInterfaces;
             this.visualiserRenderer = p.renderer || "auto";
-            this.visualiserViewMode = p.viewMode === "planet" ? "planet" : "flat";
+            this.visualiserViewMode = normalizeVisualiserViewMode(p.viewMode);
         },
         onVisualiserShowDisabledChange(val) {
             this.visualiserShowDisabledInterfaces = val;
@@ -4061,7 +4062,15 @@ export default {
         },
         onConfigEvent(json) {
             if (json.config) {
-                this.config = { ...this.config, ...json.config };
+                const merged = { ...this.config, ...json.config };
+                // Keep fields whose debounced save is still pending so an
+                // in-flight edit is not reverted mid-debounce.
+                for (const key of this.pendingConfigSaveKeys()) {
+                    if (this.config && key in this.config) {
+                        merged[key] = this.config[key];
+                    }
+                }
+                this.config = merged;
                 this.sanitizeColorConfigFields();
                 this.syncLxmfTransferLimitInputs();
             }
@@ -4119,7 +4128,7 @@ export default {
             try {
                 const merged = await fetchMergedConfig(window.api, this.config);
                 if (merged) {
-                    this.config = merged;
+                    this.config = this.configPreservingPendingSaves(merged);
                     normalizeConfigColors(this.config);
                     this.syncLxmfTransferLimitInputs();
                     const inbound = Number(this.config.lxmf_inbound_stamp_cost);
@@ -4164,21 +4173,25 @@ export default {
             await this.updateConfig({ multi_session_warning_enabled: value }, "multi_session_warning_enabled");
         },
         onWebUiAllowlistChange() {
-            if (this.saveTimeouts.webUiAllowlist) clearTimeout(this.saveTimeouts.webUiAllowlist);
-            this.saveTimeouts.webUiAllowlist = setTimeout(async () => {
-                try {
-                    const response = await window.api.patch(apiPath("/server/security"), {
-                        web_ui_ip_allowlist: this.serverSecurity.web_ui_ip_allowlist,
-                    });
-                    this.serverSecurity = { ...this.serverSecurity, ...response.data };
-                    ToastUtils.success(
-                        this.$t("app.setting_auto_saved", { label: this.$t("app.web_ui_ip_allowlist") })
-                    );
-                } catch (e) {
-                    ToastUtils.error(this.$t("common.save_failed"));
-                    console.log(e);
-                }
-            }, 800);
+            this.queueConfigSave(
+                "webUiAllowlist",
+                async () => {
+                    try {
+                        const response = await window.api.patch(apiPath("/server/security"), {
+                            web_ui_ip_allowlist: this.serverSecurity.web_ui_ip_allowlist,
+                        });
+                        this.serverSecurity = { ...this.serverSecurity, ...response.data };
+                        ToastUtils.success(
+                            this.$t("app.setting_auto_saved", { label: this.$t("app.web_ui_ip_allowlist") })
+                        );
+                    } catch (e) {
+                        ToastUtils.error(this.$t("common.save_failed"));
+                        console.log(e);
+                    }
+                },
+                800,
+                []
+            );
         },
         getKeyboardShortcuts() {
             WebSocketConnection.send(
@@ -4203,11 +4216,81 @@ export default {
             await KeyboardShortcuts.deleteShortcut(action);
             ToastUtils.success(this.$t("settings.shortcut_deleted"));
         },
+        // Debounced config saves are tracked as {timer, run, configKeys}
+        // entries so they can be cancelled on identity switch, flushed on
+        // unmount, and so a wholesale config replace can keep fields that
+        // still have a save in flight.
+        queueConfigSave(key, run, delay, configKeys = null) {
+            this.cancelConfigSave(key);
+            const entry = { timer: null, run, configKeys: configKeys || [key] };
+            entry.timer = setTimeout(() => {
+                if (this.saveTimeouts[key] === entry) {
+                    this.saveTimeouts[key] = null;
+                }
+                run();
+            }, delay);
+            this.saveTimeouts[key] = entry;
+        },
+        cancelConfigSave(key) {
+            const entry = this.saveTimeouts[key];
+            if (entry) {
+                clearTimeout(entry.timer);
+                this.saveTimeouts[key] = null;
+            }
+        },
+        cancelPendingConfigSaves() {
+            for (const key of Object.keys(this.saveTimeouts)) {
+                this.cancelConfigSave(key);
+            }
+        },
+        flushPendingConfigSaves() {
+            for (const key of Object.keys(this.saveTimeouts)) {
+                const entry = this.saveTimeouts[key];
+                if (!entry) {
+                    continue;
+                }
+                clearTimeout(entry.timer);
+                this.saveTimeouts[key] = null;
+                // Fire the pending save now instead of silently dropping
+                // the last edits made before leaving the page.
+                Promise.resolve()
+                    .then(() => entry.run())
+                    .catch((e) => console.log(e));
+            }
+        },
+        pendingConfigSaveKeys() {
+            const keys = new Set();
+            for (const entry of Object.values(this.saveTimeouts)) {
+                if (!entry) {
+                    continue;
+                }
+                for (const k of entry.configKeys || []) {
+                    keys.add(k);
+                }
+            }
+            return keys;
+        },
+        configPreservingPendingSaves(next) {
+            if (!next || typeof next !== "object") {
+                return next;
+            }
+            const pending = this.pendingConfigSaveKeys();
+            if (pending.size === 0) {
+                return next;
+            }
+            const merged = { ...next };
+            for (const key of pending) {
+                if (this.config && key in this.config) {
+                    merged[key] = this.config[key];
+                }
+            }
+            return merged;
+        },
         async updateConfig(config, label = null) {
             try {
                 const newConfig = await patchServerConfig(config, window.api);
                 publishPatchedConfig(newConfig);
-                this.config = newConfig;
+                this.config = this.configPreservingPendingSaves(newConfig);
                 normalizeConfigColors(this.config);
                 this.syncLxmfTransferLimitInputs();
                 if (label) {
@@ -4332,40 +4415,49 @@ export default {
             );
         },
         onAccentColorChange() {
-            if (this.saveTimeouts.accent_color) clearTimeout(this.saveTimeouts.accent_color);
-            this.saveTimeouts.accent_color = setTimeout(async () => {
-                applyAppearanceTheme(this.config);
-                await this.updateConfig(
-                    {
-                        accent_color: this.config.accent_color,
-                    },
-                    "accent_color"
-                );
-            }, 600);
+            this.queueConfigSave(
+                "accent_color",
+                async () => {
+                    applyAppearanceTheme(this.config);
+                    await this.updateConfig(
+                        {
+                            accent_color: this.config.accent_color,
+                        },
+                        "accent_color"
+                    );
+                },
+                600
+            );
         },
         onCustomCanvasColorChange() {
-            if (this.saveTimeouts.custom_canvas_color) clearTimeout(this.saveTimeouts.custom_canvas_color);
-            this.saveTimeouts.custom_canvas_color = setTimeout(async () => {
-                applyAppearanceTheme(this.config);
-                await this.updateConfig(
-                    {
-                        custom_canvas_color: this.config.custom_canvas_color,
-                    },
-                    "custom_canvas_color"
-                );
-            }, 600);
+            this.queueConfigSave(
+                "custom_canvas_color",
+                async () => {
+                    applyAppearanceTheme(this.config);
+                    await this.updateConfig(
+                        {
+                            custom_canvas_color: this.config.custom_canvas_color,
+                        },
+                        "custom_canvas_color"
+                    );
+                },
+                600
+            );
         },
         onCustomSurfaceColorChange() {
-            if (this.saveTimeouts.custom_surface_color) clearTimeout(this.saveTimeouts.custom_surface_color);
-            this.saveTimeouts.custom_surface_color = setTimeout(async () => {
-                applyAppearanceTheme(this.config);
-                await this.updateConfig(
-                    {
-                        custom_surface_color: this.config.custom_surface_color,
-                    },
-                    "custom_surface_color"
-                );
-            }, 600);
+            this.queueConfigSave(
+                "custom_surface_color",
+                async () => {
+                    applyAppearanceTheme(this.config);
+                    await this.updateConfig(
+                        {
+                            custom_surface_color: this.config.custom_surface_color,
+                        },
+                        "custom_surface_color"
+                    );
+                },
+                600
+            );
         },
         async onMessagesSidebarPositionChange() {
             const v = this.config.messages_sidebar_position === "right" ? "right" : "left";
@@ -4388,51 +4480,63 @@ export default {
             );
         },
         async onMessageFontSizeChange() {
-            if (this.saveTimeouts.message_font_size) clearTimeout(this.saveTimeouts.message_font_size);
-            this.saveTimeouts.message_font_size = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        message_font_size: this.config.message_font_size,
-                    },
-                    "message_font_size"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "message_font_size",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            message_font_size: this.config.message_font_size,
+                        },
+                        "message_font_size"
+                    );
+                },
+                1000
+            );
         },
         async onDisplayNameChange() {
-            if (this.saveTimeouts.display_name) clearTimeout(this.saveTimeouts.display_name);
-            this.saveTimeouts.display_name = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        display_name: this.config.display_name,
-                    },
-                    "display_name"
-                );
-            }, 600);
+            this.queueConfigSave(
+                "display_name",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            display_name: this.config.display_name,
+                        },
+                        "display_name"
+                    );
+                },
+                600
+            );
         },
         async onMessageIconSizeChange() {
-            if (this.saveTimeouts.message_icon_size) clearTimeout(this.saveTimeouts.message_icon_size);
-            this.saveTimeouts.message_icon_size = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        message_icon_size: this.config.message_icon_size,
-                    },
-                    "message_icon_size"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "message_icon_size",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            message_icon_size: this.config.message_icon_size,
+                        },
+                        "message_icon_size"
+                    );
+                },
+                1000
+            );
         },
         onUiTransparencyChange() {
-            if (this.saveTimeouts.ui_transparency) clearTimeout(this.saveTimeouts.ui_transparency);
-            this.saveTimeouts.ui_transparency = setTimeout(async () => {
-                const n = Number(this.config.ui_transparency);
-                const v = Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0;
-                this.config.ui_transparency = v;
-                await this.updateConfig(
-                    {
-                        ui_transparency: v,
-                    },
-                    "ui_transparency"
-                );
-            }, 400);
+            this.queueConfigSave(
+                "ui_transparency",
+                async () => {
+                    const n = Number(this.config.ui_transparency);
+                    const v = Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0;
+                    this.config.ui_transparency = v;
+                    await this.updateConfig(
+                        {
+                            ui_transparency: v,
+                        },
+                        "ui_transparency"
+                    );
+                },
+                400
+            );
         },
         async onUiGlassEnabledChange() {
             await this.updateConfig(
@@ -4514,16 +4618,19 @@ export default {
         },
         async onMessageBubbleColorChange(type) {
             const timeoutKey = `message_${type}_bubble_color`;
-            if (this.saveTimeouts[timeoutKey]) clearTimeout(this.saveTimeouts[timeoutKey]);
-            this.saveTimeouts[timeoutKey] = setTimeout(async () => {
-                const configKey = `message_${type}_bubble_color`;
-                await this.updateConfig(
-                    {
-                        [configKey]: this.config[configKey],
-                    },
-                    configKey
-                );
-            }, 1000);
+            this.queueConfigSave(
+                timeoutKey,
+                async () => {
+                    const configKey = `message_${type}_bubble_color`;
+                    await this.updateConfig(
+                        {
+                            [configKey]: this.config[configKey],
+                        },
+                        configKey
+                    );
+                },
+                1000
+            );
         },
         onDetailedOutboundSendStatusChange(event) {
             const checked = event.target.checked;
@@ -4631,10 +4738,14 @@ export default {
             );
         },
         async onLxmfPreferredPropagationNodeDestinationHashChange() {
-            if (this.saveTimeouts.preferred_node) clearTimeout(this.saveTimeouts.preferred_node);
-            this.saveTimeouts.preferred_node = setTimeout(async () => {
-                await this.savePreferredPropagationNodeHash(false);
-            }, 1000);
+            this.queueConfigSave(
+                "preferred_node",
+                async () => {
+                    await this.savePreferredPropagationNodeHash(false);
+                },
+                1000,
+                ["lxmf_preferred_propagation_node_destination_hash"]
+            );
         },
         onPreferredPropagationNodePaste(event) {
             const text = event.clipboardData?.getData("text") || "";
@@ -4665,10 +4776,7 @@ export default {
             await this.savePreferredPropagationNodeHash(true);
         },
         async savePreferredPropagationNodeHash(showInvalidToast) {
-            if (this.saveTimeouts.preferred_node) {
-                clearTimeout(this.saveTimeouts.preferred_node);
-                this.saveTimeouts.preferred_node = null;
-            }
+            this.cancelConfigSave("preferred_node");
             const raw = this.config.lxmf_preferred_propagation_node_destination_hash;
             const trimmed = (raw || "").toString().trim();
             if (!trimmed) {
@@ -4749,37 +4857,45 @@ export default {
             if (this.lxmfIncomingDeliveryPreset !== "custom") {
                 return;
             }
-            if (this.saveTimeouts.delivery_transfer_limit) {
-                clearTimeout(this.saveTimeouts.delivery_transfer_limit);
-            }
-            this.saveTimeouts.delivery_transfer_limit = setTimeout(async () => {
-                await this.updateConfig({
-                    lxmf_delivery_transfer_limit_in_bytes: incomingDeliveryBytesFromCustom(
-                        this.lxmfIncomingDeliveryCustomAmount,
-                        this.lxmfIncomingDeliveryCustomUnit
-                    ),
-                });
-            }, 1000);
+            this.queueConfigSave(
+                "delivery_transfer_limit",
+                async () => {
+                    await this.updateConfig({
+                        lxmf_delivery_transfer_limit_in_bytes: incomingDeliveryBytesFromCustom(
+                            this.lxmfIncomingDeliveryCustomAmount,
+                            this.lxmfIncomingDeliveryCustomUnit
+                        ),
+                    });
+                },
+                1000,
+                ["lxmf_delivery_transfer_limit_in_bytes"]
+            );
         },
         async onLxmfPropagationTransferLimitChange() {
-            if (this.saveTimeouts.propagation_transfer_limit) {
-                clearTimeout(this.saveTimeouts.propagation_transfer_limit);
-            }
-            this.saveTimeouts.propagation_transfer_limit = setTimeout(async () => {
-                await this.updateConfig({
-                    lxmf_propagation_transfer_limit_in_bytes: this.mbToBytes(this.lxmfPropagationTransferLimitInputMb),
-                });
-            }, 1000);
+            this.queueConfigSave(
+                "propagation_transfer_limit",
+                async () => {
+                    await this.updateConfig({
+                        lxmf_propagation_transfer_limit_in_bytes: this.mbToBytes(
+                            this.lxmfPropagationTransferLimitInputMb
+                        ),
+                    });
+                },
+                1000,
+                ["lxmf_propagation_transfer_limit_in_bytes"]
+            );
         },
         async onLxmfPropagationSyncLimitChange() {
-            if (this.saveTimeouts.propagation_sync_limit) {
-                clearTimeout(this.saveTimeouts.propagation_sync_limit);
-            }
-            this.saveTimeouts.propagation_sync_limit = setTimeout(async () => {
-                await this.updateConfig({
-                    lxmf_propagation_sync_limit_in_bytes: this.mbToBytes(this.lxmfPropagationSyncLimitInputMb),
-                });
-            }, 1000);
+            this.queueConfigSave(
+                "propagation_sync_limit",
+                async () => {
+                    await this.updateConfig({
+                        lxmf_propagation_sync_limit_in_bytes: this.mbToBytes(this.lxmfPropagationSyncLimitInputMb),
+                    });
+                },
+                1000,
+                ["lxmf_propagation_sync_limit_in_bytes"]
+            );
         },
         async onInboundStampsEnabledChange(enabled) {
             if (!enabled) {
@@ -4806,35 +4922,43 @@ export default {
             );
         },
         async onLxmfInboundStampCostChange() {
-            if (this.saveTimeouts.inbound_stamp) clearTimeout(this.saveTimeouts.inbound_stamp);
-            this.saveTimeouts.inbound_stamp = setTimeout(async () => {
-                let cost = Number(this.config.lxmf_inbound_stamp_cost);
-                if (!cost || cost < 1) {
-                    cost = 8;
-                    this.config.lxmf_inbound_stamp_cost = cost;
-                } else if (cost > 254) {
-                    cost = 254;
-                    this.config.lxmf_inbound_stamp_cost = cost;
-                }
-                this.lastRememberedInboundStampCost = cost;
-                await this.updateConfig(
-                    {
-                        lxmf_inbound_stamp_cost: cost,
-                    },
-                    "inbound_stamp_cost_label"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "inbound_stamp",
+                async () => {
+                    let cost = Number(this.config.lxmf_inbound_stamp_cost);
+                    if (!cost || cost < 1) {
+                        cost = 8;
+                        this.config.lxmf_inbound_stamp_cost = cost;
+                    } else if (cost > 254) {
+                        cost = 254;
+                        this.config.lxmf_inbound_stamp_cost = cost;
+                    }
+                    this.lastRememberedInboundStampCost = cost;
+                    await this.updateConfig(
+                        {
+                            lxmf_inbound_stamp_cost: cost,
+                        },
+                        "inbound_stamp_cost_label"
+                    );
+                },
+                1000,
+                ["lxmf_inbound_stamp_cost"]
+            );
         },
         async onLxmfPropagationNodeStampCostChange() {
-            if (this.saveTimeouts.propagation_stamp) clearTimeout(this.saveTimeouts.propagation_stamp);
-            this.saveTimeouts.propagation_stamp = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        lxmf_propagation_node_stamp_cost: this.config.lxmf_propagation_node_stamp_cost,
-                    },
-                    "propagation_stamp_cost_label"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "propagation_stamp",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            lxmf_propagation_node_stamp_cost: this.config.lxmf_propagation_node_stamp_cost,
+                        },
+                        "propagation_stamp_cost_label"
+                    );
+                },
+                1000,
+                ["lxmf_propagation_node_stamp_cost"]
+            );
         },
         async onLxmfPropagationSequentialValidationChange(value) {
             await this.updateConfig({
@@ -4847,18 +4971,20 @@ export default {
             });
         },
         async onLxmfPropagationMaxInboundSyncsChange() {
-            if (this.saveTimeouts.propagation_max_inbound_syncs) {
-                clearTimeout(this.saveTimeouts.propagation_max_inbound_syncs);
-            }
-            this.saveTimeouts.propagation_max_inbound_syncs = setTimeout(async () => {
-                let v = Number(this.config.lxmf_propagation_max_inbound_syncs);
-                if (!v || v < 1) v = 1;
-                else if (v > 64) v = 64;
-                this.config.lxmf_propagation_max_inbound_syncs = v;
-                await this.updateConfig({
-                    lxmf_propagation_max_inbound_syncs: v,
-                });
-            }, 1000);
+            this.queueConfigSave(
+                "propagation_max_inbound_syncs",
+                async () => {
+                    let v = Number(this.config.lxmf_propagation_max_inbound_syncs);
+                    if (!v || v < 1) v = 1;
+                    else if (v > 64) v = 64;
+                    this.config.lxmf_propagation_max_inbound_syncs = v;
+                    await this.updateConfig({
+                        lxmf_propagation_max_inbound_syncs: v,
+                    });
+                },
+                1000,
+                ["lxmf_propagation_max_inbound_syncs"]
+            );
         },
         async onLxmfFloodProtectionEnabledChange(value) {
             await this.updateConfig({
@@ -4866,40 +4992,52 @@ export default {
             });
         },
         async onLxmfFloodThresholdChange() {
-            if (this.saveTimeouts.flood_threshold) clearTimeout(this.saveTimeouts.flood_threshold);
-            this.saveTimeouts.flood_threshold = setTimeout(async () => {
-                let v = Number(this.config.lxmf_flood_threshold_per_minute);
-                if (!v || v < 1) v = 30;
-                else if (v > 1000) v = 1000;
-                this.config.lxmf_flood_threshold_per_minute = v;
-                await this.updateConfig({
-                    lxmf_flood_threshold_per_minute: v,
-                });
-            }, 1000);
+            this.queueConfigSave(
+                "flood_threshold",
+                async () => {
+                    let v = Number(this.config.lxmf_flood_threshold_per_minute);
+                    if (!v || v < 1) v = 30;
+                    else if (v > 1000) v = 1000;
+                    this.config.lxmf_flood_threshold_per_minute = v;
+                    await this.updateConfig({
+                        lxmf_flood_threshold_per_minute: v,
+                    });
+                },
+                1000,
+                ["lxmf_flood_threshold_per_minute"]
+            );
         },
         async onLxmfFloodMaxStampCostChange() {
-            if (this.saveTimeouts.flood_max_cost) clearTimeout(this.saveTimeouts.flood_max_cost);
-            this.saveTimeouts.flood_max_cost = setTimeout(async () => {
-                let v = Number(this.config.lxmf_flood_max_stamp_cost);
-                if (!v || v < 1) v = 24;
-                else if (v > 254) v = 254;
-                this.config.lxmf_flood_max_stamp_cost = v;
-                await this.updateConfig({
-                    lxmf_flood_max_stamp_cost: v,
-                });
-            }, 1000);
+            this.queueConfigSave(
+                "flood_max_cost",
+                async () => {
+                    let v = Number(this.config.lxmf_flood_max_stamp_cost);
+                    if (!v || v < 1) v = 24;
+                    else if (v > 254) v = 254;
+                    this.config.lxmf_flood_max_stamp_cost = v;
+                    await this.updateConfig({
+                        lxmf_flood_max_stamp_cost: v,
+                    });
+                },
+                1000,
+                ["lxmf_flood_max_stamp_cost"]
+            );
         },
         async onLxmfFloodCooldownChange() {
-            if (this.saveTimeouts.flood_cooldown) clearTimeout(this.saveTimeouts.flood_cooldown);
-            this.saveTimeouts.flood_cooldown = setTimeout(async () => {
-                let v = Number(this.config.lxmf_flood_cooldown_seconds);
-                if (!v || v < 30) v = 30;
-                else if (v > 3600) v = 3600;
-                this.config.lxmf_flood_cooldown_seconds = v;
-                await this.updateConfig({
-                    lxmf_flood_cooldown_seconds: v,
-                });
-            }, 1000);
+            this.queueConfigSave(
+                "flood_cooldown",
+                async () => {
+                    let v = Number(this.config.lxmf_flood_cooldown_seconds);
+                    if (!v || v < 30) v = 30;
+                    else if (v > 3600) v = 3600;
+                    this.config.lxmf_flood_cooldown_seconds = v;
+                    await this.updateConfig({
+                        lxmf_flood_cooldown_seconds: v,
+                    });
+                },
+                1000,
+                ["lxmf_flood_cooldown_seconds"]
+            );
         },
         async onPageArchiverEnabledChangeWrapper(value) {
             this.config.page_archiver_enabled = value;
@@ -4911,16 +5049,20 @@ export default {
             );
         },
         async onPageArchiverConfigChange() {
-            if (this.saveTimeouts.page_archiver) clearTimeout(this.saveTimeouts.page_archiver);
-            this.saveTimeouts.page_archiver = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        page_archiver_max_versions: this.config.page_archiver_max_versions,
-                        archives_max_storage_gb: this.config.archives_max_storage_gb,
-                    },
-                    "page_archiver"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "page_archiver",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            page_archiver_max_versions: this.config.page_archiver_max_versions,
+                            archives_max_storage_gb: this.config.archives_max_storage_gb,
+                        },
+                        "page_archiver"
+                    );
+                },
+                1000,
+                ["page_archiver_max_versions", "archives_max_storage_gb"]
+            );
         },
         async onNomadRendererMarkdownToggle(value) {
             this.config.nomad_render_markdown_enabled = value;
@@ -5045,24 +5187,26 @@ export default {
             await this.updateConfig({ local_message_auto_delete_enabled: value }, "privacy_data");
         },
         onLocalMessageAutoDeleteParamsChange() {
-            if (this.saveTimeouts.localMessageAutoDelete) {
-                clearTimeout(this.saveTimeouts.localMessageAutoDelete);
-            }
-            this.saveTimeouts.localMessageAutoDelete = setTimeout(async () => {
-                const { value: v, unit: u } = normalizeRetentionValue(
-                    this.config.local_message_auto_delete_value,
-                    this.config.local_message_auto_delete_unit
-                );
-                this.config.local_message_auto_delete_value = v;
-                this.config.local_message_auto_delete_unit = u;
-                await this.updateConfig(
-                    {
-                        local_message_auto_delete_value: v,
-                        local_message_auto_delete_unit: u,
-                    },
-                    "privacy_data"
-                );
-            }, 400);
+            this.queueConfigSave(
+                "localMessageAutoDelete",
+                async () => {
+                    const { value: v, unit: u } = normalizeRetentionValue(
+                        this.config.local_message_auto_delete_value,
+                        this.config.local_message_auto_delete_unit
+                    );
+                    this.config.local_message_auto_delete_value = v;
+                    this.config.local_message_auto_delete_unit = u;
+                    await this.updateConfig(
+                        {
+                            local_message_auto_delete_value: v,
+                            local_message_auto_delete_unit: u,
+                        },
+                        "privacy_data"
+                    );
+                },
+                400,
+                ["local_message_auto_delete_value", "local_message_auto_delete_unit"]
+            );
         },
         async onBanishedEffectEnabledChange(value) {
             this.config.banished_effect_enabled = value;
@@ -5082,16 +5226,20 @@ export default {
             this.onBanishedConfigChange();
         },
         async onBanishedConfigChange() {
-            if (this.saveTimeouts.banished) clearTimeout(this.saveTimeouts.banished);
-            this.saveTimeouts.banished = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        banished_text: this.config.banished_text,
-                        banished_color: this.config.banished_color,
-                    },
-                    "banishment"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "banished",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            banished_text: this.config.banished_text,
+                            banished_color: this.config.banished_color,
+                        },
+                        "banishment"
+                    );
+                },
+                1000,
+                ["banished_text", "banished_color"]
+            );
         },
         async onCrawlerEnabledChange(value) {
             await this.updateConfig(
@@ -5102,29 +5250,43 @@ export default {
             );
         },
         async onCrawlerConfigChange() {
-            if (this.saveTimeouts.crawler) clearTimeout(this.saveTimeouts.crawler);
-            this.saveTimeouts.crawler = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        crawler_max_retries: this.config.crawler_max_retries,
-                        crawler_retry_delay_seconds: this.config.crawler_retry_delay_seconds,
-                        crawler_max_concurrent: this.config.crawler_max_concurrent,
-                        crawler_max_hops: this.config.crawler_max_hops,
-                        crawler_max_rtt_ms: this.config.crawler_max_rtt_ms,
-                        crawler_max_depth: this.config.crawler_max_depth,
-                        crawler_max_pages_per_node: this.config.crawler_max_pages_per_node,
-                        crawler_requests_per_day_per_node: this.config.crawler_requests_per_day_per_node,
-                        crawler_refresh_days: this.config.crawler_refresh_days,
-                    },
-                    "smart_crawler"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "crawler",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            crawler_max_retries: this.config.crawler_max_retries,
+                            crawler_retry_delay_seconds: this.config.crawler_retry_delay_seconds,
+                            crawler_max_concurrent: this.config.crawler_max_concurrent,
+                            crawler_max_hops: this.config.crawler_max_hops,
+                            crawler_max_rtt_ms: this.config.crawler_max_rtt_ms,
+                            crawler_max_depth: this.config.crawler_max_depth,
+                            crawler_max_pages_per_node: this.config.crawler_max_pages_per_node,
+                            crawler_requests_per_day_per_node: this.config.crawler_requests_per_day_per_node,
+                            crawler_refresh_days: this.config.crawler_refresh_days,
+                        },
+                        "smart_crawler"
+                    );
+                },
+                1000,
+                [
+                    "crawler_max_retries",
+                    "crawler_retry_delay_seconds",
+                    "crawler_max_concurrent",
+                    "crawler_max_hops",
+                    "crawler_max_rtt_ms",
+                    "crawler_max_depth",
+                    "crawler_max_pages_per_node",
+                    "crawler_requests_per_day_per_node",
+                    "crawler_refresh_days",
+                ]
+            );
         },
         async onTelephoneEnabledChange(value) {
             this.config.telephone_enabled = value;
             try {
                 const newConfig = await patchServerConfig({ telephone_enabled: value }, window.api);
-                this.config = newConfig;
+                this.config = this.configPreservingPendingSaves(newConfig);
                 ToastUtils.success(value ? this.$t("call.telephony_enabled") : this.$t("call.telephony_disabled"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_update_call_settings"));
@@ -5178,63 +5340,85 @@ export default {
             this.onOidcConfigChange();
         },
         onOidcConfigChange() {
-            if (this.saveTimeouts.oidc) clearTimeout(this.saveTimeouts.oidc);
-            this.saveTimeouts.oidc = setTimeout(async () => {
-                const payload = {
-                    oidc_issuer_url: this.config.oidc_issuer_url,
-                    oidc_client_id: this.config.oidc_client_id,
-                    oidc_display_name: this.config.oidc_display_name,
-                    oidc_scopes: this.config.oidc_scopes,
-                };
-                if (this.oidcSecretClear) {
-                    payload.oidc_client_secret = null;
-                } else if (this.oidcSecretDirty && this.oidcClientSecret) {
-                    // An empty field means unchanged, not cleared. Only an
-                    // explicit clear action sends null.
-                    payload.oidc_client_secret = this.oidcClientSecret;
-                }
-                await this.updateConfig(payload, "oidc_settings");
-                this.oidcClientSecret = "";
-                this.oidcSecretDirty = false;
-                this.oidcSecretClear = false;
-            }, 1000);
+            this.queueConfigSave(
+                "oidc",
+                async () => {
+                    const payload = {
+                        oidc_issuer_url: this.config.oidc_issuer_url,
+                        oidc_client_id: this.config.oidc_client_id,
+                        oidc_display_name: this.config.oidc_display_name,
+                        oidc_scopes: this.config.oidc_scopes,
+                    };
+                    if (this.oidcSecretClear) {
+                        payload.oidc_client_secret = null;
+                    } else if (this.oidcSecretDirty && this.oidcClientSecret) {
+                        // An empty field means unchanged, not cleared. Only an
+                        // explicit clear action sends null.
+                        payload.oidc_client_secret = this.oidcClientSecret;
+                    }
+                    await this.updateConfig(payload, "oidc_settings");
+                    this.oidcClientSecret = "";
+                    this.oidcSecretDirty = false;
+                    this.oidcSecretClear = false;
+                },
+                1000,
+                ["oidc_issuer_url", "oidc_client_id", "oidc_display_name", "oidc_scopes", "oidc_client_secret"]
+            );
         },
         async onGiteaConfigChange() {
-            if (this.saveTimeouts.gitea) clearTimeout(this.saveTimeouts.gitea);
-            this.saveTimeouts.gitea = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        gitea_base_url: this.config.gitea_base_url,
-                    },
-                    "Infrastructure"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "gitea",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            gitea_base_url: this.config.gitea_base_url,
+                        },
+                        "Infrastructure"
+                    );
+                },
+                1000,
+                ["gitea_base_url"]
+            );
         },
         async onCspConfigChange() {
-            if (this.saveTimeouts.csp) clearTimeout(this.saveTimeouts.csp);
-            this.saveTimeouts.csp = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        csp_extra_connect_src: this.config.csp_extra_connect_src,
-                        csp_extra_img_src: this.config.csp_extra_img_src,
-                        csp_extra_frame_src: this.config.csp_extra_frame_src,
-                        csp_extra_script_src: this.config.csp_extra_script_src,
-                        csp_extra_style_src: this.config.csp_extra_style_src,
-                    },
-                    "csp_settings"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "csp",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            csp_extra_connect_src: this.config.csp_extra_connect_src,
+                            csp_extra_img_src: this.config.csp_extra_img_src,
+                            csp_extra_frame_src: this.config.csp_extra_frame_src,
+                            csp_extra_script_src: this.config.csp_extra_script_src,
+                            csp_extra_style_src: this.config.csp_extra_style_src,
+                        },
+                        "csp_settings"
+                    );
+                },
+                1000,
+                [
+                    "csp_extra_connect_src",
+                    "csp_extra_img_src",
+                    "csp_extra_frame_src",
+                    "csp_extra_script_src",
+                    "csp_extra_style_src",
+                ]
+            );
         },
         async onBackupConfigChange() {
-            if (this.saveTimeouts.backup) clearTimeout(this.saveTimeouts.backup);
-            this.saveTimeouts.backup = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        backup_max_count: this.config.backup_max_count,
-                    },
-                    "backup_max_count"
-                );
-            }, 1000);
+            this.queueConfigSave(
+                "backup",
+                async () => {
+                    await this.updateConfig(
+                        {
+                            backup_max_count: this.config.backup_max_count,
+                        },
+                        "backup_max_count"
+                    );
+                },
+                1000,
+                ["backup_max_count"]
+            );
         },
         async flushArchivedPages() {
             if (!(await DialogUtils.confirm(this.$t("settings.flush_archived_pages_confirm")))) {

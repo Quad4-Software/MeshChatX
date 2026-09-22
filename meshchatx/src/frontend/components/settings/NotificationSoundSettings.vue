@@ -172,10 +172,17 @@ export default {
             sounds: [],
             isUploading: false,
             playingSoundId: null,
+            volumeSaveTimer: null,
         };
     },
     mounted() {
         this.loadSounds();
+    },
+    beforeUnmount() {
+        if (this.volumeSaveTimer) {
+            clearTimeout(this.volumeSaveTimer);
+            this.volumeSaveTimer = null;
+        }
     },
     methods: {
         async loadSounds() {
@@ -192,7 +199,15 @@ export default {
         },
         onVolumeChange(event) {
             const value = Number(event.target.value);
-            this.updateConfig({ notification_sound_volume: value }, "notification_sound_volume");
+            // The slider fires per input event; debounce so a drag does
+            // not PATCH /config for every step.
+            if (this.volumeSaveTimer) {
+                clearTimeout(this.volumeSaveTimer);
+            }
+            this.volumeSaveTimer = setTimeout(() => {
+                this.volumeSaveTimer = null;
+                this.updateConfig({ notification_sound_volume: value }, "notification_sound_volume");
+            }, 400);
         },
         onPreferredChange(event) {
             const value = Number(event.target.value);

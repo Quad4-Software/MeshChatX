@@ -58,6 +58,29 @@ describe("swCachePolicy", () => {
         expect(isNavigationRequest(req("https://127.0.0.1/assets/x.js"))).toBe(false);
     });
 
+    it("does not treat iframe subframe loads as shell navigations", () => {
+        // The crash-tab iframe sends mode=navigate with destination=iframe;
+        // classifying it as a shell navigation would let its document
+        // overwrite the "/" fallback slot.
+        expect(
+            isNavigationRequest(
+                req("https://127.0.0.1/nomad-crash-tab.html", {
+                    mode: "navigate",
+                    destination: "iframe",
+                    headers: { accept: "text/html" },
+                })
+            )
+        ).toBe(false);
+        expect(
+            isNavigationRequest(
+                req("https://127.0.0.1/nomad-crash-tab.html", {
+                    mode: "navigate",
+                    destination: "document",
+                })
+            )
+        ).toBe(true);
+    });
+
     it("bypasses non-GET, API, ws, and service worker script", () => {
         const apiUrl = new URL("https://127.0.0.1/api/v1/status");
         expect(shouldBypassCache(req(apiUrl.href, { method: "POST" }), apiUrl)).toBe(true);

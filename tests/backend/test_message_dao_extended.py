@@ -77,12 +77,13 @@ def test_mark_stuck_messages_never_fails_incoming_messages(real_db):
 
 def test_mark_stuck_messages_repairs_previously_failed_incoming(real_db):
     # Simulate a database corrupted by the previous buggy sweep that flipped
-    # received messages to "failed".
+    # received messages to "failed". The row was received, so it must land
+    # on a terminal state: nothing advances an incoming generating row.
     _insert_message(real_db, "a" * 32, is_incoming=1, state="failed")
 
     real_db.messages.mark_stuck_messages_as_failed()
 
-    assert real_db.messages.get_lxmf_message_by_hash("a" * 32)["state"] == "generating"
+    assert real_db.messages.get_lxmf_message_by_hash("a" * 32)["state"] == "delivered"
 
 
 def test_update_state_never_regresses_terminal_to_progress(real_db):

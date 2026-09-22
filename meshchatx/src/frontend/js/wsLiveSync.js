@@ -244,6 +244,12 @@ export function installWsLiveSync(options) {
     }
 
     function onReady() {
+        // A fresh session means any latched subscribe was sent on a dead
+        // socket and its reply can never arrive. Release it so the resubscribe
+        // is not skipped until the 15s watchdog fires.
+        if (pendingSyncRequestId != null) {
+            releaseSyncRequest(pendingSyncRequestId);
+        }
         void requestSyncSubscribe();
     }
 

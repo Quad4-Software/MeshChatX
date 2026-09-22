@@ -22,11 +22,13 @@ type InterfaceIn struct {
 
 // DiscoveredIn is a preformatted discovered-interface row.
 type DiscoveredIn struct {
-	ID        string   `json:"id"`
-	Label     string   `json:"label"`
-	Title     string   `json:"title"`
-	Connected bool     `json:"connected"`
-	Hops      *float64 `json:"hops"`
+	ID          string   `json:"id"`
+	Label       string   `json:"label"`
+	Title       string   `json:"title"`
+	Connected   bool     `json:"connected"`
+	Hops        *float64 `json:"hops"`
+	ReachableOn string   `json:"reachable_on"`
+	TransportID string   `json:"transport_id"`
 }
 
 // FullRequest builds the entire visualiser graph in one WASM pass.
@@ -108,6 +110,9 @@ func BuildFullGraph(req FullRequest) FullResult {
 			return
 		}
 		seen[n.ID] = struct{}{}
+		if n.OriginalColor == nil {
+			n.OriginalColor = n.Color
+		}
 		nodes = append(nodes, n)
 		nodeIDs = append(nodeIDs, n.ID)
 		layoutNodes = append(layoutNodes, LayoutBody{ID: n.ID, X: n.X, Y: n.Y, Mass: mass, Fixed: fixed, Radius: n.Size})
@@ -225,10 +230,14 @@ func BuildFullGraph(req FullRequest) FullResult {
 			if req.HopMax != nil && disc.Hops != nil && *disc.Hops > *req.HopMax {
 				continue
 			}
-			if !filter.MatchesSearch(searchLower, disc.Label) {
+			// Same predicate as the JS payload builder: label, reachable_on,
+			// or transport_id.
+			if !filter.MatchesSearch(searchLower, disc.Label) &&
+				!filter.MatchesSearch(searchLower, disc.ReachableOn) &&
+				!filter.MatchesSearch(searchLower, disc.TransportID) {
 				continue
 			}
-			x, y := hashpos.XY(disc.ID, 480, 160)
+			x, y := hashpos.XY(disc.ID, 560, 240)
 			p := resolveOr(pos, disc.ID, x, y)
 			node := NodeOut{
 				ID:            disc.ID,
@@ -276,6 +285,15 @@ func BuildFullGraph(req FullRequest) FullResult {
 		addNode(n, 1, false)
 	}
 	for _, e := range pathRes.Edges {
+		// Path edges point at interface nodes that the search filter may
+		// have dropped above; skip any edge whose endpoint is not in the
+		// emitted node set so vis-network never sees a dangling ref.
+		if _, ok := seen[e.From]; !ok {
+			continue
+		}
+		if _, ok := seen[e.To]; !ok {
+			continue
+		}
 		addEdge(e, layout.SpringLength(e.Width))
 	}
 	iconQueue = append(iconQueue, pathRes.IconQueue...)

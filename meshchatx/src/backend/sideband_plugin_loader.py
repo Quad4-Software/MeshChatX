@@ -60,6 +60,22 @@ class SidebandPluginLoader:
         ):
             cfg.command_plugins_enabled.set(bool(command_plugins_enabled))
         if command_plugins_path is not None and hasattr(cfg, "command_plugins_path"):
+            # HTTP-settable path selects a directory whose .py files are exec'd
+            # in-process. Jail it under a dedicated storage subdir so a remote
+            # caller cannot point the loader at an attacker-writable or
+            # arbitrary host directory. Local admins can still set other paths
+            # by editing the config file directly.
+            if command_plugins_path:
+                plugin_root = os.path.realpath(
+                    os.path.join(self.app.storage_dir, "sideband-plugins")
+                )
+                requested = os.path.realpath(os.path.expanduser(command_plugins_path))
+                if requested != plugin_root and not requested.startswith(
+                    plugin_root + os.sep
+                ):
+                    raise ValueError(
+                        "command_plugins_path must be inside the app storage sideband-plugins directory"
+                    )
             cfg.command_plugins_path.set(command_plugins_path or None)
         return self.reload()
 

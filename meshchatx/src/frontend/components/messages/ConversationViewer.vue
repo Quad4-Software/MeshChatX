@@ -2449,6 +2449,9 @@ export default {
                 this.teardownPeerHeaderResizeObserver();
                 this.disconnectOpenConversationScrollObserver();
                 this.scrollBottomGen += 1;
+                // Invalidate in-flight page fetches for the old peer so a late
+                // response cannot merge or stash under the new peer's hash.
+                this.lxmfMessagesRequestSequence += 1;
                 this.autoScrollOnNewMessage = true;
                 this.messagesViewportReady = false;
                 if (!newPeer) {
@@ -2608,13 +2611,16 @@ export default {
         }
         this.disconnectOpenConversationScrollObserver();
         this.cancelAutoLoadAudioAttachments();
+        this._markReadTarget = null;
         this.clearAudioAttachmentCache();
         this.revokeNewMessageAudioPreview();
         this._unmounted = true;
         this._outboundQueue?.clear();
         // Stop the recorder and release the mic; the resulting preview URL is
-        // revoked once the stop resolves.
-        void Promise.resolve(this.stopRecordingAudioAttachment()).then(() => this.revokeNewMessageAudioPreview());
+        // revoked once the stop settles, even when the stop itself fails.
+        void Promise.resolve(this.stopRecordingAudioAttachment())
+            .catch((e) => console.error(e))
+            .finally(() => this.revokeNewMessageAudioPreview());
     },
     methods: {
         updateKeyboardInset() {
@@ -3171,13 +3177,18 @@ export default {
                 this.isStrangerPeer = false;
                 return;
             }
+            const peerHash = this.selectedPeer.destination_hash;
             try {
-                const response = await window.api.get(
-                    apiPath(`/telephone/contacts/check/${this.selectedPeer.destination_hash}`)
-                );
+                const response = await window.api.get(apiPath(`/telephone/contacts/check/${peerHash}`));
+                // The peer can switch while the check is in flight.
+                if (this.selectedPeer?.destination_hash !== peerHash) {
+                    return;
+                }
                 this.isStrangerPeer = !response.data.is_contact;
             } catch {
-                this.isStrangerPeer = !this.selectedPeer.is_contact && !this.selectedPeer.contact_image;
+                if (this.selectedPeer?.destination_hash === peerHash) {
+                    this.isStrangerPeer = !this.selectedPeer.is_contact && !this.selectedPeer.contact_image;
+                }
             }
         },
         async addStrangerAsContact() {
@@ -3362,6 +3373,13 @@ export default {
                 return;
             }
 
+            // Pin the peer hash for this request: a peer switch mid-flight
+            // must not read the new peer's composer or stash under its hash.
+            const peerHash = this.selectedPeer?.destination_hash;
+            if (!peerHash) {
+                return;
+            }
+
             this.loadPreviousInFlight += 1;
             this.isLoadingPrevious = true;
 
@@ -3370,12 +3388,11 @@ export default {
 
                 const pageSize = CONVERSATION_MESSAGES_PAGE_SIZE;
                 // First page may have been warmed by a sidebar hover/focus prefetch.
-                const prefetched =
-                    this.oldestMessageId == null ? takeConversationPrefetch(this.selectedPeer.destination_hash) : null;
+                const prefetched = this.oldestMessageId == null ? takeConversationPrefetch(peerHash) : null;
                 let response = prefetched ? await prefetched : null;
                 const paintedFromCache = Boolean(prefetched && response);
                 if (!response) {
-                    response = await lxmfMessagesApi.getConversation(this.selectedPeer.destination_hash, {
+                    response = await lxmfMessagesApi.getConversation(peerHash, {
                         params: {
                             count: pageSize,
                             order: "desc",
@@ -3393,7 +3410,7 @@ export default {
                 // Cached pages are not restashed here: that would renew the
                 // stale TTL. softResyncOpenConversation stashes the fresh page.
                 if (this.oldestMessageId == null && !paintedFromCache) {
-                    stashConversationFirstPage(this.selectedPeer.destination_hash, response.data);
+                    stashConversationFirstPage(peerHash, response.data);
                 }
                 if (paintedFromCache) {
                     this._paintedFirstPageFromCache = true;
@@ -3401,7 +3418,10 @@ export default {
 
                 const chatItems = [];
                 const rawList = response.data?.lxmf_messages;
-                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(Array.isArray(rawList) ? rawList : []);
+                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(
+                    Array.isArray(rawList) ? rawList : [],
+                    this.chatItems.map((c) => c?.lxmf_message)
+                );
                 const myHash = (this.myLxmfAddressHash || "").toLowerCase();
                 for (const lxmfMessage of lxmfMessages) {
                     const src = (lxmfMessage.source_hash || "").toLowerCase();
@@ -3705,7 +3725,10 @@ export default {
                 // page we just merged rather than an older snapshot.
                 stashConversationFirstPage(peerHash, response.data);
                 const rawList = response.data?.lxmf_messages;
-                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(Array.isArray(rawList) ? rawList : []);
+                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(
+                    Array.isArray(rawList) ? rawList : [],
+                    this.chatItems.map((c) => c?.lxmf_message)
+                );
                 const myHash = (this.myLxmfAddressHash || "").toLowerCase();
                 let added = false;
                 // API returns newest-first; apply oldest-first so append order stays chronological.
@@ -3850,6 +3873,12 @@ export default {
                 return;
             }
 
+            // Delivery events and resync merges can repeat a message that is
+            // already rendered; pushing it again would duplicate the bubble.
+            if (lxmfMessage.hash && this.isLxmfMessageInUi(lxmfMessage.hash)) {
+                return;
+            }
+
             this._pushChatItem({
                 type: "lxmf_message",
                 is_outbound: false,
@@ -3860,9 +3889,7 @@ export default {
             const conversation = this.findConversation(this.selectedPeer.destination_hash);
             const target = conversation || this.selectedPeer;
             if (target) {
-                // Force mark even when local is_unread is still false. Delivery bumps the
-                // nav badge from the server before the conversation list refreshes.
-                this.markConversationAsRead(target, { force: true });
+                this._scheduleMarkSelectedPeerRead(target);
             }
 
             if (this.autoScrollOnNewMessage) {
@@ -3870,6 +3897,25 @@ export default {
             }
 
             this.autoLoadAudioAttachments();
+        },
+        _scheduleMarkSelectedPeerRead(target) {
+            // Force mark even when local is_unread is still false. Delivery bumps the
+            // nav badge from the server before the conversation list refreshes.
+            // A resync merges messages in one synchronous pass, so queueing on a
+            // microtask collapses the burst into a single POST.
+            this._markReadTarget = target;
+            if (this._markReadQueued) {
+                return;
+            }
+            this._markReadQueued = true;
+            void Promise.resolve().then(() => {
+                this._markReadQueued = false;
+                const pendingTarget = this._markReadTarget;
+                this._markReadTarget = null;
+                if (pendingTarget && !this._unmounted) {
+                    this.markConversationAsRead(pendingTarget, { force: true });
+                }
+            });
         },
         onLxmfMessageCreated(lxmfMessage) {
             if (!this._hexEqual(lxmfMessage.destination_hash, this.selectedPeer?.destination_hash)) {
@@ -3881,7 +3927,7 @@ export default {
                 return;
             }
 
-            this.removeAllPendingOutboundPlaceholdersForPeer(lxmfMessage.destination_hash);
+            this.removeAllPendingOutboundPlaceholdersForPeer(lxmfMessage.destination_hash, lxmfMessage);
             this.reconcileOutboundPendingPlaceholders(lxmfMessage);
 
             if (!this.isLxmfMessageInUi(lxmfMessage.hash)) {
@@ -5024,10 +5070,14 @@ export default {
             }
             this._invalidateDisplayGroupsCache();
         },
-        removeAllPendingOutboundPlaceholdersForPeer(destinationHash) {
+        removeAllPendingOutboundPlaceholdersForPeer(destinationHash, matchMessage = null) {
             if (!destinationHash) {
                 return;
             }
+            // When a real message is given only its own placeholder is removed.
+            // Other in-flight sends for this peer must keep their bubble so a
+            // later failure can still mark it failed and offer retry.
+            const matchKey = matchMessage ? this._outboundPendingMatchKey(matchMessage) : null;
             this.chatItems = this.chatItems.filter((item) => {
                 const h = item.lxmf_message?.hash;
                 if (
@@ -5035,6 +5085,10 @@ export default {
                     this._isPendingOutboundHash(h) &&
                     this._hexEqual(item.lxmf_message?.destination_hash, destinationHash)
                 ) {
+                    if (matchMessage) {
+                        const key = this._outboundPendingMatchKey(item.lxmf_message);
+                        return !key || key !== matchKey;
+                    }
                     return false;
                 }
                 return true;
@@ -5046,8 +5100,8 @@ export default {
         },
         _absorbOutboundSendResponse(job, lxmfMessage) {
             this.removePendingOutboundPlaceholder(job?.pendingHash);
-            if (job?.destinationHash) {
-                this.removeAllPendingOutboundPlaceholdersForPeer(job.destinationHash);
+            if (job?.destinationHash && lxmfMessage) {
+                this.removeAllPendingOutboundPlaceholdersForPeer(job.destinationHash, lxmfMessage);
             }
             this.reconcileOutboundPendingPlaceholders(lxmfMessage);
             if (lxmfMessage?.hash && !this.isLxmfMessageInUi(lxmfMessage.hash)) {
@@ -5674,24 +5728,33 @@ export default {
             }
         },
         async processAudioForSelectedPeerChatItems() {
+            if (!this._audioDecodeInFlight) {
+                this._audioDecodeInFlight = new Set();
+            }
             for (const chatItem of this.selectedPeerChatItems) {
+                const hash = chatItem.lxmf_message?.hash;
                 // skip if no audio, or if audio bytes are missing (must be downloaded manually)
                 if (!chatItem.lxmf_message?.fields?.audio || !chatItem.lxmf_message.fields.audio.audio_bytes) {
                     continue;
                 }
 
-                // skip if audio already cached
-                if (this.lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]) {
+                // skip if audio already cached or another run is decoding it
+                if (this.lxmfMessageAudioAttachmentCache[hash] || this._audioDecodeInFlight.has(hash)) {
                     continue;
                 }
 
                 // decode audio to blob url
-                const objectUrl = await this.decodeLxmfAudioFieldToBlobUrl(chatItem.lxmf_message.fields.audio);
-                if (!objectUrl) {
-                    continue;
-                }
+                this._audioDecodeInFlight.add(hash);
+                try {
+                    const objectUrl = await this.decodeLxmfAudioFieldToBlobUrl(chatItem.lxmf_message.fields.audio);
+                    if (!objectUrl) {
+                        continue;
+                    }
 
-                this.rememberAudioAttachment(chatItem.lxmf_message.hash, objectUrl);
+                    this.rememberAudioAttachment(hash, objectUrl);
+                } finally {
+                    this._audioDecodeInFlight.delete(hash);
+                }
             }
         },
         async decodeLxmfAudioFieldToBlobUrl(audioField) {
@@ -5953,8 +6016,11 @@ export default {
             if (!this.selectedPeer) {
                 return;
             }
+            // Pin the peer this send was started for. A queued click must not
+            // snapshot a cleared composer or a different peer's restored draft.
+            const composePeerHash = this.selectedPeer.destination_hash;
             this._sendMessageChain = (this._sendMessageChain || Promise.resolve()).then(() =>
-                this._enqueueOutboundFromCompose()
+                this._enqueueOutboundFromCompose(composePeerHash)
             );
             await this._sendMessageChain;
         },
@@ -5967,10 +6033,24 @@ export default {
             const peer = peerHash.toLowerCase();
             return (mine && peer === mine) || (identity && peer === identity);
         },
-        async _enqueueOutboundFromCompose() {
+        async _enqueueOutboundFromCompose(composePeerHash) {
             try {
+                // Silently drop queued sends whose composer was cleared or
+                // whose peer changed while they waited behind an earlier send.
+                if (
+                    !composePeerHash ||
+                    !this._hexEqual(this.selectedPeer?.destination_hash, composePeerHash) ||
+                    !this.canSendMessage
+                ) {
+                    return;
+                }
                 const job = await this.buildOutboundJobSnapshot();
                 if (!job) {
+                    return;
+                }
+                // The snapshot awaits file/image/audio reads; bail if the peer
+                // changed while they were in flight so jobs never mix peers.
+                if (!this._hexEqual(this.selectedPeer?.destination_hash, composePeerHash)) {
                     return;
                 }
                 this._outboundQueue.enqueue(job);

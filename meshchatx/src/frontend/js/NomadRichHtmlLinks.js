@@ -124,7 +124,14 @@ export function handleRichHtmlLinkClick(event, options = {}) {
     ) {
         stopEvent(event);
         const raw = fragAnchor.getAttribute("href").slice(1);
-        scrollToElementId(decodeURIComponent(raw), scrollRoot);
+        let id = raw;
+        try {
+            id = decodeURIComponent(raw);
+        } catch {
+            // malformed percent escapes in remote content must not throw
+            return true;
+        }
+        scrollToElementId(id, scrollRoot);
         return true;
     }
 

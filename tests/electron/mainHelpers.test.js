@@ -4,6 +4,8 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const {
     getUserProvidedArguments,
+    findProtocolUrlArg,
+    hasArgvFlag,
     parseArgvFlag,
     resolvePortableStorageRoots,
     formatRenderProcessGoneDetails,
@@ -126,8 +128,34 @@ describe("electron/mainHelpers", () => {
         expect(isTrustedIpcEvent(null)).toBe(false);
     });
 
+    it("getUserProvidedArguments strips deep link URL args so the backend parser never sees them", () => {
+        const argv = ["/app/electron", "lxmf://a1b2c3", "--no-https", "rns://deadbeef"];
+        expect(getUserProvidedArguments(argv)).toEqual(["--no-https"]);
+    });
+
+    it("findProtocolUrlArg returns the first lxmf/rns arg regardless of position", () => {
+        expect(findProtocolUrlArg(["/app/electron", "--no-https", "lxmf://abc", "extra"])).toBe("lxmf://abc");
+        expect(findProtocolUrlArg(["/app/electron", "rns://xyz"])).toBe("rns://xyz");
+        expect(findProtocolUrlArg(["/app/electron", "https://example.com"])).toBeNull();
+        expect(findProtocolUrlArg(["/app/electron"])).toBeNull();
+        expect(findProtocolUrlArg(null)).toBeNull();
+    });
+
+    it("hasArgvFlag matches both --flag and --flag=value forms", () => {
+        expect(hasArgvFlag(["--storage-dir", "/x"], "--storage-dir")).toBe(true);
+        expect(hasArgvFlag(["--storage-dir=/x"], "--storage-dir")).toBe(true);
+        expect(hasArgvFlag(["--other"], "--storage-dir")).toBe(false);
+        expect(hasArgvFlag(null, "--storage-dir")).toBe(false);
+    });
+
     it("parseArgvFlag reads a value following the flag", () => {
         expect(parseArgvFlag(["--storage-dir", "/mnt/persist"], "--storage-dir")).toBe("/mnt/persist");
+    });
+
+    it("parseArgvFlag reads the --flag=value form", () => {
+        expect(parseArgvFlag(["--storage-dir=/mnt/persist"], "--storage-dir")).toBe("/mnt/persist");
+        expect(parseArgvFlag(["--data-dir=/mnt/usb", "--headless"], "--data-dir")).toBe("/mnt/usb");
+        expect(parseArgvFlag(["--storage-dir="], "--storage-dir")).toBeNull();
     });
 
     it("parseArgvFlag returns null when the flag is missing or has no value", () => {
@@ -163,6 +191,14 @@ describe("electron/mainHelpers resolvePortableStorageRoots (portable mode)", () 
         expect(roots).toEqual({
             storageDir: path.resolve("/mnt/tails/persist", "storage"),
             reticulumConfigDir: path.resolve("/mnt/tails/persist", ".reticulum"),
+        });
+    });
+
+    it("derives storage and reticulum roots from the --data-dir=PATH form", () => {
+        const roots = resolve({ argv: ["/app/electron", "--data-dir=/mnt/usb"] });
+        expect(roots).toEqual({
+            storageDir: path.resolve("/mnt/usb", "storage"),
+            reticulumConfigDir: path.resolve("/mnt/usb", ".reticulum"),
         });
     });
 

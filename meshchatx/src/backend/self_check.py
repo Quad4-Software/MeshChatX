@@ -37,6 +37,11 @@ _CRITICAL_IMPORTS = (
 
 _SELF_CHECK_PROBE_MODULE = "meshchatx.src.backend.self_check_probe"
 _MESHCHATX_RUN_MODULE_FLAG = "--meshchatx-run-module"
+# The AppContainer probe child is a trivial snippet that should exit in
+# seconds. Bound the wait so a wedged sandboxed child reports FAILED with
+# diagnostics instead of hanging the whole self-check until the CI job is
+# canceled.
+_APPCONTAINER_PROBE_WAIT_S = 120.0
 
 SELF_CHECK_LABELS = {
     "stack_up": "Network Stack          ",
@@ -457,6 +462,7 @@ def check_appcontainer_launch() -> dict[str, str]:
                     forced=True,
                     use_lpac=use_lpac,
                     child_log_path=child_log,
+                    wait_timeout_s=_APPCONTAINER_PROBE_WAIT_S,
                 )
                 results.append((use_lpac, result))
                 # Production treats LPAC loader-init exits (0xC0000142 and
@@ -476,12 +482,31 @@ def check_appcontainer_launch() -> dict[str, str]:
         else:
             os.environ[env_flag] = previous
 
+    detail = ""
+    if os.path.isfile(child_log):
+        with open(child_log, encoding="utf-8", errors="replace") as handle:
+            tail = handle.read().strip().splitlines()[-5:]
+        if tail:
+            detail = ", child log: " + " | ".join(tail)
+
     try:
         for use_lpac, result in results:
             if not result.ok:
-                return _status(False, f"sandboxed spawn failed: {result.error}")
+                return _status(
+                    False,
+                    f"sandboxed spawn failed: {result.error}{detail}",
+                )
             if result.fell_back or not result.used_appcontainer:
-                return _status(False, "probe did not run inside the AppContainer")
+                return _status(
+                    False,
+                    f"probe did not run inside the AppContainer{detail}",
+                )
+            if result.exit_code == ac._CHILD_WAIT_TIMEOUT_EXIT:
+                return _status(
+                    False,
+                    "sandboxed child did not exit within "
+                    f"{_APPCONTAINER_PROBE_WAIT_S}s{detail}",
+                )
             marker_ok = False
             if os.path.isfile(marker):
                 with open(marker, encoding="utf-8") as handle:
@@ -489,12 +514,6 @@ def check_appcontainer_launch() -> dict[str, str]:
             if marker_ok:
                 mode = "lpac" if use_lpac else "plain"
                 return _status(True, f"child ran inside AppContainer ({mode})")
-        detail = ""
-        if os.path.isfile(child_log):
-            with open(child_log, encoding="utf-8", errors="replace") as handle:
-                tail = handle.read().strip().splitlines()[-5:]
-            if tail:
-                detail = ", child log: " + " | ".join(tail)
         return _status(
             False,
             f"sandboxed child exited {result.exit_code} without marker{detail}",
@@ -1175,28 +1194,7 @@ async def _build_probe_aio_app(app: Any):
         except Exception:
             pass
     routes = web.RouteTableDef()
-    (
-        bad_req_mw,
-        sqlite_mw,
-        auth_mw,
-        mime_mw,
-        sec_mw,
-        csrf_mw,
-        ip_mw,
-        demo_mw,
-    ) = app._define_routes(routes)
-    aio_app = web.Application(
-        middlewares=[
-            bad_req_mw,
-            sqlite_mw,
-            auth_mw,
-            mime_mw,
-            sec_mw,
-            csrf_mw,
-            ip_mw,
-            demo_mw,
-        ],
-    )
+    aio_app = web.Application(middlewares=list(app._define_routes(routes)))
     setup_session(aio_app, app._encrypted_cookie_storage(use_https=False))
     aio_app.add_routes(routes)
     return aio_app

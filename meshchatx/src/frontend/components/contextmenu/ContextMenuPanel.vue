@@ -1,17 +1,22 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div v-if="show" ref="panel" class="context-menu-panel" :class="panelClass" :style="panelStyle" v-bind="$attrs">
-        <slot name="header" />
-        <slot />
+    <!-- Single element root: directives like v-click-outside are ignored on
+         fragment roots. display:contents keeps this wrapper box-free so fixed
+         positioning and layout are unchanged. -->
+    <div class="contents">
+        <div v-if="show" ref="panel" class="context-menu-panel" :class="panelClass" :style="panelStyle" v-bind="$attrs">
+            <slot name="header" />
+            <slot />
+        </div>
+        <div
+            v-if="show && caretStyle"
+            class="dropdown-caret fixed z-300 border-sem-border"
+            :class="caretBorderClass"
+            :style="caretStyle"
+            aria-hidden="true"
+        ></div>
     </div>
-    <div
-        v-if="show && caretStyle"
-        class="dropdown-caret fixed z-300 border-sem-border"
-        :class="caretBorderClass"
-        :style="caretStyle"
-        aria-hidden="true"
-    ></div>
 </template>
 
 <script>
@@ -130,14 +135,17 @@ export default {
         updateCaret(left, top, width, height) {
             const ox = this.x;
             const oy = this.y;
-            const insideX = ox > left + 4 && ox < left + width - 4;
-            const insideY = oy > top + 4 && oy < top + height - 4;
+            // An anchor inside or on the panel edge has nothing to point at.
+            const insideX = ox >= left && ox <= left + width;
+            const insideY = oy >= top && oy <= top + height;
             if (insideX && insideY) {
                 this.caretStyle = null;
                 return;
             }
             const size = 5;
-            const margin = 12;
+            // Keep the caret on the straight part of the edge: rounded-xl
+            // corners span 12px and the caret is 10px wide.
+            const margin = 18;
             if (oy <= top) {
                 const cx = Math.min(Math.max(ox, left + margin), left + width - margin);
                 this.caretStyle = { left: `${cx - size}px`, top: `${top - size}px` };

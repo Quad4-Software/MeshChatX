@@ -1,6 +1,6 @@
 {
   "version": "1.2.0",
-  "wasm": "sha384-EgnTck5dIanitGVkvie622e0yyM1Vpu57WwHnGau0JS4Y9cJZ2gW5PhtDIJCZLa5",
+  "wasm": "sha384-9KHAq3z2M2bvrfTa/N6y4JYLCNzGe57UvGFn9iio6bSLddCLyafLKqB2hcW0rvf6",
   "wasmExec": "sha384-PWCs+V4BDf9yY1yjkD/p+9xNEs4iEbuvq+HezAOJiY3XL5GI6VyJXMsvnjiwNbce",
-  "wasmExecSource": "/home/user1/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.linux-amd64/lib/wasm/wasm_exec.js"
+  "wasmExecSource": "/usr/lib/go/lib/wasm/wasm_exec.js"
 }

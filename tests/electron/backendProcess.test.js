@@ -11,7 +11,22 @@ function createFakeChildProcess() {
     proc.pid = 4242;
     proc.exitCode = null;
     proc.signalCode = null;
+    proc.kill = vi.fn();
     return proc;
+}
+
+function createManager(overrides = {}) {
+    return createBackendProcessManager({
+        log: vi.fn(),
+        getDefaultStorageDir: () => "/tmp/storage",
+        getDefaultReticulumConfigDir: () => "/tmp/reticulum",
+        getMainWindowPageKind: () => "app",
+        isQuiting: () => false,
+        notifyRenderer: vi.fn(),
+        showCrashPage: vi.fn(),
+        spawn: vi.fn(),
+        ...overrides,
+    });
 }
 
 describe("electron/backendProcess", () => {
@@ -276,5 +291,67 @@ describe("electron/backendProcess", () => {
                 process.env.MESHCHAT_APPCONTAINER = previousEnv;
             }
         }
+    });
+
+    it("attaches an error listener before the pid check so spawn ENOENT cannot crash", async () => {
+        const { EventEmitter } = require("node:events");
+        const badProc = new EventEmitter();
+        badProc.pid = undefined;
+        const manager = createManager({ spawn: vi.fn(() => badProc) });
+        manager.setUserProvidedArguments([]);
+        await expect(
+            manager.spawnBackend("/nonexistent/ReticulumMeshChatX", { backend: { ok: true, issues: [] } })
+        ).rejects.toThrow("no PID");
+        // The late async spawn error must be consumed by the guard listener.
+        expect(() => badProc.emit("error", new Error("spawn ENOENT"))).not.toThrow();
+    });
+
+    it("does not add default dir flags when argv uses the --flag=value form", async () => {
+        const proc = createFakeChildProcess();
+        const spawn = vi.fn(() => proc);
+        const manager = createManager({ spawn });
+        manager.setUserProvidedArguments(["--storage-dir=/custom/storage", "--reticulum-config-dir=/custom/rns"]);
+        await manager.spawnBackend("/tmp/ReticulumMeshChatX", { backend: { ok: true, issues: [] } });
+        const args = spawn.mock.calls[0][1];
+        expect(args).not.toContain("--storage-dir");
+        expect(args).not.toContain("--reticulum-config-dir");
+        expect(args).toContain("--storage-dir=/custom/storage");
+        expect(args).toContain("--reticulum-config-dir=/custom/rns");
+    });
+
+    it("runMaintenanceTask stops the backend, awaits its exit, and tracks the maintenance child", async () => {
+        const backendProc = createFakeChildProcess();
+        backendProc.kill = vi.fn(() => {
+            backendProc.exitCode = 0;
+            setImmediate(() => backendProc.emit("exit", 0));
+        });
+        const maintProc = createFakeChildProcess();
+        maintProc.pid = 5555;
+        const spawn = vi.fn().mockReturnValueOnce(backendProc).mockReturnValueOnce(maintProc);
+        const manager = createManager({ spawn });
+        manager.setUserProvidedArguments([]);
+        manager.resolveExecutablePath(() => "/tmp/ReticulumMeshChatX");
+
+        await manager.spawnBackend("/tmp/ReticulumMeshChatX", { backend: { ok: true, issues: [] } });
+        const promise = manager.runMaintenanceTask(["--restore-db", "/tmp/backup.zip"]);
+        await vi.waitFor(() => expect(manager.getChildProcess()).toBe(maintProc));
+        expect(backendProc.kill).toHaveBeenCalledWith("SIGTERM");
+
+        maintProc.emit("exit", 0);
+        const result = await promise;
+        expect(result.ok).toBe(true);
+        expect(manager.getChildProcess()).toBeNull();
+    });
+
+    it("runMaintenanceTask reports spawn failure without an unhandled error event", async () => {
+        const { EventEmitter } = require("node:events");
+        const badProc = new EventEmitter();
+        badProc.pid = undefined;
+        const manager = createManager({ spawn: vi.fn(() => badProc) });
+        manager.setUserProvidedArguments([]);
+        manager.resolveExecutablePath(() => "/tmp/ReticulumMeshChatX");
+        const result = await manager.runMaintenanceTask(["--restore-db", "/tmp/backup.zip"]);
+        expect(result.ok).toBe(false);
+        expect(() => badProc.emit("error", new Error("spawn ENOENT"))).not.toThrow();
     });
 });

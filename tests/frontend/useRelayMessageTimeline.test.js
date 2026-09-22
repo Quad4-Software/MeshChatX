@@ -83,15 +83,26 @@ describe("useRelayMessageTimeline", () => {
         expect(scrollEl.scrollTop).toBe(120 + (1500 - 1000));
     });
 
-    it("loadPreviousMessages sets hasMorePrevious false when the page is a duplicate", async () => {
-        window.api.get.mockResolvedValue({
-            data: { messages: [msg(3), msg(4)], has_more: true },
-        });
+    it("loadPreviousMessages trusts server has_more when the page is a duplicate", async () => {
+        window.api.get
+            .mockResolvedValueOnce({
+                data: { messages: [msg(3), msg(4)], has_more: true },
+            })
+            .mockResolvedValueOnce({
+                data: { messages: [msg(1), msg(2)], has_more: false },
+            });
         const tl = makeTimeline();
         tl.messages.value = [msg(3), msg(4)];
         tl.hasMorePrevious.value = true;
         await tl.loadPreviousMessages();
         expect(tl.messages.value.map((m) => m.seq)).toEqual([3, 4]);
+        // A fully duplicate page does not mean history ends: has_more
+        // stays authoritative and the fetched seqs still advance the
+        // pagination window.
+        expect(tl.hasMorePrevious.value).toBe(true);
+        await tl.loadPreviousMessages();
+        expect(window.api.get.mock.calls[1][1].params.before_seq).toBe(3);
+        expect(tl.messages.value.map((m) => m.seq)).toEqual([1, 2, 3, 4]);
         expect(tl.hasMorePrevious.value).toBe(false);
     });
 
@@ -258,6 +269,43 @@ describe("useRelayMessageTimeline", () => {
         await tl.loadPreviousMessages();
         expect(tl.messages.value.map((m) => m.seq)).toEqual([5]);
         expect(tl.hasMorePrevious.value).toBe(true);
+    });
+
+    it("loadPreviousMessages advances before_seq past a fully excluded page", async () => {
+        window.api.get
+            .mockResolvedValueOnce({
+                data: {
+                    messages: [msg(10, "x", { src: "ignored" }), msg(11, "y", { src: "ignored" })],
+                    has_more: true,
+                },
+            })
+            .mockResolvedValueOnce({
+                data: { messages: [msg(8), msg(9)], has_more: false },
+            });
+        const tl = makeTimeline({ excludeMessage: (m) => m.src === "ignored" });
+        tl.messages.value = [msg(20)];
+        tl.hasMorePrevious.value = true;
+        await tl.loadPreviousMessages();
+        expect(window.api.get.mock.calls[0][1].params.before_seq).toBe(20);
+        await tl.loadPreviousMessages();
+        // Second fetch must page before the fetched minimum (10), not the
+        // still-unchanged loaded minimum (20), or the same page repeats.
+        expect(window.api.get.mock.calls[1][1].params.before_seq).toBe(10);
+        expect(tl.messages.value.map((m) => m.seq)).toEqual([8, 9, 20]);
+    });
+
+    it("onMessagesScroll re-arms the tail reload when the room comes back empty", async () => {
+        const reloadLatest = vi.fn(async () => {});
+        const tl = makeTimeline({ reloadLatest });
+        tl.messages.value = [];
+        await nextTick();
+        tl.tailTrimmed.value = true;
+        tl.onMessagesScroll({ target: { scrollTop: 900, scrollHeight: 1000, clientHeight: 200 } });
+        expect(reloadLatest).toHaveBeenCalledTimes(1);
+        await vi.waitFor(() => expect(tl.reloadingLatest.value).toBe(false));
+        // Failed reload left the room empty: stay armed so the next
+        // bottom-scroll retries instead of leaving the room stuck.
+        expect(tl.tailTrimmed.value).toBe(true);
     });
 
     it("loadPreviousMessages decorates the surviving older page", async () => {

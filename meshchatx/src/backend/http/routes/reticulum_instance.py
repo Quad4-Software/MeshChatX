@@ -12,6 +12,7 @@ from aiohttp import web
 from RNS.Discovery import InterfaceDiscovery
 
 from meshchatx.src.backend import i2p_support, reticulum_config_versions
+from meshchatx.src.backend.app_security_settings import get_trusted_proxy_cidrs
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
@@ -27,8 +28,88 @@ from meshchatx.src.backend.http.uploads import (
     read_json_limited,
 )
 from meshchatx.src.backend.interface_editor import InterfaceEditor
+from meshchatx.src.path_utils import request_client_ip
 
 logger = logging.getLogger(__name__)
+
+# Keys in the Reticulum config whose values are secrets. Served only to
+# loopback clients or authenticated sessions; redacted otherwise so a LAN
+# bind with auth disabled cannot leak shared-instance or interface keys.
+SECRET_CONFIG_KEYS = {
+    "rpc_key",
+    "ifac_netkey",
+    "networkname",
+    "passphrase",
+    "psk",
+    "shared_instance_access",
+}
+REDACTED_SENTINEL = "<redacted>"
+
+
+def _is_loopback_ip(ip: str) -> bool:
+    import ipaddress
+
+    try:
+        return ipaddress.ip_address((ip or "").strip()).is_loopback
+    except ValueError:
+        return (ip or "").strip().lower() in ("localhost", "::1", "[::1]")
+
+
+def _request_may_receive_secrets(request, app) -> bool:
+    """Decide whether the caller may see plaintext config secrets.
+
+    Loopback clients always may; when auth is enabled the session check in
+    auth middleware already ran, so reaching the handler means authenticated.
+    Only an unauthenticated non-loopback caller (LAN bind + auth off) is denied.
+    """
+    if _is_loopback_ip(
+        request_client_ip(request, get_trusted_proxy_cidrs(app.storage_dir))
+    ):
+        return True
+    return bool(getattr(app, "auth_enabled", False))
+
+
+def _redact_config_secrets(content: str) -> str:
+    out = []
+    for line in content.splitlines():
+        stripped = line.lstrip()
+        key = stripped.split("=", 1)[0].strip().lower() if "=" in stripped else ""
+        if key in SECRET_CONFIG_KEYS and not stripped.startswith(("#", ";")):
+            indent = line[: len(line) - len(stripped)]
+            out.append(f"{indent}{key} = {REDACTED_SENTINEL}")
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
+def _restore_redacted_secrets(content: str, existing: str) -> str:
+    """Restore real values for keys still holding REDACTED_SENTINEL.
+
+    PUT round-trip safety: a body that still contains REDACTED_SENTINEL for a
+    key keeps the value from the current file instead of writing the sentinel.
+    """
+    existing_values = {}
+    for line in existing.splitlines():
+        stripped = line.lstrip()
+        if "=" not in stripped or stripped.startswith(("#", ";")):
+            continue
+        key, _, value = stripped.partition("=")
+        key = key.strip().lower()
+        if key in SECRET_CONFIG_KEYS:
+            existing_values[key] = value.strip()
+
+    out = []
+    for line in content.splitlines():
+        stripped = line.lstrip()
+        if "=" in stripped and not stripped.startswith(("#", ";")):
+            key, _, value = stripped.partition("=")
+            key_l = key.strip().lower()
+            if key_l in SECRET_CONFIG_KEYS and value.strip() == REDACTED_SENTINEL:
+                indent = line[: len(line) - len(stripped)]
+                out.append(f"{indent}{key.strip()} = {existing_values.get(key_l, '')}")
+                continue
+        out.append(line)
+    return "\n".join(out)
 
 
 def register_reticulum_instance_routes(routes, app):
@@ -501,8 +582,13 @@ def register_reticulum_instance_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/reticulum/instance")
     async def reticulum_instance_get(request):
         """Shared-instance, RPC, and hop-obfuscation settings (Sideband parity)."""
+        settings = app._build_reticulum_instance_settings()
+        if not _request_may_receive_secrets(request, app):
+            settings["rpc_key"] = None
+            settings["rpc_key_set"] = bool(settings.get("rpc_config_snippet"))
+            settings["rpc_config_snippet"] = None
         return web.json_response(
-            {"instance": app._build_reticulum_instance_settings()},
+            {"instance": settings},
         )
 
     @routes.patch(API_V1_PREFIX + "/reticulum/instance")
@@ -665,6 +751,8 @@ def register_reticulum_instance_routes(routes, app):
                 return http_not_found(f"Reticulum config not found at {config_path}")
             with open(config_path) as f:
                 content = f.read()
+            if not _request_may_receive_secrets(request, app):
+                content = _redact_config_secrets(content)
             return web.json_response(
                 {
                     "content": content,
@@ -698,6 +786,14 @@ def register_reticulum_instance_routes(routes, app):
             return http_bad_request(
                 "Config must include [reticulum] and [interfaces] sections"
             )
+
+        # If the caller fetched a redacted copy, restore the real secret values
+        # so a save does not write the sentinel into the config file.
+        if REDACTED_SENTINEL in content:
+            config_path = app._reticulum_config_file_path()
+            if os.path.isfile(config_path):
+                with open(config_path) as f:
+                    content = _restore_redacted_secrets(content, f.read())
 
         try:
             config_dir = app._normalize_reticulum_config_dir(

@@ -92,6 +92,10 @@ from meshchatx.src.backend.database.access_attempts import (
     WINDOW_RATE_UNTRUSTED_S,
     user_agent_hash,
 )
+from meshchatx.src.backend.database.telemetry import (
+    TELEMETRY_MAX_FUTURE_SEC,
+    TELEMETRY_MAX_PAST_SEC,
+)
 from meshchatx.src.backend.demo_mode import (
     auth_bypass_from_env,
     demo_auth_password_from_env,
@@ -524,8 +528,9 @@ class ReticulumMeshChat:
         self.download_id_counter = 0
         self.download_id_lock = asyncio.Lock()
 
-        # page -> file grants for local anti-deep-linking
-        self._page_file_grants: dict[int, dict] = {}
+        # page -> file grants for local anti-deep-linking, keyed by a
+        # random per-connection token (see _page_file_grant_key)
+        self._page_file_grants: dict[object, dict] = {}
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
         from meshchatx.src.backend.translation_pack_manager import (
@@ -1615,10 +1620,27 @@ class ReticulumMeshChat:
                 return real
         return None
 
+    def _current_auth_session_epoch(self) -> int:
+        try:
+            return int(self.config.auth_session_epoch.get() or 0)
+        except Exception:
+            return 0
+
+    def _bump_auth_session_epoch(self) -> None:
+        """Invalidate every outstanding authenticated session cookie."""
+        try:
+            self.config.auth_session_epoch.set(self._current_auth_session_epoch() + 1)
+        except Exception:
+            pass
+
+    def _auth_session_epoch_valid(self, session) -> bool:
+        return session.get("session_epoch") == self._current_auth_session_epoch()
+
     def reset_password(self):
         """Clear the stored password hash so a new password can be set via the web UI."""
         if self.config.auth_password_hash.get() is not None:
             self.config.auth_password_hash.set(None)
+            self._bump_auth_session_epoch()
             return True
         return False
 
@@ -1799,6 +1821,7 @@ class ReticulumMeshChat:
             payload = {
                 "status": "failed",
                 "stage": "failed",
+                "version": app_version,
                 "network_ready": False,
                 "network_degraded": True,
                 "ui_ready": True,
@@ -1823,6 +1846,7 @@ class ReticulumMeshChat:
         return {
             "status": "ok" if ready else "starting",
             "stage": stage,
+            "version": app_version,
             "network_ready": ready,
             "network_degraded": False,
             "ui_ready": True if ready else bool(self._ui_ready),
@@ -2041,6 +2065,7 @@ class ReticulumMeshChat:
                 bcrypt.gensalt(),
             ).decode("utf-8")
             ctx.config.auth_password_hash.set(password_hash)
+            self._bump_auth_session_epoch()
 
     def _finish_deferred_startup_services(self) -> None:
         """Start non-critical services after network_ready is published."""
@@ -3206,10 +3231,20 @@ class ReticulumMeshChat:
             if hasattr(self, "identity") and self.identity
             else None
         )
-        deleted = self.identity_manager.delete_identity(identity_hash, current_hash)
-        if deleted:
-            self._evict_cached_identity_context(identity_hash)
-        return deleted
+        # Tear down the live context before removing its storage so
+        # background threads and the LXMF router stop touching on-disk
+        # state first. Skip eviction when the delete will be refused
+        # (invalid hash or the active identity) so a rejected request
+        # cannot kill a live context.
+        canonical = normalize_identity_storage_hash(identity_hash)
+        current_canonical = normalize_identity_storage_hash(current_hash or "")
+        if canonical and canonical != current_canonical:
+            ctx = self.contexts.get(canonical)
+            if ctx is not None:
+                self._evict_cached_identity_context(identity_hash)
+                if getattr(ctx, "running", False):
+                    raise ValueError("Identity is still running")
+        return self.identity_manager.delete_identity(identity_hash, current_hash)
 
     def restore_identity_from_bytes(
         self,
@@ -5393,6 +5428,32 @@ class ReticulumMeshChat:
         if hasattr(self, "page_node_manager"):
             self.page_node_manager.teardown()
 
+        # Cancel fire-and-forget propagation node request tasks before
+        # context teardown: an in-flight request would otherwise touch
+        # ctx.message_router after the context is gone. Tasks may live on
+        # per-identity background loops, so cross-loop cancellation goes
+        # through call_soon_threadsafe and the wait is bounded.
+        prop_tasks = [
+            task for task in self._propagation_node_request_tasks if not task.done()
+        ]
+        if prop_tasks:
+            current_loop = asyncio.get_running_loop()
+            for task in prop_tasks:
+                try:
+                    task_loop = task.get_loop()
+                    if task_loop is current_loop:
+                        task.cancel()
+                    elif task_loop.is_running():
+                        task_loop.call_soon_threadsafe(task.cancel)
+                except Exception:
+                    pass
+            deadline = time.monotonic() + 5.0
+            while time.monotonic() < deadline:
+                if all(task.done() for task in prop_tasks):
+                    break
+                await asyncio.sleep(0.05)
+            self._propagation_node_request_tasks.difference_update(prop_tasks)
+
         for identity_hash in list(self.contexts.keys()):
             ctx = self.contexts.get(identity_hash)
             if ctx is None:
@@ -5539,6 +5600,7 @@ class ReticulumMeshChat:
             sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
+            cache_control_middleware,
             security_middleware,
             csrf_middleware,
             ip_allowlist_middleware,
@@ -5550,6 +5612,7 @@ class ReticulumMeshChat:
             sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
+            cache_control_middleware,
             security_middleware,
             csrf_middleware,
             ip_allowlist_middleware,
@@ -5654,6 +5717,7 @@ class ReticulumMeshChat:
             sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
+            cache_control_middleware,
             security_middleware,
             csrf_middleware,
             ip_allowlist_middleware,
@@ -5718,10 +5782,21 @@ class ReticulumMeshChat:
                 self.session_secret_key = secrets.token_urlsafe(32)
 
             try:
-                with open(session_secret_path, "w") as f:
+                # The secret signs/encrypts session cookies; other local users
+                # must not read it (forged cookies would bypass auth).
+                fd = os.open(
+                    session_secret_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600
+                )
+                with os.fdopen(fd, "w") as f:
                     f.write(self.session_secret_key)
             except Exception as e:
                 print(f"Failed to write session secret to {session_secret_path}: {e}")
+
+        # Tighten a preexisting loose file left by older versions.
+        try:
+            os.chmod(session_secret_path, 0o600)
+        except OSError:
+            pass
 
         # ensure it's also in the current config for consistency when identity is ready
         if self.config is not None:
@@ -5777,6 +5852,7 @@ class ReticulumMeshChat:
                 sqlite_unavailable_middleware,
                 auth_middleware,
                 mime_type_middleware,
+                cache_control_middleware,
                 security_middleware,
                 csrf_middleware,
                 ip_allowlist_middleware,
@@ -5835,11 +5911,10 @@ class ReticulumMeshChat:
                 "/meshchatx-docs/",
                 dm.meshchatx_docs_dir,
                 name="meshchatx_docs_storage",
-                follow_symlinks=True,
             )
 
         if os.path.exists(public_dir):
-            app.router.add_static("/", public_dir, name="static", follow_symlinks=True)
+            app.router.add_static("/", public_dir, name="static")
         else:
             print(f"Warning: Static files directory not found at {public_dir}")
 
@@ -6507,7 +6582,12 @@ class ReticulumMeshChat:
 
         if "auth_enabled" in data:
             value = self._parse_bool(data["auth_enabled"])
+            previous_auth_enabled = self.config.auth_enabled.get()
             self.config.auth_enabled.set(value)
+            if value != previous_auth_enabled:
+                # Sessions minted under the previous auth posture must not
+                # survive the toggle.
+                self._bump_auth_session_epoch()
 
             # if disabling auth, also remove the password hash from config
             if not value:
@@ -6519,6 +6599,7 @@ class ReticulumMeshChat:
                 # authentication.
                 if not self._oidc_ready():
                     self.config.auth_password_hash.set(None)
+                    self._bump_auth_session_epoch()
 
         if "oidc_enabled" in data:
             self.config.oidc_enabled.set(self._parse_bool(data["oidc_enabled"]))
@@ -7195,7 +7276,8 @@ class ReticulumMeshChat:
         return bool(
             session.get("authenticated", False)
             and identity_hash
-            and session.get("identity_hash") == identity_hash,
+            and session.get("identity_hash") == identity_hash
+            and self._auth_session_epoch_valid(session),
         )
 
     # handle data received from websocket client
@@ -7243,8 +7325,10 @@ class ReticulumMeshChat:
 
     @staticmethod
     async def _rns_link_send(client, payload):
+        from meshchatx.src.backend.websocket_runtime import send_str_on_client_loop
+
         try:
-            await client.send_str(json.dumps(payload))
+            await send_str_on_client_loop(client, json.dumps(payload))
         except Exception as e:
             print(f"rns.link reply failed: {e}")
 
@@ -7617,10 +7701,29 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.websocket_runtime import (
             WS_BROADCAST_SEND_TIMEOUT_SEC,
             client_allows_topic,
-            get_client_send_lock,
+            send_str_on_client_loop,
             topic_for_type,
             touch_client_activity,
         )
+
+        # Per-identity background loops run asyncio.run on daemon threads
+        # (IdentityContext.start_background_threads), so a broadcast awaited
+        # from them lands on a foreign event loop. The broadcast lock, the
+        # coalesce flush task, and the aiohttp send transports are all bound
+        # to the main loop; sending from here would interleave send_str calls
+        # across loops and tear frames. Re-dispatch onto the main loop.
+        main_loop = AsyncUtils.main_loop
+        if (
+            isinstance(main_loop, asyncio.AbstractEventLoop)
+            and main_loop is not asyncio.get_running_loop()
+            and main_loop.is_running()
+        ):
+            future = asyncio.run_coroutine_threadsafe(
+                self.websocket_broadcast(data, _skip_coalesce=_skip_coalesce),
+                main_loop,
+            )
+            await asyncio.wrap_future(future)
+            return
 
         payload_obj = None
         if isinstance(data, dict):
@@ -7660,12 +7763,11 @@ class ReticulumMeshChat:
 
             async def _send_one(websocket_client):
                 try:
-                    send_lock = get_client_send_lock(websocket_client)
-                    async with send_lock:
-                        await asyncio.wait_for(
-                            websocket_client.send_str(data),
-                            timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
-                        )
+                    await send_str_on_client_loop(
+                        websocket_client,
+                        data,
+                        timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
+                    )
                     touch_client_activity(websocket_client)
                     counters = getattr(self, "ws_counters", None)
                     if counters is not None:
@@ -9606,8 +9708,13 @@ class ReticulumMeshChat:
                                     timestamp_override=int(entry_timestamp),
                                     context=ctx,
                                 )
-            except Exception as e:
-                print(f"Failed to handle telemetry in LXMF message: {e}")
+            except Exception:
+                msg_hash = getattr(lxmf_message, "hash", None)
+                logger.exception(
+                    "Failed to handle telemetry in LXMF message %s from %s",
+                    msg_hash.hex() if isinstance(msg_hash, bytes) else msg_hash,
+                    source_hash,
+                )
 
             # update lxmf user icon if icon appearance field is available
             try:
@@ -9665,9 +9772,11 @@ class ReticulumMeshChat:
                                     background_colour,
                                     context=ctx,
                                 )
-            except Exception as e:
-                print("failed to update lxmf user icon from lxmf message")
-                print(e)
+            except Exception:
+                logger.exception(
+                    "failed to update lxmf user icon from lxmf message from %s",
+                    source_hash,
+                )
 
             sender_name = ctx.database.announces.get_custom_display_name(source_hash)
             if not sender_name:
@@ -9712,9 +9821,12 @@ class ReticulumMeshChat:
                 ),
             )
 
-        except Exception as e:
-            # do nothing on error
-            print(f"lxmf_delivery error: {e}")
+        except Exception:
+            msg_hash = getattr(lxmf_message, "hash", None)
+            logger.exception(
+                "lxmf_delivery error for message %s",
+                msg_hash.hex() if isinstance(msg_hash, bytes) else msg_hash,
+            )
 
     # handles lxmf message forwarding logic
     def handle_forwarding(self, lxmf_message: LXMF.LXMessage, context=None):
@@ -10573,6 +10685,15 @@ class ReticulumMeshChat:
             if unpacked:
                 timestamp = timestamp_override or (
                     unpacked["time"]["utc"] if "time" in unpacked else int(time.time())
+                )
+                # Remote-controlled timestamps: clamp to a sane window
+                # around now so a peer cannot poison ordering with absurd
+                # values or flood the UNIQUE(destination_hash, timestamp)
+                # key space.
+                now_ts = time.time()
+                timestamp = min(
+                    max(timestamp, now_ts - TELEMETRY_MAX_PAST_SEC),
+                    now_ts + TELEMETRY_MAX_FUTURE_SEC,
                 )
 
                 # physical link info
@@ -11463,6 +11584,23 @@ class ReticulumMeshChat:
             links.add(path)
         return links
 
+    @staticmethod
+    def _page_file_grant_key(client, *, create: bool = True):
+        # CPython recycles id() once a WebSocketResponse is collected, so a
+        # new socket could inherit stale grants within the TTL. Grants are
+        # keyed by the random token init_client_runtime stamps at upgrade;
+        # the lazy fallback covers clients that bypassed it.
+        token = getattr(client, "_meshchatx_page_grant_token", None)
+        if not token:
+            if not create:
+                return id(client)
+            token = secrets.token_hex(16)
+            try:
+                client._meshchatx_page_grant_token = token
+            except (AttributeError, TypeError):
+                return id(client)
+        return token
+
     def _register_page_file_grant(
         self,
         client,
@@ -11472,7 +11610,7 @@ class ReticulumMeshChat:
         ttl: float = 300,
     ) -> None:
         """Remember the files a client is allowed to fetch from a page."""
-        key = id(client)
+        key = self._page_file_grant_key(client)
         now = time.time()
         # Prune expired entries and old clients.
         self._page_file_grants = {
@@ -11490,7 +11628,10 @@ class ReticulumMeshChat:
 
     def _clear_page_file_grants_for_client(self, client) -> None:
         """Drop all page-file grants held by a disconnected client."""
-        self._page_file_grants.pop(id(client), None)
+        self._page_file_grants.pop(
+            self._page_file_grant_key(client, create=False),
+            None,
+        )
 
     @staticmethod
     def _normalize_grant_page_path(destination_hash: bytes, page_path: str) -> str:
@@ -11508,7 +11649,7 @@ class ReticulumMeshChat:
         file_path: str,
     ) -> bool:
         """Check whether a client may fetch a file from a recently loaded page."""
-        key = id(client)
+        key = self._page_file_grant_key(client, create=False)
         grant = self._page_file_grants.get(key)
         if not grant or grant.get("expires", 0) <= time.time():
             return False

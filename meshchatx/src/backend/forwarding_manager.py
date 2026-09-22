@@ -3,6 +3,7 @@
 import base64
 import contextlib
 import os
+import threading
 
 import RNS
 
@@ -26,6 +27,9 @@ class ForwardingManager:
         self.inbound_policy_installer = inbound_policy_installer
         self.forwarding_destinations = {}
         self.forwarding_routers = {}
+        # Guards forwarding_destinations/forwarding_routers: RNS delivery
+        # callbacks mutate them while announce/teardown iterate them.
+        self._lock = threading.Lock()
 
     def _install_inbound_policy(self, router):
         if self.inbound_policy_installer is not None:
@@ -66,8 +70,9 @@ class ForwardingManager:
                     identity=alias_identity,
                 )
 
-                self.forwarding_destinations[alias_hash] = alias_destination
-                self.forwarding_routers[alias_hash] = router
+                with self._lock:
+                    self.forwarding_destinations[alias_hash] = alias_destination
+                    self.forwarding_routers[alias_hash] = router
 
             except Exception as e:
                 print(f"Failed to load forwarding alias {mapping['alias_hash']}: {e}")
@@ -78,12 +83,18 @@ class ForwardingManager:
         final_recipient_hash,
         original_destination_hash,
     ):
-        mapping = self.db.messages.get_forwarding_mapping(
-            original_sender_hash=source_hash,
-            final_recipient_hash=final_recipient_hash,
-        )
+        # Read-then-create must be atomic: concurrent deliveries for the
+        # same sender/recipient pair would otherwise create duplicate
+        # alias routers and mappings.
+        with self._lock:
+            mapping = self.db.messages.get_forwarding_mapping(
+                original_sender_hash=source_hash,
+                final_recipient_hash=final_recipient_hash,
+            )
 
-        if not mapping:
+            if mapping:
+                return mapping
+
             alias_identity = RNS.Identity()
             alias_hash = alias_identity.hash.hex()
 
@@ -112,9 +123,6 @@ class ForwardingManager:
                 identity=alias_identity,
             )
 
-            self.forwarding_destinations[alias_hash] = alias_destination
-            self.forwarding_routers[alias_hash] = router
-
             private_key = alias_identity.get_private_key()
             if not private_key:
                 msg = "alias identity has no private key"
@@ -129,56 +137,70 @@ class ForwardingManager:
                 "final_recipient_hash": final_recipient_hash,
                 "original_destination_hash": original_destination_hash,
             }
-            self.db.messages.create_forwarding_mapping(data)
+            try:
+                self.db.messages.create_forwarding_mapping(data)
+            except Exception:
+                # The destination is already registered with RNS, so undo
+                # the registration before propagating the failure.
+                self._stop_router(alias_hash, router)
+                raise
+            self.forwarding_destinations[alias_hash] = alias_destination
+            self.forwarding_routers[alias_hash] = router
             return data
-        return mapping
 
     def announce_aliases(self):
-        for alias_hash in self.forwarding_destinations:
-            destination = self.forwarding_destinations[alias_hash]
+        with self._lock:
+            destinations = list(self.forwarding_destinations.values())
+        for destination in destinations:
             destination.announce()
+
+    def _stop_router(self, alias_hash, router):
+        """Best-effort stop of one alias router and its RNS destinations."""
+        try:
+            if hasattr(router, "register_delivery_callback"):
+                with contextlib.suppress(Exception):
+                    router.register_delivery_callback(None)
+            if hasattr(router, "delivery_destinations"):
+                for dest_hash in list(router.delivery_destinations.keys()):
+                    dest = router.delivery_destinations[dest_hash]
+                    with contextlib.suppress(Exception):
+                        RNS.Transport.deregister_destination(dest)
+            if getattr(router, "propagation_destination", None):
+                with contextlib.suppress(Exception):
+                    RNS.Transport.deregister_destination(
+                        router.propagation_destination,
+                    )
+        except Exception as e:
+            print(f"Error deregistering forwarding destinations {alias_hash}: {e}")
+        try:
+            if hasattr(router, "identity") and router.identity:
+                ih = router.identity.hash
+                for link in list(RNS.Transport.active_links):
+                    match = False
+                    if hasattr(link, "destination") and link.destination:
+                        if (
+                            hasattr(link.destination, "identity")
+                            and link.destination.identity
+                        ):
+                            if link.destination.identity.hash == ih:
+                                match = True
+                    if match:
+                        with contextlib.suppress(Exception):
+                            link.teardown()
+        except Exception as e:
+            print(f"Error cleaning forwarding links {alias_hash}: {e}")
+        try:
+            router.jobs = lambda: None
+            if hasattr(router, "exit_handler"):
+                router.exit_handler()
+        except Exception as e:
+            print(f"Error stopping forwarding LXMF router {alias_hash}: {e}")
 
     def teardown(self):
         """Stop alias LXMF routers and deregister their RNS destinations."""
-        for alias_hash, router in list(self.forwarding_routers.items()):
-            try:
-                if hasattr(router, "register_delivery_callback"):
-                    with contextlib.suppress(Exception):
-                        router.register_delivery_callback(None)
-                if hasattr(router, "delivery_destinations"):
-                    for dest_hash in list(router.delivery_destinations.keys()):
-                        dest = router.delivery_destinations[dest_hash]
-                        with contextlib.suppress(Exception):
-                            RNS.Transport.deregister_destination(dest)
-                if getattr(router, "propagation_destination", None):
-                    with contextlib.suppress(Exception):
-                        RNS.Transport.deregister_destination(
-                            router.propagation_destination,
-                        )
-            except Exception as e:
-                print(f"Error deregistering forwarding destinations {alias_hash}: {e}")
-            try:
-                if hasattr(router, "identity") and router.identity:
-                    ih = router.identity.hash
-                    for link in list(RNS.Transport.active_links):
-                        match = False
-                        if hasattr(link, "destination") and link.destination:
-                            if (
-                                hasattr(link.destination, "identity")
-                                and link.destination.identity
-                            ):
-                                if link.destination.identity.hash == ih:
-                                    match = True
-                        if match:
-                            with contextlib.suppress(Exception):
-                                link.teardown()
-            except Exception as e:
-                print(f"Error cleaning forwarding links {alias_hash}: {e}")
-            try:
-                router.jobs = lambda: None
-                if hasattr(router, "exit_handler"):
-                    router.exit_handler()
-            except Exception as e:
-                print(f"Error stopping forwarding LXMF router {alias_hash}: {e}")
-        self.forwarding_destinations.clear()
-        self.forwarding_routers.clear()
+        with self._lock:
+            routers = list(self.forwarding_routers.items())
+            self.forwarding_destinations.clear()
+            self.forwarding_routers.clear()
+        for alias_hash, router in routers:
+            self._stop_router(alias_hash, router)

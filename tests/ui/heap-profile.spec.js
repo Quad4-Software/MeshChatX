@@ -11,7 +11,9 @@
 // timer deltas plus used JS heap before/after so growth shows up as a
 // non-zero trend across cycles.
 
-const { test } = require("@playwright/test");
+const { test, expect } = require("@playwright/test");
+const fs = require("fs");
+const path = require("path");
 const { dismissMapOnboardingTooltip } = require("../e2e/helpers");
 const { resolvePages } = require("./pages");
 const { seedUiSimulatedData } = require("./seed");
@@ -19,6 +21,19 @@ const { gotoUiPage } = require("./ready");
 
 const CYCLES = Number(process.env.MESHCHAT_HEAP_CYCLES || 5);
 const NEUTRAL_PATH = "/about";
+const REPORT_DIR = path.join(__dirname, "..", "..", "test-results", "heap");
+
+// Per-page growth budgets measured after CYCLES mount/unmount rounds with a
+// forced GC between each. Values are generous: the goal is catching leaks and
+// unbounded re-registration, not pinning exact counts on noisy CI runners.
+const HEAP_BUDGETS = {
+    heapDeltaMb: Number(process.env.MESHCHAT_HEAP_MAX_DELTA_MB || 30),
+    nodes: Number(process.env.MESHCHAT_HEAP_MAX_NODES || 500),
+    listeners: Number(process.env.MESHCHAT_HEAP_MAX_LISTENERS || 10),
+    timeouts: Number(process.env.MESHCHAT_HEAP_MAX_TIMEOUTS || 10),
+    intervals: Number(process.env.MESHCHAT_HEAP_MAX_INTERVALS || 3),
+    rafs: Number(process.env.MESHCHAT_HEAP_MAX_RAFS || 3),
+};
 
 const INSTRUMENT = `
 (() => {
@@ -108,10 +123,16 @@ test.describe("heap profile across pages", () => {
         await page.addInitScript(INSTRUMENT);
         const cdp = await page.context().newCDPSession(page);
         await cdp.send("HeapProfiler.enable");
+        if (process.env.MESHCHAT_HEAP_CPU_THROTTLE) {
+            await cdp.send("Emulation.setCPUThrottlingRate", {
+                rate: Number(process.env.MESHCHAT_HEAP_CPU_THROTTLE),
+            });
+        }
         await cdp.send("Performance.enable");
 
         const neutral = { id: "about", path: NEUTRAL_PATH, ready: "Active sessions" };
         const pages = resolvePages({
+            ciOnly: process.env.MESHCHAT_UI_CI === "1",
             ids: process.env.MESHCHAT_UI_PAGES
                 ? process.env.MESHCHAT_UI_PAGES.split(",")
                       .map((s) => s.trim())
@@ -155,6 +176,8 @@ test.describe("heap profile across pages", () => {
             });
         }
 
+        fs.mkdirSync(REPORT_DIR, { recursive: true });
+        const failures = [];
         for (const row of report) {
             if (row.skipped) {
                 console.log(`heap-profile | ${row.page.padEnd(24)} SKIPPED ${row.skipped}`);
@@ -168,6 +191,24 @@ test.describe("heap profile across pages", () => {
                     `intervals ${String(row.intervals).padStart(3)} ` +
                     `rafs ${String(row.rafs).padStart(4)}`
             );
+            fs.writeFileSync(
+                path.join(REPORT_DIR, `${row.page}.json`),
+                JSON.stringify({ budgets: HEAP_BUDGETS, ...row }, null, 2)
+            );
+            const checks = [
+                ["heapDelta", row.heapDelta, HEAP_BUDGETS.heapDeltaMb * 1048576],
+                ["nodes", row.nodes, HEAP_BUDGETS.nodes],
+                ["listeners", row.listeners, HEAP_BUDGETS.listeners],
+                ["timeouts", row.timeouts, HEAP_BUDGETS.timeouts],
+                ["intervals", row.intervals, HEAP_BUDGETS.intervals],
+                ["rafs", row.rafs, HEAP_BUDGETS.rafs],
+            ];
+            for (const [name, actual, budget] of checks) {
+                if (actual > budget) {
+                    failures.push(`${row.page}: ${name} ${actual} > ${budget}`);
+                }
+            }
         }
+        expect(failures, "pages exceeded heap growth budgets").toEqual([]);
     });
 });

@@ -220,6 +220,31 @@ describe("networkVisualiserWebGLEngine", () => {
         expect(high[1].fontSize).toBe(11);
     });
 
+    it("collectWebGLLabels declutters overlapping labels in screen space", () => {
+        // Stride 8: x, y, size, r, g, b, a, kind. kind 0 = me, 3 = peer.
+        const nodes = new Float32Array([
+            0, 0, 50, 0, 0, 0, 0, 0, 10, 20, 25, 0, 0, 0, 0, 3, 2000, 0, 25, 0, 0, 0, 0, 3,
+        ]);
+        const base = {
+            sceneCount: 3,
+            nodes,
+            labelByIndex: ["Local", "Alice", "Far"],
+            idByIndex: ["me", "peer1", "peer2"],
+            zoom: 1,
+            camX: 0,
+            camY: 0,
+            viewWidth: 800,
+            viewHeight: 600,
+        };
+        const labels = collectWebGLLabels(base);
+        // peer1 overlaps me's label box on screen, so it is dropped; the far
+        // peer keeps its label.
+        expect(labels.map((l) => l.text).sort()).toEqual(["Far", "Local"]);
+        // Hovering the crowded node forces its label through the declutter.
+        const hovered = collectWebGLLabels({ ...base, hoverId: "peer1" });
+        expect(hovered.map((l) => l.text)).toContain("Alice");
+    });
+
     it("graphToSceneRequest maps me/iface/peer colors and kinds", () => {
         const req = graphToSceneRequest(
             [
@@ -568,6 +593,45 @@ describe("createVisualiserWebGLEngine interactions", () => {
         await vi.waitFor(() => {
             expect(gl.texSubImage2D.mock.calls.length).toBeGreaterThan(uploadsBefore);
         });
+    });
+
+    it("latches scene failure and stops the frame loop when WASM dies", async () => {
+        engine.destroy();
+        engine = null;
+        clearSceneGlobals();
+        installSceneReadyStubs({
+            meshchatxVisualiserSceneSet: () => JSON.stringify({ ok: true, nodes: 0, edges: 0 }),
+            meshchatxVisualiserSceneGetDrawBuffers: () => {
+                throw new Error("wasm dead");
+            },
+        });
+        globalThis.meshchatxVisualiserSceneResize = vi.fn();
+        const onSceneFailure = vi.fn();
+        canvas = makeCanvas(stubGl());
+        engine = createVisualiserWebGLEngine(canvas, {
+            getLiveLayout: () => false,
+            isDark: () => false,
+            onSceneFailure,
+        });
+        await new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+        });
+        expect(onSceneFailure).toHaveBeenCalledTimes(1);
+        // The loop is dead: a redraw request must not resurrect it.
+        engine.requestRedraw();
+        await new Promise((resolve) => {
+            requestAnimationFrame(resolve);
+        });
+        expect(onSceneFailure).toHaveBeenCalledTimes(1);
+    });
+
+    it("setGraph throws and latches failure when SceneSet dies", () => {
+        globalThis.meshchatxVisualiserSceneSet = () => {
+            throw new Error("wasm dead");
+        };
+        expect(() => engine.setGraph([{ id: "me", group: "me", x: 0, y: 0 }], [], {})).toThrow(/SceneSet failed/);
     });
 
     it("setGraph applies kind default icons when image missing", async () => {

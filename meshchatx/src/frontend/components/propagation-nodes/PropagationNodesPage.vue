@@ -595,7 +595,9 @@ export default {
                 const search = this.searchTerm.toLowerCase();
                 const matchesOperatorDisplayName =
                     propagationNode.operator_display_name?.toLowerCase()?.includes(search) ?? false;
-                const matchesDestinationHash = propagationNode.destination_hash.toLowerCase().includes(search);
+                const matchesDestinationHash = String(propagationNode.destination_hash || "")
+                    .toLowerCase()
+                    .includes(search);
                 return matchesOperatorDisplayName || matchesDestinationHash;
             });
         },

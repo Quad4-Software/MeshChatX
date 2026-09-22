@@ -15,7 +15,9 @@ const HAS_NAVIGATOR = typeof navigator !== "undefined";
 const IS_TOUCH =
     HAS_WINDOW && ("ontouchstart" in window || (HAS_NAVIGATOR && Number(navigator.maxTouchPoints || 0) > 0));
 
-const DEFAULT_EVENTS = IS_TOUCH ? ["touchstart"] : ["click"];
+// contextmenu is included so a second right-click (or a long-press) outside a
+// floating panel dismisses it, matching platform menu behavior.
+const DEFAULT_EVENTS = IS_TOUCH ? ["touchstart", "contextmenu"] : ["click", "contextmenu"];
 
 /**
  * @param {unknown} bindingValue
@@ -147,9 +149,12 @@ export function beforeMount(el, { value }) {
         });
     }
 
-    for (const entry of el[HANDLERS_PROPERTY]) {
+    const entries = el[HANDLERS_PROPERTY];
+    for (const entry of entries) {
         setTimeout(() => {
-            if (!el[HANDLERS_PROPERTY]) {
+            // A rebind can replace the registration before this timer runs.
+            // Attaching stale entries would leave duplicate live listeners.
+            if (el[HANDLERS_PROPERTY] !== entries) {
                 return;
             }
             entry.srcTarget.addEventListener(entry.event, entry.handler, entry.capture);

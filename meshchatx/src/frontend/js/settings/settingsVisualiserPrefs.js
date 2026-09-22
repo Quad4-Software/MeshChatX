@@ -12,10 +12,10 @@ const KEY_VIEW_MODE = "meshchatx.visualiser.viewMode";
 export const VISUALISER_DISPLAY_PREFS_CHANGED = "visualiser-display-prefs-changed";
 
 /** @typedef {"auto" | "webgl" | "vis"} VisualiserRendererPref */
-/** @typedef {"flat" | "planet"} VisualiserViewModePref */
+/** @typedef {"flat" | "planet" | "radial"} VisualiserViewModePref */
 
 export const VISUALISER_RENDERER_OPTIONS = ["auto", "webgl", "vis"];
-export const VISUALISER_VIEW_MODE_OPTIONS = ["flat", "planet"];
+export const VISUALISER_VIEW_MODE_OPTIONS = ["flat", "planet", "radial"];
 
 /**
  * @param {string} key
@@ -66,7 +66,10 @@ export function normalizeVisualiserRenderer(raw) {
  * @returns {VisualiserViewModePref}
  */
 export function normalizeVisualiserViewMode(raw) {
-    return raw === "planet" ? "planet" : "flat";
+    if (raw === "planet" || raw === "radial") {
+        return raw;
+    }
+    return "flat";
 }
 
 /**

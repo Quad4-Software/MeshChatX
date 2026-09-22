@@ -1313,6 +1313,37 @@ describe("RelayChatPage.vue", () => {
                 useConfigStore().config = {};
             });
 
+            it("reloads prefs under the real identity when config arrives after mount", async () => {
+                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                // Mount before config resolves: prefs load under the "_" bucket.
+                useConfigStore().config = {};
+                localStorage.setItem(
+                    "meshchatx.rrc.prefs",
+                    JSON.stringify({ "id-real": { ignored: [], highlightWords: [], hideJoinPart: true } })
+                );
+                const wrapper = mountPage();
+                await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+                expect(wrapper.vm.hideJoinPart).toBe(false);
+                useConfigStore().config = { identity_hash: "id-real" };
+                await vi.waitFor(() => expect(wrapper.vm.hideJoinPart).toBe(true));
+                expect(wrapper.vm.relayPrefsLoadedKey).toBe("id-real");
+                useConfigStore().config = {};
+            });
+
+            it("migrates prefs toggled during the config race into the real bucket", async () => {
+                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                useConfigStore().config = {};
+                const wrapper = mountPage();
+                await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+                wrapper.vm.setHideJoinPart(true);
+                expect(JSON.parse(localStorage.getItem("meshchatx.rrc.prefs") || "{}")._?.hideJoinPart).toBe(true);
+                useConfigStore().config = { identity_hash: "id-real" };
+                await vi.waitFor(() => expect(wrapper.vm.relayPrefsLoadedKey).toBe("id-real"));
+                const stored = JSON.parse(localStorage.getItem("meshchatx.rrc.prefs") || "{}");
+                expect(stored["id-real"]?.hideJoinPart).toBe(true);
+                useConfigStore().config = {};
+            });
+
             it("drops live pushes from ignored peers but keeps system rows", async () => {
                 const wrapper = mountPage();
                 await openRoom(wrapper);

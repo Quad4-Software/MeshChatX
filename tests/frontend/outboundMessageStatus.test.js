@@ -58,9 +58,7 @@ function expectedTitleKey({ state, method }) {
 }
 
 function expectedDeferred({ state, method }) {
-    void state;
-    void method;
-    return false;
+    return state === "sent" && method === "opportunistic";
 }
 
 describe("outboundMessageStatus LXMF reference", () => {
@@ -82,7 +80,7 @@ describe("outboundMessageStatus LXMF reference", () => {
         }
     });
 
-    it("treats only opportunistic+failed as deferred wait", () => {
+    it("treats only opportunistic+sent as deferred wait", () => {
         for (const state of API_STATES) {
             for (const method of API_METHODS) {
                 const msg = { state, method };
@@ -139,20 +137,21 @@ describe("outboundMessageStatus LXMF reference", () => {
         expect(isOpportunisticDeferredDelivery(null)).toBe(false);
     });
 
-    it("sent without delivered is not a hard-fail badge for direct or opportunistic", () => {
+    it("sent without delivered is a hard-fail badge for neither direct nor opportunistic", () => {
         for (const method of ["direct", "opportunistic"]) {
             const sent = { state: "sent", method };
-            expect(isOpportunisticDeferredDelivery(sent)).toBe(false);
             expect(outboundBubbleStatusIconName(sent)).toBe("check");
             expect(outboundBubbleStatusIconName(sent)).not.toBe("check-all");
         }
+        expect(isOpportunisticDeferredDelivery({ state: "sent", method: "direct" })).toBe(false);
+        expect(isOpportunisticDeferredDelivery({ state: "sent", method: "opportunistic" })).toBe(true);
     });
 
-    it("no-receipt stuck at sent still shows single-check network-sent, not delivered", () => {
+    it("no-receipt stuck at sent shows deferred badge with single-check network-sent", () => {
         const stuck = { state: "sent", method: "opportunistic" };
         expect(outboundBubbleStatusIconName(stuck)).toBe("check");
         expect(outboundBubbleStatusTitleKey(stuck)).toBe("messages.outbound_sent_network");
-        expect(isOpportunisticDeferredDelivery(stuck)).toBe(false);
+        expect(isOpportunisticDeferredDelivery(stuck)).toBe(true);
     });
 
     it("LXMF_STATUS_UI_ORACLE_PROVED", () => {

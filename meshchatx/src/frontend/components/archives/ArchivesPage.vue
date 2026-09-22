@@ -284,7 +284,11 @@ import {
     invalidateNomadMicronWasmPreload,
     isMicronWasmBundled,
 } from "../../js/MicronWasmLoader.js";
-import { renderNomadPageByPath, isolateNomadLinksInHtml } from "../../js/NomadPageRenderer.js";
+import {
+    renderNomadPageByPath,
+    isolateNomadLinksInHtml,
+    stripDomClobberingAttributes,
+} from "../../js/NomadPageRenderer.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
@@ -310,6 +314,7 @@ export default {
             isRecrawling: false,
             loadError: false,
             viewingArchive: null,
+            archiveOpenSeq: 0,
             renderedContent: "",
             exportingArchiveId: null,
             isExportingAll: false,
@@ -598,22 +603,35 @@ export default {
             this.getArchives();
         },
         async openArchive(archive) {
+            // Sequence guard so rapid clicks resolve last-request-wins and a
+            // late response after closeViewer cannot reopen the viewer.
+            const seq = ++this.archiveOpenSeq;
             this.isLoadingViewer = true;
             this.viewingArchive = { ...archive, content: archive.content || null };
             try {
                 const response = await window.api.get(apiPath(`/nomadnet/archives/${archive.id}`));
+                if (seq !== this.archiveOpenSeq) {
+                    return;
+                }
                 const full = response.data.archive;
                 this.viewingArchive = full;
                 this.renderedContent = this.renderFullContent(full);
             } catch (e) {
+                if (seq !== this.archiveOpenSeq) {
+                    return;
+                }
                 console.error("Failed to load archive:", e);
                 ToastUtils.error(this.$t("archives.failed_load"));
                 this.viewingArchive = null;
             } finally {
-                this.isLoadingViewer = false;
+                if (seq === this.archiveOpenSeq) {
+                    this.isLoadingViewer = false;
+                }
             }
         },
         closeViewer() {
+            this.archiveOpenSeq += 1;
+            this.isLoadingViewer = false;
             this.viewingArchive = null;
             this.renderedContent = "";
         },
@@ -633,8 +651,17 @@ export default {
                 const next = response.data.archive;
                 ToastUtils.success(this.$t("archives.recrawl_done"));
                 if (next) {
-                    this.viewingArchive = next;
-                    this.renderedContent = this.renderFullContent(next);
+                    // Only refresh the viewer when it still shows the archive
+                    // that was recrawled.
+                    const viewingSame =
+                        this.viewingArchive != null &&
+                        ((archive.id != null && this.viewingArchive.id === archive.id) ||
+                            (this.viewingArchive.destination_hash === archive.destination_hash &&
+                                this.viewingArchive.page_path === archive.page_path));
+                    if (viewingSame) {
+                        this.viewingArchive = next;
+                        this.renderedContent = this.renderFullContent(next);
+                    }
                     const idx = this.archives.findIndex(
                         (a) => a.destination_hash === next.destination_hash && a.page_path === next.page_path
                     );
@@ -823,7 +850,7 @@ export default {
                 if (dest) {
                     out = isolateNomadLinksInHtml(out, dest);
                 }
-                return out;
+                return stripDomClobberingAttributes(out);
             }
             if (!hasKnownExt) {
                 // Treat extensionless Nomad pages as Micron (common for index paths).
@@ -831,12 +858,16 @@ export default {
                 if (dest) {
                     out = isolateNomadLinksInHtml(out, dest);
                 }
-                return out;
+                return stripDomClobberingAttributes(out);
             }
-            return renderNomadPageByPath(pathPart, content, {}, MicronParser, {
-                ...this.nomadRenderOptions,
-                nomadDestinationHash: dest || this.nomadRenderOptions.nomadDestinationHash,
-            });
+            // Remote markup rendered into the main document must not carry
+            // id/name attributes that could clobber window globals.
+            return stripDomClobberingAttributes(
+                renderNomadPageByPath(pathPart, content, {}, MicronParser, {
+                    ...this.nomadRenderOptions,
+                    nomadDestinationHash: dest || this.nomadRenderOptions.nomadDestinationHash,
+                })
+            );
         },
         renderFullContent(archive) {
             if (!archive?.content) {

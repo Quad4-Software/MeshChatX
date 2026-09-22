@@ -325,7 +325,7 @@
                                             v-model="joinRoomName"
                                             type="text"
                                             :placeholder="$t('relay_chat.join_room_placeholder')"
-                                            class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                            class="min-w-0 flex-1 rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                         />
                                         <button
                                             type="submit"
@@ -340,7 +340,7 @@
                                         type="password"
                                         :placeholder="$t('relay_chat.join_room_key_placeholder')"
                                         autocomplete="off"
-                                        class="w-full border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                        class="w-full rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                     />
                                 </form>
                             </div>
@@ -886,7 +886,7 @@
             <div v-show="view === 'host'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <RelayHostModerationPage
                     v-if="hostModeration.hub"
-                    :hub="hostModeration.hub"
+                    :hub="hostModerationHub"
                     :initial-tab="hostModeration.tab"
                     :room-filter="hostModeration.room"
                     @back="closeHostModeration"
@@ -1751,7 +1751,11 @@ export default {
                 encodeRoom: (room) => inst?.proxy.encodeRoom(room),
                 prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
                 reloadLatest: () => inst?.proxy.selectRoom(inst?.proxy.selectedHubHash, inst?.proxy.selectedRoom),
-                excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg) || inst?.proxy.isHiddenPresenceMessage(msg),
+                // hideJoinPart is a render-layer concern handled by
+                // buildTimelineOptions; excluding presence rows here would
+                // drop them from older pages so toggling the pref could
+                // never reveal them again.
+                excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
                 decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
                 buildTimelineOptions: () => ({ hideJoinPart: inst?.proxy.hideJoinPart === true }),
                 onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),
@@ -1854,6 +1858,8 @@ export default {
             ignoredPeers: [],
             highlightWords: [],
             hideJoinPart: false,
+            relayPrefsLoadedKey: "",
+            unwatchRelayIdentity: null,
             applyingOptionsToAllHubs: false,
             localMentionRooms: new Map(),
             showChatPrefs: false,
@@ -1932,6 +1938,15 @@ export default {
                 return null;
             }
             return this.hubs.find((hub) => hub.hub_hash === this.settingsHubHash) || null;
+        },
+        hostModerationHub() {
+            const current = this.hostModeration.hub;
+            if (!current) {
+                return null;
+            }
+            // fetchServers swaps the serverHubs objects; re-resolve by id
+            // so the moderation page sees live running/uptime/clients.
+            return this.serverHubs.find((s) => s.id === current.id) || current;
         },
         settingsHubIconPreview() {
             return normalizeMdiIconName(this.settingsForm.hub_icon) || DEFAULT_RRC_HUB_ICON;
@@ -2050,6 +2065,39 @@ export default {
         }
         this.loadTranslationPacks();
         this.loadRelayPrefs();
+        // Config (and its identity_hash) arrives after mount on slow loads.
+        // Prefs loaded under the "_" fallback bucket must be re-read under the
+        // real identity once it is known, or saved toggles never apply.
+        this.unwatchRelayIdentity = this.$watch(
+            () => useConfigStore().config?.identity_hash || "",
+            (hash) => {
+                // Only re-scope when the initial load fell back to "_". A
+                // mid-session hash change while scoped to a real identity is
+                // handled by onIdentitySwitched; re-beginning here would let a
+                // deferred write jump buckets.
+                if (!hash || this.relayPrefsLoadedKey !== "_") {
+                    return;
+                }
+                // Prefs toggled before the identity was known live under "_".
+                // Carry them into the real bucket only when it has none yet,
+                // so an existing identity's prefs are never overwritten.
+                const fallback = loadRelayPrefs("_");
+                const real = loadRelayPrefs(hash);
+                const realEmpty = real.ignored.length === 0 && real.highlightWords.length === 0 && !real.hideJoinPart;
+                const fallbackHasPrefs =
+                    fallback.ignored.length > 0 || fallback.highlightWords.length > 0 || fallback.hideJoinPart;
+                this.identityScope?.beginIdentity?.(hash);
+                if (realEmpty && fallbackHasPrefs) {
+                    saveRelayPrefs(hash, fallback);
+                }
+                this.loadRelayPrefs();
+                // The real bucket can differ from what "_" loaded: purge
+                // newly ignored peers and re-filter presence in any open room.
+                this.purgeIgnoredMessages();
+                this.refreshHighlightFlags();
+                this._invalidateMessageTimelineCache();
+            }
+        );
     },
     beforeUnmount() {
         this.saveCurrentRoomDraft();
@@ -2068,6 +2116,10 @@ export default {
         }
         if (this.smMq) {
             this.smMq.removeEventListener("change", this.onSmMqChange);
+        }
+        if (this.unwatchRelayIdentity) {
+            this.unwatchRelayIdentity();
+            this.unwatchRelayIdentity = null;
         }
         // Leaving the page must stop treating the last room as "viewed" so new
         // mentions while away can bump unread again.
@@ -2092,7 +2144,9 @@ export default {
                 return;
             }
             if (this.messageTimelineCache !== null) {
-                this.messageTimelineCache = prependRelayMessageTimeline(this.messageTimelineCache, prependedMessages);
+                this.messageTimelineCache = prependRelayMessageTimeline(this.messageTimelineCache, prependedMessages, {
+                    hideJoinPart: this.hideJoinPart,
+                });
                 this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
             } else {
                 this._rebuildMessageTimelineCache();
@@ -2125,7 +2179,12 @@ export default {
             this.saveDraft(this._relayDraftKey(this.selectedHubHash, this.selectedRoom), this._scopedIdentityKey());
         },
         loadRelayPrefs() {
-            const prefs = loadRelayPrefs(this._scopedIdentityKey());
+            const key = this._scopedIdentityKey();
+            // Lock the resolved bucket into the identity scope so deferred
+            // writes keep landing in the bucket these prefs were read from.
+            this.identityScope?.beginIdentity?.(key);
+            this.relayPrefsLoadedKey = key;
+            const prefs = loadRelayPrefs(key);
             this.ignoredPeers = prefs.ignored;
             this.highlightWords = prefs.highlightWords;
             this.hideJoinPart = prefs.hideJoinPart === true;
@@ -2351,8 +2410,39 @@ export default {
             this.expandedHubs = {};
             this.availableRoomsExpanded = {};
             this.availableRoomsRefreshing = {};
+            this.expandedPresenceGroups = {};
+            // Modal, menu, and form state still points at the old
+            // identity's hubs and rooms; close it all so nothing acts on
+            // stale ids.
+            this.sidebarMenu = { show: false, x: 0, y: 0, hub: null, room: null };
+            this.messageMenu = { show: false, x: 0, y: 0, msg: null };
+            this.joinRoomName = "";
+            this.joinRoomKey = "";
+            this.badKeyPromptInFlight = null;
+            this.roomForms = {};
+            this.showMembers = false;
+            this.showSearch = false;
+            this.membersSearch = "";
+            this.messageSearch = "";
+            this.showAddHub = false;
+            this.showCreateHub = false;
+            this.showHostHubSettings = false;
+            this.hostHubSettingsId = null;
+            this.showSettings = false;
+            this.settingsHubHash = null;
+            this.showChatPrefs = false;
+            this.showIconPicker = false;
+            this.hostModeration = { hub: null, tab: "rooms", room: null };
             useUnreadStore().relayChatUnreadCount = 0;
-            this.fetchHubs();
+            // The null writes above queue watcher persists that would
+            // overwrite the stored layout with an empty one. Layout
+            // persist is scoped per identity now; suppress it until the
+            // teardown watchers have flushed.
+            this._suppressRelayLayoutPersist = true;
+            nextTick(() => {
+                this._suppressRelayLayoutPersist = false;
+            });
+            this.fetchHubs().then(() => this.restoreRelayLayout());
             this.fetchServers();
             if (!this.isPopoutMode) {
                 this.fetchDiscovered();
@@ -2383,7 +2473,10 @@ export default {
                     return;
                 }
                 const loaded = (response.data?.messages || []).filter((m) => !this.isIgnoredMsg(m));
-                this.messages = mergeRelayMessages(loaded, this.messages);
+                // Existing messages must be the base: older pages already
+                // loaded sit before the newest page, and merge appends
+                // extras at the end. Reversing the args scrambles the room.
+                this.messages = mergeRelayMessages(this.messages, loaded);
                 this.applyLocalHighlightFlags(this.messages);
                 this._rebuildMessageTimelineCache();
                 if (Array.isArray(response.data?.members)) {
@@ -2412,10 +2505,10 @@ export default {
             }
         },
         persistRelayLayout() {
-            if (this.isPopoutMode) {
+            if (this.isPopoutMode || this._suppressRelayLayoutPersist) {
                 return;
             }
-            saveRelayLayout({
+            saveRelayLayout(this._scopedIdentityKey(), {
                 view: this.view,
                 selectedHubHash: this.selectedHubHash,
                 selectedRoom: this.selectedRoom,
@@ -2428,7 +2521,7 @@ export default {
             if (this.isPopoutMode) {
                 return;
             }
-            const saved = loadRelayLayout();
+            const saved = loadRelayLayout(this._scopedIdentityKey());
             if (!saved) {
                 return;
             }
@@ -2445,7 +2538,7 @@ export default {
                 this.availableRoomsExpanded = { ...saved.availableRoomsExpanded };
             }
             if (saved.selectedHubHash && this.hubs.some((h) => h.hub_hash === saved.selectedHubHash)) {
-                this.selectedHubHash = saved.selectedHubHash;
+                this._setSelectedHub(saved.selectedHubHash);
                 this.expandedHubs[saved.selectedHubHash] = true;
                 const hub = this.hubs.find((h) => h.hub_hash === saved.selectedHubHash);
                 const rooms = hub ? this.orderedRoomsFor(hub) : [];
@@ -2467,17 +2560,41 @@ export default {
         },
         onCollapsedHubClick(hub) {
             const rooms = this.orderedRoomsFor(hub);
-            this.selectedHubHash = hub.hub_hash;
+            this._setSelectedHub(hub.hub_hash);
             this.expandedHubs[hub.hub_hash] = true;
             if (rooms.length > 0) {
                 this.selectRoom(hub.hub_hash, rooms[0]);
             }
         },
+        // Every hub assignment goes through here so a hub switch always
+        // closes the open room: messages and members belong to the old
+        // hub, and sendMessage would otherwise post into a same-named
+        // room on the new hub. The draft is saved under the old hub/room
+        // key before the hash moves.
+        _setSelectedHub(hubHash) {
+            if (hubHash === this.selectedHubHash) {
+                return;
+            }
+            this.saveCurrentRoomDraft();
+            this.selectedHubHash = hubHash;
+            this.selectedRoom = null;
+            this.messages = [];
+            this._invalidateMessageTimelineCache();
+            this.members = [];
+            this.hasMorePrevious = false;
+            this.expandedPresenceGroups = {};
+            this.composer = "";
+            this.nickCycle = null;
+            this.relayAtBottom = true;
+            this.newMessagesBelow = 0;
+            this.closeMessageMenu();
+            this.closeSidebarMenu();
+        },
         isExpanded(hubHash) {
             return !!this.expandedHubs[hubHash];
         },
         toggleHub(hubHash) {
-            this.selectedHubHash = hubHash;
+            this._setSelectedHub(hubHash);
             this.expandedHubs[hubHash] = !this.expandedHubs[hubHash];
             this.persistRelayLayout();
         },
@@ -2833,7 +2950,7 @@ export default {
             if (!hub) {
                 return;
             }
-            this.selectedHubHash = hub.hub_hash;
+            this._setSelectedHub(hub.hub_hash);
             this.expandedHubs[hub.hub_hash] = true;
             nextTick(() => {
                 const inputs = this.$el?.querySelectorAll?.("input.input-field");
@@ -3041,6 +3158,13 @@ export default {
                 typeof msg.src === "string" && /^[a-fA-F0-9]{8,64}$/.test(msg.src.trim())
                     ? msg.src.trim().toLowerCase()
                     : this.displayName(msg);
+            // A nick containing whitespace cannot fill {target} without
+            // splitting into extra command args; refuse rather than
+            // mis-target.
+            if (!target || /\s/.test(target)) {
+                ToastUtils.error(this.$t("relay_chat.action_failed"));
+                return;
+            }
             const room = this.selectedRoom;
             const text = template.replace("{room}", room).replace("{target}", target);
             try {
@@ -3093,7 +3217,7 @@ export default {
                 return;
             }
             this.view = "chat";
-            this.selectedHubHash = decodeURIComponent(hubHash);
+            this._setSelectedHub(decodeURIComponent(hubHash));
             this.expandedHubs[this.selectedHubHash] = true;
             if (routeRoom) {
                 this.selectRoom(this.selectedHubHash, decodeURIComponent(routeRoom));
@@ -3106,7 +3230,7 @@ export default {
                 return;
             }
             this.view = "chat";
-            this.selectedHubHash = hubHash;
+            this._setSelectedHub(hubHash);
             this.expandedHubs[hubHash] = true;
             if (routeRoom && typeof routeRoom === "string") {
                 this.selectRoom(hubHash, routeRoom);
@@ -3301,7 +3425,7 @@ export default {
                 if (result.room) {
                     await this.selectRoom(result.hub_hash, result.room);
                 } else {
-                    this.selectedHubHash = result.hub_hash;
+                    this._setSelectedHub(result.hub_hash);
                 }
                 ToastUtils.success(this.$t("messages.relay_link_opened"));
             } catch (e) {
@@ -3346,7 +3470,7 @@ export default {
                 const response = await window.api.get(apiPath("/rrc/hubs"));
                 this.hubs = response.data?.hubs || [];
                 if (!this.selectedHubHash && this.hubs.length > 0) {
-                    this.selectedHubHash = this.hubs[0].hub_hash;
+                    this._setSelectedHub(this.hubs[0].hub_hash);
                     this.expandedHubs[this.hubs[0].hub_hash] = true;
                 }
                 this.applyLocalMentionRooms();
@@ -3355,7 +3479,7 @@ export default {
             }
         },
         selectHub(hubHash) {
-            this.selectedHubHash = hubHash;
+            this._setSelectedHub(hubHash);
         },
         openSearchResult({ hubHash, room }) {
             if (!hubHash || !room) {
@@ -3386,8 +3510,14 @@ export default {
             if (this.selectedRoom === null && this._viewBeforeRoomOpen == null) {
                 this._viewBeforeRoomOpen = this.view;
             }
+            // Menus anchor to a specific message or hub row; a room switch
+            // leaves them pointing at stale state.
+            this.closeMessageMenu();
+            this.closeSidebarMenu();
+            // _setSelectedHub saves the draft under the old hub/room before
+            // rebinding, so the composer text never lands in the new key.
             this.saveCurrentRoomDraft();
-            this.selectedHubHash = hubHash;
+            this._setSelectedHub(hubHash);
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
             this.hasMorePrevious = false;
@@ -3547,15 +3677,20 @@ export default {
             this.sending = true;
             const sentRoom = this.selectedRoom;
             const sentHub = this.selectedHubHash;
+            // Clear before the await so text typed while the request is in
+            // flight is not wiped when it resolves; restore on failure.
+            this.composer = "";
+            this.nickCycle = null;
             try {
                 await window.api.post(
-                    apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`),
+                    apiPath(`/rrc/hubs/${sentHub}/rooms/${this.encodeRoom(sentRoom)}/messages`),
                     payload
                 );
-                this.composer = "";
-                this.nickCycle = null;
                 this.saveDraft(this._relayDraftKey(sentHub, sentRoom));
             } catch (e) {
+                if (!this.composer) {
+                    this.composer = text;
+                }
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.send_failed"));
             } finally {
                 this.sending = false;
@@ -3757,7 +3892,7 @@ export default {
                 await this.fetchHubs();
                 const added = response.data?.hub;
                 if (added) {
-                    this.selectedHubHash = added.hub_hash;
+                    this._setSelectedHub(added.hub_hash);
                     this.expandedHubs[added.hub_hash] = true;
                 }
             } catch (e) {
@@ -3772,11 +3907,7 @@ export default {
             try {
                 await window.api.delete(apiPath(`/rrc/hubs/${hub.hub_hash}`));
                 if (this.selectedHubHash === hub.hub_hash) {
-                    this.selectedHubHash = null;
-                    this.selectedRoom = null;
-                    this.messages = [];
-                    this._invalidateMessageTimelineCache();
-                    this.members = [];
+                    this._setSelectedHub(null);
                 }
                 ToastUtils.success(this.$t("relay_chat.hub_removed"));
                 await this.fetchHubs();
@@ -3916,7 +4047,7 @@ export default {
                 await this.fetchHubs();
                 const added = response.data?.hub;
                 if (added) {
-                    this.selectedHubHash = added.hub_hash;
+                    this._setSelectedHub(added.hub_hash);
                     this.expandedHubs[added.hub_hash] = true;
                 }
                 this.view = "chat";
@@ -3925,7 +4056,7 @@ export default {
             }
         },
         openDiscovered(node) {
-            this.selectedHubHash = node.destination_hash;
+            this._setSelectedHub(node.destination_hash);
             this.expandedHubs[node.destination_hash] = true;
             this.view = "chat";
         },
@@ -4109,10 +4240,10 @@ export default {
                 await this.fetchHubs();
                 const added = response.data?.hub;
                 if (added) {
-                    this.selectedHubHash = added.hub_hash;
+                    this._setSelectedHub(added.hub_hash);
                     this.expandedHubs[added.hub_hash] = true;
                 } else {
-                    this.selectedHubHash = hub.dest_hash;
+                    this._setSelectedHub(hub.dest_hash);
                     this.expandedHubs[hub.dest_hash] = true;
                 }
                 this.view = "chat";

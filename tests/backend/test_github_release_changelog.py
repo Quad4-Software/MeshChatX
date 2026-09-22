@@ -67,7 +67,10 @@ def test_changelog_v4_8_5_uses_prior_stable_and_full_sha_bullets():
         pytest.skip("v4.8.4/v4.8.5 tags not available in this clone")
 
     out = _run(["bash", str(_CHANGELOG), "v4.8.5"]).stdout
-    assert out.startswith("## Changelog\n")
+    # The script emits raw bullets; the draft script adds the heading and
+    # wraps the block in a collapsible <details> section.
+    assert not out.startswith("##")
+    assert out.lstrip().startswith(("* ", "_No previous tag found"))
     bullets = [ln for ln in out.splitlines() if ln.startswith("* ")]
     assert bullets, "expected at least one changelog bullet"
     for ln in bullets:
@@ -125,12 +128,16 @@ def test_draft_notes_only_includes_changelog_then_checksums():
             pytest.skip("v4.8.5 tag not available in this clone")
         assert proc.returncode == 0, proc.stderr
         body = proc.stdout
-        assert "## Changelog" in body
-        assert "## SHA256 Checksums" in body
-        assert "## Verification" in body
+        assert "<summary><strong>Changelog</strong></summary>" in body
+        assert "<summary><strong>SHA256 Checksums</strong></summary>" in body
+        assert "<summary><strong>Verification</strong></summary>" in body
         assert "dummy-asset.bin" in body
-        assert body.index("## Changelog") < body.index("## SHA256 Checksums")
-        assert body.index("## SHA256 Checksums") < body.index("## Verification")
+        assert body.index("Changelog</strong>") < body.index(
+            "SHA256 Checksums</strong>"
+        )
+        assert body.index("SHA256 Checksums</strong>") < body.index(
+            "Verification</strong>"
+        )
         # Bullet shape: full sha, subject, trailing period.
         if "* " in body:
             assert re.search(r"\* [0-9a-f]{40} .+\.", body)

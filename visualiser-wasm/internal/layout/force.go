@@ -13,25 +13,25 @@ const (
 	// DefaultRepulsion is 1/r^2 strength when Request.Repulsion is 0.
 	// vis-network barnesHut uses gravitationalConstant -3500. Keep this near
 	// that scale so WASM settle does not inflate the graph.
-	DefaultRepulsion = 1800.0
+	DefaultRepulsion = 2200.0
 	// DefaultSpringK is hooke stiffness when Request.SpringK is 0.
 	DefaultSpringK = 0.032
 	// DefaultSpringLen is rest length when an edge omits Length.
 	// vis-network barnesHut springLength is 200. Peers sit a bit further out.
-	DefaultSpringLen = 240.0
+	DefaultSpringLen = 300.0
 	// DefaultHubSpringLen is rest length for thick hub edges (me to interface).
-	DefaultHubSpringLen = 200.0
+	DefaultHubSpringLen = 250.0
 	// DefaultCellSize is the repulsion grid bucket in world units.
 	DefaultCellSize = 180.0
 	// DefaultMinSep is used when a body has no Radius.
 	DefaultMinSep = 48.0
 	// CollisionPad is extra gap beyond the two node radii.
-	CollisionPad = 16.0
+	CollisionPad = 22.0
 	// CollisionK is extra push when two discs overlap the min gap.
 	// Keep this below 1 so stacked nodes unstick without launching.
 	CollisionK = 0.85
 	// LiveRepulsion is WebGL live-tick repulsion.
-	LiveRepulsion = 1800.0
+	LiveRepulsion = 2200.0
 	// LiveSpringK is WebGL live-tick spring stiffness.
 	LiveSpringK = 0.016
 	// LiveDamping is WebGL live-tick velocity keep fraction.
@@ -147,10 +147,17 @@ func Settle(req Request) Result {
 		maxSpeed = 18
 	}
 
-	bodies := make([]body, n)
+	// Duplicate ids collapse to the first occurrence. A last-wins index would
+	// leave earlier duplicates with stale positions and velocities forever
+	// once results are written back through the id map.
+	bodies := make([]body, 0, n)
 	index := make(map[string]int, n)
+	srcIndex := make([]int, 0, n)
 	for i := range req.Nodes {
 		nd := &req.Nodes[i]
+		if _, dup := index[nd.ID]; dup {
+			continue
+		}
 		mass := nd.Mass
 		if mass <= 0 {
 			mass = 1
@@ -159,7 +166,9 @@ func Settle(req Request) Result {
 		if radius <= 0 {
 			radius = DefaultMinSep * 0.5
 		}
-		bodies[i] = body{
+		index[nd.ID] = len(bodies)
+		srcIndex = append(srcIndex, i)
+		bodies = append(bodies, body{
 			id:     nd.ID,
 			x:      nd.X,
 			y:      nd.Y,
@@ -168,9 +177,9 @@ func Settle(req Request) Result {
 			mass:   mass,
 			fixed:  nd.Fixed || nd.ID == "me",
 			radius: radius,
-		}
-		index[nd.ID] = i
+		})
 	}
+	nb := len(bodies)
 
 	type spring struct {
 		a, b int
@@ -192,9 +201,18 @@ func Settle(req Request) Result {
 	}
 
 	cellSize := DefaultCellSize
+	fx := make([]float64, nb)
+	fy := make([]float64, nb)
+	buckets := make(map[[2]int][]int, nb/2+1)
 	for step := 0; step < iters; step++ {
-		fx := make([]float64, n)
-		fy := make([]float64, n)
+		for i := range fx {
+			fx[i] = 0
+			fy[i] = 0
+		}
+		// Reset lengths but keep bucket capacity across iterations.
+		for k := range buckets {
+			buckets[k] = buckets[k][:0]
+		}
 
 		// Weak pull toward origin keeps the mesh centred.
 		for i := range bodies {
@@ -206,7 +224,6 @@ func Settle(req Request) Result {
 		}
 
 		// Grid-bucketed repulsion (near O(n) average).
-		buckets := make(map[[2]int][]int, n/2+1)
 		for i := range bodies {
 			cx := int(math.Floor(bodies[i].x / cellSize))
 			cy := int(math.Floor(bodies[i].y / cellSize))
@@ -296,12 +313,10 @@ func Settle(req Request) Result {
 		out.Positions[bodies[i].id] = XY{X: bodies[i].x, Y: bodies[i].y}
 		// Write velocities back onto the request nodes when ids match so
 		// live layout can carry momentum across Tick frames.
-		if idx, ok := index[bodies[i].id]; ok {
-			req.Nodes[idx].X = bodies[i].x
-			req.Nodes[idx].Y = bodies[i].y
-			req.Nodes[idx].Vx = bodies[i].vx
-			req.Nodes[idx].Vy = bodies[i].vy
-		}
+		req.Nodes[srcIndex[i]].X = bodies[i].x
+		req.Nodes[srcIndex[i]].Y = bodies[i].y
+		req.Nodes[srcIndex[i]].Vx = bodies[i].vx
+		req.Nodes[srcIndex[i]].Vy = bodies[i].vy
 	}
 	out.Iterations = iters
 	return out

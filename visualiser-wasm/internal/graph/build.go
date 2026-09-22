@@ -68,6 +68,7 @@ type NodeOut struct {
 	Title           string         `json:"title"`
 	Font            map[string]any `json:"font"`
 	Color           map[string]any `json:"color"`
+	OriginalColor   map[string]any `json:"_originalColor,omitempty"`
 	X               float64        `json:"x"`
 	Y               float64        `json:"y"`
 	ParentInterface string         `json:"_parentInterface,omitempty"`
@@ -214,6 +215,9 @@ func BuildPathGraph(req Request) Result {
 		case "nomadnetwork.node":
 			applyNomadNode(&node, direct, req.DarkMode)
 		}
+		// Stash the semantic color so a later low-LOD blue stamp can be
+		// restored when zooming back to medium/high.
+		node.OriginalColor = node.Color
 
 		applyLOD(&node, req.LOD, fontHigh)
 		nodes = append(nodes, node)
@@ -244,11 +248,11 @@ func resolvePosition(hash, iface string, pos map[string]XY) (float64, float64) {
 		return prev.X, prev.Y
 	}
 	if ip, ok := pos[iface]; ok {
-		x, y := hashpos.Around(hash, ip.X, ip.Y, 140, 90)
+		x, y := hashpos.Around(hash, ip.X, ip.Y, 200, 140)
 		pos[hash] = XY{X: x, Y: y}
 		return x, y
 	}
-	x, y := hashpos.XY(hash, 400, 160)
+	x, y := hashpos.XY(hash, 560, 240)
 	pos[hash] = XY{X: x, Y: y}
 	return x, y
 }
@@ -367,7 +371,12 @@ func applyLOD(node *NodeOut, level string, fontHigh map[string]any) {
 	default:
 		node.Shape = node.OriginalShape
 		node.Size = node.OriginalSize
-		node.Font = fontHigh
+		// Keep the per-node font (me is bold 16, interfaces bold 12,
+		// discovered 10). Only fall back to the shared announce font
+		// when the node never set one.
+		if node.Font == nil {
+			node.Font = fontHigh
+		}
 	}
 }
 

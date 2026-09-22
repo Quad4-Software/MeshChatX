@@ -30,9 +30,11 @@ const {
 } = require("./uiTheme");
 const {
     getUserProvidedArguments,
+    findProtocolUrlArg,
     resolvePortableStorageRoots,
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
+    isTrustedBlobUrl,
     isTrustedShellFileUrl,
     shouldOpenInElectronWindow,
     shouldAllowInWindowNavigation,
@@ -168,6 +170,34 @@ if (process.defaultApp) {
     app.setAsDefaultProtocolClient("rns");
 }
 
+// Deep link captured before the app page exists (cold start or macOS open-url
+// before the window is ready). Flushed to the renderer on did-finish-load once
+// the main window shows the app page.
+var pendingProtocolUrl = findProtocolUrlArg(process.argv);
+
+function flushPendingProtocolLink() {
+    if (!pendingProtocolUrl) {
+        return;
+    }
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        return;
+    }
+    if (getMainWindowPageKind() !== "app") {
+        return;
+    }
+    const url = pendingProtocolUrl;
+    pendingProtocolUrl = null;
+    mainWindow.webContents.send("open-protocol-link", url);
+}
+
+function sendOrQueueProtocolLink(url) {
+    if (!url) {
+        return;
+    }
+    pendingProtocolUrl = url;
+    flushPendingProtocolLink();
+}
+
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -179,13 +209,11 @@ if (!gotTheLock) {
             if (mainWindow.isMinimized()) mainWindow.restore();
             mainWindow.show();
             mainWindow.focus();
-
-            // Handle protocol links from second instance
-            const url = commandLine.pop();
-            if (url && (url.startsWith("lxmf://") || url.startsWith("rns://"))) {
-                mainWindow.webContents.send("open-protocol-link", url);
-            }
         }
+
+        // Handle protocol links from second instance. The deep link is not
+        // guaranteed to be the last argv entry, so scan for a scheme arg.
+        sendOrQueueProtocolLink(findProtocolUrlArg(commandLine));
     });
 }
 
@@ -194,8 +222,8 @@ app.on("open-url", (event, url) => {
     event.preventDefault();
     if (mainWindow) {
         mainWindow.show();
-        mainWindow.webContents.send("open-protocol-link", url);
     }
+    sendOrQueueProtocolLink(url);
 });
 
 function trustedIpcHandle(channel, listener) {
@@ -279,8 +307,28 @@ trustedIpcHandle("set-power-save-blocker", (event, enabled) => {
     return activePowerSaveBlockerId !== null;
 });
 
-// ignore ssl errors
-app.commandLine.appendSwitch("ignore-certificate-errors");
+// The backend serves a self-signed cert on loopback. Trust that origin only;
+// a global ignore-certificate-errors switch would silently disable TLS
+// verification for remote fetches too (map tiles, update checks).
+app.on("certificate-error", (event, webContents, url, error, certificate, callback) => {
+    try {
+        const parsed = new URL(url);
+        const isLocalBackend =
+            (parsed.hostname === "127.0.0.1" ||
+                parsed.hostname === "localhost" ||
+                parsed.hostname === "::1" ||
+                parsed.hostname === "[::1]") &&
+            parsed.port === "9337";
+        if (isLocalBackend) {
+            event.preventDefault();
+            callback(true);
+            return;
+        }
+    } catch {
+        // fall through to default denial
+    }
+    callback(false);
+});
 
 trustedIpcHandle("backend-http-only", () => {
     return getUserProvidedArguments(process.argv).includes("--no-https");
@@ -543,7 +591,9 @@ trustedIpcHandle("open-path", (event, targetPath) => {
         getDefaultReticulumConfigDir,
         getUserProvidedArguments,
     };
-    if (!isAllowedShellPath(targetPath, ctx)) {
+    // openPath executes the target, so unlike reveal-in-folder it is limited
+    // to app-owned storage/config roots and MeshChatX exchange folders.
+    if (!isAllowedShellPath(targetPath, ctx, { broadRoots: false })) {
         console.warn("open-path denied (path outside allowed directories)");
         return "Path is not allowed";
     }
@@ -599,6 +649,15 @@ function handleWindowOpenRequest(url) {
         };
     }
 
+    // Local backend URLs that are not popouts or call windows must stay in the
+    // hardened shell; handing them to the OS browser would run the app UI
+    // outside it.
+    if (isLocalBackendUrl(url) || isTrustedBlobUrl(url)) {
+        return {
+            action: "deny",
+        };
+    }
+
     const safe = normalizeExternalUrlForOpen(url);
     if (safe) {
         shell.openExternal(safe);
@@ -647,6 +706,10 @@ app.on("web-contents-created", (_event, contents) => {
 });
 
 function attachDevToolsF12Shortcut(browserWindow) {
+    // DevTools stay off in packaged builds; they are a development aid only.
+    if (app.isPackaged) {
+        return;
+    }
     browserWindow.webContents.on("before-input-event", (event, input) => {
         if (input.type !== "keyDown" || input.key !== "F12") {
             return;
@@ -1058,6 +1121,29 @@ async function handleWindowCloseRequest(event) {
 }
 
 app.whenReady().then(async () => {
+    // The shell is served over HTTP by the backend and the persistent
+    // defaultSession disk cache survives restarts. Responses without
+    // Cache-Control are heuristic-cached, so entries written by older builds
+    // (for example a stale nomad-crash-tab.html) must be evicted once when the
+    // app version changes.
+    try {
+        const markerPath = path.join(app.getPath("userData"), "last-app-version.txt");
+        // The Electron version is part of the marker so a Chromium bump also
+        // evicts heuristic-cached responses, not only an app version change.
+        const currentVersion = `${readPackagedAppVersion(app.getVersion())} electron/${process.versions.electron || "unknown"}`;
+        const lastVersion = fs.existsSync(markerPath) ? fs.readFileSync(markerPath, "utf8").trim() : "";
+        if (lastVersion !== currentVersion) {
+            // Write the marker first: if userData is not writable the write
+            // throws and we skip the clear instead of wiping the cache on
+            // every launch.
+            fs.writeFileSync(markerPath, currentVersion, "utf8");
+            await session.defaultSession.clearCache();
+            log(`Cleared HTTP cache after app update: ${lastVersion || "none"} -> ${currentVersion}`);
+        }
+    } catch (error) {
+        log(`Cache clear on version change failed: ${error && error.message ? error.message : error}`);
+    }
+
     app.on("browser-window-created", (event, browserWindow) => {
         attachDefaultContextMenu(browserWindow);
         attachDevToolsF12Shortcut(browserWindow);
@@ -1141,6 +1227,9 @@ app.whenReady().then(async () => {
                 // Security: disable remote module (deprecated but explicit)
                 enableRemoteModule: false,
             },
+        });
+        mainWindow.webContents.on("did-finish-load", () => {
+            flushPendingProtocolLink();
         });
         mainWindow.webContents.on("render-process-gone", (_event, details) => {
             log(`Renderer process crashed: ${formatRenderProcessGoneDetails(details)}`);

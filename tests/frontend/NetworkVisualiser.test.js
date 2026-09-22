@@ -650,6 +650,261 @@ describe("NetworkVisualiser.vue", () => {
         expect(processSpy).toHaveBeenCalledWith({ silent: true });
     });
 
+    it("radial view pins nodes on hop rings around me", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            redraw: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+            getScale: vi.fn().mockReturnValue(1),
+            fit: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [{ name: "eth0", status: true, bitrate: 1000, txb: 0, rxb: 0 }];
+        wrapper.vm.pathTable = [
+            { hash: "node1", interface: "eth0", hops: 1 },
+            { hash: "node2", interface: "eth0", hops: 2 },
+        ];
+        wrapper.vm.announces = {
+            node1: {
+                destination_hash: "node1",
+                aspect: "lxmf.delivery",
+                display_name: "Near",
+                updated_at: new Date().toISOString(),
+            },
+            node2: {
+                destination_hash: "node2",
+                aspect: "lxmf.delivery",
+                display_name: "Far",
+                updated_at: new Date().toISOString(),
+            },
+        };
+        wrapper.vm.viewMode = "radial";
+        await wrapper.vm.processVisualization();
+
+        const me = wrapper.vm.nodes.get("me");
+        const iface = wrapper.vm.nodes.get("eth0");
+        const n1 = wrapper.vm.nodes.get("node1");
+        const n2 = wrapper.vm.nodes.get("node2");
+        expect(me.x).toBe(0);
+        expect(me.y).toBe(0);
+        expect(Math.hypot(iface.x, iface.y)).toBeCloseTo(300, 1);
+        expect(Math.hypot(n1.x, n1.y)).toBeCloseTo(560, 1);
+        expect(Math.hypot(n2.x, n2.y)).toBeCloseTo(790, 1);
+        for (const n of wrapper.vm.nodes.get()) {
+            expect(n.fixed).toBe(true);
+        }
+        wrapper.unmount();
+    });
+
+    it("onViewModeChange to radial rebuilds the graph with a camera reset", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        const proc = vi.spyOn(wrapper.vm, "processVisualization").mockResolvedValue();
+        wrapper.vm.onViewModeChange("planet");
+        // Flat -> planet is render-only and must not rebuild.
+        expect(proc).not.toHaveBeenCalled();
+        expect(wrapper.vm.resetCameraOnNextGraph).toBe(false);
+        wrapper.vm.onViewModeChange("radial");
+        expect(wrapper.vm.viewMode).toBe("radial");
+        expect(wrapper.vm.resetCameraOnNextGraph).toBe(true);
+        expect(proc).toHaveBeenCalled();
+        // Leaving radial restores force layout, so it rebuilds too.
+        wrapper.vm.resetCameraOnNextGraph = false;
+        proc.mockClear();
+        wrapper.vm.onViewModeChange("flat");
+        expect(proc).toHaveBeenCalled();
+        wrapper.unmount();
+    });
+
+    it("renders discovered interface nodes in JS fallback mode", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            redraw: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [{ name: "eth0", status: true, bitrate: 1000, txb: 0, rxb: 0 }];
+        wrapper.vm.pathTable = [];
+        wrapper.vm.announces = {};
+        wrapper.vm.showDiscoveredInterfaces = true;
+        wrapper.vm.discoveredInterfaces = [
+            {
+                name: "Peer Relay",
+                discovery_hash: "d1",
+                reachable_on: "10.9.0.1",
+                port: 4242,
+                hops: 1,
+                type: "TCPInterface",
+            },
+        ];
+        wrapper.vm.discoveredActive = [{ target_host: "10.9.0.1", target_port: 4242 }];
+
+        await wrapper.vm.processVisualization();
+
+        const node = wrapper.vm.nodes.get("discovered~d1");
+        expect(node).toBeTruthy();
+        expect(node.group).toBe("discovered");
+        expect(node.image).toContain("interface_connected");
+        // WASM parity: discovered nodes scatter on the 560-800 band.
+        const r = Math.hypot(node.x, node.y);
+        expect(r).toBeGreaterThanOrEqual(560);
+        expect(r).toBeLessThanOrEqual(800);
+        const edge = wrapper.vm.edges.get("me~discovered~d1");
+        expect(edge).toBeTruthy();
+        expect(edge.width).toBe(1);
+        wrapper.unmount();
+    });
+
+    it("does not render discovered nodes when showDiscoveredInterfaces is off", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            redraw: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [];
+        wrapper.vm.pathTable = [];
+        wrapper.vm.announces = {};
+        wrapper.vm.showDiscoveredInterfaces = false;
+        wrapper.vm.discoveredInterfaces = [{ name: "Peer", discovery_hash: "d1", hops: 1 }];
+
+        await wrapper.vm.processVisualization();
+
+        expect(wrapper.vm.nodes.get("discovered~d1")).toBeNull();
+        wrapper.unmount();
+    });
+
+    it("applies hop_max to discovered nodes in JS fallback mode", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            redraw: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [];
+        wrapper.vm.pathTable = [];
+        wrapper.vm.announces = {};
+        wrapper.vm.showDiscoveredInterfaces = true;
+        wrapper.vm.discoveredInterfaces = [
+            { name: "Near", discovery_hash: "dn", hops: 1 },
+            { name: "Far", discovery_hash: "df", hops: 7 },
+            { name: "NoHops", discovery_hash: "du" },
+        ];
+        wrapper.vm.hopMaxFilter = 2;
+
+        await wrapper.vm.processVisualization();
+
+        expect(wrapper.vm.nodes.get("discovered~dn")).toBeTruthy();
+        // null hops bypass hop_max, matching the WASM builder.
+        expect(wrapper.vm.nodes.get("discovered~du")).toBeTruthy();
+        expect(wrapper.vm.nodes.get("discovered~df")).toBeNull();
+        expect(wrapper.vm.edges.get("me~discovered~df")).toBeNull();
+        wrapper.unmount();
+    });
+
+    it("matches discovered nodes by reachable_on or transport_id in JS fallback mode", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            redraw: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [];
+        wrapper.vm.pathTable = [];
+        wrapper.vm.announces = {};
+        wrapper.vm.showDiscoveredInterfaces = true;
+        wrapper.vm.discoveredInterfaces = [
+            { name: "Alpha", discovery_hash: "da", reachable_on: "10.20.0.9", hops: 1 },
+            { name: "Beta", discovery_hash: "db", transport_id: "ff10.20.0cc", hops: 1 },
+            { name: "Gamma", discovery_hash: "dc", hops: 1 },
+        ];
+        wrapper.vm.searchQuery = "10.20.0";
+        await new Promise((resolve) => setTimeout(resolve, 160));
+
+        expect(wrapper.vm.nodes.get("discovered~da")).toBeTruthy();
+        expect(wrapper.vm.nodes.get("discovered~db")).toBeTruthy();
+        expect(wrapper.vm.nodes.get("discovered~dc")).toBeNull();
+        wrapper.unmount();
+    });
+
+    it("does not emit me~iface edges when me is filtered out by search", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            redraw: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Home Node", identity_hash: "zzz" };
+        wrapper.vm.interfaces = [{ name: "eth0", status: true, bitrate: 0, txb: 0, rxb: 0 }];
+        wrapper.vm.pathTable = [];
+        wrapper.vm.announces = {};
+        wrapper.vm.showDiscoveredInterfaces = true;
+        wrapper.vm.discoveredInterfaces = [{ name: "eth0-peer", discovery_hash: "d9", hops: 1 }];
+        wrapper.vm.searchQuery = "eth0";
+        await new Promise((resolve) => setTimeout(resolve, 160));
+
+        expect(wrapper.vm.nodes.get("me")).toBeNull();
+        expect(wrapper.vm.nodes.get("eth0")).toBeTruthy();
+        expect(wrapper.vm.nodes.get("discovered~d9")).toBeTruthy();
+        expect(wrapper.vm.edges.get("me~eth0")).toBeNull();
+        expect(wrapper.vm.edges.get("me~discovered~d9")).toBeNull();
+        wrapper.unmount();
+    });
+
+    it("spreads interface nodes on a circle instead of stacking them", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            redraw: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [
+            { name: "eth0", status: true, bitrate: 0, txb: 0, rxb: 0 },
+            { name: "wlan0", status: true, bitrate: 0, txb: 0, rxb: 0 },
+            { name: "tun0", status: true, bitrate: 0, txb: 0, rxb: 0 },
+        ];
+        wrapper.vm.pathTable = [];
+        wrapper.vm.announces = {};
+
+        await wrapper.vm.processVisualization();
+
+        const spots = ["eth0", "wlan0", "tun0"].map((id) => wrapper.vm.nodes.get(id));
+        for (const n of spots) {
+            expect(n).toBeTruthy();
+            expect(Math.hypot(n.x, n.y)).toBeCloseTo(210, 1);
+        }
+        const unique = new Set(spots.map((n) => `${Math.round(n.x)},${Math.round(n.y)}`));
+        expect(unique.size).toBe(3);
+        wrapper.unmount();
+    });
+
     it("clears identity-scoped graph state on identity switch", async () => {
         vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
         const wrapper = mountVisualiser();

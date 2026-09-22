@@ -92,6 +92,33 @@ describe("useMessageDrafts", () => {
         expect(stored().idB).toBeUndefined();
     });
 
+    it("loadDraft folds the _ fallback bucket into the real identity bucket", () => {
+        let text = "";
+        const d = useMessageDrafts({
+            getIdentityKey: () => "idA",
+            getNewMessageText: () => text,
+            setDraftText: (v) => (text = v),
+        });
+        // Drafts saved before the identity hash resolved live under "_".
+        localStorage.setItem(KEY, JSON.stringify({ _: { peer1: "early", peer2: "also early" } }));
+        d.loadDraft("peer1");
+        expect(text).toBe("early");
+        expect(stored()).toEqual({ idA: { peer1: "early", peer2: "also early" } });
+    });
+
+    it("loadDraft keeps real bucket entries over _ fallback duplicates", () => {
+        let text = "";
+        const d = useMessageDrafts({
+            getIdentityKey: () => "idA",
+            setDraftText: (v) => (text = v),
+        });
+        localStorage.setItem(KEY, JSON.stringify({ _: { peer1: "orphan" }, idA: { peer1: "real" } }));
+        d.loadDraft("peer1");
+        expect(text).toBe("real");
+        expect(stored().idA.peer1).toBe("real");
+        expect(stored()._).toBeUndefined();
+    });
+
     it("a bare saveDraft after identity switch stays in the captured bucket", () => {
         let identity = "idA";
         let text = "";
