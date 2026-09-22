@@ -10,6 +10,7 @@ import { EDGE_STRIDE, NODE_STRIDE } from "./networkVisualiserWebGL.js";
 
 export const PLANET_VIEW = "planet";
 export const FLAT_VIEW = "flat";
+export const RADIAL_VIEW = "radial";
 
 export const PLANET_FOV_Y = (48 * Math.PI) / 180;
 export const PLANET_NEAR = 0.18;
@@ -66,10 +67,13 @@ let worldScratch = [];
 
 /**
  * @param {unknown} raw
- * @returns {"flat"|"planet"}
+ * @returns {"flat"|"planet"|"radial"}
  */
 export function normalizeVisualiserViewMode(raw) {
-    return raw === PLANET_VIEW ? PLANET_VIEW : FLAT_VIEW;
+    if (raw === PLANET_VIEW || raw === RADIAL_VIEW) {
+        return raw;
+    }
+    return FLAT_VIEW;
 }
 
 /**

@@ -66,4 +66,12 @@ describe("settingsVisualiserPrefs", () => {
         persistVisualiserViewMode("flat", { emit: false });
         expect(loadVisualiserDisplayPrefs().viewMode).toBe("flat");
     });
+
+    it("normalizes and persists radial view mode", () => {
+        expect(normalizeVisualiserViewMode("radial")).toBe("radial");
+        persistVisualiserViewMode("radial");
+        expect(loadVisualiserDisplayPrefs().viewMode).toBe("radial");
+        persistVisualiserViewMode("bogus", { emit: false });
+        expect(loadVisualiserDisplayPrefs().viewMode).toBe("flat");
+    });
 });
