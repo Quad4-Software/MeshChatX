@@ -204,6 +204,7 @@ from meshchatx.src.backend.rns_ratchet_persist import (
     raise_nofile_soft_limit,
 )
 from meshchatx.src.backend.rns_startup_recovery import (
+    consume_recovery_report,
     create_reticulum_with_recovery,
     install_rns_panic_containment,
 )
@@ -4872,6 +4873,31 @@ class ReticulumMeshChat:
 
     def build_user_guidance_messages(self):
         guidance = []
+
+        recovered = consume_recovery_report(
+            self._normalize_reticulum_config_dir(self.reticulum_config_dir),
+        )
+        if recovered:
+            labels = {
+                "__i2p__": "I2P interfaces",
+                "__rnode__": "RNode interfaces",
+            }
+            recovered_label = ", ".join(labels.get(n, f"'{n}'") for n in recovered)
+            guidance.append(
+                {
+                    "id": "startup_recovery_disabled",
+                    "title": "Interfaces disabled during startup recovery",
+                    "description": (
+                        f"Reticulum failed to start, so {recovered_label} "
+                        "was automatically disabled to let the app boot. "
+                        "Check the interface settings and re-enable it once "
+                        "the underlying problem is fixed."
+                    ),
+                    "action_route": "/interfaces",
+                    "action_label": "Open Interfaces",
+                    "severity": "warning",
+                },
+            )
 
         interfaces = self._get_interfaces_section()
         if len(interfaces) == 0:

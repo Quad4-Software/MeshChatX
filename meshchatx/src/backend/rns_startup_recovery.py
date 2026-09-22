@@ -44,6 +44,53 @@ _HIGH_RISK_TYPES = (
 _CAPTURED_ERROR_LOG_LINES: list[str] = []
 _ORIGINAL_RNS_LOG = None
 
+RECOVERY_REPORT_FILENAME = "startup_recovery.json"
+
+
+def _write_recovery_report(config_dir: str, disabled: list[str]) -> None:
+    """Persist which interfaces startup recovery turned off.
+
+    The app reads this once when building user guidance so the owner can
+    see that an interface was disabled automatically, instead of silently
+    losing an interface they configured.
+    """
+    import json
+    import time
+
+    if not disabled:
+        return
+    path = os.path.join(config_dir, RECOVERY_REPORT_FILENAME)
+    try:
+        payload = {"disabled": list(dict.fromkeys(disabled)), "time": time.time()}
+        tmp_path = path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle)
+        os.replace(tmp_path, path)
+    except Exception as exc:
+        logger.warning("Failed to write startup recovery report: %s", exc)
+
+
+def consume_recovery_report(config_dir: str) -> list[str]:
+    """Read and clear the startup recovery report. Returns disabled names."""
+    import json
+
+    path = os.path.join(config_dir, RECOVERY_REPORT_FILENAME)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError:
+        return []
+    except Exception:
+        payload = None
+    with contextlib.suppress(Exception):
+        os.remove(path)
+    if not isinstance(payload, dict):
+        return []
+    disabled = payload.get("disabled")
+    if not isinstance(disabled, list):
+        return []
+    return [str(name) for name in disabled if name]
+
 
 def _capturing_log(msg, level=3, *args, **kwargs):
     try:
@@ -383,6 +430,169 @@ def apply_startup_recovery_step(
     return disabled
 
 
+def _close_quietly(resource) -> None:
+    """Close a socket, socketserver, or serial-style object."""
+    import socket
+    import socketserver
+    import threading
+
+    if isinstance(resource, socketserver.BaseServer):
+        # The port stays bound until serve_forever exits because the
+        # selector holds a reference to the socket's file description.
+        # shutdown() is what makes serve_forever exit, but it blocks
+        # forever on a server that never served, so it runs on a daemon
+        # thread joined with a timeout before server_close() drops the
+        # socket.
+        done = threading.Event()
+
+        def _shutdown():
+            with contextlib.suppress(Exception):
+                resource.shutdown()
+            done.set()
+
+        threading.Thread(target=_shutdown, daemon=True).start()
+        done.wait(timeout=3)
+        with contextlib.suppress(Exception):
+            resource.server_close()
+        return
+    if isinstance(resource, socket.socket):
+        with contextlib.suppress(Exception):
+            resource.shutdown(socket.SHUT_RDWR)
+        with contextlib.suppress(Exception):
+            resource.close()
+        return
+    close = getattr(resource, "close", None)
+    if callable(close) and (
+        hasattr(resource, "fileno")
+        or hasattr(resource, "is_open")
+        or hasattr(resource, "isOpen")
+    ):
+        with contextlib.suppress(Exception):
+            close()
+
+
+def _release_interface_resources(interface) -> None:
+    """Close every socket-like resource reachable from a dead interface.
+
+    Interface.detach() releases sockets on most interface types, but
+    AutoInterface.detach() only flips a flag: its per-ifname UDPServers
+    stay bound and keep the data port held, so the recovery retry fails
+    with EADDRINUSE all over again. Walk the interface attributes for
+    sockets, servers, and serial handles and close them directly.
+
+    AutoInterface also binds discovery sockets inside __init__ and keeps
+    them only in thread closures, so attribute walking cannot reach
+    them. Scan live threads for closures that reference this interface
+    and close any sockets held there. Scoped to closures that mention
+    the dead interface so unrelated sockets are never touched.
+    """
+    seen: set[int] = set()
+    for value in list(vars(interface).values()):
+        if isinstance(value, dict):
+            candidates = list(value.values())
+        elif isinstance(value, (list, tuple, set)):
+            candidates = list(value)
+        else:
+            candidates = [value]
+        for resource in candidates:
+            if id(resource) in seen:
+                continue
+            seen.add(id(resource))
+            _close_quietly(resource)
+
+    import socket
+    import threading
+
+    for thread in threading.enumerate():
+        target = getattr(thread, "_target", None)
+        cells = getattr(target, "__closure__", None) or ()
+        cell_values = []
+        for cell in cells:
+            with contextlib.suppress(Exception):
+                cell_values.append(cell.cell_contents)
+        if not any(v is interface for v in cell_values):
+            continue
+        for value in cell_values:
+            if isinstance(value, socket.socket):
+                _close_quietly(value)
+
+
+def reset_rns_runtime_state() -> None:
+    """Best-effort teardown of a partially constructed RNS.
+
+    RNS.Reticulum.__init__ assigns Reticulum.__instance at the top and
+    starts Transport workers before interfaces are synthesised. When an
+    interface then fails to come up, the interpreter is left holding the
+    singleton, bound sockets, and running workers, so every later
+    Reticulum() attempt fails instantly with "Attempt to reinitialise".
+    Android makes this fatal: the Java shell retries start_server inside
+    the same interpreter, each retry dies on the singleton, and the app
+    ends on a permanent startup-error screen.
+
+    Detaching interfaces releases the ports the surviving interfaces
+    bound, clearing the singleton lets Reticulum() run again, and
+    toggling _should_run retires any worker threads the failed init
+    spawned before the next start() re-arms them.
+    """
+    try:
+        import RNS
+    except Exception:
+        return
+
+    transport = getattr(RNS, "Transport", None)
+    if transport is not None:
+        with contextlib.suppress(Exception):
+            transport._should_run = False
+        interfaces = list(getattr(transport, "interfaces", []) or [])
+        for interface in interfaces:
+            with contextlib.suppress(Exception):
+                _release_interface_resources(interface)
+        with contextlib.suppress(Exception):
+            transport.detach_interfaces()
+        for attr in (
+            "interfaces",
+            "destinations",
+            "pending_links",
+            "active_links",
+            "control_destinations",
+            "control_hashes",
+            "mgmt_destinations",
+            "mgmt_hashes",
+            "remote_management_allowed",
+            "local_client_interfaces",
+            "local_client_rssi_cache",
+            "local_client_snr_cache",
+            "local_client_q_cache",
+        ):
+            with contextlib.suppress(Exception):
+                setattr(transport, attr, [])
+        for attr in ("destinations_map", "pending_links_map"):
+            with contextlib.suppress(Exception):
+                setattr(transport, attr, {})
+        for attr in (
+            "identity",
+            "network_identity",
+            "_identity",
+            "interface_announcer",
+            "discovery_handler",
+            "blackhole_updater",
+            "start_time",
+        ):
+            with contextlib.suppress(Exception):
+                setattr(transport, attr, None)
+        with contextlib.suppress(Exception):
+            transport.ready = False
+        with contextlib.suppress(Exception):
+            transport._should_run = True
+
+    reticulum_cls = getattr(RNS, "Reticulum", None)
+    if reticulum_cls is not None:
+        with contextlib.suppress(Exception):
+            reticulum_cls._Reticulum__instance = None
+        with contextlib.suppress(Exception):
+            reticulum_cls._Reticulum__interface_detach_ran = False
+
+
 def sweep_orphaned_ratchet_files(config_dir: str) -> int:
     """Remove ratchet storage entries whose names are not 32-hex destinations.
 
@@ -450,13 +660,34 @@ def create_reticulum_with_recovery(
     config_path = os.path.join(config_dir, "config")
     ensure_panic_on_interface_error_disabled(config_path)
 
+    try:
+        import RNS
+
+        stale = getattr(RNS.Reticulum, "_Reticulum__instance", None)
+        if stale is not None and getattr(stale, "jobs_thread", None) is None:
+            # A previous failed init left a zombie singleton behind.
+            # Android retries start_server inside the same interpreter,
+            # so without this the retry dies instantly on "Attempt to
+            # reinitialise Reticulum". jobs_thread is only assigned once
+            # __init__ completes, so a healthy instance is never touched.
+            reset_rns_runtime_state()
+    except Exception:
+        pass
+
     last_exc: Exception | None = None
+    all_disabled: list[str] = []
     for attempt in range(max_attempts):
         try:
             with _capture_rns_error_logs():
-                return construct()
+                instance = construct()
+            _write_recovery_report(config_dir, all_disabled)
+            return instance
         except Exception as exc:
             last_exc = exc
+            # A failed init leaves the Reticulum singleton, Transport
+            # workers, and bound sockets behind. Clear them or the retry
+            # dies instantly on "Attempt to reinitialise Reticulum".
+            reset_rns_runtime_state()
             disabled = apply_startup_recovery_step(
                 config_path,
                 exc,
@@ -464,6 +695,7 @@ def create_reticulum_with_recovery(
             )
             if not disabled:
                 break
+            all_disabled.extend(disabled)
             print(
                 "Reticulum init failed; disabled "
                 f"{', '.join(disabled)} and retrying "
