@@ -4780,7 +4780,9 @@ export default {
             this.rawMessageData = { ...base };
             this.isRawMessageModalOpen = true;
             const hash = lxmfMessage.hash;
-            if (!hash) {
+            // Paper URIs sign as the sender, so inbound messages can never
+            // produce one. Skip the request instead of logging a 404.
+            if (!hash || lxmfMessage.is_incoming) {
                 return;
             }
             try {

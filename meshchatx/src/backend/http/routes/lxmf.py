@@ -1044,12 +1044,20 @@ def register_lxmf_routes(routes, app):
 
         lxm = find_lxm_by_content_hash_for_paper_uri(app.message_router, hb)
 
-        if not lxm:
-            return http_not_found(
-                "Original message bytes not available for URI generation"
+        if lxm:
+            uri, err_detail = lxmf_message_try_paper_uri_string(lxm)
+        else:
+            # The router only holds packed bytes while a message is queued.
+            # Rebuild delivered or post-restart outbound messages from the
+            # stored row instead of 404ing.
+            db_row = app.database.messages.get_lxmf_message_by_hash(nh)
+            if db_row is None:
+                return http_not_found("Message not found")
+            from meshchatx.src.backend.lxmf_utils import (
+                rebuild_paper_uri_from_db_lxmf_message,
             )
 
-        uri, err_detail = lxmf_message_try_paper_uri_string(lxm)
+            uri, err_detail = rebuild_paper_uri_from_db_lxmf_message(app, db_row)
         if not uri:
             body = {
                 "message": "Could not serialize this LXMF payload as a Paper URI",

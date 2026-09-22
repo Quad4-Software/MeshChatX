@@ -4,8 +4,11 @@ import base64
 import json
 
 import LXMF
+import RNS
 
 from meshchatx.src.backend.meshchat_utils import (
+    hex_identifier_to_bytes,
+    normalize_hex_identifier,
     parse_lxmf_audio_field_value,
     parse_lxmf_file_attachments_field_value,
     parse_lxmf_image_field_value,
@@ -1197,3 +1200,160 @@ def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing
     if arrival_ts is None:
         return False
     return arrival_ts > last_read_at.timestamp()
+
+
+def lxmf_wire_fields_from_stored(fields: dict, db_row: dict | None = None) -> dict:
+    """Rebuild raw LXMF wire fields from the converted dict stored in the DB.
+
+    convert_lxmf_message_to_dict rewrites wire fields into named dict entries
+    with base64 bytes; this maps them back so a stored outbound message can be
+    re-serialized (paper URI, resend). Attachments stripped at save time are
+    simply absent from the result.
+    """
+    wire: dict = {}
+    if not isinstance(fields, dict):
+        fields = {}
+
+    image = fields.get("image")
+    if isinstance(image, dict) and image.get("image_bytes"):
+        wire[LXMF.FIELD_IMAGE] = [
+            image.get("image_type") or "webp",
+            base64.b64decode(image["image_bytes"]),
+        ]
+
+    audio = fields.get("audio")
+    if isinstance(audio, dict) and audio.get("audio_bytes"):
+        wire[LXMF.FIELD_AUDIO] = [
+            audio.get("audio_mode") or LXMF.AM_OPUS_OGG,
+            base64.b64decode(audio["audio_bytes"]),
+        ]
+
+    attachments = fields.get("file_attachments")
+    if isinstance(attachments, list):
+        items = [
+            [
+                item.get("file_name") or "file",
+                base64.b64decode(item["file_bytes"]),
+            ]
+            for item in attachments
+            if isinstance(item, dict) and item.get("file_bytes")
+        ]
+        if items:
+            wire[LXMF.FIELD_FILE_ATTACHMENTS] = items
+
+    telemetry = fields.get("telemetry")
+    if isinstance(telemetry, dict):
+        tele_time = telemetry.get("time") or {}
+        wire[LXMF.FIELD_TELEMETRY] = Telemeter.pack(
+            time_utc=tele_time.get("utc"),
+            location=telemetry.get("location"),
+            battery=telemetry.get("battery"),
+            physical_link=telemetry.get("physical_link"),
+        )
+    elif isinstance(telemetry, str) and telemetry:
+        wire[LXMF.FIELD_TELEMETRY] = base64.b64decode(telemetry)
+
+    commands = fields.get("commands")
+    if isinstance(commands, list):
+        rebuilt_commands = []
+        for cmd in commands:
+            if not isinstance(cmd, dict):
+                rebuilt_commands.append(cmd)
+                continue
+            rebuilt_cmd = {}
+            for key, value in cmd.items():
+                try:
+                    key_s = str(key)
+                    rebuilt_cmd[int(key_s, 16) if key_s.startswith("0x") else int(key_s)] = value
+                except (ValueError, TypeError):
+                    rebuilt_cmd[key] = value
+            rebuilt_commands.append(rebuilt_cmd)
+        if rebuilt_commands:
+            wire[LXMF.FIELD_COMMANDS] = rebuilt_commands
+
+    reply_to = (db_row or {}).get("reply_to_hash") or fields.get("reply_to")
+    if isinstance(reply_to, str) and reply_to:
+        wire[FIELD_REPLY_TO] = bytes.fromhex(reply_to)
+
+    quote = fields.get("reply_quoted_content")
+    if isinstance(quote, str) and quote:
+        wire[FIELD_REPLY_QUOTE] = quote.encode("utf-8")
+
+    reaction = fields.get("reaction")
+    if isinstance(reaction, dict):
+        reaction_to = reaction.get("reaction_to")
+        reaction_emoji = reaction.get("reaction_content")
+        if isinstance(reaction_to, str) and reaction_to:
+            wire[FIELD_REACTION] = build_lxmf_reaction_field(
+                reaction_to,
+                reaction_emoji or "",
+            )
+
+    app_extensions = fields.get("app_extensions")
+    if isinstance(app_extensions, dict):
+        wire[LXMF_APP_EXTENSIONS_FIELD] = app_extensions
+
+    if FIELD_REACTION not in wire:
+        wire[LXMF.FIELD_RENDERER] = LXMF.RENDERER_MARKDOWN
+
+    return wire
+
+
+def rebuild_paper_uri_from_db_lxmf_message(app, db_row) -> tuple[str | None, str | None]:
+    """Rebuild an lxm:// paper URI for a stored outbound message.
+
+    The router only keeps packed bytes while a message is queued, so delivered
+    or post-restart outbound messages need this DB fallback. Returns
+    (uri, None) on success, or (None, detail) on failure.
+    """
+    try:
+        if _row_flag_true(db_row, "is_incoming"):
+            return None, "Paper URIs can only be generated for messages you sent"
+
+        dest_hex = normalize_hex_identifier(db_row.get("destination_hash"))
+        dest_hash_bytes = hex_identifier_to_bytes(dest_hex)
+        if dest_hash_bytes is None:
+            return None, "Message destination hash is invalid"
+
+        identity = RNS.Identity.recall(dest_hash_bytes)
+        if identity is None:
+            announce = app.database.announces.get_announce_by_hash(dest_hex)
+            public_key = announce.get("identity_public_key") if announce else None
+            if public_key:
+                identity = RNS.Identity.from_bytes(base64.b64decode(public_key))
+        if identity is None:
+            return None, "Recipient identity is not available"
+
+        source = getattr(app, "local_lxmf_destination", None)
+        if source is None:
+            return None, "Local LXMF destination is not ready"
+
+        fields = lxmf_wire_fields_from_stored(
+            parse_stored_lxmf_fields(db_row.get("fields")) or {},
+            db_row,
+        )
+
+        destination = RNS.Destination(
+            identity,
+            RNS.Destination.OUT,
+            RNS.Destination.SINGLE,
+            "lxmf",
+            "delivery",
+        )
+        lxm = LXMF.LXMessage(
+            destination,
+            source,
+            db_row.get("content") or "",
+            title=db_row.get("title") or "",
+            fields=fields,
+            desired_method=LXMF.LXMessage.PAPER,
+        )
+        # Repack with the original timestamp so the URI carries the same
+        # message hash as the stored row and dedupes on ingest.
+        timestamp = db_row.get("timestamp")
+        if isinstance(timestamp, (int, float)) and timestamp > 0:
+            lxm.timestamp = timestamp
+        uri = lxm.as_uri(finalise=False)
+        return uri, None
+    except Exception as exc:
+        return None, str(exc)
