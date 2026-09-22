@@ -59,7 +59,7 @@ export async function addNomadFavourite(node: NomadNode): Promise<boolean> {
     const api = (window as any).api;
     if (!api || !node.destination_hash) return false;
     try {
-        await api.post("/api/v1/favourites", {
+        await api.post("/api/v1/favourites/add", {
             destination_hash: node.destination_hash,
             display_name: node.custom_display_name || node.display_name,
             aspect: "nomadnetwork.node",
@@ -95,8 +95,8 @@ export async function renameNomadFavourite(fav: NomadFavourite): Promise<boolean
     );
     if (newName === null) return false;
     try {
-        await api.put(`/api/v1/favourites/${fav.destination_hash}`, {
-            custom_display_name: newName.trim() || null,
+        await api.post(`/api/v1/favourites/${fav.destination_hash}/rename`, {
+            display_name: newName.trim(),
         });
         return true;
     } catch (e: any) {

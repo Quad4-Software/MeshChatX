@@ -50,7 +50,7 @@ export async function loadStickerPacks(api: {
     get: (url: string) => Promise<{ data?: unknown }>;
 }): Promise<StickerPackItem[]> {
     try {
-        const response = await api.get("/api/v1/stickers/packs");
+        const response = await api.get("/api/v1/sticker-packs");
         const data = response.data as { packs?: unknown } | undefined;
         const list = data?.packs;
         return Array.isArray(list) ? (list as StickerPackItem[]) : [];

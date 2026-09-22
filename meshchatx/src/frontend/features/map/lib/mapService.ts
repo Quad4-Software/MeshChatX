@@ -125,7 +125,7 @@ export async function restoreStarterTiles(): Promise<unknown> {
 }
 
 export async function saveMBTilesDir(directory: string): Promise<unknown> {
-    return window.api.patch("/api/v1/config", { mbtiles_directory: directory });
+    return window.api.patch("/api/v1/config", { map_mbtiles_dir: directory });
 }
 
 export async function loadDrawings(): Promise<DrawingEntry[]> {
