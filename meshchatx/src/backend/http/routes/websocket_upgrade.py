@@ -52,6 +52,7 @@ async def _reject_forbidden_ws_session(app, request):
         session.get("authenticated", False)
         and identity_hash
         and session.get("identity_hash") == identity_hash
+        and app._auth_session_epoch_valid(session)
     ):
         return http_unauthorized("Authentication required")
     return None

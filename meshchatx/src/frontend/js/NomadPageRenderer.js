@@ -256,6 +256,29 @@ function basePurifyConfig() {
     };
 }
 
+/**
+ * Remove id and name attributes from sanitized remote markup before it enters
+ * the main document. Named-element access (window.<id>, form field names) can
+ * otherwise shadow inherited globals like fetch/open/alert and wedge the app.
+ * Archive previews do not need working anchors or field names; the sandboxed
+ * NomadNet frame keeps them.
+ */
+export function stripDomClobberingAttributes(html) {
+    if (!html) {
+        return html;
+    }
+    try {
+        const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+        for (const el of doc.querySelectorAll("[id], [name]")) {
+            el.removeAttribute("id");
+            el.removeAttribute("name");
+        }
+        return doc.body.firstElementChild ? doc.body.firstElementChild.innerHTML : "";
+    } catch {
+        return html;
+    }
+}
+
 export function sanitizeNomadHtmlFragment(html) {
     ensureNomadPurifyHooks();
     const sanitized = DOMPurify.sanitize(html, {

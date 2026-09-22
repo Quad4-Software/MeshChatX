@@ -4,13 +4,14 @@
 
 Factories take the live app instance and return middleware callables.
 Order returned by register_all_routes / _define_routes must remain:
-bad_request, sqlite_unavailable, auth, mime_type, security, csrf,
-ip_allowlist, demo_mode.
+bad_request, sqlite_unavailable, auth, mime_type, cache_control, security,
+csrf, ip_allowlist, demo_mode.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from urllib.parse import urlparse
 
 from aiohttp import web
@@ -297,6 +298,7 @@ def create_auth_middleware(app):
             )
             or (
                 not path.startswith("/api/")
+                and not path.startswith("/translation-packs/")
                 and path.endswith(
                     (
                         ".js",
@@ -336,8 +338,12 @@ def create_auth_middleware(app):
         is_authenticated = session.get("authenticated", False)
         session_identity = session.get("identity_hash")
 
-        # Check if authenticated AND matches current identity
-        if not is_authenticated or session_identity != app.identity.hash.hex():
+        # Check if authenticated AND matches current identity and session epoch
+        if (
+            not is_authenticated
+            or session_identity != app.identity.hash.hex()
+            or not app._auth_session_epoch_valid(session)
+        ):
             if path.startswith("/api/"):
                 return http_unauthorized("Authentication required")
             return web.Response(
@@ -385,6 +391,47 @@ def create_mime_type_middleware(app):
         return response
 
     return mime_type_middleware
+
+
+# Rolldown/Vite emit content-hashed bundles as name-<hash>.<ext>; the hash is
+# a long base64url-ish segment directly before the extension dot.
+_HASHED_ASSET_NAME = re.compile(r"-[0-9A-Za-z_-]{8,}\.")
+
+
+def create_cache_control_middleware(app):
+    """Freshness policy for non-API responses.
+
+    add_static only sends ETag + Last-Modified, which lets browsers and the
+    Electron disk cache heuristically cache non-hashed subdocuments (for
+    example /nomad-crash-tab.html) for days past an update; the stale HTML
+    then references deleted hashed bundles and the frame dies silently.
+    Hashed bundles are immutable, everything else must revalidate. Routes
+    that set their own Cache-Control keep it.
+    """
+
+    @web.middleware
+    async def cache_control_middleware(request, handler):
+        response = await handler(request)
+        if response is None:
+            return None
+        path = request.path
+        if path.startswith("/api/"):
+            # API payloads carry private data; shared/browser disk caches must
+            # not retain them past the session. Routes that set their own
+            # header (for example immutable attachment responses) keep it.
+            if "Cache-Control" not in response.headers:
+                response.headers["Cache-Control"] = "no-store"
+            return response
+        if "Cache-Control" in response.headers:
+            return response
+        basename = path.rsplit("/", 1)[-1]
+        if path.startswith("/assets/") and _HASHED_ASSET_NAME.search(basename):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
+    return cache_control_middleware
 
 
 def create_security_middleware(app):

@@ -35,6 +35,25 @@ _FILE_TYPE_RE = re.compile(
 )
 _REQUIRED_PARTS = frozenset({"model", "lex", "vocab"})
 
+# Decompression bounds: archives are attacker-supplied uploads, so expansion
+# must be capped like plugin_guard.py does.
+MAX_EXTRACT_FILES = 256
+MAX_EXTRACT_MEMBER_BYTES = 512 * 1024 * 1024
+MAX_EXTRACT_TOTAL_BYTES = 2 * 1024 * 1024 * 1024
+
+
+def _copy_stream_limited(src, dst, remaining: int) -> int:
+    """Copy src to dst in chunks, aborting if more than remaining bytes."""
+    written = 0
+    while True:
+        chunk = src.read(min(65536, remaining - written + 1))
+        if not chunk:
+            return written
+        written += len(chunk)
+        if written > remaining:
+            raise TranslationPackError("Archive member exceeds size limit")
+        dst.write(chunk)
+
 
 class TranslationPackError(ValueError):
     """Raised when a pack archive or file fails validation."""
@@ -83,6 +102,8 @@ class TranslationPackManager:
         """Extract an archive into incoming, validate, and install each pack."""
         tmp_dir = tempfile.mkdtemp(dir=self.incoming_dir)
         try:
+            extracted_files = 0
+            extracted_bytes = 0
             if tarfile.is_tarfile(archive_path):
                 with tarfile.open(archive_path, "r:*") as tf:
                     for member in tf.getmembers():
@@ -99,10 +120,20 @@ class TranslationPackManager:
                             continue
                         if member.isdir():
                             os.makedirs(target, exist_ok=True)
-                        else:
-                            os.makedirs(os.path.dirname(target), exist_ok=True)
-                            with open(target, "wb") as f:
-                                f.write(tf.extractfile(member).read())
+                            continue
+                        if member.size > MAX_EXTRACT_MEMBER_BYTES:
+                            raise TranslationPackError("Archive member too large")
+                        extracted_files += 1
+                        if extracted_files > MAX_EXTRACT_FILES:
+                            raise TranslationPackError("Too many files in archive")
+                        src = tf.extractfile(member)
+                        if src is None:
+                            continue
+                        os.makedirs(os.path.dirname(target), exist_ok=True)
+                        with open(target, "wb") as f:
+                            extracted_bytes += _copy_stream_limited(
+                                src, f, MAX_EXTRACT_TOTAL_BYTES - extracted_bytes
+                            )
             elif zipfile.is_zipfile(archive_path):
                 with zipfile.ZipFile(archive_path, "r") as zf:
                     for info in zf.infolist():
@@ -115,9 +146,16 @@ class TranslationPackManager:
                         target = resolve_path_under_dir(tmp_dir, info.filename)
                         if not target or not is_path_within_dir(target, tmp_dir):
                             continue
+                        if info.file_size > MAX_EXTRACT_MEMBER_BYTES:
+                            raise TranslationPackError("Archive member too large")
+                        extracted_files += 1
+                        if extracted_files > MAX_EXTRACT_FILES:
+                            raise TranslationPackError("Too many files in archive")
                         os.makedirs(os.path.dirname(target), exist_ok=True)
-                        with open(target, "wb") as f:
-                            f.write(zf.read(info))
+                        with zf.open(info) as src, open(target, "wb") as f:
+                            extracted_bytes += _copy_stream_limited(
+                                src, f, MAX_EXTRACT_TOTAL_BYTES - extracted_bytes
+                            )
             else:
                 raise TranslationPackError("Unsupported archive format")
 
