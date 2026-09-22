@@ -132,6 +132,29 @@ func TestSettleStaysCompact(t *testing.T) {
 	}
 }
 
+func TestSettleDuplicateIDsKeepFirst(t *testing.T) {
+	nodes := []layout.Node{
+		{ID: "me", X: 0, Y: 0, Mass: 4, Fixed: true},
+		{ID: "a", X: 20, Y: 0, Vx: 5, Mass: 1},
+		{ID: "a", X: 9000, Y: 9000, Mass: 1},
+	}
+	res := layout.Settle(layout.Request{
+		Nodes:      nodes,
+		Edges:      []layout.Edge{{From: "me", To: "a", Length: 180}},
+		Iterations: 3,
+	})
+	if len(res.Positions) != 2 {
+		t.Fatalf("positions %d", len(res.Positions))
+	}
+	// First occurrence is the simulated body; the duplicate is ignored.
+	if nodes[1].X == 20 && nodes[1].Vx == 5 {
+		t.Fatalf("first body should have integrated, got %#v", nodes[1])
+	}
+	if nodes[2].X != 9000 || nodes[2].Vx != 0 {
+		t.Fatalf("duplicate id should be left untouched, got %#v", nodes[2])
+	}
+}
+
 func BenchmarkSettle500(b *testing.B) {
 	nodes := make([]layout.Node, 500)
 	edges := make([]layout.Edge, 0, 500)

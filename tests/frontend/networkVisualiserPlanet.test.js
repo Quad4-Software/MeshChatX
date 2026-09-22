@@ -418,6 +418,19 @@ describe("networkVisualiserPlanet", () => {
         expect(Math.min(...dots)).toBeLessThan(0.98);
     });
 
+    it("spreads coincident points even when singleton groups exist", () => {
+        // A lone point sorts into its own group; an early return on singleton
+        // groups would skip the whole unstick pass for the stacked pair.
+        const pts = [
+            { x: 1, y: 0, z: 0 },
+            { x: 0, y: 0, z: 1 },
+            { x: 0, y: 0, z: 1 },
+        ];
+        spreadSphereLocals(pts, 0.35);
+        const dot = pts[1].x * pts[2].x + pts[1].y * pts[2].y + pts[1].z * pts[2].z;
+        expect(dot).toBeLessThan(0.98);
+    });
+
     it("keeps projected edges finite when the camera is close", () => {
         const nodes = new Float32Array(DRAW_STRIDE * 5);
         packNode(nodes, 0, 0, 0, 32);

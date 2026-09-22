@@ -98,6 +98,12 @@ func New() *Scene {
 	}
 }
 
+// isFinite rejects NaN and +/-Inf so a bad caller value cannot poison
+// camera or node state that PackNodes would then ship to the GPU buffers.
+func isFinite(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
+}
+
 // Set replaces nodes and edges. Preserves camera unless zoom is > 0 in req.
 func (s *Scene) Set(req SetRequest) {
 	oldVx := s.vx
@@ -106,8 +112,20 @@ func (s *Scene) Set(req SetRequest) {
 	s.nodes = append([]Node(nil), req.Nodes...)
 	s.edges = append([]Edge(nil), req.Edges...)
 	s.index = make(map[string]int, len(s.nodes))
+	// Compact in place: duplicate ids would leave stale sim bodies and
+	// ambiguous picks, so only the first occurrence of each id survives.
+	w := 0
 	for i := range s.nodes {
-		n := &s.nodes[i]
+		n := s.nodes[i]
+		if _, dup := s.index[n.ID]; dup {
+			continue
+		}
+		if !isFinite(n.X) {
+			n.X = 0
+		}
+		if !isFinite(n.Y) {
+			n.Y = 0
+		}
 		if n.Mass <= 0 {
 			n.Mass = 1
 		}
@@ -124,15 +142,18 @@ func (s *Scene) Set(req SetRequest) {
 			n.Fixed = true
 			n.Kind = KindMe
 		}
-		s.index[n.ID] = i
+		s.nodes[w] = n
+		s.index[n.ID] = w
+		w++
 	}
+	s.nodes = s.nodes[:w]
 	if req.Width > 0 {
 		s.width = req.Width
 	}
 	if req.Height > 0 {
 		s.height = req.Height
 	}
-	if req.Zoom > 0 {
+	if req.Zoom > 0 && isFinite(req.Zoom) && isFinite(req.CamX) && isFinite(req.CamY) {
 		s.zoom = req.Zoom
 		s.camX = req.CamX
 		s.camY = req.CamY
@@ -200,6 +221,9 @@ func (s *Scene) Camera() CameraState {
 
 // SetCamera sets pan/zoom (zoom clamped).
 func (s *Scene) SetCamera(x, y, zoom float64) {
+	if !isFinite(x) || !isFinite(y) || !isFinite(zoom) {
+		return
+	}
 	s.camX = x
 	s.camY = y
 	if zoom < 0.05 {
@@ -213,13 +237,16 @@ func (s *Scene) SetCamera(x, y, zoom float64) {
 
 // PanBy moves the camera in world units.
 func (s *Scene) PanBy(dx, dy float64) {
+	if !isFinite(dx) || !isFinite(dy) {
+		return
+	}
 	s.camX += dx
 	s.camY += dy
 }
 
 // ZoomAt zooms around a screen point (css pixels, origin top-left).
 func (s *Scene) ZoomAt(screenX, screenY, factor float64) {
-	if factor <= 0 {
+	if !isFinite(screenX) || !isFinite(screenY) || !isFinite(factor) || factor <= 0 {
 		return
 	}
 	wx, wy := s.screenToWorld(screenX, screenY)
@@ -393,7 +420,13 @@ func (s *Scene) DragTo(screenX, screenY float64) {
 	if s.dragIdx < 0 || s.dragIdx >= len(s.nodes) {
 		return
 	}
+	if !isFinite(screenX) || !isFinite(screenY) {
+		return
+	}
 	wx, wy := s.screenToWorld(screenX, screenY)
+	if !isFinite(wx) || !isFinite(wy) {
+		return
+	}
 	s.nodes[s.dragIdx].X = wx
 	s.nodes[s.dragIdx].Y = wy
 	s.sleeping = false
