@@ -72,7 +72,9 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
 
         # Call _define_routes to get the security_middleware
         routes = web.RouteTableDef()
-        _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+        _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(
+            routes
+        )
 
         response = await security_middleware(request, mock_handler)
 
@@ -125,7 +127,9 @@ async def test_security_middleware_sets_cors_headers_on_rnode_flasher(
             return web.Response(text="// module")
 
         routes = web.RouteTableDef()
-        _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+        _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(
+            routes
+        )
 
         response = await security_middleware(request, mock_handler)
 
@@ -152,7 +156,9 @@ async def test_security_middleware_allows_nomad_crash_tab_frame_and_cors(
         )
 
         routes = web.RouteTableDef()
-        _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+        _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(
+            routes
+        )
 
         async def mock_handler(req):
             return web.Response(text="// crash tab")
@@ -250,7 +256,9 @@ async def test_security_middleware_does_not_set_cors_on_reticulum_docs(
             return web.Response(text="<html></html>")
 
         routes = web.RouteTableDef()
-        _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+        _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(
+            routes
+        )
 
         response = await security_middleware(request, mock_handler)
 
@@ -338,7 +346,9 @@ async def test_csp_privacy_mode_strips_external_sources(mock_rns_minimal, tmp_pa
             return web.Response(text="test")
 
         routes = web.RouteTableDef()
-        _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+        _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(
+            routes
+        )
         response = await security_middleware(request, mock_handler)
         csp = response.headers.get("Content-Security-Policy", "")
         assert "openstreetmap.org" not in csp
@@ -369,7 +379,9 @@ async def test_csp_demo_mode_allows_map_tiles_with_privacy(mock_rns_minimal, tmp
             return web.Response(text="test")
 
         routes = web.RouteTableDef()
-        _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+        _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(
+            routes
+        )
         response = await security_middleware(request, mock_handler)
         csp = response.headers.get("Content-Security-Policy", "")
         assert "tile.openstreetmap.org" in csp
@@ -392,7 +404,7 @@ async def _csp_for_path(app_instance, path: str) -> str:
         return web.Response(text="test")
 
     routes = web.RouteTableDef()
-    _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+    _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
     response = await security_middleware(request, mock_handler)
     return response.headers.get("Content-Security-Policy", "")
 
