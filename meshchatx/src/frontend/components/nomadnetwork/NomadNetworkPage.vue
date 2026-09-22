@@ -563,7 +563,7 @@
                     @touchstart.passive="onNodeContainerTouchStart"
                     @touchmove.passive="onNodeContainerTouchMove"
                     @touchend="onNodeContainerTouchEnd"
-                    @touchcancel="onNodeContainerTouchEnd"
+                    @touchcancel="onNodeContainerTouchCancel"
                 >
                     <!-- pull-to-refresh indicator -->
                     <div
@@ -1672,6 +1672,69 @@ export default {
         onWebsocketReconnected() {
             this.getFavourites();
             this.getNomadnetworkNodeAnnounces();
+            this.resendInFlightNomadDownloads();
+        },
+        // Downloads sent on the previous socket report their results to the
+        // dead client and never arrive here, so the page/file/image would
+        // spin forever. Cancel the orphaned backend transfer and re-issue
+        // the request on the new socket.
+        resendInFlightNomadDownloads() {
+            for (const map of [this.nomadnetPageDownloadCallbacks, this.nomadnetFileDownloadCallbacks]) {
+                for (const key of Object.keys(map || {})) {
+                    const entry = map[key];
+                    if (!entry || !entry.sent || typeof entry.payload !== "string") {
+                        continue;
+                    }
+                    const oldDownloadId = entry.downloadId;
+                    entry.downloadId = null;
+                    if (oldDownloadId != null) {
+                        // clearing ids first keeps the "cancelled" event for
+                        // the old download from purging the resent entry or
+                        // flashing the cancelled UI state
+                        if (entry.primary && this.currentPageDownloadId === oldDownloadId) {
+                            this.currentPageDownloadId = null;
+                        }
+                        if (this.currentFileDownloadId === oldDownloadId) {
+                            this.currentFileDownloadId = null;
+                        }
+                        for (const imageContext of Object.values(this.nomadImageDownloadCallbacks || {})) {
+                            if (imageContext && imageContext.downloadId === oldDownloadId) {
+                                imageContext.downloadId = null;
+                            }
+                        }
+                        WebSocketConnection.send(
+                            JSON.stringify({
+                                type: "nomadnet.download.cancel",
+                                download_id: oldDownloadId,
+                            })
+                        );
+                    }
+                    if (WebSocketConnection.send(entry.payload)) {
+                        continue;
+                    }
+                    // socket died between the reconnect event and this
+                    // resend: settle the entry the same way a failed
+                    // initial send does, so the download does not spin
+                    delete map[key];
+                    const reason =
+                        typeof this.$t === "function"
+                            ? this.$t("nomadnet.websocket_not_connected")
+                            : "websocket_not_connected";
+                    if (entry.onFailureCallback) {
+                        entry.onFailureCallback(reason);
+                    } else if (entry.primary && this.isLoadingNodePage) {
+                        this.isLoadingNodePage = false;
+                        this.nodePageLoadPhase = null;
+                        this.currentPageDownloadId = null;
+                        this.nodePageContent = `Failed loading page: ${reason}`;
+                        ToastUtils.error(
+                            typeof this.$t === "function"
+                                ? this.$t("nomadnet.failed_to_load_page")
+                                : "failed_to_load_page"
+                        );
+                    }
+                }
+            }
         },
         startFavouritesPollInterval() {
             if (this.reloadInterval) {
@@ -3999,11 +4062,12 @@ export default {
                 this.navPullDistance = 0;
                 return;
             }
+            // Reversing direction mid-gesture must cancel a swipe that had
+            // already armed, otherwise touchend fires on a stale distance.
+            this.navSwipeBackDistance = 0;
             const el = e.currentTarget;
-            if (this.navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx)) {
-                this.navPullDistance = Math.min(dy, 160);
-                this.navSwipeBackDistance = 0;
-            }
+            const pulling = this.navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx);
+            this.navPullDistance = pulling ? Math.min(dy, 160) : 0;
         },
         onNodeContainerTouchEnd() {
             if (this.navSwipeBackDistance >= NAV_SWIPE_BACK_TRIGGER_PX) {
@@ -4011,6 +4075,13 @@ export default {
             } else if (this.navPullDistance >= NAV_PULL_TRIGGER_PX) {
                 this.reloadNodePage();
             }
+            this.navSwipeEdgeActive = false;
+            this.navSwipeBackDistance = 0;
+            this.navPullDistance = 0;
+        },
+        onNodeContainerTouchCancel() {
+            // An interrupted gesture (alert, gesture conflict) is not a
+            // completed swipe or pull, so it must not trigger either action.
             this.navSwipeEdgeActive = false;
             this.navSwipeBackDistance = 0;
             this.navPullDistance = 0;
@@ -4181,13 +4252,14 @@ export default {
         ) {
             try {
                 // set callbacks for nomadnet filePath download
-                this.nomadnetFileDownloadCallbacks[this.getNomadnetFileDownloadCallbackKey(destinationHash, filePath)] =
-                    {
-                        onSuccessCallback: onSuccessCallback,
-                        onFailureCallback: onFailureCallback,
-                        onProgressCallback: onProgressCallback,
-                        requestId: data && data.request_id != null ? data.request_id : null,
-                    };
+                const callbackKey = this.getNomadnetFileDownloadCallbackKey(destinationHash, filePath);
+                const entry = {
+                    onSuccessCallback: onSuccessCallback,
+                    onFailureCallback: onFailureCallback,
+                    onProgressCallback: onProgressCallback,
+                    requestId: data && data.request_id != null ? data.request_id : null,
+                };
+                this.nomadnetFileDownloadCallbacks[callbackKey] = entry;
 
                 // ask reticulum to download file from nomadnet
                 const payload = {
@@ -4204,13 +4276,17 @@ export default {
                         payload.request_id = data.request_id;
                     }
                 }
-                if (!WebSocketConnection.send(JSON.stringify(payload))) {
-                    delete this.nomadnetFileDownloadCallbacks[
-                        this.getNomadnetFileDownloadCallbackKey(destinationHash, filePath)
-                    ];
+                const payloadStr = JSON.stringify(payload);
+                if (!WebSocketConnection.send(payloadStr)) {
+                    delete this.nomadnetFileDownloadCallbacks[callbackKey];
                     if (onFailureCallback) {
                         onFailureCallback(this.$t("nomadnet.websocket_not_connected"));
                     }
+                } else {
+                    // kept so resendInFlightNomadDownloads() can re-issue
+                    // this request after a websocket reconnect
+                    entry.payload = payloadStr;
+                    entry.sent = true;
                 }
             } catch (e) {
                 console.error(e);
@@ -4300,6 +4376,10 @@ export default {
 
             const trySend = () => {
                 if (WebSocketConnection.send(payload)) {
+                    // kept so resendInFlightNomadDownloads() can re-issue
+                    // this request after a websocket reconnect
+                    entry.payload = payload;
+                    entry.sent = true;
                     cancelPendingSend();
                     return true;
                 }
