@@ -315,3 +315,38 @@ jobs:
                   set -euo pipefail
                   test -n "${IMAGE_DIGEST}"
                   cosign sign "${IMAGE_NAME}@${IMAGE_DIGEST}"
+
+    helm-chart:
+        name: Publish Helm chart (GHCR OCI)
+        if: startsWith(github.ref, 'refs/tags/')
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+            packages: write
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Setup Helm
+              run: sh scripts/ci/setup-helm.sh
+
+            - name: Package and push chart
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+                  GITHUB_REF_NAME: ${{ github.ref_name }}
+              run: |
+                  set -euo pipefail
+                  owner="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+                  version="${GITHUB_REF_NAME#v}"
+                  echo "${GITHUB_TOKEN}" | helm registry login "${REGISTRY}" -u "${owner}" --password-stdin
+                  helm package helm/meshchatx --version "${version}" --app-version "${version}"
+                  helm push "meshchatx-${version}.tgz" "oci://${REGISTRY}/${owner}/charts"
