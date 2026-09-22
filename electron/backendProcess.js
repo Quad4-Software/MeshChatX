@@ -2,6 +2,7 @@ const path = require("node:path");
 const { spawn: defaultSpawn } = require("child_process");
 
 const { verifyBackendIntegrity } = require("./backendIntegrity");
+const { hasArgvFlag } = require("./mainHelpers");
 const {
     clearCrashReport,
     getDiagnosticPaths,
@@ -36,6 +37,7 @@ function createBackendProcessManager(deps) {
     } = deps;
 
     let childProcess = null;
+    let maintenanceProcess = null;
     let runtimeState = createInitialRuntimeState();
     let logBuffers = { stdout: [], stderr: [] };
     let lastCrash = null;
@@ -55,6 +57,10 @@ function createBackendProcessManager(deps) {
 
     function isRunning() {
         return !!childProcess && childProcess.exitCode === null && childProcess.signalCode === null;
+    }
+
+    function isMaintenanceRunning() {
+        return !!maintenanceProcess && maintenanceProcess.exitCode === null && maintenanceProcess.signalCode === null;
     }
 
     function getRuntimeState() {
@@ -228,8 +234,17 @@ function createBackendProcessManager(deps) {
         if (isRunning()) {
             return { ok: true, alreadyRunning: true };
         }
+        if (isMaintenanceRunning()) {
+            return { ok: false, error: "A backend maintenance task is still running." };
+        }
 
-        const removed = killOrphanBackendProcesses(null);
+        // Exclude a still-running maintenance child (for example a database
+        // restore) so the orphan sweep cannot SIGTERM it mid-task.
+        const maintenancePid =
+            maintenanceProcess && maintenanceProcess.exitCode === null && maintenanceProcess.signalCode === null
+                ? maintenanceProcess.pid
+                : null;
+        const removed = await killOrphanBackendProcesses(maintenancePid);
         if (removed > 0) {
             log(`Removed ${removed} orphan backend process(es) before startup.`);
         }
@@ -258,6 +273,14 @@ function createBackendProcessManager(deps) {
             env: buildSpawnEnv(),
             windowsHide: true,
         });
+        // A spawn failure (ENOENT, EACCES) arrives as an async "error" event.
+        // Without a listener attached before the pid check it would surface as
+        // an uncaughtException in the main process.
+        if (proc && typeof proc.once === "function") {
+            proc.once("error", (error) => {
+                log(`Backend process error: ${error && error.message ? error.message : error}`);
+            });
+        }
         if (!proc || !proc.pid) {
             throw new Error("Failed to start backend process (no PID).");
         }
@@ -276,20 +299,22 @@ function createBackendProcessManager(deps) {
     }
 
     function getChildProcess() {
-        return childProcess;
+        // Return whichever managed child is still tracked so quit() can signal
+        // and await a maintenance task even when the backend already exited.
+        return childProcess || maintenanceProcess;
     }
 
-    function killChild(signal) {
-        if (!childProcess) {
+    function signalChildProcess(proc, signal) {
+        if (!proc) {
             return;
         }
-        if (childProcess.exitCode !== null || childProcess.signalCode !== null) {
+        if (proc.exitCode !== null || proc.signalCode !== null) {
             return;
         }
         if (process.platform === "win32") {
             try {
                 const { execFileSync } = require("node:child_process");
-                execFileSync("taskkill", ["/F", "/T", "/PID", String(childProcess.pid)], {
+                execFileSync("taskkill", ["/F", "/T", "/PID", String(proc.pid)], {
                     stdio: "ignore",
                     windowsHide: true,
                 });
@@ -298,7 +323,30 @@ function createBackendProcessManager(deps) {
             }
             return;
         }
-        childProcess.kill(signal);
+        proc.kill(signal);
+    }
+
+    function killChild(signal) {
+        signalChildProcess(childProcess, signal);
+        signalChildProcess(maintenanceProcess, signal);
+    }
+
+    function waitForProcessExit(proc, timeoutMs) {
+        return new Promise((resolve) => {
+            if (!proc || proc.exitCode !== null || proc.signalCode !== null) {
+                resolve();
+                return;
+            }
+            const timer = setTimeout(() => {
+                proc.removeListener("exit", onExit);
+                resolve();
+            }, timeoutMs);
+            function onExit() {
+                clearTimeout(timer);
+                resolve();
+            }
+            proc.once("exit", onExit);
+        });
     }
 
     async function restartBackend(integrityStatusRef) {
@@ -318,10 +366,10 @@ function createBackendProcessManager(deps) {
 
     function buildBackendArgs(extraArgs = []) {
         const requiredArguments = ["--headless", "--port", "9337"];
-        if (!userProvidedArguments.includes("--reticulum-config-dir")) {
+        if (!hasArgvFlag(userProvidedArguments, "--reticulum-config-dir")) {
             requiredArguments.push("--reticulum-config-dir", reticulumConfigDir());
         }
-        if (!userProvidedArguments.includes("--storage-dir")) {
+        if (!hasArgvFlag(userProvidedArguments, "--storage-dir")) {
             requiredArguments.push("--storage-dir", storageDir());
         }
         return [...requiredArguments, ...userProvidedArguments, ...extraArgs];
@@ -331,9 +379,19 @@ function createBackendProcessManager(deps) {
         if (!resolvedExePath) {
             return { ok: false, error: "Backend executable is not configured." };
         }
+        if (isMaintenanceRunning()) {
+            return { ok: false, error: "A backend maintenance task is already running." };
+        }
         if (isRunning()) {
+            // Wait for the backend to actually exit instead of a flat sleep so
+            // the maintenance child cannot share a live backend or its lock.
+            const running = childProcess;
             killChild("SIGTERM");
-            await new Promise((resolve) => setTimeout(resolve, 400));
+            await waitForProcessExit(running, 5000);
+            if (running && running.exitCode === null && running.signalCode === null) {
+                killChild("SIGKILL");
+                await waitForProcessExit(running, 2000);
+            }
         }
 
         return await new Promise((resolve) => {
@@ -343,10 +401,27 @@ function createBackendProcessManager(deps) {
                 env: buildSpawnEnv(),
                 windowsHide: true,
             });
+            if (proc && typeof proc.once === "function") {
+                proc.once("error", (error) => {
+                    if (maintenanceProcess === proc) {
+                        maintenanceProcess = null;
+                    }
+                    resolve({
+                        ok: false,
+                        error: error && error.message ? error.message : String(error),
+                        stdout: stdoutChunks.join(""),
+                        stderr: stderrChunks.join(""),
+                    });
+                });
+            }
             if (!proc || !proc.pid) {
                 resolve({ ok: false, error: "Failed to start backend maintenance task." });
                 return;
             }
+
+            // Track the child so quit() can signal it and the orphan sweep can
+            // exclude its pid while a restore is in flight.
+            maintenanceProcess = proc;
 
             proc.stdout?.on("data", (chunk) => {
                 stdoutChunks.push(String(chunk));
@@ -354,15 +429,10 @@ function createBackendProcessManager(deps) {
             proc.stderr?.on("data", (chunk) => {
                 stderrChunks.push(String(chunk));
             });
-            proc.on("error", (error) => {
-                resolve({
-                    ok: false,
-                    error: error && error.message ? error.message : String(error),
-                    stdout: stdoutChunks.join(""),
-                    stderr: stderrChunks.join(""),
-                });
-            });
             proc.on("exit", (code) => {
+                if (maintenanceProcess === proc) {
+                    maintenanceProcess = null;
+                }
                 const stdout = stdoutChunks.join("");
                 const stderr = stderrChunks.join("");
                 if (code === 0) {

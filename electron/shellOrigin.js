@@ -154,6 +154,11 @@ function shouldOpenInElectronWindow(url) {
     if (pathname === "/call.html" || pathname.endsWith("/call.html")) {
         return true;
     }
+    // The translator is part of the app UI and must keep the app session, so
+    // it opens as an Electron child window rather than in the OS browser.
+    if (parsed.hash.startsWith("#/translator")) {
+        return true;
+    }
     return parsed.hash.startsWith("#/popout/");
 }
 
