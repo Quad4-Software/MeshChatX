@@ -123,6 +123,11 @@ test.describe("heap profile across pages", () => {
         await page.addInitScript(INSTRUMENT);
         const cdp = await page.context().newCDPSession(page);
         await cdp.send("HeapProfiler.enable");
+        if (process.env.MESHCHAT_HEAP_CPU_THROTTLE) {
+            await cdp.send("Emulation.setCPUThrottlingRate", {
+                rate: Number(process.env.MESHCHAT_HEAP_CPU_THROTTLE),
+            });
+        }
         await cdp.send("Performance.enable");
 
         const neutral = { id: "about", path: NEUTRAL_PATH, ready: "Active sessions" };
