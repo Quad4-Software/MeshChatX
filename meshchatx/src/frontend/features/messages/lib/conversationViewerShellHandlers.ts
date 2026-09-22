@@ -88,7 +88,7 @@ export function openReactionPicker(bag: ShellHandlerBag, item: MessageChatItem) 
 export function scrollToMessage(bag: ShellHandlerBag, hash: string) {
     const item = bag.chatItems.find((candidate) => sameHash(candidate.lxmf_message.hash, hash));
     if (!item) {
-        void DialogUtils.alert(t("messages.message_not_found_in_cache"));
+        DialogUtils.alert(t("messages.message_not_found_in_cache"));
         return;
     }
     const element = document.getElementById(`message-${hash}`);

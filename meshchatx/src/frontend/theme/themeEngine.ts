@@ -674,7 +674,7 @@ export function buildThemeVariableOverrides(
 ): CssVariables {
     const presetId = normalizeThemePreset(config?.theme_preset);
     const preset = THEME_PRESETS[presetId] || THEME_PRESETS.default;
-    const overrides = { ...(preset[effectiveMode] || {}) };
+    const overrides = { ...preset[effectiveMode] };
 
     if (presetId === "custom") {
         Object.assign(

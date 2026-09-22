@@ -61,6 +61,11 @@ const WINDOW_REPLACING_TESTS = [
     "tests/frontend/WebSocketConnection.test.js",
 ];
 
+// In projects mode a project-level exclude list replaces CLI --exclude
+// flags, so the coverage-only exclusions must live in the config itself.
+const COVERAGE_ONLY_EXCLUDES = ["tests/frontend/LoadTimePerformance.test.js", "tests/frontend/i18n.test.js"];
+const coverageEnabled = process.argv.includes("--coverage");
+
 export default defineConfig({
     define: {
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
@@ -111,6 +116,7 @@ export default defineConfig({
                         "**/*.browser.test.*",
                         "**/*.browser.spec.*",
                         ...WINDOW_REPLACING_TESTS,
+                        ...(coverageEnabled ? COVERAGE_ONLY_EXCLUDES : []),
                     ],
                 },
             },
@@ -129,6 +135,16 @@ export default defineConfig({
             provider: "v8",
             reporter: ["text", "json-summary"],
             reportsDirectory: "./coverage",
+            reportOnFailure: true,
+            // Ratchet: floor just under the current totals (lines 51.8,
+            // stmts 51.3, funcs 48.9, branches 42.7) so coverage can only
+            // improve. Raise these as coverage grows.
+            thresholds: {
+                lines: 51,
+                statements: 51,
+                functions: 48,
+                branches: 42,
+            },
             include: ["meshchatx/src/frontend/**/*.{js,ts,svelte}"],
             exclude: [
                 "meshchatx/src/frontend/**/*.d.ts",

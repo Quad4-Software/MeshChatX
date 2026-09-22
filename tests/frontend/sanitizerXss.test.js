@@ -58,6 +58,8 @@ export function assertNoScriptableHtml(html, payloadName) {
         }
     }
     for (const el of root.querySelectorAll("*")) {
+        // NamedNodeMap snapshot before DOM inspection.
+        // oxlint-disable-next-line unicorn/no-useless-spread
         for (const attr of [...el.attributes]) {
             expect(attr.name.toLowerCase().startsWith("on"), `${payloadName} ${attr.name}`).toBe(false);
         }

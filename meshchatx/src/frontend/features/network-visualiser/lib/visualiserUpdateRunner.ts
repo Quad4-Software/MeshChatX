@@ -61,8 +61,8 @@ export async function loadInitialVisualiserData(
         const cached = await loadCachedVisualiserGraph(identityHash);
         if (cached?.pathTable?.length) {
             pathTable = cached.pathTable as PathTableEntry[];
-            announces = { ...((cached.announces as Record<string, AnnounceEntry>) || {}) };
-            cachedPositions = { ...((cached.positions as Record<string, { x: number; y: number }>) || {}) };
+            announces = { ...(cached.announces as Record<string, AnnounceEntry>) };
+            cachedPositions = { ...(cached.positions as Record<string, { x: number; y: number }>) };
             paintedFromCache = true;
         }
     }

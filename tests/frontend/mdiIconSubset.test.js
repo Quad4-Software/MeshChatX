@@ -57,8 +57,8 @@ describe("mdiIconNames subset resolution", () => {
                     .replace(/([a-z])([A-Z])/g, "$1-$2")
                     .toLowerCase()
             )
-            .sort();
-        expect([...buildMdiIconNames()].sort()).toEqual(expected);
+            .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+        expect([...buildMdiIconNames()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))).toEqual(expected);
     });
 
     it("resolves a used literal icon path synchronously", () => {

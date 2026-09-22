@@ -173,7 +173,7 @@ export async function cancelInboundDeliveries(state: AppShellState): Promise<voi
         ToastUtils.success(t("app.cancel_inbound_done", { count: cancelled }));
         if (response?.data?.inbound_deliveries) {
             state.propagationNodeStatus = {
-                ...(state.propagationNodeStatus || {}),
+                ...state.propagationNodeStatus,
                 inbound_delivery_count: response.data.inbound_delivery_count ?? 0,
                 inbound_deliveries: response.data.inbound_deliveries,
             };

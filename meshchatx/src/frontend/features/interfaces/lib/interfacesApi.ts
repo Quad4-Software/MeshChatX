@@ -231,7 +231,7 @@ export async function saveInterfaceApi(
         body = {
             name: nameOrPayload,
             allow_overwriting_interface: isEditing,
-            ...(payload || {}),
+            ...payload,
         };
     } else {
         body = nameOrPayload;

@@ -16,7 +16,7 @@ function buildLhConfig(formFactor) {
     return {
         ...base,
         settings: {
-            ...(base.settings || {}),
+            ...base.settings,
             onlyCategories: ["performance", "accessibility", "best-practices"],
             formFactor: formFactor || "desktop",
             throttlingMethod: "simulate",
@@ -125,7 +125,7 @@ function envVitalOverrides() {
 
 function assertVitalBudgets(vitals, budgets, pageId) {
     const failures = [];
-    const effective = { ...(budgets || {}), ...envVitalOverrides() };
+    const effective = { ...budgets, ...envVitalOverrides() };
     for (const [key, max] of Object.entries(effective)) {
         const actual = vitals[key] && vitals[key].value;
         if (actual === null || actual === undefined) {

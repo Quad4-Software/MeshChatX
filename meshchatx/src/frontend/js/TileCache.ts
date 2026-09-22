@@ -218,7 +218,7 @@ class TileCache {
                     resolve(rows);
                     return;
                 }
-                rows.push({ key: cursor.key, ...(cursor.value || {}) });
+                rows.push({ key: cursor.key, ...cursor.value });
                 cursor.continue();
             };
             request.onerror = () => reject(request.error);

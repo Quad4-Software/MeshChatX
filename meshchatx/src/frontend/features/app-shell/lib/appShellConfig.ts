@@ -189,7 +189,7 @@ export async function updateConfig(
         if (api?.patch) {
             const next = await patchServerConfig(config, api);
             mergeGlobalConfig(next);
-            setConfig(state, { ...(state.config || {}), ...next });
+            setConfig(state, { ...state.config, ...next });
         } else {
             const requestId = `cfg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             const ok = await new Promise<boolean>((resolve) => {
@@ -218,7 +218,7 @@ export async function updateConfig(
                 throw new Error("config.set failed or timed out");
             }
             mergeGlobalConfig(config);
-            setConfig(state, { ...(state.config || {}), ...config });
+            setConfig(state, { ...state.config, ...config });
         }
         if (label) {
             ToastUtils.success(
