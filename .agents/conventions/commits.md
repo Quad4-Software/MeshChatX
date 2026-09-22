@@ -5,7 +5,7 @@ MeshChatX uses [Conventional Commits](https://www.conventionalcommits.org/) for 
 ## Format
 
 ```
-<type>: <subject>
+<type>(<scope>): <subject>
 
 [optional body]
 
@@ -13,17 +13,19 @@ MeshChatX uses [Conventional Commits](https://www.conventionalcommits.org/) for 
 ```
 
 - **type**: one of `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `ci`, `build`, `perf`, `style`, `revert`
-- **subject**: imperative, lowercase after the colon, no trailing period, max 120 characters for the full header
+- **scope**: optional, lowercase, the area touched (`backend`, `frontend`, `lxmf`, `android`, `docs`, `ci`, ...)
+- **subject**: imperative, lowercase after the colon, no trailing period. Keep it short: aim for 50 characters or less, hard cap 72. If the change needs more words, put them in the body, not the subject.
 - **body**: wrap at 72 characters when you need context. Mention AI tooling here if required by CONTRIBUTING.md
+- One commit per logical change. Split a large diff into separate commits by section instead of landing one mixed commit.
 
 ## Examples
 
 ```
-feat: add path request metrics to RN status page
+feat(backend): add path request metrics to RN status page
 ```
 
 ```
-fix: close SQLite connections on identity switch teardown
+fix(backend): close SQLite connections on identity switch teardown
 ```
 
 ```
