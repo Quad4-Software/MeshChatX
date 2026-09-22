@@ -47,21 +47,31 @@ async function runLighthouseAudit(url, opts = {}) {
     const port = opts.port ?? LH_DEBUG_PORT;
     const formFactor = opts.formFactor || "desktop";
 
-    const runnerResult = await lighthouse(
-        url,
-        {
-            port,
-            output: ["json", "html"],
-            logLevel: "error",
-        },
-        buildLhConfig(formFactor)
-    );
+    // Gatherer flake (for example Network.getResponseBody on a
+    // service-worker-served document) can null an entire category score.
+    // Retry once so a transient protocol error does not fail the budget.
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const runnerResult = await lighthouse(
+            url,
+            {
+                port,
+                output: ["json", "html"],
+                logLevel: "error",
+            },
+            buildLhConfig(formFactor)
+        );
 
-    if (!runnerResult || !runnerResult.lhr) {
-        throw new Error(`Lighthouse returned no result for ${url}`);
+        if (!runnerResult || !runnerResult.lhr) {
+            throw new Error(`Lighthouse returned no result for ${url}`);
+        }
+        const cats = runnerResult.lhr.categories || {};
+        const missing = ["performance", "accessibility", "best-practices"].some(
+            (key) => cats[key] == null || cats[key].score == null
+        );
+        if (!missing || attempt === 1) {
+            return runnerResult;
+        }
     }
-
-    return runnerResult;
 }
 
 function scoresFromLhr(lhr) {
