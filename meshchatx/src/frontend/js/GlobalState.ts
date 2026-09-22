@@ -6,12 +6,22 @@ type Listener = () => void;
 
 const listeners = new Set<Listener>();
 
+// Top-level key ("config", "authenticated", ...) -> listeners that only wake
+// when that domain mutates. targetKeys maps raw child objects back to their
+// root key so nested writes like state.config.x resolve to "config".
+const keyListeners = new Map<string, Set<Listener>>();
+const targetKeys = new WeakMap<object, string>();
+
 let batchDepth = 0;
 let pendingNotify = false;
+const pendingKeys = new Set<string>();
 
-function notify(): void {
+function notify(changedKey?: string): void {
     if (batchDepth > 0) {
         pendingNotify = true;
+        if (changedKey !== undefined) {
+            pendingKeys.add(changedKey);
+        }
         return;
     }
     for (const listener of listeners) {
@@ -19,6 +29,15 @@ function notify(): void {
             listener();
         } catch {
             /* ignore */
+        }
+    }
+    if (changedKey !== undefined) {
+        for (const listener of keyListeners.get(changedKey) ?? []) {
+            try {
+                listener();
+            } catch {
+                /* ignore */
+            }
         }
     }
     notifyAppStateListeners(globalState);
@@ -33,7 +52,27 @@ export function batchGlobalState(fn: () => void): void {
         batchDepth -= 1;
         if (batchDepth === 0 && pendingNotify) {
             pendingNotify = false;
-            notify();
+            const keys = [...pendingKeys];
+            pendingKeys.clear();
+            // Global listeners run once; key listeners run for each domain
+            // that changed during the batch.
+            for (const listener of listeners) {
+                try {
+                    listener();
+                } catch {
+                    /* ignore */
+                }
+            }
+            for (const key of keys) {
+                for (const listener of keyListeners.get(key) ?? []) {
+                    try {
+                        listener();
+                    } catch {
+                        /* ignore */
+                    }
+                }
+            }
+            notifyAppStateListeners(globalState);
         }
     }
 }
@@ -42,6 +81,21 @@ export function batchGlobalState(fn: () => void): void {
 export function subscribeGlobalState(listener: Listener): () => void {
     listeners.add(listener);
     return () => listeners.delete(listener);
+}
+
+/**
+ * Subscribe to one top-level state domain only, e.g. "config". The listener
+ * fires when that key is assigned or when a nested write happens under the
+ * object stored at that key. Returns unsubscribe.
+ */
+export function subscribeGlobalStateKey(key: string, listener: Listener): () => void {
+    let set = keyListeners.get(key);
+    if (!set) {
+        set = new Set();
+        keyListeners.set(key, set);
+    }
+    set.add(listener);
+    return () => set.delete(listener);
 }
 
 const proxyCache = new WeakMap<object, object>();
@@ -55,6 +109,12 @@ function wrapDeep<T extends object>(value: T): T {
         get(target, prop, receiver) {
             const result = Reflect.get(target, prop, receiver);
             if (result && typeof result === "object" && !(result instanceof Set)) {
+                // Track which root domain this child belongs to so nested
+                // writes can notify key-scoped subscribers.
+                const key = targetKeys.get(target) ?? (target === rawState ? String(prop) : undefined);
+                if (key !== undefined) {
+                    targetKeys.set(result, key);
+                }
                 return wrapDeep(result as object);
             }
             return result;
@@ -63,7 +123,8 @@ function wrapDeep<T extends object>(value: T): T {
             const prev = Reflect.get(target, prop, receiver);
             const ok = Reflect.set(target, prop, next, receiver);
             if (ok && prev !== next) {
-                notify();
+                const key = targetKeys.get(target) ?? (target === rawState ? String(prop) : undefined);
+                notify(key);
             }
             return ok;
         },

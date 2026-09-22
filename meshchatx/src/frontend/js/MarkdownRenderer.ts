@@ -1,7 +1,8 @@
 import Utils from "./Utils";
 import LinkUtils from "./LinkUtils";
 import { linkifyGeoRefs } from "./geoLinkify.js";
-import globalState, { subscribeGlobalState } from "./GlobalState.js";
+import globalState from "./GlobalState.js";
+import { subscribeConfig } from "./configStore.js";
 
 // Chat lists re-render the same message bodies on every reactive pass, so the
 // regex pipeline is memoized on the raw text. Output is a pure function of the
@@ -15,7 +16,7 @@ const renderCache = new Map();
 // page path), so cached output must be dropped when that config value changes.
 // Unrelated mutations (unread counters, call state) leave the cache warm.
 let lastRenderConfigValue: unknown;
-subscribeGlobalState(() => {
+subscribeConfig(() => {
     const next = globalState.config?.nomad_default_page_path;
     if (next !== lastRenderConfigValue) {
         lastRenderConfigValue = next;
