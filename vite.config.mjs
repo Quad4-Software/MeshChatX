@@ -351,7 +351,7 @@ export default defineConfig(({ command }) => {
         build: {
             sourcemap: false,
             chunkImportMap: false,
-            // @mdi/js and other vendor chunks exceed 700 kB minified; splitting icons further is a larger refactor.
+            // vendor-mdi is a lazy-only chunk loaded on demand by mdiIconNames for icon names outside the generated subset.
             chunkSizeWarningLimit: 3500,
             minify: "terser",
             terserOptions: {

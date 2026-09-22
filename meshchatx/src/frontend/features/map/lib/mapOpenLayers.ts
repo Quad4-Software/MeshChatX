@@ -108,6 +108,16 @@ function tileImageElement(tile: ImageTile): HTMLImageElement {
     return tile.getImage() as HTMLImageElement;
 }
 
+// The decoded bitmap is retained by the img element, so the object URL is
+// safe to release as soon as the fetch for it settles.
+function setBlobTileSource(img: HTMLImageElement, blob: Blob): void {
+    const url = URL.createObjectURL(blob);
+    const revoke = () => URL.revokeObjectURL(url);
+    img.addEventListener("load", revoke, { once: true });
+    img.addEventListener("error", revoke, { once: true });
+    img.src = url;
+}
+
 export function createOnlineTileSource(
     tileServerUrl?: string | null,
     cachingEnabled: boolean = true,
@@ -130,7 +140,7 @@ export function createOnlineTileSource(
             TileCache.getTile(src)
                 .then((blob) => {
                     if (blob) {
-                        img.src = URL.createObjectURL(blob);
+                        setBlobTileSource(img, blob);
                     } else {
                         img.src = src;
                         fetch(src)
@@ -172,7 +182,7 @@ export function createOfflineMBTilesSource(): XYZ {
             TileCache.getTile(src)
                 .then((blob) => {
                     if (blob) {
-                        img.src = URL.createObjectURL(blob);
+                        setBlobTileSource(img, blob);
                     } else {
                         img.src = src;
                         fetch(src)

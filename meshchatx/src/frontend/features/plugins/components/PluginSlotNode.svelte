@@ -148,7 +148,13 @@
         class="overflow-auto rounded-lg border border-sem-border bg-sem-surface-muted p-3 font-mono text-xs text-sem-fg whitespace-pre-wrap break-all"
         style={codeStyle}>{node.value || ""}</pre>
 {:else if node.type === "image" && safeImageSrc}
-    <img src={safeImageSrc} alt={node.alt || ""} class="max-w-full rounded-lg border border-sem-border" />
+    <img
+        src={safeImageSrc}
+        alt={node.alt || ""}
+        class="max-w-full h-auto rounded-lg border border-sem-border"
+        loading="lazy"
+        decoding="async"
+    />
 {:else if node.type === "actions"}
     <div class="flex flex-wrap items-center gap-2">
         {#each node.items || [] as action (action.id)}

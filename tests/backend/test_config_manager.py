@@ -190,3 +190,42 @@ def test_auto_propagation_config(db):
     assert config.lxmf_preferred_propagation_node_auto_select.get() is False
     config.lxmf_preferred_propagation_node_auto_select.set(True)
     assert config.lxmf_preferred_propagation_node_auto_select.get() is True
+
+
+def test_config_dao_caches_reads_and_invalidates_on_write(db):
+    calls = []
+    original_fetchone = db.config.provider.fetchone
+
+    def spy_fetchone(*args, **kwargs):
+        calls.append(args)
+        return original_fetchone(*args, **kwargs)
+
+    db.config.set("cache_probe_key", "initial")
+    db.config.provider.fetchone = spy_fetchone
+    try:
+        assert db.config.get("cache_probe_key") == "initial"
+        first_reads = len(calls)
+        assert first_reads == 1
+        assert db.config.get("cache_probe_key") == "initial"
+        assert len(calls) == first_reads  # cached, no second query
+
+        db.config.set("cache_probe_key", "updated")
+        assert db.config.get("cache_probe_key") == "updated"  # invalidated by set
+
+        db.config.delete("cache_probe_key")
+        assert db.config.get("cache_probe_key") is None  # invalidated by delete
+    finally:
+        db.config.provider.fetchone = original_fetchone
+
+
+def test_config_dao_missing_key_returns_default(db):
+    assert db.config.get("definitely_missing_key_xyz") is None
+    assert db.config.get("definitely_missing_key_xyz", "fallback") == "fallback"
+
+
+def test_config_dao_stored_null_is_not_default(db):
+    db.config.provider.execute(
+        "INSERT INTO config (key, value, created_at, updated_at) VALUES (?, NULL, ?, ?)",
+        ("nullable_key", "2024-01-01", "2024-01-01"),
+    )
+    assert db.config.get("nullable_key", "fallback") is None

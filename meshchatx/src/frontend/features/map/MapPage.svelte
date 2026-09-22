@@ -688,13 +688,35 @@
         saveState();
     }
 
+    let telemetryReloadInFlight = false;
+    let telemetryReloadQueued = false;
+
     async function reloadTelemetry() {
-        telemetryList = await fetchTelemetryMarkers();
-        peers = await fetchPeers();
-        updatePeerMarkers();
-        const selectedHash = selectedMarker?.telemetry?.destination_hash;
-        if (selectedHash) {
-            void drawTelemetryPath(selectedHash);
+        if (telemetryReloadInFlight) {
+            telemetryReloadQueued = true;
+            return;
+        }
+        telemetryReloadInFlight = true;
+        try {
+            do {
+                telemetryReloadQueued = false;
+                const [markers, peerList] = await Promise.all([fetchTelemetryMarkers(), fetchPeers()]);
+                telemetryList = markers;
+                peers = peerList;
+                updatePeerMarkers();
+                const selectedHash = selectedMarker?.telemetry?.destination_hash;
+                if (selectedHash) {
+                    void drawTelemetryPath(selectedHash);
+                }
+            } while (telemetryReloadQueued);
+        } finally {
+            telemetryReloadInFlight = false;
+        }
+    }
+
+    function onAnnounceEventForMap(json: any) {
+        if (json?.announce?.aspect === "lxmf.delivery") {
+            void reloadTelemetry();
         }
     }
 
@@ -1443,9 +1465,13 @@
         refreshTabToolbarHost();
         setTimeout(refreshTabToolbarHost, 100);
 
-        telemetryPollTimer = setInterval(() => reloadTelemetry(), 10000);
+        telemetryPollTimer = setInterval(() => {
+            if (!document.hidden) {
+                void reloadTelemetry();
+            }
+        }, 10000);
         onWsEvent("lxmf.telemetry", reloadTelemetry);
-        onWsEvent("announce", reloadTelemetry);
+        onWsEvent("announce", onAnnounceEventForMap);
         window.addEventListener("pagehide", onPageHideFlush);
         document.addEventListener("visibilitychange", onVisibilityFlush);
         applyMapViewFromRoute();
@@ -1491,7 +1517,7 @@
         measureTooltipManager?.destroy();
         GlobalEmitter.off("config-updated", onConfigUpdatedExternally);
         offWsEvent("lxmf.telemetry", reloadTelemetry);
-        offWsEvent("announce", reloadTelemetry);
+        offWsEvent("announce", onAnnounceEventForMap);
         unsubscribeRoute?.();
         unsubscribeRoute = null;
         for (const id of Object.keys(remoteOverlayLayers)) {

@@ -5,19 +5,19 @@
     import { t } from "../../js/i18n.js";
 
     const ACCENT = {
-        blue: { wrap: "bg-blue-100 dark:bg-blue-900/30", icon: "text-sem-accent" },
-        indigo: { wrap: "bg-indigo-100 dark:bg-indigo-900/30", icon: "text-indigo-600 dark:text-indigo-400" },
-        teal: { wrap: "bg-teal-100 dark:bg-teal-900/30", icon: "text-teal-600 dark:text-teal-400" },
-        purple: { wrap: "bg-purple-100 dark:bg-purple-900/30", icon: "text-purple-600 dark:text-purple-400" },
-        green: { wrap: "bg-green-100 dark:bg-green-900/30", icon: "text-green-600 dark:text-green-400" },
-        orange: { wrap: "bg-orange-100 dark:bg-orange-900/30", icon: "text-orange-600 dark:text-orange-400" },
-        cyan: { wrap: "bg-cyan-100 dark:bg-cyan-900/30", icon: "text-cyan-600 dark:text-cyan-400" },
-        rose: { wrap: "bg-rose-100 dark:bg-rose-900/30", icon: "text-rose-600 dark:text-rose-400" },
-        violet: { wrap: "bg-violet-100 dark:bg-violet-900/30", icon: "text-violet-600 dark:text-violet-400" },
-        amber: { wrap: "bg-amber-100 dark:bg-amber-900/30", icon: "text-amber-600 dark:text-amber-400" },
-        sky: { wrap: "bg-sky-100 dark:bg-sky-900/30", icon: "text-sky-600 dark:text-sky-400" },
-        red: { wrap: "bg-red-100 dark:bg-red-900/30", icon: "text-red-600 dark:text-red-400" },
-        zinc: { wrap: "bg-zinc-100 dark:bg-zinc-800", icon: "text-zinc-600 text-sem-fg-muted" },
+        blue: { wrap: "bg-blue-100 dark:bg-blue-900/30", iconClass: "text-sem-accent" },
+        indigo: { wrap: "bg-indigo-100 dark:bg-indigo-900/30", iconClass: "text-indigo-600 dark:text-indigo-400" },
+        teal: { wrap: "bg-teal-100 dark:bg-teal-900/30", iconClass: "text-teal-600 dark:text-teal-400" },
+        purple: { wrap: "bg-purple-100 dark:bg-purple-900/30", iconClass: "text-purple-600 dark:text-purple-400" },
+        green: { wrap: "bg-green-100 dark:bg-green-900/30", iconClass: "text-green-600 dark:text-green-400" },
+        orange: { wrap: "bg-orange-100 dark:bg-orange-900/30", iconClass: "text-orange-600 dark:text-orange-400" },
+        cyan: { wrap: "bg-cyan-100 dark:bg-cyan-900/30", iconClass: "text-cyan-600 dark:text-cyan-400" },
+        rose: { wrap: "bg-rose-100 dark:bg-rose-900/30", iconClass: "text-rose-600 dark:text-rose-400" },
+        violet: { wrap: "bg-violet-100 dark:bg-violet-900/30", iconClass: "text-violet-600 dark:text-violet-400" },
+        amber: { wrap: "bg-amber-100 dark:bg-amber-900/30", iconClass: "text-amber-600 dark:text-amber-400" },
+        sky: { wrap: "bg-sky-100 dark:bg-sky-900/30", iconClass: "text-sky-600 dark:text-sky-400" },
+        red: { wrap: "bg-red-100 dark:bg-red-900/30", iconClass: "text-red-600 dark:text-red-400" },
+        zinc: { wrap: "bg-zinc-100 dark:bg-zinc-800", iconClass: "text-zinc-600 text-sem-fg-muted" },
     };
 
     /**
@@ -71,7 +71,7 @@
 
     <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 basis-0">
         <div class="p-2 rounded-lg shrink-0 {palette.wrap}">
-            <span class={palette.icon}>
+            <span class={palette.iconClass}>
                 <MaterialDesignIcon iconName={icon} />
             </span>
         </div>

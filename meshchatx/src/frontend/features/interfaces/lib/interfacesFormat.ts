@@ -56,7 +56,7 @@ export function getDiscoveryIcon(iface: { type?: string; port?: string | number 
         case "PipeInterface":
             return "pipe";
         case "AwareInterface":
-            return "wifi-tethering";
+            return "access-point";
         default:
             return "server-network";
     }
@@ -88,7 +88,7 @@ export function getInterfaceIcon(iface: { type?: string; port?: string | number 
         case "HTTPInterface":
             return "web";
         case "AwareInterface":
-            return "wifi-tethering";
+            return "access-point";
         default:
             return "server-network";
     }

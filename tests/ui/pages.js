@@ -11,6 +11,20 @@ const DEFAULT_BUDGETS = {
 };
 
 /**
+ * Upper bounds on Lighthouse numeric audit values under simulated desktop
+ * throttling. Generous enough for shared CI runners while still catching
+ * large regressions. Per-page overrides via `vitals` and env overrides via
+ * LH_MAX_* (see lighthouse-helper.js).
+ */
+const DEFAULT_VITAL_BUDGETS = {
+    fcp: 3000,
+    lcp: 6000,
+    tbt: 2000,
+    cls: 0.1,
+    si: 6000,
+};
+
+/**
  * @typedef {object} UiPage
  * @property {string} id stable id for reports
  * @property {string} path hash route path, e.g. /messages
@@ -19,6 +33,7 @@ const DEFAULT_BUDGETS = {
  * @property {string} [readyName] for role locators
  * @property {boolean} [ci] include in CI lighthouse subset
  * @property {Partial<typeof DEFAULT_BUDGETS>} [budgets]
+ * @property {Partial<typeof DEFAULT_VITAL_BUDGETS>} [vitals]
  */
 
 /** @type {UiPage[]} */
@@ -67,6 +82,7 @@ const UI_PAGES = [
         readyKind: "heading",
         ready: "Map",
         budgets: { performance: 40 },
+        vitals: { lcp: 9000, si: 9000 },
     },
     {
         id: "identities",
@@ -104,6 +120,7 @@ const UI_PAGES = [
         readyKind: "text",
         ready: "Reticulum Mesh",
         budgets: { performance: 35 },
+        vitals: { lcp: 9000, si: 9000, tbt: 3000 },
     },
     {
         id: "archives",
@@ -123,6 +140,10 @@ function budgetsFor(page) {
     return { ...DEFAULT_BUDGETS, ...(page.budgets || {}) };
 }
 
+function vitalBudgetsFor(page) {
+    return { ...DEFAULT_VITAL_BUDGETS, ...(page.vitals || {}) };
+}
+
 function pagesForCi() {
     return UI_PAGES.filter((p) => p.ci);
 }
@@ -140,8 +161,10 @@ function resolvePages(opts = {}) {
 
 module.exports = {
     DEFAULT_BUDGETS,
+    DEFAULT_VITAL_BUDGETS,
     UI_PAGES,
     budgetsFor,
+    vitalBudgetsFor,
     pagesForCi,
     resolvePages,
 };

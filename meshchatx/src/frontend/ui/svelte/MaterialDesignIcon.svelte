@@ -2,11 +2,15 @@
 
 <script>
     import { getMdiIconPath } from "../../js/mdiIconNames.js";
+    import { mdiIconState } from "../../js/mdiIconState.svelte.js";
 
     /** @type {{ iconName?: string, class?: string, style?: string }} */
     let { iconName = "", class: className = "", style = "" } = $props();
 
-    const iconPath = $derived(getMdiIconPath(iconName));
+    const iconPath = $derived.by(() => {
+        mdiIconState.fullReady;
+        return getMdiIconPath(iconName);
+    });
 </script>
 
 <svg

@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
-    import { buildMdiIconNames } from "../../js/mdiIconNames.js";
+    import { buildMdiIconNames, ensureFullMdi } from "../../js/mdiIconNames.js";
     import ToastUtils from "../../js/ToastUtils.js";
     import GlobalEmitter from "../../js/GlobalEmitter.js";
     import { mergeGlobalConfig } from "../../js/GlobalState.js";
@@ -175,6 +175,7 @@
 
     onMount(() => {
         void getConfig();
+        void ensureFullMdi();
         iconNames = buildMdiIconNames();
     });
 

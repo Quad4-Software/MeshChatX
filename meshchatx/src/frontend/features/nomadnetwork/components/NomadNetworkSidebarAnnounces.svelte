@@ -10,11 +10,8 @@
     import { t } from "../../../js/i18n.js";
     import { loadNomadAnnouncesSort, saveNomadAnnouncesSort } from "../../../js/browserLayoutStore.js";
     import NomadAnnounceRow from "./NomadAnnounceRow.svelte";
-    import {
-        blockNodeDestination,
-        unblockNodeDestination,
-        bulkBlockNodeDestinations,
-    } from "../lib/nomadSidebarActions.js";
+    import NomadAnnounceContextMenu from "./NomadAnnounceContextMenu.svelte";
+    import { bulkBlockNodeDestinations } from "../lib/nomadSidebarActions.js";
     import { sortAnnouncesNodes } from "../lib/nomadAnnouncesSort.js";
     import type { NomadFavourite, NomadNode } from "../lib/types.js";
 
@@ -85,32 +82,40 @@
         });
     });
 
+    const selectedHashSet = $derived(new Set(selectedHashes));
+    const favouriteHashSet = $derived(new Set(favourites.map((f) => f.destination_hash)));
+    const blockedHashSet = $derived(
+        new Set(
+            ((GlobalState.blockedDestinations || []) as Array<{ destination_hash?: string }>)
+                .map((b) => b.destination_hash)
+                .filter((h): h is string => Boolean(h))
+        )
+    );
+
     const flatVisibleHashes = $derived(searchedNodes.map((n) => n.destination_hash));
+    const flatVisibleHashSet = $derived(new Set(flatVisibleHashes));
     const allVisibleSelected = $derived(
-        flatVisibleHashes.length > 0 && flatVisibleHashes.every((h) => selectedHashes.includes(h))
+        flatVisibleHashes.length > 0 && flatVisibleHashes.every((h) => selectedHashSet.has(h))
     );
 
     function isBlocked(hash?: string): boolean {
-        if (!hash) return false;
-        const blocked = (GlobalState.blockedDestinations || []) as Array<{ destination_hash?: string }>;
-        return blocked.some((b) => b.destination_hash === hash);
+        return Boolean(hash) && blockedHashSet.has(hash as string);
     }
 
     function isFavourite(hash?: string): boolean {
-        if (!hash) return false;
-        return favourites.some((f) => f.destination_hash === hash);
+        return Boolean(hash) && favouriteHashSet.has(hash as string);
     }
 
     function toggleSelectAll() {
         if (allVisibleSelected) {
-            selectedHashes = selectedHashes.filter((h) => !flatVisibleHashes.includes(h));
+            selectedHashes = selectedHashes.filter((h) => !flatVisibleHashSet.has(h));
         } else {
             selectedHashes = [...new Set([...selectedHashes, ...flatVisibleHashes])];
         }
     }
 
     function toggleSelect(hash: string) {
-        if (selectedHashes.includes(hash)) {
+        if (selectedHashSet.has(hash)) {
             selectedHashes = selectedHashes.filter((h) => h !== hash);
         } else {
             selectedHashes = [...selectedHashes, hash];
@@ -279,7 +284,7 @@
                         {node}
                         selected={node.destination_hash === selectedDestinationHash}
                         {selectionMode}
-                        isSelectedInBulk={selectedHashes.includes(node.destination_hash)}
+                        isSelectedInBulk={selectedHashSet.has(node.destination_hash)}
                         isDropdownActive={activeDropdownHash === node.destination_hash}
                         isBlockedNode={isBlocked(node.identity_hash || node.destination_hash)}
                         isFav={isFavourite(node.destination_hash)}
@@ -313,86 +318,15 @@
 </div>
 
 {#if contextMenu.show && contextMenu.node}
-    <div
-        bind:this={menuPanel}
-        class="fixed z-50 min-w-44 bg-sem-surface border border-sem-border rounded-xl shadow-xl py-1 text-sem-fg"
-        style="left: {menuLeft}px; top: {menuTop}px;"
-    >
-        {#if !isFavourite(contextMenu.node.destination_hash)}
-            <button
-                type="button"
-                class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
-                onclick={() => {
-                    if (contextMenu.node) onaddfavourite?.(contextMenu.node);
-                    closeContextMenu();
-                }}
-            >
-                <MaterialDesignIcon iconName="star-outline" class="size-4 text-yellow-500" />
-                {t("nomadnet.add_to_favourites")}
-            </button>
-        {/if}
-        <button
-            type="button"
-            class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
-            onclick={() => {
-                if (contextMenu.node) {
-                    navigator.clipboard.writeText(contextMenu.node.destination_hash);
-                    ToastUtils.success("Address copied to clipboard");
-                }
-                closeContextMenu();
-            }}
-        >
-            <MaterialDesignIcon iconName="content-copy" class="size-4" />
-            {t("nomadnet.copy_address")}
-        </button>
-        <button
-            type="button"
-            class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
-            onclick={() => {
-                if (contextMenu.node) {
-                    navigator.clipboard.writeText(`nomadnet://${contextMenu.node.destination_hash}`);
-                    ToastUtils.success("Link copied to clipboard");
-                }
-                closeContextMenu();
-            }}
-        >
-            <MaterialDesignIcon iconName="link" class="size-4" />
-            {t("nomadnet.copy_nomad_link")}
-        </button>
-        <hr class="my-1 border-sem-border" />
-        {#if isBlocked(contextMenu.node.identity_hash || contextMenu.node.destination_hash)}
-            <button
-                type="button"
-                class="w-full text-left px-3 py-1.5 text-xs text-green-600 dark:text-green-400 hover:bg-sem-surface-muted flex items-center gap-2"
-                onclick={() => {
-                    if (contextMenu.node) {
-                        unblockNodeDestination(contextMenu.node.identity_hash || contextMenu.node.destination_hash);
-                    }
-                    closeContextMenu();
-                }}
-            >
-                <MaterialDesignIcon iconName="lock-open-outline" class="size-4" />
-                {t("nomadnet.lift_banishment")}
-            </button>
-        {:else}
-            <button
-                type="button"
-                class="w-full text-left px-3 py-1.5 text-xs text-red-600 dark:text-red-400 hover:bg-sem-surface-muted flex items-center gap-2"
-                onclick={() => {
-                    if (contextMenu.node) blockNodeDestination(contextMenu.node);
-                    closeContextMenu();
-                }}
-            >
-                <MaterialDesignIcon iconName="cancel" class="size-4" />
-                {t("nomadnet.block_node")}
-            </button>
-        {/if}
-    </div>
-    {#if menuCaret}
-        <div
-            class="dropdown-caret fixed z-50 border-sem-border {menuCaret.borderClass}"
-            style="left: {menuCaret.style.left}; top: {menuCaret.style.top};"
-            aria-hidden="true"
-        ></div>
-    {/if}
+    <NomadAnnounceContextMenu
+        node={contextMenu.node}
+        left={menuLeft}
+        top={menuTop}
+        caret={menuCaret}
+        isFav={isFavourite(contextMenu.node.destination_hash)}
+        isBlockedNode={isBlocked(contextMenu.node.identity_hash || contextMenu.node.destination_hash)}
+        bind:panel={menuPanel}
+        {onaddfavourite}
+        onclose={closeContextMenu}
+    />
 {/if}

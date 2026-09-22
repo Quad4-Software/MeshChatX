@@ -2476,7 +2476,7 @@
 <div class="flex flex-col flex-1 min-w-0 h-full bg-sem-canvas text-sem-fg">
     {#if !rrcEnabled}
         <div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-sem-fg-muted">
-            <MaterialDesignIcon iconName="forum-off-outline" class="size-12 opacity-40" />
+            <MaterialDesignIcon iconName="forum-remove-outline" class="size-12 opacity-40" />
             <p class="max-w-md text-sm">{t("relay_chat.disabled_message")}</p>
         </div>
     {:else}

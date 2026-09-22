@@ -87,6 +87,11 @@
         if (activeRecording) {
             void stopAudioRecording();
         }
+        releaseImageUrls();
+        imageUrls = [];
+        if (audio?.audio_preview_url) {
+            URL.revokeObjectURL(audio.audio_preview_url);
+        }
     });
 
     const canSendMessage = $derived(Boolean(selectedPeer && (text.trim() || images.length || files.length || audio)));

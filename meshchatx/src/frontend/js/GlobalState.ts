@@ -6,7 +6,14 @@ type Listener = () => void;
 
 const listeners = new Set<Listener>();
 
+let batchDepth = 0;
+let pendingNotify = false;
+
 function notify(): void {
+    if (batchDepth > 0) {
+        pendingNotify = true;
+        return;
+    }
     for (const listener of listeners) {
         try {
             listener();
@@ -17,14 +24,34 @@ function notify(): void {
     notifyAppStateListeners(globalState);
 }
 
+/** Run fn while coalescing GlobalState notifications into a single flush. */
+export function batchGlobalState(fn: () => void): void {
+    batchDepth += 1;
+    try {
+        fn();
+    } finally {
+        batchDepth -= 1;
+        if (batchDepth === 0 && pendingNotify) {
+            pendingNotify = false;
+            notify();
+        }
+    }
+}
+
 /** Subscribe to GlobalState mutations. Returns unsubscribe. */
 export function subscribeGlobalState(listener: Listener): () => void {
     listeners.add(listener);
     return () => listeners.delete(listener);
 }
 
+const proxyCache = new WeakMap<object, object>();
+
 function wrapDeep<T extends object>(value: T): T {
-    return new Proxy(value, {
+    const cached = proxyCache.get(value);
+    if (cached) {
+        return cached as T;
+    }
+    const wrapped = new Proxy(value, {
         get(target, prop, receiver) {
             const result = Reflect.get(target, prop, receiver);
             if (result && typeof result === "object" && !(result instanceof Set)) {
@@ -41,6 +68,8 @@ function wrapDeep<T extends object>(value: T): T {
             return ok;
         },
     }) as T;
+    proxyCache.set(value, wrapped);
+    return wrapped;
 }
 
 const rawState = {
@@ -103,7 +132,6 @@ export function mergeGlobalConfig(next: Record<string, unknown> | null | undefin
     }
     const prev = globalState.config && typeof globalState.config === "object" ? globalState.config : {};
     globalState.config = { ...prev, ...next };
-    notify();
 }
 
 export default globalState;
