@@ -5,7 +5,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from meshchatx.src.backend.database.telemetry import TelemetryDAO
+from meshchatx.src.backend.database.telemetry import (
+    MAX_TELEMETRY_ROWS_PER_DESTINATION,
+    TelemetryDAO,
+)
 
 
 @pytest.fixture
@@ -58,3 +61,39 @@ def test_update_last_request_at(telemetry_dao, mock_provider):
     args, _ = mock_provider.execute.call_args
     assert "UPDATE telemetry_tracking" in args[0]
     assert args[1] == (1000, "dest1")
+
+
+def test_trim_telemetry_for_destination_caps_oldest(db):
+    dao = db.telemetry
+    for i in range(10):
+        dao.upsert_telemetry("destA", 1000.0 + i, b"d")
+        dao.upsert_telemetry("destB", 2000.0 + i, b"d")
+
+    dao.trim_telemetry_for_destination("destA", max_rows=3)
+
+    rows = dao.get_telemetry_history("destA", limit=50)
+    assert [r["timestamp"] for r in rows] == [1009.0, 1008.0, 1007.0]
+    # Other destinations are untouched.
+    assert len(dao.get_telemetry_history("destB", limit=50)) == 10
+
+
+def test_trim_telemetry_for_destination_noop_at_or_under_cap(db):
+    dao = db.telemetry
+    for i in range(3):
+        dao.upsert_telemetry("destA", 1000.0 + i, b"d")
+    dao.trim_telemetry_for_destination("destA", max_rows=3)
+    dao.trim_telemetry_for_destination("destA", max_rows=10)
+    assert len(dao.get_telemetry_history("destA", limit=50)) == 3
+
+
+def test_upsert_telemetry_enforces_default_cap(db):
+    dao = db.telemetry
+    total = MAX_TELEMETRY_ROWS_PER_DESTINATION + 5
+    for i in range(total):
+        dao.upsert_telemetry("destA", 1000.0 + i, b"d")
+    rows = dao.get_telemetry_history(
+        "destA",
+        limit=MAX_TELEMETRY_ROWS_PER_DESTINATION + 10,
+    )
+    assert len(rows) == MAX_TELEMETRY_ROWS_PER_DESTINATION
+    assert min(r["timestamp"] for r in rows) == 1000.0 + 5

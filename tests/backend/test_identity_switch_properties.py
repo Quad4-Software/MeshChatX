@@ -241,6 +241,9 @@ async def test_hotswap_broadcast_no_reauth_when_auth_disabled(
     current_hash = mock_rns["id_instance"].hash.hex()
     stale_ctx = MagicMock()
     stale_ctx.identity_hash = stale_hash
+    # delete_identity evicts and tears down the context before rmtree;
+    # a stopped context reports running=False afterwards.
+    stale_ctx.running = False
     app.contexts[stale_hash] = stale_ctx
     app.current_context = MagicMock()
     app.current_context.identity_hash = current_hash
@@ -250,10 +253,44 @@ async def test_hotswap_broadcast_no_reauth_when_auth_disabled(
     with open(os.path.join(identity_dir, "identity"), "wb") as f:
         f.write(b"stale")
 
+    # Record whether the storage dir still existed at teardown time so the
+    # test pins the teardown-before-rmtree ordering.
+    teardown_saw_dir = []
+    stale_ctx.teardown.side_effect = lambda: teardown_saw_dir.append(
+        os.path.isdir(identity_dir),
+    )
+
     assert app.delete_identity(stale_hash) is True
     stale_ctx.teardown.assert_called_once()
+    assert teardown_saw_dir == [True]
     assert stale_hash not in app.contexts
     assert not os.path.isdir(identity_dir)
+
+
+def test_delete_identity_refuses_when_context_still_running(
+    mock_rns,
+    temp_dir,
+):
+    app = ReticulumMeshChat(
+        identity=mock_rns["id_instance"],
+        storage_dir=temp_dir,
+        reticulum_config_dir=temp_dir,
+    )
+    stale_hash = "cc" * 16
+    stale_ctx = MagicMock()
+    stale_ctx.identity_hash = stale_hash
+    # teardown leaves running=True: the context failed to stop, so the
+    # delete must be refused rather than removing live storage.
+    stale_ctx.running = True
+    app.contexts[stale_hash] = stale_ctx
+
+    identity_dir = os.path.join(temp_dir, "identities", stale_hash)
+    os.makedirs(identity_dir)
+
+    with pytest.raises(ValueError, match="still running"):
+        app.delete_identity(stale_hash)
+    stale_ctx.teardown.assert_called_once()
+    assert os.path.isdir(identity_dir)
 
 
 def test_setup_identity_drops_context_when_storage_dir_removed(

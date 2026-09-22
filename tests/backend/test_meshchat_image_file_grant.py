@@ -52,6 +52,38 @@ def test_page_file_grant_blocks_unreferenced_file(mock_app):
     assert not mock_app._check_page_file_grant(client, dest, page, "/file/other.webp")
 
 
+def test_page_file_grants_scoped_by_connection_token(mock_app):
+    """Grants key on the per-connection token, so id() reuse cannot leak."""
+    dest = bytes.fromhex("f64a846313b874ee4a357040807f8c77")
+    page = "/page/index.mu"
+    client_a = MagicMock()
+    client_a._meshchatx_page_grant_token = "token-a"
+    client_b = MagicMock()
+    client_b._meshchatx_page_grant_token = "token-b"
+
+    mock_app._register_page_file_grant(
+        client_a,
+        dest,
+        page,
+        "`[A`:/file/photo.webp`img=1]",
+    )
+    assert mock_app._check_page_file_grant(client_a, dest, page, "/file/photo.webp")
+    assert not mock_app._check_page_file_grant(
+        client_b,
+        dest,
+        page,
+        "/file/photo.webp",
+    )
+
+    mock_app._clear_page_file_grants_for_client(client_a)
+    assert not mock_app._check_page_file_grant(
+        client_a,
+        dest,
+        page,
+        "/file/photo.webp",
+    )
+
+
 def test_page_file_grant_expires(mock_app):
     client = MagicMock()
     dest = bytes.fromhex("f64a846313b874ee4a357040807f8c77")
