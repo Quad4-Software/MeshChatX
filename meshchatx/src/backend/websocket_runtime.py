@@ -273,6 +273,15 @@ def init_client_runtime(client) -> TokenBucket:
         # Random per-connection key for page file grants: id() values get
         # recycled after GC, so a fresh socket could inherit stale grants.
         client._meshchatx_page_grant_token = secrets.token_hex(16)
+        # Event loop that owns this socket's transport. Broadcast sends must
+        # be dispatched back to it; aiohttp transports are not safe to write
+        # from another loop's thread. Set once at upgrade; lazy re-init from
+        # a foreign loop must not clobber it.
+        if getattr(client, "_meshchatx_loop", None) is None:
+            try:
+                client._meshchatx_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                client._meshchatx_loop = None
         # Serializes broadcast writes so two concurrent broadcasts cannot
         # interleave frames (and their seq ordering) on one socket.
         client._meshchatx_send_lock = asyncio.Lock()
@@ -290,6 +299,49 @@ def get_client_send_lock(client) -> asyncio.Lock:
         except (AttributeError, TypeError):
             pass
     return lock
+
+
+async def _send_str_with_lock(client, data: str, timeout: float | None) -> None:
+    send_lock = get_client_send_lock(client)
+    async with send_lock:
+        if timeout is None:
+            await client.send_str(data)
+        else:
+            await asyncio.wait_for(client.send_str(data), timeout=timeout)
+
+
+async def send_str_on_client_loop(
+    client,
+    data: str,
+    *,
+    timeout: float | None = None,
+) -> None:
+    """Send a text frame on the loop that owns the client's transport.
+
+    Self-check probes and per-identity contexts can attach sockets whose
+    transports belong to a different event loop than the caller's. Writing
+    from the wrong loop interleaves frames or wedges the stream, so the send
+    is re-dispatched onto the owning loop when they differ.
+    """
+    loop = getattr(client, "_meshchatx_loop", None)
+    if (
+        isinstance(loop, asyncio.AbstractEventLoop)
+        and loop.is_running()
+        and loop is not asyncio.get_running_loop()
+    ):
+        future = asyncio.run_coroutine_threadsafe(
+            _send_str_with_lock(client, data, timeout),
+            loop,
+        )
+        wrapped = asyncio.wrap_future(future)
+        # The inner wait_for already bounds the send; the outer bound covers
+        # scheduling delay on a congested owning loop.
+        if timeout is None:
+            await wrapped
+        else:
+            await asyncio.wait_for(wrapped, timeout=timeout + 1)
+        return
+    await _send_str_with_lock(client, data, timeout)
 
 
 def get_client_bucket(client) -> TokenBucket:

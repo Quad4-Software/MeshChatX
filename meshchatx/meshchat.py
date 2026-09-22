@@ -7325,8 +7325,10 @@ class ReticulumMeshChat:
 
     @staticmethod
     async def _rns_link_send(client, payload):
+        from meshchatx.src.backend.websocket_runtime import send_str_on_client_loop
+
         try:
-            await client.send_str(json.dumps(payload))
+            await send_str_on_client_loop(client, json.dumps(payload))
         except Exception as e:
             print(f"rns.link reply failed: {e}")
 
@@ -7699,7 +7701,7 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.websocket_runtime import (
             WS_BROADCAST_SEND_TIMEOUT_SEC,
             client_allows_topic,
-            get_client_send_lock,
+            send_str_on_client_loop,
             topic_for_type,
             touch_client_activity,
         )
@@ -7761,12 +7763,11 @@ class ReticulumMeshChat:
 
             async def _send_one(websocket_client):
                 try:
-                    send_lock = get_client_send_lock(websocket_client)
-                    async with send_lock:
-                        await asyncio.wait_for(
-                            websocket_client.send_str(data),
-                            timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
-                        )
+                    await send_str_on_client_loop(
+                        websocket_client,
+                        data,
+                        timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
+                    )
                     touch_client_activity(websocket_client)
                     counters = getattr(self, "ws_counters", None)
                     if counters is not None:
