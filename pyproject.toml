@@ -39,6 +39,7 @@ dependencies = [
   "wasmtime>=48.0.0",
   "bleak>=3.0.2,<4.0",
   "httpx[http2]>=0.28.1,<1.0",
+  "landlockpy>=0.1.1,<0.2",
 ]
 
 [project.scripts]
