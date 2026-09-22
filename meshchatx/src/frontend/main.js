@@ -385,6 +385,71 @@ function markBootSplashError() {
 const networkStore = useNetworkStore();
 const authStore = useAuthStore();
 
+// Register the service worker before waiting on the backend: the update and
+// reload machinery must exist even when startup ends on the unreachable page,
+// or a stale controlled copy has no path to a newer bundle.
+function registerMeshchatServiceWorker() {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+        return;
+    }
+    if (
+        !shouldRegisterServiceWorker({
+            isDev: import.meta.env.DEV,
+            isElectron: ElectronUtils.isElectron(),
+        })
+    ) {
+        void unregisterServiceWorkersIfPresent(navigator.serviceWorker).catch(() => {});
+        return;
+    }
+    let refreshing = false;
+    // One-time snapshot misses updates in pages that loaded uncontrolled: the
+    // first controllerchange is the claim, the second is a real update.
+    let sawController = Boolean(navigator.serviceWorker.controller);
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+        const decision = decideControllerChangeReload({ hadController: sawController, refreshing });
+        refreshing = decision.nextRefreshing;
+        if (decision.shouldReload) {
+            window.location.reload();
+            return;
+        }
+        sawController = true;
+    });
+    // The worker also announces activation; reload if the controllerchange
+    // listener attached after the switch already happened.
+    navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event?.data?.type !== "meshchatx-sw-updated" || !navigator.serviceWorker.controller || refreshing) {
+            return;
+        }
+        refreshing = true;
+        window.location.reload();
+    });
+    navigator.serviceWorker
+        .register("/service-worker.js", serviceWorkerRegisterOptions())
+        .then((registration) => {
+            const requestUpdate = () => {
+                try {
+                    void registration.update();
+                } catch {
+                    // ignore update failures
+                }
+            };
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") {
+                    requestUpdate();
+                }
+            });
+            requestUpdate();
+        })
+        .catch((error) => {
+            if (isIgnorableServiceWorkerRegistrationError(error)) {
+                return;
+            }
+            console.debug("Service worker registration failed:", error);
+        });
+}
+
+registerMeshchatServiceWorker();
+
 const networkReady = await waitForNetworkReady({
     onLine: setBootSplashLine,
     onErrorState: markBootSplashError,
@@ -444,53 +509,6 @@ if (networkReady) {
         next(decision.redirect);
     });
 
-    function registerMeshchatServiceWorker() {
-        if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
-            return;
-        }
-        if (
-            !shouldRegisterServiceWorker({
-                isDev: import.meta.env.DEV,
-                isElectron: ElectronUtils.isElectron(),
-            })
-        ) {
-            void unregisterServiceWorkersIfPresent(navigator.serviceWorker);
-            return;
-        }
-        let refreshing = false;
-        const hadController = Boolean(navigator.serviceWorker.controller);
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-            const decision = decideControllerChangeReload({ hadController, refreshing });
-            refreshing = decision.nextRefreshing;
-            if (decision.shouldReload) {
-                window.location.reload();
-            }
-        });
-        navigator.serviceWorker
-            .register("/service-worker.js", serviceWorkerRegisterOptions())
-            .then((registration) => {
-                const requestUpdate = () => {
-                    try {
-                        void registration.update();
-                    } catch {
-                        // ignore update failures
-                    }
-                };
-                document.addEventListener("visibilitychange", () => {
-                    if (document.visibilityState === "visible") {
-                        requestUpdate();
-                    }
-                });
-                requestUpdate();
-            })
-            .catch((error) => {
-                if (isIgnorableServiceWorkerRegistrationError(error)) {
-                    return;
-                }
-                console.debug("Service worker registration failed:", error);
-            });
-    }
-
     function removeBootSplash(splash) {
         if (!splash || !splash.isConnected) {
             return;
@@ -512,7 +530,6 @@ if (networkReady) {
     }
 
     async function bootstrap() {
-        registerMeshchatServiceWorker();
         const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
         const app = createApp(App);
         app.config.errorHandler = (err, _instance, info) => {

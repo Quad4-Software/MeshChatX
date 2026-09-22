@@ -661,6 +661,7 @@ export default {
             identitySaveTimer: null,
             config: null,
             appInfo: null,
+            bootVersionSignature: null,
             hasCheckedForModals: false,
             skipChangelogAfterTutorial: false,
             lanBindNoAuthBannerDismissed: isLanBindNoAuthBannerDismissed(),
@@ -1409,6 +1410,7 @@ export default {
             this.resetWsDisconnectBanner();
             this.backendRestarting = false;
             this.liveTransportReady = false;
+            useNetworkStore().liveTransportReady = false;
             LiveTransport.destroy();
         },
         async onRestartBackend() {
@@ -2012,7 +2014,20 @@ export default {
         async getAppInfo() {
             try {
                 const response = await window.api.get(apiPath("/app/info"));
-                this.appInfo = response.data.app_info;
+                const info = response.data.app_info;
+                // A backend restart into a different build leaves cached shell
+                // assets stale; reload once rather than run a mixed-version UI.
+                const signature = info ? `${info.version || ""}|${info.git_commit || ""}` : "";
+                if (signature && this.bootVersionSignature == null) {
+                    this.bootVersionSignature = signature;
+                } else if (signature && signature !== this.bootVersionSignature) {
+                    if (!sessionStorage.getItem("meshchatx.version_reload")) {
+                        sessionStorage.setItem("meshchatx.version_reload", "1");
+                        window.location.reload();
+                        return;
+                    }
+                }
+                this.appInfo = info;
 
                 showDatabaseHealthIssuesToastIfNeeded(this.appInfo.database_health_issues, ToastUtils);
 

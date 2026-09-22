@@ -171,6 +171,54 @@ describe("swShellRuntime reference / race / leak", () => {
         assertNoApiLeak(caches);
     });
 
+    it("edge: iframe subframe loads do not classify as navigations", () => {
+        // mode=navigate + destination=iframe is how the crash-tab iframe
+        // request arrives; treating it as a shell navigation let its document
+        // overwrite the "/" fallback slot.
+        expect(
+            expectedStrategy({
+                pathname: "/nomad-crash-tab.html",
+                method: "GET",
+                mode: "navigate",
+                destination: "iframe",
+                accept: "text/html",
+            })
+        ).toBe("network-only");
+        // A top-level navigation to the same path still uses the navigation
+        // strategy but must not claim the "/" fallback slot.
+        expect(
+            expectedStrategy({
+                pathname: "/nomad-crash-tab.html",
+                method: "GET",
+                mode: "navigate",
+                destination: "document",
+            })
+        ).toBe("navigation");
+    });
+
+    it("edge: non-shell document navigation keeps the shell fallback intact", async () => {
+        const caches = new MemoryCacheStorage();
+        const cacheName = cacheNameForBuild("subdoc");
+        await (
+            await caches.open(cacheName)
+        ).put(SHELL_FALLBACK_URL, okResponse("<html>shell</html>", { headers: { "content-type": "text/html" } }));
+        const fetchFn = vi.fn(async () =>
+            okResponse("<html>crash-tab</html>", { headers: { "content-type": "text/html" } })
+        );
+        const runtime = createShellRuntime({ caches, fetch: fetchFn, cacheName, origin: ORIGIN });
+        const req = makeRequest(`${ORIGIN}/nomad-crash-tab.html?v=1`, {
+            mode: "navigate",
+            destination: "document",
+        });
+        const res = await runtime.networkFirstNavigation({ request: req });
+        expect(await res.text()).toContain("crash-tab");
+        const shell = await caches.match(SHELL_FALLBACK_URL);
+        expect(await shell.text()).toContain("shell");
+        // The document itself is cached under its own URL, not the shell slot.
+        const own = await caches.match(`${ORIGIN}/nomad-crash-tab.html?v=1`);
+        expect(await own.text()).toContain("crash-tab");
+    });
+
     it("edge: cross-origin and network-only paths bypass respondWith", () => {
         const caches = new MemoryCacheStorage();
         const runtime = createShellRuntime({

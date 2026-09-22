@@ -37,7 +37,7 @@ class Utils {
         const decimals = 0;
         const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const i = Math.min(sizes.length - 1, Math.max(0, Math.floor(Math.log(bytes) / Math.log(k))));
 
         return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + " " + sizes[i];
     }
@@ -108,6 +108,10 @@ class Utils {
         const diffMs = now.getTime() - date.getTime();
         const diffSec = Math.round(diffMs / 1000);
 
+        if (!Number.isFinite(diffSec)) {
+            return "unknown";
+        }
+
         if (diffSec < 60) {
             return "just now";
         }
@@ -137,6 +141,10 @@ class Utils {
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffSec = Math.round(diffMs / 1000);
+
+        if (!Number.isFinite(diffSec)) {
+            return "unknown";
+        }
 
         if (diffSec < 60) {
             return "less than a minute";
@@ -196,7 +204,7 @@ class Utils {
         const decimals = 0;
         const sizes = ["bps", "kbps", "Mbps", "Gbps", "Tbps", "Pbps", "Ebps", "Zbps", "Ybps"];
 
-        const i = Math.max(0, Math.floor(Math.log(bits) / Math.log(k)));
+        const i = Math.min(sizes.length - 1, Math.max(0, Math.floor(Math.log(bits) / Math.log(k))));
 
         return parseFloat((bits / Math.pow(k, i)).toFixed(decimals)) + " " + sizes[i];
     }
@@ -210,7 +218,7 @@ class Utils {
         const decimals = 1;
         const sizes = ["B/s", "KB/s", "MB/s", "GB/s", "TB/s", "PB/s", "EB/s", "ZB/s", "YB/s"];
 
-        const i = Math.max(0, Math.floor(Math.log(bytesPerSecond) / Math.log(k)));
+        const i = Math.min(sizes.length - 1, Math.max(0, Math.floor(Math.log(bytesPerSecond) / Math.log(k))));
 
         return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(decimals)) + " " + sizes[i];
     }
@@ -286,7 +294,7 @@ class Utils {
         const k = 1000;
         const rounded = Math.round(n);
         const sizes = ["Hz", "kHz", "MHz", "GHz", "THz", "PHz", "EHz", "ZHz", "YHz"];
-        const i = Math.floor(Math.log(rounded) / Math.log(k));
+        const i = Math.min(sizes.length - 1, Math.max(0, Math.floor(Math.log(rounded) / Math.log(k))));
 
         return parseFloat((rounded / Math.pow(k, i)).toFixed(6)) + " " + sizes[i];
     }
