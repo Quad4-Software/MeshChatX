@@ -322,8 +322,9 @@
                                 <form class="flex flex-col gap-1" @submit.prevent="joinRoom(hub)">
                                     <div class="flex gap-1">
                                         <input
-                                            v-model="joinRoomName"
+                                            v-model="joinRoomForm(hub).name"
                                             type="text"
+                                            :data-rrc-join-name="hub.hub_hash"
                                             :placeholder="$t('relay_chat.join_room_placeholder')"
                                             class="min-w-0 flex-1 rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                         />
@@ -336,7 +337,7 @@
                                         </button>
                                     </div>
                                     <input
-                                        v-model="joinRoomKey"
+                                        v-model="joinRoomForm(hub).key"
                                         type="password"
                                         :placeholder="$t('relay_chat.join_room_key_placeholder')"
                                         autocomplete="off"
@@ -1864,8 +1865,10 @@ export default {
             localMentionRooms: new Map(),
             showChatPrefs: false,
             highlightWordDraft: "",
-            joinRoomName: "",
-            joinRoomKey: "",
+            joinRoomForms: {},
+            removedHubHashes: {},
+            removedRoomKeys: {},
+            hubsLoaded: false,
             badKeyPromptInFlight: null,
             showAddHub: false,
             addHubAdvancedOpen: false,
@@ -2416,8 +2419,10 @@ export default {
             // stale ids.
             this.sidebarMenu = { show: false, x: 0, y: 0, hub: null, room: null };
             this.messageMenu = { show: false, x: 0, y: 0, msg: null };
-            this.joinRoomName = "";
-            this.joinRoomKey = "";
+            this.joinRoomForms = {};
+            this.removedHubHashes = {};
+            this.removedRoomKeys = {};
+            this.hubsLoaded = false;
             this.badKeyPromptInFlight = null;
             this.roomForms = {};
             this.showMembers = false;
@@ -2953,10 +2958,7 @@ export default {
             this._setSelectedHub(hub.hub_hash);
             this.expandedHubs[hub.hub_hash] = true;
             nextTick(() => {
-                const inputs = this.$el?.querySelectorAll?.("input.input-field");
-                if (inputs && inputs.length > 0) {
-                    inputs[inputs.length - 1].focus();
-                }
+                this.$el?.querySelector?.(`input[data-rrc-join-name="${hub.hub_hash}"]`)?.focus();
             });
         },
         connectHubFromMenu() {
@@ -3696,17 +3698,24 @@ export default {
                 this.sending = false;
             }
         },
+        joinRoomForm(hub) {
+            const hubHash = hub?.hub_hash || "";
+            if (!this.joinRoomForms[hubHash]) {
+                this.joinRoomForms[hubHash] = { name: "", key: "" };
+            }
+            return this.joinRoomForms[hubHash];
+        },
         async joinRoom(hub) {
-            const room = this.joinRoomName.trim();
+            const form = this.joinRoomForm(hub);
+            const room = (form.name || "").trim();
             if (!room) {
                 ToastUtils.warning(this.$t("relay_chat.room_required"));
                 return;
             }
-            const key = this.joinRoomKey.trim() || null;
+            const key = (form.key || "").trim() || null;
             const joined = await this.joinRoomByName(hub, room, { key });
             if (joined) {
-                this.joinRoomName = "";
-                this.joinRoomKey = "";
+                this.joinRoomForms[hub.hub_hash] = { name: "", key: "" };
             }
         },
         async joinAvailableRoom(hub, room) {

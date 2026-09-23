@@ -405,16 +405,56 @@ describe("RelayChatPage.vue", () => {
     it("includes an optional room key when joining a room", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
-        wrapper.vm.joinRoomName = "vault";
-        wrapper.vm.joinRoomKey = "hunter2";
+        wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name = "vault";
+        wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).key = "hunter2";
         await wrapper.vm.joinRoom(wrapper.vm.hubs[0]);
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
             room: "vault",
             remember: true,
             key: "hunter2",
         });
-        expect(wrapper.vm.joinRoomName).toBe("");
-        expect(wrapper.vm.joinRoomKey).toBe("");
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name).toBe("");
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).key).toBe("");
+    });
+
+    it("keeps join room inputs independent per hub", async () => {
+        const OTHER_HUB_HASH = "ffeeddccbbaa00112233445566778899";
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: {
+                        hubs: [makeHub(), makeHub({ hub_hash: OTHER_HUB_HASH, name: "Other Hub" })],
+                    },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [makeHostedHub()] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(2));
+
+        const nameInputs = wrapper.findAll("input[data-rrc-join-name]");
+        expect(nameInputs.length).toBe(2);
+
+        const first = nameInputs.find((el) => el.attributes("data-rrc-join-name") === HUB_HASH);
+        const second = nameInputs.find((el) => el.attributes("data-rrc-join-name") === OTHER_HUB_HASH);
+        await first.setValue("alpha-room");
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name).toBe("alpha-room");
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[1]).name).toBe("");
+        expect(second.element.value).toBe("");
+
+        await wrapper.vm.joinRoom(wrapper.vm.hubs[0]);
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
+            room: "alpha-room",
+            remember: true,
+        });
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name).toBe("");
     });
 
     it("prompts for a password after a bad key websocket error", async () => {
