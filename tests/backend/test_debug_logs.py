@@ -193,7 +193,7 @@ def test_cleanup_throttled_between_flushes(handler, db, monkeypatch):
     logger.info("second")
     persistent_handler._flush_to_db()
     assert calls == [1]
-    persistent_handler._last_db_cleanup = 0.0
+    persistent_handler._last_db_cleanup = None
     logger.info("third")
     persistent_handler._flush_to_db()
     assert calls == [1, 1]
