@@ -16,7 +16,7 @@ This script:
 7) Patches the rns wheel so its Android RNodeInterface never calls
    RNS.panic() (os._exit) when usbserial4a/jnius are missing
 8) Builds every recipe under android/chaquopy-recipes/ for each requested
-   ABI (currently: cryptography, miniaudio, aiohttp, cbor2, aioquic, ...)
+   ABI (currently: cryptography, miniaudio, aiohttp, cborx, aioquic, ...)
 9) Vendors aioquic pure-python runtime deps (pyopenssl, service-identity, attrs)
 10) Copies outputs to android/vendor
 
