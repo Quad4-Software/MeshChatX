@@ -52,6 +52,7 @@ All notable changes to this project will be documented in this file.
 - Backend: debug log writes to SQLite are batched into one transaction per flush, the retention sweep runs at most every ten minutes instead of every five seconds, and MESHCHAT_LOG_DB=0 disables database logging entirely. On SD-card installs this removes a steady stream of small writes.
 - Backend: after identity setup finishes, startup objects are frozen out of the cyclic garbage collector's scan set, and the periodic cleanup calls malloc_trim so freed memory returns to the OS instead of sitting in allocator arenas.
 - Docker images and the Raspberry Pi installer set MALLOC_ARENA_MAX=2 and OPENBLAS_NUM_THREADS=1, and the Pi guide documents both plus MESHCHAT_LOG_DB=0 for low-memory and SD-card deployments.
+- Backend: the LXST telephony stack, numpy, and its audio backends no longer load at startup. The web audio bridge sits behind a lazy proxy that constructs it on first call, and telephone and voicemail resolve their LXST symbols on demand. Text-only installs keep tens of MB of memory and the OpenBLAS worker threads out of the process. If the audio stack fails to initialize or a bridge call keeps raising, the proxy disables audio for the session instead of letting errors reach the messaging paths.
 
 ## [4.9.1] - 2026-09-21 [released]
 
