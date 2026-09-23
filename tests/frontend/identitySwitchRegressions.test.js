@@ -144,8 +144,8 @@ describe("identity switch and stale-response regressions", () => {
         const wrapper = mountRelayPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
 
-        wrapper.vm.selectedHubHash = "hubA";
-        wrapper.vm.selectedRoom = "roomA";
+        wrapper.vm.selectedHubHash = HUB_HASH;
+        wrapper.vm.selectedRoom = "lobby";
         wrapper.vm.members = [{ hash: "current" }];
 
         let resolveRefresh;
@@ -173,8 +173,8 @@ describe("identity switch and stale-response regressions", () => {
         const wrapper = mountRelayPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
 
-        wrapper.vm.selectedHubHash = "hubA";
-        wrapper.vm.selectedRoom = "roomA";
+        wrapper.vm.selectedHubHash = HUB_HASH;
+        wrapper.vm.selectedRoom = "lobby";
 
         let resolveRefresh;
         const deferred = new Promise((resolve) => {
