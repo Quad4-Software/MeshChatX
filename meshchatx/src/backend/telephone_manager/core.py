@@ -62,6 +62,19 @@ def _tee_class():
             self._streaming = getattr(sink, "streaming", False)
             self._buffer_max_height = getattr(sink, "buffer_max_height", 3)
             self._autostart_min = getattr(sink, "autostart_min", 1)
+            self._channels = getattr(sink, "channels", None) or 1
+            self._samplerate = getattr(sink, "samplerate", None) or 48000
+            self._bitdepth = getattr(sink, "bitdepth", None) or 16
+
+        def _mirror_attr(self, name, fallback):
+            # Codecs read channels/samplerate/bitdepth off their sink. Read the
+            # live child values so a sink configured after Tee creation (such
+            # as OpusFileSink.samplerate) is still picked up.
+            for sink in self.sinks:
+                value = getattr(sink, name, None)
+                if value is not None:
+                    return value
+            return fallback
 
         def _forward_attr(self, name, value):
             for sink in self.sinks:
@@ -114,6 +127,33 @@ def _tee_class():
         def autostart_min(self, value):
             self._autostart_min = value
             self._forward_attr("autostart_min", value)
+
+        @property
+        def channels(self):
+            return self._mirror_attr("channels", self._channels)
+
+        @channels.setter
+        def channels(self, value):
+            self._channels = value
+            self._forward_attr("channels", value)
+
+        @property
+        def samplerate(self):
+            return self._mirror_attr("samplerate", self._samplerate)
+
+        @samplerate.setter
+        def samplerate(self, value):
+            self._samplerate = value
+            self._forward_attr("samplerate", value)
+
+        @property
+        def bitdepth(self):
+            return self._mirror_attr("bitdepth", self._bitdepth)
+
+        @bitdepth.setter
+        def bitdepth(self, value):
+            self._bitdepth = value
+            self._forward_attr("bitdepth", value)
 
         def add_sink(self, sink):
             if sink not in self.sinks:
