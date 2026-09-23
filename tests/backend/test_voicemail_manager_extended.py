@@ -141,6 +141,83 @@ def test_stop_recording(mock_deps, temp_dir):
     mock_db.voicemails.add_voicemail.assert_called()
 
 
+def test_stop_recording_restores_link_source_sink(mock_deps, temp_dir):
+    # Pipeline.__init__ repoints audio_source.sink at the recording sink.
+    # stop_recording must hand it back to the receive mixer or remote audio
+    # is silently dropped for the rest of the call.
+    mock_db = MagicMock()
+    mock_config = MagicMock()
+    mock_tel_manager = MagicMock()
+    vm = VoicemailManager(mock_db, mock_config, mock_tel_manager, temp_dir)
+
+    recording_sink = MagicMock()
+    audio_source = MagicMock()
+    audio_source.sink = recording_sink
+    audio_source.pipeline = MagicMock()
+    mock_tel_manager.telephone.active_call.audio_source = audio_source
+
+    vm.is_recording = True
+    vm.recording_pipeline = MagicMock()
+    vm.recording_sink = recording_sink
+    vm.recording_filename = None
+    vm.recording_start_time = None
+
+    vm.stop_recording()
+
+    assert audio_source.sink is mock_tel_manager.telephone.receive_mixer
+    assert audio_source.pipeline is None
+    assert vm.is_recording is False
+
+
+def test_stop_recording_leaves_repointed_sink_alone(mock_deps, temp_dir):
+    # If audio_source.sink was swapped by someone else after recording
+    # started (for example a web-audio tee), do not stomp it.
+    mock_db = MagicMock()
+    mock_config = MagicMock()
+    mock_tel_manager = MagicMock()
+    vm = VoicemailManager(mock_db, mock_config, mock_tel_manager, temp_dir)
+
+    other_sink = MagicMock()
+    audio_source = MagicMock()
+    audio_source.sink = other_sink
+    mock_tel_manager.telephone.active_call.audio_source = audio_source
+
+    vm.is_recording = True
+    vm.recording_pipeline = MagicMock()
+    vm.recording_sink = MagicMock()
+    vm.recording_filename = None
+    vm.recording_start_time = None
+
+    vm.stop_recording()
+
+    assert audio_source.sink is other_sink
+
+
+def test_stop_greeting_recording_restores_mic_sink(mock_deps, temp_dir):
+    # The greeting pipeline repoints audio_input.sink at the recording sink;
+    # without a restore the mic is dead for the rest of the call.
+    mock_db = MagicMock()
+    mock_config = MagicMock()
+    mock_tel_manager = MagicMock()
+    vm = VoicemailManager(mock_db, mock_config, mock_tel_manager, temp_dir)
+
+    greeting_sink = MagicMock()
+    audio_input = MagicMock()
+    audio_input.sink = greeting_sink
+    audio_input.pipeline = MagicMock()
+    mock_tel_manager.telephone.audio_input = audio_input
+
+    vm.is_greeting_recording = True
+    vm.greeting_recording_pipeline = MagicMock()
+    vm.greeting_recording_sink = greeting_sink
+
+    vm.stop_greeting_recording()
+
+    assert audio_input.sink is mock_tel_manager.telephone.transmit_mixer
+    assert audio_input.pipeline is None
+    assert vm.is_greeting_recording is False
+
+
 def test_start_voicemail_session(mock_deps, temp_dir):
     mock_db = MagicMock()
     mock_config = MagicMock()
