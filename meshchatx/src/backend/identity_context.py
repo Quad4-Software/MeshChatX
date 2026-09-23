@@ -432,8 +432,15 @@ class IdentityContext:
         self.voicemail_manager.get_name_for_identity_hash = (
             self.app.get_name_for_identity_hash
         )
-        self.voicemail_manager.on_new_voicemail_callback = lambda vm: (
-            self.app.on_new_voicemail_received(vm, context=self)
+        self.voicemail_manager.on_new_voicemail_callback = (
+            lambda remote_hash, remote_name, duration: (
+                self.app.on_new_voicemail_received(
+                    remote_hash,
+                    remote_name,
+                    duration,
+                    context=self,
+                )
+            )
         )
 
         self.ringtone_manager = RingtoneManager(
