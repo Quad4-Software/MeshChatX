@@ -32,10 +32,6 @@ from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import LXMF
-
-# meshchatx/__init__ already ensures pyogg ctypes aliases. Import LXST after
-# that package init so plain pip installs do not crash without the Docker patch.
-import LXST
 import psutil
 import RNS
 from aiohttp import WSCloseCode, web
@@ -219,7 +215,7 @@ from meshchatx.src.backend.seccomp_sandbox import (
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
 from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
-from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
+from meshchatx.src.backend.web_audio_proxy import LazyWebAudioBridge
 from meshchatx.src.env_config import MeshchatEnv
 from meshchatx.src.env_utils import env_bool, env_str
 from meshchatx.src.path_utils import (
@@ -234,6 +230,17 @@ from meshchatx.src.path_utils import (
 )
 from meshchatx.src.ssl_self_signed import generate_ssl_certificate
 from meshchatx.src.version import __version__ as app_version
+
+
+def __getattr__(name: str):
+    # LXST pulls in numpy and audio backends, so it resolves lazily through
+    # module __getattr__ instead of a top-level import. Keeping the name
+    # module-scoped also keeps tests patching this attribute working.
+    if name == "LXST":
+        import LXST
+
+        return LXST
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _truncated_hash32_hex_ok(value: str | None) -> bool:
@@ -566,7 +573,8 @@ class ReticulumMeshChat:
         register_shutdown_app(self)
 
         AsyncUtils.ensure_background_loop()
-        self.web_audio_bridge = WebAudioBridge(
+        self.web_audio_bridge = LazyWebAudioBridge()
+        self.web_audio_bridge.configure(
             None,
             None,
             force_enabled=self.web_audio_required(),
@@ -2011,7 +2019,7 @@ class ReticulumMeshChat:
                 if hasattr(self, "_crash_recovery") and self._crash_recovery:
                     self._crash_recovery.set_database(self.current_context.database)
                     self._crash_recovery.log_handler = memory_log_handler
-                self.web_audio_bridge = WebAudioBridge(
+                self.web_audio_bridge.configure(
                     self.current_context.telephone_manager,
                     self.current_context.config,
                     force_enabled=self.web_audio_required(),
@@ -2040,7 +2048,7 @@ class ReticulumMeshChat:
         self.contexts[identity_hash] = context
         self.current_context = context
         context.setup()
-        self.web_audio_bridge = WebAudioBridge(
+        self.web_audio_bridge.configure(
             context.telephone_manager,
             context.config,
             force_enabled=self.web_audio_required(),
@@ -3779,7 +3787,12 @@ class ReticulumMeshChat:
         return min(int(v), 100_000)
 
     def get_lxst_version(self) -> str:
-        return self.get_package_version("lxst", getattr(LXST, "__version__", "unknown"))
+        try:
+            lxst = sys.modules[__name__].LXST
+            lxst_version = getattr(lxst, "__version__", "unknown")
+        except Exception:
+            lxst_version = "unknown"
+        return self.get_package_version("lxst", lxst_version)
 
     async def announce_loop(self, session_id, context=None):
         ctx = context or self.current_context
