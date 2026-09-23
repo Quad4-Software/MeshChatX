@@ -457,6 +457,113 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name).toBe("");
     });
 
+    it("does not request messages or read receipts for a removed hub", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.selectedRoom).toBe("lobby"));
+        axiosMock.get.mockClear();
+        axiosMock.post.mockClear();
+
+        let resolveDelete;
+        axiosMock.delete.mockImplementationOnce(() => new Promise((r) => (resolveDelete = r)));
+        const removal = wrapper.vm.removeHub(wrapper.vm.hubs[0]);
+        await vi.waitFor(() => expect(axiosMock.delete).toHaveBeenCalled());
+
+        // A websocket event for the hub landing mid-delete must not hit the API.
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "rrc.message",
+                hub_hash: HUB_HASH,
+                room: "lobby",
+                message: { kind: "system", room: "lobby", text: "disconnected", ts: 2 },
+            }),
+        });
+        expect(axiosMock.get).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/messages`)
+        );
+        expect(axiosMock.post).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/read`)
+        );
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        resolveDelete({ data: {} });
+        await removal;
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(0));
+        expect(wrapper.vm.selectedHubHash).toBe(null);
+        expect(wrapper.vm.selectedRoom).toBe(null);
+    });
+
+    it("does not request messages or read receipts for a removed room", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        vi.spyOn(DialogUtils, "confirmCustom").mockResolvedValue(true);
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.selectedRoom).toBe("lobby"));
+        axiosMock.get.mockClear();
+        axiosMock.post.mockClear();
+
+        let resolveDelete;
+        axiosMock.delete.mockImplementationOnce(() => new Promise((r) => (resolveDelete = r)));
+        const leaving = wrapper.vm.leaveRoom();
+        await vi.waitFor(() => expect(axiosMock.delete).toHaveBeenCalled());
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "rrc.message",
+                hub_hash: HUB_HASH,
+                room: "lobby",
+                message: { kind: "msg", room: "lobby", src: "aabb", text: "late", ts: 2 },
+            }),
+        });
+        expect(axiosMock.post).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/read`)
+        );
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [makeHub({ known_rooms: [], rooms: [] })] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        resolveDelete({ data: {} });
+        await leaving;
+        expect(wrapper.vm.selectedRoom).toBe(null);
+    });
+
+    it("clears a stale selection when the hub disappears from the listing", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.selectedRoom).toBe("lobby"));
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        await wrapper.vm.fetchHubs();
+        expect(wrapper.vm.selectedHubHash).toBe(null);
+        expect(wrapper.vm.selectedRoom).toBe(null);
+    });
+
     it("prompts for a password after a bad key websocket error", async () => {
         const DialogUtils = (await import("@/js/DialogUtils")).default;
         const ToastUtils = (await import("@/js/ToastUtils")).default;
