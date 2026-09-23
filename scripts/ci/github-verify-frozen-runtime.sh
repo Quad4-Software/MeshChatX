@@ -89,6 +89,23 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
         echo "  thin-backend-mach-o.sh must lipo-thin that executable, not only .so/.dylib." >&2
         exit 1
     fi
+    # LXST vendors x86_64-only pyogg dylibs; the arm64 freeze must have been
+    # normalized by scripts/ci/macos-normalize-pyogg-dylibs.sh before this.
+    pyogg_dir="${BUILD_EXE}/lib/LXST/Codecs/libs/pyogg/libs/macos"
+    if [[ -n "${want}" && -d "${pyogg_dir}" ]]; then
+        pyogg_bad=""
+        while IFS= read -r -d '' dylib; do
+            ft="$(file --brief --no-pad "${dylib}" 2>/dev/null || true)"
+            if [[ "${ft}" == Mach-O* ]] && [[ "${ft}" != *"${want}"* ]]; then
+                pyogg_bad="${pyogg_bad} ${dylib#"${BUILD_EXE}"/}"
+            fi
+        done < <(find "${pyogg_dir}" -type f -name '*.dylib' -print0)
+        if [[ -n "${pyogg_bad}" ]]; then
+            echo "frozen runtime verify: pyogg dylibs lack ${want} slice:${pyogg_bad}" >&2
+            echo "  Run scripts/ci/macos-normalize-pyogg-dylibs.sh before cx_Freeze." >&2
+            exit 1
+        fi
+    fi
     if [[ -n "${want}" && "${want}" != "${host_arch}" ]]; then
         if ! command -v arch >/dev/null 2>&1; then
             echo "frozen runtime verify: need arch -${want} to run ${EXE} on ${host_arch}" >&2
