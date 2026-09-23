@@ -1174,6 +1174,7 @@
         "identity_good": "Identité chargée",
         "imports_good": "Importations critiques",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Verrouillage de stockage",
         "temp_fs_good": "Système de fichiers temporaire",
         "public_assets_good": "Actifs publics",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Autorisation requise",
         "aware_permission_banner": "WiFi Aware nécessite l'autorisation Appareils à proximité. Vous pouvez l'accorder maintenant ou plus tard avant le démarrage de l'interface.",
         "aware_permission_grant": "Accorder l'autorisation",
+        "aware_permission_failed": "Impossible de demander l'autorisation Appareils à proximité sur cet appareil.",
         "aware_role_label": "Rôle Aware",
         "aware_mode_note": "Pour WiFi Aware, le mode correspond au rôle publish ou subscribe (et non aux modes Reticulum full/gateway/roaming).",
         "aware_max_peers": "Pairs max",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Vue sur la carte",
         "request": "Demande",
         "generate_paper_message": "Générer un message papier (LXM)",
+        "failed_generate_paper_uri": "Échec de la génération du message papier",
         "ingest_paper_message": "ingérer le message papier",
         "scan_qr": "Scanner le code QR",
         "scanner_hint": "Pointez votre appareil photo à lxmf://, lxma:// ou lxm:// QR code.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Rechercher dans les paramètres...",
         "no_search_results": "Aucun paramètre ne correspond à votre recherche",
         "try_different_search": "Essayez une autre recherche",
-        "clear_search": "Effacer la recherche"
+        "clear_search": "Effacer la recherche",
+        "archived_pages_flush_failed": "Échec du vidage des pages archivées"
     },
     "debug": {
         "title": "Débogues",
@@ -3830,6 +3834,7 @@
             "permission_hint": "L'autorisation Appareils à proximité est requise pour héberger ou rejoindre des réseaux locaux.",
             "grant_permission": "Accorder l'autorisation",
             "permission_settings": "Autorisation bloquée. Activez Appareils à proximité dans les réglages de l'app.",
+            "permission_failed": "Impossible de demander l'autorisation Appareils à proximité sur cet appareil.",
             "host_title": "Partager un réseau local",
             "host_description": "Démarrez un hotspot sur cet appareil. Les autres s'y connectent pour vous joindre sans routeur.",
             "start_hotspot": "Démarrer le hotspot",

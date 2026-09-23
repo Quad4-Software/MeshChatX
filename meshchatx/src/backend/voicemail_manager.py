@@ -9,14 +9,43 @@ import sys
 import threading
 import time
 
-import LXST
 import RNS
-from LXST.Codecs import Null
-from LXST.Pipeline import Pipeline
-from LXST.Sinks import OpusFileSink
-from LXST.Sources import OpusFileSource
 
 from . import audio_codec
+
+
+def __getattr__(name: str):
+    # LXST pulls in numpy and audio backends, so its symbols resolve
+    # lazily through module __getattr__ instead of top-level imports.
+    # Keeping the names module-scoped keeps tests patching them working.
+    if name == "LXST":
+        import LXST
+
+        return LXST
+    if name == "Null":
+        from LXST.Codecs import Null
+
+        return Null
+    if name == "Pipeline":
+        from LXST.Pipeline import Pipeline
+
+        return Pipeline
+    if name == "OpusFileSink":
+        from LXST.Sinks import OpusFileSink
+
+        return OpusFileSink
+    if name == "OpusFileSource":
+        from LXST.Sources import OpusFileSource
+
+        return OpusFileSource
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def _lxst_symbols():
+    # Bare names would miss module __getattr__ on a global load, so resolve
+    # through the module object, which also picks up test patches.
+    mod = sys.modules[__name__]
+    return mod.LXST, mod.Null, mod.Pipeline, mod.OpusFileSink, mod.OpusFileSource
 
 
 class VoicemailManager:
@@ -295,6 +324,7 @@ class VoicemailManager:
                 )
 
         def session_job():
+            LXST, Null, Pipeline, _opus_sink, OpusFileSource = _lxst_symbols()
             prev_receive_muted = self.telephone_manager.receive_muted
             with contextlib.suppress(Exception):
                 # Prevent remote audio from playing locally
@@ -321,6 +351,7 @@ class VoicemailManager:
                         greeting_source = OpusFileSource(
                             greeting_path,
                             target_frame_ms=60,
+                            timed=True,
                         )
                         # Attach to transmit mixer
                         greeting_pipeline = Pipeline(
@@ -403,6 +434,8 @@ class VoicemailManager:
         filepath = os.path.join(self.recordings_dir, filename)
 
         try:
+            _lxst, Null, Pipeline, OpusFileSink, _opus_source = _lxst_symbols()
+
             self.recording_sink = OpusFileSink(filepath)
             self.recording_sink.samplerate = 48000
 
@@ -440,6 +473,23 @@ class VoicemailManager:
 
             if self.recording_sink:
                 self.recording_sink.stop()
+
+            # Pipeline.__init__ repointed audio_source.sink at the recording
+            # sink. Restore the receive mixer so remote audio is not dropped
+            # if the call outlives the recording.
+            telephone = self.telephone_manager.telephone
+            audio_source = getattr(
+                getattr(telephone, "active_call", None),
+                "audio_source",
+                None,
+            )
+            if (
+                audio_source is not None
+                and self.recording_sink is not None
+                and audio_source.sink is self.recording_sink
+            ):
+                audio_source.sink = getattr(telephone, "receive_mixer", None)
+                audio_source.pipeline = None
 
             self.recording_sink = None
             self.recording_pipeline = None
@@ -566,6 +616,8 @@ class VoicemailManager:
             os.remove(temp_wav)
 
         try:
+            _lxst, Null, Pipeline, OpusFileSink, _opus_source = _lxst_symbols()
+
             self.greeting_recording_sink = OpusFileSink(
                 os.path.join(self.greetings_dir, "greeting.opus"),
             )
@@ -596,6 +648,19 @@ class VoicemailManager:
 
             if self.greeting_recording_sink:
                 self.greeting_recording_sink.stop()
+
+            # The greeting pipeline repointed audio_input.sink at the
+            # recording sink. Restore the transmit mixer or the mic stays
+            # dead for the rest of the call.
+            telephone = self.telephone_manager.telephone
+            audio_input = getattr(telephone, "audio_input", None)
+            if (
+                audio_input is not None
+                and self.greeting_recording_sink is not None
+                and audio_input.sink is self.greeting_recording_sink
+            ):
+                audio_input.sink = getattr(telephone, "transmit_mixer", None)
+                audio_input.pipeline = None
 
             self.greeting_recording_sink = None
             self.greeting_recording_pipeline = None

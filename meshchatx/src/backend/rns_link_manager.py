@@ -187,7 +187,7 @@ def _record_failure_and_maybe_recycle(key: tuple[str, bytes]) -> tuple[int, bool
 
     If the threshold is reached, pop the cached link, clear the counter,
     and tear the link down outside the lock (teardown synchronously
-    re-enters via _on_link_closed → _uncache_link_if_matches).
+    re-enters via _on_link_closed -> _uncache_link_if_matches).
     Returns (new_count, recycled).
     """
     link_to_teardown = None

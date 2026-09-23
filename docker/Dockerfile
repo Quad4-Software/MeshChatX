@@ -95,6 +95,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV MESHCHAT_FORCE_WEB_AUDIO=1
+# Cap glibc malloc arenas (default is 8 per CPU core on 64-bit, far more
+# than this workload needs) and keep numpy/OpenBLAS to one worker thread.
+ENV MALLOC_ARENA_MAX=2
+ENV OPENBLAS_NUM_THREADS=1
 
 USER meshchat
 

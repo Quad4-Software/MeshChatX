@@ -9,6 +9,7 @@ import os
 import platform
 import sys
 import time
+from pathlib import Path
 
 import LXMF
 import psutil
@@ -475,8 +476,7 @@ def register_app_info_routes(routes, app):
             )
 
         try:
-            with open(changelog_path) as f:
-                content = f.read()
+            content = await asyncio.to_thread(Path(changelog_path).read_text)
 
             # Render markdown to HTML
             html_content = MarkdownRenderer.render(content)

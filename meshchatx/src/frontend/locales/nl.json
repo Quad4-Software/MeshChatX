@@ -1174,6 +1174,7 @@
         "identity_good": "Identiteit geladen",
         "imports_good": "Kritieke imports",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Opslagvergrendeling",
         "temp_fs_good": "Tijdelijk bestandssysteem",
         "public_assets_good": "Openbare assets",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Vereist toestemming",
         "aware_permission_banner": "WiFi Aware heeft de toestemming Apparaten in de buurt nodig. Je kunt deze nu verlenen, of later voordat de interface start.",
         "aware_permission_grant": "Toestemming verlenen",
+        "aware_permission_failed": "Kan de machtiging voor apparaten in de buurt op dit apparaat niet aanvragen.",
         "aware_role_label": "Aware-rol",
         "aware_mode_note": "Bij WiFi Aware betekent modus de publish- of subscribe-rol (niet Reticulum full/gateway/roaming).",
         "aware_max_peers": "Max. peers",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Bekijk op kaart",
         "request": "Verzoek",
         "generate_paper_message": "Papierbericht genereren (LXM)",
+        "failed_generate_paper_uri": "Papieren bericht genereren mislukt",
         "ingest_paper_message": "Papierbericht invoeren",
         "scan_qr": "Scan QR-code",
         "scanner_hint": "Richt uw camera op een lxmf://, lxma://, of lxm:// QR code.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Instellingen zoeken...",
         "no_search_results": "Geen instellingen gevonden die overeenkomen met uw zoekopdracht",
         "try_different_search": "Probeer een andere zoekopdracht",
-        "clear_search": "Zoekopdracht wissen"
+        "clear_search": "Zoekopdracht wissen",
+        "archived_pages_flush_failed": "Gearchiveerde pagina's konden niet worden leeggemaakt"
     },
     "debug": {
         "title": "Debuglogs",
@@ -3830,6 +3834,7 @@
             "permission_hint": "De toestemming Apparaten in de buurt is vereist om lokale netwerken te hosten of daaraan deel te nemen.",
             "grant_permission": "Toestemming verlenen",
             "permission_settings": "Toestemming geblokkeerd. Schakel Apparaten in de buurt in bij de app-instellingen.",
+            "permission_failed": "Kan de machtiging voor apparaten in de buurt op dit apparaat niet aanvragen.",
             "host_title": "Een lokaal netwerk delen",
             "host_description": "Start een hotspot op dit apparaat. Anderen nemen deel om jou zonder router te bereiken.",
             "start_hotspot": "Hotspot starten",

@@ -14,7 +14,7 @@ import os
 import re
 import time
 
-import cbor2
+import cborx
 
 RRC_VERSION = 1
 
@@ -88,22 +88,22 @@ HELLO_CLIENT_NAME = "meshchatx"
 HELLO_CLIENT_VERSION = "1"
 
 
+_STREAM_DECODER = cborx.CBORDecoder()
+
+
 def encode(obj):
     """Encode an object into canonical CBOR bytes for the wire."""
-    return cbor2.dumps(obj, canonical=True)
+    return cborx.dumps(obj, canonical=True)
 
 
 def decode(data):
     """Decode CBOR bytes into a Python object."""
-    return cbor2.loads(data)
+    return cborx.loads(data)
 
 
-def load(fp):
-    """Read a single CBOR value from a stream, raising EOFError at the end."""
-    try:
-        return cbor2.load(fp)
-    except cbor2.CBORDecodeEOF as exc:
-        raise EOFError from exc
+def decode_item(data, pos=0):
+    """Decode one CBOR item at pos, returning (value, next offset)."""
+    return _STREAM_DECODER.decode_item(data, pos)
 
 
 def now_ms():
@@ -204,7 +204,7 @@ def normalize_room(room):
 
 
 # greedy .+ intentionally captures nicks containing parens like
-# "user (alt) (deadbeefcafe)"
+# nick followed by paren suffix like user (alt) (deadbeefcafe)
 _WHO_ENTRY_RE = re.compile(
     r"(?:^|,\s)"
     r"(?:(?P<bh>[0-9a-fA-F]{32})|(?P<nick>.+?)\s\((?P<np>[0-9a-fA-F]{12})\))"

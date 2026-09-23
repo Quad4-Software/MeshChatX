@@ -104,6 +104,249 @@ def test_hostless_linesource_constructs_without_soundcard():
     assert isinstance(sink, HostlessAudioSink)
 
 
+def test_hostless_sink_matches_linesink_buffer_surface():
+    """Telephony pokes these attributes on audio_output before ringing.
+
+    A HostlessAudioSink missing buffer_max_height/autostart_min/streaming
+    raised AttributeError in __update_output_buffer_targets and incoming
+    calls died before ever ringing.
+    """
+    sink = HostlessAudioSink(preferred_device=None)
+    assert isinstance(sink.buffer_max_height, int)
+    assert isinstance(sink.autostart_min, int)
+    assert sink.streaming is False
+    # Telephony assigns all of these and calls wait_for_frames.
+    sink.buffer_max_height = 4
+    sink.autostart_min = 2
+    sink.streaming = True
+    sink.wait_for_frames()
+    assert sink.buffer_max_height == 4
+    assert sink.autostart_min == 2
+    assert sink.streaming is True
+    assert sink.can_receive() is True
+
+
+# ---------------------------------------------------------------------------
+# References: Tee receive fan-out sink
+# ---------------------------------------------------------------------------
+
+
+def test_tee_is_lxst_sink_subclass():
+    from LXST.Sinks import Sink
+
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    assert issubclass(Tee, Sink)
+    assert isinstance(Tee(MagicMock()), Sink)
+
+
+def test_tee_passes_pipeline_sink_validation():
+    """Pipeline rejects non-Sink sinks with PipelineError on construction."""
+    from LXST.Codecs import Null
+    from LXST.Pipeline import Pipeline
+
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    source = HostlessAudioSource(sink=None)
+    tee = Tee(MagicMock())
+    pipeline = Pipeline(source=source, codec=Null(), sink=tee)
+    assert pipeline.source.sink is tee
+
+
+def test_tee_forwards_frames_and_lifecycle_to_children():
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    a, b = MagicMock(), MagicMock()
+    tee = Tee(a)
+    tee.add_sink(b)
+    tee.add_sink(b)
+
+    frame = np.zeros((160, 1), dtype=np.float32)
+    tee.handle_frame(frame, None)
+    a.handle_frame.assert_called_once_with(frame, None)
+    b.handle_frame.assert_called_once_with(frame, None)
+
+    tee.start()
+    tee.wait_for_frames()
+    tee.enable_low_latency()
+    tee.stop()
+    tee.release()
+    for child in (a, b):
+        child.start.assert_called_once()
+        child.wait_for_frames.assert_called_once()
+        child.enable_low_latency.assert_called_once()
+        child.stop.assert_called_once()
+        child.release.assert_called_once()
+
+
+def test_tee_can_receive_any_child():
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    a, b = MagicMock(), MagicMock()
+    a.can_receive.return_value = False
+    b.can_receive.return_value = True
+    tee = Tee(a)
+    tee.add_sink(b)
+    assert tee.can_receive() is True
+    b.can_receive.return_value = False
+    assert tee.can_receive() is False
+
+
+def test_tee_forwards_buffer_attrs_to_children():
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    child = MagicMock()
+    tee = Tee(child)
+    # Telephony assigns these directly on audio_output.
+    tee.streaming = True
+    tee.buffer_max_height = 5
+    tee.autostart_min = 2
+    assert child.streaming is True
+    assert child.buffer_max_height == 5
+    assert child.autostart_min == 2
+    tee.remove_sink(child)
+    assert tee.sinks == []
+
+
+def test_tee_mirrors_hostless_sink_buffer_surface():
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    base = HostlessAudioSink()
+    tee = Tee(base)
+    tee.buffer_max_height = 4
+    tee.autostart_min = 2
+    tee.streaming = True
+    tee.wait_for_frames()
+    assert base.buffer_max_height == 4
+    assert base.autostart_min == 2
+    assert base.streaming is True
+
+
+def test_tee_mirrors_codec_facing_sink_attrs():
+    # Opus/Codec2 decoders read sink.channels and sink.samplerate on the first
+    # frame; a Tee sitting behind a decoding codec must expose them.
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    child = MagicMock()
+    child.channels = 2
+    child.samplerate = 44100
+    child.bitdepth = 32
+    tee = Tee(child)
+    assert tee.channels == 2
+    assert tee.samplerate == 44100
+    assert tee.bitdepth == 32
+
+    # Sinks configured after Tee creation are still mirrored live.
+    child.samplerate = 48000
+    assert tee.samplerate == 48000
+
+    # Writes forward to children that expose the attribute.
+    tee.channels = 1
+    tee.samplerate = 24000
+    assert child.channels == 1
+    assert child.samplerate == 24000
+
+
+def test_tee_codec_attrs_fall_back_when_children_lack_them():
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    class BareSink:
+        def handle_frame(self, frame, source=None):
+            pass
+
+    tee = Tee(BareSink())
+    assert tee.channels == 1
+    assert tee.samplerate == 48000
+    assert tee.bitdepth == 16
+
+
+def test_tee_survives_child_errors():
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    bad, good = MagicMock(), MagicMock()
+    bad.handle_frame.side_effect = RuntimeError("boom")
+    tee = Tee(bad)
+    tee.add_sink(good)
+    tee.handle_frame(b"frame", None)
+    good.handle_frame.assert_called_once_with(b"frame", None)
+
+
+# ---------------------------------------------------------------------------
+# References: LinkSource samplerate compat patch
+# ---------------------------------------------------------------------------
+
+
+def _make_link_source(sink):
+    from LXST.Network import LinkSource
+
+    return LinkSource(MagicMock(), MagicMock(), sink=sink)
+
+
+def test_init_telephone_patches_linksource_samplerate(tmp_path):
+    from LXST.Network import LinkSource
+
+    cfg = MagicMock()
+    cfg.telephone_enabled.get.return_value = True
+    cfg.telephone_audio_profile_id.get.return_value = Profiles.DEFAULT_PROFILE
+    identity = MagicMock()
+    identity.hash = b"\x33" * 16
+
+    with patch("meshchatx.src.backend.telephone_manager.Telephone"):
+        tm = TelephoneManager(
+            identity=identity,
+            config_manager=cfg,
+            storage_dir=str(tmp_path),
+        )
+        tm.init_telephone()
+
+    assert hasattr(LinkSource, "samplerate")
+
+
+def test_linksource_samplerate_reads_sink_rate():
+    from meshchatx.src.backend.telephone_manager import (
+        _patch_lxst_linksource_samplerate,
+    )
+
+    _patch_lxst_linksource_samplerate()
+    sink = MagicMock()
+    sink.samplerate = 48000
+    src = _make_link_source(sink)
+    assert src.samplerate == 48000
+
+
+def test_linksource_samplerate_falls_back_to_48khz():
+    from meshchatx.src.backend.telephone_manager import (
+        _patch_lxst_linksource_samplerate,
+    )
+
+    _patch_lxst_linksource_samplerate()
+    sink = MagicMock()
+    sink.samplerate = None
+    src = _make_link_source(sink)
+    assert src.samplerate == 48000
+
+
+def test_linksource_samplerate_instance_override():
+    from meshchatx.src.backend.telephone_manager import (
+        _patch_lxst_linksource_samplerate,
+    )
+
+    _patch_lxst_linksource_samplerate()
+    src = _make_link_source(MagicMock())
+    src.samplerate = 24000
+    assert src.samplerate == 24000
+
+
+def test_linksource_samplerate_patch_is_idempotent():
+    from meshchatx.src.backend.telephone_manager import (
+        _patch_lxst_linksource_samplerate,
+    )
+
+    _patch_lxst_linksource_samplerate()
+    # Second call must detect the existing attribute and do nothing.
+    assert _patch_lxst_linksource_samplerate() is False
+
+
 # ---------------------------------------------------------------------------
 # References: web audio required / force_enabled
 # ---------------------------------------------------------------------------

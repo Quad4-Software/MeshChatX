@@ -298,6 +298,20 @@ async def handle_nomadnet_page_archives_get(app, client, data):
     page_path = data.get("page_path")
 
     if not destination_hash or not page_path:
+        # Answer with an empty list so a caller waiting on the reply does
+        # not spin forever.
+        AsyncUtils.run_async(
+            client.send_str(
+                json.dumps(
+                    {
+                        "type": "nomadnet.page.archives",
+                        "destination_hash": destination_hash or "",
+                        "page_path": page_path or "",
+                        "archives": [],
+                    },
+                ),
+            ),
+        )
         return
 
     # Try relative path first
@@ -640,6 +654,10 @@ async def handle_nomadnet_file_download(app, client, data):
         media_payload = {"path": file_path}
         if isinstance(request_data, dict):
             media_payload.update(request_data)
+        # Upstream NomadNet 1.4.x media handlers reject requests that carry
+        # no key at all; None is the accepted default when the micron image
+        # field k= is absent.
+        media_payload.setdefault("key", None)
         rns_data = media_payload
 
     # download the file

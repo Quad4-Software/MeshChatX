@@ -106,6 +106,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ToastUtils from "../../js/ToastUtils.js";
 import { apiPath } from "../../js/constants.js";
 
 export default {
@@ -177,12 +178,17 @@ export default {
                 });
 
                 // Add message to list locally for immediate feedback
-                const msg = response.data.lxmf_message;
+                const msg = response.data?.lxmf_message;
+                if (!msg) {
+                    throw new Error("send response missing lxmf_message");
+                }
                 this.messages.push({
                     hash: msg.hash,
                     content: msg.content,
                     is_outbound: true,
-                    timestamp: msg.created_at,
+                    // epoch seconds, same shape the fetch path returns;
+                    // created_at is an ISO string and breaks formatTime.
+                    timestamp: msg.timestamp,
                 });
                 // Match the fetch window so the panel does not grow forever.
                 if (this.messages.length > 40) {
@@ -192,6 +198,7 @@ export default {
                 this.scrollToBottom();
             } catch (e) {
                 console.error("Failed to send message", e);
+                ToastUtils.error(this.$t("messages.failed_to_send"));
             } finally {
                 this.sending = false;
             }

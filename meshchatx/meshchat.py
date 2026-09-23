@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # SPDX-License-Identifier: 0BSD AND MIT
 
 import argparse
@@ -33,10 +32,6 @@ from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import LXMF
-
-# meshchatx/__init__ already ensures pyogg ctypes aliases. Import LXST after
-# that package init so plain pip installs do not crash without the Docker patch.
-import LXST
 import psutil
 import RNS
 from aiohttp import WSCloseCode, web
@@ -204,6 +199,7 @@ from meshchatx.src.backend.rns_ratchet_persist import (
     raise_nofile_soft_limit,
 )
 from meshchatx.src.backend.rns_startup_recovery import (
+    consume_recovery_report,
     create_reticulum_with_recovery,
     install_rns_panic_containment,
 )
@@ -219,9 +215,9 @@ from meshchatx.src.backend.seccomp_sandbox import (
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
 from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
-from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
+from meshchatx.src.backend.web_audio_proxy import LazyWebAudioBridge
 from meshchatx.src.env_config import MeshchatEnv
-from meshchatx.src.env_utils import env_bool, env_str
+from meshchatx.src.env_utils import env_bool, env_int, env_set, env_str
 from meshchatx.src.path_utils import (
     get_file_path,
     is_loopback_bind_host,
@@ -234,6 +230,17 @@ from meshchatx.src.path_utils import (
 )
 from meshchatx.src.ssl_self_signed import generate_ssl_certificate
 from meshchatx.src.version import __version__ as app_version
+
+
+def __getattr__(name: str):
+    # LXST pulls in numpy and audio backends, so it resolves lazily through
+    # module __getattr__ instead of a top-level import. Keeping the name
+    # module-scoped also keeps tests patching this attribute working.
+    if name == "LXST":
+        import LXST
+
+        return LXST
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _truncated_hash32_hex_ok(value: str | None) -> bool:
@@ -461,6 +468,9 @@ class ReticulumMeshChat:
         self.identity_file_path = identity_file_path
         self.auto_recover = auto_recover
         self.emergency = emergency
+        # MESHCHAT_LOG_DB=0 keeps log lines in the in-memory ring only,
+        # so verbose logging cannot wear an SD card.
+        memory_log_handler.db_writes_enabled = env_bool("MESHCHAT_LOG_DB", True)
         self.auth_enabled_initial = auth_enabled
         self.public_dir_override = public_dir
         self.gitea_base_url_override = gitea_base_url
@@ -563,7 +573,8 @@ class ReticulumMeshChat:
         register_shutdown_app(self)
 
         AsyncUtils.ensure_background_loop()
-        self.web_audio_bridge = WebAudioBridge(
+        self.web_audio_bridge = LazyWebAudioBridge()
+        self.web_audio_bridge.configure(
             None,
             None,
             force_enabled=self.web_audio_required(),
@@ -1200,6 +1211,7 @@ class ReticulumMeshChat:
         bot_launcher_result = self_check_mod.check_bot_launcher()
         backbone_patch_result = self_check_mod.check_rns_backbone_patch()
         umsgpack_result = self_check_mod.check_umsgpack_roundtrip()
+        cbor_result = self_check_mod.check_cbor_roundtrip()
         lxst_telephony_result = self_check_mod.run_isolated("lxst_telephony")
         audio_codec_result = self_check_mod.run_isolated("audio_codec_roundtrip")
         miniaudio_result = self_check_mod.run_isolated("miniaudio_decode")
@@ -1227,6 +1239,7 @@ class ReticulumMeshChat:
             "identity_good": identity_result,
             "imports_good": imports_result,
             "umsgpack_roundtrip": umsgpack_result,
+            "cbor_roundtrip": cbor_result,
             "storage_lock_good": storage_lock_result,
             "temp_fs_good": temp_fs_result,
             "fs_sandbox_good": fs_sandbox_result,
@@ -1430,6 +1443,27 @@ class ReticulumMeshChat:
                 os._exit(0)
 
         threading.Thread(target=restart, daemon=True).start()
+
+    def _database_unrecoverable(self) -> None:
+        """Provider reports a wedge that survived a full connection reset.
+
+        Restarting execs over the same environment, so the attempt counter
+        in MESHCHAT_DB_WEDGE_RESTARTS bounds the restart loop if the
+        underlying storage is broken beyond in-process repair.
+        """
+        attempts = env_int("MESHCHAT_DB_WEDGE_RESTARTS", 0) or 0
+        if attempts >= 2:
+            logger.error(
+                "SQLite wedge persists across %d restarts. Serving 503s instead "
+                "of restart-looping",
+                attempts,
+            )
+            return
+        env_set("MESHCHAT_DB_WEDGE_RESTARTS", str(attempts + 1))
+        logger.error(
+            "SQLite wedge unrecoverable after connection reset. Restarting process",
+        )
+        self._schedule_process_restart()
 
     def restore_database(self, backup_path, *, relaunch: bool = False):
         # Two concurrent restores would interleave aside/staging moves and
@@ -1987,7 +2021,7 @@ class ReticulumMeshChat:
                 if hasattr(self, "_crash_recovery") and self._crash_recovery:
                     self._crash_recovery.set_database(self.current_context.database)
                     self._crash_recovery.log_handler = memory_log_handler
-                self.web_audio_bridge = WebAudioBridge(
+                self.web_audio_bridge.configure(
                     self.current_context.telephone_manager,
                     self.current_context.config,
                     force_enabled=self.web_audio_required(),
@@ -2016,7 +2050,7 @@ class ReticulumMeshChat:
         self.contexts[identity_hash] = context
         self.current_context = context
         context.setup()
-        self.web_audio_bridge = WebAudioBridge(
+        self.web_audio_bridge.configure(
             context.telephone_manager,
             context.config,
             force_enabled=self.web_audio_required(),
@@ -3031,7 +3065,7 @@ class ReticulumMeshChat:
             # dead self.reticulum that would make setup_identity reuse a
             # torn-down stack, so clear it (and the RNS singleton) first.
             # The singleton clear must run even when self.reticulum is already
-            # gone: a failure after `del self.reticulum` but before __instance
+            # gone: a failure after del self.reticulum but before __instance
             # was reset still leaves the singleton bound to the dead stack.
             if getattr(self, "reticulum", None) is not None:
                 with contextlib.suppress(Exception):
@@ -3755,7 +3789,12 @@ class ReticulumMeshChat:
         return min(int(v), 100_000)
 
     def get_lxst_version(self) -> str:
-        return self.get_package_version("lxst", getattr(LXST, "__version__", "unknown"))
+        try:
+            lxst = sys.modules[__name__].LXST
+            lxst_version = getattr(lxst, "__version__", "unknown")
+        except Exception:
+            lxst_version = "unknown"
+        return self.get_package_version("lxst", lxst_version)
 
     async def announce_loop(self, session_id, context=None):
         ctx = context or self.current_context
@@ -3892,7 +3931,8 @@ class ReticulumMeshChat:
                         ctx.config.nomad_default_page_path.get() or "/page/index.mu"
                     )
                     # Sweep announced nodes. Policy decides whether to queue.
-                    known_nodes = ctx.database.announces.get_announces(
+                    known_nodes = await asyncio.to_thread(
+                        ctx.database.announces.get_announces,
                         aspect="nomadnetwork.node",
                     )
                     for node in known_nodes:
@@ -3924,7 +3964,8 @@ class ReticulumMeshChat:
                             max_concurrent=max_concurrent,
                         )
                     else:
-                        tasks = ctx.database.misc.get_pending_or_failed_crawl_tasks(
+                        tasks = await asyncio.to_thread(
+                            ctx.database.misc.get_pending_or_failed_crawl_tasks,
                             max_retries=max_retries,
                             max_concurrent=max_concurrent,
                         )
@@ -4873,6 +4914,31 @@ class ReticulumMeshChat:
     def build_user_guidance_messages(self):
         guidance = []
 
+        recovered = consume_recovery_report(
+            self._normalize_reticulum_config_dir(self.reticulum_config_dir),
+        )
+        if recovered:
+            labels = {
+                "__i2p__": "I2P interfaces",
+                "__rnode__": "RNode interfaces",
+            }
+            recovered_label = ", ".join(labels.get(n, f"'{n}'") for n in recovered)
+            guidance.append(
+                {
+                    "id": "startup_recovery_disabled",
+                    "title": "Interfaces disabled during startup recovery",
+                    "description": (
+                        f"Reticulum failed to start, so {recovered_label} "
+                        "was automatically disabled to let the app boot. "
+                        "Check the interface settings and re-enable it once "
+                        "the underlying problem is fixed."
+                    ),
+                    "action_route": "/interfaces",
+                    "action_label": "Open Interfaces",
+                    "severity": "warning",
+                },
+            )
+
         interfaces = self._get_interfaces_section()
         if len(interfaces) == 0:
             guidance.append(
@@ -5145,7 +5211,7 @@ class ReticulumMeshChat:
         try:
             self.web_audio_bridge.on_call_ended()
         except Exception as e:
-            logging.exception(f"Error in web_audio_bridge.on_call_ended: {e}")
+            logger.exception("Error in web_audio_bridge.on_call_ended: %s", e)
 
         # Record call history
         if caller_identity:
@@ -5933,7 +5999,7 @@ class ReticulumMeshChat:
             self._mem_diag = MemoryDiagnostics()
             self._mem_diag.start()
             print(
-                "[mem_diag] Memory diagnostics enabled — "
+                "[mem_diag] Memory diagnostics enabled. "
                 "see /api/v1/diagnostics/memory for reports",
             )
 
@@ -5959,7 +6025,11 @@ class ReticulumMeshChat:
                         ctx.identity_hash,
                     )
                     max_count = ctx.config.backup_max_count.get()
-                    ctx.database.backup_database(ctx.storage_path, max_count=max_count)
+                    await asyncio.to_thread(
+                        ctx.database.backup_database,
+                        ctx.storage_path,
+                        max_count=max_count,
+                    )
             except Exception:
                 logger.exception("Auto-backup failed")
 
@@ -5999,7 +6069,8 @@ class ReticulumMeshChat:
 
                 else:
                     _cancel = None
-                lmr.apply_local_message_retention(
+                await asyncio.to_thread(
+                    lmr.apply_local_message_retention,
                     ctx.database.messages,
                     _cancel,
                     value=int(v),
@@ -6024,7 +6095,9 @@ class ReticulumMeshChat:
                     continue
 
                 # Get all tracked peers
-                tracked_peers = ctx.database.telemetry.get_tracked_peers()
+                tracked_peers = await asyncio.to_thread(
+                    ctx.database.telemetry.get_tracked_peers,
+                )
                 now = time.time()
 
                 for peer in tracked_peers:
@@ -6044,7 +6117,11 @@ class ReticulumMeshChat:
                             context=ctx,
                         )
                         # Update last request time
-                        ctx.database.telemetry.update_last_request_at(dest_hash, now)
+                        await asyncio.to_thread(
+                            ctx.database.telemetry.update_last_request_at,
+                            dest_hash,
+                            now,
+                        )
 
             except Exception as e:
                 print(f"Telemetry tracking loop error: {e}")
@@ -7037,13 +7114,16 @@ class ReticulumMeshChat:
             self.config.desktop_hardware_acceleration_enabled.set(enabled)
 
             # write flag for electron to read on next launch
-            try:
+            def _update_gpu_flag():
                 disable_gpu_file = os.path.join(self.storage_dir, "disable-gpu")
                 if not enabled:
                     with open(disable_gpu_file, "w") as f:
                         f.write("true")
                 elif os.path.exists(disable_gpu_file):
                     os.remove(disable_gpu_file)
+
+            try:
+                await asyncio.to_thread(_update_gpu_flag)
             except Exception as e:
                 print(f"Failed to update GPU disable flag: {e}")
 
@@ -7229,7 +7309,7 @@ class ReticulumMeshChat:
             await self.send_active_sessions_to_websocket_clients()
 
     # converts nomadnetwork page variables from a string to a map
-    # converts: "field1=123|field2=456"
+    # converts field1=123|field2=456 style strings
     # to the following map:
     # - var_field1: 123
     # - var_field2: 456

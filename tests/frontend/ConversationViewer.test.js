@@ -774,7 +774,7 @@ describe("ConversationViewer.vue", () => {
         await wrapper.vm.showRawMessage({
             lxmf_message: {
                 hash: msgHash,
-                source_hash: "d".repeat(32),
+                source_hash: "c".repeat(32),
                 destination_hash: peer,
                 state: "delivered",
                 method: "direct",
@@ -825,7 +825,7 @@ describe("ConversationViewer.vue", () => {
         const openPromise = wrapper.vm.showRawMessage({
             lxmf_message: {
                 hash: msgHash,
-                source_hash: "d".repeat(32),
+                source_hash: "c".repeat(32),
                 destination_hash: peer,
                 state: "sent",
                 method: "direct",
@@ -845,6 +845,104 @@ describe("ConversationViewer.vue", () => {
         const wrapper = mountConversationViewer();
         await expect(wrapper.vm.showRawMessage({})).resolves.toBeUndefined();
         expect(wrapper.vm.isRawMessageModalOpen).toBe(false);
+    });
+
+    it("showRawMessage skips the uri request for incoming messages", async () => {
+        const peer = "a".repeat(32);
+        const msgHash = "b".repeat(32);
+        axiosMock.get.mockImplementation(() => Promise.resolve({ data: {} }));
+        const wrapper = mountConversationViewer({
+            selectedPeer: { destination_hash: peer, display_name: "Peer" },
+            myLxmfAddressHash: "c".repeat(32),
+        });
+        let guard = 0;
+        while (wrapper.vm.initialLoadActive && guard < 200) {
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+            guard += 1;
+        }
+        const getCallsBefore = axiosMock.get.mock.calls.length;
+        await wrapper.vm.showRawMessage({
+            lxmf_message: {
+                hash: msgHash,
+                source_hash: "d".repeat(32),
+                destination_hash: peer,
+                is_incoming: true,
+                state: "delivered",
+                method: "direct",
+                content: "hi",
+                fields: {},
+                id: 43,
+            },
+        });
+        expect(wrapper.vm.isRawMessageModalOpen).toBe(true);
+        expect(wrapper.vm.rawMessageData.raw_uri).toBeUndefined();
+        const callsDuringRaw = axiosMock.get.mock.calls.slice(getCallsBefore);
+        expect(callsDuringRaw.some((c) => String(c[0]).includes("/uri"))).toBe(false);
+    });
+
+    it("showRawMessage skips the uri request for inbound items without is_incoming", async () => {
+        const peer = "a".repeat(32);
+        axiosMock.get.mockImplementation(() => Promise.resolve({ data: {} }));
+        const wrapper = mountConversationViewer({
+            selectedPeer: { destination_hash: peer, display_name: "Peer" },
+            myLxmfAddressHash: "c".repeat(32),
+        });
+        let guard = 0;
+        while (wrapper.vm.initialLoadActive && guard < 200) {
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+            guard += 1;
+        }
+        const getCallsBefore = axiosMock.get.mock.calls.length;
+        // Event payloads can drop is_incoming; is_outbound=false and a peer
+        // source_hash must still keep the doomed request from firing.
+        await wrapper.vm.showRawMessage({
+            is_outbound: false,
+            lxmf_message: {
+                hash: "b".repeat(32),
+                source_hash: peer,
+                destination_hash: "c".repeat(32),
+                state: "delivered",
+                method: "direct",
+                content: "hi",
+                fields: {},
+                id: 44,
+            },
+        });
+        expect(wrapper.vm.isRawMessageModalOpen).toBe(true);
+        const callsDuringRaw = axiosMock.get.mock.calls.slice(getCallsBefore);
+        expect(callsDuringRaw.some((c) => String(c[0]).includes("/uri"))).toBe(false);
+    });
+
+    it("showRawMessage skips the uri request for pending outbound placeholders", async () => {
+        const peer = "a".repeat(32);
+        axiosMock.get.mockImplementation(() => Promise.resolve({ data: {} }));
+        const wrapper = mountConversationViewer({
+            selectedPeer: { destination_hash: peer, display_name: "Peer" },
+            myLxmfAddressHash: "c".repeat(32),
+        });
+        let guard = 0;
+        while (wrapper.vm.initialLoadActive && guard < 200) {
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+            guard += 1;
+        }
+        const getCallsBefore = axiosMock.get.mock.calls.length;
+        await wrapper.vm.showRawMessage({
+            lxmf_message: {
+                hash: "pending-1234abcd",
+                source_hash: "c".repeat(32),
+                destination_hash: peer,
+                state: "sending",
+                method: "direct",
+                content: "queued",
+                fields: {},
+            },
+        });
+        expect(wrapper.vm.isRawMessageModalOpen).toBe(true);
+        const callsDuringRaw = axiosMock.get.mock.calls.slice(getCallsBefore);
+        expect(callsDuringRaw.some((c) => String(c[0]).includes("/uri"))).toBe(false);
     });
 
     it("isMessageBodyTooLargeForDisplay is true only above display limit", () => {

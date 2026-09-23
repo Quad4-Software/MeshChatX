@@ -92,7 +92,15 @@ class HostlessAudioSource(LocalSource):
 
 
 class HostlessAudioSink(LocalSink):
-    """LineSink stand-in that discards PCM when no host speaker exists."""
+    """LineSink stand-in that discards PCM when no host speaker exists.
+
+    Telephony pokes the LineSink buffer surface on audio_output
+    (buffer_max_height, autostart_min, streaming, wait_for_frames), so
+    the same attributes exist here even though frames are dropped.
+    """
+
+    MAX_FRAMES = 6
+    AUTOSTART_MIN = 1
 
     def __init__(self, preferred_device=None, autodigest=True, low_latency=False):
         self.preferred_device = preferred_device
@@ -101,6 +109,9 @@ class HostlessAudioSink(LocalSink):
         self.should_run = False
         self.samplerate = 48000
         self.channels = 1
+        self.streaming = False
+        self.autostart_min = self.AUTOSTART_MIN
+        self.buffer_max_height = self.MAX_FRAMES - 3
         self._wants_low_latency = False
 
     def can_receive(self, from_source=None):
@@ -114,6 +125,10 @@ class HostlessAudioSink(LocalSink):
 
     def stop(self):
         self.should_run = False
+
+    def wait_for_frames(self):
+        # Discarding sink: there is no playback buffer to re-engage.
+        pass
 
     def enable_low_latency(self):
         self._wants_low_latency = True
@@ -431,8 +446,9 @@ class WebAudioBridge:
             return
         with contextlib.suppress(Exception):
             with contextlib.suppress(Exception):
-                if hasattr(tele, "_Telephony__reconfigure_transmit_pipeline"):
-                    tele._Telephony__reconfigure_transmit_pipeline()
+                # Private LXST name mangles to _Telephone__, not _Telephony__.
+                if hasattr(tele, "_Telephone__reconfigure_transmit_pipeline"):
+                    tele._Telephone__reconfigure_transmit_pipeline()
             if tele.receive_pipeline:
                 tele.receive_pipeline.stop()
             if tele.audio_output and self.rx_tee:

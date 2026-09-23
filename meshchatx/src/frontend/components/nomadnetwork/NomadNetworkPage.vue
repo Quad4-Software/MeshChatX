@@ -3203,7 +3203,7 @@ export default {
                     return { destinationHash: "", filePath: "" };
                 }
             } else if (cleanFilePath.startsWith("file/")) {
-                if (!/\.webp$/i.test(cleanFilePath)) {
+                if (!/\.(webp|png|jpe?g|bmp|gif|tiff)$/i.test(cleanFilePath)) {
                     return { destinationHash: "", filePath: "" };
                 }
             }
@@ -3344,6 +3344,9 @@ export default {
                 image_id: index,
                 request_id: requestId,
                 page_path: this.nodePagePath || "",
+                // Upstream /media handlers reject requests without a key field;
+                // null is accepted, a micron k= value fills it when present.
+                key: image.key || null,
             };
             if (image.profile) {
                 data.image_profile = image.profile;
@@ -4263,13 +4266,16 @@ export default {
             if (!parsed) return;
             this.isLoadingArchives = true;
 
-            WebSocketConnection.send(
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "nomadnet.page.archives.get",
                     destination_hash: this.selectedNode.destination_hash,
                     page_path: parsed.path,
                 })
             );
+            if (!sent) {
+                this.isLoadingArchives = false;
+            }
         },
         loadArchivedPage(archiveId) {
             if (this.isPrivate) {

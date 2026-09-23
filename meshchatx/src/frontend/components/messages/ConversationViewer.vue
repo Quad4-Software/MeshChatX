@@ -822,6 +822,7 @@
                                     :is-sending-message="false"
                                     :can-send-message="canSendMessage"
                                     :can-open-send-menu="Boolean(selectedPeer)"
+                                    :can-generate-paper="canGeneratePaperMessage"
                                     :delivery-method="newMessageDeliveryMethod"
                                     :compact="compactSendLayout"
                                     :sending-tooltip="sendMessagePathfindingTooltip"
@@ -1944,6 +1945,7 @@ export default {
             isStrangerPeer: false,
             strangerBannerDismissed: false,
             isGeneratingPaperMessage: false,
+            paperGenerateTimeout: null,
             generatedPaperMessageUri: null,
             isPaperMessageResultModalOpen: false,
             lxmfAudioModeToCodec2ModeMap: {
@@ -2068,6 +2070,12 @@ export default {
             const c = d.content;
             if (typeof c === "string" && c.length > MESSAGE_BODY_MAX_DISPLAY_CHARS) {
                 d.content = `[Omitted ${c.length} characters. Use Copy full text above]`;
+            }
+            // Pending outbound placeholders can carry data: preview URLs in
+            // fields; cap the blob so a multi-MB string never hits the <pre>.
+            const fieldsJson = JSON.stringify(d.fields ?? null);
+            if (fieldsJson.length > MESSAGE_BODY_MAX_DISPLAY_CHARS) {
+                d.fields = `[Omitted ${fieldsJson.length} characters of field data]`;
             }
             try {
                 return JSON.stringify(d, null, 2);
@@ -2288,6 +2296,12 @@ export default {
             }
 
             return true;
+        },
+        canGeneratePaperMessage() {
+            // Paper URIs carry text content only; the backend drops empty
+            // payloads, so require real text rather than canSendMessage
+            // which also allows attachment-only compositions.
+            return Boolean(this.selectedPeer) && Boolean(this.newMessageText.trim()) && !this.isGeneratingPaperMessage;
         },
         selectedPeerChatItems() {
             // get all chat items related to the selected peer
@@ -2572,6 +2586,7 @@ export default {
     },
     beforeUnmount() {
         this.scrollBottomGen += 1;
+        clearTimeout(this.paperGenerateTimeout);
         this._cleanupReactionPickerDrag();
         this.closeReactionPicker();
         this.teardownPeerHeaderResizeObserver();
@@ -3673,16 +3688,27 @@ export default {
             }
         },
         async generatePaperMessageFromComposition() {
-            if (!this.canSendMessage) return;
+            if (!this.canGeneratePaperMessage) return;
 
             this.isGeneratingPaperMessage = true;
-            WebSocketConnection.send(
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "lxm.generate_paper_uri",
                     destination_hash: this.selectedPeer.destination_hash,
                     content: this.newMessageText,
                 })
             );
+            if (!sent) {
+                this.isGeneratingPaperMessage = false;
+                ToastUtils.error(this.$t("messages.failed_generate_paper_uri"));
+                return;
+            }
+            // The backend sends no result for invalid requests, so do not
+            // leave the flag set forever if the reply never arrives.
+            clearTimeout(this.paperGenerateTimeout);
+            this.paperGenerateTimeout = setTimeout(() => {
+                this.isGeneratingPaperMessage = false;
+            }, 30000);
         },
         async onAnnounceEvent(json) {
             // update stamp info and signal metrics if an announce is received from the selected peer
@@ -3779,6 +3805,7 @@ export default {
         },
         onGeneratePaperUriResultEvent(json) {
             this.isGeneratingPaperMessage = false;
+            clearTimeout(this.paperGenerateTimeout);
             if (json.status === "success") {
                 this.generatedPaperMessageUri = json.uri;
                 this.isPaperMessageResultModalOpen = true;
@@ -4780,7 +4807,18 @@ export default {
             this.rawMessageData = { ...base };
             this.isRawMessageModalOpen = true;
             const hash = lxmfMessage.hash;
-            if (!hash) {
+            // Paper URIs sign as the sender, so inbound messages can never
+            // produce one. The flag is unreliable on event payloads, so also
+            // bail when the chat item or source hash says the peer sent it.
+            const src = (lxmfMessage.source_hash || "").toLowerCase();
+            const mine = (this.myLxmfAddressHash || "").toLowerCase();
+            if (
+                !hash ||
+                this._isPendingOutboundHash(hash) ||
+                lxmfMessage.is_incoming ||
+                chatItem.is_outbound === false ||
+                (src && mine && src !== mine)
+            ) {
                 return;
             }
             try {

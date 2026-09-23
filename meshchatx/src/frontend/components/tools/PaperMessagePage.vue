@@ -289,6 +289,7 @@ export default {
             ingestScannerError: null,
             ingestScannerStream: null,
             ingestScannerAnimationFrame: null,
+            generateTimeout: null,
         };
     },
     computed: {
@@ -307,10 +308,12 @@ export default {
         offWsEvent(WS_EVENTS.LXM_GENERATE_PAPER_URI_RESULT, this.onGeneratePaperUriResult);
         offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onIngestUriResult);
         this.stopIngestScanner();
+        clearTimeout(this.generateTimeout);
     },
     methods: {
         onGeneratePaperUriResult(json) {
             this.isGenerating = false;
+            clearTimeout(this.generateTimeout);
             if (json.status === "success") {
                 this.generatedUri = json.uri;
                 this.$nextTick(() => {
@@ -331,7 +334,7 @@ export default {
             this.isGenerating = true;
             this.generatedUri = null;
 
-            WebSocketConnection.send(
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "lxm.generate_paper_uri",
                     destination_hash: this.destinationHash,
@@ -339,6 +342,16 @@ export default {
                     title: this.title,
                 })
             );
+            if (!sent) {
+                this.isGenerating = false;
+                ToastUtils.error(this.$t("messages.failed_generate_paper_uri"));
+                return;
+            }
+            // A dropped reply must not leave the button disabled forever.
+            clearTimeout(this.generateTimeout);
+            this.generateTimeout = setTimeout(() => {
+                this.isGenerating = false;
+            }, 30000);
         },
         async renderQRCode() {
             if (!this.generatedUri || !this.$refs.qrcode) return;

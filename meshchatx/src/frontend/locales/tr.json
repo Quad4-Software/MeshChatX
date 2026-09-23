@@ -1174,6 +1174,7 @@
         "identity_good": "Kimlik Yüklendi",
         "imports_good": "Kritik İçe Aktarmalar",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Depolama Kilidi",
         "temp_fs_good": "Geçici Dosya Sistemi",
         "public_assets_good": "Genel Varlıklar",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "İzin gerekli",
         "aware_permission_banner": "WiFi Aware, Yakındaki cihazlar iznine ihtiyaç duyar. Şimdi verebilir veya arayüz başlamadan önce daha sonra verebilirsiniz.",
         "aware_permission_grant": "İzin ver",
+        "aware_permission_failed": "Bu cihazda Yakındaki cihazlar izni istenemedi.",
         "aware_role_label": "Aware rolü",
         "aware_mode_note": "WiFi Aware'de mod, publish veya subscribe rolünü ifade eder (Reticulum full/gateway/roaming değil).",
         "aware_max_peers": "Maks. eş",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Haritada Görüntüle",
         "request": "İste",
         "generate_paper_message": "Kağıt İleti Oluştur (LXM)",
+        "failed_generate_paper_uri": "Kağıt mesaj oluşturulamadı",
         "ingest_paper_message": "Kağıt İletiyi İçe Aktar",
         "scan_qr": "QR Kodunu Tara",
         "scanner_hint": "Kameranı bir lxmf://, lxma:// veya lxm:// QR koduna doğrult.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Ayarları ara...",
         "no_search_results": "Aramanla eşleşen ayar bulunamadı",
         "try_different_search": "Farklı bir arama sorgusu dene",
-        "clear_search": "Aramayı temizle"
+        "clear_search": "Aramayı temizle",
+        "archived_pages_flush_failed": "Arşivlenen sayfalar temizlenemedi"
     },
     "debug": {
         "title": "Hata Ayıklama Günlükleri",
@@ -3830,6 +3834,7 @@
             "permission_hint": "Yerel ağlara ev sahipliği yapmak veya katılmak için Yakındaki cihazlar izni gereklidir.",
             "grant_permission": "İzin ver",
             "permission_settings": "İzin engellendi. Uygulama ayarlarından Yakındaki cihazlar iznini etkinleştirin.",
+            "permission_failed": "Bu cihazda Yakındaki cihazlar izni istenemedi.",
             "host_title": "Yerel ağ paylaş",
             "host_description": "Bu cihazda bir hotspot başlatın. Diğerleri yönlendirici olmadan size ulaşmak için ona katılır.",
             "start_hotspot": "Hotspot başlat",

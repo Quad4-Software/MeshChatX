@@ -1174,6 +1174,7 @@
         "identity_good": "身份已加载",
         "imports_good": "关键导入",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "存储锁",
         "temp_fs_good": "临时文件系统",
         "public_assets_good": "公共资源",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "需要权限",
         "aware_permission_banner": "WiFi Aware 需要附近设备权限。可以现在授予，也可以在接口启动前授予。",
         "aware_permission_grant": "授予权限",
+        "aware_permission_failed": "无法在此设备上请求附近设备权限。",
         "aware_role_label": "Aware 角色",
         "aware_mode_note": "在 WiFi Aware 中，模式指 publish 或 subscribe 角色（而非 Reticulum 的 full/gateway/roaming）。",
         "aware_max_peers": "最大对端数",
@@ -2223,6 +2225,7 @@
         "view_on_map": "在地图上查看",
         "request": "请求",
         "generate_paper_message": "生成纸质消息 (LXM)",
+        "failed_generate_paper_uri": "生成纸面消息失败",
         "ingest_paper_message": "摄取纸质消息",
         "scan_qr": "扫描二维码",
         "scanner_hint": "将相机指向 lxmf://、lxma:// 或 lxm:// 二维码。",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "搜索设置...",
         "no_search_results": "没有与您搜索匹配的设置",
         "try_different_search": "请尝试其他搜索词",
-        "clear_search": "清除搜索"
+        "clear_search": "清除搜索",
+        "archived_pages_flush_failed": "清空存档页面失败"
     },
     "debug": {
         "title": "调试日志",
@@ -3830,6 +3834,7 @@
             "permission_hint": "托管或加入本地网络需要附近设备权限。",
             "grant_permission": "授予权限",
             "permission_settings": "权限被阻止。请在应用设置中启用附近设备。",
+            "permission_failed": "无法在此设备上请求附近设备权限。",
             "host_title": "共享本地网络",
             "host_description": "在此设备上启动热点。其他设备加入即可在无路由器的情况下连接你。",
             "start_hotspot": "启动热点",

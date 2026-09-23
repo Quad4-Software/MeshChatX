@@ -1174,6 +1174,7 @@
         "identity_good": "Tożsamość wczytana",
         "imports_good": "Importy krytyczne",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Blokada pamięci masowej",
         "temp_fs_good": "Tymczasowy system plików",
         "public_assets_good": "Zasoby publiczne",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Wymaga uprawnienia",
         "aware_permission_banner": "WiFi Aware wymaga uprawnienia Urządzenia w pobliżu. Możesz je przyznać teraz lub później, przed uruchomieniem interfejsu.",
         "aware_permission_grant": "Przyznaj uprawnienie",
+        "aware_permission_failed": "Nie można zażądać uprawnienia do urządzeń w pobliżu na tym urządzeniu.",
         "aware_role_label": "Rola Aware",
         "aware_mode_note": "W WiFi Aware tryb oznacza rolę publish lub subscribe (nie tryby Reticulum full/gateway/roaming).",
         "aware_max_peers": "Maks. peerów",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Zobacz na mapie",
         "request": "Poproś",
         "generate_paper_message": "Wygeneruj wiadomość papierową (LXM)",
+        "failed_generate_paper_uri": "Nie udało się wygenerować wiadomości papierowej",
         "ingest_paper_message": "Wczytaj wiadomość papierową",
         "scan_qr": "Zeskanuj kod QR",
         "scanner_hint": "Skieruj kamerę na kod QR zawierający URI lxmf://, lxma:// lub lxm://.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Szukaj w ustawieniach...",
         "no_search_results": "Nie znaleziono ustawień pasujących do wyszukiwania",
         "try_different_search": "Spróbuj innego zapytania",
-        "clear_search": "Wyczyść wyszukiwanie"
+        "clear_search": "Wyczyść wyszukiwanie",
+        "archived_pages_flush_failed": "Nie udało się wyczyścić zarchiwizowanych stron"
     },
     "debug": {
         "title": "Dzienniki debugowania",
@@ -3830,6 +3834,7 @@
             "permission_hint": "Uprawnienie Urządzenia w pobliżu jest wymagane do hostowania lokalnych sieci lub dołączania do nich.",
             "grant_permission": "Przyznaj uprawnienie",
             "permission_settings": "Uprawnienie zablokowane. Włącz Urządzenia w pobliżu w ustawieniach aplikacji.",
+            "permission_failed": "Nie można zażądać uprawnienia do urządzeń w pobliżu na tym urządzeniu.",
             "host_title": "Udostępnij sieć lokalną",
             "host_description": "Uruchom hotspot na tym urządzeniu. Inni dołączą, aby dotrzeć do ciebie bez routera.",
             "start_hotspot": "Uruchom hotspot",

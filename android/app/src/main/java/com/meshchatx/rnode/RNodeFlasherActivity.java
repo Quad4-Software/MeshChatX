@@ -22,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
 
 import com.meshchatx.AppSettingsLauncher;
 import com.meshchatx.R;
@@ -72,7 +73,12 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        // Opt out of edge-to-edge enforcement (targetSdk 35+) and restore
+        // decor-fits-system-windows so the ActionBar sits below the
+        // status bar instead of sliding behind it.
+        getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, false);
         super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
         try {
             setContentView(R.layout.activity_rnode_flasher);
             if (getSupportActionBar() != null) {

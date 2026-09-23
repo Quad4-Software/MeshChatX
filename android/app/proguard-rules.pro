@@ -1,5 +1,9 @@
 -keep class com.chaquo.python.** { *; }
 -keep class com.meshchatx.** { *; }
+# Loaded dynamically from Python via jclass("org.meshchatx.locallink.*").
+# R8 strips these in release builds (minifyEnabled) since no Java code
+# references them, which silently disables LocalLink/Aware/NFC.
+-keep class org.meshchatx.** { *; }
 -keepclassmembers class com.meshchatx.MainActivity$MeshChatXAndroidBridge {
     @android.webkit.JavascriptInterface <methods>;
 }

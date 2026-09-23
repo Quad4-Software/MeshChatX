@@ -120,7 +120,15 @@ def _lxmf_fields_to_send_parts(fields):
         if "telemetry" in fields:
             telemetry_val = fields["telemetry"]
             if isinstance(telemetry_val, dict):
-                telemetry_data = Telemeter.pack(location=telemetry_val)
+                # Stored shape is Telemeter.from_packed output; decompose it
+                # back into pack kwargs or every sensor lands in location.
+                tele_time = telemetry_val.get("time") or {}
+                telemetry_data = Telemeter.pack(
+                    time_utc=tele_time.get("utc"),
+                    location=telemetry_val.get("location"),
+                    battery=telemetry_val.get("battery"),
+                    physical_link=telemetry_val.get("physical_link"),
+                )
             elif isinstance(telemetry_val, str):
                 telemetry_data = base64.b64decode(telemetry_val)
 
@@ -742,17 +750,46 @@ def register_lxmf_routes(routes, app):
         message_hash = request.match_info.get("hash", None)
 
         # convert hash to bytes
-        hash_as_bytes = bytes.fromhex(message_hash)
+        try:
+            hash_as_bytes = bytes.fromhex(message_hash)
+        except (TypeError, ValueError):
+            return http_bad_request("Invalid message hash")
 
-        # cancel outbound message by lxmf message hash
+        # cancel outbound message by lxmf message hash; forwarded sends are
+        # queued on per-alias routers, not the main one
         app.message_router.cancel_outbound(hash_as_bytes)
+        forwarding_manager = getattr(app, "forwarding_manager", None)
+        for router in getattr(forwarding_manager, "forwarding_routers", {}).values():
+            try:
+                router.cancel_outbound(hash_as_bytes)
+            except Exception:
+                pass
 
-        # get lxmf message from database
+        # get lxmf message from database; stored hashes are lowercase hex
         lxmf_message = None
         db_lxmf_message = app.database.messages.get_lxmf_message_by_hash(
-            message_hash,
+            message_hash.lower(),
         )
         if db_lxmf_message is not None:
+            # cancel_outbound only reaches live queued objects. After a
+            # restart or for forwarded sends nothing is queued, so reconcile
+            # the row to a terminal state the UI and resend can act on.
+            if db_lxmf_message["state"] in (
+                "generating",
+                "outbound",
+                "sending",
+                "failed",
+            ):
+                app.database.messages.update_lxmf_message_state(
+                    message_hash,
+                    "cancelled",
+                    db_lxmf_message.get("progress") or 0.0,
+                    db_lxmf_message.get("delivery_attempts") or 0,
+                    db_lxmf_message.get("next_delivery_attempt_at"),
+                )
+                db_lxmf_message = app.database.messages.get_lxmf_message_by_hash(
+                    message_hash,
+                )
             lxmf_message = convert_db_lxmf_message_to_dict(db_lxmf_message)
 
         return web.json_response(
@@ -774,8 +811,9 @@ def register_lxmf_routes(routes, app):
         if message_hash is None:
             return http_error(422, "hash is required")
 
-        # delete lxmf messages from db where hash matches
-        app.database.messages.delete_lxmf_message_by_hash(message_hash)
+        # delete lxmf messages from db where hash matches; stored hashes are
+        # lowercase hex so a mixed-case path would silently miss the row
+        app.database.messages.delete_lxmf_message_by_hash(message_hash.lower())
 
         return web.json_response(
             {
@@ -795,6 +833,8 @@ def register_lxmf_routes(routes, app):
         message_hash = request.match_info.get("hash", None)
         if not message_hash:
             return http_error(422, "hash is required")
+        # stored hashes are lowercase hex; normalize so mixed-case paths hit
+        message_hash = message_hash.lower()
 
         db_lxmf_message = app.database.messages.get_lxmf_message_by_hash(
             message_hash,
@@ -814,6 +854,15 @@ def register_lxmf_routes(routes, app):
         validated_app_extensions = (
             app_extensions_payload if isinstance(app_extensions_payload, dict) else None
         )
+        reaction_field = fields.pop("reaction", None)
+        reaction_to_hash = None
+        reaction_emoji = None
+        if isinstance(reaction_field, dict) and reaction_field.get("reaction_to"):
+            reaction_to_hash = reaction_field["reaction_to"]
+            reaction_emoji = reaction_field.get("reaction_content") or ""
+        reply_quoted_content = fields.pop("reply_quoted_content", None)
+        if not isinstance(reply_quoted_content, str):
+            reply_quoted_content = None
 
         try:
             (
@@ -837,7 +886,11 @@ def register_lxmf_routes(routes, app):
                 telemetry_data=telemetry_data,
                 commands=commands,
                 delivery_method=db_lxmf_message["method"],
+                title=db_lxmf_message["title"] or "",
                 reply_to_hash=db_lxmf_message["reply_to_hash"],
+                reply_quoted_content=reply_quoted_content,
+                reaction_to_hash=reaction_to_hash,
+                reaction_emoji=reaction_emoji,
                 app_extensions=validated_app_extensions,
             )
         except Exception as e:
@@ -854,6 +907,16 @@ def register_lxmf_routes(routes, app):
 
         is_local_self = app._is_self_lxmf_destination(destination_hash)
         app.database.messages.delete_lxmf_message_by_hash(message_hash)
+        # Tell every client the old failed row is gone; the initiating client
+        # removes it locally but other sessions would keep a stale row.
+        await app.websocket_broadcast(
+            json.dumps(
+                {
+                    "type": "lxmf_message_deleted",
+                    "hash": message_hash,
+                },
+            ),
+        )
         return web.json_response(
             {
                 "lxmf_message": convert_lxmf_message_to_dict(
@@ -924,9 +987,9 @@ def register_lxmf_routes(routes, app):
         attachment_type = request.match_info.get("attachment_type")
         file_index = request.query.get("file_index")
 
-        # find message from database
+        # find message from database; stored hashes are lowercase hex
         db_lxmf_message = app.database.messages.get_lxmf_message_by_hash(
-            message_hash,
+            (message_hash or "").lower(),
         )
         if db_lxmf_message is None:
             return http_not_found("Message not found")
@@ -1044,12 +1107,20 @@ def register_lxmf_routes(routes, app):
 
         lxm = find_lxm_by_content_hash_for_paper_uri(app.message_router, hb)
 
-        if not lxm:
-            return http_not_found(
-                "Original message bytes not available for URI generation"
+        if lxm:
+            uri, err_detail = lxmf_message_try_paper_uri_string(lxm)
+        else:
+            # The router only holds packed bytes while a message is queued.
+            # Rebuild delivered or post-restart outbound messages from the
+            # stored row instead of 404ing.
+            db_row = app.database.messages.get_lxmf_message_by_hash(nh)
+            if db_row is None:
+                return http_not_found("Message not found")
+            from meshchatx.src.backend.lxmf_utils import (
+                rebuild_paper_uri_from_db_lxmf_message,
             )
 
-        uri, err_detail = lxmf_message_try_paper_uri_string(lxm)
+            uri, err_detail = rebuild_paper_uri_from_db_lxmf_message(app, db_row)
         if not uri:
             body = {
                 "message": "Could not serialize this LXMF payload as a Paper URI",
@@ -1453,7 +1524,7 @@ def register_lxmf_routes(routes, app):
             try:
                 app.database.messages.create_folder(f["name"])
             except Exception as e:
-                logger.debug(f"Folder '{f['name']}' likely already exists: {e}")
+                logger.debug("Folder %s likely already exists: %s", f["name"], e)
 
         # Refresh folder list to get new IDs
         all_folders = app.database.messages.get_all_folders()

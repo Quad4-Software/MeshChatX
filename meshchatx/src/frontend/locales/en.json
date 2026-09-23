@@ -1174,6 +1174,7 @@
         "identity_good": "Identity Loaded",
         "imports_good": "Critical Imports",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Storage Lock",
         "temp_fs_good": "Temp Filesystem",
         "public_assets_good": "Public Assets",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Needs permission",
         "aware_permission_banner": "WiFi Aware needs the Nearby devices permission. You can grant it now, or later before the interface starts.",
         "aware_permission_grant": "Grant permission",
+        "aware_permission_failed": "Could not request the Nearby devices permission on this device.",
         "aware_role_label": "Aware role",
         "aware_mode_note": "For WiFi Aware, mode means the publish or subscribe role (not Reticulum full/gateway/roaming).",
         "aware_max_peers": "Max peers",
@@ -2223,6 +2225,7 @@
         "view_on_map": "View on Map",
         "request": "Request",
         "generate_paper_message": "Generate Paper Message (LXM)",
+        "failed_generate_paper_uri": "Failed to generate paper message",
         "ingest_paper_message": "Ingest Paper Message",
         "scan_qr": "Scan QR Code",
         "scanner_hint": "Point your camera at an lxmf://, lxma://, or lxm:// QR code.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Search settings...",
         "no_search_results": "No settings found matching your search",
         "try_different_search": "Try a different search query",
-        "clear_search": "Clear search"
+        "clear_search": "Clear search",
+        "archived_pages_flush_failed": "Failed to flush archived pages"
     },
     "debug": {
         "title": "Debug Logs",
@@ -3830,6 +3834,7 @@
             "permission_hint": "The Nearby devices permission is required to host or join local networks.",
             "grant_permission": "Grant permission",
             "permission_settings": "Permission blocked. Enable Nearby devices in app settings.",
+            "permission_failed": "Could not request the Nearby devices permission on this device.",
             "host_title": "Share a local network",
             "host_description": "Start a hotspot on this device. Others join it to reach you without a router.",
             "start_hotspot": "Start hotspot",

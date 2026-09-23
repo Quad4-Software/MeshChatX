@@ -405,16 +405,163 @@ describe("RelayChatPage.vue", () => {
     it("includes an optional room key when joining a room", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
-        wrapper.vm.joinRoomName = "vault";
-        wrapper.vm.joinRoomKey = "hunter2";
+        wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name = "vault";
+        wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).key = "hunter2";
         await wrapper.vm.joinRoom(wrapper.vm.hubs[0]);
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
             room: "vault",
             remember: true,
             key: "hunter2",
         });
-        expect(wrapper.vm.joinRoomName).toBe("");
-        expect(wrapper.vm.joinRoomKey).toBe("");
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name).toBe("");
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).key).toBe("");
+    });
+
+    it("keeps join room inputs independent per hub", async () => {
+        const OTHER_HUB_HASH = "ffeeddccbbaa00112233445566778899";
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: {
+                        hubs: [makeHub(), makeHub({ hub_hash: OTHER_HUB_HASH, name: "Other Hub" })],
+                    },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [makeHostedHub()] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(2));
+
+        const nameInputs = wrapper.findAll("input[data-rrc-join-name]");
+        expect(nameInputs.length).toBe(2);
+
+        const first = nameInputs.find((el) => el.attributes("data-rrc-join-name") === HUB_HASH);
+        const second = nameInputs.find((el) => el.attributes("data-rrc-join-name") === OTHER_HUB_HASH);
+        await first.setValue("alpha-room");
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name).toBe("alpha-room");
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[1]).name).toBe("");
+        expect(second.element.value).toBe("");
+
+        await wrapper.vm.joinRoom(wrapper.vm.hubs[0]);
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
+            room: "alpha-room",
+            remember: true,
+        });
+        expect(wrapper.vm.joinRoomForm(wrapper.vm.hubs[0]).name).toBe("");
+    });
+
+    it("does not request messages or read receipts for a removed hub", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.selectedRoom).toBe("lobby"));
+        axiosMock.get.mockClear();
+        axiosMock.post.mockClear();
+
+        let resolveDelete;
+        axiosMock.delete.mockImplementationOnce(() => new Promise((r) => (resolveDelete = r)));
+        const removal = wrapper.vm.removeHub(wrapper.vm.hubs[0]);
+        await vi.waitFor(() => expect(axiosMock.delete).toHaveBeenCalled());
+
+        // A websocket event for the hub landing mid-delete must not hit the API.
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "rrc.message",
+                hub_hash: HUB_HASH,
+                room: "lobby",
+                message: { kind: "system", room: "lobby", text: "disconnected", ts: 2 },
+            }),
+        });
+        expect(axiosMock.get).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/messages`)
+        );
+        expect(axiosMock.post).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/read`)
+        );
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        resolveDelete({ data: {} });
+        await removal;
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(0));
+        expect(wrapper.vm.selectedHubHash).toBe(null);
+        expect(wrapper.vm.selectedRoom).toBe(null);
+    });
+
+    it("does not request messages or read receipts for a removed room", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        vi.spyOn(DialogUtils, "confirmCustom").mockResolvedValue(true);
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.selectedRoom).toBe("lobby"));
+        axiosMock.get.mockClear();
+        axiosMock.post.mockClear();
+
+        let resolveDelete;
+        axiosMock.delete.mockImplementationOnce(() => new Promise((r) => (resolveDelete = r)));
+        const leaving = wrapper.vm.leaveRoom();
+        await vi.waitFor(() => expect(axiosMock.delete).toHaveBeenCalled());
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "rrc.message",
+                hub_hash: HUB_HASH,
+                room: "lobby",
+                message: { kind: "msg", room: "lobby", src: "aabb", text: "late", ts: 2 },
+            }),
+        });
+        expect(axiosMock.post).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/read`)
+        );
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [makeHub({ known_rooms: [], rooms: [] })] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        resolveDelete({ data: {} });
+        await leaving;
+        expect(wrapper.vm.selectedRoom).toBe(null);
+    });
+
+    it("clears a stale selection when the hub disappears from the listing", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.selectedRoom).toBe("lobby"));
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        await wrapper.vm.fetchHubs();
+        expect(wrapper.vm.selectedHubHash).toBe(null);
+        expect(wrapper.vm.selectedRoom).toBe(null);
     });
 
     it("prompts for a password after a bad key websocket error", async () => {

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
-import asyncio
 import contextlib
+import gc
 import os
 import threading
 
@@ -189,6 +189,7 @@ class IdentityContext:
             self.database = Database(":memory:")
         else:
             self.database = Database(self.database_path)
+            self.database.provider.on_unrecoverable = self.app._database_unrecoverable
 
         # Critical integrity only at boot (full walk deferred)
         if not getattr(self.app, "emergency", False):
@@ -431,8 +432,15 @@ class IdentityContext:
         self.voicemail_manager.get_name_for_identity_hash = (
             self.app.get_name_for_identity_hash
         )
-        self.voicemail_manager.on_new_voicemail_callback = lambda vm: (
-            self.app.on_new_voicemail_received(vm, context=self)
+        self.voicemail_manager.on_new_voicemail_callback = (
+            lambda remote_hash, remote_name, duration: (
+                self.app.on_new_voicemail_received(
+                    remote_hash,
+                    remote_name,
+                    duration,
+                    context=self,
+                )
+            )
         )
 
         self.ringtone_manager = RingtoneManager(
@@ -504,6 +512,9 @@ class IdentityContext:
                 print(
                     f"Identity Context for {self.identity_hash} deferred setup complete.",
                 )
+                # Startup allocations survive to steady state, so move them
+                # out of the set the cyclic GC walks on every collection.
+                gc.freeze()
             else:
                 print(
                     f"Deferred setup aborted for torn-down identity {self.identity_hash}",
@@ -790,78 +801,40 @@ class IdentityContext:
                 print(f"Failed deferred DB health check: {exc}")
 
     def start_background_threads(self):
-        # start background thread for auto announce loop
-        thread = threading.Thread(
-            target=asyncio.run,
-            args=(self.app.announce_loop(self.session_id, context=self),),
-        )
-        thread.daemon = True
-        thread.start()
+        from meshchatx.src.backend.async_utils import AsyncUtils
 
-        # start background thread for auto syncing propagation nodes
-        thread = threading.Thread(
-            target=asyncio.run,
-            args=(
-                self.app.announce_sync_propagation_nodes(self.session_id, context=self),
+        # All per-identity periodic loops share the meshchatx-async loop
+        # instead of each running asyncio.run on a dedicated thread.
+        spawn = AsyncUtils.spawn_background
+
+        # auto announce loop
+        spawn(self.app.announce_loop(self.session_id, context=self))
+
+        # auto syncing propagation nodes
+        spawn(self.app.announce_sync_propagation_nodes(self.session_id, context=self))
+
+        # crawler loop
+        spawn(self.app.crawler_loop(self.session_id, context=self))
+
+        # auto backup loop
+        spawn(self.app.auto_backup_loop(self.session_id, context=self))
+
+        # telemetry tracking loop
+        spawn(self.app.telemetry_tracking_loop(self.session_id, context=self))
+
+        # local (device-only) message age retention
+        spawn(self.app.local_message_retention_loop(self.session_id, context=self))
+
+        # LXMF flood protection cooldown
+        spawn(
+            self.app.lxmf_flood_protection_cooldown_loop(
+                self.session_id,
+                context=self,
             ),
         )
-        thread.daemon = True
-        thread.start()
 
-        # start background thread for crawler loop
-        thread = threading.Thread(
-            target=asyncio.run,
-            args=(self.app.crawler_loop(self.session_id, context=self),),
-        )
-        thread.daemon = True
-        thread.start()
-
-        # start background thread for auto backup loop
-        thread = threading.Thread(
-            target=asyncio.run,
-            args=(self.app.auto_backup_loop(self.session_id, context=self),),
-        )
-        thread.daemon = True
-        thread.start()
-
-        # start background thread for telemetry tracking loop
-        thread = threading.Thread(
-            target=asyncio.run,
-            args=(self.app.telemetry_tracking_loop(self.session_id, context=self),),
-        )
-        thread.daemon = True
-        thread.start()
-
-        # start background thread for local (device-only) message age retention
-        thread = threading.Thread(
-            target=asyncio.run,
-            args=(
-                self.app.local_message_retention_loop(self.session_id, context=self),
-            ),
-        )
-        thread.daemon = True
-        thread.start()
-
-        # start background thread for LXMF flood protection cooldown
-        thread = threading.Thread(
-            target=asyncio.run,
-            args=(
-                self.app.lxmf_flood_protection_cooldown_loop(
-                    self.session_id,
-                    context=self,
-                ),
-            ),
-        )
-        thread.daemon = True
-        thread.start()
-
-        # start background thread for auto propagation node selection
-        thread = threading.Thread(
-            target=asyncio.run,
-            args=(self.auto_propagation_manager._run(),),
-        )
-        thread.daemon = True
-        thread.start()
+        # auto propagation node selection
+        spawn(self.auto_propagation_manager._run())
 
     def register_announce_handlers(self):
         handlers = [

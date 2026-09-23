@@ -23,6 +23,8 @@ from typing import Any
 from meshchatx.src.env_utils import env_str
 from meshchatx.src.path_utils import safe_basename
 
+logger = logging.getLogger(__name__)
+
 _PYPI_USER_AGENT = "MeshChatXRepositoryBundler/1 (+https://github.com/)"
 
 _MESHCHATX_BUNDLE_PIP_NAME = "reticulum-meshchatx"
@@ -99,10 +101,10 @@ def _pypi_project_json(canonical_name: str) -> dict[str, Any] | None:
             body = e.read().decode("utf-8", errors="replace")[:500]
         except Exception:
             pass
-        logging.warning("PyPI HTTP error for %s: %s %s", canonical_name, e.code, body)
+        logger.warning("PyPI HTTP error for %s: %s %s", canonical_name, e.code, body)
         return None
     except Exception:
-        logging.exception("PyPI JSON fetch failed for %s", canonical_name)
+        logger.exception("PyPI JSON fetch failed for %s", canonical_name)
         return None
 
 
@@ -205,10 +207,10 @@ def stage_local_meshchatx_wheel_into_bundled_dir(dest: Path) -> Path | None:
         try:
             old.unlink()
         except OSError:
-            logging.warning("Could not remove prior wheel %s", old)
+            logger.warning("Could not remove prior wheel %s", old)
     target = dest / chosen.name
     shutil.copy2(chosen, target)
-    logging.info("Staged local MeshChatX wheel into bundled dir: %s", target.name)
+    logger.info("Staged local MeshChatX wheel into bundled dir: %s", target.name)
     return target
 
 
@@ -329,13 +331,13 @@ def build_repository_index_html(
         try:
             shell = template.read_text(encoding="utf-8")
         except OSError:
-            logging.exception("repository index template read failed: %s", template)
+            logger.exception("repository index template read failed: %s", template)
             shell = (
                 '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
                 "<title>MeshChatX repository</title></head><body><!--FILE_LISTS--></body></html>"
             )
     else:
-        logging.warning(
+        logger.warning(
             "repository index template not found (expected under public_dir or src/frontend/public)",
         )
         shell = (
@@ -473,7 +475,7 @@ class RepositoryServerManager:
             try:
                 shutil.copy2(src, dest)
             except OSError as e:
-                logging.warning(
+                logger.warning(
                     "repository bundled seed copy failed for %s: %s",
                     name,
                     e,
@@ -576,11 +578,11 @@ class RepositoryServerManager:
             try:
                 httpd.shutdown()
             except Exception:
-                logging.exception("repository HTTP shutdown")
+                logger.exception("repository HTTP shutdown")
             try:
                 httpd.server_close()
             except Exception:
-                logging.exception("repository HTTP server_close")
+                logger.exception("repository HTTP server_close")
         if thread is not None and thread.is_alive():
             thread.join(timeout=8.0)
         return {"ok": True}
@@ -631,7 +633,7 @@ class RepositoryServerManager:
             with os.fdopen(fd, "wb") as f:
                 f.write(data)
         except OSError as e:
-            logging.exception("repository upload failed: %s", e)
+            logger.exception("repository upload failed: %s", e)
             return False, str(e)
         return True, None
 

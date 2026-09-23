@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.9.2] - TBD [unreleased]
+
+### Added
+
+- Network visualiser gains a radial view mode that pins nodes on deterministic hop rings around the local node, plus screen-space label decluttering so dense zoomed views stay readable.
+- Settings self-test gains a CBOR roundtrip check that exercises the RRC codec's encode, decode, and stream replay paths.
+- CI performance suite measures cold-load FCP, LCP, SPA route transition latency, API round-trip, and post-mount heap per page with per-page budgets, plus a heap-growth spec that fails when a page leaks listeners, timers, or nodes across mount/unmount cycles.
+
+### Security
+
+- HTTP-set `command_plugins_path` is jailed under storage so remote callers cannot point the plugin loader at arbitrary Python files.
+- Reticulum `rpc_key` and interface secrets are served only to loopback or authenticated callers, and a redacted GET round-trips through PUT via a sentinel so non-privileged edits cannot erase real values.
+- `auth_session_epoch` is stamped into session cookies and checked on HTTP middleware and the WebSocket upgrade, so password, auth-toggle, and setup changes revoke outstanding sessions. Session secret files are restricted to 0600.
+- Translation-pack extraction is bounded by per-member, total, and file-count caps with streamed copies.
+- `/api` responses send `Cache-Control: no-store`, the static auth bypass is scoped to actual asset suffixes, and remote markup rendered into the main document loses `id`/`name` attributes so archived pages cannot clobber window globals.
+
+### Fixed
+
+- Messages: opening a raw outbound message no longer 404s once it leaves router memory (delivered or post-restart). The paper URI endpoint rebuilds the signed `lxm://` URI from the stored row, preserves the original timestamp so the message hash and ingest deduping hold, verifies the repacked hash against the stored row, and skips the request entirely for inbound messages, which can never be signed by the local sender.
+- Messages: resend preserves title, reply quotes, reactions, app extensions, and correctly decomposed telemetry, and other sessions are told when the old failed row is deleted.
+- Messages: cancel validates the hash, reaches forwarding-alias routers, and reconciles rows stuck in generating/outbound/sending to cancelled after a restart instead of returning ok while nothing changed.
+- Messages: startup recovery fails `sent`+`direct` rows that could never advance after restart, and a same-hash inbound delivery can no longer demote an outbound row to incoming or repoint its peer.
+- Messages: hash lookups normalize case across message, attachment, spam, and announce paths.
+- Messages: queued sends snapshot peer and composer state so a cleared composer or peer switch cannot send into the wrong conversation, pending placeholders dedupe correctly, inbound duplicates are dropped, and audio decode is serialized with contexts closed on unmount.
+- Messages: paper URI generation and URI ingest over WebSocket were fire-and-forget; a failed send or dropped reply left buttons disabled or a spinner forever. Sends now check the result, toast on failure, and bound the wait with a timeout.
+- Android: bridge-backed buttons (WiFi Aware grant, nearby permission, native RNode flasher) were silently dead because the injected bridge sat inside a Vue reactive proxy. The bridge now marks itself non-reactive and binds methods to the raw instance.
+- Android: release APKs kept stripping `org.meshchatx.locallink.*` because the classes are only reached via `jclass()` from Python, so WiFi Aware stayed disabled in minified builds. R8 keeps them and a dex check gates the build.
+- Android: the native RNode flasher no longer shows a duplicate title hidden behind the status bar.
+- Reticulum: a second AutoInterface bind failure left a zombie singleton that killed every in-process restart. Recovery now releases interface sockets and resets singleton state before rebinding, a colliding interface is rejected at add time, and a guidance notice reports auto-disabled interfaces.
+- NomadNet: image loading now parses the NomadNet 1.4 whole-line image syntax (paren links with `w`/`h`/`a`/`s`/`k`/`profile` fields and percent widths) and sends the `key` field the `/media` protocol requires. Verified live against `rns.recipes`.
+- NomadNet: page and file download events are correlated by request id so stale transfers cannot feed replacement entries, and archive navigation performs full teardown.
+- Relay chat: prefs and drafts are scoped per identity, so hide-join/part and ignore state apply once the identity hash resolves, hub switches reset room state, the composer clears before send to end double-send and lost-text races, and debounced config writes survive identity switches.
+- Service worker: subframe requests are excluded from the shell navigation strategy and only shell documents or extensionless SPA routes use the fallback slot, fixing the stale-cache stuck Loading page. Updates reload exactly once, WebTransport falls back to WebSocket on session death, and a version-mismatched backend triggers a reload after reconnect.
+- Backend: `websocket_broadcast` from foreign loops forwards onto the owning client's loop, the self-test endpoint runs off the event loop so its own probes cannot deadlock, and the Windows AppContainer probe wait is bounded.
+- Backend: deleting an identity tears down its live context first, telemetry per destination is capped, and in-flight propagation-node tasks are cancelled on shutdown.
+- Electron: protocol links are stripped from backend argv and delivered to the renderer after load, certificate-error bypass is scoped to the local backend, DevTools shortcuts and hardware permissions are gated, and the Electron runtime version invalidates stale caches on upgrade.
+- UI: context menus dismiss on click-off and re-right-click again, popup carets stay off rounded corners, and the map drawing toolbar stays pinned at the top on xl screens.
+- UI: stuck-state follow-through in MiniChat (send failures now toast and fresh timestamps render), ContactsPage lxma import, NomadNet archives spinner, and the archived-pages flush result toast.
+- CI: alpine APKs are built without fpm and verified by actually installing them in an apk-tools container.
+- Locale files gained the missing aware/nearby permission strings in all 15 locales.
+- Backend: a wedged SQLite pool could leave every API call answering 503 until a manual restart. When WAL or SHM files get unlinked under open connections, every statement fails with a disk I/O error and per-connection retries never recover. The provider now spots failures that persist on fresh connections, resets the whole connection pool at once, and if that is not enough restarts the process. Restart attempts are bounded, so a permanently broken store keeps serving retryable 503s instead of crash-looping.
+
+### Changed
+
+- The Landlock sandbox now uses `landlockpy` instead of the custom ctypes plumbing; the enforced filesystem policy is unchanged and Android is unaffected.
+- Relay chat's CBOR codec moved from cbor2 to cborx, a zero-dependency RFC 8949 implementation with an optional compiled fast path. Canonical wire encoding is unchanged, decode rejects trailing bytes instead of ignoring them, and Android packages cborx through a Chaquopy recipe instead of the cbor2 wheel.
+- Visualiser layout spacing widened to match node size, WASM and JS paths gained LOD color, NaN guard, edge-filtering, and dead-scene fallback parity, and `visualiser.wasm` was rebuilt.
+- UI lighthouse, performance, and heap suites run against the production bundle instead of the Vite dev server, and service workers are unregistered before audits so scores cannot be nulled by a controlled navigation.
+- Backend: the eight per-identity periodic loops (auto-announce, propagation sync, crawler, auto-backup, telemetry, retention, flood cooldown, auto propagation selection) now share one background event loop instead of one thread each. Backups, retention sweeps, and announce table reads run in worker threads so they cannot stall the shared loop. This cuts several threads and thread-local database connections per identity.
+- Backend: debug log writes to SQLite are batched into one transaction per flush, the retention sweep runs at most every ten minutes instead of every five seconds, and MESHCHAT_LOG_DB=0 disables database logging entirely. On SD-card installs this removes a steady stream of small writes.
+- Backend: after identity setup finishes, startup objects are frozen out of the cyclic garbage collector's scan set, and the periodic cleanup calls malloc_trim so freed memory returns to the OS instead of sitting in allocator arenas.
+- Docker images and the Raspberry Pi installer set MALLOC_ARENA_MAX=2 and OPENBLAS_NUM_THREADS=1, and the Pi guide documents both plus MESHCHAT_LOG_DB=0 for low-memory and SD-card deployments.
+- Backend: the LXST telephony stack, numpy, and its audio backends no longer load at startup. The web audio bridge sits behind a lazy proxy that constructs it on first call, and telephone and voicemail resolve their LXST symbols on demand. Text-only installs keep tens of MB of memory and the OpenBLAS worker threads out of the process. If the audio stack fails to initialize or a bridge call keeps raising, the proxy disables audio for the session instead of letting errors reach the messaging paths.
+
 ## [4.9.1] - 2026-09-21 [released]
 
 ### Added

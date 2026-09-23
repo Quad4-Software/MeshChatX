@@ -1174,6 +1174,7 @@
         "identity_good": "Identität geladen",
         "imports_good": "Kritische Importe",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Speichersperre",
         "temp_fs_good": "Temporäres Dateisystem",
         "public_assets_good": "Öffentliche Assets",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Berechtigung nötig",
         "aware_permission_banner": "WiFi Aware benötigt die Berechtigung \"Geräte in der Nähe\". Du kannst sie jetzt oder später vor dem Start der Schnittstelle erteilen.",
         "aware_permission_grant": "Berechtigung erteilen",
+        "aware_permission_failed": "Die Berechtigung \"Geräte in der Nähe\" konnte auf diesem Gerät nicht angefordert werden.",
         "aware_role_label": "Aware-Rolle",
         "aware_mode_note": "Bei WiFi Aware bedeutet Modus die Rolle Publish oder Subscribe (nicht Reticulum full/gateway/roaming).",
         "aware_max_peers": "Max. Peers",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Auf Karte anzeigen",
         "request": "Anfordern",
         "generate_paper_message": "Papier-Nachricht erstellen (LXM)",
+        "failed_generate_paper_uri": "Papiernachricht konnte nicht erstellt werden",
         "ingest_paper_message": "Papier-Nachricht erfassen",
         "scan_qr": "QR-Code scannen",
         "scanner_hint": "Richten Sie die Kamera auf einen lxmf://-, lxma://- oder lxm://-QR-Code.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Einstellungen durchsuchen...",
         "no_search_results": "Keine passenden Einstellungen gefunden",
         "try_different_search": "Versuchen Sie einen anderen Suchbegriff",
-        "clear_search": "Suche löschen"
+        "clear_search": "Suche löschen",
+        "archived_pages_flush_failed": "Archivierte Seiten konnten nicht geleert werden"
     },
     "debug": {
         "title": "Debug-Protokolle",
@@ -3830,6 +3834,7 @@
             "permission_hint": "Die Berechtigung \"Geräte in der Nähe\" ist erforderlich, um lokale Netzwerke zu hosten oder beizutreten.",
             "grant_permission": "Berechtigung erteilen",
             "permission_settings": "Berechtigung blockiert. Aktiviere \"Geräte in der Nähe\" in den App-Einstellungen.",
+            "permission_failed": "Die Berechtigung \"Geräte in der Nähe\" konnte auf diesem Gerät nicht angefordert werden.",
             "host_title": "Lokales Netzwerk teilen",
             "host_description": "Starte einen Hotspot auf diesem Gerät. Andere treten ihm bei, um dich ohne Router zu erreichen.",
             "start_hotspot": "Hotspot starten",

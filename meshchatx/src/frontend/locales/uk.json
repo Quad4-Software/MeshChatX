@@ -1174,6 +1174,7 @@
         "identity_good": "Ідентичність завантажено",
         "imports_good": "Критичні імпорти",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Блокування сховища",
         "temp_fs_good": "Тимчасова файлова система",
         "public_assets_good": "Публічні активи",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Потрібен дозвіл",
         "aware_permission_banner": "WiFi Aware потребує дозволу на пристрої поруч. Його можна надати зараз або пізніше, до запуску інтерфейсу.",
         "aware_permission_grant": "Надати дозвіл",
+        "aware_permission_failed": "Не вдалося запросити дозвіл на доступ до пристроїв поблизу на цьому пристрої.",
         "aware_role_label": "Роль Aware",
         "aware_mode_note": "Для WiFi Aware режим означає роль publish або subscribe (а не режими Reticulum full/gateway/roaming).",
         "aware_max_peers": "Макс. пірів",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Переглянути на карті",
         "request": "Запит",
         "generate_paper_message": "Створити паперове повідомлення (LXM)",
+        "failed_generate_paper_uri": "Не вдалося створити паперове повідомлення",
         "ingest_paper_message": "Ввести паперове повідомлення",
         "scan_qr": "Сканувати QR-код",
         "scanner_hint": "Спрямуйте камеру на QR-код lxmf://, lxma:// або lxm://.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Пошук налаштувань...",
         "no_search_results": "Налаштувань, що відповідають вашому пошуку, не знайдено",
         "try_different_search": "Спробуйте інший пошуковий запит",
-        "clear_search": "Очистити пошук"
+        "clear_search": "Очистити пошук",
+        "archived_pages_flush_failed": "Не вдалося очистити архівовані сторінки"
     },
     "debug": {
         "title": "Журнали налагодження",
@@ -3830,6 +3834,7 @@
             "permission_hint": "Для створення локальних мереж або підключення до них потрібен дозвіл на пристрої поруч.",
             "grant_permission": "Надати дозвіл",
             "permission_settings": "Дозвіл заблоковано. Увімкніть доступ до пристроїв поруч у налаштуваннях застосунку.",
+            "permission_failed": "Не вдалося запросити дозвіл на доступ до пристроїв поблизу на цьому пристрої.",
             "host_title": "Поділитися локальною мережею",
             "host_description": "Запустіть точку доступу на цьому пристрої. Інші підключаться до неї, щоб зв'язатися з вами без роутера.",
             "start_hotspot": "Запустити точку доступу",

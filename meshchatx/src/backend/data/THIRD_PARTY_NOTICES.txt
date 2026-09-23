@@ -34,9 +34,9 @@ bcrypt 5.0.0
 bleak 3.0.2
   License: MIT
   Author: Henrik Blidh
-cbor2 6.1.4
-  License: MIT
-  Author: Alex Grönholm <alex.gronholm@nextday.fi>
+cborx 0.2.3
+  License: 0BSD
+  Author: Quad4
 certifi 2026.7.22
   License: MPL-2.0
   Author: Kenneth Reitz

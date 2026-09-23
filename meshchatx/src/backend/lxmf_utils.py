@@ -4,8 +4,11 @@ import base64
 import json
 
 import LXMF
+import RNS
 
 from meshchatx.src.backend.meshchat_utils import (
+    hex_identifier_to_bytes,
+    normalize_hex_identifier,
     parse_lxmf_audio_field_value,
     parse_lxmf_file_attachments_field_value,
     parse_lxmf_image_field_value,
@@ -830,6 +833,21 @@ def convert_lxmf_message_to_dict(
         if field_type == LXMF_APP_EXTENSIONS_FIELD and isinstance(value, dict):
             fields["app_extensions"] = dict(value)
 
+        icon_field = getattr(LXMF, "FIELD_ICON_APPEARANCE", None)
+        if icon_field is not None and field_type == icon_field:
+            # [name, fg bytes, bg bytes]; persist base64 so a later rebuild
+            # can re-emit the identical wire value.
+            if isinstance(value, (list, tuple)) and len(value) >= 3:
+                name, fg, bg = value[0], value[1], value[2]
+                if isinstance(fg, (bytes, bytearray)) and isinstance(
+                    bg, (bytes, bytearray)
+                ):
+                    fields["icon_appearance"] = [
+                        name,
+                        base64.b64encode(bytes(fg)).decode("utf-8"),
+                        base64.b64encode(bytes(bg)).decode("utf-8"),
+                    ]
+
     # convert 0.0-1.0 progress to 0.00-100 percentage
     progress_percentage = round(lxmf_message.progress * 100, 2)
 
@@ -1197,3 +1215,227 @@ def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing
     if arrival_ts is None:
         return False
     return arrival_ts > last_read_at.timestamp()
+
+
+def lxmf_wire_fields_from_stored(fields: dict, db_row: dict | None = None) -> dict:
+    """Rebuild raw LXMF wire fields from the converted dict stored in the DB.
+
+    convert_lxmf_message_to_dict rewrites wire fields into named dict entries
+    with base64 bytes; this maps them back so a stored outbound message can be
+    re-serialized (paper URI, resend). Keys are inserted in the same order
+    send_message builds them, because the message hash covers the packed
+    field order. Attachments stripped at save time are absent from the
+    result and callers should treat that as unrecoverable.
+    """
+    if not isinstance(fields, dict):
+        fields = {}
+
+    has_reaction = isinstance(fields.get("reaction"), dict) and bool(
+        fields.get("reaction", {}).get("reaction_to")
+    )
+    row = db_row or {}
+    # Mirror send_message.is_reaction_only exactly: title is not part of the
+    # check there, only body content and other payload fields.
+    has_body = bool(str(row.get("content") or "").strip())
+    has_other_stored = any(
+        fields.get(key)
+        for key in (
+            "image",
+            "audio",
+            "file_attachments",
+            "telemetry",
+            "commands",
+            "reply_to",
+            "reply_quoted_content",
+            "embedded_lxms",
+        )
+    ) or bool(row.get("reply_to_hash"))
+    # send_message adds FIELD_RENDERER unless the payload is a bare reaction.
+    reaction_only = has_reaction and not has_body and not has_other_stored
+
+    wire: dict = {}
+    if not reaction_only:
+        wire[LXMF.FIELD_RENDERER] = LXMF.RENDERER_MARKDOWN
+
+    attachments = fields.get("file_attachments")
+    if isinstance(attachments, list):
+        items = [
+            [
+                item.get("file_name") or "file",
+                base64.b64decode(item["file_bytes"]),
+            ]
+            for item in attachments
+            if isinstance(item, dict) and item.get("file_bytes")
+        ]
+        if items:
+            wire[LXMF.FIELD_FILE_ATTACHMENTS] = items
+
+    image = fields.get("image")
+    if isinstance(image, dict) and image.get("image_bytes"):
+        wire[LXMF.FIELD_IMAGE] = [
+            image.get("image_type") or "webp",
+            base64.b64decode(image["image_bytes"]),
+        ]
+
+    audio = fields.get("audio")
+    if isinstance(audio, dict) and audio.get("audio_bytes"):
+        wire[LXMF.FIELD_AUDIO] = [
+            audio.get("audio_mode") or LXMF.AM_OPUS_OGG,
+            base64.b64decode(audio["audio_bytes"]),
+        ]
+
+    telemetry = fields.get("telemetry")
+    if isinstance(telemetry, dict):
+        tele_time = telemetry.get("time") or {}
+        wire[LXMF.FIELD_TELEMETRY] = Telemeter.pack(
+            time_utc=tele_time.get("utc"),
+            location=telemetry.get("location"),
+            battery=telemetry.get("battery"),
+            physical_link=telemetry.get("physical_link"),
+        )
+    elif isinstance(telemetry, str) and telemetry:
+        wire[LXMF.FIELD_TELEMETRY] = base64.b64decode(telemetry)
+
+    commands = fields.get("commands")
+    if isinstance(commands, list):
+        rebuilt_commands = []
+        for cmd in commands:
+            if not isinstance(cmd, dict):
+                rebuilt_commands.append(cmd)
+                continue
+            rebuilt_cmd = {}
+            for key, value in cmd.items():
+                try:
+                    key_s = str(key)
+                    rebuilt_cmd[
+                        int(key_s, 16) if key_s.startswith("0x") else int(key_s)
+                    ] = value
+                except (ValueError, TypeError):
+                    rebuilt_cmd[key] = value
+            rebuilt_commands.append(rebuilt_cmd)
+        if rebuilt_commands:
+            wire[LXMF.FIELD_COMMANDS] = rebuilt_commands
+
+    reply_to = row.get("reply_to_hash") or fields.get("reply_to")
+    if isinstance(reply_to, str) and reply_to:
+        wire[FIELD_REPLY_TO] = bytes.fromhex(reply_to)
+
+    quote = fields.get("reply_quoted_content")
+    if isinstance(quote, str) and quote:
+        wire[LXMF.FIELD_REPLY_QUOTE] = quote.encode("utf-8")
+
+    reaction = fields.get("reaction")
+    if has_reaction:
+        wire[FIELD_REACTION] = build_lxmf_reaction_field(
+            reaction["reaction_to"],
+            reaction.get("reaction_content") or "",
+        )
+    else:
+        # send_message adds app_extensions only when no reaction is present.
+        app_extensions = fields.get("app_extensions")
+        if isinstance(app_extensions, dict):
+            wire[LXMF_APP_EXTENSIONS_FIELD] = app_extensions
+
+    icon = fields.get("icon_appearance")
+    if (
+        not reaction_only
+        and isinstance(icon, (list, tuple))
+        and len(icon) >= 3
+        and isinstance(icon[1], str)
+        and isinstance(icon[2], str)
+    ):
+        wire[LXMF.FIELD_ICON_APPEARANCE] = [
+            icon[0],
+            base64.b64decode(icon[1]),
+            base64.b64decode(icon[2]),
+        ]
+
+    return wire
+
+
+def _identity_from_public_key_bytes(public_key: bytes) -> "RNS.Identity | None":
+    """Load a public-only RNS Identity from raw public-key bytes.
+
+    Identity.load_public_key is documented as returning True/False, but
+    current RNS releases return None on both success and failure. Treat a
+    non-None identity.pub and a computed hash as success. Mirrors the same
+    helper in meshchat.py; duplicated here to avoid a circular import.
+    """
+    if not public_key:
+        return None
+    identity = RNS.Identity(create_keys=False)
+    try:
+        identity.load_public_key(public_key)
+    except Exception:
+        return None
+    if getattr(identity, "pub", None) is None:
+        return None
+    if not getattr(identity, "hash", None):
+        return None
+    return identity
+
+
+def rebuild_paper_uri_from_db_lxmf_message(
+    app, db_row
+) -> tuple[str | None, str | None]:
+    """Rebuild an lxm:// paper URI for a stored outbound message.
+
+    The router only keeps packed bytes while a message is queued, so delivered
+    or post-restart outbound messages need this DB fallback. Returns
+    (uri, None) on success, or (None, detail) on failure.
+    """
+    try:
+        if _row_flag_true(db_row, "is_incoming"):
+            return None, "Paper URIs can only be generated for messages you sent"
+
+        dest_hex = normalize_hex_identifier(db_row.get("destination_hash"))
+        dest_hash_bytes = hex_identifier_to_bytes(dest_hex)
+        if dest_hash_bytes is None:
+            return None, "Message destination hash is invalid"
+
+        identity = RNS.Identity.recall(dest_hash_bytes)
+        if identity is None:
+            announce = app.database.announces.get_announce_by_hash(dest_hex)
+            public_key = announce.get("identity_public_key") if announce else None
+            if public_key:
+                identity = _identity_from_public_key_bytes(base64.b64decode(public_key))
+        if identity is None:
+            return None, "Recipient identity is not available"
+
+        source = getattr(app, "local_lxmf_destination", None)
+        if source is None:
+            return None, "Local LXMF destination is not ready"
+
+        stored_fields = parse_stored_lxmf_fields(db_row.get("fields")) or {}
+        fields = lxmf_wire_fields_from_stored(stored_fields, db_row)
+
+        destination = RNS.Destination(
+            identity,
+            RNS.Destination.OUT,
+            RNS.Destination.SINGLE,
+            "lxmf",
+            "delivery",
+        )
+        lxm = LXMF.LXMessage(
+            destination,
+            source,
+            db_row.get("content") or "",
+            title=db_row.get("title") or "",
+            fields=fields,
+            desired_method=LXMF.LXMessage.PAPER,
+        )
+        # Repack with the original timestamp so the URI carries the same
+        # message hash as the stored row and dedupes on ingest.
+        timestamp = db_row.get("timestamp")
+        if isinstance(timestamp, (int, float)) and timestamp > 0:
+            lxm.timestamp = timestamp
+        uri = lxm.as_uri(finalise=False)
+        # The stored row must reproduce the original packed payload exactly;
+        # a hash drift means some wire data could not be reconstructed, so
+        # returning the URI would hand out a different message.
+        stored_hash = normalize_hex_identifier(db_row.get("hash"))
+        if stored_hash and lxm.hash and lxm.hash.hex() != stored_hash:
+            return None, "Stored message data cannot reproduce the original payload"
+        return uri, None
+    except Exception as exc:
+        return None, str(exc)

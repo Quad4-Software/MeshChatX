@@ -536,7 +536,7 @@ class AutoPropagationManager:
             self.app.stop_propagation_node_sync(context=ctx)
             await self._settle_router_idle(router)
 
-        best_by_hex, announced = self._collect_candidates()
+        best_by_hex, announced = await asyncio.to_thread(self._collect_candidates)
         if not best_by_hex:
             return
 

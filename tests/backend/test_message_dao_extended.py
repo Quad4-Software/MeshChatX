@@ -75,6 +75,62 @@ def test_mark_stuck_messages_never_fails_incoming_messages(real_db):
     assert real_db.messages.get_lxmf_message_by_hash("e" * 32)["state"] == "delivered"
 
 
+def test_mark_stuck_messages_fails_unproven_direct_sends(real_db):
+    # sent+direct means transmitted-but-unproven; after a restart the router
+    # memory holding it is gone so it can never advance. Parked propagated
+    # sends stay untouched.
+    _insert_message(real_db, "a" * 32, is_incoming=0, state="sent", method="direct")
+    _insert_message(
+        real_db, "b" * 32, is_incoming=0, state="sent", method="opportunistic"
+    )
+    _insert_message(real_db, "c" * 32, is_incoming=0, state="sent", method="propagated")
+    _insert_message(
+        real_db, "d" * 32, is_incoming=0, state="delivered", method="direct"
+    )
+
+    real_db.messages.mark_stuck_messages_as_failed()
+
+    assert real_db.messages.get_lxmf_message_by_hash("a" * 32)["state"] == "failed"
+    assert real_db.messages.get_lxmf_message_by_hash("b" * 32)["state"] == "failed"
+    assert real_db.messages.get_lxmf_message_by_hash("c" * 32)["state"] == "sent"
+    assert real_db.messages.get_lxmf_message_by_hash("d" * 32)["state"] == "delivered"
+
+
+def test_upsert_inbound_collision_keeps_outbound_direction(real_db):
+    # A same-hash inbound delivery must not demote an outbound row.
+    _insert_message(real_db, "a" * 32, is_incoming=0, state="sent")
+    db = real_db
+    db.messages.upsert_lxmf_message(
+        {
+            "hash": "a" * 32,
+            "source_hash": "e" * 32,
+            "destination_hash": "f" * 32,
+            "peer_hash": "e" * 32,
+            "state": "delivered",
+            "progress": 1.0,
+            "is_incoming": 1,
+            "method": "direct",
+            "delivery_attempts": 0,
+            "next_delivery_attempt_at": None,
+            "title": "t",
+            "content": "c",
+            "fields": None,
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    row = real_db.messages.get_lxmf_message_by_hash("a" * 32)
+    assert row["is_incoming"] == 0
+    assert row["peer_hash"] == "b" * 32
+    assert row["source_hash"] == "b" * 32
+    assert row["destination_hash"] == "b" * 32
+
+
 def test_mark_stuck_messages_repairs_previously_failed_incoming(real_db):
     # Simulate a database corrupted by the previous buggy sweep that flipped
     # received messages to "failed". The row was received, so it must land

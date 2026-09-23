@@ -42,7 +42,7 @@ def test_rns_config_auto_creation(mock_rns, temp_dir):
 
     with (
         patch("meshchatx.meshchat.IdentityContext"),
-        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.LazyWebAudioBridge"),
         patch("meshchatx.meshchat.memory_log_handler"),
     ):
         ReticulumMeshChat(
@@ -73,7 +73,7 @@ def test_rns_config_repair_if_invalid(mock_rns, temp_dir):
 
     with (
         patch("meshchatx.meshchat.IdentityContext"),
-        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.LazyWebAudioBridge"),
         patch("meshchatx.meshchat.memory_log_handler"),
     ):
         ReticulumMeshChat(
@@ -99,7 +99,7 @@ def test_rns_config_repair_if_sections_present_but_unparseable(mock_rns, temp_di
 
     with (
         patch("meshchatx.meshchat.IdentityContext"),
-        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.LazyWebAudioBridge"),
         patch("meshchatx.meshchat.memory_log_handler"),
     ):
         ReticulumMeshChat(
@@ -123,7 +123,7 @@ def test_rns_config_file_path_is_normalized_to_directory(mock_rns, temp_dir):
 
     with (
         patch("meshchatx.meshchat.IdentityContext"),
-        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.LazyWebAudioBridge"),
         patch("meshchatx.meshchat.memory_log_handler"),
     ):
         app = ReticulumMeshChat(
@@ -170,7 +170,7 @@ port = tcp://192.0.2.1:4242
 
     with (
         patch("meshchatx.meshchat.IdentityContext"),
-        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.LazyWebAudioBridge"),
         patch("meshchatx.meshchat.memory_log_handler"),
     ):
         ReticulumMeshChat(

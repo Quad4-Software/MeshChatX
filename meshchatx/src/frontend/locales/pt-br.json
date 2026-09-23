@@ -1174,6 +1174,7 @@
         "identity_good": "Identidade Carregada",
         "imports_good": "Importações Críticas",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Bloqueio de Armazenamento",
         "temp_fs_good": "Sistema de Arquivos Temporário",
         "public_assets_good": "Recursos Públicos",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Requer permissão",
         "aware_permission_banner": "O WiFi Aware precisa da permissão de dispositivos próximos. Você pode concedê-la agora ou depois, antes de a interface iniciar.",
         "aware_permission_grant": "Conceder permissão",
+        "aware_permission_failed": "Não foi possível solicitar a permissão de dispositivos próximos neste dispositivo.",
         "aware_role_label": "Função do Aware",
         "aware_mode_note": "No WiFi Aware, o modo significa a função publish ou subscribe (não os modos Reticulum full/gateway/roaming).",
         "aware_max_peers": "Máx. de pares",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Ver no Mapa",
         "request": "Solicitar",
         "generate_paper_message": "Gerar Mensagem de Papel (LXM)",
+        "failed_generate_paper_uri": "Falha ao gerar a mensagem em papel",
         "ingest_paper_message": "Importar Mensagem de Papel",
         "scan_qr": "Escanear Código QR",
         "scanner_hint": "Aponte a câmera para um código QR lxmf://, lxma:// ou lxm://.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Buscar configurações...",
         "no_search_results": "Nenhuma configuração encontrada correspondente à sua busca",
         "try_different_search": "Tente uma consulta de busca diferente",
-        "clear_search": "Limpar busca"
+        "clear_search": "Limpar busca",
+        "archived_pages_flush_failed": "Falha ao limpar as páginas arquivadas"
     },
     "debug": {
         "title": "Logs de Depuração",
@@ -3830,6 +3834,7 @@
             "permission_hint": "A permissão de dispositivos próximos é necessária para hospedar ou entrar em redes locais.",
             "grant_permission": "Conceder permissão",
             "permission_settings": "Permissão bloqueada. Ative Dispositivos próximos nas configurações do app.",
+            "permission_failed": "Não foi possível solicitar a permissão de dispositivos próximos neste dispositivo.",
             "host_title": "Compartilhar uma rede local",
             "host_description": "Inicie um hotspot neste dispositivo. Outros entram nele para alcançar você sem roteador.",
             "start_hotspot": "Iniciar hotspot",

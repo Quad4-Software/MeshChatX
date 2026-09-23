@@ -221,9 +221,9 @@ jobs:
               run: |
                   set -euo pipefail
                   required=(
-                      "cbor2-5.6.5-*-cp311-cp311-android_24_arm64_v8a.whl"
-                      "cbor2-5.6.5-*-cp311-cp311-android_24_x86_64.whl"
-                      "cbor2-5.6.5-*-cp311-cp311-android_24_armeabi_v7a.whl"
+                      "cborx-0.2.3-*-cp311-cp311-android_24_arm64_v8a.whl"
+                      "cborx-0.2.3-*-cp311-cp311-android_24_x86_64.whl"
+                      "cborx-0.2.3-*-cp311-cp311-android_24_armeabi_v7a.whl"
                       "aiohttp-3.14.3-*-cp311-cp311-android_24_arm64_v8a.whl"
                       "aiohttp-3.14.3-*-cp311-cp311-android_24_x86_64.whl"
                       "aiohttp-3.14.3-*-cp311-cp311-android_24_armeabi_v7a.whl"
@@ -307,6 +307,12 @@ jobs:
               run: |
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:assembleRelease
+
+            - name: Verify release dex keeps reflection classes
+              if: ${{ (github.ref_type == 'tag' && (steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev')) || (github.ref_type != 'tag' && (github.event_name != 'workflow_dispatch' || inputs.build_release)) }}
+              working-directory: android
+              run: |
+                  bash ../scripts/android/verify-release-dex.sh app/build/outputs/apk/release/*.apk
 
             - name: Sign release APKs
               if: ${{ github.ref_type == 'tag' && (steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev') && steps.android_signing.outputs.ready == 'true' }}

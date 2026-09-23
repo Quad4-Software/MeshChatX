@@ -1174,6 +1174,7 @@
         "identity_good": "識別情報の読み込み",
         "imports_good": "重要なインポート",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "ストレージロック",
         "temp_fs_good": "一時ファイルシステム",
         "public_assets_good": "公開アセット",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "権限が必要",
         "aware_permission_banner": "WiFi Awareには近くのデバイスの権限が必要です。今すぐ許可するか、インターフェース開始前に許可できます。",
         "aware_permission_grant": "権限を付与",
+        "aware_permission_failed": "このデバイスで近くのデバイスの権限をリクエストできませんでした。",
         "aware_role_label": "Awareロール",
         "aware_mode_note": "WiFi Awareではモードはpublishまたはsubscribeの役割を意味します（Reticulumのfull/gateway/roamingではありません）。",
         "aware_max_peers": "最大ピア数",
@@ -2223,6 +2225,7 @@
         "view_on_map": "地図で表示",
         "request": "リクエスト",
         "generate_paper_message": "ペーパーメッセージを生成 (LXM)",
+        "failed_generate_paper_uri": "紙メッセージの生成に失敗しました",
         "ingest_paper_message": "ペーパーメッセージを取り込む",
         "scan_qr": "QR コードをスキャン",
         "scanner_hint": "カメラを lxmf://、lxma://、または lxm:// の QR コードに向けてください。",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "設定を検索...",
         "no_search_results": "検索に一致する設定が見つかりません",
         "try_different_search": "別の検索語を試してください",
-        "clear_search": "検索をクリア"
+        "clear_search": "検索をクリア",
+        "archived_pages_flush_failed": "アーカイブ済みページの破棄に失敗しました"
     },
     "debug": {
         "title": "デバッグログ",
@@ -3830,6 +3834,7 @@
             "permission_hint": "ローカルネットワークのホストや参加には近くのデバイス権限が必要です。",
             "grant_permission": "権限を付与",
             "permission_settings": "権限がブロックされました。アプリ設定で近くのデバイスを有効にしてください。",
+            "permission_failed": "このデバイスで近くのデバイスの権限をリクエストできませんでした。",
             "host_title": "ローカルネットワークを共有",
             "host_description": "このデバイスでホットスポットを開始します。他のデバイスがルーターなしで接続できます。",
             "start_hotspot": "ホットスポットを開始",

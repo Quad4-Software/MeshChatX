@@ -144,10 +144,15 @@ def test_lxm_uri_ingest_status_matrix(mock_app, router_result, status):
 
 
 def test_generate_paper_uri_requires_dest_and_content(mock_app):
+    # Missing inputs must still answer with an error so the caller is not
+    # left spinning forever.
     app = prepare_messaging_app(mock_app)
     client = _client()
     asyncio.run(handle_lxm_generate_paper_uri(app, client, {}))
-    client.send_str.assert_not_called()
+    payload = _last_payload(client)
+    assert payload is not None
+    assert payload["type"] == "lxm.generate_paper_uri.result"
+    assert payload["status"] == "error"
     asyncio.run(
         handle_lxm_generate_paper_uri(
             app,
@@ -155,7 +160,9 @@ def test_generate_paper_uri_requires_dest_and_content(mock_app):
             {"destination_hash": LOCAL_LXMF},
         ),
     )
-    client.send_str.assert_not_called()
+    payload = _last_payload(client)
+    assert payload is not None
+    assert payload["status"] == "error"
 
 
 def test_generate_paper_uri_unknown_identity_errors(mock_app):

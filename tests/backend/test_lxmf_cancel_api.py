@@ -87,6 +87,57 @@ async def test_lxmf_cancel_endpoint_loads_updated_message_from_database(web_canc
 
 
 @pytest.mark.asyncio
+async def test_lxmf_cancel_rejects_invalid_hash(web_cancel_app):
+    aio_app = _build_aio_app(web_cancel_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        response = await client.post("/api/v1/lxmf-messages/not-hex!/cancel")
+        assert response.status == 400
+    web_cancel_app.message_router.cancel_outbound.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_lxmf_cancel_reconciles_db_after_restart(web_cancel_app):
+    # The router holds no live object after a restart, so a "sending" row
+    # would otherwise return 200 while staying stuck forever.
+    message_hash = "cc" * 16
+    web_cancel_app.database.messages.get_lxmf_message_by_hash.return_value = {
+        "hash": message_hash,
+        "state": "sending",
+        "progress": 12.0,
+        "delivery_attempts": 1,
+        "next_delivery_attempt_at": None,
+    }
+    aio_app = _build_aio_app(web_cancel_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        response = await client.post(f"/api/v1/lxmf-messages/{message_hash}/cancel")
+        assert response.status == 200
+
+    web_cancel_app.database.messages.update_lxmf_message_state.assert_called_once_with(
+        message_hash,
+        "cancelled",
+        12.0,
+        1,
+        None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_lxmf_cancel_attempts_forwarding_routers(web_cancel_app):
+    # Forwarded sends queue on per-alias routers, not the main router.
+    message_hash = "dd" * 16
+    alias_router = MagicMock()
+    web_cancel_app.forwarding_manager.forwarding_routers = {
+        "alias": alias_router,
+    }
+    aio_app = _build_aio_app(web_cancel_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        response = await client.post(f"/api/v1/lxmf-messages/{message_hash}/cancel")
+        assert response.status == 200
+
+    alias_router.cancel_outbound.assert_called_once_with(bytes.fromhex(message_hash))
+
+
+@pytest.mark.asyncio
 async def test_lxmf_cancel_inbound_all_endpoint(web_cancel_app):
     web_cancel_app.message_router.cancel_all_inbound.return_value = 3
     web_cancel_app.message_router.inbound_resources.return_value = []

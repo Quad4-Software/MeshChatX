@@ -1174,6 +1174,7 @@
         "identity_good": "신원 로드",
         "imports_good": "핵심 임포트",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "저장소 잠금",
         "temp_fs_good": "임시 파일 시스템",
         "public_assets_good": "퍼블릭 자산",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "권한 필요",
         "aware_permission_banner": "WiFi Aware에는 주변 기기 권한이 필요합니다. 지금 허용하거나 인터페이스 시작 전에 나중에 허용할 수 있습니다.",
         "aware_permission_grant": "권한 허용",
+        "aware_permission_failed": "이 기기에서 주변 기기 권한을 요청할 수 없습니다.",
         "aware_role_label": "Aware 역할",
         "aware_mode_note": "WiFi Aware에서 모드는 publish 또는 subscribe 역할을 의미합니다(Reticulum의 full/gateway/roaming이 아님).",
         "aware_max_peers": "최대 피어 수",
@@ -2223,6 +2225,7 @@
         "view_on_map": "지도에서 보기",
         "request": "요청",
         "generate_paper_message": "종이 메시지 생성 (LXM)",
+        "failed_generate_paper_uri": "종이 메시지 생성에 실패했습니다",
         "ingest_paper_message": "종이 메시지 가져오기",
         "scan_qr": "QR 코드 스캔",
         "scanner_hint": "카메라를 lxmf://, lxma:// 또는 lxm:// QR 코드에 향하세요.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "설정 검색...",
         "no_search_results": "검색과 일치하는 설정이 없습니다",
         "try_different_search": "다른 검색어로 시도해 보세요",
-        "clear_search": "검색 지우기"
+        "clear_search": "검색 지우기",
+        "archived_pages_flush_failed": "보관된 페이지 비우기에 실패했습니다"
     },
     "debug": {
         "title": "디버그 로그",
@@ -3830,6 +3834,7 @@
             "permission_hint": "로컬 네트워크를 호스팅하거나 참여하려면 주변 기기 권한이 필요합니다.",
             "grant_permission": "권한 허용",
             "permission_settings": "권한이 차단되었습니다. 앱 설정에서 주변 기기를 허용하세요.",
+            "permission_failed": "이 기기에서 주변 기기 권한을 요청할 수 없습니다.",
             "host_title": "로컬 네트워크 공유",
             "host_description": "이 기기에서 핫스팟을 시작합니다. 다른 기기가 라우터 없이 연결할 수 있습니다.",
             "start_hotspot": "핫스팟 시작",

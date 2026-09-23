@@ -178,6 +178,25 @@ if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
                 echo "APK build failed or skipped; continuing." >&2
             fi
         fi
+        _apk_file="$(find dist -maxdepth 1 -type f -name '*-alpine-*.apk' -print -quit 2>/dev/null || true)"
+        if [ -n "$_apk_file" ]; then
+            _ctr=""
+            if command -v docker >/dev/null 2>&1; then
+                _ctr="docker"
+            elif command -v podman >/dev/null 2>&1; then
+                _ctr="podman"
+            fi
+            if [ -n "$_ctr" ]; then
+                # Release gate: apk-tools must accept the package. fpm-built
+                # apks were rejected by apk 2.x and 3.x alike; this catches
+                # format regressions before publish.
+                echo "Verifying apk installs under apk-tools..."
+                "$_ctr" run --rm -v "$PWD/dist:/p:ro" alpine:3.20 \
+                    apk add --allow-untrusted --no-cache "/p/$(basename "$_apk_file")"
+            else
+                echo "docker/podman unavailable; skipping apk install gate." >&2
+            fi
+        fi
     elif has_format rpm || has_format apk; then
         echo "Skipping RPM/APK on $NATIVE_ARCH runner (built on x64 only)." >&2
     fi

@@ -1174,6 +1174,7 @@
         "identity_good": "Идентификация загружена",
         "imports_good": "Критические импорты",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Блокировка хранилища",
         "temp_fs_good": "Временная файловая система",
         "public_assets_good": "Публичные ресурсы",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Нужно разрешение",
         "aware_permission_banner": "WiFi Aware требует разрешения на устройства рядом. Его можно выдать сейчас или позже, до запуска интерфейса.",
         "aware_permission_grant": "Выдать разрешение",
+        "aware_permission_failed": "Не удалось запросить разрешение на доступ к устройствам поблизости на этом устройстве.",
         "aware_role_label": "Роль Aware",
         "aware_mode_note": "Для WiFi Aware режим означает роль publish или subscribe (а не режимы Reticulum full/gateway/roaming).",
         "aware_max_peers": "Макс. пиров",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Показать на карте",
         "request": "Запрос",
         "generate_paper_message": "Создать бумажное сообщение (LXM)",
+        "failed_generate_paper_uri": "Не удалось создать бумажное сообщение",
         "ingest_paper_message": "Загрузить бумажное сообщение",
         "scan_qr": "Сканировать QR-код",
         "scanner_hint": "Наведите камеру на QR-код lxmf://, lxma:// или lxm://.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Поиск настроек...",
         "no_search_results": "Настройки по вашему запросу не найдены",
         "try_different_search": "Попробуйте изменить поисковый запрос",
-        "clear_search": "Очистить поиск"
+        "clear_search": "Очистить поиск",
+        "archived_pages_flush_failed": "Не удалось очистить архивные страницы"
     },
     "debug": {
         "title": "Журнал отладки",
@@ -3830,6 +3834,7 @@
             "permission_hint": "Для создания локальных сетей или подключения к ним требуется разрешение на устройства рядом.",
             "grant_permission": "Выдать разрешение",
             "permission_settings": "Разрешение заблокировано. Включите доступ к устройствам рядом в настройках приложения.",
+            "permission_failed": "Не удалось запросить разрешение на доступ к устройствам поблизости на этом устройстве.",
             "host_title": "Поделиться локальной сетью",
             "host_description": "Запустите точку доступа на этом устройстве. Другие подключатся к ней, чтобы связаться с вами без роутера.",
             "start_hotspot": "Запустить точку доступа",

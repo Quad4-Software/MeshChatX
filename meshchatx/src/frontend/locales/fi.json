@@ -1174,6 +1174,7 @@
         "identity_good": "Identiteetti ladattu",
         "imports_good": "Kriittiset tuonnit",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Tallennuksen lukitus",
         "temp_fs_good": "Väliaikaistiedostojärjestelmä",
         "public_assets_good": "Julkiset resurssit",
@@ -1666,6 +1667,7 @@
         "aware_permission_required": "Vaatii luvan",
         "aware_permission_banner": "WiFi Aware tarvitsee luvan lähilaitteisiin. Voit myöntää sen nyt tai myöhemmin ennen rajapinnan käynnistystä.",
         "aware_permission_grant": "Myönnä lupa",
+        "aware_permission_failed": "Lähilaitteiden lupaa ei voitu pyytää tällä laitteella.",
         "aware_role_label": "Aware-rooli",
         "aware_mode_note": "WiFi Awaressa tila tarkoittaa publish- tai subscribe-roolia (ei Reticulum-tiloja full/gateway/roaming).",
         "aware_max_peers": "Enimmäisvertaiset",
@@ -2223,6 +2225,7 @@
         "view_on_map": "Näytä kartalla",
         "request": "Pyyntö",
         "generate_paper_message": "Tee paperiviesti (LXM)",
+        "failed_generate_paper_uri": "Paperiviestin luonti epäonnistui",
         "ingest_paper_message": "Lue paperiviesti",
         "scan_qr": "Lue QR-koodi",
         "scanner_hint": "Osoita kamerasi lxmf://, lxma://, or lxm:// -QR-koodiin.",
@@ -2606,7 +2609,8 @@
         "search_placeholder": "Hae asetuksista...",
         "no_search_results": "Hakua vastaavia asetuksia ei löytynyt",
         "try_different_search": "Kokeile toista hakuehtoa",
-        "clear_search": "Tyhjennä haku"
+        "clear_search": "Tyhjennä haku",
+        "archived_pages_flush_failed": "Arkiston tyhjennys epäonnistui"
     },
     "debug": {
         "title": "Vianetsintälokit",
@@ -3830,6 +3834,7 @@
             "permission_hint": "Lähilaitteiden lupa vaaditaan paikallisten verkkojen isännöintiin tai niihin liittymiseen.",
             "grant_permission": "Myönnä lupa",
             "permission_settings": "Lupa estetty. Ota lähilaitteet käyttöön sovelluksen asetuksissa.",
+            "permission_failed": "Lähilaitteiden lupaa ei voitu pyytää tällä laitteella.",
             "host_title": "Jaa paikallinen verkko",
             "host_description": "Käynnistä hotspot tässä laitteessa. Muut liittyvät siihen tavoittaakseen sinut ilman reititintä.",
             "start_hotspot": "Käynnistä hotspot",

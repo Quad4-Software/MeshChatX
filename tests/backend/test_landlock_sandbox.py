@@ -174,54 +174,56 @@ def test_collect_read_roots_includes_venv_root_for_pyvenv_cfg(tmp_path, monkeypa
 
 
 def test_handled_access_fs_for_abi_gates_new_rights():
+    AccessFS = ll.AccessFS
     abi1 = ll._handled_access_fs_for_abi(1)
-    assert abi1 & ll._LANDLOCK_ACCESS_FS_REFER == 0
-    assert abi1 & ll._LANDLOCK_ACCESS_FS_TRUNCATE == 0
-    assert abi1 & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV == 0
-    assert abi1 & ll._LANDLOCK_ACCESS_FS_WRITE_FILE
+    assert abi1 & AccessFS.REFER == 0
+    assert abi1 & AccessFS.TRUNCATE == 0
+    assert abi1 & AccessFS.IOCTL_DEV == 0
+    assert abi1 & AccessFS.WRITE_FILE
 
     abi2 = ll._handled_access_fs_for_abi(2)
-    assert abi2 & ll._LANDLOCK_ACCESS_FS_REFER
-    assert abi2 & ll._LANDLOCK_ACCESS_FS_TRUNCATE == 0
+    assert abi2 & AccessFS.REFER
+    assert abi2 & AccessFS.TRUNCATE == 0
 
     abi3 = ll._handled_access_fs_for_abi(3)
-    assert abi3 & ll._LANDLOCK_ACCESS_FS_REFER
-    assert abi3 & ll._LANDLOCK_ACCESS_FS_TRUNCATE
-    assert abi3 & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV == 0
+    assert abi3 & AccessFS.REFER
+    assert abi3 & AccessFS.TRUNCATE
+    assert abi3 & AccessFS.IOCTL_DEV == 0
 
     abi5 = ll._handled_access_fs_for_abi(5)
-    assert abi5 & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV
+    assert abi5 & AccessFS.IOCTL_DEV
     # Network and UNIX-resolve rights stay unhandled on purpose.
     assert abi5 == ll._handled_access_fs_for_abi(10)
+    assert abi5 & AccessFS.RESOLVE_UNIX == 0
 
 
 def test_rw_access_grants_new_rights_when_handled():
+    AccessFS = ll.AccessFS
     handled = ll._handled_access_fs_for_abi(5)
     read_access = ll._read_access_for_handled(handled)
     rw_access = ll._rw_access_for_handled(handled)
-    assert read_access & ll._LANDLOCK_ACCESS_FS_TRUNCATE == 0
-    assert read_access & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV == 0
-    assert read_access & ll._LANDLOCK_ACCESS_FS_REFER == 0
-    assert rw_access & ll._LANDLOCK_ACCESS_FS_TRUNCATE
-    assert rw_access & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV
-    assert rw_access & ll._LANDLOCK_ACCESS_FS_REFER
+    assert read_access & AccessFS.TRUNCATE == 0
+    assert read_access & AccessFS.IOCTL_DEV == 0
+    assert read_access & AccessFS.REFER == 0
+    assert rw_access & AccessFS.TRUNCATE
+    assert rw_access & AccessFS.IOCTL_DEV
+    assert rw_access & AccessFS.REFER
 
 
-def test_ruleset_attr_size_matches_abi():
-    assert ll._ruleset_attr_size(1) == 8
-    assert ll._ruleset_attr_size(3) == 8
-    assert ll._ruleset_attr_size(4) == 16
-    assert ll._ruleset_attr_size(5) == 16
-    assert ll._ruleset_attr_size(6) == 24
+def test_apply_landlock_sandbox_requires_landlockpy(monkeypatch):
+    monkeypatch.setenv("MESHCHAT_LANDLOCK", "1")
+    monkeypatch.setattr(ll, "landlockpy", None)
+    assert ll.apply_landlock_sandbox() is False
 
 
 def test_file_access_includes_truncate_with_write():
+    AccessFS = ll.AccessFS
     handled = ll._handled_access_fs_for_abi(5)
     rw = ll._rw_access_for_handled(handled)
     file_access = ll._file_access_from_dir_access(rw, handled)
-    assert file_access & ll._LANDLOCK_ACCESS_FS_WRITE_FILE
-    assert file_access & ll._LANDLOCK_ACCESS_FS_TRUNCATE
-    assert file_access & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV
+    assert file_access & AccessFS.WRITE_FILE
+    assert file_access & AccessFS.TRUNCATE
+    assert file_access & AccessFS.IOCTL_DEV
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="Landlock probe requires Linux")

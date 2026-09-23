@@ -626,7 +626,7 @@ class CrashRecovery:
             return p * math.log2(p / q) + (1.0 - p) * math.log2((1.0 - p) / (1.0 - q))
 
         # Dimensions of uncertainty (Current vs Ideal Setpoint)
-        # Dimensions: [Memory, Config, Database, PythonVersion]
+        # Dimensions are Memory, Config, Database, PythonVersion
         p_vec = [0.1, 0.05, 0.02, 0.01]  # Baseline Ideal Probabilities of Failure
         q_vec = [0.1, 0.05, 0.02, 0.01]  # Observed Probabilities
 

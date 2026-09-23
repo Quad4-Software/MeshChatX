@@ -322,8 +322,9 @@
                                 <form class="flex flex-col gap-1" @submit.prevent="joinRoom(hub)">
                                     <div class="flex gap-1">
                                         <input
-                                            v-model="joinRoomName"
+                                            v-model="joinRoomForm(hub).name"
                                             type="text"
+                                            :data-rrc-join-name="hub.hub_hash"
                                             :placeholder="$t('relay_chat.join_room_placeholder')"
                                             class="min-w-0 flex-1 rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                         />
@@ -336,7 +337,7 @@
                                         </button>
                                     </div>
                                     <input
-                                        v-model="joinRoomKey"
+                                        v-model="joinRoomForm(hub).key"
                                         type="password"
                                         :placeholder="$t('relay_chat.join_room_key_placeholder')"
                                         autocomplete="off"
@@ -1864,8 +1865,10 @@ export default {
             localMentionRooms: new Map(),
             showChatPrefs: false,
             highlightWordDraft: "",
-            joinRoomName: "",
-            joinRoomKey: "",
+            joinRoomForms: {},
+            removedHubHashes: {},
+            removedRoomKeys: {},
+            hubsLoaded: false,
             badKeyPromptInFlight: null,
             showAddHub: false,
             addHubAdvancedOpen: false,
@@ -2416,8 +2419,10 @@ export default {
             // stale ids.
             this.sidebarMenu = { show: false, x: 0, y: 0, hub: null, room: null };
             this.messageMenu = { show: false, x: 0, y: 0, msg: null };
-            this.joinRoomName = "";
-            this.joinRoomKey = "";
+            this.joinRoomForms = {};
+            this.removedHubHashes = {};
+            this.removedRoomKeys = {};
+            this.hubsLoaded = false;
             this.badKeyPromptInFlight = null;
             this.roomForms = {};
             this.showMembers = false;
@@ -2461,7 +2466,7 @@ export default {
         async softResyncOpenRoom() {
             const hubHash = this.selectedHubHash;
             const room = this.selectedRoom;
-            if (!hubHash || !room) {
+            if (!hubHash || !room || this.isRoomGone(hubHash, room)) {
                 return;
             }
             const seq = this.roomSelectSequence;
@@ -2953,10 +2958,7 @@ export default {
             this._setSelectedHub(hub.hub_hash);
             this.expandedHubs[hub.hub_hash] = true;
             nextTick(() => {
-                const inputs = this.$el?.querySelectorAll?.("input.input-field");
-                if (inputs && inputs.length > 0) {
-                    inputs[inputs.length - 1].focus();
-                }
+                this.$el?.querySelector?.(`input[data-rrc-join-name="${hub.hub_hash}"]`)?.focus();
             });
         },
         connectHubFromMenu() {
@@ -3016,11 +3018,13 @@ export default {
             if (!confirmed) {
                 return;
             }
+            this.removedRoomKeys[this.roomTrackKey(hub.hub_hash, room)] = true;
             try {
                 await window.api.delete(apiPath(`/rrc/hubs/${hub.hub_hash}/rooms/${this.encodeRoom(room)}`));
                 ToastUtils.success(this.$t("relay_chat.left_room"));
                 await this.fetchHubs();
             } catch (e) {
+                delete this.removedRoomKeys[this.roomTrackKey(hub.hub_hash, room)];
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
         },
@@ -3469,6 +3473,20 @@ export default {
             try {
                 const response = await window.api.get(apiPath("/rrc/hubs"));
                 this.hubs = response.data?.hubs || [];
+                this.hubsLoaded = true;
+                // Tombstones only bridge the in-flight delete window; once a
+                // hub or room shows up in a fresh listing it is live again.
+                for (const hub of this.hubs) {
+                    delete this.removedHubHashes[hub.hub_hash];
+                    for (const room of hub.known_rooms || []) {
+                        delete this.removedRoomKeys[this.roomTrackKey(hub.hub_hash, room)];
+                    }
+                }
+                // A hub deleted elsewhere leaves a stale selection behind;
+                // every message/read call for it would 404 until cleared.
+                if (this.selectedHubHash && !this.hubs.some((h) => h.hub_hash === this.selectedHubHash)) {
+                    this._setSelectedHub(null);
+                }
                 if (!this.selectedHubHash && this.hubs.length > 0) {
                     this._setSelectedHub(this.hubs[0].hub_hash);
                     this.expandedHubs[this.hubs[0].hub_hash] = true;
@@ -3583,10 +3601,12 @@ export default {
                 return;
             }
             this.clearLocalRoomUnread(hubHash, room);
-            try {
-                await window.api.post(apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/read`));
-            } catch {
-                // GET messages already marks active/read on the server. Ignore duplicate failures.
+            if (!this.isRoomGone(hubHash, room)) {
+                try {
+                    await window.api.post(apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/read`));
+                } catch {
+                    // GET messages already marks active/read on the server. Ignore duplicate failures.
+                }
             }
             if (refreshHubs) {
                 await this.fetchHubs();
@@ -3599,10 +3619,44 @@ export default {
         getMessagesScrollElement() {
             return this.$refs.messageList ?? null;
         },
+        // Rooms and hubs are deleted on the server while in-flight websocket
+        // events can still reference them. Tombstones recorded at delete time
+        // keep those stale callbacks from issuing requests that 404.
+        roomTrackKey(hubHash, room) {
+            return `${hubHash}:${String(room || "")
+                .trim()
+                .toLowerCase()}`;
+        },
+        isHubGone(hubHash) {
+            if (!hubHash) {
+                return true;
+            }
+            if (this.removedHubHashes[hubHash]) {
+                return true;
+            }
+            return this.hubsLoaded && !this.hubs.some((h) => h.hub_hash === hubHash);
+        },
+        isRoomGone(hubHash, room) {
+            if (this.isHubGone(hubHash)) {
+                return true;
+            }
+            if (this.removedRoomKeys[this.roomTrackKey(hubHash, room)]) {
+                return true;
+            }
+            const hub = this.hubs.find((h) => h.hub_hash === hubHash);
+            if (!hub || !Array.isArray(hub.known_rooms)) {
+                return false;
+            }
+            return !hub.known_rooms.includes(
+                String(room || "")
+                    .trim()
+                    .toLowerCase()
+            );
+        },
         async refreshMembers() {
             const hubHash = this.selectedHubHash;
             const room = this.selectedRoom;
-            if (!hubHash || !room) {
+            if (!hubHash || !room || this.isRoomGone(hubHash, room)) {
                 return;
             }
             try {
@@ -3696,17 +3750,24 @@ export default {
                 this.sending = false;
             }
         },
+        joinRoomForm(hub) {
+            const hubHash = hub?.hub_hash || "";
+            if (!this.joinRoomForms[hubHash]) {
+                this.joinRoomForms[hubHash] = { name: "", key: "" };
+            }
+            return this.joinRoomForms[hubHash];
+        },
         async joinRoom(hub) {
-            const room = this.joinRoomName.trim();
+            const form = this.joinRoomForm(hub);
+            const room = (form.name || "").trim();
             if (!room) {
                 ToastUtils.warning(this.$t("relay_chat.room_required"));
                 return;
             }
-            const key = this.joinRoomKey.trim() || null;
+            const key = (form.key || "").trim() || null;
             const joined = await this.joinRoomByName(hub, room, { key });
             if (joined) {
-                this.joinRoomName = "";
-                this.joinRoomKey = "";
+                this.joinRoomForms[hub.hub_hash] = { name: "", key: "" };
             }
         },
         async joinAvailableRoom(hub, room) {
@@ -3818,6 +3879,7 @@ export default {
             }
             const room = this.selectedRoom;
             const draftHub = this.selectedHubHash;
+            this.removedRoomKeys[this.roomTrackKey(draftHub, room)] = true;
             try {
                 await window.api.delete(apiPath(`/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(room)}`));
                 // A left room is gone for good, so its draft goes with it.
@@ -3831,6 +3893,7 @@ export default {
                 ToastUtils.success(this.$t("relay_chat.left_room"));
                 await this.fetchHubs();
             } catch (e) {
+                delete this.removedRoomKeys[this.roomTrackKey(draftHub, room)];
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
         },
@@ -3904,6 +3967,7 @@ export default {
             if (!confirmed) {
                 return;
             }
+            this.removedHubHashes[hub.hub_hash] = true;
             try {
                 await window.api.delete(apiPath(`/rrc/hubs/${hub.hub_hash}`));
                 if (this.selectedHubHash === hub.hub_hash) {
@@ -3912,6 +3976,7 @@ export default {
                 ToastUtils.success(this.$t("relay_chat.hub_removed"));
                 await this.fetchHubs();
             } catch (e) {
+                delete this.removedHubHashes[hub.hub_hash];
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
         },
