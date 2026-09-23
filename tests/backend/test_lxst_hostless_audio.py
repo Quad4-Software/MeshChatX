@@ -222,6 +222,44 @@ def test_tee_mirrors_hostless_sink_buffer_surface():
     assert base.streaming is True
 
 
+def test_tee_mirrors_codec_facing_sink_attrs():
+    # Opus/Codec2 decoders read sink.channels and sink.samplerate on the first
+    # frame; a Tee sitting behind a decoding codec must expose them.
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    child = MagicMock()
+    child.channels = 2
+    child.samplerate = 44100
+    child.bitdepth = 32
+    tee = Tee(child)
+    assert tee.channels == 2
+    assert tee.samplerate == 44100
+    assert tee.bitdepth == 32
+
+    # Sinks configured after Tee creation are still mirrored live.
+    child.samplerate = 48000
+    assert tee.samplerate == 48000
+
+    # Writes forward to children that expose the attribute.
+    tee.channels = 1
+    tee.samplerate = 24000
+    assert child.channels == 1
+    assert child.samplerate == 24000
+
+
+def test_tee_codec_attrs_fall_back_when_children_lack_them():
+    from meshchatx.src.backend.telephone_manager import Tee
+
+    class BareSink:
+        def handle_frame(self, frame, source=None):
+            pass
+
+    tee = Tee(BareSink())
+    assert tee.channels == 1
+    assert tee.samplerate == 48000
+    assert tee.bitdepth == 16
+
+
 def test_tee_survives_child_errors():
     from meshchatx.src.backend.telephone_manager import Tee
 
