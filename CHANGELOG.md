@@ -46,6 +46,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - The Landlock sandbox now uses `landlockpy` instead of the custom ctypes plumbing; the enforced filesystem policy is unchanged and Android is unaffected.
+- Relay chat's CBOR codec moved from cbor2 to cborx, a zero-dependency RFC 8949 implementation with an optional compiled fast path. Canonical wire encoding is unchanged, decode rejects trailing bytes instead of ignoring them, and Android packages cborx through a Chaquopy recipe instead of the cbor2 wheel.
 - Visualiser layout spacing widened to match node size, WASM and JS paths gained LOD color, NaN guard, edge-filtering, and dead-scene fallback parity, and `visualiser.wasm` was rebuilt.
 - UI lighthouse, performance, and heap suites run against the production bundle instead of the Vite dev server, and service workers are unregistered before audits so scores cannot be nulled by a controlled navigation.
 - Backend: the eight per-identity periodic loops (auto-announce, propagation sync, crawler, auto-backup, telemetry, retention, flood cooldown, auto propagation selection) now share one background event loop instead of one thread each. Backups, retention sweeps, and announce table reads run in worker threads so they cannot stall the shared loop. This cuts several threads and thread-local database connections per identity.

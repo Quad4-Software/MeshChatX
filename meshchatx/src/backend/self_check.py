@@ -28,7 +28,7 @@ _CRITICAL_IMPORTS = (
     "rns_filesync",
     "aiohttp",
     "bcrypt",
-    "cbor2",
+    "cborx",
     "bleak",
     "websockets",
     "miniaudio",

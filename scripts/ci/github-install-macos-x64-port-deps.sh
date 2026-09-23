@@ -32,7 +32,7 @@ fi
 echo "github-install-macos-x64-port-deps: installing MacPorts deps" >&2
 sudo port -N install codec2 libyaml openssl
 
-# sdist builds for cbor2, cryptography and libcst need a Rust toolchain.
+# sdist builds for cryptography and libcst need a Rust toolchain.
 bash "$(dirname "$0")/github-macos-rust-x64-target.sh"
 if [[ -f "${HOME}/.cargo/env" ]]; then
     # shellcheck disable=SC1091

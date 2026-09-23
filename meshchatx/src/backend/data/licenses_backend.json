@@ -60,10 +60,10 @@
     "license": "MIT"
   },
   {
-    "name": "cbor2",
-    "version": "6.1.4",
-    "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
-    "license": "MIT"
+    "name": "cborx",
+    "version": "0.2.3",
+    "author": "Quad4",
+    "license": "0BSD"
   },
   {
     "name": "certifi",
