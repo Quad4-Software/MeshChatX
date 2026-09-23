@@ -1,0 +1,6 @@
+package:
+    name: cborx
+    version: "0.2.3"
+
+build:
+    number: 1
