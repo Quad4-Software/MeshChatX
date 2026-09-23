@@ -4,11 +4,11 @@ import asyncio
 import base64
 import contextlib
 import os
+import sys
 import threading
 import time
 
 import RNS
-from LXST import Telephone
 
 from meshchatx.src.backend import reticulum_pathfinding
 from meshchatx.src.backend.meshchat_utils import (
@@ -16,6 +16,23 @@ from meshchatx.src.backend.meshchat_utils import (
     normalize_hex_identifier,
 )
 from meshchatx.src.backend.path_utils import path_response_window
+
+
+def __getattr__(name: str):
+    # LXST pulls in numpy and audio backends, so Telephone resolves lazily
+    # through module __getattr__ instead of a top-level import. Keeping the
+    # name module-scoped also keeps tests patching this attribute working.
+    if name == "Telephone":
+        from LXST import Telephone
+
+        return Telephone
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def _telephone_class():
+    # Bare Telephone would miss module __getattr__ on a global load, so
+    # resolve through the module object, which also picks up test patches.
+    return sys.modules[__name__].Telephone
 
 
 class Tee:
@@ -304,7 +321,7 @@ class TelephoneManager:
 
         # Never enable LXST auto_answer. MeshChatX answers only via explicit
         # user action or the separate voicemail timer after RINGING.
-        self.telephone = Telephone(self.identity, auto_answer=None)
+        self.telephone = _telephone_class()(self.identity, auto_answer=None)
         self.telephone.auto_answer = None
         # Disable busy tone played on caller side when remote side rejects, or doesn't answer
         self.telephone.set_busy_tone_time(0)
@@ -354,7 +371,7 @@ class TelephoneManager:
             self.telephone.set_allowed(self._caller_allowed)
         else:
             # Fail closed until MeshChatX installs sync_telephone_call_policy.
-            self.telephone.set_allowed(Telephone.ALLOW_NONE)
+            self.telephone.set_allowed(_telephone_class().ALLOW_NONE)
 
     def _install_link_table_cleanup(self):
         """Ensure closed inbound links are removed from Telephone.links.
