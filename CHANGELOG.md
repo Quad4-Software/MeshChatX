@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Network visualiser gains a radial view mode that pins nodes on deterministic hop rings around the local node, plus screen-space label decluttering so dense zoomed views stay readable.
+- Settings self-test gains a CBOR roundtrip check that exercises the RRC codec's encode, decode, and stream replay paths.
 - CI performance suite measures cold-load FCP, LCP, SPA route transition latency, API round-trip, and post-mount heap per page with per-page budgets, plus a heap-growth spec that fails when a page leaks listeners, timers, or nodes across mount/unmount cycles.
 
 ### Security

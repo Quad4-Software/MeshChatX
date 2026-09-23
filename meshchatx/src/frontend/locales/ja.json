@@ -1174,6 +1174,7 @@
         "identity_good": "識別情報の読み込み",
         "imports_good": "重要なインポート",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "ストレージロック",
         "temp_fs_good": "一時ファイルシステム",
         "public_assets_good": "公開アセット",

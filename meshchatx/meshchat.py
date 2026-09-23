@@ -1211,6 +1211,7 @@ class ReticulumMeshChat:
         bot_launcher_result = self_check_mod.check_bot_launcher()
         backbone_patch_result = self_check_mod.check_rns_backbone_patch()
         umsgpack_result = self_check_mod.check_umsgpack_roundtrip()
+        cbor_result = self_check_mod.check_cbor_roundtrip()
         lxst_telephony_result = self_check_mod.run_isolated("lxst_telephony")
         audio_codec_result = self_check_mod.run_isolated("audio_codec_roundtrip")
         miniaudio_result = self_check_mod.run_isolated("miniaudio_decode")
@@ -1238,6 +1239,7 @@ class ReticulumMeshChat:
             "identity_good": identity_result,
             "imports_good": imports_result,
             "umsgpack_roundtrip": umsgpack_result,
+            "cbor_roundtrip": cbor_result,
             "storage_lock_good": storage_lock_result,
             "temp_fs_good": temp_fs_result,
             "fs_sandbox_good": fs_sandbox_result,

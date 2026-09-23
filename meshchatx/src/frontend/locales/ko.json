@@ -1174,6 +1174,7 @@
         "identity_good": "신원 로드",
         "imports_good": "핵심 임포트",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "저장소 잠금",
         "temp_fs_good": "임시 파일 시스템",
         "public_assets_good": "퍼블릭 자산",

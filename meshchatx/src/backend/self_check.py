@@ -51,6 +51,7 @@ SELF_CHECK_LABELS = {
     "identity_good": "Identity Loaded        ",
     "imports_good": "Critical Imports       ",
     "umsgpack_roundtrip": "Umsgpack Roundtrip     ",
+    "cbor_roundtrip": "CBOR Roundtrip         ",
     "storage_lock_good": "Storage Lock           ",
     "temp_fs_good": "Temp Filesystem        ",
     "fs_sandbox_good": "FS Sandbox Modules     ",
@@ -896,6 +897,37 @@ def check_umsgpack_roundtrip() -> dict[str, str]:
 
     if unpacked != payload:
         return _status(False, f"umsgpack roundtrip mismatch: {unpacked!r}")
+    return _status(True)
+
+
+def check_cbor_roundtrip() -> dict[str, str]:
+    """Verify the cborx-backed RRC codec encodes, decodes, and replays items."""
+    try:
+        from meshchatx.src.backend.rrc import protocol as rrc_protocol
+    except Exception as exc:
+        return _status(False, f"RRC protocol import failed: {exc}")
+
+    payload = {
+        0: 1,
+        1: 20,
+        2: b"\x00\x01\x02\xff\x03\x04\x05\x06",
+        3: 1_700_000_000_000,
+        4: b"\xaa" * 16,
+        5: "selfcheck",
+        6: "meshchatx-cbor-ok",
+    }
+    try:
+        packed = rrc_protocol.encode(payload)
+        unpacked = rrc_protocol.decode(packed)
+        first, end = rrc_protocol.decode_item(packed + packed, 0)
+        second, _ = rrc_protocol.decode_item(packed + packed, end)
+    except Exception as exc:
+        return _status(False, f"cbor roundtrip failed: {exc}")
+
+    if unpacked != payload:
+        return _status(False, f"cbor roundtrip mismatch: {unpacked!r}")
+    if first != payload or second != payload:
+        return _status(False, "cbor stream item decode mismatch")
     return _status(True)
 
 
