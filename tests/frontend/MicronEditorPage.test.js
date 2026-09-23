@@ -141,7 +141,9 @@ describe("MicronEditorPage.vue", () => {
         const wrapper = mountMicronEditorPage();
         await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
         const tab = { name: "About Page", content: "x" };
-        await expect(wrapper.vm.resolvePublishPageBase(tab, ["index.mu"], "srv")).resolves.toBe("About_Page");
+        await expect(
+            wrapper.vm.resolvePublishPageBase(tab, ["index.mu", "About_Page.mu"], "srv")
+        ).resolves.toBe("About_Page");
     });
 
     it("resolvePublishPageBase prompts when index.mu exists and tab name is unset", async () => {

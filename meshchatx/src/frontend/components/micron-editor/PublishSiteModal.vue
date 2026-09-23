@@ -274,6 +274,7 @@ export default {
                     name: e.filename.trim(),
                     content: e.content,
                     label: e.tabName,
+                    tabId: e.tabId,
                 }));
             if (pages.length === 0 || !this.canSubmit) {
                 return;
