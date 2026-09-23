@@ -26,6 +26,8 @@ def __getattr__(name: str):
         from LXST import Telephone
 
         return Telephone
+    if name == "Tee":
+        return _tee_class()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -35,27 +37,158 @@ def _telephone_class():
     return sys.modules[__name__].Telephone
 
 
-class Tee:
-    def __init__(self, sink):
-        self.sinks = [sink]
+_TEE_CLASS = None
 
-    def add_sink(self, sink):
-        if sink not in self.sinks:
-            self.sinks.append(sink)
 
-    def remove_sink(self, sink):
-        if sink in self.sinks:
-            self.sinks.remove(sink)
+def _tee_class():
+    """Build the Tee sink lazily so this module stays LXST-free at import."""
+    global _TEE_CLASS
+    if _TEE_CLASS is not None:
+        return _TEE_CLASS
+    from LXST.Sinks import Sink
 
-    def handle_frame(self, frame, source):
-        for sink in self.sinks:
-            try:
-                sink.handle_frame(frame, source)
-            except Exception as e:
-                RNS.log(f"Tee: Error in sink handle_frame: {e}", RNS.LOG_ERROR)
+    class Tee(Sink):
+        """Fan-out sink that forwards receive frames to every child sink.
 
-    def can_receive(self, from_source=None):
-        return any(sink.can_receive(from_source) for sink in self.sinks)
+        LXST Pipeline rejects sinks that are not Sink subclasses, and
+        Telephony pokes the LineSink buffer surface (buffer_max_height,
+        autostart_min, streaming, wait_for_frames) on audio_output. Tee
+        mirrors that surface and forwards lifecycle calls to children.
+        """
+
+        def __init__(self, sink):
+            self.sinks = [sink]
+            self.should_run = False
+            self._streaming = getattr(sink, "streaming", False)
+            self._buffer_max_height = getattr(sink, "buffer_max_height", 3)
+            self._autostart_min = getattr(sink, "autostart_min", 1)
+
+        def _forward_attr(self, name, value):
+            for sink in self.sinks:
+                if not hasattr(sink, name):
+                    continue
+                try:
+                    setattr(sink, name, value)
+                except Exception as e:
+                    RNS.log(
+                        f"Tee: could not set {name} on {sink}: {e}",
+                        RNS.LOG_ERROR,
+                    )
+
+        def _forward_call(self, name):
+            for sink in self.sinks:
+                method = getattr(sink, name, None)
+                if not callable(method):
+                    continue
+                try:
+                    method()
+                except Exception as e:
+                    RNS.log(
+                        f"Tee: {name} failed on {sink}: {e}",
+                        RNS.LOG_ERROR,
+                    )
+
+        @property
+        def streaming(self):
+            return self._streaming
+
+        @streaming.setter
+        def streaming(self, value):
+            self._streaming = value
+            self._forward_attr("streaming", value)
+
+        @property
+        def buffer_max_height(self):
+            return self._buffer_max_height
+
+        @buffer_max_height.setter
+        def buffer_max_height(self, value):
+            self._buffer_max_height = value
+            self._forward_attr("buffer_max_height", value)
+
+        @property
+        def autostart_min(self):
+            return self._autostart_min
+
+        @autostart_min.setter
+        def autostart_min(self, value):
+            self._autostart_min = value
+            self._forward_attr("autostart_min", value)
+
+        def add_sink(self, sink):
+            if sink not in self.sinks:
+                self.sinks.append(sink)
+
+        def remove_sink(self, sink):
+            if sink in self.sinks:
+                self.sinks.remove(sink)
+
+        def handle_frame(self, frame, source):
+            for sink in self.sinks:
+                try:
+                    sink.handle_frame(frame, source)
+                except Exception as e:
+                    RNS.log(f"Tee: Error in sink handle_frame: {e}", RNS.LOG_ERROR)
+
+        def can_receive(self, from_source=None):
+            return any(sink.can_receive(from_source) for sink in self.sinks)
+
+        def start(self):
+            self.should_run = True
+            self._forward_call("start")
+
+        def stop(self):
+            self.should_run = False
+            self._forward_call("stop")
+
+        def wait_for_frames(self):
+            self._forward_call("wait_for_frames")
+
+        def enable_low_latency(self):
+            self._forward_call("enable_low_latency")
+
+        def release(self):
+            super().release()
+            self._forward_call("release")
+
+    _TEE_CLASS = Tee
+    return _TEE_CLASS
+
+
+def _patch_lxst_linksource_samplerate():
+    """Give LXST LinkSource the samplerate attribute sinks read.
+
+    LXST 0.5.x LinkSource never sets samplerate, but OpusFileSink and
+    Mixer read source.samplerate on the first accepted frame, so every
+    incoming packet raised AttributeError and voicemail recordings came
+    out silent. Decoded frames run at the codec sink rate, so expose
+    that (falling back to the 48 kHz pipeline rate when unset).
+    """
+    try:
+        from LXST.Network import LinkSource
+    except Exception:
+        return False
+    if hasattr(LinkSource, "samplerate"):
+        return False
+
+    def _samplerate(self):
+        codec = getattr(self, "codec", None)
+        sink = getattr(codec, "sink", None) or getattr(self, "sink", None)
+        rate = getattr(sink, "samplerate", None)
+        return rate or 48000
+
+    def _set_samplerate(self, value):
+        # Keep instance overrides possible; the property reads them back.
+        self._samplerate_override = value
+
+    def _get_samplerate(self):
+        override = getattr(self, "_samplerate_override", None)
+        if override:
+            return override
+        return _samplerate(self)
+
+    LinkSource.samplerate = property(_get_samplerate, _set_samplerate)
+    return True
 
 
 class TelephoneManager:
@@ -318,6 +451,8 @@ class TelephoneManager:
             )
 
             install_hostless_lxst_audio()
+
+        _patch_lxst_linksource_samplerate()
 
         # Never enable LXST auto_answer. MeshChatX answers only via explicit
         # user action or the separate voicemail timer after RINGING.
