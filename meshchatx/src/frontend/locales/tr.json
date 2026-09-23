@@ -1174,6 +1174,7 @@
         "identity_good": "Kimlik Yüklendi",
         "imports_good": "Kritik İçe Aktarmalar",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Depolama Kilidi",
         "temp_fs_good": "Geçici Dosya Sistemi",
         "public_assets_good": "Genel Varlıklar",

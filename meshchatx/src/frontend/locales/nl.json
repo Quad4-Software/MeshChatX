@@ -1174,6 +1174,7 @@
         "identity_good": "Identiteit geladen",
         "imports_good": "Kritieke imports",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Opslagvergrendeling",
         "temp_fs_good": "Tijdelijk bestandssysteem",
         "public_assets_good": "Openbare assets",

@@ -1174,6 +1174,7 @@
         "identity_good": "身份已加载",
         "imports_good": "关键导入",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "存储锁",
         "temp_fs_good": "临时文件系统",
         "public_assets_good": "公共资源",

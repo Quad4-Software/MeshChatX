@@ -1174,6 +1174,7 @@
         "identity_good": "Identità caricata",
         "imports_good": "Import critici",
         "umsgpack_roundtrip": "Umsgpack Roundtrip",
+        "cbor_roundtrip": "CBOR Roundtrip",
         "storage_lock_good": "Blocco archiviazione",
         "temp_fs_good": "Filesystem temporaneo",
         "public_assets_good": "Asset pubblici",

@@ -192,6 +192,11 @@ def test_check_umsgpack_roundtrip_ok():
     assert result["status"] == "ok", result.get("reason")
 
 
+def test_check_cbor_roundtrip_ok():
+    result = self_check.check_cbor_roundtrip()
+    assert result["status"] == "ok", result.get("reason")
+
+
 def test_check_lxst_telephony_ok():
     pytest.importorskip("LXST")
     result = self_check.check_lxst_telephony()
