@@ -57,6 +57,11 @@ def env_path(env_name: str, default: Path | None = None) -> Path | None:
     return Path(val).expanduser()
 
 
+def env_set(env_name: str, value: str) -> None:
+    """Write a process env var, for state carried across execv restarts."""
+    os.environ[env_name] = value
+
+
 def env_snapshot(env_names: tuple[str, ...] | list[str]) -> dict[str, str | None]:
     """Save the current values of a dynamic key set for later restore.
 
