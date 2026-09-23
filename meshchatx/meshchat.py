@@ -217,7 +217,7 @@ from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
 from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
 from meshchatx.src.backend.web_audio_proxy import LazyWebAudioBridge
 from meshchatx.src.env_config import MeshchatEnv
-from meshchatx.src.env_utils import env_bool, env_str
+from meshchatx.src.env_utils import env_bool, env_int, env_set, env_str
 from meshchatx.src.path_utils import (
     get_file_path,
     is_loopback_bind_host,
@@ -1451,7 +1451,7 @@ class ReticulumMeshChat:
         in MESHCHAT_DB_WEDGE_RESTARTS bounds the restart loop if the
         underlying storage is broken beyond in-process repair.
         """
-        attempts = int(os.environ.get("MESHCHAT_DB_WEDGE_RESTARTS", "0") or 0)
+        attempts = env_int("MESHCHAT_DB_WEDGE_RESTARTS", 0) or 0
         if attempts >= 2:
             logger.error(
                 "SQLite wedge persists across %d restarts. Serving 503s instead "
@@ -1459,7 +1459,7 @@ class ReticulumMeshChat:
                 attempts,
             )
             return
-        os.environ["MESHCHAT_DB_WEDGE_RESTARTS"] = str(attempts + 1)
+        env_set("MESHCHAT_DB_WEDGE_RESTARTS", str(attempts + 1))
         logger.error(
             "SQLite wedge unrecoverable after connection reset. Restarting process",
         )
