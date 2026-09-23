@@ -25,7 +25,10 @@ class PersistentLogHandler(logging.Handler):
         # When False, log lines stay in the in-memory ring buffer only.
         # Opt out with MESHCHAT_LOG_DB=0 to keep log traffic off an SD card.
         self.db_writes_enabled = True
-        self._last_db_cleanup = 0.0
+        # None means never swept; 0.0 would collide with monotonic time on
+        # hosts whose uptime is under the sweep interval, deferring the
+        # first cleanup until the machine has been up ten minutes.
+        self._last_db_cleanup: float | None = None
         self.lock = threading.RLock()
         self.flush_lock = threading.Lock()
 
@@ -212,7 +215,7 @@ class PersistentLogHandler(logging.Handler):
             # The retention sweep scans the whole table, so once per ten
             # minutes is enough for a 10000-row cap.
             now = time.monotonic()
-            if now - self._last_db_cleanup > 600:
+            if self._last_db_cleanup is None or now - self._last_db_cleanup > 600:
                 self._last_db_cleanup = now
                 try:
                     self.database.debug_logs.cleanup_old_logs()
