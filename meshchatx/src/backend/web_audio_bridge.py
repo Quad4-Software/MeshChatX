@@ -446,8 +446,9 @@ class WebAudioBridge:
             return
         with contextlib.suppress(Exception):
             with contextlib.suppress(Exception):
-                if hasattr(tele, "_Telephony__reconfigure_transmit_pipeline"):
-                    tele._Telephony__reconfigure_transmit_pipeline()
+                # Private LXST name mangles to _Telephone__, not _Telephony__.
+                if hasattr(tele, "_Telephone__reconfigure_transmit_pipeline"):
+                    tele._Telephone__reconfigure_transmit_pipeline()
             if tele.receive_pipeline:
                 tele.receive_pipeline.stop()
             if tele.audio_output and self.rx_tee:
