@@ -474,6 +474,23 @@ class VoicemailManager:
             if self.recording_sink:
                 self.recording_sink.stop()
 
+            # Pipeline.__init__ repointed audio_source.sink at the recording
+            # sink. Restore the receive mixer so remote audio is not dropped
+            # if the call outlives the recording.
+            telephone = self.telephone_manager.telephone
+            audio_source = getattr(
+                getattr(telephone, "active_call", None),
+                "audio_source",
+                None,
+            )
+            if (
+                audio_source is not None
+                and self.recording_sink is not None
+                and audio_source.sink is self.recording_sink
+            ):
+                audio_source.sink = getattr(telephone, "receive_mixer", None)
+                audio_source.pipeline = None
+
             self.recording_sink = None
             self.recording_pipeline = None
 
@@ -631,6 +648,19 @@ class VoicemailManager:
 
             if self.greeting_recording_sink:
                 self.greeting_recording_sink.stop()
+
+            # The greeting pipeline repointed audio_input.sink at the
+            # recording sink. Restore the transmit mixer or the mic stays
+            # dead for the rest of the call.
+            telephone = self.telephone_manager.telephone
+            audio_input = getattr(telephone, "audio_input", None)
+            if (
+                audio_input is not None
+                and self.greeting_recording_sink is not None
+                and audio_input.sink is self.greeting_recording_sink
+            ):
+                audio_input.sink = getattr(telephone, "transmit_mixer", None)
+                audio_input.pipeline = None
 
             self.greeting_recording_sink = None
             self.greeting_recording_pipeline = None
