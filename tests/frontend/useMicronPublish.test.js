@@ -108,11 +108,21 @@ describe("useMicronPublish", () => {
         await expect(publish.resolvePublishPageBase({ name: "New Tab 1" }, [], "srv")).resolves.toBe("index");
     });
 
-    it("resolvePublishPageBase uses tab name when index.mu exists and tab is renamed", async () => {
+    it("resolvePublishPageBase reuses the tab name when that page exists", async () => {
         const publish = makePublish();
-        await expect(publish.resolvePublishPageBase({ name: "About Page" }, ["index.mu"], "srv")).resolves.toBe(
-            "About_Page"
-        );
+        await expect(
+            publish.resolvePublishPageBase({ name: "About Page" }, ["index.mu", "About_Page.mu"], "srv")
+        ).resolves.toBe("About_Page");
+        expect(DialogUtils.prompt).not.toHaveBeenCalled();
+    });
+
+    it("resolvePublishPageBase prompts when a named tab would create a sibling page", async () => {
+        DialogUtils.prompt.mockResolvedValue("index");
+        const publish = makePublish();
+        await expect(
+            publish.resolvePublishPageBase({ name: "Main" }, ["index.mu"], "srv")
+        ).resolves.toBe("index");
+        expect(DialogUtils.prompt).toHaveBeenCalledWith(expect.any(String), "Main");
     });
 
     it("resolvePublishPageBase prompts when index.mu exists and tab name is unset", async () => {
@@ -121,7 +131,7 @@ describe("useMicronPublish", () => {
         await expect(publish.resolvePublishPageBase({ name: "New Tab 1" }, ["index.mu"], "srv")).resolves.toBe(
             "custom_page"
         );
-        expect(DialogUtils.prompt).toHaveBeenCalled();
+        expect(DialogUtils.prompt).toHaveBeenCalledWith(expect.any(String), "index");
     });
 
     it("nomadPagePathForName builds /page/ paths", () => {
@@ -184,6 +194,51 @@ describe("useMicronPublish", () => {
         expect(publish.publishBusy.value).toBe(false);
     });
 
+    it("publishToNode republishes to the remembered page name", async () => {
+        const dest = "a".repeat(32);
+        const node = { node_id: "n1", name: "My Server", running: true, destination_hash: dest };
+        window.api.get
+            .mockResolvedValueOnce({ data: { pages: [] } })
+            .mockResolvedValueOnce({ data: { pages: ["index.mu"] } });
+        window.api.post.mockResolvedValue({ data: { name: "index.mu" } });
+        DialogUtils.confirm.mockResolvedValue(false);
+        const tab = { id: 7, name: "main", content: "v1" };
+        const publish = makePublish({ getActiveTab: () => tab });
+
+        await publish.publishToNode(node);
+        expect(window.api.post).toHaveBeenLastCalledWith("/api/v1/page-nodes/n1/pages", {
+            name: "index",
+            content: "v1",
+        });
+
+        // Second publish to the same node must overwrite index.mu, not
+        // silently create a sibling main.mu page (issue 110).
+        tab.content = "v2";
+        await publish.publishToNode(node);
+        expect(window.api.post).toHaveBeenLastCalledWith("/api/v1/page-nodes/n1/pages", {
+            name: "index.mu",
+            content: "v2",
+        });
+        expect(DialogUtils.prompt).not.toHaveBeenCalled();
+    });
+
+    it("publishToNode does not leak remembered names across nodes", async () => {
+        const dest = "a".repeat(32);
+        const nodeA = { node_id: "nA", name: "A", running: true, destination_hash: dest };
+        const nodeB = { node_id: "nB", name: "B", running: true, destination_hash: dest };
+        window.api.get.mockResolvedValue({ data: { pages: [] } });
+        window.api.post.mockResolvedValue({ data: { name: "index.mu" } });
+        DialogUtils.confirm.mockResolvedValue(false);
+        const tab = { id: 8, name: "main", content: "x" };
+        const publish = makePublish({ getActiveTab: () => tab });
+
+        await publish.publishToNode(nodeA);
+        await publish.publishToNode(nodeB);
+        const posts = window.api.post.mock.calls.map((c) => c[0]);
+        expect(posts[0]).toBe("/api/v1/page-nodes/nA/pages");
+        expect(posts[1]).toBe("/api/v1/page-nodes/nB/pages");
+    });
+
     it("publishToNode starts a stopped node before publishing", async () => {
         const dest = "c".repeat(32);
         window.api.get.mockResolvedValue({ data: { pages: [] } });
@@ -219,6 +274,27 @@ describe("useMicronPublish", () => {
         expect(posts[2][1].content).toContain(`[One\`${dest}:/page/one.mu]`);
         expect(publish.lastPublished.value?.pageName).toBe("index.mu");
         expect(publish.showPublishSiteModal.value).toBe(false);
+    });
+
+    it("publishSite does not clobber an explicit index.mu with generated links", async () => {
+        const dest = "e".repeat(32);
+        window.api.post.mockResolvedValue({ data: {} });
+        DialogUtils.confirm.mockResolvedValue(false);
+        const publish = makePublish();
+        publish.pageNodes.value = [{ node_id: "n9", name: "Srv", running: true, destination_hash: dest }];
+        await publish.publishSite({
+            nodeId: "n9",
+            pages: [
+                { name: "index.mu", content: "my landing page", label: "Home", tabId: 3 },
+                { name: "about.mu", content: "2", label: "About", tabId: 4 },
+            ],
+            generateIndex: true,
+        });
+        const posts = window.api.post.mock.calls.filter((c) => c[0] === "/api/v1/page-nodes/n9/pages");
+        expect(posts.map((c) => c[1].name)).toEqual(["index.mu", "about.mu"]);
+        expect(posts[0][1].content).toBe("my landing page");
+        // The tab-to-page mapping is remembered for single-page republish.
+        expect(DialogUtils.prompt).not.toHaveBeenCalled();
     });
 
     it("publishSite creates a new server when no nodeId is given", async () => {

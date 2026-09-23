@@ -36,6 +36,34 @@ export function useMicronPublish(options = {}) {
     const pageNodes = ref([]);
     const publishBusy = ref(false);
     const lastPublished = ref(null);
+    // Remembers which page name a tab was last published to on each node, so
+    // republishing the same tab updates that page instead of silently
+    // creating a sibling page and leaving index.mu stale.
+    const publishTargets = new Map();
+
+    function publishTargetKey(node, tab) {
+        const nodeId = node?.node_id;
+        if (!nodeId || !tab) {
+            return null;
+        }
+        const tabKey = tab.id ?? tab.name;
+        if (tabKey === undefined || tabKey === null || String(tabKey).trim() === "") {
+            return null;
+        }
+        return `${nodeId}:${tabKey}`;
+    }
+
+    function recallPublishTarget(node, tab) {
+        const key = publishTargetKey(node, tab);
+        return key ? publishTargets.get(key) || null : null;
+    }
+
+    function rememberPublishTarget(node, tab, pageName) {
+        const key = publishTargetKey(node, tab);
+        if (key && pageName) {
+            publishTargets.set(key, pageName);
+        }
+    }
 
     async function togglePublishMenu() {
         showPublishMenu.value = !showPublishMenu.value;
@@ -102,28 +130,42 @@ export function useMicronPublish(options = {}) {
         return /^\d+$/.test(trimmed.slice(numberedPrefix.length));
     }
 
+    async function promptForPageBase(serverName, defaultValue) {
+        const entered = await DialogUtils.prompt(
+            t("tools.micron_editor.publish_prompt_name", { server: serverName }),
+            defaultValue
+        );
+        if (entered == null || !String(entered).trim()) {
+            return null;
+        }
+        return String(entered).trim().replace(/\s+/g, "_") || null;
+    }
+
     async function resolvePublishPageBase(tab, existingPages, serverName) {
         const pageNames = pageNamesFromList(existingPages);
-        const hasIndex = pageNames.includes("index.mu");
+        const hasIndex = pageNames.some((name) => String(name).toLowerCase() === "index.mu");
         if (!hasIndex) {
             return "index";
         }
         if (!isUnsetMicronTabName(tab.name)) {
             const base = tabNameToPageBase(tab);
-            return base || null;
-        }
-        const entered = await DialogUtils.prompt(t("tools.micron_editor.publish_prompt_name", { server: serverName }));
-        if (entered === null || !String(entered).trim()) {
-            return null;
-        }
-        let base = String(entered).trim().replace(/\s+/g, "_");
-        const lower = base.toLowerCase();
-        for (const ext of PAGE_EXTENSIONS) {
-            if (lower.endsWith(ext)) {
+            if (!base) {
+                return null;
+            }
+            // A tab whose name matches an existing page republishes to it.
+            const baseNames = pageNames.map((name) =>
+                String(name)
+                    .toLowerCase()
+                    .replace(/\.(mu|html|md|txt)$/, "")
+            );
+            if (baseNames.includes(base.toLowerCase())) {
                 return base;
             }
+            // A named tab would otherwise silently create a sibling page and
+            // leave index.mu stale, so ask which page name to write.
+            return await promptForPageBase(serverName, base);
         }
-        return base || null;
+        return await promptForPageBase(serverName, "index");
     }
 
     async function ensureNodeRunning(node) {
@@ -244,18 +286,25 @@ export function useMicronPublish(options = {}) {
             if (!publishOptions.alreadyRunning) {
                 running = await ensureNodeRunning(node);
             }
-            const existingPages = await fetchNodePages(running);
-            const pageBase = await resolvePublishPageBase(tab, existingPages, running.name);
-            if (!pageBase) {
-                return;
+            const rememberedName = recallPublishTarget(running, tab);
+            let publishName;
+            if (rememberedName) {
+                publishName = rememberedName;
+            } else {
+                const existingPages = await fetchNodePages(running);
+                const pageBase = await resolvePublishPageBase(tab, existingPages, running.name);
+                if (!pageBase) {
+                    return;
+                }
+                publishName = pageBaseWithExtension(pageBase, tab);
             }
-            const publishName = pageBaseWithExtension(pageBase, tab);
             const response = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
                 name: publishName,
                 content: tab.content,
             });
             showPublishMenu.value = false;
             const savedName = response.data?.name || publishName;
+            rememberPublishTarget(running, tab, savedName);
             await uploadImages(running, [tab.content]);
             rememberPublished(running, savedName);
             await offerOpenInNomadNet(savedName, running.name);
@@ -326,6 +375,7 @@ export function useMicronPublish(options = {}) {
             pageNodes.value = [...pageNodes.value.filter((n) => n.node_id !== running.node_id), running];
             let published = 0;
             let lastSavedName = null;
+            const savedNames = [];
             for (const page of pages) {
                 try {
                     const response = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
@@ -333,6 +383,8 @@ export function useMicronPublish(options = {}) {
                         content: page.content,
                     });
                     lastSavedName = response.data?.name || page.name;
+                    savedNames.push(lastSavedName);
+                    rememberPublishTarget(running, { id: page.tabId, name: page.label }, lastSavedName);
                     published++;
                 } catch {
                     console.error(`Failed to publish page: ${page.name}`);
@@ -342,7 +394,11 @@ export function useMicronPublish(options = {}) {
                 running,
                 pages.map((page) => page.content)
             );
-            if (payload.generateIndex && running.destination_hash && published > 0) {
+            // An explicitly published index.mu always wins over the generated
+            // links page; otherwise the generateIndex option would overwrite
+            // the user's own landing page with a link list.
+            const hasExplicitIndex = savedNames.some((name) => String(name).toLowerCase() === "index.mu");
+            if (payload.generateIndex && running.destination_hash && published > 0 && !hasExplicitIndex) {
                 try {
                     const indexContent = buildSiteIndexPage(running.destination_hash, pages);
                     const indexRes = await window.api.post(apiPath(`/page-nodes/${running.node_id}/pages`), {
@@ -353,6 +409,8 @@ export function useMicronPublish(options = {}) {
                 } catch {
                     console.error("Failed to publish generated index page");
                 }
+            } else if (hasExplicitIndex) {
+                lastSavedName = "index.mu";
             }
             showPublishSiteModal.value = false;
             if (lastSavedName) {
