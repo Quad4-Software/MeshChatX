@@ -30,7 +30,10 @@ if ! command -v port >/dev/null 2>&1; then
 fi
 
 echo "github-install-macos-x64-port-deps: installing MacPorts deps" >&2
-sudo port -N install codec2 libyaml openssl
+# opus* / libogg / libvorbis / flac back the pyogg dylib normalization; the
+# vendored set already matches x86_64, so this is belt-and-suspenders for
+# when upstream LXST changes the bundled arch mix.
+sudo port -N install codec2 libyaml openssl opus opusfile libopusenc libogg libvorbis flac
 
 # sdist builds for cryptography and libcst need a Rust toolchain.
 bash "$(dirname "$0")/github-macos-rust-x64-target.sh"
@@ -150,6 +153,7 @@ if [[ -n "$_pycodec2_dir" && -f "/opt/local/lib/libcodec2.dylib" ]]; then
 fi
 
 bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "$_PY"
+bash "$(dirname "$0")/macos-normalize-pyogg-dylibs.sh" "$_PY"
 
 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
 "$_PY" scripts/patch_lxst_codec2_optional.py

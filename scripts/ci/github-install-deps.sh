@@ -20,6 +20,10 @@ INSTALL_NODE="${MESHCHATX_INSTALL_NODE:-true}"
 if [[ "$INSTALL_PYTHON" == "true" ]]; then
     if [[ "$(uname -s)" == "Darwin" ]]; then
         brew install codec2
+        # LXST vendored pyogg ships x86_64-only macOS dylibs. The arm64
+        # freeze needs native builds, which macos-normalize-pyogg-dylibs.sh
+        # copies in from these formulas.
+        brew install opus opusfile libopusenc libogg libvorbis flac
         _codec2_prefix="$(brew --prefix codec2)"
         export CPPFLAGS="${CPPFLAGS:-} -I${_codec2_prefix}/include"
         export LDFLAGS="${LDFLAGS:-} -L${_codec2_prefix}/lib"
@@ -52,6 +56,7 @@ print('arm64 venv numpy', numpy.__version__, 'ok')
         # darwin-x64 slice built in scripts/ci/github-install-macos-x64-python-deps.sh,
         # which scripts/unify-backend-plain-files.sh requires to merge the two trees.
         bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "${ROOT}/.venv/bin/python"
+        bash "$(dirname "$0")/macos-normalize-pyogg-dylibs.sh" "${ROOT}/.venv/bin/python"
     fi
 
     if [[ "$(uname -s)" == "Darwin" ]]; then
