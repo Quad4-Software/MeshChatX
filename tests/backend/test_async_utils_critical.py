@@ -116,9 +116,11 @@ async def test_run_async_with_running_loop_executes_coroutine():
 def test_spawn_background_runs_coroutine_on_shared_loop():
     """Many periodic coroutines share one background loop and thread."""
     results: list[int] = []
+    thread_ids: set[int] = set()
 
     async def worker(n):
         await asyncio.sleep(0.01)
+        thread_ids.add(threading.get_ident())
         results.append(n)
 
     AsyncUtils.ensure_background_loop()
@@ -131,7 +133,10 @@ def test_spawn_background_runs_coroutine_on_shared_loop():
     assert sorted(results) == [0, 1, 2, 3]
     assert all(f.done() for f in futures)
     assert AsyncUtils._background_thread is not None
-    assert threading.active_count() < 4 + 3
+    # Process-wide active_count() varies with ambient threads under xdist;
+    # the guarantee under test is that all coroutines ran on one thread.
+    assert len(thread_ids) == 1
+    assert AsyncUtils._background_thread.ident in thread_ids
 
 
 def test_spawn_background_logs_task_exception():
