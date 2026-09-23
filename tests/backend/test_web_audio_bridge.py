@@ -462,6 +462,29 @@ def test_restore_host_audio_no_telephone_is_safe():
     bridge._restore_host_audio()
 
 
+def test_restore_host_audio_invokes_lxst_transmit_reconfigure():
+    # LXST mangles Telephone.__reconfigure_transmit_pipeline to
+    # _Telephone__reconfigure_transmit_pipeline; the bridge must use that name
+    # or the host mic path is never rebuilt after the last client detaches.
+    # A plain object is used because MagicMock fabricates any attribute.
+    class FakeTelephone:
+        def __init__(self):
+            self.calls = []
+            self.audio_output = None
+            self.receive_pipeline = None
+            self.receive_mixer = None
+
+        def _Telephone__reconfigure_transmit_pipeline(self):
+            self.calls.append("reconfigure")
+
+    tele = FakeTelephone()
+    tele_mgr = MagicMock()
+    tele_mgr.telephone = tele
+    bridge = WebAudioBridge(tele_mgr, MagicMock())
+    bridge._restore_host_audio()
+    assert tele.calls == ["reconfigure"]
+
+
 @patch("meshchatx.src.backend.web_audio_bridge.RNS.log")
 def test_ensure_remote_tx_swallows_source_init_failure(mock_log):
     tele = MagicMock()
