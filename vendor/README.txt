@@ -8,6 +8,9 @@ lxmfy/
   commit above, run poetry lock / uv lock, regenerate THIRD_PARTY_NOTICES if needed.
   Note: MeshChatX keeps its Landlock ABI hardening in vendor/lxmfy/lxmfy/landlock_sandbox.py
   (and matching tests) when refreshing from upstream.
+  Note: vendor/lxmfy/lxmfy/rrc/envelope.py is patched to use cborx instead of cbor2
+  so the bundled RRC envelope codec matches the backend dependency set. Keep this
+  patch on refresh until upstream LXMFy migrates to cborx.
 
 rns_filesync/
   Upstream: https://github.com/Quad4-Software/RNS-Filesync

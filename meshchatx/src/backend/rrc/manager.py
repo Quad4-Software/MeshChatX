@@ -892,20 +892,18 @@ class RRCHub:
             decode_error = None
             try:
                 with open(path, "rb") as f:
-                    while True:
-                        pos = f.tell()
-                        try:
-                            window.append(proto.load(f))
-                        except EOFError:
-                            break
-                        except Exception as ex:
-                            decode_error = ex
-                            try:
-                                f.seek(pos + 1)
-                            except OSError:
-                                break
-                            if f.tell() <= pos:
-                                break
+                    data = f.read()
+                pos = 0
+                size = len(data)
+                while pos < size:
+                    start = pos
+                    try:
+                        entry, pos = proto.decode_item(data, pos)
+                    except Exception as ex:
+                        decode_error = ex
+                        pos = start + 1
+                    else:
+                        window.append(entry)
             except OSError as ex:
                 self._log(
                     "history load failed for #" + room + ": " + str(ex),

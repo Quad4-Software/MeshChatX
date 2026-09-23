@@ -35,7 +35,7 @@ dependencies = [
   "ply>=3.11,<4.0",
   "lxst>=0.5.3",
   "miniaudio (>=1.70,<2.0)",
-  "cbor2>=6.1.4",
+  "cborx>=0.2.3,<0.3",
   "wasmtime>=48.0.0",
   "bleak>=3.0.2,<4.0",
   "httpx[http2]>=0.28.1,<1.0",
@@ -81,6 +81,7 @@ build-backend = "setuptools.build_meta"
 [dependency-groups]
 dev = [
     "cx-freeze>=7.0.0,<8.7.0",
+    "cbor2>=6.1.4",
     "hypothesis>=6.167.0",
     "jsonschema>=4.26.0",
     "pygments>=2.21.0",

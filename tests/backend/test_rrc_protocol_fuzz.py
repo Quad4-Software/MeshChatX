@@ -6,6 +6,7 @@ import base64
 import math
 
 import cbor2
+import cborx
 import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
@@ -37,7 +38,7 @@ def test_decode_random_bytes_accept_reject(data):
     try:
         obj = proto.decode(data)
     except Exception as exc:
-        assert isinstance(exc, (cbor2.CBORDecodeError, ValueError, TypeError, EOFError))
+        assert isinstance(exc, (cborx.CBORDecodeError, ValueError, TypeError, EOFError))
         return
     # Successful decode yields a value. Prefer round-trip when CBOR can encode it.
     try:
