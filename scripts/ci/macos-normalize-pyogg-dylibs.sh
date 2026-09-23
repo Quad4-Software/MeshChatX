@@ -142,7 +142,7 @@ for vendored in "${_pyogg_libs}"/*.dylib; do
     if [[ -z "$src" ]]; then
         echo "macos-normalize-pyogg-dylibs: no ${_target_arch} build found for $name" >&2
         echo "  vendored file is wrong-arch and neither Homebrew nor MacPorts provide it." >&2
-        echo "  Install the matching formula/port (opus, opusfile, libopusenc, libogg, libvorbis, flac)." >&2
+        echo "  Install the matching formula/port (brew opus / port libopus, opusfile, libopusenc, libogg, libvorbis, flac)." >&2
         exit 1
     fi
     _copy_deref "$src" "$vendored"

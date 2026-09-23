@@ -33,7 +33,7 @@ echo "github-install-macos-x64-port-deps: installing MacPorts deps" >&2
 # opus* / libogg / libvorbis / flac back the pyogg dylib normalization; the
 # vendored set already matches x86_64, so this is belt-and-suspenders for
 # when upstream LXST changes the bundled arch mix.
-sudo port -N install codec2 libyaml openssl opus opusfile libopusenc libogg libvorbis flac
+sudo port -N install codec2 libyaml openssl libopus opusfile libopusenc libogg libvorbis flac
 
 # sdist builds for cryptography and libcst need a Rust toolchain.
 bash "$(dirname "$0")/github-macos-rust-x64-target.sh"
