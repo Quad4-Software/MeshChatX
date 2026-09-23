@@ -351,6 +351,7 @@ class VoicemailManager:
                         greeting_source = OpusFileSource(
                             greeting_path,
                             target_frame_ms=60,
+                            timed=True,
                         )
                         # Attach to transmit mixer
                         greeting_pipeline = Pipeline(
