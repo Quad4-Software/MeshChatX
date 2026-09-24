@@ -221,6 +221,15 @@ class IdentityContext:
                 self.database.initialize()
                 self.database._tune_sqlite_pragmas()
 
+        if getattr(self.app, "demo_mode", False):
+            try:
+                from meshchatx.src.backend.demo_seed import seed_demo_database
+
+                if seed_demo_database(self.app, self.database):
+                    print("Demo fixture seeded: announces and conversations.")
+            except Exception as exc:
+                print(f"Demo fixture seed skipped: {exc}")
+
         # 3. Initialize Config and core managers
         self.config = ConfigManager(self.database)
 
