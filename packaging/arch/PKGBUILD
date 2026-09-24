@@ -14,7 +14,7 @@ conflicts=("$_pkgname")
 source=("$_pkgname::git+https://github.com/Quad4-Software/MeshChatX.git"
         "reticulum-meshchatx.desktop")
 sha256sums=('SKIP'
-            '366182e198df672bb51893f7cf7f339079bf80319c24c107216c1b96d33fd267')
+            'e0b1ad738415c2b6fbf5d042b240b8dc61d527ecbe2943f6c54b3eb902db2ac3')
 
 pkgver() {
   cd "$_pkgname"
