@@ -24,6 +24,7 @@ from meshchatx.src.backend.app_security_settings import (
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.csrf import validate_csrf_header
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
+from meshchatx.src.backend.demo_mode import demo_frame_ancestors
 from meshchatx.src.backend.http.db_availability import (
     DB_TEMPORARILY_UNAVAILABLE,
     exception_looks_like_missing_database,
@@ -444,7 +445,12 @@ def create_security_middleware(app):
         response.headers["X-Content-Type-Options"] = "nosniff"
 
         # Allow framing for docs, rnode flasher, and Nomad crash-tab renderer.
-        if (
+        frame_ancestors = demo_frame_ancestors(app)
+        if frame_ancestors:
+            # CSP frame-ancestors carries the allowlist. X-Frame-Options DENY
+            # would override it in browsers that honour both headers.
+            pass
+        elif (
             request.path.startswith("/reticulum-docs/")
             or request.path.startswith("/rnode-flasher/")
             or is_nomad_crash_tab_resource(request.path)
@@ -625,6 +631,8 @@ def create_security_middleware(app):
             "object-src 'none'; "
             "base-uri 'self';"
         )
+        if frame_ancestors:
+            csp += f" frame-ancestors {' '.join(frame_ancestors)};"
         if path.startswith("/reticulum-docs/"):
             # Uploaded manuals are user-supplied HTML. The sandbox directive
             # forces an opaque origin even when a doc is opened top-level via
