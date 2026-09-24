@@ -46,6 +46,16 @@ def test_config_manager_set_get(db):
     assert config.auto_announce_enabled.get() is True
 
 
+def test_map_announce_interval_migrates_legacy_default(db):
+    db.config.set("map_data_announce_interval", "900")
+    config = ConfigManager(db)
+    assert config.map_data_announce_interval.get() == 21600
+
+    config.map_data_announce_interval.set(900)
+    reloaded = ConfigManager(db)
+    assert reloaded.map_data_announce_interval.get() == 900
+
+
 def test_config_manager_persistence(db):
     config = ConfigManager(db)
     config.display_name.set("Persistent User")

@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Leeg laten voor LXMFy-standaard (3).",
         "opportunistic_sending": "Opportunistisch verzenden",
         "announce_interval_seconds": "Aankondigingsinterval (seconden)",
-        "announce_interval_hint": "Leeg laten voor standaard (600).",
+        "announce_interval_hint": "Leeg laten voor standaard (21600).",
         "stamp_cost": "Stempelkosten",
         "stamp_cost_hint": "Leeg laten voor geen stempelvereiste.",
         "effective_settings_heading": "Actief bij volgende start",

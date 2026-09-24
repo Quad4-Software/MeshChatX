@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Оставьте пустым для значения LXMFy по умолчанию (3).",
         "opportunistic_sending": "Опportunisticная отправка",
         "announce_interval_seconds": "Интервал объявления (секунды)",
-        "announce_interval_hint": "Оставьте пустым для значения по умолчанию (600).",
+        "announce_interval_hint": "Оставьте пустым для значения по умолчанию (21600).",
         "stamp_cost": "Стоимость штампа",
         "stamp_cost_hint": "Оставьте пустым, если штамп не требуется.",
         "effective_settings_heading": "Вступит в силу при следующем запуске",

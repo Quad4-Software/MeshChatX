@@ -67,8 +67,9 @@ WS_RUNTIME_CONTROL_TYPES = frozenset(
 WS_PUBLIC_TYPES = frozenset({WsInboundType.PING, *WS_RUNTIME_CONTROL_TYPES})
 
 # Shared announce cadence bounds for managers that republish on a timer.
+# 6 hours matches upstream NomadNet and Reticulum discovery defaults.
 MIN_ANNOUNCE_INTERVAL_SECONDS = 60
-DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 3600
+DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600
 MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
 
 # Older releases persisted 900 as the default interval. Loaders treat a

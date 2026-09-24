@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Lasciare vuoto per il predefinito LXMFy (3).",
         "opportunistic_sending": "Invio opportunistico",
         "announce_interval_seconds": "Intervallo annuncio (secondi)",
-        "announce_interval_hint": "Lasciare vuoto per il predefinito (600).",
+        "announce_interval_hint": "Lasciare vuoto per il predefinito (21600).",
         "stamp_cost": "Costo timbro",
         "stamp_cost_hint": "Lasciare vuoto per nessun requisito timbro.",
         "effective_settings_heading": "Effettivo al prossimo avvio",

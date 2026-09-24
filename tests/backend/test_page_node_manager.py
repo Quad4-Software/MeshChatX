@@ -337,6 +337,37 @@ class TestPageNodeManagerAnnounceMigration:
         mgr.load_nodes()
         assert mgr.nodes["custom-interval"].announce_interval_seconds == 300
 
+    def test_load_migrates_v2_default_interval(self, storage_dir, mock_rns):
+        from meshchatx.src.backend.page_node import (
+            DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        )
+
+        mgr = _make_manager(storage_dir)
+        self._write_config(mgr, "v2-default", 3600, config_version=2)
+        mgr.load_nodes()
+        assert (
+            mgr.nodes["v2-default"].announce_interval_seconds
+            == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        )
+
+    def test_load_keeps_explicit_interval_under_v2(self, storage_dir, mock_rns):
+        from meshchatx.src.backend.page_node import (
+            LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        )
+
+        mgr = _make_manager(storage_dir)
+        self._write_config(
+            mgr,
+            "v2-explicit",
+            LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            config_version=2,
+        )
+        mgr.load_nodes()
+        assert (
+            mgr.nodes["v2-explicit"].announce_interval_seconds
+            == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        )
+
 
 class TestPageNodeManagerRename:
     def test_rename_node(self, storage_dir, mock_rns):

@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "LXMFy varsayılanı (3) için boş bırakın.",
         "opportunistic_sending": "Fırsatçı gönderim",
         "announce_interval_seconds": "Duyuru aralığı (saniye)",
-        "announce_interval_hint": "Varsayılan (600) için boş bırakın.",
+        "announce_interval_hint": "Varsayılan (21600) için boş bırakın.",
         "stamp_cost": "Damga maliyeti",
         "stamp_cost_hint": "Damga gereksinimi olmaması için boş bırakın.",
         "effective_settings_heading": "Sonraki başlangıçta geçerli",

@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "空欄で LXMFy のデフォルト（3）になります。",
         "opportunistic_sending": "オポーチュニスティック送信",
         "announce_interval_seconds": "アナウンス間隔（秒）",
-        "announce_interval_hint": "空欄でデフォルト（600）になります。",
+        "announce_interval_hint": "空欄でデフォルト（21600）になります。",
         "stamp_cost": "スタンプコスト",
         "stamp_cost_hint": "空欄でスタンプ要件なしになります。",
         "effective_settings_heading": "次回開始時に有効になる設定",

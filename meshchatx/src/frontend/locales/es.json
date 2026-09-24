@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Dejar en blanco para el valor predeterminado de LXMFy (3).",
         "opportunistic_sending": "Envío oportunista",
         "announce_interval_seconds": "Intervalo de anuncio (segundos)",
-        "announce_interval_hint": "Dejar en blanco para el valor predeterminado (600).",
+        "announce_interval_hint": "Dejar en blanco para el valor predeterminado (21600).",
         "stamp_cost": "Coste del sello",
         "stamp_cost_hint": "Dejar en blanco para no requerir sello.",
         "effective_settings_heading": "Efectivo en el próximo inicio",

@@ -436,7 +436,7 @@ class ConfigManager:
         self.map_data_announce_interval = self.IntConfig(
             self,
             "map_data_announce_interval",
-            900,
+            21600,
         )
         self.map_data_display_name = self.StringConfig(
             self,
@@ -771,6 +771,7 @@ class ConfigManager:
         self._migrate_legacy_announce_limit_keys()
         self._migrate_translator_from_legacy()
         self._migrate_invalid_telephone_audio_profile()
+        self._migrate_map_data_announce_interval()
 
     def get(self, key: str, default_value=None) -> str | None:
         return self.db.config.get(key, default_value)
@@ -808,6 +809,19 @@ class ConfigManager:
                 if str(raw).lower() == "true":
                     enabled = True
             self.translation_enabled.set(enabled)
+
+    def _migrate_map_data_announce_interval(self):
+        """Bump the old 15 minute map announce default to the 6 hour cadence once."""
+        marker = "map_data_announce_interval_zen_migrated"
+        if self.db.config.get(marker, default=None) is not None:
+            return
+        self.db.config.set(marker, "1")
+        raw = self.db.config.get("map_data_announce_interval", default=None)
+        try:
+            if raw is not None and int(raw) == 900:
+                self.map_data_announce_interval.set(21600)
+        except (TypeError, ValueError):
+            pass
 
     def _migrate_legacy_announce_limit_keys(self):
         pairs = [

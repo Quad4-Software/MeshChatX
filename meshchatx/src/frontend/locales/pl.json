@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Pozostaw puste, aby użyć wartości domyślnej LXMFy (3).",
         "opportunistic_sending": "Wysyłanie oportunistyczne",
         "announce_interval_seconds": "Interwał anonsów (sekundy)",
-        "announce_interval_hint": "Pozostaw puste, aby użyć wartości domyślnej (600).",
+        "announce_interval_hint": "Pozostaw puste, aby użyć wartości domyślnej (21600).",
         "stamp_cost": "Koszt znacznika",
         "stamp_cost_hint": "Pozostaw puste, aby nie wymagać znaczników.",
         "effective_settings_heading": "Zastosowane przy następnym uruchomieniu",

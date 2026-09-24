@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Залиште порожнім для типового LXMFy (3).",
         "opportunistic_sending": "Опортуністичне надсилання",
         "announce_interval_seconds": "Інтервал анонсу (секунди)",
-        "announce_interval_hint": "Залиште порожнім для типового (600).",
+        "announce_interval_hint": "Залиште порожнім для типового (21600).",
         "stamp_cost": "Вартість штампа",
         "stamp_cost_hint": "Залиште порожнім, щоб не вимагати штампа.",
         "effective_settings_heading": "Актуально під час наступного запуску",

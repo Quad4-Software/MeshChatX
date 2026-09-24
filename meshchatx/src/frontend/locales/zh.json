@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "留空使用 LXMFy 默认值 (3)。",
         "opportunistic_sending": "机会性发送",
         "announce_interval_seconds": "公告间隔（秒）",
-        "announce_interval_hint": "留空使用默认值 (600)。",
+        "announce_interval_hint": "留空使用默认值 (21600)。",
         "stamp_cost": "戳记成本",
         "stamp_cost_hint": "留空表示不要求戳记。",
         "effective_settings_heading": "下次启动时生效",

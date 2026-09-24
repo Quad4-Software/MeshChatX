@@ -624,3 +624,55 @@ def test_load_keeps_versioned_explicit_announce_interval(tmp_path):
     hub = manager.find_hub(hub_id)
     assert hub is not None
     assert hub.announce_interval_seconds == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
+
+def test_load_migrates_v2_default_announce_interval(tmp_path):
+    from meshchatx.src.backend.rrc.server import (
+        DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    )
+
+    manager = RRCServerManager(storage_dir=str(tmp_path))
+    hub_id = HUB_HASH.hex()
+    _write_hub_store(
+        manager,
+        hub_id,
+        {
+            "id": hub_id,
+            "name": "V2 Hub",
+            "config_version": 2,
+            "enabled": False,
+            "announce": True,
+            "announce_interval_seconds": 3600,
+        },
+    )
+    _load_with_fake_identity(manager)
+
+    hub = manager.find_hub(hub_id)
+    assert hub is not None
+    assert hub.announce_interval_seconds == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
+
+def test_load_keeps_explicit_interval_under_v2(tmp_path):
+    from meshchatx.src.backend.rrc.server import (
+        LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    )
+
+    manager = RRCServerManager(storage_dir=str(tmp_path))
+    hub_id = HUB_HASH.hex()
+    _write_hub_store(
+        manager,
+        hub_id,
+        {
+            "id": hub_id,
+            "name": "V2 Explicit Hub",
+            "config_version": 2,
+            "enabled": False,
+            "announce": True,
+            "announce_interval_seconds": LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        },
+    )
+    _load_with_fake_identity(manager)
+
+    hub = manager.find_hub(hub_id)
+    assert hub is not None
+    assert hub.announce_interval_seconds == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS

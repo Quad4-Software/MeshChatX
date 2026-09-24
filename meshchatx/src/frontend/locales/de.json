@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Leer lassen für LXMFy-Standard (3).",
         "opportunistic_sending": "Opportunistisches Senden",
         "announce_interval_seconds": "Ankündigungsintervall (Sekunden)",
-        "announce_interval_hint": "Leer lassen für Standard (600).",
+        "announce_interval_hint": "Leer lassen für Standard (21600).",
         "stamp_cost": "Stamp-Kosten",
         "stamp_cost_hint": "Leer lassen für keine Stamp-Anforderung.",
         "effective_settings_heading": "Wirksam beim nächsten Start",

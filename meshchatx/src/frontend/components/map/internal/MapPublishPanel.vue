@@ -111,7 +111,7 @@ export default {
         return {
             displayName: "Maps",
             announceEnabled: false,
-            announceInterval: 900,
+            announceInterval: 21600,
             published: [],
             strippedPreview: [],
             publishing: false,
@@ -135,7 +135,7 @@ export default {
                 const s = status.data || {};
                 this.displayName = s.display_name || "Maps";
                 this.announceEnabled = Boolean(s.announce_enabled);
-                this.announceInterval = s.announce_interval || 900;
+                this.announceInterval = s.announce_interval || 21600;
                 const listed = await window.api.get(apiPath("/map/data/published"));
                 this.published = listed.data.maps || [];
             } catch {
