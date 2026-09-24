@@ -32,15 +32,14 @@ def _pkgbuild_and_sums() -> tuple[list[str], list[str]]:
     sources = _pkgbuild_array(text, "source")
     sums = _pkgbuild_array(text, "sha256sums")
     assert len(sources) == len(sums), (
-        f"PKGBUILD source has {len(sources)} entries but "
-        f"sha256sums has {len(sums)}"
+        f"PKGBUILD source has {len(sources)} entries but sha256sums has {len(sums)}"
     )
     return sources, sums
 
 
 def test_pkgbuild_sha256sums_match_local_source_files():
     sources, sums = _pkgbuild_and_sums()
-    for entry, expected in zip(sources, sums):
+    for entry, expected in zip(sources, sums, strict=True):
         filename = _local_filename(entry)
         if filename is None:
             continue

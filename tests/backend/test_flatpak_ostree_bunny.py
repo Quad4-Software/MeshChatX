@@ -240,9 +240,7 @@ def test_prune_remote_orphans_removes_stale_channel_refs(
     }
     deleted = []
     with (
-        patch.object(
-            ostree_up, "list_remote_files", return_value=remote
-        ),
+        patch.object(ostree_up, "list_remote_files", return_value=remote),
         patch.object(
             ostree_up, "delete_path", side_effect=lambda url, key: deleted.append(url)
         ),
