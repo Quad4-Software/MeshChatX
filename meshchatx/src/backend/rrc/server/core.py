@@ -40,11 +40,18 @@ MIN_SESSIONS_PER_PEER = 2
 STORE_FILENAME = "hubs"
 HUB_CONFIG_FILENAME = "hub.toml"
 ROOMS_FILENAME = "rooms.toml"
-HUB_CONFIG_VERSION = 2
+HUB_CONFIG_VERSION = 3
 DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
 LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS = (
     constants.LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
 )
+
+# Announce interval that was the default when each config version was
+# written. Entries with no config_version predate versioning and shipped
+# the 900 default.
+_ANNOUNCE_DEFAULT_BY_CONFIG_VERSION = {
+    2: 3600,
+}
 MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
 MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
 
@@ -71,20 +78,23 @@ def normalize_announce_interval_seconds(
 def _persisted_hub_interval(entry):
     """Return the announce interval stored in a hub entry, or None when absent.
 
-    Entries written before the default moved off 15 minutes stored 900
-    with no config_version. Treat that value as the old default so
-    existing hubs inherit the slower cadence, while an explicit 900
-    saved by a versioned entry still sticks.
+    A stored value equal to the default that was in effect when the
+    entry was written migrates to the current default, so existing hubs
+    inherit the slower cadence. Any other value is an explicit choice
+    and is kept as-is.
     """
     value = entry.get("announce_interval_seconds")
     try:
         version = int(entry.get("config_version") or 0)
     except (TypeError, ValueError):
         version = 0
-    if (
-        value == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
-        and version < HUB_CONFIG_VERSION
-    ):
+    if version >= HUB_CONFIG_VERSION:
+        return value
+    default_at_write = _ANNOUNCE_DEFAULT_BY_CONFIG_VERSION.get(
+        version,
+        LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    )
+    if value == default_at_write:
         return DEFAULT_ANNOUNCE_INTERVAL_SECONDS
     return value
 
