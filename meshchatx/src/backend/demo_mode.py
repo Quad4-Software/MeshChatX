@@ -39,6 +39,22 @@ def demo_auth_password_from_env() -> str:
     return env_str("MESHCHAT_DEMO_AUTH_PASSWORD", "demo") or "demo"
 
 
+DEMO_FRAME_ANCESTORS_DEFAULT = "https://meshchatx.com https://*.meshchatx.com"
+
+
+def demo_frame_ancestors(app: ReticulumMeshChat) -> list[str]:
+    """Origins allowed to frame the demo instance. Empty list disables framing.
+
+    In demo mode the public website embeds the app. X-Frame-Options cannot
+    express a cross-origin allowlist, so framing is delegated to the CSP
+    frame-ancestors directive instead.
+    """
+    if not demo_mode_active(app):
+        return []
+    raw = env_str("MESHCHAT_DEMO_FRAME_ANCESTORS", DEMO_FRAME_ANCESTORS_DEFAULT)
+    return [s for s in raw.replace(",", " ").split() if s]
+
+
 def normalize_api_path(path: str) -> str:
     if not path.startswith("/api/"):
         return path

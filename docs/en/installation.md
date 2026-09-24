@@ -130,7 +130,7 @@ MESHCHAT_DEMO_AUTH_PASSWORD=demo   # default showcase password
 MESHCHAT_AUTH_PAGE_HINT=...        # optional login-page text
 ```
 
-MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
+MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). In demo mode the app drops X-Frame-Options and sends a CSP frame-ancestors list so the public website can embed it. MESHCHAT_DEMO_FRAME_ANCESTORS overrides the default list (meshchatx.com origins). Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
 
 ## Running behind a reverse proxy
 
@@ -351,6 +351,7 @@ Common flags and environment variables:
 | --emergency                | MESHCHAT_EMERGENCY                      | false                | Start without database                                                                 |
 | --disable-plugins          | MESHCHAT_DISABLE_PLUGINS                | false                | Disable the plugin system                                                              |
 | --demo                     | MESHCHAT_DEMO_MODE                      | false                | Public read-only demo mode                                                             |
+|                            | MESHCHAT_DEMO_FRAME_ANCESTORS           | meshchatx.com origins | Space-separated origins allowed to frame the demo (CSP frame-ancestors)   |
 | --no-crash-recovery        | MESHCHAT_NO_CRASH_RECOVERY              | false                | Disable the crash recovery and diagnostic system                                       |
 | --self-check               | MESHCHAT_SELF_CHECK                     | false                | Run startup diagnostics and exit 0 on pass, 1 on fail                                  |
 | --memory-diag              | MESHCHAT_MEMORY_DIAG                    | false                | Enable tracemalloc memory diagnostics                                                  |
