@@ -13,6 +13,7 @@ import uuid
 from meshchatx.src.backend.page_node import (
     PageNode,
     normalize_announce_interval_seconds,
+    resolve_persisted_announce_interval,
 )
 
 
@@ -40,19 +41,22 @@ class PageNodeManager:
             node_id = config["node_id"]
             if node_id in self.nodes:
                 continue
+            interval = resolve_persisted_announce_interval(config)
             node = PageNode(
                 node_id=node_id,
                 name=config["name"],
                 base_dir=node_dir,
                 announce_enabled=config.get("announce_enabled", True),
                 announce_interval_seconds=normalize_announce_interval_seconds(
-                    config.get("announce_interval_seconds"),
+                    interval,
                 ),
                 executable_pages_enabled=config.get("executable_pages_enabled", False),
                 executable_page_names=config.get("executable_page_names"),
                 on_announce=self.on_announce,
             )
             self.nodes[node_id] = node
+            if interval != config.get("announce_interval_seconds"):
+                node.save_config()
 
     def create_node(
         self,

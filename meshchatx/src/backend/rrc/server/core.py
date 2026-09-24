@@ -40,7 +40,11 @@ MIN_SESSIONS_PER_PEER = 2
 STORE_FILENAME = "hubs"
 HUB_CONFIG_FILENAME = "hub.toml"
 ROOMS_FILENAME = "rooms.toml"
+HUB_CONFIG_VERSION = 2
 DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS = (
+    constants.LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+)
 MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
 MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
 
@@ -62,6 +66,27 @@ def normalize_announce_interval_seconds(
         MIN_ANNOUNCE_INTERVAL_SECONDS,
         min(MAX_ANNOUNCE_INTERVAL_SECONDS, seconds),
     )
+
+
+def _persisted_hub_interval(entry):
+    """Return the announce interval stored in a hub entry, or None when absent.
+
+    Entries written before the default moved off 15 minutes stored 900
+    with no config_version. Treat that value as the old default so
+    existing hubs inherit the slower cadence, while an explicit 900
+    saved by a versioned entry still sticks.
+    """
+    value = entry.get("announce_interval_seconds")
+    try:
+        version = int(entry.get("config_version") or 0)
+    except (TypeError, ValueError):
+        version = 0
+    if (
+        value == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        and version < HUB_CONFIG_VERSION
+    ):
+        return DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    return value
 
 
 class _LoopbackEndpoint:
@@ -1269,6 +1294,7 @@ class RRCHubServer:
         return {
             "id": self.hub_id,
             "name": self.name,
+            "config_version": HUB_CONFIG_VERSION,
             "enabled": self.enabled,
             "announce": self.announce,
             "announce_interval_seconds": self.announce_interval_seconds,
@@ -1492,31 +1518,33 @@ class RRCServerManager:
             return
         if not isinstance(obj, dict):
             return
+        migrated = False
         for entry in obj.get("hubs", []):
-            self._load_entry(entry)
+            if self._load_entry(entry):
+                migrated = True
+        if migrated:
+            self.save()
 
     def _load_entry(self, entry):
         if not isinstance(entry, dict):
-            return
+            return False
         hub_id = entry.get("id")
         if not isinstance(hub_id, str):
-            return
+            return False
         ident_path = self._identity_path(hub_id)
         if not os.path.isfile(ident_path):
-            return
+            return False
         identity = RNS.Identity.from_file(ident_path)
         if identity is None:
-            return
+            return False
+        interval = _persisted_hub_interval(entry)
         hub = RRCHubServer(
             self,
             identity,
             name=entry.get("name"),
             greeting=entry.get("greeting"),
             announce=bool(entry.get("announce", True)),
-            announce_interval_seconds=entry.get(
-                "announce_interval_seconds",
-                DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
-            ),
+            announce_interval_seconds=interval,
             enabled=bool(entry.get("enabled", True)),
         )
         hub.configure_storage(
@@ -1545,6 +1573,7 @@ class RRCServerManager:
         if hub.enabled:
             with contextlib.suppress(Exception):
                 hub.start()
+        return interval != entry.get("announce_interval_seconds")
 
     def save(self):
         path = self._store_path()
