@@ -20,7 +20,7 @@ def err_result(message: str, **fields) -> dict:
 def err_result_from(exc: BaseException, fallback: str = "operation failed") -> dict:
     """Envelope for an exception without leaking internals to clients.
 
-    ValueError-family messages pass through (user-facing by convention);
+    ValueError-family messages pass through (user-facing by convention).
     OSError and unknown exceptions return the generic fallback so errno
     text and absolute paths stay server-side.
     """

@@ -158,7 +158,7 @@ class AnnounceDAO:
         return index
 
     def get_announce_by_hash(self, destination_hash):
-        # stored hashes are lowercase hex; normalize mixed-case lookups
+        # stored hashes are lowercase hex. Normalize mixed-case lookups
         if isinstance(destination_hash, str):
             destination_hash = destination_hash.lower()
         return self.provider.fetchone(

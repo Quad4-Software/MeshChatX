@@ -9,7 +9,7 @@ from meshchatx.src.backend.bug_report_manager import BugReportManager
 
 @pytest.fixture(autouse=True)
 def _clear_memory_log_handler(monkeypatch):
-    # The manager prefers the process-global memory handler; clear it so
+    # The manager prefers the process-global memory handler. Clear it so
     # the fake app/database path is what previews actually read.
     from meshchatx.src.backend import persistent_log_handler as plh
 

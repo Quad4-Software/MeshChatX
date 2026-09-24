@@ -62,7 +62,7 @@ def kiss_frame(command: int, payload: bytes = b"") -> bytes:
 
 
 class _KissParser:
-    """Stateful KISS deframer; keeps a partial frame across recv() chunks."""
+    """Stateful KISS deframer. Keeps a partial frame across recv() chunks."""
 
     def __init__(self):
         self.in_frame = False
@@ -137,7 +137,7 @@ class RNodeSimulator:
         return self._bind_port
 
     def start(self) -> RNodeSimulator:
-        """Start listening; re-binds the previous port after stop/start."""
+        """Start listening. Re-binds the previous port after stop/start."""
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._sock.bind(("127.0.0.1", self._bind_port))

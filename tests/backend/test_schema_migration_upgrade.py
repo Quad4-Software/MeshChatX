@@ -22,7 +22,7 @@ def _column_names(provider, table: str) -> set[str]:
     reason="Test targets migration block for version 41",
 )
 def test_migrate_from_version_40_restores_attachments_stripped(tmp_path):
-    """Version 41 adds lxmf_messages.attachments_stripped; re-apply from 40."""
+    """Version 41 adds lxmf_messages.attachments_stripped. Re-apply from 40."""
     db_path = tmp_path / "mig.db"
     provider = DatabaseProvider(str(db_path))
     schema = DatabaseSchema(provider)

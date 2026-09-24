@@ -4,7 +4,7 @@
 
 One catalog of honoured MESHCHAT_* variables, parsed once through
 env_utils so CLI flags and feature code share identical parsing rules.
-Load at startup with MeshchatEnv.load(); do not snapshot at import
+Load at startup with MeshchatEnv.load(). Do not snapshot at import
 time so tests can still monkeypatch os.environ before constructing it.
 """
 

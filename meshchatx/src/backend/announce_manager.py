@@ -16,7 +16,7 @@ MAX_ANNOUNCE_APP_DATA_BYTES = 2048
 ANNOUNCE_JOURNAL_FLUSH_SECONDS = 30.0
 
 # Safety bound for the in-memory deferred journal. Beyond this, the oldest
-# pending entries are dropped; peers simply re-announce later.
+# pending entries are dropped. Peers simply re-announce later.
 ANNOUNCE_JOURNAL_MAX_PENDING = 2000
 
 # How long cached contact/favourite/conversation/block sets stay valid.
@@ -136,7 +136,7 @@ class AnnounceManager:
     # the user has no relationship with. Each used to cost several SQLite
     # reads (block-check fanout, read-back, name/icon lookups) plus a WAL
     # write. classify_announce() answers with cached peer sets so the hot
-    # path is a dict lookup; "background" announces go through a deferred
+    # path is a dict lookup. "background" announces go through a deferred
     # journal flushed in a single transaction.
     # ------------------------------------------------------------------
 
@@ -302,7 +302,7 @@ class AnnounceManager:
             print(f"Announce journal flush failed ({len(rows)} rows): {exc}")
             # Requeue the popped rows so a failed transaction does not
             # drop the whole journal. Newer pending entries win for
-            # duplicate destination hashes; the requeued rows keep their
+            # duplicate destination hashes. The requeued rows keep their
             # position at the front so the cap still evicts oldest first.
             with self._pending_lock:
                 requeued = {row["destination_hash"]: row for row in rows}
@@ -374,7 +374,7 @@ class AnnounceManager:
         if defer:
             with self._pending_lock:
                 if len(self._pending) >= ANNOUNCE_JOURNAL_MAX_PENDING:
-                    # Dicts are insertion ordered; drop the oldest entry.
+                    # Dicts are insertion ordered. Drop the oldest entry.
                     self._pending.pop(next(iter(self._pending)))
                 self._pending[data["destination_hash"]] = data
                 self._pending_aspects.add(aspect)

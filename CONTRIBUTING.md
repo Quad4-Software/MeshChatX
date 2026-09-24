@@ -62,7 +62,7 @@ Add a `.mailmap` line so `git log`, `shortlog`, and `blame` stay readable while 
 Your Name <you@example.com> <your-identity-hash>
 ```
 
-Verify locally with `git log --show-signature`. `git log --format=%G?` reports `G` for a verified rngcs signature, `E` when rngcs is not installed, and `N` for unsigned commits. GitHub cannot parse the RSG payload, so commits show no verified badge there and hash-authored commits do not link to a GitHub account; that is the accepted trade-off for offline-verifiable, identity-bound signatures over `rns://` remotes.
+Verify locally with `git log --show-signature`. `git log --format=%G?` reports `G` for a verified rngcs signature, `E` when rngcs is not installed, and `N` for unsigned commits. GitHub cannot parse the RSG payload, so commits show no verified badge there and hash-authored commits do not link to a GitHub account. That is the accepted trade-off for offline-verifiable, identity-bound signatures over `rns://` remotes.
 
 Unsigned or GPG-signed pull requests from outside contributors are still accepted.
 
@@ -125,7 +125,7 @@ You also confirm that you have the right to submit the contribution under these 
 
 ## Generative AI policy
 
-You may use generative AI tools when contributing, on the condition that your setup actually supplies the model with enough context to produce sound work and your provider does not train on the code, read [Reticulum Zen](https://reticulum.network/manual/zen.html) and the [Reticulum License](https://reticulum.network/manual/license.html). Vague prompts and thin context lead to wrong or generic patches; that burden is on the contributor, not the reviewers.
+You may use generative AI tools when contributing, on the condition that your setup actually supplies the model with enough context to produce sound work and your provider does not train on the code, read [Reticulum Zen](https://reticulum.network/manual/zen.html) and the [Reticulum License](https://reticulum.network/manual/license.html). Vague prompts and thin context lead to wrong or generic patches. That burden is on the contributor, not the reviewers.
 
 We strongly prefer models that run locally or offline when that is practical for you or open-weight cloud models by a ZDR (zero data retention) provider.
 

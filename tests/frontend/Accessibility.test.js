@@ -22,7 +22,7 @@ describe("UI Accessibility and Keyboard Navigation", () => {
     it("verifies that keyboard shortcuts trigger global events", async () => {
         const emitSpy = vi.spyOn(GlobalEmitter, "emit");
 
-        // Test a few shortcuts; Ctrl+K is also a registered shortcut.
+        // Test a few shortcuts. Ctrl+K is also a registered shortcut.
         const shortcuts = [
             { key: "1", altKey: true, action: "nav_messages" },
             { key: "s", altKey: true, action: "nav_settings" },

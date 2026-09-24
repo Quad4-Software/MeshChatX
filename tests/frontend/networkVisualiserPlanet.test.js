@@ -419,7 +419,7 @@ describe("networkVisualiserPlanet", () => {
     });
 
     it("spreads coincident points even when singleton groups exist", () => {
-        // A lone point sorts into its own group; an early return on singleton
+        // A lone point sorts into its own group. An early return on singleton
         // groups would skip the whole unstick pass for the stacked pair.
         const pts = [
             { x: 1, y: 0, z: 0 },

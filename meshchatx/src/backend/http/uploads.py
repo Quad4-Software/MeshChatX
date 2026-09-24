@@ -25,7 +25,7 @@ class JsonBodyError(ValueError):
 
 
 # Default cap for request.json() bodies and small multipart text fields.
-# JSON endpoints take config or command payloads; anything larger is a
+# JSON endpoints take config or command payloads. Anything larger is a
 # feature-specific upload and must declare its own limit.
 DEFAULT_JSON_BODY_BYTES = 1024 * 1024
 DEFAULT_TEXT_FIELD_BYTES = 64 * 1024
@@ -58,9 +58,9 @@ async def read_field_limited(
 ) -> bytes:
     """Read a multipart field fully into memory, capped at max_bytes.
 
-    Raises PayloadTooLargeError once the cap is exceeded; the unread
+    Raises PayloadTooLargeError once the cap is exceeded. The unread
     remainder is left for aiohttp to drain. Use only for payloads that
-    legitimately fit in memory (archives, images); stream to disk for
+    legitimately fit in memory (archives, images). Stream to disk for
     larger uploads.
     """
     chunks: list[bytes] = []
@@ -171,7 +171,7 @@ async def read_json_limited(
     malformed JSON, and JsonBodyError when the top level is not an object.
     Every route handler treats the body as a dict, so accepting arrays or
     scalars here would only surface later as an uncaught AttributeError.
-    aiohttp requests always carry .content; the request.json fallback
+    aiohttp requests always carry .content. The request.json fallback
     exists so legacy test fakes that only stub json() still exercise
     handlers.
     """

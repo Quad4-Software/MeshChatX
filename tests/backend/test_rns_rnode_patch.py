@@ -64,7 +64,7 @@ def test_device_bonded_bluez_dict():
 def test_device_bonded_corebluetooth_tuple():
     """MacOS devices must count as bonded.
 
-    CoreBluetooth exposes details as a tuple, not BlueZ props; upstream
+    CoreBluetooth exposes details as a tuple, not BlueZ props. Upstream
     returned False and BLE could never connect there.
     """
     conn = _ble_connection()

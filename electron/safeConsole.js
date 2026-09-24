@@ -44,7 +44,7 @@ function installBrokenPipeGuards(proc = process) {
             if (isBrokenPipeError(err)) {
                 return;
             }
-            // Only EPIPE is swallowed; other stream errors still surface.
+            // Only EPIPE is swallowed. Other stream errors still surface.
             throw err;
         });
     };

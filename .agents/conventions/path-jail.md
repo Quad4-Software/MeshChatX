@@ -42,7 +42,7 @@ All path-jail primitives live in `meshchatx/src/path_utils.py`:
 - `is_path_within_dir` (realpath + normcase) and `is_under_root` (pre-resolved strings) for membership, `is_direct_child` / `first_component_under` for one-level checks
 - `realpath_or_none` for fallible resolution, `atomic_write_bytes`/`atomic_write_text` for safe writes
 
-`PathJailError.reason` is a closed set (`REASONS`); map it to feature error types instead of parsing messages.
+`PathJailError.reason` is a closed set (`REASONS`). Map it to feature error types instead of parsing messages.
 
 Full workflow: `.agents/skills/path-jail-local-fs/SKILL.md`.
 Reference implementation: `meshchatx/src/backend/rns_filesync_handler.py` (`_resolve_manager_path` and manager APIs).

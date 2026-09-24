@@ -170,7 +170,7 @@ class MeshChatBLEConnection:
                 MeshChatBLEConnection.asyncio = asyncio
             else:
                 raise OSError(
-                    'RNode over BLE requires the "bleak" module; install it '
+                    'RNode over BLE requires the "bleak" module. Install it '
                     "with: python3 -m pip install bleak"
                 )
 
@@ -376,7 +376,7 @@ class MeshChatBLEConnection:
             )
         except Exception as e:
             # A transient scan error (adapter busy, powering on, permission
-            # prompt pending) must not kill the connection job; retry on the
+            # prompt pending) must not kill the connection job. Retry on the
             # next pass instead.
             RNS.log(
                 f"Error while finding BLE device for {self.owner}: {e}",
@@ -400,7 +400,7 @@ class MeshChatBLEConnection:
                     return props["Bonded"] is True
 
             # CoreBluetooth (macOS) and other backends without a dict of
-            # BlueZ props expose no pre-connection bond indicator; pairing is
+            # BlueZ props expose no pre-connection bond indicator. Pairing is
             # negotiated in-band during connect.
             return True
 

@@ -137,7 +137,7 @@ describe("RelayChatPage.vue", () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
 
-        // All tabs stay in the bar; bots and search collapse to icons below md
+        // All tabs stay in the bar. Bots and search collapse to icons below md
         // so the bar never scrolls horizontally on phones.
         const tabs = wrapper.findAll('[role="tab"]');
         expect(tabs).toHaveLength(5);
@@ -1613,7 +1613,7 @@ describe("RelayChatPage.vue", () => {
                     const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
                     expect(hub.mention_rooms).toContain("other");
                 });
-                // A later fetchHubs replaces the hubs array; the client-side
+                // A later fetchHubs replaces the hubs array. The client-side
                 // flag must survive or the badge silently drops.
                 axiosMock.get.mockResolvedValueOnce({ data: { hubs: [makeHub()] } });
                 await wrapper.vm.fetchHubs();

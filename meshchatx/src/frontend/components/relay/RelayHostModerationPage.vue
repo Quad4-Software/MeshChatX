@@ -653,7 +653,7 @@ export default {
             handler(val, old) {
                 this.uptimeAnchorMs = Date.now();
                 // The parent's fetchServers swaps in a fresh object for
-                // the same hub; only a different hub or a start/stop flip
+                // the same hub. Only a different hub or a start/stop flip
                 // needs a full reload.
                 if (val && old && val.id === old.id && Boolean(val.running) === Boolean(old.running)) {
                     return;
@@ -809,7 +809,7 @@ export default {
             if (!this.hub?.id || !this.selectedRoom) {
                 return;
             }
-            // Capture the room before the dialog awaits; re-reading
+            // Capture the room before the dialog awaits. Re-reading
             // selectedRoom after would apply the key to whatever room the
             // user clicked while the prompt was open.
             const room = this.selectedRoom;
@@ -881,7 +881,7 @@ export default {
             if (!member || !this.hub?.id) {
                 return;
             }
-            // Fast member switching fires overlapping loads; only the last
+            // Fast member switching fires overlapping loads. Only the last
             // request for the still-selected member may write the pane.
             const gen = ++this.memberMessagesGen;
             this.messagesLoading = true;

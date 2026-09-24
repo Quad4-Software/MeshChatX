@@ -568,7 +568,7 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         api.patch.mockClear();
         w.vm.onIdentitySwitched();
         await vi.advanceTimersByTimeAsync(2000);
-        // The queued save reads this.config at fire time; cancelling it
+        // The queued save reads this.config at fire time. Cancelling it
         // keeps the old identity's edit from PATCHing the new identity.
         expect(api.patch).not.toHaveBeenCalledWith("/api/v1/config", {
             display_name: "Typed Under Old Identity",
@@ -580,7 +580,7 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         w.vm.config.display_name = "Typed Name";
         await w.vm.onDisplayNameChange();
         w.vm.onConfigEvent({ config: { display_name: "Server Name", theme: "light" } });
-        // The pending field keeps the in-flight edit; other keys merge.
+        // The pending field keeps the in-flight edit. Other keys merge.
         expect(w.vm.config.display_name).toBe("Typed Name");
         expect(w.vm.config.theme).toBe("light");
         await vi.advanceTimersByTimeAsync(600);

@@ -57,7 +57,7 @@ class _LiveManager:
 
 
 def _force_pipe_mode(monkeypatch, session_cls=RNSHSession):
-    # PTY children often get SIGHUP under pytest capture; use pipes for live smoke.
+    # PTY children often get SIGHUP under pytest capture. Use pipes for live smoke.
     monkeypatch.setattr(session_cls, "_supports_pty", staticmethod(lambda: False))
 
 

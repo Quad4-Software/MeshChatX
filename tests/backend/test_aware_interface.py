@@ -122,7 +122,7 @@ class _FakeAwareBridge:
 def _install_fake_aware():
     fake = _FakeAwareBridge()
     android_locallink._aware = fake
-    # is_available() gates on _bridge; a truthy stand-in is enough here.
+    # is_available() gates on _bridge. A truthy stand-in is enough here.
     with android_locallink._bridge_lock:
         android_locallink._bridge = SimpleNamespace()
     return fake

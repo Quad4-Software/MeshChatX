@@ -166,7 +166,7 @@ def _rnode_iface_transport(iface: dict) -> str:
 def rnode_transport_supported(iface: dict, *, is_android: bool | None = None) -> bool:
     """Whether a specific RNodeInterface config entry can be brought up here.
 
-    Serial and classic-Bluetooth need usbserial4a + jnius on Android; BLE
+    Serial and classic-Bluetooth need usbserial4a + jnius on Android. BLE
     needs able. On desktop every RNode transport requires pyserial because
     RNS's RNodeInterface imports serial unconditionally before it decides
     which transport to open, and BLE additionally needs bleak.
@@ -251,7 +251,7 @@ def normalize_rnode_bluetooth_in_config(
     The desktop RNodeInterface takes the transport from the port value
     (ble://name|mac). The Android-specific implementation ignores that and
     reads ble_name/ble_addr/force_ble for BLE and allow_bluetooth plus
-    target_device_name/target_device_address for classic Bluetooth; a port
+    target_device_name/target_device_address for classic Bluetooth. A port
     that is set always means USB serial. Entries written through the UI use
     the desktop schemes, so on Android they must be rewritten or the
     interface silently tries to open a USB device and never connects.
@@ -492,7 +492,7 @@ def guard_rnode_interfaces_on_desktop(config_path: str) -> bool:
     """On desktop, disable RNode interfaces that can't be brought up here.
 
     Every RNode transport needs pyserial on desktop because RNS imports it
-    unconditionally in the interface constructor; BLE additionally needs
+    unconditionally in the interface constructor. BLE additionally needs
     bleak. Unsupported entries are disabled before Reticulum startup so RNS
     does not crash with a missing-dependency panic.
     """
@@ -503,6 +503,6 @@ def guard_rnode_interfaces_on_desktop(config_path: str) -> bool:
         logger.warning(
             "One or more RNode interfaces were disabled because their transport "
             "is not supported on this build (all RNode transports need "
-            "pyserial; BLE additionally needs bleak).",
+            "pyserial. BLE additionally needs bleak).",
         )
     return disabled

@@ -313,7 +313,7 @@ def update_baseline(
             pass
 
     entries = data.setdefault("entries", {}).setdefault(suite_name, [])
-    # Keep a short history so cache stays small; compare uses the latest.
+    # Keep a short history so cache stays small. Compare uses the latest.
     entries.append(record)
     data["entries"][suite_name] = entries[-20:]
     data["lastUpdate"] = date_ms

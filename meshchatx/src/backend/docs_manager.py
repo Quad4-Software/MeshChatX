@@ -194,7 +194,7 @@ class DocsManager:
             return False
 
     def clear_reticulum_docs(self):
-        """Remove every user-uploaded Reticulum doc; bundled copy is untouched."""
+        """Remove every user-uploaded Reticulum doc. Bundled copy is untouched."""
         try:
             if os.path.exists(self.docs_base_dir):
                 for item in os.listdir(self.docs_base_dir):

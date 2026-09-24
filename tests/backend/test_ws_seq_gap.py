@@ -40,7 +40,7 @@ async def test_gap_hint_resync_when_client_ahead_after_restart():
     """Client cursor ahead of server seq must resync.
 
     A cursor larger than the server seq is stale state from a previous
-    server epoch (restart resets seq to zero); the client must resync.
+    server epoch (restart resets seq to zero). The client must resync.
     """
     state = BroadcastSeqState()
     await state.stamp({"type": "announce"})

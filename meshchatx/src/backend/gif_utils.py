@@ -62,7 +62,7 @@ def validate_gif_payload(
     """Returns (normalized_image_type, content_hash_hex).
 
     The declared image_type must match the format detected from magic
-    bytes; the stored type is the normalized detected format.
+    bytes. The stored type is the normalized detected format.
 
     Raises ValueError with a short reason on invalid input.
     """

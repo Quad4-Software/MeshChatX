@@ -800,7 +800,7 @@ class RnsFilesyncHandler:
         except (TypeError, ValueError):
             version = 0
         # A stored 300 without a version marker is the old vendored default,
-        # not an explicit choice; follow the current shared default instead.
+        # not an explicit choice. Follow the current shared default instead.
         if version < _SETTINGS_VERSION and interval == _LEGACY_ANNOUNCE_INTERVAL:
             interval = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
         if isinstance(interval, int) and interval >= 10:

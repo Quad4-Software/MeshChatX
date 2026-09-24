@@ -68,7 +68,7 @@ async def _send_nomad_file_bytes(
     request_id_fields: dict,
     extra: dict | None = None,
 ):
-    """Single-frame for small files; chunked frames for large ones."""
+    """Single-frame for small files. Chunked frames for large ones."""
     if len(file_bytes) > WS_NOMAD_FILE_MAX_BYTES:
         await client.send_str(
             json.dumps(
@@ -655,7 +655,7 @@ async def handle_nomadnet_file_download(app, client, data):
         if isinstance(request_data, dict):
             media_payload.update(request_data)
         # Upstream NomadNet 1.4.x media handlers reject requests that carry
-        # no key at all; None is the accepted default when the micron image
+        # no key at all. None is the accepted default when the micron image
         # field k= is absent.
         media_payload.setdefault("key", None)
         rns_data = media_payload

@@ -16,7 +16,7 @@ name: Android emulator smoke
 
 on:
     schedule:
-        # After nightly release tagging window; independent of release success.
+        # After nightly release tagging window. Independent of release success.
         - cron: "30 8 * * *"
     workflow_dispatch:
         inputs:

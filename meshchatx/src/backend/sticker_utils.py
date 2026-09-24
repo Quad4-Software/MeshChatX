@@ -88,7 +88,7 @@ def normalize_image_type(image_type: str | None) -> str | None:
 
 
 def content_hash_hex(image_bytes: bytes) -> str:
-    """SHA-256 hex digest of raw sticker bytes; used for deduplication."""
+    """SHA-256 hex digest of raw sticker bytes. Used for deduplication."""
     return hashlib.sha256(image_bytes).hexdigest()
 
 
@@ -321,7 +321,7 @@ def _ebml_read_vint(
     *,
     mask_marker: bool = True,
 ) -> tuple[int, int] | None:
-    """Read an EBML variable-length integer at pos; returns (value, next_pos)."""
+    """Read an EBML variable-length integer at pos. Returns (value, next_pos)."""
     if pos >= len(buf):
         return None
     first = buf[pos]
@@ -720,7 +720,7 @@ def sanitize_sticker_emoji(emoji: str | None) -> str | None:
     """Allow up to a small number of characters for a sticker emoji tag.
 
     The protocol does not enforce that stickers must carry an emoji (per user
-    decision); this helper only ensures the value is short, printable and
+    decision). This helper only ensures the value is short, printable and
     storable.
     """
     if emoji is None:

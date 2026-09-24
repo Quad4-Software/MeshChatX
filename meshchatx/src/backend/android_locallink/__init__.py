@@ -362,7 +362,7 @@ def p2p_status() -> dict:
 
 
 def _nfc_bridge():
-    """Lazily construct the NfcShare bridge; needs the foreground Activity."""
+    """Lazily construct the NfcShare bridge. Needs the foreground Activity."""
     global _nfc
     if _nfc is not None:
         return _nfc

@@ -237,7 +237,7 @@ describe("networkVisualiserWebGLEngine", () => {
             viewHeight: 600,
         };
         const labels = collectWebGLLabels(base);
-        // peer1 overlaps me's label box on screen, so it is dropped; the far
+        // peer1 overlaps me's label box on screen, so it is dropped. The far
         // peer keeps its label.
         expect(labels.map((l) => l.text).sort()).toEqual(["Far", "Local"]);
         // Hovering the crowded node forces its label through the declutter.

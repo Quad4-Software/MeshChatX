@@ -1412,7 +1412,7 @@ export default {
         }
         if (this._timeAgoInterval) clearInterval(this._timeAgoInterval);
         this.clearConversationLongPressTimer();
-        // If the sidebar unmounts mid-drag the row's dragend never fires; make
+        // If the sidebar unmounts mid-drag the row's dragend never fires. Make
         // sure the page does not keep the drop strip visible forever.
         if (this.draggedHash) {
             this.draggedHash = null;

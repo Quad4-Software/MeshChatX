@@ -2890,7 +2890,7 @@ export default {
             }
         },
         onIdentitySwitched() {
-            // Config, contacts, and call history are per-identity; the
+            // Config, contacts, and call history are per-identity. The
             // mount-time copies belong to the previous identity.
             this.getConfig();
             this.getContacts();

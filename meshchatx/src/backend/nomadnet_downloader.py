@@ -45,7 +45,7 @@ def cached_link_count() -> int:
 
 
 def get_cached_active_link(destination_hash: bytes):
-    """Return a cached link if present and ACTIVE; drop stale entries."""
+    """Return a cached link if present and ACTIVE. Drop stale entries."""
     with _nomadnet_links_lock:
         link = nomadnet_cached_links.get(destination_hash)
         if link is None:
@@ -177,7 +177,7 @@ def _cache_link_if_active(destination_hash: bytes, link) -> None:
             if non_active:
                 candidates = non_active
             else:
-                # All other cached links are still active; do not tear down
+                # All other cached links are still active. Do not tear down
                 # a link that may be carrying an in-flight request.
                 break
             oldest_key = min(
@@ -411,7 +411,7 @@ class NomadnetDownloader:
         identity = RNS.Identity.recall(self.destination_hash)
         if identity is None:
             # Path table can list a dest before Identity.recall has the key.
-            # Requesting the path again often recovers; do not crash the task.
+            # Requesting the path again often recovers. Do not crash the task.
             reticulum_pathfinding.nudge_path_request(self.destination_hash)
             self._deliver_failure(
                 "No identity key for destination yet. Try Path Finder or wait for an announce.",

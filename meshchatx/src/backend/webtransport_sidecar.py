@@ -126,7 +126,7 @@ def build_webtransport_status(
         state.reason = WT_REASON_DISABLED
         return state
     if landlock_active:
-        # UDP often blocked until rules allow it. Report clearly; bind may still try.
+        # UDP often blocked until rules allow it. Report clearly. Bind may still try.
         state.reason = WT_REASON_LANDLOCK_UDP
     if not aioquic_available():
         state.reason = WT_REASON_AIOQUIC_MISSING

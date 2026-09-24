@@ -395,7 +395,7 @@ export function useMicronPublish(options = {}) {
                 pages.map((page) => page.content)
             );
             // An explicitly published index.mu always wins over the generated
-            // links page; otherwise the generateIndex option would overwrite
+            // links page. Otherwise the generateIndex option would overwrite
             // the user's own landing page with a link list.
             const hasExplicitIndex = savedNames.some((name) => String(name).toLowerCase() === "index.mu");
             if (payload.generateIndex && running.destination_hash && published > 0 && !hasExplicitIndex) {

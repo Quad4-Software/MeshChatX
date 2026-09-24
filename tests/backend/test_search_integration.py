@@ -86,7 +86,7 @@ def test_filter_announced_dicts_by_search_query_destination_hash_substring():
 
 
 def test_filter_announced_dicts_empty_search_matches_all():
-    """Empty substring matches every string in Python; callers should normalize UI input."""
+    """Empty substring matches every string in Python. Callers should normalize UI input."""
     items = [
         {"display_name": "AAA"},
         {"destination_hash": "0123abcd"},

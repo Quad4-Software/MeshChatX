@@ -58,7 +58,7 @@ class TestConcurrentWriters:
 
         assert errors == []
         final = target.read_bytes()
-        # The last os.replace wins; the result must be one whole payload.
+        # The last os.replace wins. The result must be one whole payload.
         assert final in payloads
         # mkstemp siblings are either renamed into place or unlinked.
         assert _siblings(root, target.name) == []
@@ -109,7 +109,7 @@ class TestReaderDuringReplace:
                 try:
                     seen.append(target.read_bytes())
                 except FileNotFoundError:
-                    # os.replace never opens a gap; tolerate defensively.
+                    # os.replace never opens a gap. Tolerate defensively.
                     continue
                 except BaseException as exc:
                     reader_errors.append(exc)

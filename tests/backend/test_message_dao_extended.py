@@ -76,7 +76,7 @@ def test_mark_stuck_messages_never_fails_incoming_messages(real_db):
 
 
 def test_mark_stuck_messages_fails_unproven_direct_sends(real_db):
-    # sent+direct means transmitted-but-unproven; after a restart the router
+    # sent+direct means transmitted-but-unproven. After a restart the router
     # memory holding it is gone so it can never advance. Parked propagated
     # sends stay untouched.
     _insert_message(real_db, "a" * 32, is_incoming=0, state="sent", method="direct")

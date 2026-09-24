@@ -199,7 +199,7 @@ export default {
         },
         onVolumeChange(event) {
             const value = Number(event.target.value);
-            // The slider fires per input event; debounce so a drag does
+            // The slider fires per input event. Debounce so a drag does
             // not PATCH /config for every step.
             if (this.volumeSaveTimer) {
                 clearTimeout(this.volumeSaveTimer);

@@ -199,7 +199,7 @@ def enforce_single_enabled_i2p(interfaces: dict) -> bool:
             iface["enabled"] = "false"
         modified = True
         logger.warning(
-            'Disabled extra I2P interface "%s" (only one I2P interface is allowed; '
+            'Disabled extra I2P interface "%s" (only one I2P interface is allowed. '
             'kept "%s")',
             name,
             kept,

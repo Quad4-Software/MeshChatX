@@ -16,7 +16,7 @@ vi.waitFor = (callback, options) => _originalWaitFor(callback, { timeout: 5000, 
 
 injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
 
-// Domain state lives in Pinia stores; activate a fresh one per test.
+// Domain state lives in Pinia stores. Activate a fresh one per test.
 // Installing the plugin covers inject(piniaSymbol) and this.$pinia for
 // mapStores, while setActivePinia keeps bare use*Store() calls in sync.
 setActivePinia(createPinia());

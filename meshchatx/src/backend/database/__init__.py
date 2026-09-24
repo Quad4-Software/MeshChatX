@@ -203,7 +203,7 @@ class Database:
                         self._last_pre_migrate_backup_path = backup_path
                     except Exception as exc:
                         msg = (
-                            "Pre-migration backup failed; aborting schema upgrade. "
+                            "Pre-migration backup failed. Aborting schema upgrade. "
                             "Fix disk space or permissions, or set "
                             "MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1: "
                             f"{exc}"
@@ -292,10 +292,10 @@ class Database:
 
         A hard kill in the middle of restore_database can leave the live
         database file moved into a .meshchatx-aside-* dir with nothing at the
-        real path; booting then creates an empty database and silently drops
+        real path. Booting then creates an empty database and silently drops
         all history. Move the aside files back when the live file is absent.
         Staging leftovers are copies of a zip that still exists, so they are
-        removed; aside dirs that still hold a db while a live one exists are
+        removed. Aside dirs that still hold a db while a live one exists are
         kept as a manual rollback artifact.
         """
         try:
@@ -351,7 +351,7 @@ class Database:
             elif name.startswith(".meshchatx-restore-"):
                 shutil.rmtree(full, ignore_errors=True)
         # Keep only the newest aside holding a db as a manual rollback
-        # artifact; older ones are an unbounded disk leak.
+        # artifact. Older ones are an unbounded disk leak.
         if len(asides_with_db) > 1:
             asides_with_db.sort(key=os.path.getmtime, reverse=True)
             for stale in asides_with_db[1:]:
@@ -871,7 +871,7 @@ class Database:
     def _check_zip_fits_disk(zf: zipfile.ZipFile, target_dir: str) -> None:
         """Refuse a restore whose uncompressed payload cannot fit on disk.
 
-        Extraction failing halfway leaves a half-restored staging dir; a
+        Extraction failing halfway leaves a half-restored staging dir. A
         failed zip bomb also fills the disk the database lives on.
         """
         total = sum(info.file_size for info in zf.infolist() if not info.is_dir())
@@ -1014,7 +1014,7 @@ class Database:
 
         if suspicious:
             _log.warning(
-                "Backup data-loss guard: current DB looks wrong (was %s messages / %s bytes, now %s / %s); "
+                "Backup data-loss guard: current DB looks wrong (was %s messages / %s bytes, now %s / %s). "
                 "wrote backup-SUSPICIOUS-*.zip, skipping rotation",
                 baseline.get("message_count"),
                 baseline.get("total_bytes"),
@@ -1025,7 +1025,7 @@ class Database:
                 "Backup data-loss guard: current database looks wrong "
                 f"(was {baseline.get('message_count')} messages / {baseline.get('total_bytes')} bytes, "
                 f"now {current_stats.get('message_count')} / {current_stats.get('total_bytes')}). "
-                "Wrote backup-SUSPICIOUS-*.zip; skipping rotation and baseline update. Check disk and DB.",
+                "Wrote backup-SUSPICIOUS-*.zip. Skipping rotation and baseline update. Check disk and DB.",
             )
             result["suspicious"] = True
             result["baseline"] = baseline
@@ -1078,7 +1078,7 @@ class Database:
 
     @staticmethod
     def _unique_backup_path(directory: str, prefix: str, timestamp: str) -> str:
-        """Second-resolution timestamps collide; never overwrite a backup."""
+        """Second-resolution timestamps collide. Never overwrite a backup."""
         candidate = os.path.join(directory, f"{prefix}{timestamp}.zip")
         counter = 2
         while os.path.exists(candidate):
@@ -1273,14 +1273,14 @@ class Database:
                         f"Restored database but identity files failed to copy: {exc!s}",
                     ) from exc
                 # The manifest on disk still describes the pre-restore tree.
-                # Drop it so a bare restore cannot block the next boot; the
+                # Drop it so a bare restore cannot block the next boot. The
                 # app-level restore writes a fresh signed baseline.
                 with suppress(OSError):
                     os.remove(
                         os.path.join(target_dir, INTEGRITY_MANIFEST_NAME),
                     )
                 # The pre-restore backup baseline would flag the restored db
-                # as a content anomaly at next open; re-baseline it.
+                # as a content anomaly at next open. Re-baseline it.
                 with suppress(Exception):
                     stats = self._get_current_db_content_stats()
                     if stats.get("message_count", -1) >= 0:

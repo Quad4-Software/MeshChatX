@@ -158,7 +158,7 @@ class RNSHSession:
     def resolved_config_dir(self):
         """The Reticulum config directory rnsh is launched against.
 
-        A per-session config_path override wins; otherwise the manager's
+        A per-session config_path override wins. Otherwise the manager's
         shared directory (the MeshChatX app's Reticulum instance) is used so
         rnsh attaches to the same shared instance.
         """
@@ -293,7 +293,7 @@ class RNSHSession:
         if executable:
             raise PermissionError(f"Permission denied: '{executable}'")
         raise FileNotFoundError(
-            "rnsh is not available; install the rns package or ensure rnsh is on PATH",
+            "rnsh is not available. Install the rns package or ensure rnsh is on PATH",
         )
 
     def _build_command(self):
@@ -646,7 +646,7 @@ class RNSHSession:
     def _persist_throttled(self):
         """Persist session state at most a few times per second.
 
-        Interactive sessions produce many small output chunks; saving the
+        Interactive sessions produce many small output chunks. Saving the
         whole store on every chunk would thrash the disk.
         """
         now = time.time()

@@ -2205,7 +2205,7 @@ export default {
                             String(startedCallback.requestId) !== String(eventRequestId)
                         ) {
                             // Started belongs to a request this key replaced.
-                            // Its backend transfer is orphaned; cancel it
+                            // Its backend transfer is orphaned. Cancel it
                             // instead of tagging the new entry.
                             WebSocketConnection.send(
                                 JSON.stringify({
@@ -2276,7 +2276,7 @@ export default {
 
                     if (nomadnetPageDownloadCallback.cancelled && downloadId !== this.currentPageDownloadId) {
                         // Tombstone for a sent-but-untagged request that was
-                        // cancelled. Terminal events retire it; progress means
+                        // cancelled. Terminal events retire it. Progress means
                         // the transfer still runs and needs a cancel.
                         this.pendingNomadPageCancelWithoutId = false;
                         delete this.nomadnetPageDownloadCallbacks[getNomadnetPageDownloadCallbackKey];
@@ -2816,7 +2816,7 @@ export default {
             this.lastPageLoadDurationMs = null;
             this.lastPageContentBytes = null;
             this.clearPartials();
-            // In-flight image downloads belong to the previous page; cancel
+            // In-flight image downloads belong to the previous page. Cancel
             // them so their events cannot write into this page's image slots.
             this.cancelStaleImageDownloads();
             this.crashTabImages = [];
@@ -3058,7 +3058,7 @@ export default {
                                 this.partialRefreshTimers[key] = setTimeout(() => {
                                     this.downloadNomadNetPage(dest, path, fields, (content) => {
                                         const idList = this.partialIdsByKey[key];
-                                        // Navigating away clears partialIdsByKey; without
+                                        // Navigating away clears partialIdsByKey. Without
                                         // this gate the timer chain re-arms forever for a
                                         // page the user already left.
                                         if (!idList) {
@@ -3171,7 +3171,7 @@ export default {
                 }
                 if (context) {
                     // The image download also registered a file-callback
-                    // entry; a late started event for it would hijack
+                    // entry. A late started event for it would hijack
                     // currentFileDownloadId from a real download.
                     this.dropNomadImageFileCallback(context);
                 }

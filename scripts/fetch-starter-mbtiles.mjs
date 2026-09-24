@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Ensure the packaged starter world MBTiles exists under backend/data/map/.
- * Prefers a pinned download when STARTER_MBTILES_URL is set; otherwise generates
+ * Prefers a pinned download when STARTER_MBTILES_URL is set. Otherwise generates
  * a low-zoom placeholder via Python (stdlib, no clearnet required).
  */
 import fs from "fs";

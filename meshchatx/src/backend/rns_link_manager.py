@@ -51,7 +51,7 @@ def cached_link_count() -> int:
 
 
 def get_cached_active_link(aspect: str, destination_hash: bytes):
-    """Return a cached link if present and ACTIVE; drop stale entries."""
+    """Return a cached link if present and ACTIVE. Drop stale entries."""
     key = (aspect, destination_hash)
     with _rns_links_lock:
         link = rns_cached_links.get(key)
@@ -220,7 +220,7 @@ class RnsLinkManager:
       - self_identity_getter: returns the local RNS.Identity (or None).
       - reticulum_getter: returns the MeshChat reticulum-like (used by
         reticulum_pathfinding.prepare_fresh_path_request).
-      - broadcast_event: called with a JSON-serializable dict; expected to
+      - broadcast_event: called with a JSON-serializable dict. Expected to
         forward to all interested /ws clients.
     """
 
@@ -248,7 +248,7 @@ class RnsLinkManager:
         """Open (or reuse) a Link to (aspect, destination_hash).
 
         Returns (link, identified, failure_reason). On failure link is None
-        and failure_reason is set; otherwise failure_reason is None.
+        and failure_reason is set. Otherwise failure_reason is None.
         """
         app_name, sub_aspects = _split_aspect(aspect)
 

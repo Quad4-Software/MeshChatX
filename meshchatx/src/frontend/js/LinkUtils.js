@@ -152,7 +152,7 @@ export default class LinkUtils {
                 return match;
             }
             // Escaped entities adjacent to the URI (&#39; &quot;) carry no
-            // literal terminator char, so the match can swallow them; strip
+            // literal terminator char, so the match can swallow them. Strip
             // any trailing entity run before the &amp; fold. Single-entity
             // matches applied in a loop keep the pattern linear.
             const entityRe = /&[#a-zA-Z][\w]*;?$/;

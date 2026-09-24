@@ -88,7 +88,7 @@ function attachHardwareDevicePermissionHandlers(ses, deps) {
     const dialogApi = deps.dialog;
     const getParentWindow = deps.getParentWindow;
 
-    // Permissions are granted only to the local backend origin; any other
+    // Permissions are granted only to the local backend origin. Any other
     // origin (a remote page, an unexpected file: load) is denied even when the
     // permission name itself is allowlisted.
     ses.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {

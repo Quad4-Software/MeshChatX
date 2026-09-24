@@ -26,7 +26,7 @@ def handler(db):
     try:
         yield handler, logger
     finally:
-        # test_logger is module-global; a stale handler would keep
+        # test_logger is module-global. A stale handler would keep
         # flushing into a dead tmp_path db during later tests.
         logger.removeHandler(handler)
 
@@ -70,7 +70,7 @@ def test_anomaly_flooding(handler, db):
     persistent_handler, logger = handler
     persistent_handler.flooding_threshold = 5
     # Flooding uses a 1s window from last_reset_time. The handler may be created
-    # well before this loop on slow CI; if the 6th warning falls after that second,
+    # well before this loop on slow CI. If the 6th warning falls after that second,
     # the counter resets and totals never exceed the threshold. Reset state here and
     # emit enough warnings to survive one mid-burst reset.
     with persistent_handler.lock:

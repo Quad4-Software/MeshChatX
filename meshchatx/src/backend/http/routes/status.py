@@ -42,7 +42,7 @@ def register_status_routes(routes, app):
         if identity is None:
             return http_bad_request("No identity available for recovery")
 
-        # A background setup thread may still be mid-run; recovering now
+        # A background setup thread may still be mid-run. Recovering now
         # would run setup_identity twice and corrupt the context state.
         setup_thread = getattr(app, "_network_setup_thread", None)
         if setup_thread is not None and setup_thread.is_alive():
@@ -136,7 +136,7 @@ def register_status_routes(routes, app):
     async def self_test(request):
         import asyncio
 
-        # run_self_test is a long synchronous routine; running it inline
+        # run_self_test is a long synchronous routine. Running it inline
         # would freeze the event loop (and starve every client and the
         # probe server's broadcast forwarding) for the whole check.
         results = await asyncio.get_running_loop().run_in_executor(

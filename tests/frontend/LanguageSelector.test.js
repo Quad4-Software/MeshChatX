@@ -46,7 +46,7 @@ describe("LanguageSelector.vue", () => {
         const languageButtons = wrapper.findAll(".fixed button");
         const labels = languageButtons.map((b) => b.text());
 
-        // English is pinned to the front; remaining locales are sorted by display name
+        // English is pinned to the front. Remaining locales are sorted by display name
         expect(labels[0]).toContain("English");
         expect(labels).toEqual(
             expect.arrayContaining([

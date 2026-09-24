@@ -72,7 +72,7 @@ function resolvePreloadScriptPath() {
 installBrokenPipeGuards(process);
 
 // Capture local minidumps for renderer/GPU crashes (uploadToServer: false
-// keeps them on disk under the Crashpad directory; nothing is uploaded).
+// keeps them on disk under the Crashpad directory. Nothing is uploaded).
 try {
     crashReporter.start({ uploadToServer: false });
 } catch (error) {
@@ -650,7 +650,7 @@ function handleWindowOpenRequest(url) {
     }
 
     // Local backend URLs that are not popouts or call windows must stay in the
-    // hardened shell; handing them to the OS browser would run the app UI
+    // hardened shell. Handing them to the OS browser would run the app UI
     // outside it.
     if (isLocalBackendUrl(url) || isTrustedBlobUrl(url)) {
         return {
@@ -706,7 +706,7 @@ app.on("web-contents-created", (_event, contents) => {
 });
 
 function attachDevToolsF12Shortcut(browserWindow) {
-    // DevTools stay off in packaged builds; they are a development aid only.
+    // DevTools stay off in packaged builds. They are a development aid only.
     if (app.isPackaged) {
         return;
     }

@@ -72,7 +72,7 @@ def test_interval_action_due_table(enabled, last, interval, now, expected):
 
 
 def test_last_announced_at_config_roundtrip_db(tmp_path):
-    """Config table stores last_announced_at; invalid strings fall back to default."""
+    """Config table stores last_announced_at. Invalid strings fall back to default."""
     import os
 
     from meshchatx.src.backend.config_manager import ConfigManager

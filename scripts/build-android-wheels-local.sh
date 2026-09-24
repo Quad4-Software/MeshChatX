@@ -1036,7 +1036,7 @@ def patch_rnode_interface(data):
     start_idx = text.index(start_marker)
     end_idx = text.index(end_marker, start_idx) + len(end_marker)
     text = text[:start_idx] + new_block + text[end_idx:]
-    # getDefaultAdapter() returns null on devices without Bluetooth; a null
+    # getDefaultAdapter() returns null on devices without Bluetooth. A null
     # dereference here would kill the BLE connection job thread.
     if bt_enabled_marker not in text:
         raise SystemExit("bt_enabled marker not found in RNodeInterface.py")

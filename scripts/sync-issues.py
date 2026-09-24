@@ -57,7 +57,7 @@ MAX_TITLE = 140
 def strip_images(text: str) -> str:
     """Replace embedded images with a text placeholder.
 
-    Work documents live on the mesh where clearnet image URLs are dead weight;
+    Work documents live on the mesh where clearnet image URLs are dead weight.
     the attribution footer links back to the issue for anyone who needs them.
     """
 

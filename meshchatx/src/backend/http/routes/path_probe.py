@@ -578,7 +578,7 @@ def register_path_probe_routes(routes, app):
     async def identity_lxmf_address(request):
         raw = request.match_info.get("identity_hash", "")
         norm = normalize_hex_identifier(raw)
-        # Identity hashes are 16 bytes (32 hex); 32-byte (64 hex) forms are
+        # Identity hashes are 16 bytes (32 hex). 32-byte (64 hex) forms are
         # tolerated to match parse_identity_hash.
         if len(norm) not in (32, 64):
             return http_bad_request("invalid identity hash")

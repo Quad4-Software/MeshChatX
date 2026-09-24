@@ -630,7 +630,7 @@ export default {
     methods: {
         async onIdentitySwitched() {
             // Contacts, the share URI, and its QR all belong to the old
-            // identity; drop them before the new identity's data lands.
+            // identity. Drop them before the new identity's data lands.
             this.contacts = [];
             this.totalContactsCount = 0;
             this.myQrDataUrl = null;

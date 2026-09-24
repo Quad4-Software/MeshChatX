@@ -22,7 +22,7 @@ const { waitForBootReady, waitForPageReady, gotoUiPage } = require("./ready");
 const NEUTRAL = { id: "about", path: "/about", ready: "Active sessions" };
 const REPORT_DIR = path.join(__dirname, "..", "..", "test-results", "perf");
 
-// Buffered LCP entries are observer-only; record the latest paint timestamp.
+// Buffered LCP entries are observer-only. Record the latest paint timestamp.
 const LCP_INIT = `
 window.__perfLcp = 0;
 try {

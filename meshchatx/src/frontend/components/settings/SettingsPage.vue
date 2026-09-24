@@ -3479,7 +3479,7 @@ export default {
             return normalizeSearchString(this.searchQuery) || this.searchQuery;
         },
         // Sections matching the current search query. Strict matching is
-        // tried first; when it finds nothing, a typo-tolerant pass lets
+        // tried first. When it finds nothing, a typo-tolerant pass lets
         // queries like "mesages" still surface the right section.
         settingsSearchMatchedKeys() {
             if (!this.settingsSearchActive) {
@@ -3704,7 +3704,7 @@ export default {
     },
     methods: {
         onIdentitySwitched() {
-            // Debounced saves read this.config at fire time; letting them
+            // Debounced saves read this.config at fire time. Letting them
             // run now would PATCH the new identity with the old one's
             // values.
             this.cancelPendingConfigSaves();

@@ -56,7 +56,7 @@ env:
     UV_VERSION: "0.11.15"
     PNPM_VERSION: "11.1.2"
     COSIGN_VERSION: "3.0.6"
-    # Official .deb from aquasecurity/trivy releases; scripts/ci/setup-trivy.sh verifies
+    # Official .deb from aquasecurity/trivy releases. Scripts/ci/setup-trivy.sh verifies
     # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
     TRIVY_VERSION: "0.69.3"
 

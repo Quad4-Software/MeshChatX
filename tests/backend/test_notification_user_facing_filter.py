@@ -12,7 +12,7 @@ Covers:
   - end-to-end GET /api/v1/notifications integration: reactions,
     generic telemetry-only payloads, icon-only, empty pings and
     delivery-status updates must not produce false unread badges or empty
-    dropdown entries; location shares, telemetry streams, and Sideband
+    dropdown entries. Location shares, telemetry streams, and Sideband
     location requests must surface with a readable preview.
 """
 
@@ -103,7 +103,7 @@ class TestIsUserFacingLxmfPayload:
 
     def test_icon_only_is_not_user_facing(self):
         # Icon appearance updates are processed separately and never appear in
-        # the converted fields dict; an icon-only message therefore looks
+        # the converted fields dict. An icon-only message therefore looks
         # like an empty payload to this helper.
         assert not is_user_facing_lxmf_payload({}, "", "")
 
@@ -406,7 +406,7 @@ class TestGetLatestUserFacingIncomingMessage:
 
     def test_scan_limit_respected(self, db):
         # Insert many reactions then a real message past the scan window.
-        # The real message is at the oldest position; with scan_limit=3 only
+        # The real message is at the oldest position. With scan_limit=3 only
         # the 3 newest (all reactions) are scanned, so we should get None.
         db.messages.upsert_lxmf_message(
             _mk_message(

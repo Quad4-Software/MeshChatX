@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 // Detects geographic references in chat text and turns them into geo links.
-// Maidenhead grid locators and plain lat/lon pairs decode locally; anything
+// Maidenhead grid locators and plain lat/lon pairs decode locally. Anything
 // else coordinate-looking (MGRS, UTM, Plus Code) resolves on click through
 // parseCoordinateQuery so it works without loading geo-wasm during render.
 

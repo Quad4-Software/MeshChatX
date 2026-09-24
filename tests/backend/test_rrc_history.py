@@ -247,7 +247,7 @@ def test_history_clamps_zero_negative_and_huge_counts():
             args
         )
 
-    # int() accepts arbitrarily long digit strings; clamp still applies.
+    # int() accepts arbitrarily long digit strings. Clamp still applies.
     out = history(server, link, sess, args="9" * 40)
     assert notices_for(link, out)[0] == "--- history for lobby (3 messages) ---"
 
@@ -315,7 +315,7 @@ def test_history_non_member_cannot_pull_room_history():
     join(server, link, sess, "lobby")
     say(server, link, sess, "lobby", "member only")
 
-    # bob is not in lobby; without +n he could MSG it, but /history refuses.
+    # bob is not in lobby. Without +n he could MSG it, but /history refuses.
     out = history(server, link2, sess2, room="lobby")
     assert notices_for(link2, out) == ["not a member of lobby"]
 

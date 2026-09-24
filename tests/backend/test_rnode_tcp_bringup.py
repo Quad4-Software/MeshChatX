@@ -130,7 +130,7 @@ def test_rnode_tcp_bringup_detect_configure_and_exchange(reticulum, sim):
         "simulator never saw the outbound frame"
     )
 
-    # Inbound frames reach Transport; rxb proves delivery to the interface.
+    # Inbound frames reach Transport. Rxb proves delivery to the interface.
     before = iface.rxb
     assert sim.inject_data(b"uplink-payload")
     assert _wait_for(lambda: iface.rxb > before, timeout=10)
@@ -188,7 +188,7 @@ def test_rnode_old_firmware_panics_are_contained(tmp_path, monkeypatch):
     """Old firmware must not kill the process.
 
     An RNode reporting too-old firmware calls RNS.panic from the read
-    thread; panic containment must turn that into a survivable condition
+    thread. Panic containment must turn that into a survivable condition
     instead of os._exit killing the whole process.
     """
     install_rns_panic_containment()
@@ -208,7 +208,7 @@ def test_rnode_old_firmware_panics_are_contained(tmp_path, monkeypatch):
         RNS.Reticulum(configdir=str(tmp_path), loglevel=RNS.LOG_ERROR)
         try:
             iface = _find_rnode()[0]
-            # Wait past the detect+validate window; process is still here.
+            # Wait past the detect+validate window. Process is still here.
             time.sleep(8)
             assert iface.online is False or iface.firmware_ok is False
         finally:

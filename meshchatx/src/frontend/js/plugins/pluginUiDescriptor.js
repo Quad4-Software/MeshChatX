@@ -164,7 +164,7 @@ export function validateUiDescriptor(descriptor, options = {}) {
                       ? row.cells
                       : null;
                 if (cells) {
-                    // Cells may be primitives rendered as text; only node
+                    // Cells may be primitives rendered as text. Only node
                     // objects get walked.
                     childLists.push(cells.filter((cell) => cell && typeof cell === "object"));
                 }

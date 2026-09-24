@@ -393,7 +393,7 @@ export function useMessagePanes(options = {}) {
         isConversationDragging.value = true;
         // dragend normally ends the drag on the source row, but if that row
         // unmounts mid-drag (list re-sort, sidebar teardown) the event can
-        // be lost; window-level drop/dragend settle the state regardless.
+        // be lost. Window-level drop/dragend settle the state regardless.
         window.addEventListener("dragend", onWindowDragSettled);
         window.addEventListener("drop", onWindowDragSettled);
     }

@@ -209,7 +209,7 @@ def test_landlock_memory_pressure_keeps_memory_temp_and_queries_ok():
 
         DatabaseProvider._instance = None
         db = Database(db_path)
-        # Skip full schema init; only need pressure pragma path + provider.
+        # Skip full schema init. Only need pressure pragma path + provider.
         assert db.apply_memory_pressure_pragmas(True, landlock_active=True)
         mode = int(db.provider.connection.execute("PRAGMA temp_store").fetchone()[0])
         print("TEMP_MODE", mode)

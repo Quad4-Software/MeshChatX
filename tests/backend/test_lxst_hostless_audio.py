@@ -224,7 +224,7 @@ def test_tee_mirrors_hostless_sink_buffer_surface():
 
 def test_tee_mirrors_codec_facing_sink_attrs():
     # Opus/Codec2 decoders read sink.channels and sink.samplerate on the first
-    # frame; a Tee sitting behind a decoding codec must expose them.
+    # frame. A Tee sitting behind a decoding codec must expose them.
     from meshchatx.src.backend.telephone_manager import Tee
 
     child = MagicMock()

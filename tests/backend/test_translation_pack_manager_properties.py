@@ -149,7 +149,7 @@ def pack_entries(draw, include_garbage=True, include_symlinks=True):
         for _ in range(n_links):
             name = draw(st.text(alphabet=_ALPHABET, min_size=2, max_size=8))
             target = draw(st.text(alphabet=_ALPHABET, min_size=2, max_size=8))
-            # Symlinks are only meaningful in tar; the helper encodes target as bytes.
+            # Symlinks are only meaningful in tar. The helper encodes target as bytes.
             entries.append((f"{pair}/{name}.npz", target.encode(), "symlink"))
 
     return entries

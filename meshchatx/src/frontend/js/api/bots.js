@@ -2,7 +2,7 @@
 
 /**
  * Endpoint wrappers for /api/v1/bots.
- * Each function maps one HTTP call through window.api; add new
+ * Each function maps one HTTP call through window.api. Add new
  * endpoints here rather than inlining paths in components.
  */
 

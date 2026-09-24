@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Contract tests: aiohttp routes in meshchat.py vs checked-in manifest; frontend /api/v1 usage."""
+"""Contract tests: aiohttp routes in meshchat.py vs checked-in manifest. Frontend /api/v1 usage."""
 
 import os
 from pathlib import Path

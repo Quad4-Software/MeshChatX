@@ -156,7 +156,7 @@ if [[ $replaced -eq 0 ]]; then
 fi
 
 # Pass 2: pull in package-manager dependencies the replacements reference.
-# Files that pyogg loads by fixed name are already in place; dependencies
+# Files that pyogg loads by fixed name are already in place. Dependencies
 # keep their own basename so their install name resolves under @loader_path.
 declare -a _queue=()
 for f in "${_pyogg_libs}"/*.dylib; do

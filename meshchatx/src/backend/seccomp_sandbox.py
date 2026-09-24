@@ -215,7 +215,7 @@ def apply_seccomp_sandbox() -> bool:
     lib = _load_libseccomp()
     if lib is None:
         logger.warning(
-            "Seccomp requested but libseccomp is unavailable; continuing without it",
+            "Seccomp requested but libseccomp is unavailable. Continuing without it",
         )
         return False
 

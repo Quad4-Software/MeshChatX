@@ -13,7 +13,7 @@
 #   build-apk-package.sh --rootfs DIR
 #
 # Options:
-#   --from-unpacked DIR   electron-builder dir output; staged under
+#   --from-unpacked DIR   electron-builder dir output. Staged under
 #                         opt/<productName>/ with usr/bin symlink,
 #                         desktop file, and hicolor icon added
 #   --rootfs DIR          pre-staged payload tree (paths relative to /)
@@ -125,7 +125,7 @@ elif [ -z "$ROOTFS" ] || [ ! -d "$ROOTFS" ]; then
     exit 1
 else
     # Pre-staged trees (for example a deb extract) may rely on maintainer
-    # scripts for the bin symlink; ship it in the payload instead.
+    # scripts for the bin symlink. Ship it in the payload instead.
     mkdir -p "$ROOTFS/usr/bin"
     if [ ! -e "$ROOTFS/usr/bin/$APK_NAME" ] && [ ! -L "$ROOTFS/usr/bin/$APK_NAME" ]; then
         _bin="$(find "$ROOTFS/opt" -maxdepth 2 -type f -name "$APK_NAME" -print -quit 2>/dev/null || true)"

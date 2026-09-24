@@ -3,7 +3,7 @@
 /**
  * Custom highlight-word matching for relay chat. Words match whole-token and
  * case-insensitively so "uucp" does not fire inside "uucpd". Matching is a
- * pure client-side view concern; nothing is transmitted to peers.
+ * pure client-side view concern. Nothing is transmitted to peers.
  */
 
 const WORD_CHARS = "\\p{L}\\p{N}_";

@@ -89,7 +89,7 @@ Hard constraints:
 - Names starting with `_` must not be returned from `setup()`. Vue treats them
   as reserved and warns. Either keep those methods on the host, or expose them
   through an options callback the host delegates to.
-- Composables get their own unit tests under `tests/frontend/`; the host's
+- Composables get their own unit tests under `tests/frontend/`. The host's
   tests must stay untouched and green.
 
 ## Vue cut recipe

@@ -146,7 +146,7 @@ export function pickAdaptiveFetchConcurrency() {
 
 const utf8Encoder = new TextEncoder();
 
-/** FNV-1a 32-bit hash over UTF-8 bytes; matches the Go visualiser-wasm hashpos helper. */
+/** FNV-1a 32-bit hash over UTF-8 bytes. Matches the Go visualiser-wasm hashpos helper. */
 function fnv1a32(str) {
     let h = 2166136261;
     for (const b of utf8Encoder.encode(String(str))) {
@@ -156,18 +156,18 @@ function fnv1a32(str) {
     return h >>> 0;
 }
 
-/** Salted deterministic unit fraction; mirrors Go hashpos.Dist01 (id + NUL + salt). */
+/** Salted deterministic unit fraction. Mirrors Go hashpos.Dist01 (id + NUL + salt). */
 function hash01(id, salt = "") {
     return (fnv1a32(String(id) + "\0" + String(salt)) % 10000) / 10000;
 }
 
-/** Deterministic ring angle; mirrors Go hashpos.Angle01 (unsalted hash). */
+/** Deterministic ring angle. Mirrors Go hashpos.Angle01 (unsalted hash). */
 function hashAngle(id) {
     return ((fnv1a32(String(id)) % 10000) / 10000) * Math.PI * 2;
 }
 
 /**
- * Deterministic scatter position around the origin; mirrors Go hashpos.XY.
+ * Deterministic scatter position around the origin. Mirrors Go hashpos.XY.
  * @param {string} id
  * @param {number} base
  * @param {number} span
@@ -180,7 +180,7 @@ export function hashposXY(id, base, span) {
 }
 
 /**
- * Deterministic scatter position near a parent point; mirrors Go hashpos.Around.
+ * Deterministic scatter position near a parent point. Mirrors Go hashpos.Around.
  * @param {string} id
  * @param {number} px
  * @param {number} py
@@ -516,7 +516,7 @@ export function computeLodUpdatesJs(nodes, lod, darkMode, labelAllow) {
                 font: { size: showLabel ? (node.id === "me" ? 16 : 11) : 0, color: fontColor },
             };
         }
-        // Low LOD stamps a generic blue over node.color; medium and high
+        // Low LOD stamps a generic blue over node.color. Medium and high
         // hand back the semantic color stashed at build time.
         if (lod !== "low") {
             const semantic = node._originalColor || node.color;
@@ -538,7 +538,7 @@ export function computeLodUpdatesJs(nodes, lod, darkMode, labelAllow) {
  * @param {object[]} nodes
  * @param {string} lod
  * @param {boolean} darkMode
- * @param {Set<string>|null|undefined} labelAllow label allowlist; forces the
+ * @param {Set<string>|null|undefined} labelAllow label allowlist. forces the
  * JS path because the WASM LOD call does not accept one
  */
 export function computeLodUpdates(nodes, lod, darkMode, labelAllow) {
@@ -556,7 +556,7 @@ export function computeLodUpdates(nodes, lod, darkMode, labelAllow) {
 
 /**
  * Greedy screen-space label declutter. Items are tried in order, so callers
- * should sort by importance first; the first label to claim a spot wins.
+ * should sort by importance first. The first label to claim a spot wins.
  * @param {{id: string, sx: number, sy: number, w: number, h: number}[]} items
  *   label boxes centred on (sx, sy) in screen pixels
  * @param {number} spacing extra padding around each placed box
@@ -571,7 +571,7 @@ export function declutterLabelBoxes(items, spacing = 6) {
     const grid = new Map();
     for (const it of items) {
         if (!it || it.id == null) continue;
-        // A NaN box would neither collide nor claim space; drop it entirely
+        // A NaN box would neither collide nor claim space. Drop it entirely
         // so it cannot pass through as an always-kept invisible label.
         if (!Number.isFinite(it.sx) || !Number.isFinite(it.sy)) continue;
         const w = Number(it.w) || 0;

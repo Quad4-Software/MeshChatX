@@ -332,7 +332,7 @@ class TestIntegrityTrustFuzz(unittest.TestCase):
     def test_signed_manifest_corruption_detected(self, corruption):
         """Detect byte-level rewrites of a signed manifest.
 
-        Reference: the rewrite must fail signature or JSON parsing; it must
+        Reference: the rewrite must fail signature or JSON parsing. It must
         never pass silently.
         """
         self.manager.save_manifest()

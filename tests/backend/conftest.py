@@ -340,7 +340,7 @@ def mock_app(db, tmp_path, temp_db):
             reticulum_config_dir=str(tmp_path),
         )
 
-        # DatabaseProvider is a singleton; IdentityContext.setup() opens the identity DB
+        # DatabaseProvider is a singleton. IdentityContext.setup() opens the identity DB
         # and replaces the singleton. Recreate the test DB handle so config and DAOs use
         # a live provider for the same path as the db fixture.
         app.database = Database(temp_db)

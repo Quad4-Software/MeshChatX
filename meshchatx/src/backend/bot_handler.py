@@ -494,7 +494,7 @@ class BotHandler:
                     "host_lxmf_propagation": lxmf_meta["host_lxmf_propagation"],
                     "rrc": entry.get("rrc"),
                     "icon": entry.get("icon"),
-                    # A present-but-None icon is an explicit user clear; the
+                    # A present-but-None icon is an explicit user clear. The
                     # bot advertises no appearance field in that case.
                     "icon_cleared": "icon" in entry and entry["icon"] is None,
                     "custom": entry.get("custom"),
@@ -737,7 +737,7 @@ class BotHandler:
                 is False
             ):
                 logger.warning(
-                    "Bot %s pid %s is not a bot_process for its storage dir; "
+                    "Bot %s pid %s is not a bot_process for its storage dir. "
                     "refusing to signal a foreign process",
                     bot_id,
                     pid,

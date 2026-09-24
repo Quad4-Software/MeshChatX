@@ -192,7 +192,7 @@ class TestPageRespondersTraversal:
 
 
 def test_try_serve_local_helpers_strip_traversal():
-    """Local page-node serve uses basenames only; request paths must not escape dirs."""
+    """Local page-node serve uses basenames only. Request paths must not escape dirs."""
     from meshchatx.meshchat import ReticulumMeshChat
 
     app = MagicMock(spec=ReticulumMeshChat)

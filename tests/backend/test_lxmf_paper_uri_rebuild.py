@@ -190,7 +190,7 @@ def test_rebuild_paper_uri_rejects_stripped_attachment(monkeypatch):
     }
     lxm.pack()
     # Imported/backed-up rows can lack the byte payloads the real insert
-    # path stores; the hash guard must reject rather than emit a wrong URI.
+    # path stores. The hash guard must reject rather than emit a wrong URI.
     row = _stored_row(lxm, include_attachments=False)
 
     app = _app_for(src, dst_identity, monkeypatch)
@@ -235,7 +235,7 @@ def test_rebuild_paper_uri_rejects_incoming(monkeypatch):
     lxm.pack()
     row = _stored_row(lxm)
     row["is_incoming"] = 1
-    # Inbound rows swap source/destination meaning; keep the stored hashes.
+    # Inbound rows swap source/destination meaning. Keep the stored hashes.
     row["source_hash"], row["destination_hash"] = (
         row["destination_hash"],
         row["source_hash"],
@@ -285,7 +285,7 @@ def test_rebuild_paper_uri_recovers_identity_from_announces(monkeypatch):
         title="",
         desired_method=LXMF.LXMessage.DIRECT,
     )
-    # Real outbound sends always carry the renderer field; the stored dict
+    # Real outbound sends always carry the renderer field. The stored dict
     # drops it, so the rebuild re-adds it and the hash must still match.
     lxm.fields = {LXMF.FIELD_RENDERER: LXMF.RENDERER_MARKDOWN}
     lxm.pack()
@@ -296,7 +296,7 @@ def test_rebuild_paper_uri_recovers_identity_from_announces(monkeypatch):
             dst_identity.get_public_key(),
         ).decode("utf-8"),
     }
-    # RNS.Identity.recall finds nothing; the announces table has the key.
+    # RNS.Identity.recall finds nothing. The announces table has the key.
     monkeypatch.setattr(
         RNS.Identity,
         "recall",

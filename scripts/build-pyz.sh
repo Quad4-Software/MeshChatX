@@ -2,10 +2,10 @@
 # Build a single-file Python zipapp (PYZ) for MeshChatX using shiv.
 #
 # Environment options:
-#   PYZ_PYTHON_VERSION  e.g. 3.11 (optional; uses uv to locate/install that interpreter)
+#   PYZ_PYTHON_VERSION  e.g. 3.11 (optional. Uses uv to locate/install that interpreter)
 #   PYZ_SHEBANG         shebang line to embed (default: /usr/bin/env python3)
 #   PYZ_OUTPUT          output path (default: dist/meshchatx.pyz, or dist/meshchatx-py<ver>.pyz)
-#   SKIP_WHEEL          if 1, do not rebuild the wheel; use an existing one
+#   SKIP_WHEEL          if 1, do not rebuild the wheel. Use an existing one
 #   SHIV_VERSION        shiv version to use (default: 1.0.8)
 set -euo pipefail
 

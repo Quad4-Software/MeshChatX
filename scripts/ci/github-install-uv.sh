@@ -177,7 +177,7 @@ fi
 "${UV_CMD}" --version
 
 # Persist for later workflow steps. Linux runners usually already have
-# /usr/local/bin; Windows Git Bash does not keep the install-step PATH.
+# /usr/local/bin. Windows Git Bash does not keep the install-step PATH.
 if [ -n "${GITHUB_PATH:-}" ]; then
     echo "${UV_INSTALL_DIR}" >> "${GITHUB_PATH}"
 fi

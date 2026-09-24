@@ -274,8 +274,8 @@ def init_client_runtime(client) -> TokenBucket:
         # recycled after GC, so a fresh socket could inherit stale grants.
         client._meshchatx_page_grant_token = secrets.token_hex(16)
         # Event loop that owns this socket's transport. Broadcast sends must
-        # be dispatched back to it; aiohttp transports are not safe to write
-        # from another loop's thread. Set once at upgrade; lazy re-init from
+        # be dispatched back to it. Aiohttp transports are not safe to write
+        # from another loop's thread. Set once at upgrade. Lazy re-init from
         # a foreign loop must not clobber it.
         if getattr(client, "_meshchatx_loop", None) is None:
             try:
@@ -334,7 +334,7 @@ async def send_str_on_client_loop(
             loop,
         )
         wrapped = asyncio.wrap_future(future)
-        # The inner wait_for already bounds the send; the outer bound covers
+        # The inner wait_for already bounds the send. The outer bound covers
         # scheduling delay on a congested owning loop.
         if timeout is None:
             await wrapped
@@ -397,7 +397,7 @@ def validate_ws_envelope(
         if err:
             return msg_type, err
         return msg_type, None
-    # Unknown types still dispatch for fail-closed auth; no field schema.
+    # Unknown types still dispatch for fail-closed auth. No field schema.
     return msg_type, None
 
 

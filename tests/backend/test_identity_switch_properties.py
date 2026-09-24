@@ -40,7 +40,7 @@ def mock_rns():
             patch("RNS.Identity", MockIdentityClass),
             patch("threading.Thread"),
             # threading.Thread is mocked, so asyncio.to_thread can never
-            # spawn an executor thread; run those calls synchronously.
+            # spawn an executor thread. Run those calls synchronously.
             patch(
                 "asyncio.to_thread",
                 side_effect=lambda fn, *args, **kwargs: fn(*args, **kwargs),
@@ -241,7 +241,7 @@ async def test_hotswap_broadcast_no_reauth_when_auth_disabled(
     current_hash = mock_rns["id_instance"].hash.hex()
     stale_ctx = MagicMock()
     stale_ctx.identity_hash = stale_hash
-    # delete_identity evicts and tears down the context before rmtree;
+    # delete_identity evicts and tears down the context before rmtree.
     # a stopped context reports running=False afterwards.
     stale_ctx.running = False
     app.contexts[stale_hash] = stale_ctx

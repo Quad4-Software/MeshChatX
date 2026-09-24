@@ -1532,7 +1532,7 @@ class TestTwoRouterCommunication:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_stamped_bidirectional_with_enforcement(self):
-        """Both sides enforce stamps; both sides solve and verify."""
+        """Both sides enforce stamps. Both sides solve and verify."""
         script = _SUBPROCESS_PREAMBLE + textwrap.dedent("""\
         try:
             alice_id = RNS.Identity()

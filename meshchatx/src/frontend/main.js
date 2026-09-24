@@ -414,7 +414,7 @@ function registerMeshchatServiceWorker() {
         }
         sawController = true;
     });
-    // The worker also announces activation; reload if the controllerchange
+    // The worker also announces activation. Reload if the controllerchange
     // listener attached after the switch already happened.
     navigator.serviceWorker.addEventListener("message", (event) => {
         if (event?.data?.type !== "meshchatx-sw-updated" || !navigator.serviceWorker.controller || refreshing) {

@@ -2,12 +2,12 @@
 
 """Optional live Reticulum smoke test.
 
-Reticulum is a process-wide singleton; this test runs a short script in a
+Reticulum is a process-wide singleton. This test runs a short script in a
 subprocess so it does not interfere with other tests.
 
 Enable with: MESHCHAT_LIVE_RETICULUM=1
 
-This does not replace multi-node mesh interoperability testing; it only
+This does not replace multi-node mesh interoperability testing. It only
 verifies that a default-config Reticulum instance can start and exit cleanly
 in an isolated config directory (useful after RNS upgrades or OS changes).
 """

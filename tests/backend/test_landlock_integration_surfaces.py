@@ -36,7 +36,7 @@ def test_collect_user_local_cli_roots_expected_layout(tmp_path, monkeypatch):
 
 @requires_landlock_integration
 def test_landlock_denies_write_directly_under_home(tmp_path):
-    """HOME is not an RW root; only storage, temp, and explicit shares are."""
+    """HOME is not an RW root. Only storage, temp, and explicit shares are."""
     storage = tmp_path / "storage"
     storage.mkdir()
     result = run_python_under_landlock(

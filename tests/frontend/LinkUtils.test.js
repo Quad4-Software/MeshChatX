@@ -268,7 +268,7 @@ describe("LinkUtils.js", () => {
 
         it("folds escaped ampersands before storing the uri", () => {
             const result = LinkUtils.renderRelayLinks(`meshchatx://relay?hub=${HUB}&amp;room=general`);
-            // Attribute holds the escaped form; reading it back yields a real &.
+            // Attribute holds the escaped form. Reading it back yields a real &.
             const match = result.match(/data-rrc-url="([^"]+)"/);
             expect(match).not.toBeNull();
             expect(match[1]).toContain("&amp;room=general");

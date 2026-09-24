@@ -40,7 +40,7 @@ meshchatx/src/backend/http/
 
 `register_all_routes(routes, app)` is the sole composition entry. Call it only from
 `ReticulumMeshChat._define_routes`. Domain register functions are listed in fixed order
-in `routes/__init__.py`. Route modules import shared names directly; wire constants
+in `routes/__init__.py`. Route modules import shared names directly. Wire constants
 live in `backend/constants.py` and the typed app surface in `http/context.py`.
 
 WS inbound handlers live in `ws/handlers_*.py` and are composed by `ws/dispatch.py`.

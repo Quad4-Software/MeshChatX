@@ -438,7 +438,7 @@ class TestPageNodeNameLength:
         assert node.list_pages() == [{"name": "index.mu", "executable": False}]
 
     def test_add_page_and_file_on_windows_like_os(self, storage_dir, mock_rns):
-        """Windows has no os.pathconf; both pages and files must still save (issue 78)."""
+        """Windows has no os.pathconf. Both pages and files must still save (issue 78)."""
         mgr = _make_manager(storage_dir)
         node = mgr.create_node("Windows Fallback")
 

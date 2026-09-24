@@ -79,7 +79,7 @@ def test_discovery_patch_reports_reload_failure():
     next_idx = src.index("async def reticulum_discovered_interfaces")
     body = src[patch_idx:next_idx]
     assert "RNS reload failed" in body
-    # http_unexpected is the centralized 500 helper; the route reports the
+    # http_unexpected is the centralized 500 helper. The route reports the
     # reload failure through it rather than an inline status=500.
     assert "http_unexpected" in body
 

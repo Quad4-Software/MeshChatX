@@ -27,7 +27,7 @@ Switch identities by tearing down the full `IdentityContext` and clearing fronte
 - After switch, prefer a controlled reload / clear of frontend caches over partial UI patches that leave stale WS subscriptions.
 - Favourites layout, snapshots, SSL certs, and LXMF dirs are per-identity. Do not write them into shared storage roots.
 - Frontend per-identity localStorage state must bucket by identity hash and capture the identity key at load time. A deferred save (route leave, unmount, identity switch) that re-reads the live config identity can write one identity's data into the next identity's bucket. Follow the `useMessageDrafts` pattern: `loadDraft` records `lastDraftIdentityKey`, `saveDraft` receives that captured key. See `.agents/conventions/frontend.md`.
-- `identity_switched` payloads carry `identity_hash`; prefer it over re-reading `config.identity_hash`, which can lag the event.
+- `identity_switched` payloads carry `identity_hash`. Prefer it over re-reading `config.identity_hash`, which can lag the event.
 
 ## Related but different
 

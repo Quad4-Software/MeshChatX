@@ -44,7 +44,7 @@ def register_bots_routes(routes, app):
                     # replied with an icon appearance field.
                     icon = bot.get("icon")
                     if bot.get("icon_cleared"):
-                        # An explicit clear means the bot advertises no icon;
+                        # An explicit clear means the bot advertises no icon.
                         # drop the seeded row instead of resurrecting the
                         # template default on every poll.
                         with contextlib.suppress(Exception):

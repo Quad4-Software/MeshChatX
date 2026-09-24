@@ -124,7 +124,7 @@ def register_database_routes(routes, app):
 
                 try:
                     # Restore tears down identity contexts and blocks for up
-                    # to ~30s; keep it off the event loop.
+                    # to ~30s. Keep it off the event loop.
                     result = await asyncio.to_thread(
                         app.restore_database, temp_path, relaunch=True
                     )

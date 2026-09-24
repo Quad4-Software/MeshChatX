@@ -195,7 +195,7 @@ def patch_cli() -> int:
         return 0
     if status == "unexpected":
         print(
-            "patch_lxst_pyogg_ogg_ctypes: unexpected ogg.py layout; "
+            "patch_lxst_pyogg_ogg_ctypes: unexpected ogg.py layout. "
             f"manual check required ({ogg})",
             file=sys.stderr,
         )

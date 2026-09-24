@@ -119,7 +119,7 @@ def list_bluetooth_serial_ports(comports=None) -> list[BtSerialPort]:
 
     Returns BtSerialPort entries with a best-effort friendly name and remote
     device MAC where the platform exposes them. *comports* is injectable for
-    tests; when None, serial.tools.list_ports is used.
+    tests. When None, serial.tools.list_ports is used.
     """
     if comports is None:
         try:

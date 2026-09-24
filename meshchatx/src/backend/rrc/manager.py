@@ -1518,7 +1518,7 @@ class RRCHub:
                     self._record_notice(msg)
                 else:
                     # An oversized notice (eg a big /list) still carries the
-                    # same command responses; run it through the normal notice
+                    # same command responses. Run it through the normal notice
                     # path so room lists and /who results actually populate.
                     self._handle_notice(
                         {
@@ -1579,7 +1579,7 @@ class RRCHub:
         before_seq, when given, restricts results to messages recorded
         before that sequence number, letting callers page backwards through
         history. limit caps how many of the most recent matching messages
-        are returned; has_more reports whether older messages remain.
+        are returned. Has_more reports whether older messages remain.
         """
         msgs = self.get_messages(proto.normalize_room(room))
         if before_seq is not None:

@@ -57,7 +57,7 @@ async def test_websocket_mutator_rejected_without_session_when_auth_enabled(mock
 
 @pytest.mark.asyncio
 async def test_websocket_session_authorized_uses_attached_request(mock_app):
-    """Aiohttp WebSocketResponse has no .request; mutators must use the attached one."""
+    """Aiohttp WebSocketResponse has no .request. Mutators must use the attached one."""
     mock_app.config.auth_enabled.set(True)
     identity_hash = "ab" * 16
     mock_app.identity = MagicMock()

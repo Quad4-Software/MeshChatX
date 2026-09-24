@@ -95,7 +95,7 @@ def _load_land_rings() -> list:
     """Load land polygon rings from the bundled Natural Earth GeoJSON.
 
     Source: Natural Earth ne_110m_land (public domain).
-    Returns a list of rings; each ring is a list of [lon, lat] pairs.
+    Returns a list of rings. Each ring is a list of [lon, lat] pairs.
     """
     global _land_rings_cache, _land_rings_loaded
     if _land_rings_loaded:

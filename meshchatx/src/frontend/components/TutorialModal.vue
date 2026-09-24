@@ -3047,7 +3047,7 @@ export default {
             }
             this.addingBootstraps = true;
             // Adding interfaces is sequential and each add churns the
-            // Reticulum stack; a huge selection would soft-lock onboarding.
+            // Reticulum stack. A huge selection would soft-lock onboarding.
             const selectedKeys = this.selectedBootstrapKeys.slice(0, MAX_BOOTSTRAP_SELECTIONS);
             const items = [];
             for (const key of selectedKeys) {

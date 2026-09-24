@@ -10,7 +10,7 @@ import { ref } from "vue";
  * web-audio failure logger the host also uses from its lifecycle code.
  *
  * The host keeps permission prompts, the WebSocket audio lifecycle, and
- * remote playback; it reads selectedAudioInputId when building the
+ * remote playback. It reads selectedAudioInputId when building the
  * capture graph and applies selectedAudioOutputId via setSinkId.
  */
 export function useCallAudioDevices() {

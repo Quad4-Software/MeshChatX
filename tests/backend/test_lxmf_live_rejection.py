@@ -149,7 +149,7 @@ def _delivery_from_live(app, live: dict, *, source_override: str | None = None):
 
 
 def _encode_fields_for_json(fields: dict) -> dict:
-    """Helper used only in docstring examples; live scripts encode inline."""
+    """Helper used only in docstring examples. Live scripts encode inline."""
     out = {}
     for k, v in fields.items():
         if isinstance(v, (bytes, bytearray)):
@@ -237,7 +237,7 @@ def test_live_spam_attachment_drop_through_delivery(mock_app):
 
     app = prepare_messaging_app(mock_app)
     app.database.misc.add_spam_keyword("viagra")
-    # Force contact so stranger drop does not apply; spam+attachment should drop.
+    # Force contact so stranger drop does not apply. Spam+attachment should drop.
     app.database.contacts.add_contact(
         "LiveFriend",
         live["src"],

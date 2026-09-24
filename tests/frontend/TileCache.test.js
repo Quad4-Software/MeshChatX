@@ -180,7 +180,7 @@ describe("TileCache.js", () => {
             const bytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
             // IndexedDB structured clone stores ArrayBuffer reliably in jsdom + fake-indexeddb.
-            // MapPage passes Blob from fetch(); both Blob and ArrayBuffer are valid values.
+            // MapPage passes Blob from fetch(). Both Blob and ArrayBuffer are valid values.
             await TileCache.setTile(key, bytes.buffer);
             const got = await TileCache.getTile(key);
 

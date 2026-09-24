@@ -19,7 +19,7 @@ from meshchatx.src.backend.database import Database
 
 
 def _ci_ms_ceiling(local_ms: float, factor: float = 3.0) -> float:
-    """Shared runners are noisy; relax ceilings when CI is set."""
+    """Shared runners are noisy. Relax ceilings when CI is set."""
     if os.environ.get("CI"):
         return local_ms * factor
     return local_ms

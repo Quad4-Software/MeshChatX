@@ -167,7 +167,7 @@ scan_apk() {
 	}
 	echo "verify-package-contents.sh: scanning apk $apk"
 	# An apk is concatenated gzip members: [signature,] control, data.
-	# List the data member's tar entries; unzip cannot read this format.
+	# List the data member's tar entries. Unzip cannot read this format.
 	# app.asar.unpacked/node_modules is legitimate Electron packaging
 	# (asar-unpacked binaries), not a vendored source tree.
 	_apk_list="$(mktemp "${TMPDIR:-/tmp}/apk-list.XXXXXX")"

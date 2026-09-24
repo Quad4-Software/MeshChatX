@@ -7,7 +7,7 @@ from typing import Any
 
 
 def assert_no_unexpected_http_500(status: int, body: Any = None) -> None:
-    """EECT HTTP reference: unexpected 500s fail; 4xx/503 are recoverable."""
+    """EECT HTTP reference: unexpected 500s fail. 4xx/503 are recoverable."""
     if status == 500:
         raise AssertionError(f"unexpected HTTP 500 body={body!r}")
 

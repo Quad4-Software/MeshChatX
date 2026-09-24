@@ -70,7 +70,7 @@ def install_rns_backbone_patches() -> bool:
     backbone_module.BackboneClientInterface = tcp_module.TCPClientInterface
     _PATCHED = True
     logger.info(
-        "No epoll on this platform; degraded BackboneClientInterface to "
+        "No epoll on this platform. Degraded BackboneClientInterface to "
         "TCPClientInterface for backbone client connections",
     )
     return True

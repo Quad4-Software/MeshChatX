@@ -24,7 +24,7 @@ describe("nomadCrashTabShell", () => {
     });
 
     it("pins the crash-tab URL to the build so stale heuristic caches miss", () => {
-        // In dev __APP_BUILD_TIME__ may be undefined; the URL must still work.
+        // In dev __APP_BUILD_TIME__ may be undefined. The URL must still work.
         const url = nomadCrashTabRendererUrl();
         expect(url.startsWith("/") || url.startsWith("http")).toBe(true);
         if (typeof __APP_BUILD_TIME__ !== "undefined" && __APP_BUILD_TIME__) {
