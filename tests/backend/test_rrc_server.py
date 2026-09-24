@@ -544,3 +544,83 @@ def test_set_announce_settings_syncs_timer():
     assert server._announce_timer is None
     server.set_announce_settings(announce=True, announce_interval_seconds=0)
     assert server._announce_timer is None
+
+
+def _write_hub_store(manager, hub_id, entry):
+    import os
+
+    os.makedirs(manager._server_dir(), exist_ok=True)
+    with open(manager._identity_path(hub_id), "wb") as f:
+        f.write(b"\x00" * 64)
+    with open(manager._store_path(), "wb") as f:
+        f.write(proto.encode({"hubs": [entry]}))
+
+
+def _load_with_fake_identity(manager):
+    from unittest.mock import patch
+
+    import RNS
+
+    class _Ident:
+        hash = HUB_HASH
+
+    with patch.object(RNS.Identity, "from_file", return_value=_Ident()):
+        manager.load()
+
+
+def test_load_migrates_legacy_default_announce_interval(tmp_path):
+    from meshchatx.src.backend.rrc.server import (
+        DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    )
+
+    manager = RRCServerManager(storage_dir=str(tmp_path))
+    hub_id = HUB_HASH.hex()
+    _write_hub_store(
+        manager,
+        hub_id,
+        {
+            "id": hub_id,
+            "name": "Legacy Hub",
+            "enabled": False,
+            "announce": True,
+            "announce_interval_seconds": LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        },
+    )
+    _load_with_fake_identity(manager)
+
+    hub = manager.find_hub(hub_id)
+    assert hub is not None
+    assert hub.announce_interval_seconds == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    with open(manager._store_path(), "rb") as f:
+        obj = proto.decode(f.read())
+    assert (
+        obj["hubs"][0]["announce_interval_seconds"] == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    )
+
+
+def test_load_keeps_versioned_explicit_announce_interval(tmp_path):
+    from meshchatx.src.backend.rrc.server import (
+        HUB_CONFIG_VERSION,
+        LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    )
+
+    manager = RRCServerManager(storage_dir=str(tmp_path))
+    hub_id = HUB_HASH.hex()
+    _write_hub_store(
+        manager,
+        hub_id,
+        {
+            "id": hub_id,
+            "name": "Explicit Hub",
+            "config_version": HUB_CONFIG_VERSION,
+            "enabled": False,
+            "announce": True,
+            "announce_interval_seconds": LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        },
+    )
+    _load_with_fake_identity(manager)
+
+    hub = manager.find_hub(hub_id)
+    assert hub is not None
+    assert hub.announce_interval_seconds == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
