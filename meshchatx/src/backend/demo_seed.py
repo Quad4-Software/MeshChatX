@@ -31,7 +31,7 @@ def _peer_app_data(name: str) -> str:
 _PEERS = [
     {
         "seed": "ada",
-        "name": "Ada Lovelace",
+        "name": "peer-04c2",
         "icon": ("account", "#ffffff", "#0d9488"),
         "messages": [
             (1, "Hey, are you seeing the new relay announce?", -1800),
@@ -46,7 +46,7 @@ _PEERS = [
     },
     {
         "seed": "rover",
-        "name": "Rover Relay",
+        "name": "relay-north",
         "icon": ("wifi", "#ffffff", "#7c3aed"),
         "messages": [
             (1, "Copy. Rebroadcasting your announces.", -3600),
@@ -55,7 +55,7 @@ _PEERS = [
     },
     {
         "seed": "meshbot",
-        "name": "MeshBot",
+        "name": "status-bot",
         "icon": ("robot", "#1a1a1a", "#f59e0b"),
         "messages": [
             (1, "Uptime 41 days. Heap at 62 percent.", -7200),
@@ -65,8 +65,8 @@ _PEERS = [
 ]
 
 _NODES = [
-    {"seed": "nomad-node-a", "name": "Nomad Pages · Atlas", "aspect": "nomadnetwork.node"},
-    {"seed": "nomad-node-b", "name": "Maps and Files · Ridge", "aspect": "nomadnetwork.node"},
+    {"seed": "nomad-node-a", "name": "nomad-pages-01", "aspect": "nomadnetwork.node"},
+    {"seed": "nomad-node-b", "name": "nomad-files-02", "aspect": "nomadnetwork.node"},
 ]
 
 
