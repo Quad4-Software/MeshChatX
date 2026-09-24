@@ -12,7 +12,7 @@ import uuid
 
 import RNS
 
-from meshchatx.src.backend import bot_process as _bot_process  # noqa: F401
+from meshchatx.src.backend import bot_process as _bot_process
 from meshchatx.src.backend.bot_lxmf_config import (
     describe_bot_lxmf_config,
     merge_bot_lxmf_overrides,
@@ -228,37 +228,46 @@ class BotHandler:
         except Exception as exc:
             logger.error("Failed to save bots state: %s", exc)
 
+    @staticmethod
+    def _template_default_icon(template_id, fallback_name):
+        """Return the template's designed default icon spec or a name-only spec."""
+        cls = getattr(_bot_process, "TEMPLATE_MAP", {}).get(template_id)
+        icon = getattr(cls, "DEFAULT_ICON", None)
+        if isinstance(icon, dict) and icon.get("icon_name"):
+            return dict(icon)
+        return {"icon_name": fallback_name}
+
     def get_available_templates(self):
         return [
             {
                 "id": "echo",
                 "name": "Echo Bot",
                 "description": "Repeats any message it receives.",
-                "default_icon": "forum",
+                "default_icon": self._template_default_icon("echo", "forum"),
             },
             {
                 "id": "note",
                 "name": "Note Bot",
                 "description": "Store and retrieve notes using JSON storage.",
-                "default_icon": "note-text",
+                "default_icon": self._template_default_icon("note", "note-text"),
             },
             {
                 "id": "reminder",
                 "name": "Reminder Bot",
                 "description": "Set and receive reminders using SQLite storage.",
-                "default_icon": "alarm",
+                "default_icon": self._template_default_icon("reminder", "alarm"),
             },
             {
                 "id": "custom",
                 "name": "Custom Bot",
                 "description": "Define your own commands and canned replies.",
-                "default_icon": "robot",
+                "default_icon": self._template_default_icon("custom", "robot"),
             },
             {
                 "id": "rrc",
                 "name": "RRC Bot",
                 "description": "Answers commands in rooms on a hosted RRC hub.",
-                "default_icon": "chat",
+                "default_icon": self._template_default_icon("rrc", "chat"),
             },
         ]
 
@@ -485,6 +494,9 @@ class BotHandler:
                     "host_lxmf_propagation": lxmf_meta["host_lxmf_propagation"],
                     "rrc": entry.get("rrc"),
                     "icon": entry.get("icon"),
+                    # A present-but-None icon is an explicit user clear; the
+                    # bot advertises no appearance field in that case.
+                    "icon_cleared": "icon" in entry and entry["icon"] is None,
                     "custom": entry.get("custom"),
                     "last_started_at": entry.get("last_started_at"),
                     "uptime_seconds": (

@@ -12,9 +12,24 @@ vi.mock("@/js/ToastUtils", () => ({
 }));
 
 const TEMPLATES = [
-    { id: "echo", name: "Echo Bot", description: "Echos messages", default_icon: "forum" },
-    { id: "custom", name: "Custom Bot", description: "Your commands", default_icon: "robot" },
-    { id: "rrc", name: "RRC Bot", description: "Relay rooms", default_icon: "chat" },
+    {
+        id: "echo",
+        name: "Echo Bot",
+        description: "Echos messages",
+        default_icon: { icon_name: "forum", fg_color: "#add8e6", bg_color: "#3b5998" },
+    },
+    {
+        id: "custom",
+        name: "Custom Bot",
+        description: "Your commands",
+        default_icon: { icon_name: "robot", fg_color: "#e0e7ff", bg_color: "#4338ca" },
+    },
+    {
+        id: "rrc",
+        name: "RRC Bot",
+        description: "Relay rooms",
+        default_icon: { icon_name: "chat", fg_color: "#d1fae5", bg_color: "#065f46" },
+    },
 ];
 
 function stubbed(name, props = []) {
@@ -139,7 +154,7 @@ describe("BotSetupPage.vue", () => {
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/bots/start", {
             template_id: "rrc",
             name: "Room Bot",
-            icon: { icon_name: "chat", fg_color: "#6b7280", bg_color: "#e5e7eb" },
+            icon: { icon_name: "chat", fg_color: "#d1fae5", bg_color: "#065f46" },
             rrc: {
                 hub: "a".repeat(32),
                 rooms: ["Lobby", "general"],

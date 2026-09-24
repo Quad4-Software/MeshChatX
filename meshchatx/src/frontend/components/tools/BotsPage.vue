@@ -26,8 +26,10 @@
                             >
                                 <div class="flex items-start gap-3 min-w-0">
                                     <LxmfUserIcon
-                                        v-if="template.default_icon"
-                                        :icon-name="template.default_icon"
+                                        v-if="template.default_icon && template.default_icon.icon_name"
+                                        :icon-name="template.default_icon.icon_name"
+                                        :icon-foreground-colour="template.default_icon.fg_color"
+                                        :icon-background-colour="template.default_icon.bg_color"
                                         icon-class="size-9 shrink-0"
                                     />
                                     <div class="min-w-0">
@@ -172,10 +174,10 @@
 
                                 <div class="flex items-start gap-3 min-w-0">
                                     <LxmfUserIcon
-                                        v-if="bot.icon && bot.icon.icon_name"
-                                        :icon-name="bot.icon.icon_name"
-                                        :icon-foreground-colour="bot.icon.fg_color"
-                                        :icon-background-colour="bot.icon.bg_color"
+                                        v-if="displayIconFor(bot)"
+                                        :icon-name="displayIconFor(bot).icon_name"
+                                        :icon-foreground-colour="displayIconFor(bot).fg_color"
+                                        :icon-background-colour="displayIconFor(bot).bg_color"
                                         icon-class="size-10"
                                     />
                                     <div v-else class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
@@ -884,6 +886,18 @@ export default {
             }
             navigator.clipboard.writeText(this.processLogText);
             ToastUtils.success(this.$t("bots.process_log_copied"));
+        },
+        displayIconFor(bot) {
+            if (bot.icon && bot.icon.icon_name) {
+                return bot.icon;
+            }
+            if (bot.icon_cleared) {
+                return null;
+            }
+            const templateId = bot.template_id || bot.template;
+            const template = (this.templates || []).find((t) => t.id === templateId);
+            const spec = template && template.default_icon;
+            return spec && spec.icon_name ? spec : null;
         },
         lxmfAddressFor(bot) {
             const raw = bot.lxmf_address || bot.full_address;

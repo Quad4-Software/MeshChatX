@@ -93,9 +93,16 @@ import SearchInput from "./SearchInput.vue";
 const DEFAULT_FG = "#6b7280";
 const DEFAULT_BG = "#e5e7eb";
 
-export function defaultBotIconDraft(iconName = "robot") {
+export function defaultBotIconDraft(spec = "robot") {
+    if (spec && typeof spec === "object") {
+        return {
+            icon_name: spec.icon_name || "robot",
+            fg_color: spec.fg_color || DEFAULT_FG,
+            bg_color: spec.bg_color || DEFAULT_BG,
+        };
+    }
     return {
-        icon_name: iconName,
+        icon_name: spec || "robot",
         fg_color: DEFAULT_FG,
         bg_color: DEFAULT_BG,
     };
