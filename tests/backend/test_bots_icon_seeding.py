@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import types
 from types import SimpleNamespace
@@ -40,7 +41,11 @@ def _make_app(bots):
             get_available_templates=MagicMock(return_value=[]),
         ),
         database=SimpleNamespace(
-            misc=SimpleNamespace(update_lxmf_user_icon=MagicMock()),
+            misc=SimpleNamespace(
+                update_lxmf_user_icon=MagicMock(),
+                get_user_icon=MagicMock(return_value=None),
+                delete_user_icon=MagicMock(),
+            ),
             announces=SimpleNamespace(
                 get_announce_by_hash=MagicMock(return_value=None),
             ),
@@ -136,3 +141,70 @@ async def test_status_skips_icon_seed_without_address():
     response = await handler(MagicMock())
     assert response.status == 200
     app.database.misc.update_lxmf_user_icon.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_status_skips_rewrite_when_seeded_row_matches():
+    app = _make_app(
+        [
+            {
+                "lxmf_address": ADDR,
+                "icon": {
+                    "icon_name": "robot",
+                    "fg_color": "#112233",
+                    "bg_color": "#445566",
+                },
+            }
+        ],
+    )
+    app.database.misc.get_user_icon.return_value = {
+        "destination_hash": ADDR,
+        "icon_name": "robot",
+        "foreground_colour": "#112233",
+        "background_colour": "#445566",
+    }
+    handler = _capture_get(app)["/api/v1/bots/status"]
+    response = await handler(MagicMock())
+    assert response.status == 200
+    app.database.misc.update_lxmf_user_icon.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_status_deletes_seeded_row_for_cleared_icon():
+    app = _make_app(
+        [
+            {
+                "lxmf_address": ADDR,
+                "template_id": "echo",
+                "icon": None,
+                "icon_cleared": True,
+            }
+        ],
+    )
+    handler = _capture_get(app)["/api/v1/bots/status"]
+    response = await handler(MagicMock())
+    assert response.status == 200
+    app.database.misc.delete_user_icon.assert_called_once_with(ADDR)
+    app.database.misc.update_lxmf_user_icon.assert_not_called()
+
+
+def test_status_marks_cleared_icon_in_payload(tmp_path):
+    # entry["icon"] explicitly None means cleared; get_status surfaces it
+    from meshchatx.src.backend.bot_handler import BotHandler
+
+    handler = BotHandler(str(tmp_path), config_manager=MagicMock())
+    storage = os.path.join(handler.bots_dir, "bot1")
+    os.makedirs(storage, exist_ok=True)
+    handler.bots_state = [
+        {
+            "id": "bot1",
+            "template_id": "echo",
+            "name": "Bot",
+            "storage_dir": storage,
+            "enabled": False,
+            "icon": None,
+        },
+    ]
+    bot = handler.get_status()["bots"][0]
+    assert bot["icon_cleared"] is True
+    assert bot["icon"] is None

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 
 from aiohttp import web
@@ -42,27 +43,52 @@ def register_bots_routes(routes, app):
                     # configured icon in conversation lists before they have
                     # replied with an icon appearance field.
                     icon = bot.get("icon")
-                    if not (isinstance(icon, dict) and icon.get("icon_name")):
-                        # Lazy: bot_process pulls in lxmfy, which may be absent.
-                        try:
-                            from meshchatx.src.backend.bot_process import (
-                                TEMPLATE_MAP,
-                            )
+                    if bot.get("icon_cleared"):
+                        # An explicit clear means the bot advertises no icon;
+                        # drop the seeded row instead of resurrecting the
+                        # template default on every poll.
+                        with contextlib.suppress(Exception):
+                            app.database.misc.delete_user_icon(lxmf_addr)
+                    else:
+                        if not (isinstance(icon, dict) and icon.get("icon_name")):
+                            # Lazy: bot_process pulls in lxmfy, which may be absent.
+                            try:
+                                from meshchatx.src.backend.bot_process import (
+                                    TEMPLATE_MAP,
+                                )
 
-                            template_cls = TEMPLATE_MAP.get(bot.get("template_id"))
-                            icon = getattr(template_cls, "DEFAULT_ICON", None)
-                        except Exception:
-                            icon = None
-                    if isinstance(icon, dict) and icon.get("icon_name"):
-                        try:
-                            app.database.misc.update_lxmf_user_icon(
-                                lxmf_addr,
-                                icon_name=icon["icon_name"],
-                                foreground_colour=icon.get("fg_color"),
-                                background_colour=icon.get("bg_color"),
+                                template_cls = TEMPLATE_MAP.get(bot.get("template_id"))
+                                icon = getattr(template_cls, "DEFAULT_ICON", None)
+                            except Exception:
+                                icon = None
+                        if isinstance(icon, dict) and icon.get("icon_name"):
+                            try:
+                                existing = app.database.misc.get_user_icon(lxmf_addr)
+                            except Exception:
+                                existing = None
+                            want = (
+                                icon["icon_name"],
+                                icon.get("fg_color"),
+                                icon.get("bg_color"),
                             )
-                        except Exception:
-                            pass
+                            have = None
+                            if existing:
+                                try:
+                                    have = (
+                                        existing["icon_name"],
+                                        existing["foreground_colour"],
+                                        existing["background_colour"],
+                                    )
+                                except Exception:
+                                    have = None
+                            if have != want:
+                                with contextlib.suppress(Exception):
+                                    app.database.misc.update_lxmf_user_icon(
+                                        lxmf_addr,
+                                        icon_name=icon["icon_name"],
+                                        foreground_colour=icon.get("fg_color"),
+                                        background_colour=icon.get("bg_color"),
+                                    )
                     ann = app.database.announces.get_announce_by_hash(lxmf_addr)
                     if not ann:
                         bot["last_announce_at"] = None
