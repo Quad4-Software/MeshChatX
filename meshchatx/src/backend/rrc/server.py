@@ -1554,7 +1554,9 @@ class RRCServerManager:
             name=entry.get("name"),
             greeting=entry.get("greeting"),
             announce=bool(entry.get("announce", True)),
-            announce_interval_seconds=interval,
+            announce_interval_seconds=(
+                interval if interval is not None else DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+            ),
             enabled=bool(entry.get("enabled", True)),
         )
         hub.configure_storage(
