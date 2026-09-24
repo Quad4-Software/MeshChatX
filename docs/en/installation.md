@@ -130,7 +130,7 @@ MESHCHAT_DEMO_AUTH_PASSWORD=demo   # default showcase password
 MESHCHAT_AUTH_PAGE_HINT=...        # optional login-page text
 ```
 
-MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). In demo mode the app drops X-Frame-Options and sends a CSP frame-ancestors list so the public website can embed it. MESHCHAT_DEMO_FRAME_ANCESTORS overrides the default list (meshchatx.com origins). Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
+MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). In demo mode the app drops X-Frame-Options and sends a CSP frame-ancestors list so the public website can embed it. MESHCHAT_DEMO_FRAME_ANCESTORS overrides the default list (meshchatx.com origins). On first start the demo seeds a small fixture of peers, announces, and conversations so the UI is not empty; the seed only runs when the messages table is empty. Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
 
 ## Running behind a reverse proxy
 
