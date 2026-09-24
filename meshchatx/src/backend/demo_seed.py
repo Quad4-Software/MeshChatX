@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from meshchatx.meshchat import ReticulumMeshChat
     from meshchatx.src.backend.database import Database
 
+
 def _hash(seed: str) -> str:
     return hashlib.sha256(f"meshchatx-demo:{seed}".encode()).hexdigest()[:32]
 
@@ -81,7 +82,9 @@ def seed_demo_database(app: ReticulumMeshChat, database: Database) -> bool:
     if row and row["c"]:
         return False
 
-    own_hash = app.identity.hash.hex() if getattr(app, "identity", None) else _hash("self")
+    own_hash = (
+        app.identity.hash.hex() if getattr(app, "identity", None) else _hash("self")
+    )
     now = time.time()
 
     for peer in _PEERS:
@@ -129,7 +132,9 @@ def seed_demo_database(app: ReticulumMeshChat, database: Database) -> bool:
                 "aspect": node["aspect"],
                 "identity_hash": _hash(f"ident:{node['seed']}"),
                 "identity_public_key": None,
-                "app_data": base64.b64encode(node["name"].encode("utf-8")).decode("utf-8"),
+                "app_data": base64.b64encode(node["name"].encode("utf-8")).decode(
+                    "utf-8"
+                ),
                 "rssi": None,
                 "snr": None,
                 "quality": None,
