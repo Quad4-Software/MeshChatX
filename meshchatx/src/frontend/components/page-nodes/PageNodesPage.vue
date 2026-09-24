@@ -474,7 +474,7 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
 import * as pageNodesApi from "../../js/api/pageNodes.js";
 
-const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
+const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 3600;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
 

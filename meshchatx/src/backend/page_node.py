@@ -67,8 +67,12 @@ MEDIA_MAX_DIMENSION = 1920
 MEDIA_CONVERT_TIMEOUT_SECONDS = 10
 
 DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS = (
+    constants.LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+)
 MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
 MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
+NODE_CONFIG_VERSION = 2
 EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
 MAX_UNIQUE_REMOTE_HASHES = 4096
 
@@ -117,6 +121,27 @@ def normalize_announce_interval_seconds(
         MIN_ANNOUNCE_INTERVAL_SECONDS,
         min(MAX_ANNOUNCE_INTERVAL_SECONDS, seconds),
     )
+
+
+def resolve_persisted_announce_interval(config):
+    """Return the announce interval stored in a node config dict.
+
+    Configs written before the default moved off 15 minutes stored 900
+    with no config_version. Treat that value as the old default so
+    existing nodes inherit the slower cadence, while an explicit 900
+    saved by a versioned config still sticks.
+    """
+    value = config.get("announce_interval_seconds")
+    try:
+        version = int(config.get("config_version") or 0)
+    except (TypeError, ValueError):
+        version = 0
+    if (
+        value == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        and version < NODE_CONFIG_VERSION
+    ):
+        return DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    return value
 
 
 def normalize_page_filename(name: str) -> str:
@@ -1220,6 +1245,7 @@ class PageNode:
         config = {
             "node_id": self.node_id,
             "name": self.name,
+            "config_version": NODE_CONFIG_VERSION,
             "announce_enabled": self.announce_enabled,
             "announce_interval_seconds": self.announce_interval_seconds,
             "executable_pages_enabled": self.executable_pages_enabled,

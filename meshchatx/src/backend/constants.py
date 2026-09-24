@@ -68,5 +68,9 @@ WS_PUBLIC_TYPES = frozenset({WsInboundType.PING, *WS_RUNTIME_CONTROL_TYPES})
 
 # Shared announce cadence bounds for managers that republish on a timer.
 MIN_ANNOUNCE_INTERVAL_SECONDS = 60
-DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
+DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 3600
 MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
+
+# Older releases persisted 900 as the default interval. Loaders treat a
+# stored 900 without a config_version marker as the old default and bump it.
+LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
