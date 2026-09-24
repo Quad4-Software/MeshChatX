@@ -195,9 +195,14 @@ def test_workflow_flatpak_ostree_timeout_and_workers() -> None:
 def test_export_script_uses_cdn_meshchatx() -> None:
     text = _EXPORT.read_text(encoding="utf-8")
     assert "cdn.quad4.io/flatpak" in text
-    assert "meshchatx-stable.flatpakref" in text
-    assert "meshchatx-beta.flatpakref" in text
-    assert "meshchatx-testing.flatpakref" in text
+    # Channel flatpakrefs are generated per channel and gated on the branch
+    # actually existing in the repo so clients never fetch a ref file for
+    # a missing branch.
+    assert "meshchatx-${channel}.flatpakref" in text
+    assert "has_ref stable && add_channel stable" in text
+    assert "has_ref beta && add_channel beta" in text
+    assert "has_ref testing && add_channel testing" in text
+    assert "meshchatx.flatpakref" in text
     assert "github.io" not in text
     assert "PAGES_URL" not in text
     # Must not rename the import ref: that leaves ostree.ref-binding on
@@ -211,6 +216,47 @@ def test_export_script_uses_cdn_meshchatx() -> None:
     assert "ostree pull --repo=" in text
     assert "ostree refs --repo=" in text
     assert "ostree --repo=" not in text
+
+
+def test_prune_remote_orphans_removes_stale_channel_refs(
+    ostree_up: ModuleType,
+) -> None:
+    remote = {
+        "flatpak/meshchatx-testing.flatpakref",
+        "flatpak/meshchatx-beta.flatpakref",
+        "flatpak/meshchatx-stable.flatpakref",
+        "flatpak/meshchatx.flatpakref",
+        "flatpak/meshchatx.flatpakrepo",
+        "flatpak/index.html",
+        "flatpak/repo/objects/aa/obj",
+        "flatpak/repo/objects/zz/orphan",
+    }
+    local = {
+        "meshchatx-stable.flatpakref",
+        "meshchatx.flatpakref",
+        "meshchatx.flatpakrepo",
+        "index.html",
+        "repo/objects/aa/obj",
+    }
+    deleted = []
+    with (
+        patch.object(
+            ostree_up, "list_remote_files", return_value=remote
+        ),
+        patch.object(
+            ostree_up, "delete_path", side_effect=lambda url, key: deleted.append(url)
+        ),
+    ):
+        ostree_up.prune_remote_orphans(
+            "https://storage.example/zone", "key", "flatpak", local
+        )
+    assert any("meshchatx-testing.flatpakref" in u for u in deleted)
+    assert any("meshchatx-beta.flatpakref" in u for u in deleted)
+    assert any("repo/objects/zz/orphan" in u for u in deleted)
+    # Files still present locally and non-channel root files stay put.
+    assert not any("meshchatx-stable.flatpakref" in u for u in deleted)
+    assert not any("meshchatx.flatpakrepo" in u for u in deleted)
+    assert not any(u.endswith("index.html") for u in deleted)
 
 
 def test_flatpak_build_sets_channel_branch() -> None:

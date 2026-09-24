@@ -206,7 +206,12 @@ def prune_remote_orphans(
     prefix: str,
     local_rels: set[str],
 ) -> None:
-    """Delete remote objects/deltas files missing from the local export."""
+    """Delete remote objects/deltas files missing from the local export.
+
+    Also prunes channel flatpakref files (meshchatx-<channel>.flatpakref)
+    that no longer exist locally, so a stale ref file cannot advertise a
+    branch that was never or is no longer published.
+    """
     base = base.rstrip("/")
     prefix = prefix.strip("/")
     remote = list_remote_files(base, access_key, prefix)
@@ -215,7 +220,17 @@ def prune_remote_orphans(
         if not remote_rel.startswith(f"{prefix}/"):
             continue
         under = remote_rel[len(prefix) + 1 :]
-        if not (under.startswith("repo/objects/") or under.startswith("repo/deltas/")):
+        channel_ref = (
+            under.startswith("meshchatx-")
+            and under.endswith(".flatpakref")
+            and under[len("meshchatx-") : -len(".flatpakref")]
+            in ("stable", "beta", "testing")
+        )
+        if not (
+            under.startswith("repo/objects/")
+            or under.startswith("repo/deltas/")
+            or channel_ref
+        ):
             continue
         if under in local_rels:
             continue
