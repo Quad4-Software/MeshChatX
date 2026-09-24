@@ -91,7 +91,7 @@ target_ref="app/${appid}/${arch}/${branch}"
 echo "Importing bundle (expected ref ${target_ref})"
 
 # Do not pass --ref to rename the branch. Flatpak commits carry
-# ostree.ref-binding from build-export; pointing a testing/beta/stable
+# ostree.ref-binding from build-export. Pointing a testing/beta/stable
 # ref at a master-bound commit makes clients reject the pull.
 flatpak build-import-bundle \
     --no-update-summary \
@@ -158,9 +158,22 @@ ${gpg_key_line}
 EOF
 }
 
-write_flatpakref "${OUT}/meshchatx-stable.flatpakref" stable
-write_flatpakref "${OUT}/meshchatx-beta.flatpakref" beta
-write_flatpakref "${OUT}/meshchatx-testing.flatpakref" testing
+# Emit a channel flatpakref only for branches the repo actually carries.
+# Publishing a ref file for a missing branch makes installs fail with
+# "No such ref" on the client side.
+has_ref() { printf '%s\n' "${refs[@]}" | grep -qx "app/${appid}/${arch}/$1"; }
+
+channel_sections=""
+add_channel() {
+    local channel="$1"
+    write_flatpakref "${OUT}/meshchatx-${channel}.flatpakref" "${channel}"
+    channel_sections="${channel_sections}
+  <h2>${channel^}</h2>
+  <pre>flatpak install --from ${cdn_base}/meshchatx-${channel}.flatpakref</pre>"
+}
+has_ref stable && add_channel stable
+has_ref beta && add_channel beta
+has_ref testing && add_channel testing
 write_flatpakref "${OUT}/meshchatx.flatpakref" "$branch"
 
 cat >"${OUT}/meshchatx.flatpakrepo" <<EOF
@@ -195,15 +208,10 @@ cat >"${OUT}/index.html" <<EOF
 <body>
   <h1>MeshChatX Flatpak</h1>
   <p>Install from the CDN remote, then run <code>flatpak update</code> for new releases on that branch.</p>
-  <h2>Stable</h2>
-  <pre>flatpak install --from ${cdn_base}/meshchatx-stable.flatpakref</pre>
-  <h2>Beta</h2>
-  <pre>flatpak install --from ${cdn_base}/meshchatx-beta.flatpakref</pre>
-  <h2>Testing</h2>
-  <pre>flatpak install --from ${cdn_base}/meshchatx-testing.flatpakref</pre>
+  <p>Only channels with a published build are listed. Beta and testing refs appear after the first beta-* or nightly-*/testing-* tag publishes.</p>${channel_sections}
   <h2>Remote only</h2>
   <pre>flatpak remote-add --if-not-exists meshchatx ${cdn_base}/meshchatx.flatpakrepo
-flatpak install meshchatx ${appid}//stable</pre>
+flatpak install meshchatx ${appid}//${branch}</pre>
   <p>Then run <code>flatpak run ${appid}</code> or launch from your app menu.</p>
   <p><a href="https://github.com/${GITHUB_REPOSITORY:-Quad4-Software/MeshChatX}">Project on GitHub</a></p>
 </body>
