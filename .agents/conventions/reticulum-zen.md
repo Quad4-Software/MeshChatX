@@ -34,6 +34,16 @@ Checklist: `.agents/skills/reticulum-design-gates/SKILL.md`.
 6. Keep identity-scoped state inside `IdentityContext`. No cross-identity leakage.
 7. Privacy mode and Landlock stay intact. Clearnet fetches stay opt-in and gated.
 
+## Announce cadence
+
+Announces are mesh noise shared by every listener. Match the reference cadence instead of picking friendlier-feeling numbers.
+
+- The shared default is `constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS` (21600, 6 h), the same value Reticulum interface discovery and NomadNet nodes/clients use. Import the constant. Do not hardcode an interval.
+- The Reticulum manual suggests 12 to 22 h for stable infrastructure and warns that sub-hour announces get throttled. `MIN_ANNOUNCE_INTERVAL_SECONDS` exists only so explicit user overrides can go lower.
+- The default applies to every MeshChatX-controlled surface: page nodes, RRC hubs, map data publish, FileSync, and lxmfy bots (passed through the lxmf sidecar because the framework default is 600 s).
+- Persisted configs migrate only when the stored value equals the default that was current at that `config_version`. A user-set value is never rewritten. Bump `NODE_CONFIG_VERSION` / `HUB_CONFIG_VERSION` / the filesync `_SETTINGS_VERSION` and extend the per-version default map when the default changes again.
+- Do not re-announce to paper over missing path or delivery state. Request the path or wait for propagation.
+
 ## MeshChatX mapping
 
 | Zen idea            | MeshChatX reality                                             |
