@@ -271,7 +271,7 @@ flatpak run com.meshchatx.app
 flatpak update
 ```
 
-Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those channels. If a leftover GitHub Pages remote is still named `meshchatx`, run `flatpak remote-delete meshchatx` first.
+Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those channels. Beta and testing refs exist only after a `beta-*` or `nightly-*`/`testing-*` tag has published a build. Until then the install fails with "No such ref" and stable is the only channel. The app ID is `com.meshchatx.app`. If a leftover GitHub Pages remote is still named `meshchatx`, run `flatpak remote-delete meshchatx` first.
 
 ## Linux desktop emoji fonts
 
