@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Laisser vide pour la valeur par défaut LXMFy (3).",
         "opportunistic_sending": "Envoi opportuniste",
         "announce_interval_seconds": "Intervalle d'annonce (secondes)",
-        "announce_interval_hint": "Laisser vide pour la valeur par défaut (600).",
+        "announce_interval_hint": "Laisser vide pour la valeur par défaut (21600).",
         "stamp_cost": "Coût du tampon",
         "stamp_cost_hint": "Laisser vide pour ne pas exiger de tampon.",
         "effective_settings_heading": "Effectif au prochain démarrage",

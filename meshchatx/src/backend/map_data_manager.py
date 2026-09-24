@@ -18,6 +18,7 @@ from typing import Any
 
 import RNS
 
+from meshchatx.src.backend import constants
 from meshchatx.src.backend.map_geo_sanitizer import sanitize_geo_bytes
 from meshchatx.src.backend.map_geo_validator import (
     GeoValidationError,
@@ -45,7 +46,7 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 DISPLAY_NAME_MAX = 32
 DEFAULT_MAX_BYTES = 512 * 1024
 MIN_ANNOUNCE_INTERVAL = 10
-DEFAULT_ANNOUNCE_INTERVAL = 900
+DEFAULT_ANNOUNCE_INTERVAL = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
 MAX_ANNOUNCE_INTERVAL = 86400
 MAX_PUBLISHED_MAPS = 64
 MAX_CATALOG_BYTES = 256 * 1024

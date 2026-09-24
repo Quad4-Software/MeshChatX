@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Leave blank for LXMFy default (3).",
         "opportunistic_sending": "Opportunistic sending",
         "announce_interval_seconds": "Announce interval (seconds)",
-        "announce_interval_hint": "Leave blank for default (600).",
+        "announce_interval_hint": "Leave blank for default (21600).",
         "stamp_cost": "Stamp cost",
         "stamp_cost_hint": "Leave blank for no stamp requirement.",
         "effective_settings_heading": "Effective at next start",

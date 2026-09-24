@@ -211,6 +211,24 @@ def test_orphan_propagation_node_overrides_host_without_mode():
     assert effective["autopeer_propagation"] is False
 
 
+def test_effective_settings_default_announce_interval():
+    from meshchatx.src.backend import constants
+
+    effective = resolve_effective_bot_lxmf_settings(
+        _mock_config(),
+        {"lxmf_config": {}},
+    )
+    assert effective["announce"] == constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
+
+def test_effective_settings_announce_override_wins():
+    effective = resolve_effective_bot_lxmf_settings(
+        _mock_config(),
+        {"lxmf_config": {"announce_interval_seconds": 3600}},
+    )
+    assert effective["announce"] == 3600
+
+
 def test_host_fallback_disabled_propagates_when_bot_inherits():
     effective = resolve_effective_bot_lxmf_settings(
         _mock_config(fallback_enabled=False),

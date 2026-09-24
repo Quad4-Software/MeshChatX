@@ -27,6 +27,53 @@ def handler(mock_identity, tmp_path):
     )
 
 
+def _write_filesync_settings(tmp_path, payload):
+    import json
+
+    root = tmp_path / "identity" / "filesync"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "settings.json").write_text(json.dumps(payload))
+
+
+def _make_handler(mock_identity, tmp_path):
+    storage = tmp_path / "identity"
+    storage.mkdir(exist_ok=True)
+    return RnsFilesyncHandler(
+        reticulum_instance=MagicMock(name="reticulum"),
+        identity=mock_identity,
+        storage_dir=str(storage),
+    )
+
+
+def test_settings_default_announce_interval(handler):
+    from meshchatx.src.backend import constants
+
+    assert handler._announce_interval == constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
+
+def test_settings_migrate_legacy_announce_interval(mock_identity, tmp_path):
+    import json
+
+    from meshchatx.src.backend import constants
+
+    _write_filesync_settings(tmp_path, {"announce_interval": 300})
+    handler = _make_handler(mock_identity, tmp_path)
+    assert handler._announce_interval == constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    saved = json.loads(
+        (tmp_path / "identity" / "filesync" / "settings.json").read_text()
+    )
+    assert saved["announce_interval"] == constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
+
+def test_settings_keep_versioned_explicit_announce_interval(mock_identity, tmp_path):
+    _write_filesync_settings(
+        tmp_path,
+        {"announce_interval": 300, "config_version": 2},
+    )
+    handler = _make_handler(mock_identity, tmp_path)
+    assert handler._announce_interval == 300
+
+
 def test_default_status_not_running(handler, mock_identity):
     status = handler.get_status()
     assert status["running"] is False

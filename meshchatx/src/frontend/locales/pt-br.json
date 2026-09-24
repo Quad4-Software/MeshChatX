@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Deixe em branco para o padrão do LXMFy (3).",
         "opportunistic_sending": "Envio oportunista",
         "announce_interval_seconds": "Intervalo de anúncio (segundos)",
-        "announce_interval_hint": "Deixe em branco para o padrão (600).",
+        "announce_interval_hint": "Deixe em branco para o padrão (21600).",
         "stamp_cost": "Custo do carimbo",
         "stamp_cost_hint": "Deixe em branco para não exigir carimbo.",
         "effective_settings_heading": "Efetivo na próxima inicialização",

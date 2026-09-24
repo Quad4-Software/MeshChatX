@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "비워 두면 LXMFy 기본값(3)을 사용합니다.",
         "opportunistic_sending": "기회 전송",
         "announce_interval_seconds": "애너운스 간격 (초)",
-        "announce_interval_hint": "비워 두면 기본값(600)을 사용합니다.",
+        "announce_interval_hint": "비워 두면 기본값(21600)을 사용합니다.",
         "stamp_cost": "스탬프 비용",
         "stamp_cost_hint": "비워 두면 스탬프 요구 사항이 없습니다.",
         "effective_settings_heading": "다음 시작 시 적용될 설정",

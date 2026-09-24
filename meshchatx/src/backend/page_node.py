@@ -72,7 +72,14 @@ LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS = (
 )
 MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
 MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
-NODE_CONFIG_VERSION = 2
+NODE_CONFIG_VERSION = 3
+
+# Announce interval that was the default when each config version was
+# written. Anything older than v1 (no config_version key) predates
+# versioning and shipped the 900 default.
+_ANNOUNCE_DEFAULT_BY_CONFIG_VERSION = {
+    2: 3600,
+}
 EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
 MAX_UNIQUE_REMOTE_HASHES = 4096
 
@@ -126,20 +133,23 @@ def normalize_announce_interval_seconds(
 def resolve_persisted_announce_interval(config):
     """Return the announce interval stored in a node config dict.
 
-    Configs written before the default moved off 15 minutes stored 900
-    with no config_version. Treat that value as the old default so
-    existing nodes inherit the slower cadence, while an explicit 900
-    saved by a versioned config still sticks.
+    A stored value equal to the default that was in effect when the
+    config was written migrates to the current default, so existing
+    nodes inherit the slower cadence. Any other value is an explicit
+    choice and is kept as-is.
     """
     value = config.get("announce_interval_seconds")
     try:
         version = int(config.get("config_version") or 0)
     except (TypeError, ValueError):
         version = 0
-    if (
-        value == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
-        and version < NODE_CONFIG_VERSION
-    ):
+    if version >= NODE_CONFIG_VERSION:
+        return value
+    default_at_write = _ANNOUNCE_DEFAULT_BY_CONFIG_VERSION.get(
+        version,
+        LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    )
+    if value == default_at_write:
         return DEFAULT_ANNOUNCE_INTERVAL_SECONDS
     return value
 

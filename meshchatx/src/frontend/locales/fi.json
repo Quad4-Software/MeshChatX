@@ -74,7 +74,7 @@
         "direct_delivery_retries_hint": "Jätä tyhjäksi LXMFy-oletusta varten (3).",
         "opportunistic_sending": "Opportunistinen lähetys",
         "announce_interval_seconds": "Ilmoitusväli (sekuntia)",
-        "announce_interval_hint": "Jätä tyhjäksi oletusta varten (600).",
+        "announce_interval_hint": "Jätä tyhjäksi oletusta varten (21600).",
         "stamp_cost": "Leiman kustannus",
         "stamp_cost_hint": "Jätä tyhjäksi, jos leimaa ei vaadita.",
         "effective_settings_heading": "Voimassa seuraavassa käynnistyksessä",

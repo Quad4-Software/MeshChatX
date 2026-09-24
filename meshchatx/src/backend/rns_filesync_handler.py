@@ -11,10 +11,10 @@ import threading
 from collections.abc import Callable
 from typing import Any
 
-from rns_filesync.constants import ANNOUNCE_INTERVAL_DEFAULT
 from rns_filesync.permissions import PermissionStore
 from rns_filesync.service import FileSyncService
 
+from meshchatx.src.backend import constants
 from meshchatx.src.backend.results import err_result, err_result_from, ok_result
 from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
@@ -47,6 +47,11 @@ def _normalize_sync_relpath(relpath: str) -> str:
 
 # Cap for in-app sync-tree uploads (local control plane only).
 MANAGER_UPLOAD_MAX_BYTES = 64 * 1024 * 1024
+
+# settings.json schema marker. Version 1 files predate the key and carried
+# the vendored 300 second announce default.
+_SETTINGS_VERSION = 2
+_LEGACY_ANNOUNCE_INTERVAL = 300
 
 
 def _normalize_peer_hash(value: str | None) -> str | None:
@@ -329,7 +334,7 @@ class RnsFilesyncHandler:
         self._acl_path = os.path.join(self._root, "acl.txt")
         self._sync_directory = os.path.join(self._root, "sync")
         self._monitor = True
-        self._announce_interval = ANNOUNCE_INTERVAL_DEFAULT
+        self._announce_interval = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
         self._load_settings()
         os.makedirs(self._root, exist_ok=True)
         os.makedirs(self._sync_directory, exist_ok=True)
@@ -790,12 +795,23 @@ class RnsFilesyncHandler:
         if isinstance(monitor, bool):
             self._monitor = monitor
         interval = data.get("announce_interval")
+        try:
+            version = int(data.get("config_version") or 0)
+        except (TypeError, ValueError):
+            version = 0
+        # A stored 300 without a version marker is the old vendored default,
+        # not an explicit choice; follow the current shared default instead.
+        if version < _SETTINGS_VERSION and interval == _LEGACY_ANNOUNCE_INTERVAL:
+            interval = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
         if isinstance(interval, int) and interval >= 10:
             self._announce_interval = interval
+            if interval != data.get("announce_interval"):
+                self._save_settings()
 
     def _save_settings(self) -> None:
         os.makedirs(self._root, exist_ok=True)
         payload = {
+            "config_version": _SETTINGS_VERSION,
             "sync_directory": self._sync_directory,
             "monitor": self._monitor,
             "announce_interval": self._announce_interval,
