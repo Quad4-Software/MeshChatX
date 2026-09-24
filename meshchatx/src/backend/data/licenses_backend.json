@@ -61,7 +61,7 @@
   },
   {
     "name": "cborx",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "author": "Quad4",
     "license": "0BSD"
   },
@@ -118,6 +118,12 @@
     "version": "3.19",
     "author": "Kim Davies <kim+pypi@gumleaf.org>",
     "license": "BSD-3-Clause"
+  },
+  {
+    "name": "landlockpy",
+    "version": "0.1.1",
+    "author": "Quad4",
+    "license": "0BSD"
   },
   {
     "name": "lxmf",

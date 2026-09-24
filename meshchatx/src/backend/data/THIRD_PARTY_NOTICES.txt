@@ -34,7 +34,7 @@ bcrypt 5.0.0
 bleak 3.0.2
   License: MIT
   Author: Henrik Blidh
-cborx 0.2.3
+cborx 0.2.4
   License: 0BSD
   Author: Quad4
 certifi 2026.7.22
@@ -64,6 +64,9 @@ httpx 0.28.1
 idna 3.19
   License: BSD-3-Clause
   Author: Kim Davies <kim+pypi@gumleaf.org>
+landlockpy 0.1.1
+  License: 0BSD
+  Author: Quad4
 lxmf 1.1.1
   License: Reticulum License
   Author: Mark Qvist
