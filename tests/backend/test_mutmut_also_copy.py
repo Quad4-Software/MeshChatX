@@ -64,6 +64,7 @@ _REQUIRED_REPO_PATHS = [
     "electron/app-version.json",
     "packaging/arch/PKGBUILD",
     "packaging/arch/.SRCINFO",
+    "packaging/arch/reticulum-meshchatx.desktop",
     "scripts/sync-issues.py",
     "scripts/ci/tree-manifest.sh",
     "scripts/ci/tree_manifest_generate.py",
