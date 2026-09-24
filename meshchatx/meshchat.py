@@ -263,7 +263,7 @@ if log_dir:
 
 # Always tee to stdout when one exists. Containers log to /config/logs only,
 # which hides aiohttp.server request-handler tracebacks from docker logs and
-# kubectl logs. Frozen GUI builds may have no console stream; skip then.
+# kubectl logs. Frozen GUI builds may have no console stream. Skip then.
 if sys.stdout is not None:
     handlers.append(logging.StreamHandler(sys.stdout))
 
@@ -1390,7 +1390,7 @@ class ReticulumMeshChat:
 
     @staticmethod
     def _write_rns_reticulum_default_config_file(config_path: str) -> str:
-        """Write RNS stock default config to config_path; return on-disk text.
+        """Write RNS stock default config to config_path. Return on-disk text.
 
         Uses the same template and ConfigObj path as Reticulum.__create_default_config.
         """
@@ -1467,7 +1467,7 @@ class ReticulumMeshChat:
 
     def restore_database(self, backup_path, *, relaunch: bool = False):
         # Two concurrent restores would interleave aside/staging moves and
-        # corrupt the live database; serialize them.
+        # corrupt the live database. Serialize them.
         with self._restore_lock:
             return self._restore_database_locked(backup_path, relaunch=relaunch)
 
@@ -1495,7 +1495,7 @@ class ReticulumMeshChat:
                     restored_identity_hash = restored_identity.hash.hex()
                 except Exception as exc:
                     print(
-                        "Restored identity file is invalid; keeping the current "
+                        "Restored identity file is invalid. Keeping the current "
                         f"identity key: {exc}",
                     )
                 else:
@@ -2230,7 +2230,7 @@ class ReticulumMeshChat:
             if identity_hash in self.contexts:
                 del self.contexts[identity_hash]
             self.current_context = None
-            # The context DB is closed; drop the stale handle so later log
+            # The context DB is closed. Drop the stale handle so later log
             # emits buffer in memory instead of hitting a dead SQLite file.
             memory_log_handler.set_database(None)
             # Drop Nomad and RNS links that may have identified as the prior identity.
@@ -2267,7 +2267,7 @@ class ReticulumMeshChat:
         self.contexts.clear()
         self.current_context = None
         self.running = False
-        # Context DBs are closed; stop the log handler from writing to a
+        # Context DBs are closed. Stop the log handler from writing to a
         # stale handle during the reload gap.
         memory_log_handler.set_database(None)
         # Same drop as teardown_identity. Reload and zip restore must not keep
@@ -2572,7 +2572,7 @@ class ReticulumMeshChat:
                 "stopping-services",
                 "Stopping bots and mesh services across identities...",
             )
-            # Context teardown blocks on Event.wait and sleeps; keep the web
+            # Context teardown blocks on Event.wait and sleeps. Keep the web
             # loop responsive while it runs.
             await asyncio.to_thread(self._teardown_all_contexts_for_reload)
 
@@ -3132,7 +3132,7 @@ class ReticulumMeshChat:
 
             # 2. teardown old identity if not keeping alive
             if not keep_alive:
-                # Teardown waits on setup events and sleeps; run it on a
+                # Teardown waits on setup events and sleeps. Run it on a
                 # worker thread so the web loop is not frozen.
                 await asyncio.to_thread(self.teardown_identity)
                 # Give a moment for destinations to clear from transport
@@ -3385,7 +3385,7 @@ class ReticulumMeshChat:
     def get_package_version(package_name: str, default: str = "unknown") -> str:
         """Resolve an installed distribution version for About /app/info.
 
-        cx_Freeze and similar bundles often omit .dist-info; fall back to module
+        cx_Freeze and similar bundles often omit .dist-info. Fall back to module
         attributes and known submodule layouts (e.g. websockets.version).
         """
         try:
@@ -3683,7 +3683,7 @@ class ReticulumMeshChat:
         config-style aliases (network_name and passphrase) and ensures
         the optional config_entry blob is always a string when present.
 
-        Returns the list with new keys added; missing values become None
+        Returns the list with new keys added. Missing values become None
         so the frontend can render placeholders consistently.
         """
         if not isinstance(interfaces, list):
@@ -3724,7 +3724,7 @@ class ReticulumMeshChat:
                 updated["ifac_netname"] or updated["ifac_netkey"],
             )
 
-            # Discovery announces are untrusted mesh data; reject non-finite
+            # Discovery announces are untrusted mesh data. Reject non-finite
             # or out-of-range coordinates before they reach map clients.
             lat = updated.get("latitude")
             lon = updated.get("longitude")
@@ -5848,7 +5848,7 @@ class ReticulumMeshChat:
                 self.session_secret_key = secrets.token_urlsafe(32)
 
             try:
-                # The secret signs/encrypts session cookies; other local users
+                # The secret signs/encrypts session cookies. Other local users
                 # must not read it (forged cookies would bypass auth).
                 fd = os.open(
                     session_secret_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600
@@ -7790,7 +7790,7 @@ class ReticulumMeshChat:
         # (IdentityContext.start_background_threads), so a broadcast awaited
         # from them lands on a foreign event loop. The broadcast lock, the
         # coalesce flush task, and the aiohttp send transports are all bound
-        # to the main loop; sending from here would interleave send_str calls
+        # to the main loop. Sending from here would interleave send_str calls
         # across loops and tear frames. Re-dispatch onto the main loop.
         main_loop = AsyncUtils.main_loop
         if (
@@ -11668,7 +11668,7 @@ class ReticulumMeshChat:
     def _page_file_grant_key(client, *, create: bool = True):
         # CPython recycles id() once a WebSocketResponse is collected, so a
         # new socket could inherit stale grants within the TTL. Grants are
-        # keyed by the random token init_client_runtime stamps at upgrade;
+        # keyed by the random token init_client_runtime stamps at upgrade.
         # the lazy fallback covers clients that bypassed it.
         token = getattr(client, "_meshchatx_page_grant_token", None)
         if not token:
@@ -12411,7 +12411,7 @@ def main():
         if reticulum_meshchat.reset_password():
             print("Password has been reset. Set a new password via the web UI.")
         else:
-            print("No password was set; nothing to reset.")
+            print("No password was set. Nothing to reset.")
 
     if args.backup_db:
         result = reticulum_meshchat.backup_database(args.backup_db)

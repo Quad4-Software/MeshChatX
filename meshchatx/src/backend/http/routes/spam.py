@@ -87,7 +87,7 @@ def register_spam_routes(routes, app):
         is_spam = data.get("is_spam", False)
 
         try:
-            # stored hashes are lowercase hex; normalize so mixed-case paths hit
+            # stored hashes are lowercase hex. Normalize so mixed-case paths hit
             message = app.database.messages.get_lxmf_message_by_hash(
                 message_hash.lower(),
             )

@@ -266,7 +266,7 @@ def test_guard_keeps_ble_rnode_when_able_available(tmp_path, monkeypatch):
 
 
 def test_guard_always_disables_rnode_multi_interface_on_android(tmp_path, monkeypatch):
-    """RNS has no Android-specific RNodeMultiInterface; it always crashes there."""
+    """RNS has no Android-specific RNodeMultiInterface. It always crashes there."""
     config_path = tmp_path / "config"
     config_path.write_text(
         """[interfaces]

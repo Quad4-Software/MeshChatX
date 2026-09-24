@@ -3,7 +3,7 @@
 """Reference tests for meshchatx.src.json_store.
 
 Accept/reject reference: load_json must return exactly the stored object or
-exactly the default; never a partial parse, never raise for missing or
+exactly the default. Never a partial parse, never raise for missing or
 corrupt files, and never return a wrong-typed top level.
 """
 

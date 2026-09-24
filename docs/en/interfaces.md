@@ -69,7 +69,7 @@ On each client:
 sudo iodine -f -P <password> tunnel.example.com
 ```
 
-iodine assigns the client a tunnel IP in the same subnet (for example 10.0.0.2). Add the interface with role **client**. The preset writes a UDPInterface in roaming mode listening on 0.0.0.0 port 6969 and forwarding to the server at 10.0.0.1. Any UDP port works; the preset uses 6969 and it stays inside the tunnel, separate from iodine's own DNS traffic.
+iodine assigns the client a tunnel IP in the same subnet (for example 10.0.0.2). Add the interface with role **client**. The preset writes a UDPInterface in roaming mode listening on 0.0.0.0 port 6969 and forwarding to the server at 10.0.0.1. Any UDP port works. The preset uses 6969 and it stays inside the tunnel, separate from iodine's own DNS traffic.
 
 The tunnel domain field in the UI is a label for your reference only. It is not written to Reticulum config. The delegation that makes iodine work lives in your DNS zone: give the server host an A record, then delegate the tunnel subdomain to it.
 
@@ -78,7 +78,7 @@ t1ns.example.com.     A   <server public IP>
 tunnel.example.com.   NS  t1ns.example.com.
 ```
 
-Throughput is low and round trips are long because every packet travels inside DNS queries. The preset caps bitrate at 20000 bps, which matches typical iodine upstream rates; downstream can run faster when the resolver path allows larger record types. Captive portals and some corporate resolvers block or rate-limit the long lookups iodine relies on, so a tunnel that works on one network can stall on another.
+Throughput is low and round trips are long because every packet travels inside DNS queries. The preset caps bitrate at 20000 bps, which matches typical iodine upstream rates. Downstream can run faster when the resolver path allows larger record types. Captive portals and some corporate resolvers block or rate-limit the long lookups iodine relies on, so a tunnel that works on one network can stall on another.
 
 On Android there is no bundled iodine client. Run an external app such as AndIodine, which registers as the device VPN service. Android allows one VPN at a time, so the tunnel cannot run alongside another VPN app.
 
@@ -94,7 +94,7 @@ On Android, the bundled AwareInterface.py installs into the Reticulum interfacep
   peers = 4
 ```
 
-`mode` is `publish` (be found, waits for initiators) or `subscribe` (find publishers). `peers` caps concurrent data paths and defaults to 4. The interface only works while the Android local-link bridge is available, so it stays an Android feature. On supported Android builds you can add it from **Add interface -> WiFi Aware**; the tile stays greyed out on desktop and web. For ad-hoc sessions, Tools -> Nearby drives the same underlying session without touching the config.
+`mode` is `publish` (be found, waits for initiators) or `subscribe` (find publishers). `peers` caps concurrent data paths and defaults to 4. The interface only works while the Android local-link bridge is available, so it stays an Android feature. On supported Android builds you can add it from **Add interface -> WiFi Aware**. The tile stays greyed out on desktop and web. For ad-hoc sessions, Tools -> Nearby drives the same underlying session without touching the config.
 
 ## Getting onto the mesh
 

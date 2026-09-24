@@ -144,7 +144,7 @@ mapfile -t files < <(find "$STAGE" -type f)
     fi
 
     # Commit list since previous tag, then checksums / verify. Sections are
-    # wrapped in <details> so GitHub renders them collapsible; blank lines
+    # wrapped in <details> so GitHub renders them collapsible. Blank lines
     # around the markdown inside each block are required for rendering.
     echo "<details>"
     echo "<summary><strong>Changelog</strong></summary>"

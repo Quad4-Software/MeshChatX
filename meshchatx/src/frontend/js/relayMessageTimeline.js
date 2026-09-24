@@ -28,7 +28,7 @@ export function relayMessageKey(msg) {
 
 /**
  * True when an incoming relay message is already present in the list.
- * Prefers seq; falls back to kind/ts/src/text for older payloads without seq.
+ * Prefers seq. Falls back to kind/ts/src/text for older payloads without seq.
  * @param {object[]} messages
  * @param {object} incoming
  * @returns {boolean}

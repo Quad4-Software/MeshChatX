@@ -45,8 +45,8 @@ def normalize_rnode_tcp_port(port: str) -> str:
     """Normalize RNodeInterface port when using tcp://.
 
     Reticulum's TCPConnection (RNS/Interfaces/RNodeInterface.py) calls
-    socket.getaddrinfo(target_host, 7633). The first argument must be a hostname or IP **only**; an embedded :port
-    breaks resolution. Config may list legacy tcp://host:7633 or tcp://host:;
+    socket.getaddrinfo(target_host, 7633). The first argument must be a hostname or IP **only**. An embedded :port
+    breaks resolution. Config may list legacy tcp://host:7633 or tcp://host:.
     strip those so storage matches tcp://<host>.
     """
     raw = str(port).strip()
@@ -79,7 +79,7 @@ def normalize_rnode_tcp_port(port: str) -> str:
 def coerce_rnode_frequency_hz(value):
     """Return RNode carrier frequency as integer Hz for Reticulum config.
 
-    Reticulum reads frequency with int(); MHz-style decimals (868.825)
+    Reticulum reads frequency with int(). MHz-style decimals (868.825)
     must not be stored verbatim or they truncate to invalid values. Accepts
     Hz integers, bare MHz-style numbers below 1e6, and strings with optional
     ghz/mhz/khz/hz suffix (ASCII, case-insensitive).
@@ -129,7 +129,7 @@ def validate_rnode_txpower(value) -> str | None:
     if power < RNODE_TXPOWER_MIN or power > RNODE_TXPOWER_MAX:
         return (
             f"TX power must be between {RNODE_TXPOWER_MIN} and {RNODE_TXPOWER_MAX} dBm "
-            "(Reticulum RNodeInterface limit; typical SX1262 range is 0-22 dBm)"
+            "(Reticulum RNodeInterface limit, typical SX1262 range is 0-22 dBm)"
         )
     return None
 
@@ -168,7 +168,7 @@ class InterfaceEditor:
 
     @staticmethod
     def apply_fixed_mtu(interface_details: dict, data: dict) -> str | None:
-        """Persist fixed_mtu when valid; return an API error message otherwise."""
+        """Persist fixed_mtu when valid. Return an API error message otherwise."""
         value = data.get("fixed_mtu")
         if value is None or value == "":
             interface_details.pop("fixed_mtu", None)

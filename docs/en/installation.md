@@ -102,7 +102,7 @@ args: ["--host=0.0.0.0", "--headless"]
 
 The same single-instance-per-volume rule applies: use one replica per PVC and a Recreate-style rollout so two pods never share /config.
 
-Mounting TLS material as a Secret is supported. Point --ssl-cert and --ssl-key at the mounted files; the Linux filesystem sandbox grants read access to the parent directory of each path automatically:
+Mounting TLS material as a Secret is supported. Point --ssl-cert and --ssl-key at the mounted files. The Linux filesystem sandbox grants read access to the parent directory of each path automatically:
 
 ```yaml
 args:
@@ -206,7 +206,7 @@ python3.11 ./meshchatx-py311-linux-x64.pyz --headless --host 127.0.0.1
 python3.14 ./meshchatx-py314-linux-x64.pyz --headless --host 127.0.0.1
 ```
 
-First run extracts the dependency cache to ~/.shiv. The PYZ is architecture and Python-version specific; pick the file that matches both the CPU and the interpreter on the host.
+First run extracts the dependency cache to ~/.shiv. The PYZ is architecture and Python-version specific. Pick the file that matches both the CPU and the interpreter on the host.
 
 ## From source (git clone)
 
@@ -377,7 +377,7 @@ Common flags and environment variables:
 | (env only)                 | MESHCHAT_BOT_RETICULUM_CONFIG_DIR       | none                 | Reticulum config dir for spawned bot processes                                         |
 | (env only)                 | MESHCHAT_AUTH_PAGE_HINT                 | none                 | Custom text shown on the login page                                                    |
 | (env only)                 | MESHCHAT_OIDC_ENABLED                   | none                 | Force OIDC single sign-on on or off (overrides stored config)                          |
-| (env only)                 | MESHCHAT_OIDC_ISSUER                    | none                 | OIDC issuer URL; setting it implies enabled                                            |
+| (env only)                 | MESHCHAT_OIDC_ISSUER                    | none                 | OIDC issuer URL. Setting it implies enabled                                            |
 | (env only)                 | MESHCHAT_OIDC_CLIENT_ID                 | none                 | OIDC client ID                                                                         |
 | (env only)                 | MESHCHAT_OIDC_CLIENT_SECRET             | none                 | OIDC client secret                                                                     |
 | (env only)                 | MESHCHAT_OIDC_DISPLAY_NAME              | none                 | Label for the SSO button                                                               |

@@ -129,7 +129,7 @@ _CALLEE_SCRIPT = textwrap.dedent(
             from LXST.Sinks import OpusFileSink, Sink
             from LXST.Sources import OpusFileSource
 
-            # Play a 2s greeting; timed=True should take ~real-time, not burst.
+            # Play a 2s greeting. timed=True should take ~real-time, not burst.
             greeting = os.path.join(share_dir, "greeting.opus")
             audio_codec.write_silence_ogg_opus(greeting, seconds=2)
             src = OpusFileSource(greeting, target_frame_ms=60, timed=True)
@@ -415,7 +415,7 @@ def test_lxst_live_headless_call_records_remote_audio(tmp_path):
     assert 1.0 <= elapsed <= 8.0, f"greeting pacing off: {elapsed}s"
 
     # OpusFileSink on the real LinkSource must receive decoded frames through
-    # the Tee; a silent/empty recording means the samplerate or Tee fix broke.
+    # the Tee. A silent/empty recording means the samplerate or Tee fix broke.
     assert callee_result["recorded_frames"] > 0, (
         f"no frames reached tee: {callee_result}"
     )

@@ -189,7 +189,7 @@ async def test_status_deletes_seeded_row_for_cleared_icon():
 
 
 def test_status_marks_cleared_icon_in_payload(tmp_path):
-    # entry["icon"] explicitly None means cleared; get_status surfaces it
+    # entry["icon"] explicitly None means cleared. Get_status surfaces it
     from meshchatx.src.backend.bot_handler import BotHandler
 
     handler = BotHandler(str(tmp_path), config_manager=MagicMock())

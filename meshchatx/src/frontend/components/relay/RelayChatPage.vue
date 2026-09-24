@@ -1753,7 +1753,7 @@ export default {
                 prependTimelineCache: (msgs) => inst?.proxy._prependMessageTimelineCache(msgs),
                 reloadLatest: () => inst?.proxy.selectRoom(inst?.proxy.selectedHubHash, inst?.proxy.selectedRoom),
                 // hideJoinPart is a render-layer concern handled by
-                // buildTimelineOptions; excluding presence rows here would
+                // buildTimelineOptions. Excluding presence rows here would
                 // drop them from older pages so toggling the pref could
                 // never reveal them again.
                 excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
@@ -1947,7 +1947,7 @@ export default {
             if (!current) {
                 return null;
             }
-            // fetchServers swaps the serverHubs objects; re-resolve by id
+            // fetchServers swaps the serverHubs objects. Re-resolve by id
             // so the moderation page sees live running/uptime/clients.
             return this.serverHubs.find((s) => s.id === current.id) || current;
         },
@@ -2076,7 +2076,7 @@ export default {
             (hash) => {
                 // Only re-scope when the initial load fell back to "_". A
                 // mid-session hash change while scoped to a real identity is
-                // handled by onIdentitySwitched; re-beginning here would let a
+                // handled by onIdentitySwitched. Re-beginning here would let a
                 // deferred write jump buckets.
                 if (!hash || this.relayPrefsLoadedKey !== "_") {
                     return;
@@ -2130,7 +2130,7 @@ export default {
     },
     methods: {
         // Underscore-prefixed names are reserved on setup() returns, so the
-        // timeline cache helpers stay here; their state lives in
+        // timeline cache helpers stay here. Their state lives in
         // useRelayMessageTimeline and resolves through this.
         _invalidateMessageTimelineCache() {
             this.messageTimelineCache = null;
@@ -2415,7 +2415,7 @@ export default {
             this.availableRoomsRefreshing = {};
             this.expandedPresenceGroups = {};
             // Modal, menu, and form state still points at the old
-            // identity's hubs and rooms; close it all so nothing acts on
+            // identity's hubs and rooms. Close it all so nothing acts on
             // stale ids.
             this.sidebarMenu = { show: false, x: 0, y: 0, hub: null, room: null };
             this.messageMenu = { show: false, x: 0, y: 0, msg: null };
@@ -2441,7 +2441,7 @@ export default {
             useUnreadStore().relayChatUnreadCount = 0;
             // The null writes above queue watcher persists that would
             // overwrite the stored layout with an empty one. Layout
-            // persist is scoped per identity now; suppress it until the
+            // persist is scoped per identity now. Suppress it until the
             // teardown watchers have flushed.
             this._suppressRelayLayoutPersist = true;
             nextTick(() => {
@@ -3163,7 +3163,7 @@ export default {
                     ? msg.src.trim().toLowerCase()
                     : this.displayName(msg);
             // A nick containing whitespace cannot fill {target} without
-            // splitting into extra command args; refuse rather than
+            // splitting into extra command args. Refuse rather than
             // mis-target.
             if (!target || /\s/.test(target)) {
                 ToastUtils.error(this.$t("relay_chat.action_failed"));
@@ -3355,7 +3355,7 @@ export default {
                     try {
                         await window.api.post(apiPath(`/destination/${lxmf}/path`));
                     } catch {
-                        // path request best-effort; the messages page retries on send
+                        // path request best-effort. The messages page retries on send
                     }
                 }
                 this.$router.push({
@@ -3474,7 +3474,7 @@ export default {
                 const response = await window.api.get(apiPath("/rrc/hubs"));
                 this.hubs = response.data?.hubs || [];
                 this.hubsLoaded = true;
-                // Tombstones only bridge the in-flight delete window; once a
+                // Tombstones only bridge the in-flight delete window. Once a
                 // hub or room shows up in a fresh listing it is live again.
                 for (const hub of this.hubs) {
                     delete this.removedHubHashes[hub.hub_hash];
@@ -3528,7 +3528,7 @@ export default {
             if (this.selectedRoom === null && this._viewBeforeRoomOpen == null) {
                 this._viewBeforeRoomOpen = this.view;
             }
-            // Menus anchor to a specific message or hub row; a room switch
+            // Menus anchor to a specific message or hub row. A room switch
             // leaves them pointing at stale state.
             this.closeMessageMenu();
             this.closeSidebarMenu();
@@ -3696,7 +3696,7 @@ export default {
             }
             event.preventDefault();
             const el = event.target;
-            // The caret indexes the DOM value; prefer it so a stale v-model
+            // The caret indexes the DOM value. Prefer it so a stale v-model
             // sync cannot complete against a different string than the one
             // the caret points into.
             const text = typeof el?.value === "string" ? el.value : this.composer;
@@ -3732,7 +3732,7 @@ export default {
             const sentRoom = this.selectedRoom;
             const sentHub = this.selectedHubHash;
             // Clear before the await so text typed while the request is in
-            // flight is not wiped when it resolves; restore on failure.
+            // flight is not wiped when it resolves. Restore on failure.
             this.composer = "";
             this.nickCycle = null;
             try {

@@ -66,7 +66,7 @@ APR research findings that shape how fixes land:
 
 ## Cascade checklist after any fix
 
-- Grep every caller and importer of the changed symbol; skim each use site.
+- Grep every caller and importer of the changed symbol. Skim each use site.
 - Run the focused suite plus the suites of direct consumers.
 - If the file sits in a scanned tree, run the contract scanners:
   HTTP routes, WS manifest, schema versions, frontend ownership.
@@ -84,7 +84,7 @@ APR research findings that shape how fixes land:
   directory listing. Give each the module-ownership row it covers.
 - Subagents return hypotheses with file:line, evidence, and predicted wrong
   behaviour. They do not patch.
-- Dedupe overlapping hypotheses before confirming; the same root cause often
+- Dedupe overlapping hypotheses before confirming. The same root cause often
   surfaces in two charters.
 - Confirm and fix serially per file. Parallel fixers on shared files corrupt
   each others context and produce half-applied patches.

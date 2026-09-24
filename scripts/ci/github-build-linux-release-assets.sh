@@ -188,7 +188,7 @@ if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
             fi
             if [ -n "$_ctr" ]; then
                 # Release gate: apk-tools must accept the package. fpm-built
-                # apks were rejected by apk 2.x and 3.x alike; this catches
+                # apks were rejected by apk 2.x and 3.x alike. This catches
                 # format regressions before publish.
                 echo "Verifying apk installs under apk-tools..."
                 "$_ctr" run --rm -v "$PWD/dist:/p:ro" alpine:3.20 \

@@ -85,7 +85,7 @@ describe("RelaySearchPage.vue", () => {
         const p1 = wrapper.vm.runSearch();
         wrapper.vm.query = "second";
         const p2 = wrapper.vm.runSearch();
-        // Resolve the superseded request last; its payload must be dropped.
+        // Resolve the superseded request last. Its payload must be dropped.
         resolvers[1]({ data: { results: [{ room: "fresh" }] } });
         resolvers[0]({ data: { results: [{ room: "stale" }] } });
         await Promise.all([p1, p2]);

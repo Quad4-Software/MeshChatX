@@ -84,7 +84,7 @@ export function saveRelayPrefs(identityKey, { ignored, highlightWords, hideJoinP
 
 /**
  * True when a peer message comes from an ignored peer. Only chat kinds are
- * filtered; system, notice, and presence rows always stay visible.
+ * filtered. System, notice, and presence rows always stay visible.
  */
 export function isIgnoredRelayMessage(msg, ignoredPeers, ownHash = "") {
     if (!msg || (msg.kind !== "msg" && msg.kind !== "action")) {

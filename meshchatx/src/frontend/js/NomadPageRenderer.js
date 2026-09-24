@@ -260,7 +260,7 @@ function basePurifyConfig() {
  * Remove id and name attributes from sanitized remote markup before it enters
  * the main document. Named-element access (window.<id>, form field names) can
  * otherwise shadow inherited globals like fetch/open/alert and wedge the app.
- * Archive previews do not need working anchors or field names; the sandboxed
+ * Archive previews do not need working anchors or field names. The sandboxed
  * NomadNet frame keeps them.
  */
 export function stripDomClobberingAttributes(html) {

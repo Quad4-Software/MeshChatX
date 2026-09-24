@@ -401,7 +401,7 @@ def test_peer_cap_enforced_when_peer_learned_from_packet():
         server._on_link(link)
         links.append(link)
 
-    # _on_remote_identified never fired; peer is learned lazily by _on_packet.
+    # _on_remote_identified never fired. Peer is learned lazily by _on_packet.
     for link in links:
         server._on_packet(
             link,
@@ -453,6 +453,6 @@ def test_admin_kick_tolerates_session_close_race():
 
     server._sessions = RacingSessions(server._sessions)
 
-    # Must not raise; the kick proceeds on the session captured under lock.
+    # Must not raise. The kick proceeds on the session captured under lock.
     assert server.admin_kick_from_room(peer_v.hex(), "lobby") is True
     assert server._stats["kicks"] == 1

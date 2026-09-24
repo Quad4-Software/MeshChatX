@@ -44,7 +44,7 @@ class IntegrityManager:
     identity directory, and a signed registry records which identities
     have manifests, so deleting or swapping the manifest file no longer
     downgrades the check to a silent pass. This still cannot stop an
-    attacker who controls the whole storage root; it detects offline
+    attacker who controls the whole storage root. It detects offline
     tampering of a single identity tree, corruption, and restores of the
     wrong identity data.
     """
@@ -83,7 +83,7 @@ class IntegrityManager:
 
     # Any path containing one of these directory names is treated as volatile.
     # These trees are rewritten by the app, the user or remote peers during
-    # normal operation; monitoring them produces a constant stream of false
+    # normal operation. Monitoring them produces a constant stream of false
     # integrity warnings.
     VOLATILE_DIRS: ClassVar[set[str]] = {
         "lxmf_router",
@@ -176,7 +176,7 @@ class IntegrityManager:
         """Determine if a file path is volatile state to skip.
 
         The identity file, config and database living directly under the
-        identity storage directory are never ignored; only continuously
+        identity storage directory are never ignored. Only continuously
         rewritten app and user content trees are excluded.
         """
         path = Path(rel_path)
@@ -233,7 +233,7 @@ class IntegrityManager:
             return None
         if not stat_mod.S_ISREG(st.st_mode):
             # Fifos, sockets and devices can block or stream forever on
-            # open; only regular files are hashed.
+            # open. Only regular files are hashed.
             return None
         return {"size": st.st_size, "mtime_ns": st.st_mtime_ns}
 
@@ -263,7 +263,7 @@ class IntegrityManager:
                 digest = self._hash_file(full_path)
                 if digest is None:
                     continue
-                # File rewritten while hashing; skip it so the baseline never
+                # File rewritten while hashing. Skip it so the baseline never
                 # stores a torn read. The next snapshot catches it.
                 if self._stat_signature(full_path) != sig:
                     continue
@@ -313,7 +313,7 @@ class IntegrityManager:
                     0o600,
                 )
             except FileExistsError:
-                # Another context won the create race; use its key.
+                # Another context won the create race. Use its key.
                 existing = key_path.read_bytes()
                 return existing or None
             with os.fdopen(fd, "wb") as f:
@@ -413,7 +413,7 @@ class IntegrityManager:
                 )
         elif key is None:
             issues.append(
-                "Integrity trust key missing; manifest signature unverified",
+                "Integrity trust key missing. Manifest signature unverified",
             )
         else:
             actual = self._manifest_hmac(key, manifest)
@@ -475,7 +475,7 @@ class IntegrityManager:
 
             # Drift is expected after an unclean shutdown or an app update:
             # files the app was writing when it died legitimately differ from
-            # the last snapshot. Demote those diffs to expected-change notes;
+            # the last snapshot. Demote those diffs to expected-change notes.
             # identity, database and manifest checks stay strict.
             clean_exit = manifest.get("clean_exit", True)
             version_changed = (
@@ -598,7 +598,7 @@ class IntegrityManager:
                 continue
             actual_hash = self._hash_file(full_path)
             if self._stat_signature(full_path) != sig:
-                continue  # mid-write; the next check catches it
+                continue  # mid-write. The next check catches it
             if actual_hash != expected_hash:
                 issues.append(
                     f"Critical security component integrity compromised: {rel_path}",
@@ -646,7 +646,7 @@ class IntegrityManager:
                     saved_meta = {}
                 sig = self._stat_signature(full_path)
                 if sig is None:
-                    continue  # vanished mid-scan; the missing pass reports it
+                    continue  # vanished mid-scan. The missing pass reports it
                 if (
                     saved_meta.get("size") == sig["size"]
                     and saved_meta.get("mtime_ns") == sig["mtime_ns"]
@@ -655,7 +655,7 @@ class IntegrityManager:
 
                 actual_hash = self._hash_file(full_path)
                 if self._stat_signature(full_path) != sig:
-                    continue  # mid-write; the next check catches it
+                    continue  # mid-write. The next check catches it
                 if actual_hash != expected_hash:
                     if self._is_critical_path(rel_path):
                         issues.append(

@@ -1,7 +1,7 @@
 # Testing channel builds from dev: push a nightly-* tag when dev has new
 # commits since the last Testing prerelease, then dispatch build-release.yml.
 # Tag push alone does not start other workflows when using GITHUB_TOKEN
-# (GitHub Actions event loop prevention); workflow_dispatch is required.
+# (GitHub Actions event loop prevention). Workflow_dispatch is required.
 #
 # Product channel: Testing. Tag prefix stays nightly-* for download URL stability.
 #

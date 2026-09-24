@@ -37,7 +37,7 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
 
     describe("theme tokens", () => {
         // dev/testing surfaces that were washed out in light mode must stay on
-        // semantic sem-* tokens; raw palette utilities regress the fix
+        // semantic sem-* tokens. Raw palette utilities regress the fix
         const RAW_COLOR_RE =
             /\b(?:bg|text|border|ring|placeholder|caret|accent|fill|stroke)-(?:gray|zinc|slate|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d/;
         const WHITE_BLACK_RE = /\b(?:bg|border|ring)-(?:white|black)\b/;

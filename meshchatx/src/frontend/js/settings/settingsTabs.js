@@ -71,7 +71,7 @@ export const DEFAULT_SETTINGS_TAB = "general";
 
 /**
  * Sections that only show in "Advanced" settings mode. These are technical or
- * expert-level settings; everyday sections stay visible in "Simple" mode.
+ * expert-level settings. Everyday sections stay visible in "Simple" mode.
  * Advanced sections always remain reachable through settings search.
  */
 const ADVANCED_SETTINGS_SECTIONS = new Set([

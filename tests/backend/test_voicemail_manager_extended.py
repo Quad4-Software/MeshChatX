@@ -73,7 +73,7 @@ def test_generate_greeting(mock_deps, temp_dir):
     ):
         vm.generate_greeting("Hello world")
 
-    # espeak still runs as a subprocess; opus encoding is now in-process via audio_codec.
+    # espeak still runs as a subprocess. Opus encoding is now in-process via audio_codec.
     assert mock_deps["run"].call_count == 1
     mock_encode.assert_called_once()
 
@@ -194,7 +194,7 @@ def test_stop_recording_leaves_repointed_sink_alone(mock_deps, temp_dir):
 
 
 def test_stop_greeting_recording_restores_mic_sink(mock_deps, temp_dir):
-    # The greeting pipeline repoints audio_input.sink at the recording sink;
+    # The greeting pipeline repoints audio_input.sink at the recording sink.
     # without a restore the mic is dead for the rest of the call.
     mock_db = MagicMock()
     mock_config = MagicMock()
@@ -348,7 +348,7 @@ def test_greeting_source_plays_timed(mock_deps, temp_dir):
 def test_stop_recording_passes_three_args_to_callback(mock_deps, temp_dir):
     """The notification callback contract is (hash, name, duration).
 
-    IdentityContext wires a lambda taking exactly those three arguments;
+    IdentityContext wires a lambda taking exactly those three arguments.
     a one-argument callback used to raise TypeError and the notification
     never reached the UI.
     """

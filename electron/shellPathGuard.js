@@ -17,7 +17,7 @@ function resolveDirForPrefixCheck(dirPath) {
 }
 
 function realpathOrNearest(targetPath) {
-    // Resolve symlinks on the candidate itself; for paths that do not exist
+    // Resolve symlinks on the candidate itself. For paths that do not exist
     // yet, realpath the nearest existing ancestor and rejoin the tail so a
     // symlinked parent cannot smuggle the jail root.
     let current = path.resolve(targetPath);

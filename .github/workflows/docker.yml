@@ -4,7 +4,7 @@
 # tags (semver tags + :latest), and workflow_dispatch.
 #
 # Optional Docker Hub (same tag set as GHCR):
-#   Repository secrets (both required to enable Hub push; omit either to skip):
+#   Repository secrets (both required to enable Hub push. Omit either to skip):
 #     DOCKERHUB_USERNAME  Docker Hub user or org (e.g. quad4io).
 #     DOCKERHUB_TOKEN     Docker Hub access token (PAT) with push to the target repo.
 #   Optional repository variable:
@@ -62,7 +62,7 @@ concurrency:
 
 env:
     REGISTRY: ghcr.io
-    # Official .deb from aquasecurity/trivy releases; scripts/ci/setup-trivy.sh verifies
+    # Official .deb from aquasecurity/trivy releases. Scripts/ci/setup-trivy.sh verifies
     # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
     TRIVY_VERSION: "0.69.3"
 
@@ -228,9 +228,9 @@ jobs:
                     echo 'EOF'
                   } >> "$GITHUB_OUTPUT"
 
-            # GHCR accepts OCI zstd layers; docker.io regular repos still
+            # GHCR accepts OCI zstd layers. Docker.io regular repos still
             # expect gzip, so the Hub export is a second cache-hit build.
-            # build-push-action has no compression inputs; they go through the
+            # build-push-action has no compression inputs. They go through the
             # image exporter options in `outputs`.
             - name: Build and push (GHCR, zstd layers)
               id: build
@@ -295,7 +295,7 @@ jobs:
                   IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
               run: |
                   set -euo pipefail
-                  # amd64 layer already pulled above; --ignore-unfixed keeps the gate
+                  # amd64 layer already pulled above. --ignore-unfixed keeps the gate
                   # actionable (fails only when a fix exists upstream). openvex.json
                   # statements suppress not_affected/fixed findings.
                   trivy image --exit-code 1 --severity HIGH,CRITICAL \

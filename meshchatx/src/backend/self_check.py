@@ -365,7 +365,7 @@ def check_rns_backbone_patch() -> dict[str, str]:
 
     RNS 1.5.4's BackboneClientInterface needs the Linux epoll loop. On
     macOS and Windows the patch must rebind it to TCPClientInterface or
-    every backbone client connection retries forever; on Linux and
+    every backbone client connection retries forever. On Linux and
     Android it must be left alone.
     """
     try:
@@ -990,7 +990,7 @@ def check_lxst_telephony() -> dict[str, str]:
         if Codec2 is None:
             return _status(
                 True,
-                "LXST Codec2 is not installed; telephony will use Opus profiles",
+                "LXST Codec2 is not installed. Telephony will use Opus profiles",
             )
 
         try:
@@ -1105,7 +1105,7 @@ def check_audio_codec_roundtrip() -> dict[str, str]:
         ):
             return {
                 "status": "skipped",
-                "reason": "libopusfile not available; decode unsupported",
+                "reason": "libopusfile not available. Decode unsupported",
             }
         return _status(False, f"audio codec roundtrip failed: {exc}")
 

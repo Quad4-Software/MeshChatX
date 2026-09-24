@@ -3,7 +3,7 @@
 """Crash recovery and adaptive diagnostics for MeshChatX.
 
 Uses entropy, KL-divergence, and Bayesian weight learning. Crash history is
-persisted; priors refine over time (conjugate Beta-Binomial model).
+persisted. Priors refine over time (conjugate Beta-Binomial model).
 """
 
 import contextlib
@@ -95,7 +95,7 @@ class CrashRecovery:
             self._prev_threading_hook = None
 
     def _handle_thread_exception(self, args):
-        """threading.excepthook adapter; diagnoses without killing the process."""
+        """threading.excepthook adapter. Diagnoses without killing the process."""
         if args.exc_type is None or issubclass(args.exc_type, SystemExit):
             return
         thread_name = getattr(args.thread, "name", "unknown")
@@ -718,7 +718,7 @@ class CrashRecovery:
         if os.path.exists(parent):
             writable = os.access(parent, os.W_OK)
             file.write(
-                "  - Parent exists: yes; writable by this process: "
+                "  - Parent exists: yes. Writable by this process: "
                 f"{'yes' if writable else 'NO (cannot create files or subdirectories here)'}\n",
             )
             with contextlib.suppress(Exception):
@@ -795,7 +795,7 @@ class CrashRecovery:
                 if parent and os.path.exists(parent):
                     pw = os.access(parent, os.W_OK)
                     file.write(
-                        "  [ERROR] Storage path does not exist; parent "
+                        "  [ERROR] Storage path does not exist. Parent "
                         f"{'is writable (mkdir should succeed)' if pw else 'is NOT writable (permission issue)'}\n",
                     )
                 else:
@@ -893,7 +893,7 @@ class CrashRecovery:
 
         if not str(config_dir).strip():
             file.write(
-                "  [INFO] Config path not set until Reticulum initializes; "
+                "  [INFO] Config path not set until Reticulum initializes. "
                 "skipping on-disk config checks.\n",
             )
             results["config_not_resolved"] = True

@@ -7,7 +7,7 @@ archive = globals().get("archive") or (
 )
 site_packages = globals().get("site_packages")
 
-# runpy.run_path made argv[0] this preamble; the original PYZ args are in argv[1:].
+# runpy.run_path made argv[0] this preamble. The original PYZ args are in argv[1:].
 # Restore the PYZ as argv[0] so argparse and child-process launchers see the right name.
 sys.argv = [archive, *sys.argv[1:]]
 

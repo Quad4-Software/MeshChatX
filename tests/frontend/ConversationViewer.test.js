@@ -895,7 +895,7 @@ describe("ConversationViewer.vue", () => {
             guard += 1;
         }
         const getCallsBefore = axiosMock.get.mock.calls.length;
-        // Event payloads can drop is_incoming; is_outbound=false and a peer
+        // Event payloads can drop is_incoming. Is_outbound=false and a peer
         // source_hash must still keep the doomed request from firing.
         await wrapper.vm.showRawMessage({
             is_outbound: false,
@@ -1145,7 +1145,7 @@ describe("ConversationViewer.vue", () => {
 
         const wrapper = mountConversationViewer();
         await vi.waitFor(async () => {
-            // loadPrevious consumed the stale stash; the soft resync must
+            // loadPrevious consumed the stale stash. The soft resync must
             // have restashed the fresh response by now.
             const entry = takeConversationPrefetch(peerHash);
             expect(entry).not.toBeNull();

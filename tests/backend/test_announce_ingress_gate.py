@@ -330,7 +330,7 @@ class TestDeferredJournal:
         ):
             mgr.flush_pending()
         assert len(mgr._pending) == ANNOUNCE_JOURNAL_MAX_PENDING
-        # The newest entry survives; the oldest requeued rows absorb the cap.
+        # The newest entry survives. The oldest requeued rows absorb the cap.
         assert new_dh in mgr._pending
         assert first_dh not in mgr._pending
 

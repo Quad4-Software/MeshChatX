@@ -133,7 +133,7 @@ def test_spawn_background_runs_coroutine_on_shared_loop():
     assert sorted(results) == [0, 1, 2, 3]
     assert all(f.done() for f in futures)
     assert AsyncUtils._background_thread is not None
-    # Process-wide active_count() varies with ambient threads under xdist;
+    # Process-wide active_count() varies with ambient threads under xdist.
     # the guarantee under test is that all coroutines ran on one thread.
     assert len(thread_ids) == 1
     assert AsyncUtils._background_thread.ident in thread_ids

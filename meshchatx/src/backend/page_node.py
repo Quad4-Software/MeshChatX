@@ -736,7 +736,7 @@ class PageNode:
         except subprocess.TimeoutExpired:
             return _page_generation_error_bytes("The page script timed out.")
         except Exception as e:
-            # These bytes are served to the remote requester; internal
+            # These bytes are served to the remote requester. Internal
             # exception text can carry local paths, so keep it generic
             # and log the real error server-side.
             RNS.trace_exception(e)

@@ -120,7 +120,7 @@ def _lxmf_fields_to_send_parts(fields):
         if "telemetry" in fields:
             telemetry_val = fields["telemetry"]
             if isinstance(telemetry_val, dict):
-                # Stored shape is Telemeter.from_packed output; decompose it
+                # Stored shape is Telemeter.from_packed output. Decompose it
                 # back into pack kwargs or every sensor lands in location.
                 tele_time = telemetry_val.get("time") or {}
                 telemetry_data = Telemeter.pack(
@@ -655,7 +655,7 @@ def register_lxmf_routes(routes, app):
                 status = 400
             elif isinstance(e, TimeoutError):
                 status = 503
-            # Only validation-style errors are safe to echo; OS/RNS errors
+            # Only validation-style errors are safe to echo. OS/RNS errors
             # can carry paths and internals, so clients get a generic line.
             if isinstance(e, (ValueError, LookupError)):
                 detail = internal or "Invalid request"
@@ -755,7 +755,7 @@ def register_lxmf_routes(routes, app):
         except (TypeError, ValueError):
             return http_bad_request("Invalid message hash")
 
-        # cancel outbound message by lxmf message hash; forwarded sends are
+        # cancel outbound message by lxmf message hash. Forwarded sends are
         # queued on per-alias routers, not the main one
         app.message_router.cancel_outbound(hash_as_bytes)
         forwarding_manager = getattr(app, "forwarding_manager", None)
@@ -765,7 +765,7 @@ def register_lxmf_routes(routes, app):
             except Exception:
                 pass
 
-        # get lxmf message from database; stored hashes are lowercase hex
+        # get lxmf message from database. Stored hashes are lowercase hex
         lxmf_message = None
         db_lxmf_message = app.database.messages.get_lxmf_message_by_hash(
             message_hash.lower(),
@@ -811,7 +811,7 @@ def register_lxmf_routes(routes, app):
         if message_hash is None:
             return http_error(422, "hash is required")
 
-        # delete lxmf messages from db where hash matches; stored hashes are
+        # delete lxmf messages from db where hash matches. Stored hashes are
         # lowercase hex so a mixed-case path would silently miss the row
         app.database.messages.delete_lxmf_message_by_hash(message_hash.lower())
 
@@ -833,7 +833,7 @@ def register_lxmf_routes(routes, app):
         message_hash = request.match_info.get("hash", None)
         if not message_hash:
             return http_error(422, "hash is required")
-        # stored hashes are lowercase hex; normalize so mixed-case paths hit
+        # stored hashes are lowercase hex. Normalize so mixed-case paths hit
         message_hash = message_hash.lower()
 
         db_lxmf_message = app.database.messages.get_lxmf_message_by_hash(
@@ -907,7 +907,7 @@ def register_lxmf_routes(routes, app):
 
         is_local_self = app._is_self_lxmf_destination(destination_hash)
         app.database.messages.delete_lxmf_message_by_hash(message_hash)
-        # Tell every client the old failed row is gone; the initiating client
+        # Tell every client the old failed row is gone. The initiating client
         # removes it locally but other sessions would keep a stale row.
         await app.websocket_broadcast(
             json.dumps(
@@ -987,7 +987,7 @@ def register_lxmf_routes(routes, app):
         attachment_type = request.match_info.get("attachment_type")
         file_index = request.query.get("file_index")
 
-        # find message from database; stored hashes are lowercase hex
+        # find message from database. Stored hashes are lowercase hex
         db_lxmf_message = app.database.messages.get_lxmf_message_by_hash(
             (message_hash or "").lower(),
         )
@@ -1089,7 +1089,7 @@ def register_lxmf_routes(routes, app):
 
     @routes.get(API_V1_PREFIX + "/lxmf-messages/{message_hash}/uri")
     async def lxmf_message_uri(request):
-        """Build a reticulum:// URI; prefer the router cache over DB-only state."""
+        """Build a reticulum:// URI. Prefer the router cache over DB-only state."""
         from meshchatx.src.backend.meshchat_utils import (
             find_lxm_by_content_hash_for_paper_uri,
             hex_identifier_to_bytes,

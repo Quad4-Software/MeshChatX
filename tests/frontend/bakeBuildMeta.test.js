@@ -45,7 +45,7 @@ describe("bake_build_meta channel references", () => {
             fs.writeFileSync(bakedPath, previous, "utf8");
             previous = null;
         } else if (fs.existsSync(bakedPath)) {
-            // leave whatever last bake wrote; file is gitignored
+            // leave whatever last bake wrote. File is gitignored
         }
     });
 

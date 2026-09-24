@@ -2,7 +2,7 @@
  * Lazy-load micron-parser-go WASM (see https://github.com/Quad4-Software/Micron-Parser-Go ).
  * Requires wasm_exec.js from Go and micron-parser-go.wasm under /vendor/micron-parser-go/,
  * or a runtime WASM override from IndexedDB (see MicronWasmRuntimeOverride.js).
- * Build-time fetch: scripts/fetch-micron-wasm.mjs; omitted builds set VITE_MICRON_WASM_BUNDLED=false.
+ * Build-time fetch: scripts/fetch-micron-wasm.mjs. Omitted builds set VITE_MICRON_WASM_BUNDLED=false.
  */
 
 import { getMicronWasmRuntimeOverride } from "./MicronWasmRuntimeOverride.js";
@@ -197,7 +197,7 @@ export function teardownNomadMicronWasmRuntime() {
 
 /**
  * Restricts the exported Go function to string/boolean inputs and string output for the Micron HTML path.
- * Full process isolation is not available in-browser; output is still sanitized by MicronParser.
+ * Full process isolation is not available in-browser. Output is still sanitized by MicronParser.
  */
 function wrapMicronConvertForNarrowJsSurface() {
     const inner = globalThis.micronConvert;
@@ -277,7 +277,7 @@ export function refreshMicronWasmRuntimeOverrideCache() {
 }
 
 /**
- * Ensures micron-parser-go WASM is initialized; resolves true when micronConvert is callable.
+ * Ensures micron-parser-go WASM is initialized. Resolves true when micronConvert is callable.
  */
 export function preloadNomadMicronWasm() {
     if (!isMicronWasmBundled()) {

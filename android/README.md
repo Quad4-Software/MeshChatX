@@ -16,7 +16,7 @@ Native APK with embedded Python (meshchatx/) and a WebView UI.
 ## Launcher shortcuts, language
 
 - **App shortcuts** (long-press the launcher icon): open **Messages** (meshchatx://app/messages) and **Call** (meshchatx://app/call). The WebView handles these in App.vue via handleProtocolLink.
-- **Per-app language (Android 13+)**: android:localeConfig points to res/xml/locales_config.xml. Add translated values-xx/strings.xml for Android notification/shortcut strings; the in-app language still comes from MeshChatX server config.
+- **Per-app language (Android 13+)**: android:localeConfig points to res/xml/locales_config.xml. Add translated values-xx/strings.xml for Android notification/shortcut strings. The in-app language still comes from MeshChatX server config.
 
 ## Build
 
@@ -28,7 +28,7 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-There is a **single** application variant (no product flavors). Gradle syncs the **entire** meshchatx/ tree into app/src/main/python/meshchatx/ (including public/repository-server-bundled for the in-app repository server), and syncs vendored **vendor/lxmfy/lxmfy** into app/src/main/python/lxmfy/ (required for bots; not installed via Chaquopy pip) plus **vendor/rns_filesync/rns_filesync** into app/src/main/python/rns_filesync/ (required for FileSync). The fetchRepositoryBundledWheels task runs before sync when bundled wheels are missing; if repo root dist/reticulum_meshchatx-*.whl exists (e.g. from python -m build --wheel -o dist .), that wheel is preferred over PyPI for the bundled set.
+There is a **single** application variant (no product flavors). Gradle syncs the **entire** meshchatx/ tree into app/src/main/python/meshchatx/ (including public/repository-server-bundled for the in-app repository server), and syncs vendored **vendor/lxmfy/lxmfy** into app/src/main/python/lxmfy/ (required for bots. Not installed via Chaquopy pip) plus **vendor/rns_filesync/rns_filesync** into app/src/main/python/rns_filesync/ (required for FileSync). The fetchRepositoryBundledWheels task runs before sync when bundled wheels are missing. If repo root dist/reticulum_meshchatx-*.whl exists (e.g. from python -m build --wheel -o dist .), that wheel is preferred over PyPI for the bundled set.
 
 ### Native ABIs (universal APK)
 
@@ -51,8 +51,8 @@ See repo root scripts/sign-android-apks.sh (default glob targets outputs/apk/rel
 ## Troubleshooting
 
 1. Confirm android/vendor/ contains required .whl files from the wheel build script.
-2. Codec2 (voice messages, LXST Codec2 profiles): wheels must include pycodec2/libcodec2.so beside pycodec2.so. The wheel build script repacks automatically; for an existing android/vendor/ tree run python3 scripts/repack-android-pycodec2-wheels.py. Gradle also runs this before sync and copies `libcodec2.so` into jniLibs per ABI.
+2. Codec2 (voice messages, LXST Codec2 profiles): wheels must include pycodec2/libcodec2.so beside pycodec2.so. The wheel build script repacks automatically. For an existing android/vendor/ tree run python3 scripts/repack-android-pycodec2-wheels.py. Gradle also runs this before sync and copies `libcodec2.so` into jniLibs per ABI.
 3. Run ./gradlew :app:assembleDebug with --stacktrace if Python sync or Chaquopy pip steps fail.
-4. Re-run ./gradlew :app:assembleDebug after changing meshchatx/ assets; sync runs on merge Python sources tasks.
+4. Re-run ./gradlew :app:assembleDebug after changing meshchatx/ assets. Sync runs on merge Python sources tasks.
 
 See [../LICENSE](../LICENSE) for full text and notices.

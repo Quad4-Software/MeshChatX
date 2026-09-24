@@ -200,7 +200,7 @@ export default {
     data() {
         return {
             uri: this.initialUri,
-            // No uri and no hash means there is nothing to load; show the
+            // No uri and no hash means there is nothing to load. Show the
             // unavailable state instead of a spinner that never clears.
             isLoading: !this.initialUri && Boolean(this.messageHash),
             isSending: false,

@@ -68,7 +68,7 @@ describe("relay message load reference", () => {
         const inc = prependRelayMessageTimeline(base, older);
         const groups = inc.filter((e) => e.type === "presenceGroup");
         expect(groups).toHaveLength(1);
-        // Expansion state is keyed by the group id; a fresh id would
+        // Expansion state is keyed by the group id. A fresh id would
         // collapse the open group when older history is prepended.
         expect(groups[0].id).toBe(baseGroup.id);
     });

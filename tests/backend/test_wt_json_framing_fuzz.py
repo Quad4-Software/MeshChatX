@@ -56,6 +56,6 @@ def test_truncated_line_stays_in_buffer():
 
 def test_embedded_nul_rejected():
     _objects, _buf, _errors = wt_frame_feed("", '{"type":"x\\u0000"}\n')
-    # JSON may accept unicode nul as character; binary NUL path:
+    # JSON may accept unicode nul as character. Binary NUL path:
     _objects2, _buf2, errors2 = wt_frame_feed("", '{"type":"x\x00"}\n')
     assert "embedded_nul" in errors2 or "invalid_json" in errors2

@@ -195,7 +195,7 @@ class BatteryUsageTracker:
 
     def snapshot(self, process: Any) -> dict[str, Any] | None:
         if process is None:
-            # Caller could not build a psutil.Process at all; /proc/self is
+            # Caller could not build a psutil.Process at all. /proc/self is
             # still readable on platforms like Android, so fall back to it.
             cpu_time, uptime = _proc_self_cpu_and_uptime()
             if cpu_time is None or uptime is None:

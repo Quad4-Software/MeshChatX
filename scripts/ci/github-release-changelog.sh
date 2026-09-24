@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Print changelog commit entries for a GitHub release tag (no heading; the
+# Print changelog commit entries for a GitHub release tag (no heading. The
 # caller wraps the output, e.g. inside a <details> block).
 #
 # Usage:

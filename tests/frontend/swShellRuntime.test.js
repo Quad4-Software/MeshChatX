@@ -173,7 +173,7 @@ describe("swShellRuntime reference / race / leak", () => {
 
     it("edge: iframe subframe loads do not classify as navigations", () => {
         // mode=navigate + destination=iframe is how the crash-tab iframe
-        // request arrives; treating it as a shell navigation let its document
+        // request arrives. Treating it as a shell navigation let its document
         // overwrite the "/" fallback slot.
         expect(
             expectedStrategy({

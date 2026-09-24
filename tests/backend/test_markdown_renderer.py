@@ -234,7 +234,7 @@ class TestMarkdownRenderer(unittest.TestCase):
         self.assertIn("strong", r)
 
     def test_message_content_style_input_safe(self):
-        """Simulate message body (e.g. decoded from LXMF) passed to render; must not crash or emit script."""
+        """Simulate message body (e.g. decoded from LXMF) passed to render. Must not crash or emit script."""
         cases = [
             b"Hello world".decode("utf-8"),
             ("Hi \ufffd replacement char " * 10).strip(),

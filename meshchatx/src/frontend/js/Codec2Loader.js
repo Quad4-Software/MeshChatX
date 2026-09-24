@@ -154,7 +154,7 @@ export function ensureCodec2ScriptsLoaded() {
 
 /**
  * Loads Codec2 scripts in the background with retries (embedded server may not be ready on first paint).
- * Swallows final failure after logging; the rest of the app stays usable without voice-codec scripts.
+ * Swallows final failure after logging. The rest of the app stays usable without voice-codec scripts.
  *
  * @param {{ maxAttempts?: number, baseDelayMs?: number, maxDelayMs?: number }} options
  */

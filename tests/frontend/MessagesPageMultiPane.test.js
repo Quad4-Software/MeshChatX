@@ -151,7 +151,7 @@ describe("MessagesPage multi-pane", () => {
     it("settles isConversationDragging when the drag ends outside the sidebar row", async () => {
         const wrapper = mountMessagesPage();
         // The sidebar emitted drag-start but the row's dragend was lost (row
-        // unmounted mid-drag); a window-level drop/dragend must still clear it.
+        // unmounted mid-drag). A window-level drop/dragend must still clear it.
         wrapper.vm.onConversationDragStart();
         expect(wrapper.vm.isConversationDragging).toBe(true);
 

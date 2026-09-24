@@ -169,7 +169,7 @@ function yieldToMain() {
 
 /*
  * Pick a visualisation chunk size that scales down on weak hardware. ARM SBCs
- * commonly report 4 logical cores; phones/SoCs frequently report 2. Desktop
+ * commonly report 4 logical cores. Phones/SoCs frequently report 2. Desktop
  * uses large chunks (fewer DataSet updates / yields) so wall-clock build time
  * stays competitive with upstream's single-pass update.
  */
@@ -186,7 +186,7 @@ const VIZ_SYNC_PATH_THRESHOLD = 180;
 
 /*
  * Straight edges ({ enabled: false } object, never the boolean `false`). Boolean
- * smooth breaks vis-network 9.x on later setOptions(); "continuous" curves
+ * smooth breaks vis-network 9.x on later setOptions(). "continuous" curves
  * recompute every drag frame and are too heavy once the graph is large.
  */
 const VIZ_EDGE_SMOOTH = { enabled: false };
@@ -960,7 +960,7 @@ export default {
         },
         canvasToIconUrl(canvas, cacheKey, resolve) {
             // toBlob can yield null (empty or tainted canvas) and
-            // createObjectURL can throw; resolving null keeps the icon queue
+            // createObjectURL can throw. Resolving null keeps the icon queue
             // from stalling on a promise that never settles.
             canvas.toBlob((blob) => {
                 try {
@@ -1521,7 +1521,7 @@ export default {
                     size: node._originalSize || (node.id === "me" ? 50 : 25),
                     font: { size: 0 },
                 };
-                // Low LOD stamps a generic blue over node.color; hand back
+                // Low LOD stamps a generic blue over node.color. Hand back
                 // the semantic color stashed at build time.
                 const semantic = node._originalColor || node.color;
                 if (semantic) props.color = semantic;
@@ -1608,7 +1608,7 @@ export default {
 
             /*
              * Invalidate any in-flight icon-generation work. Each call to
-             * processVisualization gets a new generation token; queued items
+             * processVisualization gets a new generation token. Queued items
              * carrying an older token are dropped when consumed so we do not
              * paint canvases for nodes that no longer exist.
              */
@@ -1835,7 +1835,7 @@ export default {
                 show_discovered: this.showDiscoveredInterfaces,
             };
 
-            // WASM emits the whole graph; the JS fallback only emits path
+            // WASM emits the whole graph. The JS fallback only emits path
             // nodes, so me/ifaces/discovered are synthesized below.
             const graph = buildFullGraph(fullReq);
             if (!isCurrentRun()) return;

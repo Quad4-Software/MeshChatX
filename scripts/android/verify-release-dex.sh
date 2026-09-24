@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fail the release build when R8 stripped classes that Python loads
 # reflectively via jclass(). These have no Java call sites so ProGuard
-# cannot see them; a missing keep rule produces an APK that installs
+# cannot see them. A missing keep rule produces an APK that installs
 # but silently disables LocalLink (WiFi Aware/Direct, hotspot, NFC).
 set -euo pipefail
 

@@ -108,7 +108,7 @@ function buildFileIndex() {
 
 /**
  * Convert an arbitrary locale string to its canonical BCP 47 form.
- * This never throws; malformed input falls back to a best-effort normalization.
+ * This never throws. Malformed input falls back to a best-effort normalization.
  *
  * @param {string} code
  * @returns {string}
@@ -189,7 +189,7 @@ export function listLocaleCodes() {
 
 /**
  * Return all bundled UI locales with native names for pickers.
- * English is pinned first; the remaining entries are sorted by native name.
+ * English is pinned first. The remaining entries are sorted by native name.
  *
  * @returns {Array<{code: string, name: string}>}
  */

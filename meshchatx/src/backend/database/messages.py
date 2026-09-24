@@ -432,7 +432,7 @@ class MessageDAO:
         hops,
         interface_name,
     ):
-        """Store Reticulum path snapshot once (send or receive); never overwrites."""
+        """Store Reticulum path snapshot once (send or receive). Never overwrites."""
         now = datetime.now(UTC).isoformat()
         self.provider.execute(
             "UPDATE lxmf_messages SET path_hops_at_send = ?, path_interface_at_send = ?, updated_at = ? "
@@ -441,7 +441,7 @@ class MessageDAO:
         )
 
     # Outbound lifecycle is monotonic: generating -> outbound -> sending ->
-    # sent -> delivered. Terminal states must not regress to in-flight ones;
+    # sent -> delivered. Terminal states must not regress to in-flight ones.
     # a stale progress poll could otherwise flip delivered back to sent.
     _LXMF_TERMINAL_STATES = frozenset(
         {"delivered", "rejected", "cancelled", "failed"},
@@ -525,7 +525,7 @@ class MessageDAO:
             self.refresh_conversation_summary(row["peer_hash"])
 
     def get_lxmf_message_by_hash(self, message_hash):
-        # stored hashes are lowercase hex; normalize mixed-case lookups
+        # stored hashes are lowercase hex. Normalize mixed-case lookups
         if isinstance(message_hash, str):
             message_hash = message_hash.lower()
         return self.provider.fetchone(
@@ -910,7 +910,7 @@ class MessageDAO:
         return arrival_ts is not None and arrival_ts > last_read_at.timestamp()
 
     def mark_stuck_messages_as_failed(self):
-        # Incoming rows marked failed were already received; mapping them
+        # Incoming rows marked failed were already received. Mapping them
         # to the transient generating state would leave them stuck, since
         # nothing ever advances an incoming generating row.
         self.provider.execute(
@@ -923,7 +923,7 @@ class MessageDAO:
 
         # Only outbound messages can get stuck mid-send, as incoming messages are
         # never failed (we already received them). sent+direct and
-        # sent+opportunistic both mean transmitted-but-unproven; the router
+        # sent+opportunistic both mean transmitted-but-unproven. The router
         # memory holding them is gone after a restart so they can never
         # advance or be retried. Marking failed risks a duplicate resend of a
         # message that did arrive, which is the accepted tradeoff so the user
@@ -974,7 +974,7 @@ class MessageDAO:
                 """,
                 (group["peer_hash"], group["is_incoming"], group["content"]),
             )
-            # Keep the first (oldest); delete the rest.
+            # Keep the first (oldest). Delete the rest.
             to_delete.extend(row["hash"] for row in rows[1:] if row.get("hash"))
         return to_delete
 
