@@ -1,0 +1,63 @@
+# Development container: full toolchain with all dependency caches warmed.
+# Build once online, then develop offline:
+#   docker build -f docker/Dockerfile.dev -t meshchatx-dev .
+#   docker run --rm -it -v "$PWD":/src -w /src meshchatx-dev bash
+#
+# Inside: task lint / task test:backend / task test:frontend work without
+# touching PyPI or npm because uv and pnpm caches are pre-populated.
+
+FROM python:3.14.4-bookworm
+
+ARG NODE_VERSION=24.0.0
+ARG UV_VERSION=0.11.15
+ARG PNPM_VERSION=11.1.2
+ARG TASK_VERSION=3.49.1
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl git xz-utils sudo \
+    build-essential pkg-config \
+    ffmpeg libopus0 libogg0 libsodium-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node.js from the official tarball.
+RUN arch="$(dpkg --print-architecture)" \
+    && case "$arch" in amd64) node_arch=x64 ;; arm64) node_arch=arm64 ;; *) echo "unsupported arch $arch"; exit 1 ;; esac \
+    && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${node_arch}.tar.xz" -o /tmp/node.tar.xz \
+    && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
+    && rm /tmp/node.tar.xz \
+    && corepack enable \
+    && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+# uv from pinned GitHub release.
+RUN arch="$(uname -m)" \
+    && curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${arch}-unknown-linux-gnu.tar.gz" -o /tmp/uv.tgz \
+    && tar -xzf /tmp/uv.tgz -C /usr/local/bin --strip-components=1 \
+    && rm /tmp/uv.tgz
+
+# go-task via the repo's checksum-verified installer.
+COPY scripts/ci/setup-task.sh scripts/ci/priv.sh /tmp/ci/
+RUN sh /tmp/ci/setup-task.sh "${TASK_VERSION}"
+
+WORKDIR /src
+
+# Warm dependency caches with the locked graphs. Sources are copied
+# separately so these layers survive code edits.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --group dev || true
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
+RUN pnpm install --frozen-lockfile || true
+
+# Whole tree for bake steps that need it (integrity manifests, wasm packs).
+COPY . .
+RUN uv sync --frozen --group dev \
+    && pnpm install --frozen-lockfile
+
+# Offline-first defaults for shells inside the container.
+ENV UV_OFFLINE=1 \
+    PNPM_OFFLINE=1 \
+    MESHCHATX_OFFLINE_BUILD=1
+
+CMD ["bash"]
