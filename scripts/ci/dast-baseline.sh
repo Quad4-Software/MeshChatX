@@ -62,11 +62,17 @@ fi
 # Fresh template set on every CI run; -ni disables update checks mid-scan.
 nuclei -update-templates
 
-# Interactsh is disabled: out-of-band callback checks cannot reach a
-# loopback-only target anyway.
+# Scope: exclude tags that are destructive or pure noise against a local
+# aiohttp target. interactsh is off since out-of-band callbacks cannot
+# reach a loopback-only app anyway.
+NUCLEI_EXCLUDE_TAGS="${NUCLEI_EXCLUDE_TAGS:-dos,intrusive,fuzz,fuzzing}"
+NUCLEI_RATE_LIMIT="${NUCLEI_RATE_LIMIT:-150}"
+
 nuclei \
     -target "http://127.0.0.1:${PORT}" \
     -no-interactsh \
+    -etags "${NUCLEI_EXCLUDE_TAGS}" \
+    -rate-limit "${NUCLEI_RATE_LIMIT}" \
     -stats \
     -jsonl-export "${REPORT_DIR}/nuclei-report.jsonl" \
     -markdown-export "${REPORT_DIR}" \
