@@ -390,10 +390,21 @@ tasks:
             - task: schema-fixtures
             - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}}
 
-    test:be:cov:
-        desc: Run Python tests with detailed coverage (includes performance and memory profiling tests)
+    changelog:
+        desc: Generate a changelog draft from conventional commits (needs git-cliff)
         cmds:
-            - uv run pytest tests/backend -n auto --cov=meshchatx/src/backend --cov-report=term-missing
+            - sh -c 'command -v git-cliff >/dev/null 2>&1 || { echo "install git-cliff (https://git-cliff.org) to use this task"; exit 1; }; git cliff --unreleased --strip header'
+            - echo "To prepend to CHANGELOG.md: git cliff --latest --prepend CHANGELOG.md"
+
+    test:be:cov:
+        desc: Backend tests with coverage floor (xdist worker data merged from temp-tests/coverage)
+        env:
+            MESHCHAT_COVERAGE_FLOOR: "{{.COVERAGE_FLOOR | default 59}}"
+        cmds:
+            - rm -f .coverage temp-tests/coverage/.coverage*
+            - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}} --cov=meshchatx/src/backend --cov-report=
+            - uv run coverage combine temp-tests/coverage
+            - uv run coverage report --include="meshchatx/src/backend/*" --fail-under={{.MESHCHAT_COVERAGE_FLOOR}}
 
     test:be:perf:
         desc: Backend performance regression tests only (hot paths + bottlenecks)
