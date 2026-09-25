@@ -46,7 +46,23 @@ test.describe("Lighthouse page scores (simulated data)", () => {
             });
 
             const url = page.url();
-            const runnerResult = await runLighthouseAudit(url, { port: LH_DEBUG_PORT });
+            // Lighthouse navigates the shared CDP target itself; a concurrent
+            // evaluate or teardown can race it into "Inspected target
+            // navigated or closed". Retry only that transient protocol error.
+            let runnerResult;
+            for (let attempt = 1; ; attempt++) {
+                try {
+                    runnerResult = await runLighthouseAudit(url, { port: LH_DEBUG_PORT });
+                    break;
+                } catch (err) {
+                    const msg = String((err && err.message) || err);
+                    if (attempt >= 3 || !/navigated or closed|Protocol error/.test(msg)) {
+                        throw err;
+                    }
+                    // eslint-disable-next-line no-console
+                    console.log(`LH ${entry.id}: retrying audit after transient error: ${msg.split("\n")[0]}`);
+                }
+            }
             const scores = scoresFromLhr(runnerResult.lhr);
             const vitals = vitalsFromLhr(runnerResult.lhr);
             const paths = writeReports(entry.id, runnerResult);
