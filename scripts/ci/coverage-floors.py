@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import shutil
 import subprocess
 import sys
 
@@ -24,7 +25,7 @@ FLOORS: list[tuple[str, float]] = [
 
 def main() -> int:
     proc = subprocess.run(
-        ["uv", "run", "coverage", "json", "-o", "-"],
+        [shutil.which("uv") or "uv", "run", "coverage", "json", "-o", "-"],
         capture_output=True,
         text=True,
         check=False,
