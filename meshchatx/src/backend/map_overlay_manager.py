@@ -17,6 +17,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from meshchatx.src.backend.async_utils import call_soon_threadsafe_or_none
 from meshchatx.src.backend.map_geo_sanitizer import sanitize_geo_bytes
 from meshchatx.src.backend.map_geo_validator import (
     GeoValidationError,
@@ -734,12 +735,12 @@ class MapOverlayManager:
             result["ok"] = True
             result["name"] = file_name
             result["payload"] = payload
-            loop.call_soon_threadsafe(done.set)
+            call_soon_threadsafe_or_none(loop, done.set)
 
         def on_failure(reason: str):
             result["ok"] = False
             result["error"] = reason
-            loop.call_soon_threadsafe(done.set)
+            call_soon_threadsafe_or_none(loop, done.set)
 
         def on_progress(p: float):
             self._set_phase(job_id, "transferring", progress=float(p or 0))
