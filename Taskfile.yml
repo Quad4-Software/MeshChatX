@@ -394,7 +394,7 @@ tasks:
         desc: Generate a changelog draft from conventional commits (needs git-cliff)
         cmds:
             - sh -c 'command -v git-cliff >/dev/null 2>&1 || { echo "install git-cliff (https://git-cliff.org) to use this task"; exit 1; }; git cliff --unreleased --strip header'
-            - echo "To prepend to CHANGELOG.md: git cliff --latest --prepend CHANGELOG.md"
+            - 'echo "To prepend to CHANGELOG.md: git cliff --latest --prepend CHANGELOG.md"'
 
     test:be:cov:
         desc: Backend tests with coverage floor (xdist worker data merged from temp-tests/coverage)
