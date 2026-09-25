@@ -21,7 +21,7 @@ To join:
 
 1. On the peer device, open Tools, then Nearby.
 2. Tap **Scan join QR** and point the camera at the host's code, or expand manual entry.
-3. Confirm the network name in the dialog. Android may also show a system picker; accept it.
+3. Confirm the network name in the dialog. Android may also show a system picker. Accept it.
 
 While joined, this app's internet access pauses because its traffic is bound to the local network. The rest of the device is unaffected. Tap **Leave** to return to normal connectivity.
 

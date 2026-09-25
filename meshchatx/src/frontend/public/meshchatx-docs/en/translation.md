@@ -48,7 +48,7 @@ Translation is opt-in and quiet:
 
 - Right-click or long-press a message and choose **Translate message**.
 - Pick a target language pair.
-- The translated text appears inline; tap **Show original** to switch back.
+- The translated text appears inline. Tap **Show original** to switch back.
 - The last target pair is remembered.
 - If no pack is installed for the source/target pair, the UI explains the
   situation and links to the pack library.
@@ -59,7 +59,7 @@ Relay chat messages and the standalone translator work the same way.
 
 Because packs are local, translation works in privacy mode. No outbound network
 requests are made for translation. The Bergamot worker and pack files are served
-from the same origin; the default remote model registry is never contacted.
+from the same origin. The default remote model registry is never contacted.
 
 ## Platform notes
 

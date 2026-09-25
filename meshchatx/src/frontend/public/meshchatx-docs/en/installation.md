@@ -102,7 +102,7 @@ args: ["--host=0.0.0.0", "--headless"]
 
 The same single-instance-per-volume rule applies: use one replica per PVC and a Recreate-style rollout so two pods never share /config.
 
-Mounting TLS material as a Secret is supported. Point --ssl-cert and --ssl-key at the mounted files; the Linux filesystem sandbox grants read access to the parent directory of each path automatically:
+Mounting TLS material as a Secret is supported. Point --ssl-cert and --ssl-key at the mounted files. The Linux filesystem sandbox grants read access to the parent directory of each path automatically:
 
 ```yaml
 args:
@@ -130,7 +130,7 @@ MESHCHAT_DEMO_AUTH_PASSWORD=demo   # default showcase password
 MESHCHAT_AUTH_PAGE_HINT=...        # optional login-page text
 ```
 
-MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
+MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). In demo mode the app drops X-Frame-Options and sends a CSP frame-ancestors list so the public website can embed it. MESHCHAT_DEMO_FRAME_ANCESTORS overrides the default list (meshchatx.com origins). On first start the demo seeds a small fixture of peers, announces, and conversations so the UI is not empty; the seed only runs when the messages table is empty. Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
 
 ## Running behind a reverse proxy
 
@@ -206,7 +206,7 @@ python3.11 ./meshchatx-py311-linux-x64.pyz --headless --host 127.0.0.1
 python3.14 ./meshchatx-py314-linux-x64.pyz --headless --host 127.0.0.1
 ```
 
-First run extracts the dependency cache to ~/.shiv. The PYZ is architecture and Python-version specific; pick the file that matches both the CPU and the interpreter on the host.
+First run extracts the dependency cache to ~/.shiv. The PYZ is architecture and Python-version specific. Pick the file that matches both the CPU and the interpreter on the host.
 
 ## From source (git clone)
 
@@ -271,7 +271,7 @@ flatpak run com.meshchatx.app
 flatpak update
 ```
 
-Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those channels. If a leftover GitHub Pages remote is still named `meshchatx`, run `flatpak remote-delete meshchatx` first.
+Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those channels. Beta and testing refs exist only after a `beta-*` or `nightly-*`/`testing-*` tag has published a build. Until then the install fails with "No such ref" and stable is the only channel. The app ID is `com.meshchatx.app`. If a leftover GitHub Pages remote is still named `meshchatx`, run `flatpak remote-delete meshchatx` first.
 
 ## Linux desktop emoji fonts
 
@@ -351,6 +351,7 @@ Common flags and environment variables:
 | --emergency                | MESHCHAT_EMERGENCY                      | false                | Start without database                                                                 |
 | --disable-plugins          | MESHCHAT_DISABLE_PLUGINS                | false                | Disable the plugin system                                                              |
 | --demo                     | MESHCHAT_DEMO_MODE                      | false                | Public read-only demo mode                                                             |
+|                            | MESHCHAT_DEMO_FRAME_ANCESTORS           | meshchatx.com origins | Space-separated origins allowed to frame the demo (CSP frame-ancestors)   |
 | --no-crash-recovery        | MESHCHAT_NO_CRASH_RECOVERY              | false                | Disable the crash recovery and diagnostic system                                       |
 | --self-check               | MESHCHAT_SELF_CHECK                     | false                | Run startup diagnostics and exit 0 on pass, 1 on fail                                  |
 | --memory-diag              | MESHCHAT_MEMORY_DIAG                    | false                | Enable tracemalloc memory diagnostics                                                  |
@@ -377,7 +378,7 @@ Common flags and environment variables:
 | (env only)                 | MESHCHAT_BOT_RETICULUM_CONFIG_DIR       | none                 | Reticulum config dir for spawned bot processes                                         |
 | (env only)                 | MESHCHAT_AUTH_PAGE_HINT                 | none                 | Custom text shown on the login page                                                    |
 | (env only)                 | MESHCHAT_OIDC_ENABLED                   | none                 | Force OIDC single sign-on on or off (overrides stored config)                          |
-| (env only)                 | MESHCHAT_OIDC_ISSUER                    | none                 | OIDC issuer URL; setting it implies enabled                                            |
+| (env only)                 | MESHCHAT_OIDC_ISSUER                    | none                 | OIDC issuer URL. Setting it implies enabled                                            |
 | (env only)                 | MESHCHAT_OIDC_CLIENT_ID                 | none                 | OIDC client ID                                                                         |
 | (env only)                 | MESHCHAT_OIDC_CLIENT_SECRET             | none                 | OIDC client secret                                                                     |
 | (env only)                 | MESHCHAT_OIDC_DISPLAY_NAME              | none                 | Label for the SSO button                                                               |

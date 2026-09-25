@@ -93,7 +93,7 @@ app_security_settings can restrict which client IPs may use the web UI. Combine 
 
 Privacy mode does not disable Reticulum mesh traffic. It limits clearnet fetches from the app itself.
 
-External links are a different surface. When you open an http(s) link in the UI, the Electron and Android shells hand it to the system browser. Privacy mode does not block that hand-off; the flag governs what the app fetches, not which links you choose to open.
+External links are a different surface. When you open an http(s) link in the UI, the Electron and Android shells hand it to the system browser. Privacy mode does not block that hand-off. The flag governs what the app fetches, not which links you choose to open.
 
 ## Linux sandboxing
 
@@ -115,7 +115,7 @@ See **Linux sandboxing** in Platform guides for optional Firejail and Bubblewrap
 
 ## Windows Electron AppContainer
 
-Windows desktop builds can spawn the Python backend inside an LPAC AppContainer. The sandbox is off by default; set MESHCHAT_APPCONTAINER=1 to require it or MESHCHAT_APPCONTAINER=auto to use it with an unsandboxed fallback when setup fails. Check /api/v1/server/security for appcontainer_active when debugging sandbox-related SQLite or filesystem errors on Windows.
+Windows desktop builds can spawn the Python backend inside an LPAC AppContainer. The sandbox is off by default. Set MESHCHAT_APPCONTAINER=1 to require it or MESHCHAT_APPCONTAINER=auto to use it with an unsandboxed fallback when setup fails. Check /api/v1/server/security for appcontainer_active when debugging sandbox-related SQLite or filesystem errors on Windows.
 
 ## Blocking and filtering
 
