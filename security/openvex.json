@@ -1,0 +1,11 @@
+{
+    "@context": "https://openvex.dev/ns/v0.2.0",
+    "@id": "https://github.com/Quad4-Software/MeshChatX/.vex/meshchatx",
+    "version": 1,
+    "author": "MeshChatX maintainers",
+    "timestamp": "2026-09-25T00:00:00Z",
+    "last_updated": "2026-09-25T00:00:00Z",
+    "role": "Document Creator",
+    "tooling": "manual",
+    "statements": []
+}

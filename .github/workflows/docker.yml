@@ -64,7 +64,7 @@ env:
     REGISTRY: ghcr.io
     # Official .deb from aquasecurity/trivy releases. Scripts/ci/setup-trivy.sh verifies
     # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
-    TRIVY_VERSION: "0.69.3"
+    TRIVY_VERSION: "0.74.0"
 
 jobs:
     build:
