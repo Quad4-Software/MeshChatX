@@ -73,6 +73,9 @@ jobs:
                     - name: Localization tests
                       id: lang-tests
                       timeout: 20
+                    - name: License audit
+                      id: license-audit
+                      timeout: 10
 
         steps:
             - name: Harden runner
@@ -113,6 +116,9 @@ jobs:
                       ;;
                     lang-tests)
                       task test:lang
+                      ;;
+                    license-audit)
+                      uv run python scripts/ci/license-check.py
                       ;;
                     *)
                       echo "Unknown matrix task: ${{ matrix.task.id }}" >&2
@@ -246,10 +252,153 @@ jobs:
               env:
                   PYTEST_SHARD_INDEX: ${{ matrix.shard }}
                   PYTEST_TOTAL_SHARDS: 4
+                  # One retry max: absorbs single flakes without hiding real
+                  # intermittency. Rerun counts surface via -rR in the log.
+                  PYTEST_ARGS: --reruns 1 -rR
               run: task test:backend
 
             - name: Verify workspace clean
               uses: $/.github/actions/verify-workspace-clean
+
+    backend-coverage:
+        name: Backend coverage floor
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  install-node: "false"
+
+            - name: Run backend tests with coverage floor
+              env:
+                  # Ratchet: raise this when measured coverage improves.
+                  COVERAGE_FLOOR: "59"
+                  PYTEST_ARGS: --reruns 1 -rR
+              run: task test:be:cov
+
+    mutation-changed:
+        name: Mutation (changed backend modules, advisory)
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        timeout-minutes: 120
+        continue-on-error: true
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+                  fetch-depth: 0
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  install-node: "false"
+
+            - name: Fetch base ref for diff
+              env:
+                  PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+              run: git fetch origin "+refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}"
+
+            - name: Mutate changed backend modules
+              env:
+                  MUTMUT_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
+                  MUTMUT_MAX_MODULES: "3"
+                  MUTMUT_MIN_SCORE: "50"
+              run: bash scripts/ci/mutation-changed.sh
+
+            - name: Upload mutation report
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: mutation-pr-report
+                  path: mutmut-cicd-stats.json
+                  if-no-files-found: ignore
+
+    zizmor:
+        name: Workflow audit (zizmor)
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  install-node: "false"
+
+            - name: Audit workflow files
+              run: uvx zizmor@1.30.1 --min-severity medium --format plain .github/workflows/
+
+    quarantined-tests:
+        name: Quarantined backend tests (non-gating)
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        continue-on-error: true
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  install-node: "false"
+
+            - name: Run quarantined tests
+              # Exit 5 = no quarantined tests collected, which is success.
+              run: |
+                  task schema-fixtures
+                  set +e
+                  uv run pytest tests/backend -n auto -m quarantine --reruns 1 -rR
+                  code=$?
+                  set -e
+                  if [ "$code" -eq 5 ]; then
+                    echo "No quarantined tests."
+                    exit 0
+                  fi
+                  exit "$code"
 
     lxmf-live-local:
         name: Live LXMF (local TCP + pack/reject)

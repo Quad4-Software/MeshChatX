@@ -1,0 +1,50 @@
+# git-cliff configuration - conventional commits -> Keep-a-Changelog.
+# Usage: git cliff --unreleased   (preview next section)
+#        task changelog           (prepend to CHANGELOG.md)
+# Hand-written entries stay: the generated block is meant as a first draft
+# to edit, not to overwrite curated prose.
+
+[changelog]
+header = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n"
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits %}
+    - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
+      {{ commit.message | upper_first | trim_end_matches(pat=".") }}
+      ([{{ commit.id | truncate(length=7, end="") }}]({{ commit.repo }}/commit/{{ commit.id }}))
+    {% endfor %}
+{% endfor %}
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_pattern = "^(master|dev)$"
+topo_order = false
+sort_commits = "oldest"
+
+commit_parsers = [
+    { message = "^feat", group = "<!-- 0 -->Added" },
+    { message = "^fix", group = "<!-- 1 -->Fixed" },
+    { message = "^perf", group = "<!-- 2 -->Performance" },
+    { message = "^security", group = "<!-- 3 -->Security" },
+    { message = "^refactor", group = "<!-- 4 -->Changed" },
+    { message = "^docs", skip = true },
+    { message = "^test", skip = true },
+    { message = "^chore\\(deps", group = "<!-- 5 -->Dependencies" },
+    { message = "^chore", skip = true },
+    { message = "^ci", skip = true },
+    { message = "^style", skip = true },
+    { message = "^revert", group = "<!-- 4 -->Changed" },
+    { message = ".*", group = "<!-- 4 -->Changed" },
+]
+
+filter_commits = false
