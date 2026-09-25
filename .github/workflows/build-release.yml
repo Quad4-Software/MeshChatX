@@ -829,6 +829,9 @@ jobs:
                   done
                   rm -f /tmp/cosign.key
 
+            - name: Install git-cliff for release notes
+              run: sh scripts/ci/setup-git-cliff.sh
+
             - name: Upload release assets (draft then publish for testing/beta)
               id: upload_gh_release
               env:

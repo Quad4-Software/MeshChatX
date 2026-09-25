@@ -34,11 +34,17 @@ else
 fi
 
 if [[ -n "$PREV" ]]; then
-	# Full hash, subject, trailing period. --no-merges keeps authored commits only.
-	git log --pretty=format:'* %H %s.' --no-merges \
-		--invert-grep --grep='^docs:' --grep='^test:' --grep='^ci:' \
-		"${PREV}..${TAG}"
-	echo
+	# Prefer grouped notes from git-cliff when the binary is installed;
+	# fall back to the flat sha-subject list otherwise.
+	if command -v git-cliff >/dev/null 2>&1; then
+		git-cliff --strip header "${PREV}..${TAG}"
+	else
+		# Full hash, subject, trailing period. --no-merges keeps authored commits only.
+		git log --pretty=format:'* %H %s.' --no-merges \
+			--invert-grep --grep='^docs:' --grep='^test:' --grep='^ci:' \
+			"${PREV}..${TAG}"
+		echo
+	fi
 else
 	echo "_No previous tag found; changelog omitted._"
 	echo
