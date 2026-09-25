@@ -124,6 +124,7 @@ def test_upload_ostree_tree_order_and_no_track_prune(
     with (
         patch.object(ostree_up, "put_file", side_effect=fake_put),
         patch.object(ostree_up, "prune_remote_orphans") as prune,
+        patch.object(ostree_up, "list_remote_files", return_value=set()),
     ):
         rc = ostree_up.upload_ostree_tree(
             root,
@@ -166,6 +167,7 @@ def test_upload_ostree_tree_phase_barrier_with_workers(
     with (
         patch.object(ostree_up, "put_file", side_effect=fake_put),
         patch.object(ostree_up, "prune_remote_orphans"),
+        patch.object(ostree_up, "list_remote_files", return_value=set()),
     ):
         rc = ostree_up.upload_ostree_tree(
             root,
@@ -182,7 +184,55 @@ def test_upload_ostree_tree_phase_barrier_with_workers(
     assert all("/repo/objects/" in u for u in puts[:3])
     assert puts[3].endswith("/flatpak/repo/config")
     assert puts[4].endswith("/flatpak/repo/summary")
-    assert puts[5].endswith("/flatpak/repo/summary.idx")
+
+
+def test_upload_skips_existing_content_addressed_objects(
+    ostree_up: ModuleType, tmp_path: Path
+) -> None:
+    """Remote repo/objects/* paths are byte-identical by name and skipped.
+
+    Skipped objects must still count as "local" for orphan pruning or every
+    existing object would be deleted after upload.
+    """
+    root = tmp_path
+    objs = root / "repo" / "objects"
+    for name in ("aa", "bb"):
+        d = objs / name
+        d.mkdir(parents=True)
+        (d / "obj").write_bytes(name.encode())
+    (root / "repo" / "config").write_text("mode=archive-z2\n", encoding="utf-8")
+    (root / "repo" / "summary").write_bytes(b"s")
+    (root / "repo" / "summary.idx").write_bytes(b"i")
+
+    remote = {"flatpak/repo/objects/aa/obj"}
+    puts: list[str] = []
+    pruned_local: list[set] = []
+
+    def fake_put(url, body, access_key, content_type, max_attempts=4):
+        puts.append(url)
+
+    def fake_prune(base, access_key, prefix, local_rels):
+        pruned_local.append(set(local_rels))
+
+    with (
+        patch.object(ostree_up, "put_file", side_effect=fake_put),
+        patch.object(ostree_up, "list_remote_files", return_value=remote),
+        patch.object(ostree_up, "prune_remote_orphans", side_effect=fake_prune),
+    ):
+        rc = ostree_up.upload_ostree_tree(
+            root,
+            "https://la.storage.bunnycdn.com/meshchatx",
+            "key",
+            prefix="flatpak",
+            prune_orphans=True,
+            workers=1,
+        )
+
+    assert rc == 0
+    assert not any("objects/aa" in u for u in puts)
+    assert any("objects/bb" in u for u in puts)
+    # Orphan pruning must see ALL local files, not just uploaded ones.
+    assert {"repo/objects/aa/obj", "repo/objects/bb/obj"} <= pruned_local[0]
 
 
 def test_workflow_flatpak_ostree_timeout_and_workers() -> None:
