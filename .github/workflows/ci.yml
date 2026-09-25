@@ -76,6 +76,9 @@ jobs:
                     - name: License audit
                       id: license-audit
                       timeout: 10
+                    - name: Docs mirror
+                      id: docs-mirror
+                      timeout: 10
 
         steps:
             - name: Harden runner
@@ -119,6 +122,13 @@ jobs:
                       ;;
                     license-audit)
                       uv run python scripts/ci/license-check.py
+                      ;;
+                    docs-mirror)
+                      node scripts/sync-meshchatx-docs.js
+                      if ! git diff --exit-code --quiet -- meshchatx/src/frontend/public/meshchatx-docs; then
+                        echo "::error::meshchatx-docs mirror is out of date. Run: node scripts/sync-meshchatx-docs.js"
+                        exit 1
+                      fi
                       ;;
                     *)
                       echo "Unknown matrix task: ${{ matrix.task.id }}" >&2
