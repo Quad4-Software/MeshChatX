@@ -275,13 +275,26 @@ def upload_ostree_tree(
     local_set = set(rels)
     pool = upload_workers() if workers is None else max(1, min(workers, MAX_WORKERS))
 
+    # Content-addressed ostree objects are immutable by name: a remote path
+    # that exists is byte-identical, so skipping it avoids a rewrite that
+    # would cold-start the edge cache for that object. local_set keeps the
+    # full file set so orphan pruning does not delete skipped objects.
+    remote = list_remote_files(base, access_key, prefix)
+    before = len(rels)
+    rels = [
+        rel
+        for rel in rels
+        if not (rel.startswith("repo/objects/") and f"{prefix}/{rel}" in remote)
+    ]
+    skipped = before - len(rels)
+
     by_phase: dict[int, list[str]] = {}
     for rel in rels:
         by_phase.setdefault(upload_phase(rel), []).append(rel)
 
     print(
         f"bunny ostree upload: {len(rels)} files in {len(by_phase)} phases "
-        f"workers={pool}",
+        f"workers={pool} skipped={skipped} existing",
         flush=True,
     )
 
