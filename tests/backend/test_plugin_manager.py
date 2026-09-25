@@ -18,13 +18,13 @@ class TestPluginManagerInstall:
         manager.install_bundled_examples()
         plugins = manager.list_plugins()
         ids = [plugin["id"] for plugin in plugins]
-        assert "com.meshchatx.mcx-bugs" in ids
+        assert "com.meshchatx.mcx-hello" in ids
         assert "com.meshchatx.transport-node-monitor" not in ids
 
     def test_enable_disable_plugin(self, tmp_path):
         manager = _make_manager(tmp_path)
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mcx-bugs"
+        plugin_id = "com.meshchatx.mcx-hello"
         enabled = manager.enable(plugin_id)
         assert enabled["enabled"] is True
         disabled = manager.disable(plugin_id)
@@ -33,7 +33,7 @@ class TestPluginManagerInstall:
     def test_storage_roundtrip(self, tmp_path):
         manager = _make_manager(tmp_path)
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mcx-bugs"
+        plugin_id = "com.meshchatx.mcx-hello"
         manager.storage_set(plugin_id, "sample_key", json.dumps(["abc123"]))
         value = manager.storage_get(plugin_id, "sample_key")
         assert json.loads(value) == ["abc123"]
@@ -41,14 +41,14 @@ class TestPluginManagerInstall:
     def test_permission_denied_for_manager_capability(self, tmp_path):
         manager = _make_manager(tmp_path)
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mcx-bugs"
+        plugin_id = "com.meshchatx.mcx-hello"
         manager.enable(plugin_id)
         with pytest.raises(PermissionError):
             manager.call_manager(plugin_id, "unknown.capability", {})
 
-    def test_bug_report_preview_reads_debug_logs(self, tmp_path, monkeypatch):
+    def test_debug_log_read_redacts_secrets(self, tmp_path, monkeypatch):
         # The manager prefers the process-global memory handler. Clear it so
-        # the fake database path is what the preview actually reads.
+        # the fake database path is what the capability actually reads.
         from meshchatx.src.backend import persistent_log_handler as plh
 
         monkeypatch.setattr(plh, "memory_log_handler", None)
@@ -78,16 +78,25 @@ class TestPluginManagerInstall:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mcx-bugs"
+        plugin_id = "com.meshchatx.mcx-hello"
         manager.enable(plugin_id)
-        preview = manager.call_manager(
+        # The minimal example declares no manager permissions, so grant the
+        # capability under test directly.
+        record = manager._plugins[plugin_id]
+        record.manifest.setdefault("permissions", {})["managers"] = [
+            "debugLog.read",
+        ]
+        record.granted_permissions = [
+            "managers:debugLog.read",
+        ]
+        result = manager.call_manager(
             plugin_id,
-            "bugReport.preview",
+            "debugLog.read",
             {"limit": 10},
         )
-        assert preview["line_count"] == 1
-        assert "/home/user1/secret" not in preview["log_text"]
-        assert "[redacted]" in preview["log_text"]
+        assert result["total"] == 1
+        assert "/home/user1/secret" not in result["logs"][0]["message"]
+        assert "[redacted]" in result["logs"][0]["message"]
 
     def test_rns_link_capabilities_require_manifest_grant(self, tmp_path):
         class FakeLinkManager:
@@ -106,7 +115,7 @@ class TestPluginManagerInstall:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mcx-bugs"
+        plugin_id = "com.meshchatx.mcx-hello"
         manager.enable(plugin_id)
         with pytest.raises(PermissionError):
             manager.call_manager(
@@ -150,7 +159,7 @@ class TestPluginManagerInstall:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mcx-bugs"
+        plugin_id = "com.meshchatx.mcx-hello"
         manager.enable(plugin_id)
         record = manager._plugins[plugin_id]
         record.manifest.setdefault("permissions", {})["hooks"] = [
@@ -207,7 +216,7 @@ class TestPluginManagerInstall:
         assert manager.list_plugins() == []
         source = os.path.join(
             os.path.dirname(__file__),
-            "../../meshchatx/src/backend/data/plugins/mcx-bugs",
+            "../../meshchatx/src/backend/data/plugins/mcx-hello",
         )
         with pytest.raises(PermissionError):
             manager.install_from_directory(os.path.abspath(source))
@@ -218,7 +227,7 @@ class TestPluginManagerInstall:
     ):
         manager = _make_manager(tmp_path)
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mcx-bugs"
+        plugin_id = "com.meshchatx.mcx-hello"
         record = manager._plugins[plugin_id]
         first_hash = record.integrity_hash
         install_path = record.install_path

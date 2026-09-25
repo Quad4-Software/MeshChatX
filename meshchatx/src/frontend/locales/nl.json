@@ -301,9 +301,6 @@
         "error_backend_title": "Backend niet bereikbaar",
         "error_reload_page": "Pagina herladen",
         "error_copy_details": "Foutdetails kopiëren",
-        "error_report_locally": "Lokaal rapporteren",
-        "error_report_saved": "Opgeslagen bij bugrapporten",
-        "error_report_failed": "Kon lokaal rapport niet opslaan",
         "error_details_heading": "Technische details",
         "accent_color": "Accentkleur",
         "accent_color_description": "Overschrijft knoppen, links en focusringen in de app.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "Applicatie-debuglogs lezen"
-                },
-                "bugReport": {
-                    "status": "Status van bugrapport-collector lezen",
-                    "listCollectors": "Gehoorde mcx-bugs-v1-collectors tonen",
-                    "listReports": "Ontvangen bugrapporten tonen",
-                    "deleteReport": "Een opgeslagen bugrapport verwijderen",
-                    "clearReports": "Alle opgeslagen bugrapporten wissen",
-                    "preview": "Voorbeeld van geredigeerde debuglogs voor bugrapporten",
-                    "send": "Bugrapporten via het mesh versturen",
-                    "startCollector": "Een mcx-bugs-v1-collector starten",
-                    "stopCollector": "De bugrapport-collector stoppen",
-                    "announce": "De bugrapport-collector announcen",
-                    "setCollectorName": "Weergavenaam van de bugrapport-collector instellen",
-                    "listIssues": "Lokale en ontvangen bug-issues weergeven",
-                    "getIssue": "Opgeslagen bug-issue lezen",
-                    "recordLocal": "Lokale bug-issue vastleggen",
-                    "setIssueStatus": "Status van een bug-issue bijwerken",
-                    "listPendingSends": "Wachtende bugrapportverzendingen weergeven",
-                    "enqueueSend": "Bugrapport in de wachtrij zetten voor mesh-verzending",
-                    "cancelPendingSend": "Wachtende bugrapportverzending annuleren"
                 },
                 "rnsLink": {
                     "open": "RNS-links openen naar bestemmingen",

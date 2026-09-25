@@ -328,10 +328,10 @@ const router = createRouter({
             component: () => import("./components/call/CallPage.vue"),
         },
         {
-            name: "plugin-mcx-bugs",
-            path: "/plugins/com.meshchatx.mcx-bugs",
+            name: "plugin-mcx-hello",
+            path: "/plugins/com.meshchatx.mcx-hello",
             component: () => import("./components/plugins/PluginPage.vue"),
-            props: { pluginId: "com.meshchatx.mcx-bugs" },
+            props: { pluginId: "com.meshchatx.mcx-hello" },
         },
         {
             name: "changelog",

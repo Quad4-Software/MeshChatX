@@ -301,9 +301,6 @@
         "error_backend_title": "バックエンドに接続できません",
         "error_reload_page": "ページを再読み込み",
         "error_copy_details": "エラーの詳細をコピー",
-        "error_report_locally": "ローカルにレポート",
-        "error_report_saved": "バグレポートに保存しました",
-        "error_report_failed": "ローカルレポートを保存できませんでした",
         "error_details_heading": "技術的な詳細",
         "accent_color": "アクセントカラー",
         "accent_color_description": "アプリ全体のボタン、リンク、フォーカスリングを上書きします。",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "アプリのデバッグログを読み取る"
-                },
-                "bugReport": {
-                    "status": "バグレポート収集器の状態を読み取る",
-                    "listCollectors": "受信した mcx-bugs-v1 収集器を一覧表示",
-                    "listReports": "受信したバグレポートを一覧表示",
-                    "deleteReport": "保存済みのバグレポートを削除",
-                    "clearReports": "保存済みのバグレポートをすべて削除",
-                    "preview": "バグレポート用にマスク済みのデバッグログをプレビュー",
-                    "send": "バグレポートをメッシュ経由で送信",
-                    "startCollector": "mcx-bugs-v1 収集器を開始",
-                    "stopCollector": "バグレポート収集器を停止",
-                    "announce": "バグレポート収集器をアナウンス",
-                    "setCollectorName": "バグレポート収集器の表示名を設定",
-                    "listIssues": "ローカルおよび受信済みのバグ課題を一覧表示",
-                    "getIssue": "保存済みのバグ課題を読み取る",
-                    "recordLocal": "ローカルのバグ課題を記録",
-                    "setIssueStatus": "バグ課題のステータスを更新",
-                    "listPendingSends": "送信待ちのバグレポートを一覧表示",
-                    "enqueueSend": "バグレポートをメッシュ送信キューに追加",
-                    "cancelPendingSend": "送信待ちのバグレポートをキャンセル"
                 },
                 "rnsLink": {
                     "open": "宛先への RNS リンクを開く",

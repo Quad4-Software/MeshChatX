@@ -301,9 +301,6 @@
         "error_backend_title": "Arka uca erişilemiyor",
         "error_reload_page": "Sayfayı yeniden yükle",
         "error_copy_details": "Hata ayrıntılarını kopyala",
-        "error_report_locally": "Yerel olarak bildir",
-        "error_report_saved": "Hata Raporları'na kaydedildi",
-        "error_report_failed": "Yerel rapor kaydedilemedi",
         "error_details_heading": "Teknik ayrıntılar",
         "accent_color": "Vurgu rengi",
         "accent_color_description": "Uygulama genelinde düğmelerin, bağlantıların ve odak halkalarının rengini belirler.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "Uygulama hata ayıklama günlüklerini oku"
-                },
-                "bugReport": {
-                    "status": "Hata raporu toplayıcı durumunu oku",
-                    "listCollectors": "Duyulan mcx-bugs-v1 toplayıcılarını listele",
-                    "listReports": "Alınan hata raporlarını listele",
-                    "deleteReport": "Saklanan bir hata raporunu sil",
-                    "clearReports": "Saklanan tüm hata raporlarını temizle",
-                    "preview": "Hata raporları için düzenlenmiş hata ayıklama günlüklerini önizle",
-                    "send": "Hata raporlarını ağ üzerinden gönder",
-                    "startCollector": "Bir mcx-bugs-v1 toplayıcısı başlat",
-                    "stopCollector": "Hata raporu toplayıcısını durdur",
-                    "announce": "Hata raporu toplayıcısını duyur",
-                    "setCollectorName": "Hata raporu toplayıcı görünen adını ayarla",
-                    "listIssues": "Yerel ve alınan hata sorunlarını listele",
-                    "getIssue": "Saklanan bir hata sorununu oku",
-                    "recordLocal": "Yerel bir hata sorunu kaydet",
-                    "setIssueStatus": "Hata sorunu durumunu güncelle",
-                    "listPendingSends": "Bekleyen hata raporu gönderimlerini listele",
-                    "enqueueSend": "Ağ gönderimi için bir hata raporu kuyruğa al",
-                    "cancelPendingSend": "Bekleyen bir hata raporu gönderimini iptal et"
                 },
                 "rnsLink": {
                     "open": "Hedeflere RNS bağlantıları aç",

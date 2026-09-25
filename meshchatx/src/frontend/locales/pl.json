@@ -301,9 +301,6 @@
         "error_backend_title": "Backend niedostępny",
         "error_reload_page": "Przeładuj stronę",
         "error_copy_details": "Kopiuj szczegóły błędu",
-        "error_report_locally": "Zgłoś lokalnie",
-        "error_report_saved": "Zapisano do raportów błędów",
-        "error_report_failed": "Nie udało się zapisać raportu lokalnie",
         "error_details_heading": "Szczegóły techniczne",
         "accent_color": "Kolor akcentu",
         "accent_color_description": "Zastępuje kolory przycisków, linków i wskaźników fokusu w całej aplikacji.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "Odczytywanie logów debugowania aplikacji"
-                },
-                "bugReport": {
-                    "status": "Odczytywanie statusu kolektora zgłoszeń błędów",
-                    "listCollectors": "Wyświetlanie listy usłyszanych kolektorów mcx-bugs-v1",
-                    "listReports": "Wyświetlanie listy odebranych zgłoszeń błędów",
-                    "deleteReport": "Usuwanie zapisanego zgłoszenia błędu",
-                    "clearReports": "Czyszczenie wszystkich zapisanych zgłoszeń błędów",
-                    "preview": "Podgląd zanonimizowanych logów debugowania dla zgłoszeń błędów",
-                    "send": "Wysyłanie zgłoszeń błędów w sieci mesh",
-                    "startCollector": "Uruchamianie kolektora mcx-bugs-v1",
-                    "stopCollector": "Zatrzymywanie kolektora zgłoszeń błędów",
-                    "announce": "Anonsowanie kolektora zgłoszeń błędów",
-                    "setCollectorName": "Ustawianie nazwy wyświetlanej kolektora zgłoszeń błędów",
-                    "listIssues": "Wyświetlanie listy lokalnych i odebranych problemów",
-                    "getIssue": "Odczytywanie zapisanego problemu",
-                    "recordLocal": "Zapisywanie lokalnego problemu",
-                    "setIssueStatus": "Aktualizowanie statusu problemu",
-                    "listPendingSends": "Wyświetlanie listy oczekujących wysyłek zgłoszeń błędów",
-                    "enqueueSend": "Dodawanie zgłoszenia błędu do kolejki wysyłki w sieci mesh",
-                    "cancelPendingSend": "Anulowanie oczekującej wysyłki zgłoszenia błędu"
                 },
                 "rnsLink": {
                     "open": "Otwieranie linków RNS do adresatów",

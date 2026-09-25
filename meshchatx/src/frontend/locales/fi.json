@@ -301,9 +301,6 @@
         "error_backend_title": "Taustapalvelu ei tavoitettavissa",
         "error_reload_page": "Lataa sivu uudelleen",
         "error_copy_details": "Kopioi virhetiedot",
-        "error_report_locally": "Ilmoita paikallisesti",
-        "error_report_saved": "Tallennettu virheraportteihin",
-        "error_report_failed": "Paikallista raporttia ei voitu tallentaa",
         "error_details_heading": "Tekniset tiedot",
         "accent_color": "Korostusväri",
         "accent_color_description": "Korvaa painikkeet, linkit ja kohderenkaat koko sovelluksessa.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "Lue sovelluksen vianetsintälokit"
-                },
-                "bugReport": {
-                    "status": "Lue bugiraporttikeräimen tila",
-                    "listCollectors": "Listaa kuullut mcx-bugs-v1-keräimet",
-                    "listReports": "Listaa vastaanotetut bugiraportit",
-                    "deleteReport": "Poista tallennettu bugiraportti",
-                    "clearReports": "Tyhjennä kaikki tallennetut bugiraportit",
-                    "preview": "Esikatsele redaktoituja vianetsintälokeja",
-                    "send": "Lähetä bugiraportteja verkon yli",
-                    "startCollector": "Käynnistä mcx-bugs-v1-keräin",
-                    "stopCollector": "Pysäytä bugiraporttikeräin",
-                    "announce": "Ilmoita bugiraporttikeräin",
-                    "setCollectorName": "Aseta bugiraporttikeräimen näyttönimi",
-                    "listIssues": "Listaa paikalliset ja vastaanotetut bugi-issuet",
-                    "getIssue": "Lue tallennettu bugi-issue",
-                    "recordLocal": "Tallenna paikallinen bugi-issue",
-                    "setIssueStatus": "Päivitä bugi-issuen tila",
-                    "listPendingSends": "Listaa odottavat bugiraporttien lähetykset",
-                    "enqueueSend": "Jonota bugiraportti mesh-lähetykseen",
-                    "cancelPendingSend": "Peruuta odottava bugiraportin lähetys"
                 },
                 "rnsLink": {
                     "open": "Avaa RNS-linkkejä kohteisiin",

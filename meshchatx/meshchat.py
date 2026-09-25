@@ -62,7 +62,10 @@ from meshchatx.src.backend.appcontainer_sandbox import (
     apply_windows_process_mitigations,
     is_appcontainer_child,
 )
-from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.async_utils import (
+    AsyncUtils,
+    call_soon_threadsafe_or_none,
+)
 from meshchatx.src.backend.auth_page_hint import auth_page_hint_from_env
 from meshchatx.src.backend.auto_resend_guard import (
     AUTO_RESEND_COOLDOWN_SECONDS,
@@ -553,9 +556,6 @@ class ReticulumMeshChat:
             on_announce=self._register_local_page_node_announce,
         )
         self.plugin_manager = PluginManager(self.storage_dir, app=self)
-        from meshchatx.src.backend.bug_report_manager import BugReportManager
-
-        self.bug_report_manager = BugReportManager(self)
         self.sideband_plugin_loader = SidebandPluginLoader(self)
         self._sideband_telemetry_thread = None
         self._sideband_telemetry_running = False
@@ -3149,11 +3149,6 @@ class ReticulumMeshChat:
             self.running = True
             # setup_identity initializes context if needed and sets it as current
             self.setup_identity(new_identity)
-            try:
-                if getattr(self, "bug_report_manager", None) is not None:
-                    self.bug_report_manager.on_identity_switch()
-            except Exception:
-                pass
 
             # 5. broadcast update to clients
             await self.websocket_broadcast(
@@ -4064,11 +4059,11 @@ class ReticulumMeshChat:
             content_received[0] = content
             # RNS request callbacks fire on the transport thread, so the
             # asyncio.Event must be set through the owning loop.
-            loop.call_soon_threadsafe(done_event.set)
+            call_soon_threadsafe_or_none(loop, done_event.set)
 
         def on_failure(reason):
             failure_reason[0] = reason
-            loop.call_soon_threadsafe(done_event.set)
+            call_soon_threadsafe_or_none(loop, done_event.set)
 
         def on_progress(progress):
             pass
@@ -7786,23 +7781,35 @@ class ReticulumMeshChat:
             touch_client_activity,
         )
 
-        # Per-identity background loops run asyncio.run on daemon threads
+        # Per-identity background loops share the meshchatx-async daemon loop
         # (IdentityContext.start_background_threads), so a broadcast awaited
         # from them lands on a foreign event loop. The broadcast lock, the
         # coalesce flush task, and the aiohttp send transports are all bound
         # to the main loop. Sending from here would interleave send_str calls
         # across loops and tear frames. Re-dispatch onto the main loop.
         main_loop = AsyncUtils.main_loop
+        running_loop = asyncio.get_running_loop()
         if (
             isinstance(main_loop, asyncio.AbstractEventLoop)
-            and main_loop is not asyncio.get_running_loop()
-            and main_loop.is_running()
+            and main_loop is not running_loop
         ):
+            if not main_loop.is_running():
+                # Owning loop is gone (shutdown) or never came up. Falling
+                # through would touch shared asyncio primitives bound to the
+                # other loop and raise "bound to a different event loop".
+                # No client can receive the broadcast at this point anyway.
+                return
             future = asyncio.run_coroutine_threadsafe(
                 self.websocket_broadcast(data, _skip_coalesce=_skip_coalesce),
                 main_loop,
             )
-            await asyncio.wrap_future(future)
+            # Bound the wait so a loop that stops between the is_running()
+            # check and scheduling cannot wedge this caller forever.
+            try:
+                await asyncio.wait_for(asyncio.wrap_future(future), timeout=30.0)
+            except TimeoutError:
+                future.cancel()
+                print("websocket_broadcast: dispatch to main loop timed out")
             return
 
         payload_obj = None
@@ -7823,21 +7830,22 @@ class ReticulumMeshChat:
             if coalesce is not None and coalesce.offer(dict(payload_obj)):
                 return
 
-        if payload_obj is not None:
-            seq_state = getattr(self, "ws_seq_state", None)
-            if seq_state is not None:
-                await seq_state.stamp(payload_obj)
-            data = json.dumps(payload_obj)
-        elif not isinstance(data, str):
+        if payload_obj is None and not isinstance(data, str):
             data = json.dumps(data)
 
         msg_type = payload_obj.get("type") if payload_obj else None
         topic = topic_for_type(msg_type if isinstance(msg_type, str) else None)
 
-        # Serialize list mutation. Fan-out sends run in parallel so one slow
-        # client does not stall every other socket.
+        # Serialize seq stamping, list mutation, and sends together so the
+        # stamped order matches the order clients observe. Fan-out sends run
+        # in parallel so one slow client does not stall every other socket.
         sessions_changed = False
         async with self._websocket_broadcast_lock:
+            if payload_obj is not None:
+                seq_state = getattr(self, "ws_seq_state", None)
+                if seq_state is not None:
+                    await seq_state.stamp(payload_obj)
+                data = json.dumps(payload_obj)
             clients = list(self.websocket_clients)
             targets = [c for c in clients if client_allows_topic(c, topic)]
 

@@ -1002,42 +1002,6 @@ class PluginManager:
             return self._destination_path_read(args)
         if capability == "debugLog.read":
             return self._debug_log_read(args)
-        if capability == "bugReport.status":
-            return self._bug_report_call("status", args)
-        if capability == "bugReport.listCollectors":
-            return self._bug_report_call("list_collectors", args)
-        if capability == "bugReport.listReports":
-            return self._bug_report_call("list_reports", args)
-        if capability == "bugReport.deleteReport":
-            return self._bug_report_call("delete_report", args)
-        if capability == "bugReport.clearReports":
-            return self._bug_report_call("clear_reports", args)
-        if capability == "bugReport.preview":
-            return self._bug_report_call("preview_report", args)
-        if capability == "bugReport.send":
-            return self._bug_report_call("send_report", args)
-        if capability == "bugReport.startCollector":
-            return self._bug_report_call("start_collector", args)
-        if capability == "bugReport.stopCollector":
-            return self._bug_report_call("stop_collector", args)
-        if capability == "bugReport.announce":
-            return self._bug_report_call("announce", args)
-        if capability == "bugReport.setCollectorName":
-            return self._bug_report_call("set_collector_name", args)
-        if capability == "bugReport.listIssues":
-            return self._bug_report_call("list_issues", args)
-        if capability == "bugReport.getIssue":
-            return self._bug_report_call("get_issue", args)
-        if capability == "bugReport.recordLocal":
-            return self._bug_report_call("record_local", args)
-        if capability == "bugReport.setIssueStatus":
-            return self._bug_report_call("set_issue_status", args)
-        if capability == "bugReport.listPendingSends":
-            return self._bug_report_call("list_pending_sends", args)
-        if capability == "bugReport.enqueueSend":
-            return self._bug_report_call("enqueue_send", args)
-        if capability == "bugReport.cancelPendingSend":
-            return self._bug_report_call("cancel_pending_send", args)
         if capability == "rnsLink.open":
             return self._rns_link_open(args)
         if capability == "rnsLink.identify":
@@ -1050,71 +1014,63 @@ class PluginManager:
             return self._rns_link_close(args)
         raise ValueError(f"unknown capability: {capability}")
 
-    def _require_bug_report_manager(self):
-        if not self.app:
-            raise RuntimeError("app is not available")
-        manager = getattr(self.app, "bug_report_manager", None)
-        if manager is None:
-            from meshchatx.src.backend.bug_report_manager import BugReportManager
-
-            manager = BugReportManager(self.app)
-            self.app.bug_report_manager = manager
-        return manager
-
     def _debug_log_read(self, args: dict[str, Any]) -> dict[str, Any]:
-        manager = self._require_bug_report_manager()
-        return manager.read_debug_logs(
-            limit=int(args.get("limit") or 200),
-            search=args.get("search"),
-            level=args.get("level"),
-            module=args.get("module"),
-        )
+        """Read application debug logs with diagnostic redaction.
 
-    def _bug_report_call(self, method: str, args: dict[str, Any]) -> Any:
-        manager = self._require_bug_report_manager()
-        if method == "status":
-            return manager.status()
-        if method == "list_collectors":
-            return manager.list_collectors()
-        if method == "list_reports":
-            return manager.list_reports(limit=int(args.get("limit") or 20))
-        if method == "delete_report":
-            return manager.delete_report(int(args.get("index") or 0))
-        if method == "clear_reports":
-            return manager.clear_reports()
-        if method == "preview_report":
-            return manager.preview_report(args or {})
-        if method == "send_report":
-            return manager.send_report(args or {})
-        if method == "start_collector":
-            return manager.start_collector(announce=bool(args.get("announce", True)))
-        if method == "stop_collector":
-            return manager.stop_collector()
-        if method == "announce":
-            return manager.announce()
-        if method == "set_collector_name":
-            return manager.set_collector_name(str(args.get("name") or ""))
-        if method == "list_issues":
-            return manager.list_issues(
-                limit=int(args.get("limit") or 50),
-                status=args.get("status"),
+        Prefers the process-global in-memory handler, then the app's bound
+        handler, then the on-disk debug_logs table.
+        """
+        from meshchatx.src.backend import persistent_log_handler as plh
+        from meshchatx.src.backend.log_redaction import redact_diagnostic_text
+
+        limit = max(1, min(int(args.get("limit") or 200), 500))
+        search = args.get("search")
+        level = args.get("level")
+        module = args.get("module")
+
+        handler = getattr(plh, "memory_log_handler", None)
+        if handler is None and self.app is not None:
+            handler = getattr(self.app, "memory_log_handler", None)
+
+        if handler is not None:
+            logs = handler.get_logs(
+                limit=limit,
+                search=search,
+                level=level,
+                module=module,
             )
-        if method == "get_issue":
-            return manager.get_issue(str(args.get("fingerprint") or ""))
-        if method == "record_local":
-            return manager.record_local(args or {})
-        if method == "set_issue_status":
-            return manager.set_issue_status(
-                str(args.get("fingerprint") or ""),
-                str(args.get("status") or ""),
+            total = handler.get_total_count(
+                search=search,
+                level=level,
+                module=module,
             )
-        if method == "list_pending_sends":
-            return manager.list_pending_sends()
-        if method == "enqueue_send":
-            return manager.enqueue_send(args or {})
-        if method == "cancel_pending_send":
-            return manager.cancel_pending_send(str(args.get("id") or ""))
-        raise ValueError(f"unknown bug report method: {method}")
+        else:
+            database = getattr(self.app, "database", None)
+            if database is None or not hasattr(database, "debug_logs"):
+                return {"logs": [], "total": 0, "limit": limit}
+            logs = database.debug_logs.get_logs(
+                limit=limit,
+                search=search,
+                level=level,
+                module=module,
+            )
+            total = database.debug_logs.get_total_count(
+                search=search,
+                level=level,
+                module=module,
+            )
+
+        redacted = []
+        for entry in logs or []:
+            if not isinstance(entry, dict):
+                redacted.append(entry)
+                continue
+            copy = dict(entry)
+            message = copy.get("message")
+            if isinstance(message, str):
+                copy["message"] = redact_diagnostic_text(message)
+            redacted.append(copy)
+        return {"logs": redacted, "total": total, "limit": limit}
 
     def _require_rns_link_manager(self):
         if not self.app:

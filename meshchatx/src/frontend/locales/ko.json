@@ -301,9 +301,6 @@
         "error_backend_title": "백엔드에 연결할 수 없습니다",
         "error_reload_page": "페이지 새로 고침",
         "error_copy_details": "오류 세부 정보 복사",
-        "error_report_locally": "로컬로 보고",
-        "error_report_saved": "버그 보고서에 저장되었습니다",
-        "error_report_failed": "로컬 보고를 저장하지 못했습니다",
         "error_details_heading": "기술 세부 정보",
         "accent_color": "강조 색상",
         "accent_color_description": "앱 전체의 버튼, 링크, 포커스 링 색상을 대체합니다.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "애플리케이션 디버그 로그 읽기"
-                },
-                "bugReport": {
-                    "status": "버그 리포트 수집기 상태 읽기",
-                    "listCollectors": "수신한 mcx-bugs-v1 수집기 목록 조회",
-                    "listReports": "수신한 버그 리포트 목록 조회",
-                    "deleteReport": "저장된 버그 리포트 삭제",
-                    "clearReports": "저장된 모든 버그 리포트 지우기",
-                    "preview": "버그 리포트용 비식별화된 디버그 로그 미리보기",
-                    "send": "메시로 버그 리포트 전송",
-                    "startCollector": "mcx-bugs-v1 수집기 시작",
-                    "stopCollector": "버그 리포트 수집기 중지",
-                    "announce": "버그 리포트 수집기 애너운스",
-                    "setCollectorName": "버그 리포트 수집기 표시 이름 설정",
-                    "listIssues": "로컬 및 수신한 버그 이슈 목록 조회",
-                    "getIssue": "저장된 버그 이슈 읽기",
-                    "recordLocal": "로컬 버그 이슈 기록",
-                    "setIssueStatus": "버그 이슈 상태 업데이트",
-                    "listPendingSends": "대기 중인 버그 리포트 전송 목록 조회",
-                    "enqueueSend": "메시 전송 대기열에 버그 리포트 추가",
-                    "cancelPendingSend": "대기 중인 버그 리포트 전송 취소"
                 },
                 "rnsLink": {
                     "open": "목적지로 RNS 링크 열기",

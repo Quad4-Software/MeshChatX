@@ -301,9 +301,6 @@
         "error_backend_title": "Backend inacessível",
         "error_reload_page": "Recarregar página",
         "error_copy_details": "Copiar detalhes do erro",
-        "error_report_locally": "Relatar localmente",
-        "error_report_saved": "Salvo em Relatórios de Bug",
-        "error_report_failed": "Não foi possível salvar o relatório local",
         "error_details_heading": "Detalhes técnicos",
         "accent_color": "Cor de destaque",
         "accent_color_description": "Substitui botões, links e anéis de foco em todo o app.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "Ler logs de depuração do aplicativo"
-                },
-                "bugReport": {
-                    "status": "Ler o status do coletor de relatórios de bug",
-                    "listCollectors": "Listar coletores mcx-bugs-v1 ouvidos",
-                    "listReports": "Listar relatórios de bug recebidos",
-                    "deleteReport": "Excluir um relatório de bug armazenado",
-                    "clearReports": "Limpar todos os relatórios de bug armazenados",
-                    "preview": "Pré-visualizar logs de depuração editados para relatórios de bug",
-                    "send": "Enviar relatórios de bug pela malha",
-                    "startCollector": "Iniciar um coletor mcx-bugs-v1",
-                    "stopCollector": "Parar o coletor de relatórios de bug",
-                    "announce": "Anunciar o coletor de relatórios de bug",
-                    "setCollectorName": "Definir o nome de exibição do coletor de relatórios de bug",
-                    "listIssues": "Listar problemas de bug locais e recebidos",
-                    "getIssue": "Ler um problema de bug armazenado",
-                    "recordLocal": "Registrar um problema de bug local",
-                    "setIssueStatus": "Atualizar o status do problema de bug",
-                    "listPendingSends": "Listar envios pendentes de relatórios de bug",
-                    "enqueueSend": "Colocar um relatório de bug na fila para envio pela malha",
-                    "cancelPendingSend": "Cancelar um envio pendente de relatório de bug"
                 },
                 "rnsLink": {
                     "open": "Abrir links RNS para destinos",
