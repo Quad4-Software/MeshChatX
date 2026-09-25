@@ -20,6 +20,9 @@ class AsyncUtils:
     _background_loop: asyncio.AbstractEventLoop | None = None
     _background_thread: threading.Thread | None = None
     _background_ready = threading.Event()
+    # Optional loop exception reporter, installed by CrashRecovery so task
+    # exceptions that never reach sys.excepthook still get diagnosed.
+    _exception_handler = None
 
     @staticmethod
     def ensure_background_loop() -> None:
@@ -48,6 +51,30 @@ class AsyncUtils:
             _logger.warning("Background asyncio loop did not become ready within 5s")
 
     @staticmethod
+    def set_exception_handler(handler) -> None:
+        """Install a loop exception handler on all known loops.
+
+        Safe to call before loops exist: set_main_loop applies the stored
+        handler to each loop it registers. Passing None restores default
+        handling on every registered loop.
+        """
+        AsyncUtils._exception_handler = handler
+        for loop in (AsyncUtils.main_loop, AsyncUtils._background_loop):
+            AsyncUtils._apply_exception_handler(loop)
+
+    @staticmethod
+    def _apply_exception_handler(loop) -> None:
+        if not isinstance(loop, asyncio.AbstractEventLoop) or loop.is_closed():
+            return
+        try:
+            loop.call_soon_threadsafe(
+                loop.set_exception_handler,
+                AsyncUtils._exception_handler,
+            )
+        except RuntimeError:
+            pass
+
+    @staticmethod
     def set_main_loop(loop: asyncio.AbstractEventLoop):
         # Swap the buffer under the lock so a run_async caller racing the
         # loop install lands either in the drained list (scheduled below)
@@ -56,6 +83,7 @@ class AsyncUtils:
             AsyncUtils.main_loop = loop
             pending = AsyncUtils._pending_coroutines
             AsyncUtils._pending_coroutines = []
+        AsyncUtils._apply_exception_handler(loop)
         # Schedule directly on the loop: it may not be running yet (the
         # installer calls this before run_forever), but run_coroutine_
         # threadsafe queues the coroutine for when the loop starts.
@@ -142,3 +170,22 @@ class AsyncUtils:
                     "Dropped %d buffered coroutine(s) because the event loop is not running",
                     len(overflow),
                 )
+
+
+def call_soon_threadsafe_or_none(
+    loop: asyncio.AbstractEventLoop,
+    callback,
+    *args,
+) -> bool:
+    """Schedule callback on loop from another thread, False when closed.
+
+    RNS transport-thread callbacks fire after the owning web or identity
+    loop may have shut down. call_soon_threadsafe raises RuntimeError on a
+    closed loop, which would surface as an unhandled exception in the RNS
+    thread; the waiter is gone by then, so dropping the callback is correct.
+    """
+    try:
+        loop.call_soon_threadsafe(callback, *args)
+        return True
+    except RuntimeError:
+        return False

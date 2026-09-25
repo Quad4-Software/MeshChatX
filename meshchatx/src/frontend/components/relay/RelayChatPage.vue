@@ -4115,7 +4115,8 @@ export default {
                     this._setSelectedHub(added.hub_hash);
                     this.expandedHubs[added.hub_hash] = true;
                 }
-                this.view = "chat";
+                // Stay on the discovery view so several hubs can be added in
+                // a row; the row button flips to Open once the hub is added.
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }

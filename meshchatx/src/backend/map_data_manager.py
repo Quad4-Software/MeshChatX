@@ -19,6 +19,7 @@ from typing import Any
 import RNS
 
 from meshchatx.src.backend import constants
+from meshchatx.src.backend.async_utils import call_soon_threadsafe_or_none
 from meshchatx.src.backend.map_geo_sanitizer import sanitize_geo_bytes
 from meshchatx.src.backend.map_geo_validator import (
     GeoValidationError,
@@ -781,19 +782,21 @@ class MapDataManager:
             try:
                 body = coerce_map_request_body(getattr(receipt, "response", None))
             except MapDataError as exc:
-                loop.call_soon_threadsafe(_fail_future, future, exc)
+                call_soon_threadsafe_or_none(loop, _fail_future, future, exc)
                 return
             except Exception:
-                loop.call_soon_threadsafe(
+                call_soon_threadsafe_or_none(
+                    loop,
                     _fail_future,
                     future,
                     MapDataError("invalid_response"),
                 )
                 return
-            loop.call_soon_threadsafe(_resolve_future, future, body)
+            call_soon_threadsafe_or_none(loop, _resolve_future, future, body)
 
         def on_failed(_receipt=None):
-            loop.call_soon_threadsafe(
+            call_soon_threadsafe_or_none(
+                loop,
                 _fail_future,
                 future,
                 MapDataError("request_failed"),

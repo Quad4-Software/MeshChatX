@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 
 from aiohttp import web
 
+from meshchatx.src.backend.async_utils import call_soon_threadsafe_or_none
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.crawler_manager import make_snippet
 from meshchatx.src.backend.http.errors import (
@@ -364,11 +365,11 @@ def register_archives_routes(routes, app):
             content_received[0] = content
             # RNS request callbacks fire on the transport thread, so the
             # asyncio.Event must be set through the owning loop.
-            loop.call_soon_threadsafe(done_event.set)
+            call_soon_threadsafe_or_none(loop, done_event.set)
 
         def on_failure(reason):
             failure_reason[0] = reason or "download failed"
-            loop.call_soon_threadsafe(done_event.set)
+            call_soon_threadsafe_or_none(loop, done_event.set)
 
         downloader = NomadnetPageDownloader(
             destination_hash=bytes.fromhex(destination_hash),

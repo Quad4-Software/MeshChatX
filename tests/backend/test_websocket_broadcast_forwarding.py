@@ -93,3 +93,34 @@ async def test_broadcast_on_main_loop_sends_inline():
         RealAsyncUtils.main_loop = old
 
     assert seen["loop"] is asyncio.get_running_loop()
+
+
+class _ExplodingLock:
+    """Fails the test if the broadcast touches the shared asyncio lock."""
+
+    async def __aenter__(self):
+        raise AssertionError("broadcast touched the shared lock on a foreign loop")
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+async def test_broadcast_from_foreign_loop_drops_when_main_loop_dead():
+    app = _bare_app()
+    app._websocket_broadcast_lock = _ExplodingLock()
+    client = _FakeWs()
+    client.send_str = lambda data: pytest.fail("send attempted after main loop died")
+    app.websocket_clients = [client]
+
+    # A loop that is not running models the shutdown window: the aiohttp
+    # loop has stopped but AsyncUtils.main_loop still points at it.
+    dead_loop = asyncio.new_event_loop()
+
+    old = RealAsyncUtils.main_loop
+    RealAsyncUtils.main_loop = dead_loop
+    try:
+        with patch("meshchatx.meshchat.AsyncUtils", RealAsyncUtils):
+            await app.websocket_broadcast(json.dumps({"type": "test.event"}))
+    finally:
+        RealAsyncUtils.main_loop = old
+        dead_loop.close()

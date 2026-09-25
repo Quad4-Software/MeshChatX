@@ -45,15 +45,29 @@ class CrashHistoryDAO:
             (limit,),
         )
 
-    def get_cause_frequencies(self, limit=50):
+    def get_cause_frequencies(self, limit=50, min_probability=None):
+        if min_probability is None:
+            return self.provider.fetchall(
+                """
+                SELECT diagnosed_cause, COUNT(*) as count
+                FROM (SELECT * FROM crash_history ORDER BY timestamp DESC LIMIT ?)
+                GROUP BY diagnosed_cause
+                ORDER BY count DESC
+                """,
+                (limit,),
+            )
         return self.provider.fetchall(
             """
             SELECT diagnosed_cause, COUNT(*) as count
-            FROM (SELECT * FROM crash_history ORDER BY timestamp DESC LIMIT ?)
+            FROM (
+                SELECT * FROM crash_history
+                WHERE probability >= ?
+                ORDER BY timestamp DESC LIMIT ?
+            )
             GROUP BY diagnosed_cause
             ORDER BY count DESC
             """,
-            (limit,),
+            (min_probability, limit),
         )
 
     def cleanup_old(self, max_entries=200):

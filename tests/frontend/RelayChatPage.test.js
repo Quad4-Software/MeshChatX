@@ -1032,6 +1032,7 @@ describe("RelayChatPage.vue", () => {
         axiosMock.post.mockResolvedValueOnce({ data: { hub: makeHub({ name: "Heard Hub" }) } });
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.discovered.length).toBe(1));
+        wrapper.vm.selectView("discovery");
 
         await wrapper.vm.addFromDiscovery(makeAnnounce());
 
@@ -1041,7 +1042,8 @@ describe("RelayChatPage.vue", () => {
             dest_name: "rrc.hub",
             connect: true,
         });
-        expect(wrapper.vm.view).toBe("chat");
+        // Adding must stay on discovery so several hubs can be added in a row.
+        expect(wrapper.vm.view).toBe("discovery");
     });
 
     it("upserts discovered hubs on an announce websocket event", async () => {
