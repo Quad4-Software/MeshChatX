@@ -16,6 +16,9 @@ TEST_COVERAGE_DIR = TEST_TEMP_ROOT / "coverage"
 PYTEST_BASE_TEMP = TEST_TEMP_ROOT / "pytest"
 
 
+RUN_MARKER_PREFIX = ".run-"
+
+
 def is_xdist_worker() -> bool:
     return os.environ.get("PYTEST_XDIST_WORKER") is not None
 
@@ -26,11 +29,49 @@ def should_reset_test_temp_root() -> bool:
     return not is_xdist_worker()
 
 
+def _marker_path() -> Path:
+    return TEST_TEMP_ROOT / f"{RUN_MARKER_PREFIX}{os.getpid()}"
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
+    return True
+
+
+def _live_markers() -> list[Path]:
+    markers = []
+    for m in TEST_TEMP_ROOT.glob(f"{RUN_MARKER_PREFIX}*"):
+        try:
+            pid = int(m.name[len(RUN_MARKER_PREFIX) :])
+        except ValueError:
+            continue
+        if _pid_alive(pid):
+            markers.append(m)
+        else:
+            m.unlink(missing_ok=True)
+    return markers
+
+
+def claim_run_marker() -> None:
+    TEST_TEMP_ROOT.mkdir(parents=True, exist_ok=True)
+    _marker_path().touch()
+
+
 def reset_test_temp_root() -> None:
     if not should_reset_test_temp_root():
         return
-    if TEST_TEMP_ROOT.exists():
-        shutil.rmtree(TEST_TEMP_ROOT, ignore_errors=True)
+    if not TEST_TEMP_ROOT.exists():
+        return
+    # Another suite holds a live marker; wiping the shared root mid-run
+    # deletes its basetemp and coverage files. Skip the reset instead.
+    if any(m != _marker_path() for m in _live_markers()):
+        return
+    shutil.rmtree(TEST_TEMP_ROOT, ignore_errors=True)
 
 
 def ensure_test_temp_dirs() -> Path:
@@ -54,8 +95,11 @@ def ensure_test_temp_dirs() -> Path:
 
 
 def configure_test_temp_environment() -> Path:
+    claim_run_marker()
     reset_test_temp_root()
-    return ensure_test_temp_dirs()
+    root = ensure_test_temp_dirs()
+    claim_run_marker()
+    return root
 
 
 def subprocess_test_env(extra: dict[str, str] | None = None) -> dict[str, str]:
