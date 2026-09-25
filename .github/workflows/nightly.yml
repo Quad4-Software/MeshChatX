@@ -149,3 +149,21 @@ jobs:
                   MESHCHATX_KEEP_TESTING: "7"
                   MESHCHATX_KEEP_BETA: "5"
               run: bash scripts/ci/github-prune-channel-prereleases.sh
+
+    ci-metrics:
+        name: CI metrics summary
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            actions: read
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Summarize workflow durations and failure rates
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  METRICS_DAYS: "7"
+              run: bash scripts/ci/workflow-metrics.sh
