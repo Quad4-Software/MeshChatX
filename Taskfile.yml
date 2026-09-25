@@ -390,6 +390,11 @@ tasks:
             - task: schema-fixtures
             - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}}
 
+    diagnostics:bundle:
+        desc: Export sanitized diagnostics tarball for support (STORAGE_DIR required, OUT_DIR optional)
+        cmds:
+            - 'uv run python scripts/diagnostics-bundle.py --storage-dir "${STORAGE_DIR:?set STORAGE_DIR to the app storage dir}" --out-dir "{{.OUT_DIR | default "."}}"'
+
     changelog:
         desc: Generate a changelog draft from conventional commits (needs git-cliff)
         cmds:
@@ -399,12 +404,13 @@ tasks:
     test:be:cov:
         desc: Backend tests with coverage floor (xdist worker data merged from temp-tests/coverage)
         env:
-            MESHCHAT_COVERAGE_FLOOR: "{{.COVERAGE_FLOOR | default 59}}"
+            MESHCHAT_COVERAGE_FLOOR: "{{.COVERAGE_FLOOR | default 60}}"
         cmds:
             - rm -f .coverage temp-tests/coverage/.coverage*
             - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}} --cov=meshchatx/src/backend --cov-report=
             - uv run coverage combine temp-tests/coverage
             - uv run coverage report --include="meshchatx/src/backend/*" --fail-under={{.MESHCHAT_COVERAGE_FLOOR}}
+            - uv run python scripts/ci/coverage-floors.py
 
     test:be:perf:
         desc: Backend performance regression tests only (hot paths + bottlenecks)
