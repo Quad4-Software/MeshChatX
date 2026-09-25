@@ -32,6 +32,16 @@
                     "path": "en/architecture.md",
                     "lang": "en",
                     "title": { "en": "Architecture and design" }
+                },
+                {
+                    "path": "en/verifying-downloads.md",
+                    "lang": "en",
+                    "title": { "en": "Verifying downloads" }
+                },
+                {
+                    "path": "en/threat-model.md",
+                    "lang": "en",
+                    "title": { "en": "Threat model" }
                 }
             ]
         },
