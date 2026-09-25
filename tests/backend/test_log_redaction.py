@@ -50,11 +50,11 @@ def test_redact_empty():
     assert redact_diagnostic_text(None) is None  # type: ignore[arg-type]
 
 
-def test_read_debug_logs_redacts_paths_and_hashes(monkeypatch):
+def test_debug_log_read_redacts_paths_and_hashes(tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 
     from meshchatx.src.backend import persistent_log_handler as plh
-    from meshchatx.src.backend.bug_report_manager import BugReportManager
+    from meshchatx.src.backend.plugin_manager import PluginManager
 
     app = MagicMock()
     handler = MagicMock()
@@ -72,7 +72,8 @@ def test_read_debug_logs_redacts_paths_and_hashes(monkeypatch):
     ]
     handler.get_total_count.return_value = 1
 
-    result = BugReportManager(app).read_debug_logs(limit=10)
+    manager = PluginManager(str(tmp_path), app=app)
+    result = manager._debug_log_read({"limit": 10})
     message = result["logs"][0]["message"]
     assert secret not in message
     assert hash64 not in message

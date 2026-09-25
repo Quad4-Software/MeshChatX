@@ -301,9 +301,6 @@
         "error_backend_title": "Backend nicht erreichbar",
         "error_reload_page": "Seite neu laden",
         "error_copy_details": "Fehlerdetails kopieren",
-        "error_report_locally": "Lokal melden",
-        "error_report_saved": "In Fehlerberichten gespeichert",
-        "error_report_failed": "Lokaler Bericht konnte nicht gespeichert werden",
         "error_details_heading": "Technische Details",
         "accent_color": "Akzentfarbe",
         "accent_color_description": "Überschreibt Schaltflächen, Links und Fokusringe in der App.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "Anwendungs-Debug-Logs lesen"
-                },
-                "bugReport": {
-                    "status": "Status des Bug-Report-Collectors lesen",
-                    "listCollectors": "Gehörte mcx-bugs-v1-Collector auflisten",
-                    "listReports": "Empfangene Bug-Reports auflisten",
-                    "deleteReport": "Gespeicherten Bug-Report löschen",
-                    "clearReports": "Alle gespeicherten Bug-Reports löschen",
-                    "preview": "Geschwärzte Debug-Logs für Bug-Reports Vorschau",
-                    "send": "Bug-Reports über das Mesh senden",
-                    "startCollector": "Einen mcx-bugs-v1-Collector starten",
-                    "stopCollector": "Den Bug-Report-Collector stoppen",
-                    "announce": "Den Bug-Report-Collector announcen",
-                    "setCollectorName": "Anzeigenamen des Bug-Report-Collectors festlegen",
-                    "listIssues": "Lokale und empfangene Bug-Issues auflisten",
-                    "getIssue": "Gespeicherten Bug-Issue lesen",
-                    "recordLocal": "Lokalen Bug-Issue speichern",
-                    "setIssueStatus": "Status eines Bug-Issues aktualisieren",
-                    "listPendingSends": "Ausstehende Bug-Report-Sendungen auflisten",
-                    "enqueueSend": "Bug-Report zur Mesh-Sendung einreihen",
-                    "cancelPendingSend": "Ausstehende Bug-Report-Sendung abbrechen"
                 },
                 "rnsLink": {
                     "open": "RNS-Links zu Zielen öffnen",

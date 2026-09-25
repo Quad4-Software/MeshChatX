@@ -230,14 +230,14 @@ async def test_auth_rejects_api_paths_that_end_with_static_extensions(mock_app):
         )
 
         plugin_js = await client.get(
-            "/api/v1/plugins/com.meshchatx.mcx-bugs/asset/frontend/main.js",
+            "/api/v1/plugins/com.meshchatx.mcx-hello/asset/frontend/main.js",
         )
         assert plugin_js.status == 401, (
             f"expected 401 for plugin JS asset, got {plugin_js.status}"
         )
 
         plugin_wasm = await client.get(
-            "/api/v1/plugins/com.meshchatx.mcx-bugs/asset/backend/main.wasm",
+            "/api/v1/plugins/com.meshchatx.mcx-hello/asset/backend/main.wasm",
         )
         assert plugin_wasm.status == 401, (
             f"expected 401 for plugin wasm asset, got {plugin_wasm.status}"
@@ -283,8 +283,8 @@ async def test_auth_middleware_does_not_treat_api_static_suffixes_as_public():
     for path in (
         "/api/v1/config.json",
         "/api/v1/status.json",
-        "/api/v1/plugins/com.meshchatx.mcx-bugs/asset/frontend/main.js",
-        "/api/v1/plugins/com.meshchatx.mcx-bugs/asset/backend/main.wasm",
+        "/api/v1/plugins/com.meshchatx.mcx-hello/asset/frontend/main.js",
+        "/api/v1/plugins/com.meshchatx.mcx-hello/asset/backend/main.wasm",
     ):
         handler.reset_mock()
         resp = await call(path)

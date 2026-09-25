@@ -217,6 +217,40 @@ sudo systemctl stop meshchatx.service
 sudo systemctl disable meshchatx.service
 ```
 
+## Low-memory and SD card tuning
+
+These settings matter most on multi-core boards (Pi 3, 4, 5, Zero 2 W)
+running a 64-bit OS. The install script already writes them into the
+generated systemd units.
+
+- MALLOC_ARENA_MAX=2 caps the number of glibc malloc arenas. The default
+  scales with CPU core count (8 per core on 64-bit), which wastes tens of
+  megabytes of RAM in a threaded Python process. Two arenas is plenty for
+  this workload.
+- OPENBLAS_NUM_THREADS=1 keeps the OpenBLAS copy bundled with numpy from
+  spawning one worker thread per CPU core. MeshChatX only uses numpy for
+  small audio codec buffers, which never benefit from BLAS threading.
+- MESHCHAT_LOG_DB=0 stops writing debug logs into the SQLite database.
+  Logs stay in the in-memory ring buffer, which avoids a steady stream of
+  small WAL writes to the SD card. Leave it enabled if you want the debug
+  log viewer to keep working across restarts.
+
+If you wrote the service file by hand, add the variables like this:
+
+```ini
+[Service]
+Environment="MALLOC_ARENA_MAX=2"
+Environment="OPENBLAS_NUM_THREADS=1"
+Environment="MESHCHAT_LOG_DB=0"
+```
+
+Then reload and restart:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart meshchatx.service
+```
+
 Useful logs and troubleshooting:
 
 ```bash

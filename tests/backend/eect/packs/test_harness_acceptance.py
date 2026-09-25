@@ -16,9 +16,9 @@ pytestmark = pytest.mark.eect
 
 
 def test_failure_banner_includes_scenario_seed_gate():
-    scenario = get_scenario("hostile.bug_report.redacts_secrets")
+    scenario = get_scenario("hostile.favourites.layout_fuzz")
     banner = format_failure_banner(scenario, 42, detail="boom")
-    assert "scenario_id: hostile.bug_report.redacts_secrets" in banner
+    assert "scenario_id: hostile.favourites.layout_fuzz" in banner
     assert "gate:        gate3-hostile-medium" in banner
     assert "seed:        42" in banner
     assert "MESHCHAT_EECT_SEED=42" in banner

@@ -71,14 +71,14 @@ describe("pluginUiDescriptor", () => {
     });
 
     it("restricts image src to plugin asset URLs", () => {
-        const pluginId = "com.meshchatx.mcx-bugs";
+        const pluginId = "com.meshchatx.mcx-hello";
         expect(sanitizePluginAssetSrc(pluginId, `/api/v1/plugins/${pluginId}/asset/icon.png`)).toBeTruthy();
         expect(sanitizePluginAssetSrc(pluginId, "https://evil.example/x.png")).toBeNull();
         expect(sanitizePluginAssetSrc(pluginId, `/api/v1/plugins/${pluginId}/asset/../secret`)).toBeNull();
     });
 
     it("restricts html-frame src to plugin asset URLs", () => {
-        const pluginId = "com.meshchatx.mcx-bugs";
+        const pluginId = "com.meshchatx.mcx-hello";
         const evil = validateUiDescriptor(
             { type: "html-frame", src: "https://evil.example/exfil" },
             { allowHtmlFrame: true, pluginId }

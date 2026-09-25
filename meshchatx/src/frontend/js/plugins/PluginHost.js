@@ -246,11 +246,11 @@ export class PluginHost {
         if (!this.router) {
             return;
         }
-        // Keep bundled Bug Reports route stable for deep links.
-        if (pluginId === "com.meshchatx.mcx-bugs" && routeName === "plugin-mcx-bugs") {
+        // Keep the bundled example route stable for deep links.
+        if (pluginId === "com.meshchatx.mcx-hello" && routeName === "plugin-mcx-hello") {
             return;
         }
-        if (pluginId === "com.meshchatx.mcx-bugs") {
+        if (pluginId === "com.meshchatx.mcx-hello") {
             return;
         }
         if (this.router.hasRoute(routeName)) {

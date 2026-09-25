@@ -301,9 +301,6 @@
         "error_backend_title": "Backend unreachable",
         "error_reload_page": "Reload page",
         "error_copy_details": "Copy error details",
-        "error_report_locally": "Report locally",
-        "error_report_saved": "Saved to Bug Reports",
-        "error_report_failed": "Could not save local report",
         "error_details_heading": "Technical details",
         "accent_color": "Accent color",
         "accent_color_description": "Overrides buttons, links, and focus rings across the app.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "Read application debug logs"
-                },
-                "bugReport": {
-                    "status": "Read bug report collector status",
-                    "listCollectors": "List heard mcx-bugs-v1 collectors",
-                    "listReports": "List received bug reports",
-                    "deleteReport": "Delete a stored bug report",
-                    "clearReports": "Clear all stored bug reports",
-                    "preview": "Preview redacted debug logs for bug reports",
-                    "send": "Send bug reports over the mesh",
-                    "startCollector": "Start an mcx-bugs-v1 collector",
-                    "stopCollector": "Stop the bug report collector",
-                    "announce": "Announce the bug report collector",
-                    "setCollectorName": "Set the bug report collector display name",
-                    "listIssues": "List local and received bug issues",
-                    "getIssue": "Read a stored bug issue",
-                    "recordLocal": "Record a local bug issue",
-                    "setIssueStatus": "Update bug issue status",
-                    "listPendingSends": "List pending bug report sends",
-                    "enqueueSend": "Enqueue a bug report for mesh send",
-                    "cancelPendingSend": "Cancel a pending bug report send"
                 },
                 "rnsLink": {
                     "open": "Open RNS links to destinations",

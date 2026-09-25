@@ -10,13 +10,7 @@ from aiohttp import web
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
-    http_not_found,
-    http_payload_too_large,
     parse_int_param,
-)
-from meshchatx.src.backend.http.uploads import (
-    PayloadTooLargeError,
-    read_json_limited,
 )
 from meshchatx.src.backend.meshchat_utils import parse_bool_query_param
 from meshchatx.src.backend.persistent_log_handler import memory_log_handler
@@ -218,63 +212,3 @@ def register_debug_routes(routes, app):
         await asyncio.to_thread(app._mem_diag.reset)
         await asyncio.to_thread(app._mem_diag.start)
         return web.json_response({"status": "ok", "message": "Diagnostics reset"})
-
-    def _bug_manager():
-        manager = getattr(app, "bug_report_manager", None)
-        if manager is None:
-            from meshchatx.src.backend.bug_report_manager import BugReportManager
-
-            manager = BugReportManager(app)
-            app.bug_report_manager = manager
-        return manager
-
-    @routes.get(API_V1_PREFIX + "/bug-reports/issues")
-    async def list_bug_issues(request):
-        manager = _bug_manager()
-        limit = parse_int_param(request.query.get("limit"), 50, minimum=0)
-        if limit is None:
-            return http_bad_request("limit must be a non-negative integer")
-        status = request.query.get("status") or None
-        return web.json_response(manager.list_issues(limit=limit, status=status))
-
-    @routes.get(API_V1_PREFIX + "/bug-reports/issues/{fingerprint}")
-    async def get_bug_issue(request):
-        manager = _bug_manager()
-        fingerprint = request.match_info.get("fingerprint") or ""
-        try:
-            return web.json_response(manager.get_issue(fingerprint))
-        except LookupError:
-            return http_not_found("issue not found")
-
-    @routes.post(API_V1_PREFIX + "/bug-reports/local")
-    async def record_local_bug(request):
-        try:
-            data = await read_json_limited(request)
-        except PayloadTooLargeError:
-            return http_payload_too_large()
-        except Exception:
-            data = {}
-        if not isinstance(data, dict):
-            data = {}
-        manager = _bug_manager()
-        result = await asyncio.to_thread(manager.record_local, data)
-        return web.json_response(result)
-
-    @routes.post(API_V1_PREFIX + "/bug-reports/issues/{fingerprint}/status")
-    async def set_bug_issue_status(request):
-        try:
-            data = await read_json_limited(request)
-        except PayloadTooLargeError:
-            return http_payload_too_large()
-        except Exception:
-            data = {}
-        manager = _bug_manager()
-        fingerprint = request.match_info.get("fingerprint") or ""
-        status = str((data or {}).get("status") or "")
-        try:
-            result = manager.set_issue_status(fingerprint, status)
-            return web.json_response(result)
-        except LookupError:
-            return http_not_found("issue not found")
-        except ValueError as exc:
-            return http_bad_request(str(exc))

@@ -233,7 +233,7 @@ generated systemd units.
 - MESHCHAT_LOG_DB=0 stops writing debug logs into the SQLite database.
   Logs stay in the in-memory ring buffer, which avoids a steady stream of
   small WAL writes to the SD card. Leave it enabled if you want the debug
-  log viewer and bug report bundles to keep working across restarts.
+  log viewer to keep working across restarts.
 
 If you wrote the service file by hand, add the variables like this:
 

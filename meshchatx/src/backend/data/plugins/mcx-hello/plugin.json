@@ -1,0 +1,44 @@
+{
+    "id": "com.meshchatx.mcx-hello",
+    "version": "1.0.0",
+    "apiVersion": 1,
+    "name": "Hello Example",
+    "description": "Minimal bundled example exercising the plugin runtime.",
+    "frontend": {
+        "entry": "frontend/main.js",
+        "type": "js"
+    },
+    "backend": {
+        "entry": "backend/main.py",
+        "type": "python"
+    },
+    "i18n": {
+        "directory": "locales",
+        "defaultLocale": "en"
+    },
+    "contributes": {
+        "navItems": [
+            {
+                "id": "mcx-hello",
+                "route": { "name": "plugin-mcx-hello" },
+                "icon": "puzzle-outline",
+                "labelKey": "nav"
+            }
+        ],
+        "toolsPageEntries": [
+            {
+                "name": "mcx-hello",
+                "route": { "name": "plugin-mcx-hello" },
+                "icon": "puzzle-outline",
+                "iconBg": "tool-card__icon bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200",
+                "titleKey": "title",
+                "descriptionKey": "description"
+            }
+        ]
+    },
+    "permissions": {
+        "managers": [],
+        "storage": "isolated",
+        "network": "none"
+    }
+}

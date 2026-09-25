@@ -176,7 +176,7 @@ class TestPluginRemoveJail:
 
         manager = self._manager(tmp_path)
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mcx-bugs"
+        plugin_id = "com.meshchatx.mcx-hello"
         manager.disable(plugin_id)
         with pytest.raises(PluginSecurityError):
             manager.asset_path(plugin_id, "plugin.json")

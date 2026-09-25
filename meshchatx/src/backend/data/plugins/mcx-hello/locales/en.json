@@ -1,0 +1,12 @@
+{
+    "nav": "Hello Example",
+    "title": "Hello Example",
+    "description": "A minimal bundled plugin exercising the MeshChatX plugin runtime: activation, invoke, storage, and UI nodes.",
+    "counter_label": "Counter",
+    "counter_hint": "Stored in isolated plugin storage via the Python backend.",
+    "increment": "Increment",
+    "ping": "Ping backend",
+    "pong": "Backend answered: activated={activated}",
+    "counter_value": "Current value: {value}",
+    "invoke_failed": "Invoke failed"
+}

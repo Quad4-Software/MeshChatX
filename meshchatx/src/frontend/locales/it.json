@@ -301,9 +301,6 @@
         "error_backend_title": "Backend non raggiungibile",
         "error_reload_page": "Ricarica pagina",
         "error_copy_details": "Copia dettagli errore",
-        "error_report_locally": "Segnala in locale",
-        "error_report_saved": "Salvato nei report bug",
-        "error_report_failed": "Impossibile salvare il report locale",
         "error_details_heading": "Dettagli tecnici",
         "accent_color": "Colore accento",
         "accent_color_description": "Sostituisce pulsanti, link e anelli di focus in tutta l app.",
@@ -1084,26 +1081,6 @@
                 },
                 "debugLog": {
                     "read": "Leggi i log di debug dell'applicazione"
-                },
-                "bugReport": {
-                    "status": "Leggi lo stato del collector dei bug report",
-                    "listCollectors": "Elenca i collector mcx-bugs-v1 rilevati",
-                    "listReports": "Elenca i bug report ricevuti",
-                    "deleteReport": "Elimina un bug report memorizzato",
-                    "clearReports": "Cancella tutti i bug report memorizzati",
-                    "preview": "Anteprima dei log di debug redatti per i bug report",
-                    "send": "Invia bug report sulla mesh",
-                    "startCollector": "Avvia un collector mcx-bugs-v1",
-                    "stopCollector": "Ferma il collector dei bug report",
-                    "announce": "Annuncia il collector dei bug report",
-                    "setCollectorName": "Imposta il nome visualizzato del collector dei bug report",
-                    "listIssues": "Elenca issue di bug locali e ricevute",
-                    "getIssue": "Leggi un issue di bug memorizzato",
-                    "recordLocal": "Registra un issue di bug locale",
-                    "setIssueStatus": "Aggiorna lo stato di un issue di bug",
-                    "listPendingSends": "Elenca invii report bug in sospeso",
-                    "enqueueSend": "Accoda un report bug per l'invio sulla mesh",
-                    "cancelPendingSend": "Annulla un invio report bug in sospeso"
                 },
                 "rnsLink": {
                     "open": "Apri collegamenti RNS verso destinazioni",

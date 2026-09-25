@@ -72,13 +72,6 @@ SCENARIOS: tuple[Scenario, ...] = (
         summary="normalize_favourites_layout never crashes on hostile blobs",
     ),
     Scenario(
-        id="hostile.bug_report.redacts_secrets",
-        pack="HostileMediumPack",
-        gate="gate3-hostile-medium",
-        taxonomy="security_surface",
-        summary="bug report preview redacts paths and full destination hashes",
-    ),
-    Scenario(
         id="hostile.overlay.format_char_fixed",
         pack="HostileMediumPack",
         gate="gate3-hostile-medium",

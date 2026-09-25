@@ -130,22 +130,6 @@
         },
         {
             "method": "GET",
-            "path": "/api/v1/bug-reports/issues"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/bug-reports/issues/{fingerprint}"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/bug-reports/issues/{fingerprint}/status"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/bug-reports/local"
-        },
-        {
-            "method": "GET",
             "path": "/api/v1/community-interfaces"
         },
         {
