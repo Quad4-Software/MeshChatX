@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import os
 import shutil
+import sqlite3
 import tempfile
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -112,6 +114,50 @@ def test_fixture_upgrade_writes_pre_migrate_backup(tmp_path):
     backups = db.list_auto_backups(str(identity_dir))
     db.close_all()
     assert any("backup-pre-migrate" in b["name"] for b in backups)
+
+
+def test_pre_migrate_backup_is_a_restorable_old_version_db(tmp_path):
+    """The pre-migrate backup must be a valid old-version database.
+
+    A backup that is corrupt or at the wrong schema version is not a real
+    downgrade path.
+    """
+    ver = DatabaseSchema.LATEST_VERSION - 1
+    if ver < 1:
+        pytest.skip("No N-1 fixture")
+    src = _fixture_path(ver)
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    db_path = identity_dir / "database.db"
+    shutil.copy2(src, db_path)
+    db = Database(str(db_path))
+    db.initialize()
+    backups = db.list_auto_backups(str(identity_dir))
+    db.close_all()
+    backup = next((b for b in backups if "backup-pre-migrate" in b["name"]), None)
+    assert backup is not None
+
+    restored = tmp_path / "restored.db"
+    if str(backup["path"]).endswith(".zip"):
+        with zipfile.ZipFile(backup["path"]) as zf:
+            names = [n for n in zf.namelist() if n.endswith(".db")]
+            assert names, "backup zip contains no database file"
+            with zf.open(names[0]) as src_db, open(restored, "wb") as dst:
+                shutil.copyfileobj(src_db, dst)
+    else:
+        shutil.copy2(backup["path"], restored)
+    # Open with raw sqlite3 - Database() would migrate it forward again.
+    conn = sqlite3.connect(str(restored))
+    try:
+        integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+        assert integrity == "ok"
+        row = conn.execute(
+            "SELECT value FROM config WHERE key = 'database_version'",
+        ).fetchone()
+        assert row is not None
+        assert int(row[0]) == ver
+    finally:
+        conn.close()
 
 
 def test_post_migration_verify_failure_blocks_version_bump(tmp_path):
