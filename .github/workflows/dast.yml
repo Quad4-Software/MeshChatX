@@ -1,0 +1,81 @@
+# DAST: OWASP ZAP baseline scan against the local aiohttp surface.
+# Scheduled weekly plus manual. Warn-only: findings become artifacts and a
+# step summary, not a gate. Promote real issues into tests.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+
+name: DAST
+
+on:
+    schedule:
+        - cron: "15 5 * * 2"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: dast-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    PYTHON_VERSION: "3.14"
+    NODE_VERSION: "24"
+    UV_VERSION: "0.11.15"
+    PNPM_VERSION: "11.1.2"
+
+jobs:
+    frontend:
+        name: Build frontend artifact
+        uses: $/.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-dast-${{ github.run_id }}
+            retention_days: 1
+
+    zap-baseline:
+        name: ZAP baseline (warn-only)
+        runs-on: ubuntu-latest
+        needs: [frontend]
+        timeout-minutes: 45
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Fetch frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-frontend-dast-${{ github.run_id }}
+                  path: meshchatx/public
+
+            - name: Run ZAP baseline against local backend
+              continue-on-error: true
+              env:
+                  DAST_REPORT_DIR: ${{ github.workspace }}/reports/dast
+              run: bash scripts/ci/dast-baseline.sh
+
+            - name: Upload DAST reports
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: dast-baseline-reports
+                  path: reports/dast/
+                  if-no-files-found: ignore

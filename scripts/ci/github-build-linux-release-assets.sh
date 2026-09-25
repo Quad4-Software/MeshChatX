@@ -227,4 +227,10 @@ else
     echo "Skipping SBOM (trivy not on PATH or TRIVY_SBOM=0)." >&2
 fi
 
+# Ship the curated OpenVEX document alongside the SBOM so downstream
+# scanners (grype --vex, Dependency-Track) can consume our triage notes.
+if [ -f security/openvex.json ]; then
+    cp -f security/openvex.json release-assets/openvex.json
+fi
+
 echo "github-build-linux-release-assets.sh: done; see ./release-assets/"

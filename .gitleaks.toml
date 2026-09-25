@@ -1,0 +1,31 @@
+title = "MeshChatX gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "File-content SHA256 hashes in generated manifests"
+paths = ['''backend-manifest\.json''', '''tree-manifest.*\.json''']
+
+[[allowlists]]
+description = "Public GPG key fingerprints (python.org release verification)"
+regexTarget = "match"
+regexes = [
+    '''A035C8C19219BA821ECEA86B64E628F8D684696D''',
+    '''E3FF2839C048B25C084DEBE9B26995E310250568''',
+]
+
+[[allowlists]]
+description = "Deterministic test fixture values (RNS hashes, interface keys)"
+regexTarget = "match"
+regexes = [
+    '''aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899''',
+    '''asty8vT8spXNQdCnPVMATbCKkwUxuzG9''',
+]
+
+[[allowlists]]
+description = "Fixture directories may carry test secrets on purpose"
+paths = [
+    '''tests/.*/fixtures/.*''',
+    '''\.gitleaks\.toml''',
+]

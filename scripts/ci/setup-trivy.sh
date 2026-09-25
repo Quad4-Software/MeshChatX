@@ -11,7 +11,7 @@
 set -eu
 
 COSIGN_VERSION="${COSIGN_VERSION:-3.0.6}"
-TRIVY_VERSION="${TRIVY_VERSION:-0.69.3}"
+TRIVY_VERSION="${TRIVY_VERSION:-0.74.0}"
 TRIVY_RELEASE_BASE="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
 # Keyless signing identity for aquasecurity/trivy reusable release workflow (any semver tag).
 TRIVY_CERT_IDENTITY_RE='^https://github.com/aquasecurity/trivy/\.github/workflows/reusable-release\.yaml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'

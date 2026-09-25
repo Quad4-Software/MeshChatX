@@ -1,0 +1,53 @@
+# Weekly re-scan of the latest release's CycloneDX SBOM for newly
+# disclosed CVEs in already-shipped builds. Applies security/openvex.json
+# so triaged findings stay suppressed. Warn-only: reports go to the step
+# summary and an artifact.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+
+name: SBOM re-scan
+
+on:
+    schedule:
+        - cron: "40 4 * * 3"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+    rescan:
+        name: Re-scan latest release SBOM
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Install grype
+              run: sh scripts/ci/setup-grype.sh
+
+            - name: Re-scan latest release SBOM
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SBOM_RESCAN_REPORT: ${{ github.workspace }}/reports/sbom-rescan.json
+              run: bash scripts/ci/sbom-rescan.sh
+
+            - name: Upload rescan report
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: sbom-rescan-report
+                  path: reports/sbom-rescan.json
+                  if-no-files-found: ignore
