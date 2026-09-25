@@ -37,6 +37,36 @@ Makefile targets call the same Taskfile commands:
 
 OpenAPI core contract for high-risk UI routes lives in `openapi/meshchatx-ui-core.yaml` (`task test:openapi`). Optional live Schemathesis needs `MESHCHAT_OPENAPI_LIVE=1`. Electron shell smoke is `task test:e2e:electron`. Browser-mode Svelte smoke is `task test:browser`.
 
+## Offline development
+
+Two paths work without internet access:
+
+**Dev container.** `docker/Dockerfile.dev` bakes the toolchain (Python, Node,
+uv, pnpm, go-task) plus warmed `uv` and `pnpm` caches for the locked
+dependency graphs:
+
+```bash
+docker build -f docker/Dockerfile.dev -t meshchatx-dev .
+docker run --rm -it -v "$PWD":/src -w /src meshchatx-dev bash
+```
+
+Inside the container `task lint`, `task test:backend`, and
+`task test:frontend` run without PyPI or npm access (`UV_OFFLINE` and
+`PNPM_OFFLINE` are set). The bind mount gives live edit/test cycles.
+
+**Local caches.** With a warm `uv` cache and pnpm store you can also stay
+offline on the host:
+
+```bash
+uv sync --frozen --group dev      # or: uv pip install --no-index --offline
+pnpm install --frozen-lockfile --offline
+```
+
+For fully air-gapped artifact builds use the vendor bundle path described in
+**Building from source and packaging** (`pnpm run bundle:offline`,
+`MESHCHATX_OFFLINE_BUILD=1`). Android wheels need a one-time online pass:
+`bash scripts/build-android-wheels-local.sh` then copy `android/vendor/`.
+
 For a Vite HMR loop, use task dev as described in **Installation and setup**.
 
 ## Lockfiles and install scripts
