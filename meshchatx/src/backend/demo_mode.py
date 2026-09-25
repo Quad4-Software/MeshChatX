@@ -39,7 +39,10 @@ def demo_auth_password_from_env() -> str:
     return env_str("MESHCHAT_DEMO_AUTH_PASSWORD", "demo") or "demo"
 
 
-DEMO_FRAME_ANCESTORS_DEFAULT = "https://meshchatx.com https://*.meshchatx.com"
+DEMO_FRAME_ANCESTORS_DEFAULT = (
+    "https://meshchatx.com https://*.meshchatx.com "
+    "http://localhost:* http://127.0.0.1:* http://[::1]:*"
+)
 
 
 def demo_frame_ancestors(app: ReticulumMeshChat) -> list[str]:
