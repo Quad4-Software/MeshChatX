@@ -13,6 +13,9 @@ from meshchatx.src.backend.http.errors import (
 
 # ruff: noqa: F405
 from meshchatx.src.backend.http.routes.reticulum_instance._names import *  # noqa: F403
+from meshchatx.src.backend.http.routes.reticulum_instance.config_secrets import (
+    request_may_receive_secrets,
+)
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
@@ -24,8 +27,13 @@ def register_reticulum_instance_instance_routes(routes, app):
     @routes.get("/api/v1/reticulum/instance")
     async def reticulum_instance_get(request):
         """Shared-instance, RPC, and hop-obfuscation settings (Sideband parity)."""
+        settings = app._build_reticulum_instance_settings()
+        if not request_may_receive_secrets(request, app):
+            settings["rpc_key"] = None
+            settings["rpc_key_set"] = bool(settings.get("rpc_config_snippet"))
+            settings["rpc_config_snippet"] = None
         return web.json_response(
-            {"instance": app._build_reticulum_instance_settings()},
+            {"instance": settings},
         )
 
     @routes.patch("/api/v1/reticulum/instance")
