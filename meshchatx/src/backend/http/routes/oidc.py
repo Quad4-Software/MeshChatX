@@ -240,6 +240,7 @@ def register_oidc_routes(routes, app):
         session["authenticated"] = True
         session["identity_hash"] = app.identity.hash.hex()
         session["auth_method"] = "oidc"
+        session["session_epoch"] = app._current_auth_session_epoch()
         if isinstance(claims.get("sub"), str):
             session["oidc_sub"] = claims["sub"]
         rotate_session_csrf_token(session)

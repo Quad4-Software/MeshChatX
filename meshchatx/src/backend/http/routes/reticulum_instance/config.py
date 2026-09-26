@@ -13,6 +13,12 @@ from meshchatx.src.backend.http.errors import (
     http_payload_too_large,
 )
 from meshchatx.src.backend.http.routes.reticulum_instance._names import *  # noqa: F403
+from meshchatx.src.backend.http.routes.reticulum_instance.config_secrets import (
+    REDACTED_SENTINEL,
+    redact_config_secrets,
+    request_may_receive_secrets,
+    restore_redacted_secrets,
+)
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
@@ -36,6 +42,8 @@ def register_reticulum_instance_config_routes(routes, app):
                 return http_not_found(f"Reticulum config not found at {config_path}")
             with open(config_path) as f:
                 content = f.read()
+            if not request_may_receive_secrets(request, app):
+                content = redact_config_secrets(content)
             return web.json_response(
                 {
                     "content": content,
@@ -69,6 +77,14 @@ def register_reticulum_instance_config_routes(routes, app):
             return http_bad_request(
                 "Config must include [reticulum] and [interfaces] sections"
             )
+
+        # If the caller fetched a redacted copy, restore the real secret values
+        # so a save does not write the sentinel into the config file.
+        if REDACTED_SENTINEL in content:
+            config_path = app._reticulum_config_file_path()
+            if os.path.isfile(config_path):
+                with open(config_path) as f:
+                    content = restore_redacted_secrets(content, f.read())
 
         try:
             config_dir = app._normalize_reticulum_config_dir(

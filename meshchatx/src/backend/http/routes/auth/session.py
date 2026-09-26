@@ -171,12 +171,15 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
         ).decode("utf-8")
 
         app.config.auth_password_hash.set(password_hash)
+        # Revoke every pre-existing session before minting the new one.
+        app._bump_auth_session_epoch()
 
         session = await get_session(request)
         session.invalidate()
         session = await get_session(request)
         session["authenticated"] = True
         session["identity_hash"] = app.identity.hash.hex()
+        session["session_epoch"] = app._current_auth_session_epoch()
         rotate_session_csrf_token(session)
 
         if dao:
@@ -263,6 +266,7 @@ def register_auth_session_routes(routes: Any, app: Any) -> None:
             session = await get_session(request)
             session["authenticated"] = True
             session["identity_hash"] = app.identity.hash.hex()
+            session["session_epoch"] = app._current_auth_session_epoch()
             rotate_session_csrf_token(session)
             if dao:
                 dao.insert(
