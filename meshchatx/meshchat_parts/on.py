@@ -717,7 +717,11 @@ class OnMixin:
                         ctx.identity_hash,
                     )
                     max_count = ctx.config.backup_max_count.get()
-                    ctx.database.backup_database(ctx.storage_path, max_count=max_count)
+                    await asyncio.to_thread(
+                        ctx.database.backup_database,
+                        ctx.storage_path,
+                        max_count=max_count,
+                    )
             except Exception:
                 logger.exception("Auto-backup failed")
 
@@ -757,7 +761,8 @@ class OnMixin:
 
                 else:
                     _cancel = None
-                lmr.apply_local_message_retention(
+                await asyncio.to_thread(
+                    lmr.apply_local_message_retention,
                     ctx.database.messages,
                     _cancel,
                     value=int(v),
@@ -782,7 +787,9 @@ class OnMixin:
                     continue
 
                 # Get all tracked peers
-                tracked_peers = ctx.database.telemetry.get_tracked_peers()
+                tracked_peers = await asyncio.to_thread(
+                    ctx.database.telemetry.get_tracked_peers,
+                )
                 now = time.time()
 
                 for peer in tracked_peers:
@@ -802,7 +809,11 @@ class OnMixin:
                             context=ctx,
                         )
                         # Update last request time
-                        ctx.database.telemetry.update_last_request_at(dest_hash, now)
+                        await asyncio.to_thread(
+                            ctx.database.telemetry.update_last_request_at,
+                            dest_hash,
+                            now,
+                        )
 
             except Exception as e:
                 print(f"Telemetry tracking loop error: {e}")
