@@ -5,6 +5,7 @@
     import { onClickOutside } from "runed";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import GlobalState from "../../../js/GlobalState.js";
+    import { subscribeConfig } from "../../../js/configStore.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import DialogUtils from "../../../js/DialogUtils.js";
     import ToastUtils from "../../../js/ToastUtils.js";
@@ -216,6 +217,8 @@
     let ignoredPeers = $state<RrcIgnoredPeer[]>([]);
     let highlightWords = $state<string[]>([]);
     let hideJoinPart = $state(false);
+    let relayPrefsLoadedKey = $state("");
+    let unsubRelayIdentity: (() => void) | null = null;
     let localMentionRooms = $state<Record<string, string[]>>({});
     let badKeyPromptInFlight: string | null = null;
 
@@ -335,7 +338,12 @@
     // --- relay prefs (ignored peers, highlight words, join/part visibility) ---
 
     function loadRelayPrefsState() {
-        const prefs = loadRelayPrefs(scopedIdentityKey());
+        const key = scopedIdentityKey();
+        // Lock the resolved bucket into the identity scope so deferred
+        // writes keep landing in the bucket these prefs were read from.
+        identityScope.beginIdentity(key);
+        relayPrefsLoadedKey = key;
+        const prefs = loadRelayPrefs(key);
         ignoredPeers = prefs.ignored;
         highlightWords = prefs.highlightWords;
         hideJoinPart = prefs.hideJoinPart === true;
@@ -660,6 +668,33 @@
         }
         loadTranslationPacks();
         loadRelayPrefsState();
+        // Config (and its identity_hash) arrives after mount on slow loads.
+        // Prefs loaded under the "_" fallback bucket must be re-read under the
+        // real identity once it is known, or saved toggles never apply.
+        unsubRelayIdentity = subscribeConfig(() => {
+            const hash = GlobalState.config?.identity_hash || "";
+            // Only re-scope when the initial load fell back to "_". A
+            // mid-session hash change while scoped to a real identity is
+            // handled by onIdentitySwitched; re-beginning here would let a
+            // deferred write jump buckets.
+            if (!hash || relayPrefsLoadedKey !== "_") {
+                return;
+            }
+            // Prefs toggled before the identity was known live under "_".
+            // Carry them into the real bucket only when it has none yet,
+            // so an existing identity's prefs are never overwritten.
+            const fallback = loadRelayPrefs("_");
+            const real = loadRelayPrefs(hash);
+            const realEmpty =
+                real.ignored.length === 0 && real.highlightWords.length === 0 && !real.hideJoinPart;
+            const fallbackHasPrefs =
+                fallback.ignored.length > 0 || fallback.highlightWords.length > 0 || fallback.hideJoinPart;
+            identityScope.beginIdentity(hash);
+            if (realEmpty && fallbackHasPrefs) {
+                saveRelayPrefs(hash, fallback);
+            }
+            loadRelayPrefsState();
+        });
     });
 
     onDestroy(() => {
@@ -676,6 +711,10 @@
         if (hostUptimeTimer) {
             clearInterval(hostUptimeTimer);
             hostUptimeTimer = null;
+        }
+        if (unsubRelayIdentity) {
+            unsubRelayIdentity();
+            unsubRelayIdentity = null;
         }
         if (smMq) {
             smMq.removeEventListener("change", onSmMqChange);

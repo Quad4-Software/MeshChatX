@@ -3,6 +3,7 @@ import { render, cleanup, fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import RelayChatPage from "@/features/relay-chat/components/RelayChatPage.svelte";
 import { t, registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import GlobalState from "@/js/GlobalState.js";
 import en from "@/locales/en.json";
 
 const HUB_HASH = "00112233445566778899aabbccddeeff";
@@ -107,6 +108,7 @@ describe("RelayChatPage.svelte", () => {
         };
         window.api = axiosMock;
         window.localStorage.clear();
+        GlobalState.config = {};
         vi.clearAllMocks();
         if (typeof globalThis.ResizeObserver !== "function") {
             globalThis.ResizeObserver = class {
@@ -120,6 +122,48 @@ describe("RelayChatPage.svelte", () => {
     afterEach(() => {
         cleanup();
         delete window.api;
+        GlobalState.config = {};
+    });
+
+    it("migrates prefs toggled during the config race into the real bucket", async () => {
+        // Mount before config resolves: prefs load under the "_" bucket.
+        GlobalState.config = {};
+        render(RelayChatPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs");
+        });
+        window.localStorage.setItem(
+            "meshchatx.rrc.prefs",
+            JSON.stringify({ _: { ignored: [], highlightWords: [], hideJoinPart: true } })
+        );
+        GlobalState.config = { identity_hash: "id-real" };
+        await waitFor(() => {
+            const stored = JSON.parse(window.localStorage.getItem("meshchatx.rrc.prefs") || "{}");
+            expect(stored["id-real"]?.hideJoinPart).toBe(true);
+        });
+    });
+
+    it("does not overwrite an existing identity bucket on late config", async () => {
+        GlobalState.config = {};
+        window.localStorage.setItem(
+            "meshchatx.rrc.prefs",
+            JSON.stringify({
+                _: { ignored: [], highlightWords: [], hideJoinPart: true },
+                "id-real": { ignored: [{ hash: "aabb", name: "carol" }], highlightWords: [], hideJoinPart: false },
+            })
+        );
+        render(RelayChatPage);
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs");
+        });
+        GlobalState.config = { identity_hash: "id-real" };
+        await waitFor(() => {
+            // Give the subscription a turn; the real bucket must keep its prefs.
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs");
+        });
+        const stored = JSON.parse(window.localStorage.getItem("meshchatx.rrc.prefs") || "{}");
+        expect(stored["id-real"]?.ignored).toEqual([{ hash: "aabb", name: "carol" }]);
+        expect(stored["id-real"]?.hideJoinPart).toBe(false);
     });
 
     it("fetches hubs and servers on mount", async () => {
