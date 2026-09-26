@@ -50,7 +50,6 @@ from meshchatx.src.backend.rns_link_manager import (
     RnsLinkManager,
     clear_all_cached_links,
 )
-from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.path_utils import (
     get_file_path,
     is_loopback_bind_host,
@@ -374,7 +373,7 @@ class MarkMixin:
                 if hasattr(self, "_crash_recovery") and self._crash_recovery:
                     self._crash_recovery.set_database(self.current_context.database)
                     self._crash_recovery.log_handler = memory_log_handler
-                self.web_audio_bridge = WebAudioBridge(
+                self.web_audio_bridge.configure(
                     self.current_context.telephone_manager,
                     self.current_context.config,
                     force_enabled=self.web_audio_required(),
@@ -403,7 +402,7 @@ class MarkMixin:
         self.contexts[identity_hash] = context
         self.current_context = context
         context.setup()
-        self.web_audio_bridge = WebAudioBridge(
+        self.web_audio_bridge.configure(
             context.telephone_manager,
             context.config,
             force_enabled=self.web_audio_required(),

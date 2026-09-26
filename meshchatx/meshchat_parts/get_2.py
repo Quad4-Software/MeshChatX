@@ -6,6 +6,7 @@ slices of the original file; do not edit ordering casually.
 
 import importlib.metadata
 import math
+import sys
 
 import LXST
 
@@ -279,4 +280,9 @@ class Get2Mixin:
         return normalized
 
     def get_lxst_version(self) -> str:
-        return self.get_package_version("lxst", getattr(LXST, "__version__", "unknown"))
+        try:
+            lxst = sys.modules["meshchatx.meshchat"].LXST
+            lxst_version = getattr(lxst, "__version__", "unknown")
+        except Exception:
+            lxst_version = "unknown"
+        return self.get_package_version("lxst", lxst_version)
