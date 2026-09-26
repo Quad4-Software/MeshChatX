@@ -121,7 +121,7 @@ def on_telephone_call_ended(app: Any, caller_identity: RNS.Identity, context=Non
     try:
         app.web_audio_bridge.on_call_ended()
     except Exception as e:
-        logging.exception(f"Error in web_audio_bridge.on_call_ended: {e}")
+        logger.exception("Error in web_audio_bridge.on_call_ended: %s", e)
 
     # Record call history
     if caller_identity:

@@ -71,7 +71,7 @@ def register_telephone_notification_sounds_routes(routes, app):
                 },
             )
         except Exception as e:
-            logger.error(f"Error in notification_sound_status: {e}")
+            logger.error("Error in notification_sound_status: %s", e)
             return web.json_response(
                 {
                     "has_sound": False,

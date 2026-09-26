@@ -204,7 +204,7 @@ def normalize_room(room):
 
 
 # greedy .+ intentionally captures nicks containing parens like
-# "user (alt) (deadbeefcafe)"
+# nick followed by paren suffix like user (alt) (deadbeefcafe)
 _WHO_ENTRY_RE = re.compile(
     r"(?:^|,\s)"
     r"(?:(?P<bh>[0-9a-fA-F]{32})|(?P<nick>.+?)\s\((?P<np>[0-9a-fA-F]{12})\))"

@@ -9,6 +9,8 @@ from meshchatx.src.backend.http.errors import (
 )
 
 # ruff: noqa: F405
+from pathlib import Path
+
 from meshchatx.src.backend.http.routes.app_info._names import *  # noqa: F403
 
 
@@ -451,8 +453,7 @@ def register_app_info_info_routes(routes, app):
             )
 
         try:
-            with open(changelog_path) as f:
-                content = f.read()
+            content = await asyncio.to_thread(Path(changelog_path).read_text)
 
             # Render markdown to HTML
             html_content = MarkdownRenderer.render(content)

@@ -46,7 +46,7 @@ def register_reticulum_instance_transport_routes(routes, app):
         try:
             reloaded = await app.reload_reticulum()
         except Exception as e:
-            logger.debug(f"Failed to reload RNS after enabling transport: {e}")
+            logger.debug("Failed to reload RNS after enabling transport: %s", e)
             reloaded = False
 
         if not reloaded:
@@ -104,7 +104,7 @@ def register_reticulum_instance_transport_routes(routes, app):
         try:
             reloaded = await app.reload_reticulum()
         except Exception as e:
-            logger.debug(f"Failed to reload RNS after disabling transport: {e}")
+            logger.debug("Failed to reload RNS after disabling transport: %s", e)
             reloaded = False
 
         if not reloaded:

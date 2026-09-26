@@ -875,13 +875,16 @@ async def apply_config_update(app: Any, data):
         app.config.desktop_hardware_acceleration_enabled.set(enabled)
 
         # write flag for electron to read on next launch
-        try:
+        def _update_gpu_flag():
             disable_gpu_file = os.path.join(app.storage_dir, "disable-gpu")
             if not enabled:
                 with open(disable_gpu_file, "w") as f:
                     f.write("true")
             elif os.path.exists(disable_gpu_file):
                 os.remove(disable_gpu_file)
+
+        try:
+            await asyncio.to_thread(_update_gpu_flag)
         except Exception as e:
             print(f"Failed to update GPU disable flag: {e}")
 
@@ -1111,7 +1114,7 @@ async def apply_config_update(app: Any, data):
 
 
 # converts nomadnetwork page variables from a string to a map
-# converts: "field1=123|field2=456"
+# converts field1=123|field2=456 style strings
 # to the following map:
 # - var_field1: 123
 # - var_field2: 456
