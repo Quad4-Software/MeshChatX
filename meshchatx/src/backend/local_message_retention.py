@@ -141,7 +141,7 @@ def apply_local_message_retention(
 ) -> int:
     """Delete local LXMF message rows older than the retention window.
 
-    Does not contact peers; only removes rows from the local database.
+    Does not contact peers. Only removes rows from the local database.
     """
     cutoff = local_message_retention_cutoff_ts(now, value, unit)
     return purge_messages_before_cutoff(messages, cancel_outbound, cutoff)

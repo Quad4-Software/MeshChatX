@@ -5,7 +5,7 @@
 Backend features historically each hand-rolled open+json.load wrapped in
 slightly different except clauses, so a corrupt or oversized state file
 could raise through startup or silently reset state depending on the
-call site. load_json makes the safe default uniform; save_json writes
+call site. load_json makes the safe default uniform. Save_json writes
 atomically via meshchatx.src.path_utils.atomic_write_text so a crash
 mid-write cannot leave a truncated file behind.
 """
@@ -29,7 +29,7 @@ def load_json(
     max_bytes: int | None = DEFAULT_MAX_JSON_BYTES,
     expect: type | tuple[type, ...] | None = None,
 ) -> Any:
-    """Read and parse the JSON file at path; return default on any failure.
+    """Read and parse the JSON file at path. Return default on any failure.
 
     default covers missing files, read errors, files larger than
     max_bytes, undecodable or malformed JSON, and (when expect is given)

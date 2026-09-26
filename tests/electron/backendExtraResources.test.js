@@ -49,7 +49,7 @@ function packagedBackendPaths() {
         if (rel.endsWith("/.gitkeep")) continue;
         paths.push(`lib/meshchatx/${rel}`);
     }
-    // meshchatx/public is frontend build output; absent from a clean checkout.
+    // meshchatx/public is frontend build output. Absent from a clean checkout.
     const publicDir = join(meshchatxDir, "public");
     if (existsSync(publicDir)) {
         for (const abs of walkFiles(publicDir)) {
@@ -74,7 +74,7 @@ function packagedBackendPaths() {
 // electron-builder FileMatcher semantics on the filter list: a file is
 // packaged when it matches a positive glob and is not re-excluded by a
 // negated glob. Real electron-builder evaluates filters with minimatch
-// dot:true, so **/* already covers dotfiles; the explicit **/.gitkeep entry
+// dot:true, so **/* already covers dotfiles. The explicit **/.gitkeep entry
 // only documents intent for readers of package.json.
 function filterVerdict(filter, relPath) {
     let included = false;

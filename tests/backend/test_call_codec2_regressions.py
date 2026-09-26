@@ -86,7 +86,7 @@ def _policy_app():
 
 
 class TestContactsOnlyIdentityVsLxmfRegression:
-    """Chat UI often stores LXMF dest as remote_identity_hash; calls use identity hash."""
+    """Chat UI often stores LXMF dest as remote_identity_hash. Calls use identity hash."""
 
     def test_dao_matches_identity_via_related_lxmf_hash(self, contacts_dao):
         # Broken historical save: LXMF destination used as primary key
@@ -182,7 +182,7 @@ class TestIncomingWhileDialingRegression:
 
 
 class TestAudioProfilePassthroughRegression:
-    """LXST switch_profile is a no-op when idle; profile must go to call()."""
+    """LXST switch_profile is a no-op when idle. Profile must go to call()."""
 
     @pytest.mark.asyncio
     async def test_outbound_call_receives_codec2_profile(self):

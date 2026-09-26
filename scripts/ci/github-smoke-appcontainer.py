@@ -150,7 +150,7 @@ def run_smoke(build_dir: Path) -> int:
         # Exercise the opt-in auto path: the frozen backend re-enters via
         # the AppContainer launcher. When the runner cannot complete
         # AppContainer process creation the launcher must still bring the
-        # backend up via its unsandboxed fallback; a hard failure here means
+        # backend up via its unsandboxed fallback. A hard failure here means
         # users see a dead backend.
         env["MESHCHAT_APPCONTAINER"] = "auto"
         # Keep console output as well for child/launcher diagnostics.
@@ -173,7 +173,7 @@ def run_smoke(build_dir: Path) -> int:
             # Auto mode: the backend must report AppContainer support
             # and request it. appcontainer_active may be true (sandboxed) or
             # false (the runner could not create the container and the
-            # launcher fell back); both are valid as long as the API is up.
+            # launcher fell back). Both are valid as long as the API is up.
             if not data.get("appcontainer_supported"):
                 print(
                     f"expected appcontainer_supported=true, got {data!r}",

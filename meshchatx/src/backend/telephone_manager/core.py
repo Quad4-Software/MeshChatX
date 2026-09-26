@@ -218,7 +218,7 @@ def _patch_lxst_linksource_samplerate():
         return rate or 48000
 
     def _set_samplerate(self, value):
-        # Keep instance overrides possible; the property reads them back.
+        # Keep instance overrides possible. The property reads them back.
         self._samplerate_override = value
 
     def _get_samplerate(self):
@@ -657,7 +657,7 @@ class TelephoneManager:
     def on_telephone_call_ended(self, caller_identity: RNS.Identity):
         if self._call_end_recorded:
             # LXST can emit ended twice for one call (local hangup plus remote
-            # link close); only the first may record history/notifications.
+            # link close). Only the first may record history/notifications.
             return
         self._call_end_recorded = True
         # Capture status just before ending if possible, or use the last known status

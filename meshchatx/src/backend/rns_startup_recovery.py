@@ -465,7 +465,7 @@ def create_reticulum_with_recovery(
             if not disabled:
                 break
             print(
-                "Reticulum init failed; disabled "
+                "Reticulum init failed. Disabled "
                 f"{', '.join(disabled)} and retrying "
                 f"(attempt {attempt + 1}/{max_attempts}). "
                 f"Error: {exc}",

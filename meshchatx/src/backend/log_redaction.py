@@ -25,7 +25,7 @@ _LONG_HEX_RE = re.compile(r"(?<![0-9a-fA-F])([0-9a-fA-F]{96,})(?![0-9a-fA-F])")
 # Email-ish tokens.
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 
-# IPv4 addresses (not link-local mesh addressing; UI logs should not leak host IPs by default).
+# IPv4 addresses (not link-local mesh addressing. UI logs should not leak host IPs by default).
 _IPV4_RE = re.compile(
     r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b",
 )

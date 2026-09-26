@@ -154,7 +154,7 @@ def test_preview_and_install_with_denied_network(tmp_path):
     assert "network:fetch" not in installed["granted_permissions"]
     assert manager.network_fetch_allowed(installed["id"]) is False
     manager.enable(installed["id"])
-    # storage was granted; network was denied
+    # storage was granted. Network was denied
     manager.storage_set(installed["id"], "k", "v")
     assert manager.storage_get(installed["id"], "k") == "v"
 

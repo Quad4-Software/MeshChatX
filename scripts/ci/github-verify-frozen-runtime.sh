@@ -89,7 +89,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
         echo "  thin-backend-mach-o.sh must lipo-thin that executable, not only .so/.dylib." >&2
         exit 1
     fi
-    # LXST vendors x86_64-only pyogg dylibs; the arm64 freeze must have been
+    # LXST vendors x86_64-only pyogg dylibs. The arm64 freeze must have been
     # normalized by scripts/ci/macos-normalize-pyogg-dylibs.sh before this.
     pyogg_dir="${BUILD_EXE}/lib/LXST/Codecs/libs/pyogg/libs/macos"
     if [[ -n "${want}" && -d "${pyogg_dir}" ]]; then

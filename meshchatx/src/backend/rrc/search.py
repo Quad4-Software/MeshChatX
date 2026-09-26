@@ -3,7 +3,7 @@
 """Global message search across connected RRC hubs.
 
 Pure query parsing, matching, and ranking helpers plus a bounded scan over
-the in-memory per-room message buffers each hub keeps. No I/O happens here;
+the in-memory per-room message buffers each hub keeps. No I/O happens here.
 the HTTP layer passes hub objects in and serializes the returned hit dicts.
 
 Query grammar (whitespace separated terms):
@@ -85,7 +85,7 @@ def _make_clause(raw, negated):
 def parse_query(query):
     """Parse a query string into a list of clause groups.
 
-    The result is a list of groups; each group is a list of clause dicts
+    The result is a list of groups. Each group is a list of clause dicts
     with keys field (None or from/room/hub/kind), value, and negated. A
     message matches when every clause in at least one group holds, so
     groups are OR-ed and clauses within a group are AND-ed. Empty or
@@ -210,7 +210,7 @@ def _hub_value_match(hub, value_lower):
 
 
 def _clause_score(clause, msg, room, hub):
-    """Score one clause; zero means the clause does not hold."""
+    """Score one clause. Zero means the clause does not hold."""
     field = clause["field"]
     value = clause["value"].lower()
     allow_fuzzy = not clause["negated"]
@@ -275,7 +275,7 @@ def score_message(msg, parsed, room=None, hub=None):
 
     Zero means no group matched. Otherwise it is the summed clause score
     of the best matching OR group. room and hub supply context for room
-    and hub field clauses; room defaults to the message room field.
+    and hub field clauses. Room defaults to the message room field.
     """
     if isinstance(parsed, str):
         parsed = parse_query(parsed)
