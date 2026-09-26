@@ -548,8 +548,10 @@ def _rns_link_parse_dest_aspect(data):
 
 
 async def _rns_link_send(client, payload):
+    from meshchatx.src.backend.websocket_runtime import send_str_on_client_loop
+
     try:
-        await client.send_str(json.dumps(payload))
+        await send_str_on_client_loop(client, json.dumps(payload))
     except Exception as e:
         print(f"rns.link reply failed: {e}")
 
