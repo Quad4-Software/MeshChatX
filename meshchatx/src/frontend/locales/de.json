@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Klassisch (alt)",
         "appcontainer_unsupported": "AppContainer-APIs auf diesem Windows-Host nicht verfügbar",
         "landlock_status": "Landlock-Sandbox (Linux)",
-        "error_report_saved": "In Fehlerberichten gespeichert",
         "app_sidebar_layout": "Layout der App-Seitenleiste",
         "telemetry_trust_failed": "Fehler beim Aktualisieren des Telemetrie-Vertrauens.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Kosten für eingehende Stempel",
         "messages_sidebar_position": "Nachrichten-Seitenleiste",
         "location_manual_lon": "Längengrad",
-        "error_report_locally": "Lokal melden",
         "community_interfaces_description": "Zeigt von der Community gepflegte Vorlagen beim Hinzufügen neuer Schnittstellen an.",
         "notification_sound_set_primary": "Als primär festlegen",
         "message_font_size": "Nachrichtenschriftgröße",
@@ -562,7 +560,6 @@
         "flood_protection": "Überflutungsschutz",
         "tools": "Werkzeuge",
         "reloading_rns": "RNS wird neu geladen...",
-        "error_report_failed": "Lokaler Bericht konnte nicht gespeichert werden",
         "tutorial_welcome": "Willkommen bei MeshChatX",
         "last_synced": "Zuletzt synchronisiert vor {time}.",
         "view_incoming_calls": "Eingehende Anrufe anzeigen",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Leser aktiv. Halte die Geräte Rücken an Rücken.",
             "nfc_join_this": "Diesem Netzwerk beitreten",
             "nfc_failed": "NFC-Vorgang fehlgeschlagen",
-            "satellite_hint": "Dieses Gerät kann auf eine Satellitenverbindung ausweichen. Sie ist ein langsamer, getakteter IP-Pfad. Halte Interface-Bitrate und Announce-Obergrenzen auf Links niedrig, die sie nutzen könnten."
+            "satellite_hint": "Dieses Gerät kann auf eine Satellitenverbindung ausweichen. Sie ist ein langsamer, getakteter IP-Pfad. Halte Interface-Bitrate und Announce-Obergrenzen auf Links niedrig, die sie nutzen könnten.",
+            "permission_failed": "Die Berechtigung \"Geräte in der Nähe\" konnte auf diesem Gerät nicht angefordert werden."
         },
         "rnpath_trace": {
             "title": "RNS Pfad-Verfolgung",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Schnittstellen auf diesem Rechner",
         "kernel_iface_loading": "Laden…",
         "kernel_iface_picker_help": "Optional ein Kernel-Interface-Name, oder leer lassen und nur über Listen-IP binden. Klick füllt das Feld.",
-        "auto_iface_ifname_chips_hint": "Schnittstellen dieses Rechners: Klicken zum Hinzufügen oder Entfernen im Feld darüber."
+        "auto_iface_ifname_chips_hint": "Schnittstellen dieses Rechners: Klicken zum Hinzufügen oder Entfernen im Feld darüber.",
+        "aware_permission_failed": "Die Berechtigung \"Geräte in der Nähe\" konnte auf diesem Gerät nicht angefordert werden."
     },
     "about": {
         "title": "Über",
@@ -3324,7 +3323,7 @@
         "view_mode_planet": "Planet",
         "view_mode_flat_full": "Flach (2D)",
         "view_mode_planet_full": "Planet (pro Interface)",
-        "view_mode_desc": "Jedes Interface ist ein Globus. Peers sitzen auf dem Interface, das sie nutzen. Ziehen dreht, Scrollen zoomt. Nur WebGL.",
+        "view_mode_desc": "Flach ist ein Kraftgraph. Planet hüllt jedes Interface in einen Globus. Radial ordnet Peers in Hop-Ringen an. Planet nur mit WebGL.",
         "nodes": "Knoten",
         "links": "Verbindungen",
         "interfaces": "Schnittstellen",
@@ -3342,7 +3341,9 @@
         "renderer_option_auto": "Auto (WebGL wenn verfügbar)",
         "renderer_option_webgl": "WebGL + WASM",
         "renderer_option_vis": "vis-network (Canvas)",
-        "renderer_webgl_unavailable": "WebGL-Renderer nicht verfügbar. Es wird der vis-network-Fallback verwendet."
+        "renderer_webgl_unavailable": "WebGL-Renderer nicht verfügbar. Es wird der vis-network-Fallback verwendet.",
+        "view_mode_radial": "Radial",
+        "view_mode_radial_full": "Radial (Hop-Ringe)"
     },
     "map": {
         "title": "Karte",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Einstellungen durchsuchen...",
         "no_search_results": "Keine passenden Einstellungen gefunden",
         "try_different_search": "Versuchen Sie einen anderen Suchbegriff",
-        "clear_search": "Suche löschen"
+        "clear_search": "Suche löschen",
+        "archived_pages_flush_failed": "Archivierte Seiten konnten nicht geleert werden"
     },
     "android_storage": {
         "setup_title": "Wählen Sie, wo MeshChatX Daten speichert",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} hat {count} Dateien gesendet",
         "message_not_found_in_cache": "Nachricht nicht im Cache gefunden",
         "scroll_to_bottom": "Nach unten scrollen",
-        "copied_to_clipboard": "In die Zwischenablage kopiert"
+        "copied_to_clipboard": "In die Zwischenablage kopiert",
+        "failed_generate_paper_uri": "Papiernachricht konnte nicht erstellt werden"
     },
     "command_palette": {
         "open_hint": "Suche und Befehle (Strg+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Anwendungs-Debug-Logs lesen"
                 },
-                "bugReport": {
-                    "status": "Status des Bug-Report-Collectors lesen",
-                    "listCollectors": "Gehörte mcx-bugs-v1-Collector auflisten",
-                    "listReports": "Empfangene Bug-Reports auflisten",
-                    "deleteReport": "Gespeicherten Bug-Report löschen",
-                    "clearReports": "Alle gespeicherten Bug-Reports löschen",
-                    "preview": "Geschwärzte Debug-Logs für Bug-Reports Vorschau",
-                    "send": "Bug-Reports über das Mesh senden",
-                    "startCollector": "Einen mcx-bugs-v1-Collector starten",
-                    "stopCollector": "Den Bug-Report-Collector stoppen",
-                    "announce": "Den Bug-Report-Collector announcen",
-                    "setCollectorName": "Anzeigenamen des Bug-Report-Collectors festlegen",
-                    "listIssues": "Lokale und empfangene Bug-Issues auflisten",
-                    "getIssue": "Gespeicherten Bug-Issue lesen",
-                    "recordLocal": "Lokalen Bug-Issue speichern",
-                    "setIssueStatus": "Status eines Bug-Issues aktualisieren",
-                    "listPendingSends": "Ausstehende Bug-Report-Sendungen auflisten",
-                    "enqueueSend": "Bug-Report zur Mesh-Sendung einreihen",
-                    "cancelPendingSend": "Ausstehende Bug-Report-Sendung abbrechen"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "RNS-Links zu Zielen öffnen",
                     "identify": "Auf RNS-Links identifizieren",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Fehlerdetails ausblenden",
         "status_label": "Status",
         "reason_label": "Grund",
-        "checks_completed": "Alle Prüfungen erfolgreich bestanden."
+        "checks_completed": "Alle Prüfungen erfolgreich bestanden.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Deaktivieren",

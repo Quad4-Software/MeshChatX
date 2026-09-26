@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "クラシック（旧）",
         "appcontainer_unsupported": "このホストでは利用できません",
         "landlock_status": "Landlock（Linux）",
-        "error_report_saved": "バグレポートに保存しました",
         "app_sidebar_layout": "アプリサイドバーのレイアウト",
         "telemetry_trust_failed": "テレメトリ信頼の更新に失敗しました。",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "受信スタンプコスト",
         "messages_sidebar_position": "メッセージのサイドバー位置",
         "location_manual_lon": "経度",
-        "error_report_locally": "ローカルにレポート",
         "community_interfaces_description": "新しいインターフェースを追加するときに、コミュニティ管理のプリセットを表示します。",
         "notification_sound_set_primary": "メインに設定",
         "message_font_size": "メッセージのフォントサイズ",
@@ -562,7 +560,6 @@
         "flood_protection": "フラッド保護",
         "tools": "ツール",
         "reloading_rns": "RNS を再読み込み中...",
-        "error_report_failed": "ローカルレポートを保存できませんでした",
         "tutorial_welcome": "MeshChatX へようこそ",
         "last_synced": "最終同期：{time} 前。",
         "view_incoming_calls": "着信通話を表示",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "リーダー有効。デバイスを背中合わせにしてください。",
             "nfc_join_this": "このネットワークに参加",
             "nfc_failed": "NFC操作に失敗しました",
-            "satellite_hint": "このデバイスは衛星リンクにフォールバックできます。低速で従量制のIP経路です。利用する可能性のあるリンクではインターフェースのビットレートとアナウンス上限を低く保ってください。"
+            "satellite_hint": "このデバイスは衛星リンクにフォールバックできます。低速で従量制のIP経路です。利用する可能性のあるリンクではインターフェースのビットレートとアナウンス上限を低く保ってください。",
+            "permission_failed": "このデバイスで近くのデバイスの権限をリクエストできませんでした。"
         },
         "rnpath_trace": {
             "title": "RNS パストレース",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "このホストのインターフェース",
         "kernel_iface_loading": "読み込み中…",
         "kernel_iface_picker_help": "デバイスは任意です。カーネルインターフェース名を 1 つ指定するか、空のままにしてリッスン IP のみでバインドします。行をクリックすると入力欄に反映されます。",
-        "auto_iface_ifname_chips_hint": "このホストのインターフェース：クリックして上の入力欄に名前を追加または削除します。"
+        "auto_iface_ifname_chips_hint": "このホストのインターフェース：クリックして上の入力欄に名前を追加または削除します。",
+        "aware_permission_failed": "このデバイスで近くのデバイスの権限をリクエストできませんでした。"
     },
     "about": {
         "title": "アプリについて",
@@ -3335,14 +3334,16 @@
         "view_mode_planet": "プラネット",
         "view_mode_flat_full": "フラット（2D）",
         "view_mode_planet_full": "プラネット（インターフェースごと）",
-        "view_mode_desc": "各インターフェースが 1 つの地球になります。ピアは使用中のインターフェース上に配置されます。ドラッグで回転、スクロールでズーム。WebGL 専用です。",
+        "view_mode_desc": "フラットは力学グラフ、プラネットは各インターフェースを球体として表示し、ラジアルはピアをホップリング状に配置します。プラネットは WebGL 専用です。",
         "nodes": "ノード",
         "links": "リンク",
         "interfaces": "インターフェース",
         "online": "オンライン",
         "offline": "オフライン",
         "search_nodes_placeholder": "ノードを検索（{count}）...",
-        "clear_search": "検索をクリア"
+        "clear_search": "検索をクリア",
+        "view_mode_radial": "ラジアル",
+        "view_mode_radial_full": "ラジアル (ホップリング)"
     },
     "map": {
         "title": "地図",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "設定を検索...",
         "no_search_results": "検索に一致する設定が見つかりません",
         "try_different_search": "別の検索語を試してください",
-        "clear_search": "検索をクリア"
+        "clear_search": "検索をクリア",
+        "archived_pages_flush_failed": "アーカイブ済みページの破棄に失敗しました"
     },
     "android_storage": {
         "setup_title": "MeshChatXのデータの保存先を選択",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} が {count} 件のファイルを送信しました",
         "message_not_found_in_cache": "メッセージがキャッシュに見つかりません",
         "scroll_to_bottom": "一番下へスクロール",
-        "copied_to_clipboard": "クリップボードにコピーしました"
+        "copied_to_clipboard": "クリップボードにコピーしました",
+        "failed_generate_paper_uri": "紙メッセージの生成に失敗しました"
     },
     "command_palette": {
         "open_hint": "検索とコマンド（Ctrl+K）",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "アプリのデバッグログを読み取る"
                 },
-                "bugReport": {
-                    "status": "バグレポート収集器の状態を読み取る",
-                    "listCollectors": "受信した mcx-bugs-v1 収集器を一覧表示",
-                    "listReports": "受信したバグレポートを一覧表示",
-                    "deleteReport": "保存済みのバグレポートを削除",
-                    "clearReports": "保存済みのバグレポートをすべて削除",
-                    "preview": "バグレポート用にマスク済みのデバッグログをプレビュー",
-                    "send": "バグレポートをメッシュ経由で送信",
-                    "startCollector": "mcx-bugs-v1 収集器を開始",
-                    "stopCollector": "バグレポート収集器を停止",
-                    "announce": "バグレポート収集器をアナウンス",
-                    "setCollectorName": "バグレポート収集器の表示名を設定",
-                    "listIssues": "ローカルおよび受信済みのバグ課題を一覧表示",
-                    "getIssue": "保存済みのバグ課題を読み取る",
-                    "recordLocal": "ローカルのバグ課題を記録",
-                    "setIssueStatus": "バグ課題のステータスを更新",
-                    "listPendingSends": "送信待ちのバグレポートを一覧表示",
-                    "enqueueSend": "バグレポートをメッシュ送信キューに追加",
-                    "cancelPendingSend": "送信待ちのバグレポートをキャンセル"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "宛先への RNS リンクを開く",
                     "identify": "RNS リンク上で識別情報を送る",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "失敗の詳細を隠す",
         "status_label": "ステータス",
         "reason_label": "理由",
-        "checks_completed": "すべてのチェックに合格しました。"
+        "checks_completed": "すべてのチェックに合格しました。",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "無効化",

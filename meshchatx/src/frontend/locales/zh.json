@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "经典（旧）",
         "appcontainer_unsupported": "此 Windows 主机上 AppContainer API 不可用",
         "landlock_status": "Landlock 沙箱（Linux）",
-        "error_report_saved": "已保存到错误报告",
         "app_sidebar_layout": "应用侧栏布局",
         "telemetry_trust_failed": "更新遥测信任失败。",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "入站邮戳成本",
         "messages_sidebar_position": "消息侧边栏",
         "location_manual_lon": "经度",
-        "error_report_locally": "本地报告",
         "community_interfaces_description": "在添加新接口时显示社区维护的预设。",
         "notification_sound_set_primary": "设为主要",
         "message_font_size": "消息字体大小",
@@ -562,7 +560,6 @@
         "flood_protection": "洪水保护",
         "tools": "工具",
         "reloading_rns": "正在重新加载 RNS...",
-        "error_report_failed": "无法保存本地报告",
         "tutorial_welcome": "欢迎使用 MeshChatX",
         "last_synced": "上次同步于 {time} 前。",
         "view_incoming_calls": "查看来电",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "读取器已激活。将设备背对背贴在一起。",
             "nfc_join_this": "加入此网络",
             "nfc_failed": "NFC 操作失败",
-            "satellite_hint": "此设备可以回退到卫星链路。这是一条缓慢且按量计费的 IP 路径。请在可能使用它的链路上保持较低的接口比特率和 announce 上限。"
+            "satellite_hint": "此设备可以回退到卫星链路。这是一条缓慢且按量计费的 IP 路径。请在可能使用它的链路上保持较低的接口比特率和 announce 上限。",
+            "permission_failed": "无法在此设备上请求附近设备权限。"
         },
         "rnpath_trace": {
             "title": "RNS 路径",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "本机网络接口",
         "kernel_iface_loading": "加载中…",
         "kernel_iface_picker_help": "“设备”为可选，填写一个内核网卡名，或留空仅按 Listen IP 绑定。点击一行填入输入框。",
-        "auto_iface_ifname_chips_hint": "本机接口：点击可在上方字段中添加或移除名称。"
+        "auto_iface_ifname_chips_hint": "本机接口：点击可在上方字段中添加或移除名称。",
+        "aware_permission_failed": "无法在此设备上请求附近设备权限。"
     },
     "about": {
         "title": "关于",
@@ -3324,7 +3323,7 @@
         "view_mode_planet": "行星",
         "view_mode_flat_full": "平面 (2D)",
         "view_mode_planet_full": "行星 (按接口)",
-        "view_mode_desc": "每个接口一颗星球。对等节点在它们所用的接口上。拖动环绕，滚轮缩放。仅 WebGL。",
+        "view_mode_desc": "平面是力导向图。行星将每个接口显示为球体。径向将节点按跳数排列成环。行星视图仅支持 WebGL。",
         "nodes": "节点",
         "links": "链路",
         "interfaces": "接口",
@@ -3342,7 +3341,9 @@
         "renderer_option_auto": "自动（可用时使用 WebGL）",
         "renderer_option_webgl": "WebGL + WASM",
         "renderer_option_vis": "vis-network（canvas）",
-        "renderer_webgl_unavailable": "WebGL 渲染器不可用。已回退到 vis-network。"
+        "renderer_webgl_unavailable": "WebGL 渲染器不可用。已回退到 vis-network。",
+        "view_mode_radial": "径向",
+        "view_mode_radial_full": "径向 (跳数环)"
     },
     "map": {
         "title": "地图",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "搜索设置...",
         "no_search_results": "没有与您搜索匹配的设置",
         "try_different_search": "请尝试其他搜索词",
-        "clear_search": "清除搜索"
+        "clear_search": "清除搜索",
+        "archived_pages_flush_failed": "清空存档页面失败"
     },
     "android_storage": {
         "setup_title": "选择MeshChatX存储数据的位置",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} 发送了 {count} 个文件",
         "message_not_found_in_cache": "缓存中未找到消息",
         "scroll_to_bottom": "滚动到底部",
-        "copied_to_clipboard": "已复制到剪贴板"
+        "copied_to_clipboard": "已复制到剪贴板",
+        "failed_generate_paper_uri": "生成纸面消息失败"
     },
     "command_palette": {
         "open_hint": "搜索与命令 (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "读取应用调试日志"
                 },
-                "bugReport": {
-                    "status": "读取错误报告收集器状态",
-                    "listCollectors": "列出已发现的 mcx-bugs-v1 收集器",
-                    "listReports": "列出已收到的错误报告",
-                    "deleteReport": "删除已存储的错误报告",
-                    "clearReports": "清除所有已存储的错误报告",
-                    "preview": "预览经脱敏的调试日志",
-                    "send": "通过 mesh 发送错误报告",
-                    "startCollector": "启动 mcx-bugs-v1 收集器",
-                    "stopCollector": "停止错误报告收集器",
-                    "announce": "通告错误报告收集器",
-                    "setCollectorName": "设置错误报告收集器显示名称",
-                    "listIssues": "列出本地与收到的问题工单",
-                    "getIssue": "读取已存储的问题工单",
-                    "recordLocal": "记录本地问题工单",
-                    "setIssueStatus": "更新问题工单状态",
-                    "listPendingSends": "列出待发送的错误报告",
-                    "enqueueSend": "将错误报告加入 mesh 发送队列",
-                    "cancelPendingSend": "取消待发送的错误报告"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "打开到目的地的RNS链接",
                     "identify": "在RNS链路上识别",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "隐藏失败详情",
         "status_label": "状态",
         "reason_label": "原因",
-        "checks_completed": "所有检查已成功通过。"
+        "checks_completed": "所有检查已成功通过。",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "禁用",
