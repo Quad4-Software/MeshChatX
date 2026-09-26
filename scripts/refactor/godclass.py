@@ -665,7 +665,13 @@ def cmd_apply(args: argparse.Namespace) -> int:
                 e2 = module_syms.get(dep)
                 if e2 and e2[0] == "import":
                     shared_ids.add(id(e2[1]))
-            shared_body.append(_slice(lines, node.lineno, node.end_lineno))
+            first = min(
+                [node.lineno]
+                + [d.lineno for d in getattr(node, "decorator_list", [])]
+            )
+            shared_body.append(
+                _slice(lines, _attached_comment_start(lines, first), node.end_lineno)
+            )
         content = (
             header.replace("{cls}", f"{plan['class']} shared helpers")
             + "\n".join(import_lines_for(shared_ids))
@@ -710,7 +716,10 @@ def cmd_apply(args: argparse.Namespace) -> int:
             removed.append((m.slice_start, m.end_lineno))
     for name in shared_syms:
         node = module_syms[name][1]
-        removed.append((node.lineno, node.end_lineno))
+        first = min(
+            [node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])]
+        )
+        removed.append((_attached_comment_start(lines, first), node.end_lineno))
     removed.sort()
     keep_lines = []
     for idx, line in enumerate(lines, start=1):
@@ -746,9 +755,12 @@ def cmd_apply(args: argparse.Namespace) -> int:
     # Insert after the last top-level import so names are bound before any
     # remaining module-level code runs.
     last_import_line = max(
-        (n.end_lineno or n.lineno)
-        for n in info["tree"].body
-        if isinstance(n, (ast.Import, ast.ImportFrom))
+        (
+            (n.end_lineno or n.lineno)
+            for n in info["tree"].body
+            if isinstance(n, (ast.Import, ast.ImportFrom))
+        ),
+        default=0,
     )
     # Guard: retained module-level statements above the insertion point
     # must not reference symbols that moved to the shared module.
