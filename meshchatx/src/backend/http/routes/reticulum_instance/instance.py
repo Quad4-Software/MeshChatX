@@ -115,7 +115,7 @@ def register_reticulum_instance_instance_routes(routes, app):
         try:
             reloaded = await app.reload_reticulum()
         except Exception as e:
-            logger.debug(f"Failed to reload RNS after instance config update: {e}")
+            logger.debug("Failed to reload RNS after instance config update: %s", e)
             reloaded = False
 
         if not reloaded:
@@ -175,7 +175,7 @@ def register_reticulum_instance_instance_routes(routes, app):
         try:
             success = await app.reload_reticulum()
         except Exception as e:
-            logger.debug(f"Failed to reload RNS on request: {e}")
+            logger.debug("Failed to reload RNS on request: %s", e)
             success = False
         if success:
             return web.json_response({"message": "Reticulum reloaded successfully"})

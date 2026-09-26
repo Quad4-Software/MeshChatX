@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from meshchatx.src.backend.http.errors import (
@@ -25,8 +26,7 @@ def register_identities_active_routes(routes: Any, app: Any) -> None:
     async def identity_backup_download(request):
         try:
             info = app.backup_identity()
-            with open(info["path"], "rb") as f:
-                data = f.read()
+            data = await asyncio.to_thread(Path(info["path"]).read_bytes)
             return web.Response(
                 body=data,
                 headers={

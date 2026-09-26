@@ -305,8 +305,9 @@ def register_websocket_upgrade_upgrade_routes(routes: Any, app: Any) -> None:
                                 json.dumps({"type": "pong"}),
                             )
                     except Exception as e:
-                        logging.exception(
-                            f"Error processing websocket text message: {e}",
+                        logger.exception(
+                            "Error processing websocket text message: %s",
+                            e,
                         )
         finally:
             app.web_audio_bridge.detach_client(websocket_response)

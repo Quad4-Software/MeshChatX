@@ -9,6 +9,8 @@ import socket
 
 import psutil
 
+logger = logging.getLogger(__name__)
+
 
 def list_host_network_interfaces():
     """Enumerate kernel network interfaces on the host running MeshChat.
@@ -22,7 +24,7 @@ def list_host_network_interfaces():
     try:
         raw = psutil.net_if_addrs()
     except Exception as exc:
-        logging.debug("list_host_network_interfaces: net_if_addrs failed: %s", exc)
+        logger.debug("list_host_network_interfaces: net_if_addrs failed: %s", exc)
         return [], str(exc)
     out: list[dict[str, object]] = []
     for name in sorted(raw.keys(), key=lambda n: str(n).lower()):
