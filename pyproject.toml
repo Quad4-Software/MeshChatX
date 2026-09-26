@@ -93,6 +93,7 @@ dev = [
     "mutmut>=3.7.0; python_version < '4.0'",
     "basedpyright>=1.39.10",
     "schemathesis>=4.25.2",
+    "pytest-rerunfailures>=14",
 ]
 
 [tool.ruff]
