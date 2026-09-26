@@ -19,14 +19,17 @@ export function computeCaret(
     width: number,
     height: number
 ): ContextMenuCaret | null {
-    const insideX = originX > left + 4 && originX < left + width - 4;
-    const insideY = originY > top + 4 && originY < top + height - 4;
+    // An anchor inside or on the panel edge has nothing to point at.
+    const insideX = originX >= left && originX <= left + width;
+    const insideY = originY >= top && originY <= top + height;
     if (insideX && insideY) {
         return null;
     }
 
     const size = 5;
-    const margin = 12;
+    // Keep the caret on the straight part of the edge: rounded-xl
+    // corners span 12px and the caret is 10px wide.
+    const margin = 18;
 
     if (originY <= top) {
         const cx = Math.min(Math.max(originX, left + margin), left + width - margin);
