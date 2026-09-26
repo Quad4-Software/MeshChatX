@@ -17,7 +17,7 @@ inputs:
     pnpm-version:
         description: pnpm version activated through corepack
         required: false
-        default: "11.1.2"
+        default: "12.7.0"
     task-version:
         description: go-task version installed from GitHub releases
         required: false
