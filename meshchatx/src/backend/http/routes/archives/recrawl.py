@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from meshchatx.src.backend.async_utils import call_soon_threadsafe_or_none
+
 # ruff: noqa: F403, F405
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
@@ -65,11 +67,11 @@ def register_archives_recrawl_routes(routes: Any, app: Any) -> None:
             content_received[0] = content
             # RNS request callbacks fire on the transport thread, so the
             # asyncio.Event must be set through the owning loop.
-            loop.call_soon_threadsafe(done_event.set)
+            call_soon_threadsafe_or_none(loop, done_event.set)
 
         def on_failure(reason):
             failure_reason[0] = reason or "download failed"
-            loop.call_soon_threadsafe(done_event.set)
+            call_soon_threadsafe_or_none(loop, done_event.set)
 
         downloader = NomadnetPageDownloader(
             destination_hash=bytes.fromhex(destination_hash),
