@@ -654,6 +654,51 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         await fireEvent.click(telemetryToggle);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { telemetry_enabled: true });
     });
+
+    it("identity switch cancels pending debounced saves", async () => {
+        const { view, api } = await renderSettings();
+        const input = view.container.querySelector('input[placeholder="Display Name"]');
+        expect(input).not.toBeNull();
+        await fireEvent.input(input, { target: { value: "Typed Under Old Identity" } });
+        api.patch.mockClear();
+        GlobalEmitter.emit("identity-switched", {});
+        await new Promise((r) => setTimeout(r, 800));
+        // The queued save reads config at fire time; cancelling it keeps
+        // the old identity's edit from PATCHing the new identity.
+        expect(api.patch).not.toHaveBeenCalledWith("/api/v1/config", {
+            display_name: "Typed Under Old Identity",
+        });
+    });
+
+    it("a wholesale config merge keeps keys whose debounced save is still pending", async () => {
+        const { view, api } = await renderSettings();
+        const input = view.container.querySelector('input[placeholder="Display Name"]');
+        expect(input).not.toBeNull();
+        await fireEvent.input(input, { target: { value: "Typed Name" } });
+        // A patch response for an unrelated field echoes the server's
+        // stale display_name; the in-flight edit must not be reverted
+        // mid-debounce.
+        const themeSelect = view.container.querySelector("#theme-select");
+        await fireEvent.change(themeSelect, { target: { value: "light" } });
+        await waitFor(() => {
+            expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { theme: "light" });
+        });
+        await waitFor(() => {
+            expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { display_name: "Typed Name" });
+        });
+    });
+
+    it("unmount flushes pending debounced saves instead of dropping them", async () => {
+        const { view, api } = await renderSettings();
+        const input = view.container.querySelector('input[placeholder="Display Name"]');
+        expect(input).not.toBeNull();
+        await fireEvent.input(input, { target: { value: "Flushed Name" } });
+        api.patch.mockClear();
+        view.unmount();
+        await waitFor(() => {
+            expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { display_name: "Flushed Name" });
+        });
+    });
 });
 
 describe("SettingsPage: transport mode (POST, not PATCH)", () => {

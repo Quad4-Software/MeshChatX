@@ -262,8 +262,8 @@
         try {
             const merged = await fetchMergedConfig(window.api, config);
             if (merged) {
-                sanitizeColorConfigFields(merged);
-                config = merged;
+                config = configPreservingPendingSaves(merged);
+                sanitizeColorConfigFields(config);
             }
         } catch (e) {
             console.error("Failed to load config", e);
@@ -347,7 +347,7 @@
         try {
             const updated = await patchServerConfig({ [key]: value }, window.api);
             sanitizeColorConfigFields(updated);
-            config = { ...config, ...updated };
+            config = configPreservingPendingSaves({ ...config, ...updated });
             publishPatchedConfig(config);
         } catch (e) {
             console.error("Failed to update config field", key, e);
@@ -409,7 +409,7 @@
         try {
             const updated = await patchServerConfig({ telephone_enabled: value }, window.api);
             sanitizeColorConfigFields(updated);
-            config = { ...config, ...updated };
+            config = configPreservingPendingSaves({ ...config, ...updated });
             publishPatchedConfig(config);
             ToastUtils.success(value ? t("call.telephony_enabled") : t("call.telephony_disabled"));
         } catch {
@@ -467,10 +467,97 @@
         await flushArchivedPagesHelper();
     }
 
+    // Debounced config saves are tracked as {timer, run, configKeys}
+    // entries so they can be cancelled on identity switch, flushed on
+    // unmount, and so a wholesale config replace can keep fields that
+    // still have a save in flight.
+    type PendingConfigSave = {
+        timer: ReturnType<typeof setTimeout> | null;
+        run: () => void;
+        configKeys: string[];
+    };
+    const saveTimeouts: Record<string, PendingConfigSave | null> = {};
+
+    function queueConfigSave(
+        key: string,
+        run: () => void | Promise<void>,
+        delay: number,
+        configKeys: string[] | null = null
+    ) {
+        cancelConfigSave(key);
+        const entry: PendingConfigSave = { timer: null, run, configKeys: configKeys || [key] };
+        entry.timer = setTimeout(() => {
+            if (saveTimeouts[key] === entry) {
+                saveTimeouts[key] = null;
+            }
+            void run();
+        }, delay);
+        saveTimeouts[key] = entry;
+    }
+
+    function cancelConfigSave(key: string) {
+        const entry = saveTimeouts[key];
+        if (entry) {
+            if (entry.timer) clearTimeout(entry.timer);
+            saveTimeouts[key] = null;
+        }
+    }
+
+    function cancelPendingConfigSaves() {
+        for (const key of Object.keys(saveTimeouts)) {
+            cancelConfigSave(key);
+        }
+    }
+
+    function flushPendingConfigSaves() {
+        for (const key of Object.keys(saveTimeouts)) {
+            const entry = saveTimeouts[key];
+            if (!entry) {
+                continue;
+            }
+            if (entry.timer) clearTimeout(entry.timer);
+            saveTimeouts[key] = null;
+            // Fire the pending save now instead of silently dropping
+            // the last edits made before leaving the page.
+            Promise.resolve()
+                .then(() => entry.run())
+                .catch((e) => console.log(e));
+        }
+    }
+
+    function pendingConfigSaveKeys(): Set<string> {
+        const keys = new Set<string>();
+        for (const entry of Object.values(saveTimeouts)) {
+            if (!entry) {
+                continue;
+            }
+            for (const k of entry.configKeys || []) {
+                keys.add(k);
+            }
+        }
+        return keys;
+    }
+
+    function configPreservingPendingSaves(next: Record<string, any>) {
+        if (!next || typeof next !== "object") {
+            return next;
+        }
+        const pending = pendingConfigSaveKeys();
+        if (pending.size === 0) {
+            return next;
+        }
+        const merged = { ...next };
+        for (const key of pending) {
+            if (config && key in config) {
+                merged[key] = config[key];
+            }
+        }
+        return merged;
+    }
+
     let oidcClientSecret = $state("");
     let oidcSecretDirty = $state(false);
     let oidcSecretClear = $state(false);
-    let oidcSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const oidcRedirectUri = $derived(window.location.origin + apiPath("/auth/oidc/callback"));
 
@@ -498,65 +585,69 @@
     }
 
     function onOidcConfigChange() {
-        if (oidcSaveTimeout) clearTimeout(oidcSaveTimeout);
-        oidcSaveTimeout = setTimeout(async () => {
-            oidcSaveTimeout = null;
-            const payload: Record<string, any> = {
-                oidc_issuer_url: config.oidc_issuer_url,
-                oidc_client_id: config.oidc_client_id,
-                oidc_display_name: config.oidc_display_name,
-                oidc_scopes: config.oidc_scopes,
-            };
-            if (oidcSecretClear) {
-                payload.oidc_client_secret = null;
-            } else if (oidcSecretDirty && oidcClientSecret) {
-                // An empty field means unchanged, not cleared. Only an
-                // explicit clear action sends null.
-                payload.oidc_client_secret = oidcClientSecret;
-            }
-            try {
-                const updated = await patchServerConfig(payload, window.api);
-                sanitizeColorConfigFields(updated);
-                config = { ...config, ...updated };
-                publishPatchedConfig(config);
-            } catch (e) {
-                console.error("Failed to update oidc settings", e);
-                const detail = (e as any)?.response?.data?.error || (e as any)?.response?.data?.message;
-                ToastUtils.error(detail || t("common.save_failed"));
+        queueConfigSave(
+            "oidc",
+            async () => {
+                const payload: Record<string, any> = {
+                    oidc_issuer_url: config.oidc_issuer_url,
+                    oidc_client_id: config.oidc_client_id,
+                    oidc_display_name: config.oidc_display_name,
+                    oidc_scopes: config.oidc_scopes,
+                };
+                if (oidcSecretClear) {
+                    payload.oidc_client_secret = null;
+                } else if (oidcSecretDirty && oidcClientSecret) {
+                    // An empty field means unchanged, not cleared. Only an
+                    // explicit clear action sends null.
+                    payload.oidc_client_secret = oidcClientSecret;
+                }
                 try {
-                    const fresh = await fetchMergedConfig(window.api, config);
-                    if (fresh) {
-                        for (const key of Object.keys(payload)) {
-                            if (key in fresh) {
-                                config = { ...config, [key]: fresh[key] };
+                    const updated = await patchServerConfig(payload, window.api);
+                    sanitizeColorConfigFields(updated);
+                    config = configPreservingPendingSaves({ ...config, ...updated });
+                    publishPatchedConfig(config);
+                } catch (e) {
+                    console.error("Failed to update oidc settings", e);
+                    const detail = (e as any)?.response?.data?.error || (e as any)?.response?.data?.message;
+                    ToastUtils.error(detail || t("common.save_failed"));
+                    try {
+                        const fresh = await fetchMergedConfig(window.api, config);
+                        if (fresh) {
+                            for (const key of Object.keys(payload)) {
+                                if (key in fresh) {
+                                    config = { ...config, [key]: fresh[key] };
+                                }
                             }
                         }
+                    } catch {
+                        // keep local state if the resync fetch also fails
                     }
-                } catch {
-                    // keep local state if the resync fetch also fails
                 }
-            }
-            oidcClientSecret = "";
-            oidcSecretDirty = false;
-            oidcSecretClear = false;
-        }, 1000);
+                oidcClientSecret = "";
+                oidcSecretDirty = false;
+                oidcSecretClear = false;
+            },
+            1000,
+            ["oidc_issuer_url", "oidc_client_id", "oidc_display_name", "oidc_scopes", "oidc_client_secret"]
+        );
     }
-
-    let webUiAllowlistSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
     function onWebUiAllowlistChange(val: string) {
         serverSecurity.web_ui_ip_allowlist = val;
-        if (webUiAllowlistSaveTimeout) clearTimeout(webUiAllowlistSaveTimeout);
-        webUiAllowlistSaveTimeout = setTimeout(async () => {
-            webUiAllowlistSaveTimeout = null;
-            const updated = await saveWebUiIpAllowlistHelper(
-                String(serverSecurity.web_ui_ip_allowlist || ""),
-                window.api
-            );
-            if (updated) {
-                serverSecurity = { ...serverSecurity, ...updated };
-            }
-        }, 800);
+        queueConfigSave(
+            "webUiAllowlist",
+            async () => {
+                const updated = await saveWebUiIpAllowlistHelper(
+                    String(serverSecurity.web_ui_ip_allowlist || ""),
+                    window.api
+                );
+                if (updated) {
+                    serverSecurity = { ...serverSecurity, ...updated };
+                }
+            },
+            800,
+            []
+        );
     }
 
     async function revokeTelemetryTrust(contact: any) {
@@ -739,13 +830,16 @@
     }
 
     let searchInputEl: HTMLInputElement | undefined = $state();
-    let displayNameSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
     function onDisplayNameInput() {
-        if (displayNameSaveTimeout) clearTimeout(displayNameSaveTimeout);
-        displayNameSaveTimeout = setTimeout(() => {
-            void updateConfigField("display_name", config.display_name);
-        }, 600);
+        queueConfigSave("display_name", () => updateConfigField("display_name", config.display_name), 600);
+    }
+
+    function onIdentitySwitchReload() {
+        // Debounced saves read config at fire time; letting them run now
+        // would PATCH the new identity with the old one's values.
+        cancelPendingConfigSaves();
+        void loadConfig();
     }
 
     async function copyConfigValue(value?: string) {
@@ -779,15 +873,15 @@
             if (typeof label === "string") micronReleaseLabel = label;
         });
 
-        GlobalEmitter.on("identity-switched", loadConfig);
-        GlobalEmitter.on("identity-switched-apply", loadConfig);
+        GlobalEmitter.on("identity-switched", onIdentitySwitchReload);
+        GlobalEmitter.on("identity-switched-apply", onIdentitySwitchReload);
 
         return () => {
-            GlobalEmitter.off("identity-switched", loadConfig);
-            GlobalEmitter.off("identity-switched-apply", loadConfig);
-            if (displayNameSaveTimeout) clearTimeout(displayNameSaveTimeout);
-            if (webUiAllowlistSaveTimeout) clearTimeout(webUiAllowlistSaveTimeout);
-            if (oidcSaveTimeout) clearTimeout(oidcSaveTimeout);
+            GlobalEmitter.off("identity-switched", onIdentitySwitchReload);
+            GlobalEmitter.off("identity-switched-apply", onIdentitySwitchReload);
+            // Fire any pending debounced saves instead of dropping the last
+            // edits made before leaving the page.
+            flushPendingConfigSaves();
         };
     });
 </script>

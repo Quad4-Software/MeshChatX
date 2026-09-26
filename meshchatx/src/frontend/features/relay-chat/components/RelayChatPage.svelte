@@ -151,6 +151,14 @@
     let isLoadingPrevious = $state(false);
     let expandedPresenceGroups = $state<Record<string, boolean>>({});
     let tailTrimmed = $state(false);
+    // Oldest seq ever fetched for this room, including messages that were
+    // excluded from the display list. before_seq must advance past fully
+    // filtered pages (all ignored or hidden presence) or scroll-up refetches
+    // the same page forever.
+    let oldestFetchedSeq: number | null = null;
+    // Layout persist is scoped per identity; suppressed while the
+    // identity-switch teardown watchers would write an empty layout.
+    let suppressRelayLayoutPersist = false;
 
     let roomSelectSequence = 0;
     let loadPreviousInFlight = 0;
@@ -260,6 +268,14 @@
     const hostSettingsHub = $derived.by((): RrcHostedHub | null => {
         if (!hostHubSettingsId) return null;
         return serverHubs.find((h) => h.id === hostHubSettingsId) || null;
+    });
+
+    const hostModerationHub = $derived.by((): RrcHostedHub | null => {
+        const current = hostModeration.hub;
+        if (!current) return null;
+        // fetchServers swaps the serverHubs objects; re-resolve by id
+        // so the moderation page sees live running/uptime/clients.
+        return serverHubs.find((s) => s.id === current.id) || current;
     });
 
     const canModerateSelectedHub = $derived.by(() => {
@@ -590,8 +606,37 @@
         expandedHubs = {};
         availableRoomsExpanded = {};
         availableRoomsRefreshing = {};
+        expandedPresenceGroups = {};
+        oldestFetchedSeq = null;
+        // Modal, menu, and form state still points at the old
+        // identity's hubs and rooms; close it all so nothing acts on
+        // stale ids.
+        sidebarMenu = { show: false, x: 0, y: 0, hub: null, room: null };
+        messageMenu = { show: false, x: 0, y: 0, msg: null };
+        joinRoomName = "";
+        joinRoomKey = "";
+        badKeyPromptInFlight = null;
+        showMembers = false;
+        showSearch = false;
+        messageSearch = "";
+        showAddHub = false;
+        showCreateHub = false;
+        showHostHubSettings = false;
+        hostHubSettingsId = null;
+        showHubSettings = false;
+        settingsHubHash = null;
+        showChatPrefs = false;
+        hostModeration = { hub: null, tab: "rooms", room: null };
         GlobalState.relayChatUnreadCount = 0;
-        fetchHubs();
+        // The null writes above queue reactive persists that would
+        // overwrite the stored layout with an empty one. Layout
+        // persist is scoped per identity now; suppress it until the
+        // teardown writes have flushed.
+        suppressRelayLayoutPersist = true;
+        tick().then(() => {
+            suppressRelayLayoutPersist = false;
+        });
+        fetchHubs().then(() => restoreRelayLayout());
         fetchServers();
         if (!isPopoutMode) {
             fetchDiscovered();
@@ -625,7 +670,10 @@
                 return;
             }
             const loaded = ((response.data?.messages || []) as RrcMessage[]).filter((m) => !isIgnoredMsg(m));
-            messages = mergeRelayMessages(loaded, messages) as RrcMessage[];
+            // Existing messages must be the base: older pages already
+            // loaded sit before the newest page, and merge appends
+            // extras in order. Reversing the args scrambles the room.
+            messages = mergeRelayMessages(messages, loaded) as RrcMessage[];
             applyLocalHighlightFlags(messages);
             if (Array.isArray(response.data?.members)) {
                 members = response.data.members;
@@ -694,6 +742,10 @@
                 saveRelayPrefs(hash, fallback);
             }
             loadRelayPrefsState();
+            // The real bucket can differ from what "_" loaded: purge
+            // newly ignored peers and re-filter presence in any open room.
+            purgeIgnoredMessages();
+            refreshHighlightFlags();
         });
     });
 
@@ -741,10 +793,10 @@
     }
 
     function persistRelayLayout() {
-        if (isPopoutMode) {
+        if (isPopoutMode || suppressRelayLayoutPersist) {
             return;
         }
-        saveRelayLayout({
+        saveRelayLayout(scopedIdentityKey(), {
             view,
             selectedHubHash,
             selectedRoom,
@@ -758,7 +810,7 @@
         if (isPopoutMode) {
             return;
         }
-        const saved = loadRelayLayout() as Record<string, any> | null;
+        const saved = loadRelayLayout(scopedIdentityKey()) as Record<string, any> | null;
         if (!saved) {
             return;
         }
@@ -777,7 +829,7 @@
         // Older layouts stored the room under selectedRoomName.
         const savedRoom = saved.selectedRoom ?? saved.selectedRoomName ?? null;
         if (saved.selectedHubHash && hubs.some((h) => h.hub_hash === saved.selectedHubHash)) {
-            selectedHubHash = saved.selectedHubHash;
+            setSelectedHub(saved.selectedHubHash);
             expandedHubs[saved.selectedHubHash] = true;
             const hub = hubs.find((h) => h.hub_hash === saved.selectedHubHash);
             const rooms = hub ? orderedRoomsFor(hub) : [];
@@ -811,15 +863,40 @@
 
     function onCollapsedHubClick(hub: RrcHub) {
         const rooms = orderedRoomsFor(hub);
-        selectedHubHash = hub.hub_hash;
+        setSelectedHub(hub.hub_hash);
         expandedHubs[hub.hub_hash] = true;
         if (rooms.length > 0) {
             selectRoom(hub.hub_hash, rooms[0]);
         }
     }
 
+    // Every hub assignment goes through here so a hub switch always
+    // closes the open room: messages and members belong to the old
+    // hub, and sendMessage would otherwise post into a same-named
+    // room on the new hub. The draft is saved under the old hub/room
+    // key before the hash moves.
+    function setSelectedHub(hubHash: string | null) {
+        if (hubHash === selectedHubHash) {
+            return;
+        }
+        saveCurrentRoomDraft();
+        selectedHubHash = hubHash;
+        selectedRoom = null;
+        messages = [];
+        oldestFetchedSeq = null;
+        members = [];
+        hasMorePrevious = false;
+        expandedPresenceGroups = {};
+        composer = "";
+        nickCycle = null;
+        relayAtBottom = true;
+        newMessagesBelow = 0;
+        closeMessageMenu();
+        closeSidebarMenu();
+    }
+
     function toggleHub(hubH: string) {
-        selectedHubHash = hubH;
+        setSelectedHub(hubH);
         expandedHubs[hubH] = !expandedHubs[hubH];
         persistRelayLayout();
     }
@@ -947,7 +1024,7 @@
         if (!hub) {
             return;
         }
-        selectedHubHash = hub.hub_hash;
+        setSelectedHub(hub.hub_hash);
         expandedHubs[hub.hub_hash] = true;
         tick().then(() => {
             const inputs = document.querySelectorAll<HTMLInputElement>("input[data-relay-join-input]");
@@ -1177,6 +1254,13 @@
             typeof msg.src === "string" && /^[a-fA-F0-9]{8,64}$/.test(msg.src.trim())
                 ? msg.src.trim().toLowerCase()
                 : displayName(msg);
+        // A nick containing whitespace cannot fill {target} without
+        // splitting into extra command args; refuse rather than
+        // mis-target.
+        if (!target || /\s/.test(target)) {
+            ToastUtils.error(t("relay_chat.action_failed"));
+            return;
+        }
         const roomN = selectedRoom;
         const text = template.replace("{room}", roomN).replace("{target}", target);
         try {
@@ -1255,15 +1339,20 @@
         sending = true;
         const sentRoom = selectedRoom;
         const sentHub = selectedHubHash;
+        // Clear before the await so text typed while the request is in
+        // flight is not wiped when it resolves; restore on failure.
+        composer = "";
+        nickCycle = null;
         try {
             await window.api.post(
-                apiPath(`/rrc/hubs/${selectedHubHash}/rooms/${encodeURIComponent(selectedRoom)}/messages`),
+                apiPath(`/rrc/hubs/${sentHub}/rooms/${encodeURIComponent(sentRoom)}/messages`),
                 payload
             );
-            composer = "";
-            nickCycle = null;
             saveDraft(relayDraftKey(sentHub, sentRoom), scopedIdentityKey(), "");
         } catch (e: any) {
+            if (!composer) {
+                composer = text;
+            }
             ToastUtils.error(e?.response?.data?.message || t("relay_chat.send_failed"));
         } finally {
             sending = false;
@@ -1373,7 +1462,10 @@
         if (isLoadingPrevious || !hasMorePrevious || !selectedHubHash || !selectedRoom) {
             return;
         }
-        const beforeSeq = oldestLoadedSeq();
+        const loadedMin = oldestLoadedSeq();
+        const fetchedMin = oldestFetchedSeq;
+        const beforeSeq =
+            loadedMin === null && fetchedMin === null ? null : Math.min(loadedMin ?? Infinity, fetchedMin ?? Infinity);
         if (beforeSeq === null) {
             hasMorePrevious = false;
             return;
@@ -1393,20 +1485,27 @@
             }
             const older = (response.data?.messages || []) as RrcMessage[];
             hasMorePrevious = Boolean(response.data?.has_more);
+            for (const msg of older) {
+                if (typeof msg?.seq === "number") {
+                    oldestFetchedSeq = oldestFetchedSeq === null ? msg.seq : Math.min(oldestFetchedSeq, msg.seq);
+                }
+            }
             if (older.length === 0) {
                 return;
             }
             const uniqueOlder = filterUniqueOlderRelayMessages(older, messages) as RrcMessage[];
             if (uniqueOlder.length === 0) {
-                if (older.length > 0) {
-                    hasMorePrevious = false;
-                }
+                // A fully duplicate page does not mean history ends: trust
+                // the server has_more flag and let oldestFetchedSeq walk
+                // the pagination window past this page.
                 return;
             }
             // Locally ignored peers never enter the display list, but the
             // pagination window still tracks their seq numbers so history
-            // walks do not stall on a filtered page.
-            const visibleOlder = uniqueOlder.filter((m) => !isIgnoredMsg(m) && !isHiddenPresenceMessage(m));
+            // walks do not stall on a filtered page. hideJoinPart is a
+            // render-layer concern: presence rows must stay in the list so
+            // toggling the pref can reveal them again.
+            const visibleOlder = uniqueOlder.filter((m) => !isIgnoredMsg(m));
             applyLocalHighlightFlags(visibleOlder);
             const scrollEl = scrollContainerEl;
             const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
@@ -1494,6 +1593,12 @@
             tailTrimmed = false;
             Promise.resolve(selectRoom(selectedHubHash, selectedRoom)).finally(() => {
                 reloadingLatest = false;
+                // A failed reload resolves with the room still empty and
+                // nothing else re-triggers the fetch, so re-arm for the next
+                // bottom-scroll.
+                if (messages.length === 0) {
+                    tailTrimmed = true;
+                }
             });
             return;
         }
@@ -1588,14 +1693,21 @@
         if (selectedRoom === null && viewBeforeRoomOpen == null) {
             viewBeforeRoomOpen = view;
         }
+        // Menus anchor to a specific message or hub row; a room switch
+        // leaves them pointing at stale state.
+        closeMessageMenu();
+        closeSidebarMenu();
+        // setSelectedHub saves the draft under the old hub/room before
+        // rebinding, so the composer text never lands in the new key.
         saveCurrentRoomDraft();
-        selectedHubHash = hubH;
+        setSelectedHub(hubH);
         selectedRoom = roomN;
         expandedHubs[hubH] = true;
         hasMorePrevious = false;
         expandedPresenceGroups = {};
         // Clear before fetch so only websocket arrivals during the request are merged back.
         messages = [];
+        oldestFetchedSeq = null;
         members = [];
         nickCycle = null;
         relayAtBottom = true;
@@ -1611,7 +1723,10 @@
                 return;
             }
             const loaded = ((response.data?.messages || []) as RrcMessage[]).filter((m) => !isIgnoredMsg(m));
-            messages = mergeRelayMessages(loaded, messages) as RrcMessage[];
+            // Existing messages must be the base: older pages already
+            // loaded sit before the newest page, and merge appends
+            // extras in order. Reversing the args scrambles the room.
+            messages = mergeRelayMessages(messages, loaded) as RrcMessage[];
             applyLocalHighlightFlags(messages);
             members = response.data?.members || [];
             hasMorePrevious = Boolean(response.data?.has_more);
@@ -1744,7 +1859,7 @@
             if (result.room) {
                 await selectRoom(result.hub_hash, result.room);
             } else {
-                selectedHubHash = result.hub_hash;
+                setSelectedHub(result.hub_hash);
             }
             ToastUtils.success(t("messages.relay_link_opened"));
         } catch (e: any) {
@@ -1868,7 +1983,7 @@
             const response = await window.api.get(apiPath("/rrc/hubs"));
             hubs = response.data?.hubs || [];
             if (!selectedHubHash && hubs.length > 0) {
-                selectedHubHash = hubs[0].hub_hash;
+                setSelectedHub(hubs[0].hub_hash);
                 expandedHubs[hubs[0].hub_hash] = true;
             }
             applyLocalMentionRooms();
@@ -2017,6 +2132,7 @@
             selectedRoom = null;
             restoreViewAfterRoomClose();
             messages = [];
+            oldestFetchedSeq = null;
             members = [];
             ToastUtils.success(t("relay_chat.left_room"));
             await fetchHubs();
@@ -2038,6 +2154,8 @@
                 apiPath(`/rrc/hubs/${selectedHubHash}/rooms/${encodeURIComponent(selectedRoom)}/messages`)
             );
             messages = [];
+            oldestFetchedSeq = null;
+            tailTrimmed = false;
             ToastUtils.success(t("relay_chat.messages_cleared"));
         } catch (e: any) {
             ToastUtils.error(e?.response?.data?.message || t("relay_chat.action_failed"));
@@ -2084,7 +2202,7 @@
             await fetchHubs();
             const added = response.data?.hub;
             if (added) {
-                selectedHubHash = added.hub_hash;
+                setSelectedHub(added.hub_hash);
                 expandedHubs[added.hub_hash] = true;
             }
         } catch (e: any) {
@@ -2100,10 +2218,7 @@
         try {
             await window.api.delete(apiPath(`/rrc/hubs/${hub.hub_hash}`));
             if (selectedHubHash === hub.hub_hash) {
-                selectedHubHash = null;
-                selectedRoom = null;
-                messages = [];
-                members = [];
+                setSelectedHub(null);
             }
             ToastUtils.success(t("relay_chat.hub_removed"));
             await fetchHubs();
@@ -2165,8 +2280,8 @@
             return;
         }
         view = "chat";
-        selectedHubHash = decodeURIComponent(hubH);
-        expandedHubs[selectedHubHash] = true;
+        setSelectedHub(decodeURIComponent(hubH));
+        expandedHubs[selectedHubHash!] = true;
         if (routeRoom) {
             selectRoom(selectedHubHash, decodeURIComponent(routeRoom));
         }
@@ -2180,7 +2295,7 @@
             return;
         }
         view = "chat";
-        selectedHubHash = hubH;
+        setSelectedHub(hubH);
         expandedHubs[hubH] = true;
         if (routeRoom && typeof routeRoom === "string") {
             selectRoom(hubH, routeRoom);
@@ -2259,7 +2374,7 @@
             await fetchHubs();
             const added = response.data?.hub;
             if (added) {
-                selectedHubHash = added.hub_hash;
+                setSelectedHub(added.hub_hash);
                 expandedHubs[added.hub_hash] = true;
             }
             view = "chat";
@@ -2269,7 +2384,7 @@
     }
 
     function openDiscovered(node: RrcDiscoveredHub) {
-        selectedHubHash = node.destination_hash;
+        setSelectedHub(node.destination_hash);
         expandedHubs[node.destination_hash] = true;
         view = "chat";
     }
@@ -2428,10 +2543,10 @@
             await fetchHubs();
             const added = response.data?.hub;
             if (added) {
-                selectedHubHash = added.hub_hash;
+                setSelectedHub(added.hub_hash);
                 expandedHubs[added.hub_hash] = true;
             } else {
-                selectedHubHash = hub.dest_hash;
+                setSelectedHub(hub.dest_hash);
                 expandedHubs[hub.dest_hash] = true;
             }
             view = "chat";
@@ -2820,7 +2935,7 @@
         {:else if view === "host"}
             {#if hostModeration.hub}
                 <RelayHostModerationPage
-                    hub={hostModeration.hub}
+                    hub={hostModerationHub}
                     initialTab={hostModeration.tab}
                     roomFilter={hostModeration.room}
                     onback={closeHostModeration}

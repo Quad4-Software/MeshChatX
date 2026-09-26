@@ -54,11 +54,44 @@ function lookupLegacyDraftText(destinationHash: string, identityKey: string): st
     return "";
 }
 
+// Drafts saved before the identity hash resolved land under the "_"
+// fallback prefix. Fold them into the real bucket once the hash is known
+// so they are not orphaned. Existing real-bucket entries win.
+function foldFallbackDrafts(identityKey: string): void {
+    if (!identityKey || identityKey === "_") {
+        return;
+    }
+    const fallbackPrefix = `${COMPOSE_DRAFT_STORAGE_PREFIX}_:`;
+    try {
+        const fallbackKeys: string[] = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+            const key = localStorage.key(i);
+            if (typeof key === "string" && key.startsWith(fallbackPrefix)) {
+                fallbackKeys.push(key);
+            }
+        }
+        for (const fallbackKey of fallbackKeys) {
+            const dest = fallbackKey.slice(fallbackPrefix.length);
+            const targetKey = `${COMPOSE_DRAFT_STORAGE_PREFIX}${identityKey}:${dest}`;
+            if (localStorage.getItem(targetKey) == null) {
+                const text = localStorage.getItem(fallbackKey);
+                if (typeof text === "string") {
+                    localStorage.setItem(targetKey, text);
+                }
+            }
+            localStorage.removeItem(fallbackKey);
+        }
+    } catch {
+        /* ignore */
+    }
+}
+
 export function loadDraft(destinationHash: string, identityKey: string): string {
     if (!destinationHash) {
         return "";
     }
     try {
+        foldFallbackDrafts(identityKey);
         const modern = localStorage.getItem(draftStorageKey(identityKey, destinationHash));
         if (modern) {
             return modern;

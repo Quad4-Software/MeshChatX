@@ -45,11 +45,16 @@
     function clearSearch(): void {
         query = "";
         results = [];
+        // Invalidate any in-flight search so a stale response cannot
+        // repopulate results under the empty query.
+        searchGen += 1;
+        searching = false;
     }
 
     async function runSearch(): Promise<void> {
         const q = query.trim();
         if (!q) {
+            searchGen += 1;
             results = [];
             searching = false;
             return;
