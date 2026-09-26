@@ -341,7 +341,6 @@ def register_app_info_routes(routes, app):
                             if sys.version_info >= (3, 13)
                             else "n/a"
                         ),
-                        "ply": app.get_package_version("ply"),
                         "bcrypt": app.get_package_version("bcrypt"),
                         "lxmfy": app.get_package_version("lxmfy"),
                         "rns_filesync": app.get_package_version("rns-filesync"),
