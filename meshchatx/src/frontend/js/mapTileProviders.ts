@@ -78,7 +78,7 @@ export function detectRasterTileProviderId(tileServerUrl: string | null | undefi
 /** Attribution HTML for a tile server URL, or null when the provider is unknown. */
 export function attributionForTileUrl(tileServerUrl: string | null | undefined): string | null {
     // openfreemap serves style JSON, not raster tiles, so it is intentionally
-    // not part of detectRasterTileProviderId; match its host here instead.
+    // not part of detectRasterTileProviderId. Match its host here instead.
     const { host } = tileUrlParts(tileServerUrl);
     if (host === "tiles.openfreemap.org" || host.endsWith(".openfreemap.org")) {
         return TILE_PROVIDER_ATTRIBUTIONS.openfreemap;

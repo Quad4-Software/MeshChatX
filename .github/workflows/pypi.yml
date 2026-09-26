@@ -4,7 +4,7 @@
 #
 # Tag runs also emit SLSA generic provenance (generator_generic_slsa3) for the
 # exact dist/ digests and optional Cosign *.cosign.bundle files next to each
-# distribution (same scripts as build-release.yml; skips if COSIGN_PRIVATE_KEY unset).
+# distribution (same scripts as build-release.yml. Skips if COSIGN_PRIVATE_KEY unset).
 # PyPI upload uses a staging directory so bundles are not sent to the index.
 #
 # PyPI Trusted Publisher must reference this file as pypi.yml and use the

@@ -10,7 +10,7 @@ export const RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL = "manual/interfaces.html"
 /**
  * Locales that ship a localized root index (index_<locale>.html) in the
  * Reticulum website bundle. The Sphinx manual itself is English-only under
- * manual/; other locales use these pages like the public site.
+ * manual/. Other locales use these pages like the public site.
  */
 const BUNDLED_RETICULUM_SITE_INDEX_LOCALES = new Set(["de", "es", "jp", "nl", "pl", "pt-br", "tr", "uk", "zh-cn"]);
 

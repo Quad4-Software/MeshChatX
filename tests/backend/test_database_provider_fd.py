@@ -137,7 +137,7 @@ def test_reaper_closes_idle_connections(monkeypatch):
                 thread.join(timeout=5)
                 assert not thread.is_alive()
 
-            # Reaper runs every 0.2s; idle timeout is 0.5s.
+            # Reaper runs every 0.2s. Idle timeout is 0.5s.
             time.sleep(1.0)
 
             # Main thread still owns one handle.

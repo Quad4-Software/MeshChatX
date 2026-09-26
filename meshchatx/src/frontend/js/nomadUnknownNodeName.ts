@@ -37,7 +37,7 @@ export function isUnknownNodeDisplayName(name: unknown, localizedUnknown = ""): 
 }
 
 /**
- * Prefer a meaningful name for favourite upserts; never send a localized
+ * Prefer a meaningful name for favourite upserts. Never send a localized
  * unknown sentinel that the backend would treat as a real rename.
  */
 export function resolveFavouriteUpsertDisplayName(

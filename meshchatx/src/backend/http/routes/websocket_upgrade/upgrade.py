@@ -17,7 +17,7 @@ from meshchatx.src.path_utils import is_loopback_bind_host
 
 
 async def _ws_rate_gate(app, websocket_response, cost: float, request_id=None) -> bool:
-    """Consume *cost* tokens; on exhaustion warn, strike, and close at the cap.
+    """Consume *cost* tokens. On exhaustion warn, strike, and close at the cap.
 
     Returns True when the frame may proceed, False when it was rejected.
     """
@@ -170,7 +170,7 @@ def register_websocket_upgrade_upgrade_routes(routes: Any, app: Any) -> None:
                         )
                 elif message.type == WSMsgType.BINARY:
                     touch_client_activity(websocket_response)
-                    # Binary frames carry a msgpack envelope; price them like a
+                    # Binary frames carry a msgpack envelope. Price them like a
                     # normal message before the decode dispatch.
                     if not await _ws_rate_gate(app, websocket_response, 1.0):
                         if websocket_response.closed:

@@ -71,13 +71,13 @@ def repair_unparseable_reticulum_config(config_path: str, *, write_default) -> b
     backup_path = backup_reticulum_config_file(config_path)
     if backup_path:
         logger.warning(
-            "Reticulum config at %s is unparseable; backed up to %s",
+            "Reticulum config at %s is unparseable. Backed up to %s",
             config_path,
             backup_path,
         )
     else:
         logger.warning(
-            "Reticulum config at %s is unparseable; rewriting without backup",
+            "Reticulum config at %s is unparseable. Rewriting without backup",
             config_path,
         )
 

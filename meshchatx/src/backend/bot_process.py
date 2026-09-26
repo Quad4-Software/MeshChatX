@@ -32,7 +32,7 @@ def _parent_watchdog(parent_pid):
     """Exit when the MeshChatX backend that spawned this bot is gone.
 
     Bots run in their own session, so terminal Ctrl+C never reaches them.
-    They rely on the backend calling stop_all; if the backend dies without
+    They rely on the backend calling stop_all. If the backend dies without
     cleanup (SIGKILL, os._exit, a test runner exiting) they would otherwise
     reparent to init and run forever.
     """
@@ -100,7 +100,7 @@ def main():
         "--parent-pid",
         type=int,
         default=None,
-        help="PID of the spawning MeshChatX backend; bot exits when it dies",
+        help="PID of the spawning MeshChatX backend. Bot exits when it dies",
     )
     args = parser.parse_args()
 

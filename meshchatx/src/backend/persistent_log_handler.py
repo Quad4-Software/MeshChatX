@@ -25,7 +25,7 @@ class PersistentLogHandler(logging.Handler):
         # When False, log lines stay in the in-memory ring buffer only.
         # Opt out with MESHCHAT_LOG_DB=0 to keep log traffic off an SD card.
         self.db_writes_enabled = True
-        # None means never swept; 0.0 would collide with monotonic time on
+        # None means never swept. 0.0 would collide with monotonic time on
         # hosts whose uptime is under the sweep interval, deferring the
         # first cleanup until the machine has been up ten minutes.
         self._last_db_cleanup: float | None = None
@@ -332,5 +332,5 @@ class PersistentLogHandler(logging.Handler):
 
 
 # Process-wide in-memory log sink. meshchatx.meshchat wires this into
-# logging.basicConfig at startup; the debug routes read from it.
+# logging.basicConfig at startup. The debug routes read from it.
 memory_log_handler = PersistentLogHandler()

@@ -300,7 +300,7 @@ class MapManager:
     def get_export_status(self, export_id):
         with self._export_lock:
             entry = self._export_progress.get(export_id)
-            # The export thread mutates this dict; hand callers a copy so
+            # The export thread mutates this dict. Hand callers a copy so
             # they never observe a half-updated record.
             return dict(entry) if entry is not None else None
 

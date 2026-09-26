@@ -122,7 +122,7 @@ export default class AndroidStorageBridge {
     }
 
     /**
-     * Apply setup choice; restart when active mode differs from selection.
+     * Apply setup choice. Restart when active mode differs from selection.
      */
     applySetupChoice(mode, status) {
         if (!status) {

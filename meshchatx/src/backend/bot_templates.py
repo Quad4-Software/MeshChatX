@@ -38,7 +38,7 @@ def _pack_icon_field(icon):
 def _resolve_icon_field(icon, default_icon):
     """Resolve the effective icon field.
 
-    An explicit spec wins over the template default; no spec and no default
+    An explicit spec wins over the template default. No spec and no default
     means no icon.
     """
     if icon is _USE_DEFAULT_ICON:

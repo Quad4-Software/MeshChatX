@@ -452,7 +452,7 @@ def test_add_mark_invariant(db, num_add, num_mark):
     ),
 )
 def test_random_notification_operations(db, operations):
-    """Fuzz random sequences of add/mark operations; count must never go negative."""
+    """Fuzz random sequences of add/mark operations. Count must never go negative."""
     db.provider.execute("DELETE FROM notifications")
     for op, payload in operations:
         if op == "add":

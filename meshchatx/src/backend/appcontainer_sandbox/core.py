@@ -1158,20 +1158,20 @@ def launch_backend_sandboxed(
     if not forced and not appcontainer_requested():
         if appcontainer_disabled_by_env():
             logger.info(
-                "AppContainer disabled by %s; running backend unsandboxed",
+                "AppContainer disabled by %s. Running backend unsandboxed",
                 ENV_VAR,
             )
         elif _env_override() == "auto":
             logger.warning(
-                "AppContainer APIs are unavailable; running backend unsandboxed",
+                "AppContainer APIs are unavailable. Running backend unsandboxed",
             )
         else:
-            logger.info("AppContainer off by default; running backend unsandboxed")
+            logger.info("AppContainer off by default. Running backend unsandboxed")
         return _run_unsandboxed_child(exe, args, env=env)
 
     if not forced and not appcontainer_supported():
         logger.warning(
-            "AppContainer APIs are unavailable; running backend unsandboxed",
+            "AppContainer APIs are unavailable. Running backend unsandboxed",
         )
         return _run_unsandboxed_child(exe, args, env=env)
 
@@ -1228,7 +1228,7 @@ def launch_backend_sandboxed(
                     parent = os.path.dirname(parent)
 
             # A venv interpreter reads pyvenv.cfg from the prefix root to
-            # find its real installation; the directory grant does not
+            # find its real installation. The directory grant does not
             # cover the existing file, so grant it explicitly.
             prefix = getattr(sys, "prefix", None)
             if prefix:
@@ -1293,7 +1293,7 @@ def launch_backend_sandboxed(
             grant_winstation_desktop_access(sid)
         except Exception as grant_exc:
             logger.warning(
-                "Window station/desktop grant failed; sandboxed child may "
+                "Window station/desktop grant failed. Sandboxed child may "
                 "fail during loader init: %s",
                 grant_exc,
             )
@@ -1319,7 +1319,7 @@ def launch_backend_sandboxed(
             err = winerror if winerror is not None else (exc.errno or 0)
             if use_lpac and err == 87:
                 logger.warning(
-                    "AppContainer LPAC launch failed with error %s; retrying without LPAC",
+                    "AppContainer LPAC launch failed with error %s. Retrying without LPAC",
                     err,
                 )
                 h_process, h_thread, _pid = create_process_in_appcontainer(
@@ -1342,7 +1342,7 @@ def launch_backend_sandboxed(
         if not forced and _is_sandbox_init_failure(exit_code, elapsed):
             logger.warning(
                 "AppContainer child died during loader init "
-                "(exit=0x%08X after %.1fs); retrying unsandboxed",
+                "(exit=0x%08X after %.1fs). Retrying unsandboxed",
                 exit_code,
                 elapsed,
             )

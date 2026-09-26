@@ -302,7 +302,7 @@ async def test_send_status_marks_required_when_force_enabled():
 
 @patch("meshchatx.src.backend.web_audio_bridge.Pipeline")
 def test_attach_client_success_wires_telephony_and_dedupes_client(mock_pipeline_cls):
-    """LXST Pipeline validates sources; mock it so we only assert bridge wiring."""
+    """LXST Pipeline validates sources. Mock it so we only assert bridge wiring."""
     mock_receive_pipeline = MagicMock()
     mock_pipeline_cls.return_value = mock_receive_pipeline
     tele = MagicMock()
@@ -464,7 +464,7 @@ def test_restore_host_audio_no_telephone_is_safe():
 
 def test_restore_host_audio_invokes_lxst_transmit_reconfigure():
     # LXST mangles Telephone.__reconfigure_transmit_pipeline to
-    # _Telephone__reconfigure_transmit_pipeline; the bridge must use that name
+    # _Telephone__reconfigure_transmit_pipeline. The bridge must use that name
     # or the host mic path is never rebuilt after the last client detaches.
     # A plain object is used because MagicMock fabricates any attribute.
     class FakeTelephone:

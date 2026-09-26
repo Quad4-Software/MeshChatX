@@ -5,7 +5,7 @@ import Transport from "./Transport.js";
  *
  * Wraps an underlying SerialPort (either the native navigator.serial port or
  * the web-serial-polyfill port that bridges WebUSB devices). Most of the
- * real work is delegated to the wrapped port; the wrapper is mainly here so
+ * real work is delegated to the wrapped port. The wrapper is mainly here so
  * the rest of the codebase has a single uniform API and so error reporting
  * surface area is centralised.
  */

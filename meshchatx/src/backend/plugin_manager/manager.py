@@ -625,7 +625,7 @@ class PluginManager:
             # the integrity hash after on-disk changes.
             if record.tampered:
                 raise PluginSecurityError(
-                    "plugin tree was tampered; reinstall the plugin to enable it",
+                    "plugin tree was tampered. Reinstall the plugin to enable it",
                 )
             current_hash = compute_dir_integrity_hash(record.install_path)
             if record.integrity_hash and current_hash != record.integrity_hash:
@@ -640,7 +640,7 @@ class PluginManager:
                     tampered=True,
                 )
                 raise PluginSecurityError(
-                    "plugin tree was tampered; reinstall the plugin to enable it",
+                    "plugin tree was tampered. Reinstall the plugin to enable it",
                 )
             if not record.integrity_hash:
                 record.integrity_hash = current_hash
@@ -718,7 +718,7 @@ class PluginManager:
             if record:
                 self._unregister_plugin_hooks(record)
             self._python_runtime.unload(plugin_id)
-            # plugin_id arrives from the URL; never rmtree an unjailed join.
+            # plugin_id arrives from the URL. Never rmtree an unjailed join.
             root = os.path.realpath(self.installed_dir)
             target_dir = os.path.realpath(os.path.join(root, plugin_id))
             target_ok = is_direct_child(target_dir, root) and os.path.isdir(target_dir)
@@ -741,7 +741,7 @@ class PluginManager:
         with self._lock:
             if record.tampered:
                 raise PluginSecurityError(
-                    "plugin tree was tampered; reinstall the plugin to enable it",
+                    "plugin tree was tampered. Reinstall the plugin to enable it",
                 )
             current_hash = compute_dir_integrity_hash(record.install_path)
             if not record.integrity_hash:
@@ -769,7 +769,7 @@ class PluginManager:
             self._python_runtime.unload(record.id)
             self._unregister_plugin_hooks(record)
             raise PluginSecurityError(
-                "plugin tree was tampered; reinstall the plugin to enable it",
+                "plugin tree was tampered. Reinstall the plugin to enable it",
             )
 
     def _verify_integrity_on_load(self, record: PluginRecord) -> bool:
