@@ -287,7 +287,8 @@ export function filterUniqueOlderRelayMessages(
  */
 export function prependRelayMessageTimeline(
     existingTimeline: RelayTimelineItem[],
-    prependedMessagesOldestFirst: RelayTimelineMessage[]
+    prependedMessagesOldestFirst: RelayTimelineMessage[],
+    options: { hideJoinPart?: boolean } = {}
 ): RelayTimelineItem[] {
     const prepended = prependedMessagesOldestFirst || [];
     const existing = existingTimeline || [];
@@ -295,9 +296,9 @@ export function prependRelayMessageTimeline(
         return existing;
     }
     if (existing.length === 0) {
-        return buildRelayMessageTimeline(prepended);
+        return buildRelayMessageTimeline(prepended, options);
     }
-    const prefixTimeline = buildRelayMessageTimeline(prepended);
+    const prefixTimeline = buildRelayMessageTimeline(prepended, options);
     if (prefixTimeline.length === 0) {
         return existing;
     }

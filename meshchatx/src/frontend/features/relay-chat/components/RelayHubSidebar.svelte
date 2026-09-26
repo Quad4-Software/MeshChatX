@@ -527,7 +527,7 @@
                                     type="password"
                                     placeholder={t("relay_chat.join_room_key_placeholder")}
                                     autocomplete="off"
-                                    class="w-full border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                    class="w-full rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                 />
                             </form>
                         </div>
