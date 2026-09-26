@@ -229,6 +229,7 @@ export function stopShell(state: AppShellState): void {
     state.backendExitCode = null;
     state.backendRestarting = false;
     state.liveTransportReady = false;
+    GlobalState.liveTransportReady = false;
     LiveTransport.destroy();
 }
 

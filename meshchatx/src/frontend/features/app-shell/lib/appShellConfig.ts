@@ -70,7 +70,20 @@ export function applyShellAppearance(state: AppShellState): void {
 export async function getAppInfo(state: AppShellState): Promise<void> {
     try {
         const response = await apiClient().get("/api/v1/app/info");
-        state.appInfo = response.data.app_info;
+        const info = response.data.app_info;
+        // A backend restart into a different build leaves cached shell
+        // assets stale; reload once rather than run a mixed-version UI.
+        const signature = info ? `${info.version || ""}|${info.git_commit || ""}` : "";
+        if (signature && state.bootVersionSignature == null) {
+            state.bootVersionSignature = signature;
+        } else if (signature && signature !== state.bootVersionSignature) {
+            if (!sessionStorage.getItem("meshchatx.version_reload")) {
+                sessionStorage.setItem("meshchatx.version_reload", "1");
+                window.location.reload();
+                return;
+            }
+        }
+        state.appInfo = info;
 
         showDatabaseHealthIssuesToastIfNeeded(state.appInfo?.database_health_issues, ToastUtils);
 

@@ -43,11 +43,15 @@ export function isNavigationRequest(request: Request): boolean {
     if (!request || typeof request !== "object") {
         return false;
     }
-    if (request.mode === "navigate") {
-        return true;
-    }
+    // Subframe loads (for example /nomad-crash-tab.html) also send
+    // mode=navigate and Accept: text/html. They must not use the app-shell
+    // strategy: the response would overwrite the "/" fallback slot and a
+    // cached shell document would be served into the frame on failures.
     const dest = request.destination;
-    if (dest === "document") {
+    if (dest && dest !== "document") {
+        return false;
+    }
+    if (request.mode === "navigate" || dest === "document") {
         return true;
     }
     const accept = request.headers?.get?.("accept") || "";
@@ -90,7 +94,11 @@ export function classifyShellRequest(request: Request, url: URL): ShellRequestKi
     if (isHashedAssetPath(pathname)) {
         return "asset";
     }
-    if (isNavigationRequest(request) || pathname === "/" || pathname === "/index.html") {
+    // Subframes are never shell navigations, including for "/" — a frame
+    // fetch must not overwrite or receive the app-shell fallback slot.
+    const dest = request.destination;
+    const subframe = Boolean(dest && dest !== "document");
+    if (!subframe && (isNavigationRequest(request) || pathname === "/" || pathname === "/index.html")) {
         return "navigation";
     }
     if (isShellHelperPath(pathname)) {

@@ -47,11 +47,15 @@ function isNavigationRequest(request: Request): boolean {
     if (!request || typeof request !== "object") {
         return false;
     }
-    if (request.mode === "navigate") {
-        return true;
-    }
+    // Subframe loads (for example /nomad-crash-tab.html) also send
+    // mode=navigate and Accept: text/html. They must not use the app-shell
+    // strategy: the response would overwrite the "/" fallback slot and a
+    // cached shell document would be served into the frame on failures.
     const dest = request.destination;
-    if (dest === "document") {
+    if (dest && dest !== "document") {
+        return false;
+    }
+    if (request.mode === "navigate" || dest === "document") {
         return true;
     }
     const accept = request.headers?.get?.("accept") || "";
@@ -94,7 +98,11 @@ function classifyShellRequest(request: Request, url: URL): ShellRequestKind {
     if (isHashedAssetPath(pathname)) {
         return "asset";
     }
-    if (isNavigationRequest(request) || pathname === "/" || pathname === "/index.html") {
+    // Subframes are never shell navigations, including for "/" — a frame
+    // fetch must not overwrite or receive the app-shell fallback slot.
+    const dest = request.destination;
+    const subframe = Boolean(dest && dest !== "document");
+    if (!subframe && (isNavigationRequest(request) || pathname === "/" || pathname === "/index.html")) {
         return "navigation";
     }
     if (isShellHelperPath(pathname)) {
@@ -136,12 +144,15 @@ function expectedStrategy(input: ExpectedStrategyInput): ShellRequestKind {
     if (pathname === "/assets" || pathname.startsWith("/assets/")) {
         return "asset";
     }
+    const dest = input.destination;
+    const subframe = Boolean(dest && dest !== "document");
     const navigate =
-        input.mode === "navigate" ||
-        input.destination === "document" ||
-        (typeof input.accept === "string" && input.accept.includes("text/html")) ||
-        pathname === "/" ||
-        pathname === "/index.html";
+        !subframe &&
+        (input.mode === "navigate" ||
+            dest === "document" ||
+            (typeof input.accept === "string" && input.accept.includes("text/html")) ||
+            pathname === "/" ||
+            pathname === "/index.html");
     if (navigate) {
         return "navigation";
     }
@@ -289,19 +300,40 @@ function createShellRuntime(options: ShellRuntimeOptions): ShellRuntime {
         preloadResponse?: Promise<Response | null>;
     }): Promise<Response> {
         const request = eventLike.request;
+        // The SPA shell owns the "/" fallback slot. SPA routes are
+        // extensionless (/map, /messages) and may read the shell fallback,
+        // but only the true shell entries may write it so that standalone
+        // or non-shell documents can never poison the offline fallback.
+        // File-like paths (anything.html, /manifest.json, /boot-theme.js)
+        // and directory indexes are standalone: no shell fallback at all.
+        let isShellDoc = false;
+        let writesShellSlot = false;
         try {
-            let response = await settlePreloadResponse(eventLike.preloadResponse);
+            const pathname = new URL(request.url).pathname.toLowerCase();
+            writesShellSlot = pathname === "/" || pathname === "/index.html";
+            isShellDoc = writesShellSlot || (!pathname.endsWith("/") && !/\.[a-z0-9]{1,10}$/.test(pathname));
+        } catch {
+            // leave false
+        }
+        try {
+            let response = await settlePreloadResponse(eventLike.preloadResponse, navTimeoutMs);
             if (!response) {
                 response = await networkWithTimeout(request, navTimeoutMs);
             }
             if (response && response.ok) {
-                await cacheShellSnapshot(response.clone());
+                const ctype = response.headers?.get?.("content-type") || "";
+                if (writesShellSlot && ctype.includes("text/html")) {
+                    await cacheShellSnapshot(response.clone());
+                } else {
+                    await putInCache(request, response.clone());
+                }
                 return response;
             }
         } catch {
             // fall through to cache
         }
-        const cached = (await cachesApi.match(shellFallbackUrl)) || (await cachesApi.match(request));
+        const cached =
+            (await cachesApi.match(request)) || (isShellDoc ? await cachesApi.match(shellFallbackUrl) : null);
         if (cached) {
             return cached;
         }
@@ -355,15 +387,26 @@ function createShellRuntime(options: ShellRuntimeOptions): ShellRuntime {
     };
 }
 
-/** Await navigation preload without throwing when Chrome cancels it. */
+/**
+ * Await navigation preload without throwing when Chrome cancels it, bounded by
+ * timeoutMs so a stalled preload cannot hang the navigation past the cached
+ * shell fallback.
+ */
 async function settlePreloadResponse(
-    preloadResponse: Promise<Response | null> | null | undefined
+    preloadResponse: Promise<Response | null> | null | undefined,
+    timeoutMs?: number
 ): Promise<Response | null> {
     if (preloadResponse == null) {
         return null;
     }
     try {
-        return await preloadResponse;
+        if (timeoutMs == null) {
+            return await preloadResponse;
+        }
+        return await Promise.race([
+            preloadResponse,
+            new Promise<Response | null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+        ]);
     } catch {
         return null;
     }

@@ -66,6 +66,8 @@ export class AppShellState {
 
     appInfo = $state<ShellAppInfo | null>(null);
 
+    bootVersionSignature = $state<string | null>(null);
+
     displayName = $state("Anonymous Peer");
 
     isSidebarOpen = $state(false);
