@@ -23,7 +23,12 @@ def handler(db):
     logger = logging.getLogger("test_logger")
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
-    return handler, logger
+    try:
+        yield handler, logger
+    finally:
+        # test_logger is module-global; a stale handler would keep
+        # flushing into a dead tmp_path db during later tests.
+        logger.removeHandler(handler)
 
 
 def test_log_insertion(handler, db):
@@ -172,6 +177,10 @@ def test_db_writes_disabled_never_flushes(handler, db):
 
 def test_cleanup_throttled_between_flushes(handler, db, monkeypatch):
     persistent_handler, logger = handler
+    # The 0.1s emit flush interval lets a log call drain the buffer on its
+    # own under CI load, racing the explicit flushes below. Pin it high so
+    # every flush here is the explicit one.
+    persistent_handler.flush_interval = 3600
     calls = []
     monkeypatch.setattr(
         db.debug_logs,
@@ -179,6 +188,7 @@ def test_cleanup_throttled_between_flushes(handler, db, monkeypatch):
         lambda *a, **k: calls.append(1),
     )
     logger.info("first")
+    assert persistent_handler.logs_buffer
     persistent_handler._flush_to_db()
     logger.info("second")
     persistent_handler._flush_to_db()
