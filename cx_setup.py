@@ -70,7 +70,6 @@ packages = [
     "websockets",
     "pycparser",
     "cffi",
-    "ply",
     "bleak",
     "landlockpy",
     # aiohttp pulls stdlib email at runtime. Keep the full tree out of library.zip
