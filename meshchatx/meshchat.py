@@ -293,6 +293,7 @@ from meshchatx.src.backend.rns_ratchet_persist import (
     raise_nofile_soft_limit,
 )
 from meshchatx.src.backend.rns_startup_recovery import (
+    consume_recovery_report,
     create_reticulum_with_recovery,
     install_rns_panic_containment,
 )
