@@ -7,7 +7,6 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from meshchatx.src.backend.bug_report_manager import BugReportManager
 from meshchatx.src.backend.favourites_layout import (
     MAX_SECTIONS,
     normalize_favourites_layout,
@@ -80,46 +79,17 @@ def test_eect_favourites_layout_fuzz_never_raises(raw):
         )
 
 
-def test_eect_bug_report_redacts_secrets(tmp_path, monkeypatch):
-    with eect_scenario("hostile.bug_report.redacts_secrets") as (_s, _seed, _rng):
-        from meshchatx.src.backend import persistent_log_handler as plh
-
-        monkeypatch.setattr(plh, "memory_log_handler", None)
-        full_hash = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
-
-        class FakeLogs:
-            def get_logs(self, **_kwargs):
-                return [
-                    {
-                        "timestamp": 1.0,
-                        "level": "ERROR",
-                        "module": "meshchat",
-                        "message": (
-                            f"fail at /tmp/x for {full_hash} "
-                            "user@example.com 203.0.113.9"
-                        ),
-                    },
-                ]
-
-            def get_total_count(self, **_kwargs):
-                return 1
-
-        class FakeDatabase:
-            debug_logs = FakeLogs()
-
-        class FakeApp:
-            database = FakeDatabase()
-            storage_dir = str(tmp_path)
-            current_context = None
-
-        manager = BugReportManager(FakeApp())
-        preview = manager.preview_report({"limit": 5})
-        assert_diagnostic_text_redacted(preview["log_text"])
-        assert "/tmp/x" not in preview["log_text"]
-        assert full_hash not in preview["log_text"]
-        assert "user@example.com" not in preview["log_text"]
-        assert "203.0.113.9" not in preview["log_text"]
-        assert REDACTED in preview["log_text"]
+def test_eect_redact_helper_strips_secrets():
+    full_hash = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+    out = redact_diagnostic_text(
+        f"fail at /tmp/x for {full_hash} user@example.com 203.0.113.9",
+    )
+    assert_diagnostic_text_redacted(out)
+    assert "/tmp/x" not in out
+    assert full_hash not in out
+    assert "user@example.com" not in out
+    assert "203.0.113.9" not in out
+    assert REDACTED in out
 
 
 def test_eect_redact_helper_preserves_short_hash_prefix():

@@ -121,7 +121,10 @@ from meshchatx.src.backend.appcontainer_sandbox import (
     apply_windows_process_mitigations,
     is_appcontainer_child,
 )
-from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.async_utils import (
+    AsyncUtils,
+    call_soon_threadsafe_or_none,
+)
 from meshchatx.src.backend.auth_page_hint import auth_page_hint_from_env
 from meshchatx.src.backend.auto_resend_guard import (
     AutoResendCoordinator,
@@ -143,6 +146,10 @@ from meshchatx.src.backend.database.access_attempts import (
     WINDOW_RATE_TRUSTED_S,
     WINDOW_RATE_UNTRUSTED_S,
     user_agent_hash,
+)
+from meshchatx.src.backend.database.telemetry import (
+    TELEMETRY_MAX_FUTURE_SEC,
+    TELEMETRY_MAX_PAST_SEC,
 )
 from meshchatx.src.backend.demo_mode import (
     auth_bypass_from_env,
@@ -312,10 +319,6 @@ from meshchatx.src.backend.sticker_utils import (
     validate_export_document,
 )
 from meshchatx.src.backend.telemetry_utils import Telemeter
-from meshchatx.src.backend.database.telemetry import (
-    TELEMETRY_MAX_FUTURE_SEC,
-    TELEMETRY_MAX_PAST_SEC,
-)
 from meshchatx.src.backend.web_audio_proxy import LazyWebAudioBridge
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
@@ -635,9 +638,6 @@ class ReticulumMeshChat(
             on_announce=self._register_local_page_node_announce,
         )
         self.plugin_manager = PluginManager(self.storage_dir, app=self)
-        from meshchatx.src.backend.bug_report_manager import BugReportManager
-
-        self.bug_report_manager = BugReportManager(self)
         self.sideband_plugin_loader = SidebandPluginLoader(self)
         self._sideband_telemetry_thread = None
         self._sideband_telemetry_running = False
@@ -1073,11 +1073,6 @@ class ReticulumMeshChat(
             self.running = True
             # setup_identity initializes context if needed and sets it as current
             self.setup_identity(new_identity)
-            try:
-                if getattr(self, "bug_report_manager", None) is not None:
-                    self.bug_report_manager.on_identity_switch()
-            except Exception:
-                pass
 
             # 5. broadcast update to clients
             await self.websocket_broadcast(

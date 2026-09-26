@@ -81,7 +81,7 @@ When rrc_enabled is on, you can run a local RRC hub from relay chat server setti
 
 ## Plugins
 
-Installed plugins can add rows to **Tools** and **Navigation** through contribution manifests. Example bundled plugin: **Bug Reports** (com.meshchatx.mcx-bugs) for sending redacted debug logs to an mcx-bugs-v1 collector (or running a collector yourself).
+Installed plugins can add rows to **Tools** and **Navigation** through contribution manifests. The bundled example is **Hello Example** (com.meshchatx.mcx-hello), a minimal plugin exercising activation, invoke, and isolated storage.
 
 Plugins are capability-gated, not fully open-ended: they cannot rewrite core MeshChatX. Supported packaged runtimes are **frontend JS** (Worker), optional **backend WASM** (wasmtime), and optional **backend Python** (backend.type: "python"). Install sources include ZIP archives and single-file **WASM bundles** with embedded plugin.json / files / optional RSG signature.
 
