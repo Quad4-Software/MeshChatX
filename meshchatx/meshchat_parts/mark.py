@@ -50,6 +50,7 @@ from meshchatx.src.backend.rns_link_manager import (
     RnsLinkManager,
     clear_all_cached_links,
 )
+from meshchatx.src.env_utils import env_int, env_set
 from meshchatx.src.path_utils import (
     get_file_path,
     is_loopback_bind_host,
@@ -117,7 +118,7 @@ class MarkMixin:
         in MESHCHAT_DB_WEDGE_RESTARTS bounds the restart loop if the
         underlying storage is broken beyond in-process repair.
         """
-        attempts = int(os.environ.get("MESHCHAT_DB_WEDGE_RESTARTS", "0") or 0)
+        attempts = env_int("MESHCHAT_DB_WEDGE_RESTARTS", 0) or 0
         if attempts >= 2:
             logger.error(
                 "SQLite wedge persists across %d restarts. Serving 503s instead "
@@ -125,7 +126,7 @@ class MarkMixin:
                 attempts,
             )
             return
-        os.environ["MESHCHAT_DB_WEDGE_RESTARTS"] = str(attempts + 1)
+        env_set("MESHCHAT_DB_WEDGE_RESTARTS", str(attempts + 1))
         logger.error(
             "SQLite wedge unrecoverable after connection reset. Restarting process",
         )
