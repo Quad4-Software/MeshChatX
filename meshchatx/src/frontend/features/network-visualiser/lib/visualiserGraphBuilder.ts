@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import Utils from "../../../js/Utils.js";
-import { buildFullGraph } from "../../../js/networkVisualiserPerf.js";
+import { buildFullGraph, computeRadialPositions } from "../../../js/networkVisualiserPerf.js";
 import { DEFAULT_RETICULUM_LOGO_PATH, INTERFACE_CONNECTED_IMAGE, INTERFACE_DISCONNECTED_IMAGE } from "./constants.js";
 import type {
     PathTableEntry,
@@ -92,6 +92,7 @@ export function buildVisualiserGraph(options: {
     isDarkMode: boolean;
     currentLOD: string;
     batterySaverPrefs?: { enabled?: boolean; maxVisualiserInterfaces?: number };
+    radial?: boolean;
 }) {
     const {
         config,
@@ -190,7 +191,22 @@ export function buildVisualiserGraph(options: {
     const myName = config?.display_name || "My Node";
     const myTitle = `This Node (${myName})\nIdentity: ${config?.identity_hash || "Unknown"}`;
 
-    return buildFullGraph({
+    const radial = options.radial === true;
+    const positionsIn = radial
+        ? {
+              // Radial view overrides every position with deterministic hop
+              // rings around me, so nothing is missing and settle is skipped.
+              ...positions,
+              ...computeRadialPositions({
+                  interfaces: [...interfacesPayload.map((i) => i.name), ...pathOnlyPayload.map((i) => i.name)],
+                  discovered: discPayload.map((d) => d.name).filter(Boolean),
+                  pathTable,
+                  hopMax: hopMaxFilter,
+              }),
+          }
+        : positions;
+
+    const graph = buildFullGraph({
         myNode: { name: myName, title: myTitle, image: DEFAULT_RETICULUM_LOGO_PATH },
         interfaces: interfacesPayload,
         pathOnlyInterfaces: pathOnlyPayload,
@@ -198,7 +214,7 @@ export function buildVisualiserGraph(options: {
         pathTable,
         announces: announcePayload,
         conversations: conversationPayload,
-        positions,
+        positions: positionsIn,
         isDarkMode,
         currentLOD,
         searchQuery,
@@ -206,4 +222,17 @@ export function buildVisualiserGraph(options: {
         connectedInterfaceImage: INTERFACE_CONNECTED_IMAGE,
         disconnectedInterfaceImage: INTERFACE_DISCONNECTED_IMAGE,
     });
+
+    // Radial pins every node so hop rings stay put under live layout
+    // and scene ticks.
+    if (radial) {
+        for (const node of graph.nodes || []) {
+            if (node) node.fixed = true;
+        }
+        for (const body of (graph as { layout_nodes?: Array<{ fixed?: boolean }> }).layout_nodes || []) {
+            if (body) body.fixed = true;
+        }
+    }
+
+    return graph;
 }

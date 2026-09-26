@@ -13,25 +13,25 @@ const (
 	// DefaultRepulsion is 1/r^2 strength when Request.Repulsion is 0.
 	// vis-network barnesHut uses gravitationalConstant -3500. Keep this near
 	// that scale so WASM settle does not inflate the graph.
-	DefaultRepulsion = 1800.0
+	DefaultRepulsion = 2200.0
 	// DefaultSpringK is hooke stiffness when Request.SpringK is 0.
 	DefaultSpringK = 0.032
 	// DefaultSpringLen is rest length when an edge omits Length.
 	// vis-network barnesHut springLength is 200. Peers sit a bit further out.
-	DefaultSpringLen = 240.0
+	DefaultSpringLen = 300.0
 	// DefaultHubSpringLen is rest length for thick hub edges (me to interface).
-	DefaultHubSpringLen = 200.0
+	DefaultHubSpringLen = 250.0
 	// DefaultCellSize is the repulsion grid bucket in world units.
 	DefaultCellSize = 180.0
 	// DefaultMinSep is used when a body has no Radius.
 	DefaultMinSep = 48.0
 	// CollisionPad is extra gap beyond the two node radii.
-	CollisionPad = 16.0
+	CollisionPad = 22.0
 	// CollisionK is extra push when two discs overlap the min gap.
 	// Keep this below 1 so stacked nodes unstick without launching.
 	CollisionK = 0.85
 	// LiveRepulsion is WebGL live-tick repulsion.
-	LiveRepulsion = 1800.0
+	LiveRepulsion = 2200.0
 	// LiveSpringK is WebGL live-tick spring stiffness.
 	LiveSpringK = 0.016
 	// LiveDamping is WebGL live-tick velocity keep fraction.

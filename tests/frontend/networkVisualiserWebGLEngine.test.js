@@ -220,6 +220,31 @@ describe("networkVisualiserWebGLEngine", () => {
         expect(high[1].fontSize).toBe(11);
     });
 
+    it("collectWebGLLabels declutters overlapping labels in screen space", () => {
+        // Stride 8: x, y, size, r, g, b, a, kind. kind 0 = me, 3 = peer.
+        const nodes = new Float32Array([
+            0, 0, 50, 0, 0, 0, 0, 0, 10, 20, 25, 0, 0, 0, 0, 3, 2000, 0, 25, 0, 0, 0, 0, 3,
+        ]);
+        const base = {
+            sceneCount: 3,
+            nodes,
+            labelByIndex: ["Local", "Alice", "Far"],
+            idByIndex: ["me", "peer1", "peer2"],
+            zoom: 1,
+            camX: 0,
+            camY: 0,
+            viewWidth: 800,
+            viewHeight: 600,
+        };
+        const labels = collectWebGLLabels(base);
+        // peer1 overlaps me's label box on screen, so it is dropped; the far
+        // peer keeps its label.
+        expect(labels.map((l) => l.text).sort()).toEqual(["Far", "Local"]);
+        // Hovering the crowded node forces its label through the declutter.
+        const hovered = collectWebGLLabels({ ...base, hoverId: "peer1" });
+        expect(hovered.map((l) => l.text)).toContain("Alice");
+    });
+
     it("graphToSceneRequest maps me/iface/peer colors and kinds", () => {
         const req = graphToSceneRequest(
             [

@@ -13,6 +13,7 @@
     import { effectiveVisualiserReloadMs, loadBatterySaverPrefs } from "../../../js/settings/batterySaverPrefs.js";
     import {
         loadVisualiserDisplayPrefs,
+        normalizeVisualiserViewMode,
         readStoredHopMaxFilter,
         writeStoredHopMaxFilter,
         persistVisualiserRenderer,
@@ -77,6 +78,7 @@
     let physicsPausedForDrag = false;
     let unbindEvents: (() => void) | null = null;
     let didInitRenderer = false;
+    let resetCameraOnNextGraph = false;
 
     let pathFetchConcurrency = $derived(pickAdaptiveFetchConcurrency());
 
@@ -94,7 +96,7 @@
         enablePhysics = p.enablePhysics;
         autoReload = p.autoReload;
         preferredRenderer = p.renderer || "auto";
-        viewMode = p.viewMode === "planet" ? "planet" : "flat";
+        viewMode = normalizeVisualiserViewMode(p.viewMode);
         hopMaxFilter = readStoredHopMaxFilter();
     }
 
@@ -114,11 +116,18 @@
     }
 
     function onViewModeChange(next: ViewMode) {
-        const normalized = next === "planet" ? "planet" : "flat";
+        const normalized = normalizeVisualiserViewMode(next);
         if (normalized === viewMode) return;
+        const wasRadial = viewMode === "radial";
         viewMode = normalized;
         persistVisualiserViewMode(normalized, { emit: false });
         webglEngine?.setViewMode?.(normalized);
+        // Radial swaps force layout for pinned hop rings, so switching to
+        // or from it needs a rebuild plus a camera reset.
+        if (normalized === "radial" || wasRadial) {
+            resetCameraOnNextGraph = true;
+            void processVisualization();
+        }
     }
 
     function teardownActiveRenderer() {
@@ -143,6 +152,7 @@
             nodes,
             edges,
             enablePhysics,
+            getEnablePhysics: () => enablePhysics === true && viewMode !== "radial",
             viewMode,
             currentWebglEngine: webglEngine,
             onHover: (t) => {
@@ -179,6 +189,7 @@
                 network,
                 nodes,
                 currentLOD,
+                pathTable: data.pathTable,
                 onHighLOD: () => iconManager.schedule(),
             });
         });
@@ -271,6 +282,9 @@
         const silent = options.silent === true;
         const runId = ++vizRunGeneration;
         iconManager.reset();
+        const radial = viewMode === "radial";
+        const resetCamera = resetCameraOnNextGraph;
+        resetCameraOnNextGraph = false;
 
         didDisableStabilization = await executeVisualiserRender({
             silent,
@@ -288,9 +302,11 @@
             network,
             nodes,
             edges,
-            enablePhysics,
+            enablePhysics: enablePhysics && !radial,
             physicsPausedForDrag,
             didDisableStabilization,
+            radial,
+            resetCamera,
             onStatusChange: (status) => {
                 loadingStatus = status;
             },

@@ -24,12 +24,13 @@ export function destroyActiveRenderer(params: {
 export async function tryStartWebGL(params: {
     webglCanvas: HTMLCanvasElement | null;
     enablePhysics: boolean;
+    getEnablePhysics?: () => boolean;
     viewMode: ViewMode;
     onHover: (tooltip: { text: string; x: number; y: number } | null) => void;
     currentWebglEngine: any;
 }): Promise<{ engine: any; rendererMode: RendererMode; engineMode: EngineMode; success: boolean }> {
     const result = tryStartVisualiserWebGL(params.webglCanvas, {
-        getEnablePhysics: () => params.enablePhysics === true,
+        getEnablePhysics: params.getEnablePhysics ?? (() => params.enablePhysics === true),
         getIsDark: () => resolveVisualiserIsDark(),
         onNodeActivate: (id, meta) => {
             const announce = (meta?.announce as { aspect?: string; destination_hash?: string } | null) || null;
@@ -73,6 +74,7 @@ export async function setupVisualiserRenderer(params: {
     nodes: DataSet<any>;
     edges: DataSet<any>;
     enablePhysics: boolean;
+    getEnablePhysics?: () => boolean;
     viewMode: ViewMode;
     currentWebglEngine: any;
     onHover: (tooltip: { text: string; x: number; y: number } | null) => void;
@@ -101,6 +103,7 @@ export async function setupVisualiserRenderer(params: {
         const res = await tryStartWebGL({
             webglCanvas: params.webglCanvas,
             enablePhysics: params.enablePhysics,
+            getEnablePhysics: params.getEnablePhysics,
             viewMode: params.viewMode,
             onHover: params.onHover,
             currentWebglEngine: params.currentWebglEngine,
