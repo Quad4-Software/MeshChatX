@@ -242,6 +242,7 @@ API_V1_STATUS_SCHEMA: dict = {
             "type": "string",
             "enum": ["http", "starting", "rns", "identity", "ready", "failed"],
         },
+        "version": {"type": "string"},
         "network_ready": {"type": "boolean"},
         "network_degraded": {"type": "boolean"},
         "ui_ready": {"type": "boolean"},

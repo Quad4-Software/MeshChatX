@@ -30,7 +30,9 @@ def _is_loopback_ip(ip: str) -> bool:
 
 
 def request_may_receive_secrets(request, app) -> bool:
-    """Loopback clients always may; when auth is enabled the session check in
+    """Decide whether the caller may see plaintext config secrets.
+
+    Loopback clients always may; when auth is enabled the session check in
     auth middleware already ran, so reaching the handler means authenticated.
     Only an unauthenticated non-loopback caller (LAN bind + auth off) is denied.
     """
@@ -55,8 +57,11 @@ def redact_config_secrets(content: str) -> str:
 
 
 def restore_redacted_secrets(content: str, existing: str) -> str:
-    """PUT round-trip safety: a body that still contains REDACTED_SENTINEL for a
-    key keeps the value from the current file instead of writing the sentinel."""
+    """Restore real values for keys still holding REDACTED_SENTINEL.
+
+    PUT round-trip safety: a body that still contains REDACTED_SENTINEL for a
+    key keeps the value from the current file instead of writing the sentinel.
+    """
     existing_values = {}
     for line in existing.splitlines():
         stripped = line.lstrip()
