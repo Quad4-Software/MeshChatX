@@ -1327,11 +1327,11 @@ wheels = [
 
 [[package]]
 name = "landlockpy"
-version = "0.1.1"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/49/31/232a718dff1b96c125b768877e89eab4406dca9bcca637ac319fb2f51363/landlockpy-0.1.1.tar.gz", hash = "sha256:3fa0664a17170b1ae0aa6a2d980503b7230aa51c9e6edfb25e58db0f71aed34b", size = 79641, upload-time = "2026-09-22T10:09:12.591Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/4d/68125d88aaf547726daad59ff7b17d33e9ffeee3083ba95eb29d21a9c25a/landlockpy-0.2.0.tar.gz", hash = "sha256:2a915db59a2c1970d181f9c2bff786d6040d8f9105380da64390f5fe61b4148d", size = 117226, upload-time = "2026-09-26T21:15:59.08Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/c4/01f436799913c95d27dd733fe8ef5470452fe03d4243e66c3557c1063c23/landlockpy-0.1.1-py3-none-any.whl", hash = "sha256:0e39be3c21fbc4875adccd1a775de921720807cc61471b12426f679999d33e5f", size = 11641, upload-time = "2026-09-22T10:09:11.143Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/64/86b6ffd07b6359d51f1cedca35846998fd90df92aa027d661fa181715fba/landlockpy-0.2.0-py3-none-any.whl", hash = "sha256:c61b7fe84ead14ff6b091baa2e5f52c7b81e509571ebe5e707e92f1aaf90f2c9", size = 12731, upload-time = "2026-09-26T21:15:57.53Z" },
 ]
 
 [[package]]
@@ -2364,10 +2364,10 @@ requires-dist = [
     { name = "audioop-lts", marker = "python_full_version >= '3.13'", specifier = ">=0.2.2" },
     { name = "bcrypt", specifier = ">=5.0.0,<6.0.0" },
     { name = "bleak", specifier = ">=3.0.2,<4.0" },
-    { name = "cborx", specifier = ">=0.2.3,<0.3" },
+    { name = "cborx", specifier = ">=0.2.5,<0.3" },
     { name = "cryptography", specifier = ">=50.0.1,<51.0.0" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1,<1.0" },
-    { name = "landlockpy", specifier = ">=0.1.1,<0.2" },
+    { name = "landlockpy", specifier = ">=0.2.0,<0.3" },
     { name = "lxmf", specifier = ">=1.1.1" },
     { name = "lxst", specifier = ">=0.5.3" },
     { name = "miniaudio", specifier = ">=1.70,<2.0" },

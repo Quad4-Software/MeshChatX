@@ -35,11 +35,11 @@ dependencies = [
   "ply>=3.11,<4.0",
   "lxst>=0.5.3",
   "miniaudio (>=1.70,<2.0)",
-  "cborx>=0.2.3,<0.3",
+  "cborx>=0.2.5,<0.3",
   "wasmtime>=48.0.0",
   "bleak>=3.0.2,<4.0",
   "httpx[http2]>=0.28.1,<1.0",
-  "landlockpy>=0.1.1,<0.2",
+  "landlockpy>=0.2.0,<0.3",
 ]
 
 [project.scripts]
