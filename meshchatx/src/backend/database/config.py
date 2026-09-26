@@ -19,15 +19,21 @@ class ConfigDAO:
         # through this DAO, and a database restore creates a new DAO instance.
         self._cache: dict = {}
         self._cache_lock = threading.Lock()
+        self._cache_epoch = 0
 
     def get(self, key, default=None):
         with self._cache_lock:
             cached = self._cache.get(key, _MISS)
             if cached is not _MISS:
                 return default if cached is _NO_ROW else cached
+            epoch = self._cache_epoch
         row = self.provider.fetchone("SELECT value FROM config WHERE key = ?", (key,))
+        value = row["value"] if row else _NO_ROW
         with self._cache_lock:
-            self._cache[key] = row["value"] if row else _NO_ROW
+            # A set/delete during the fetch invalidates the row we read,
+            # so only fill the cache when no write interleaved.
+            if self._cache_epoch == epoch:
+                self._cache[key] = value
         return row["value"] if row else default
 
     def set(self, key, value):
@@ -54,12 +60,15 @@ class ConfigDAO:
             )
         with self._cache_lock:
             self._cache.pop(key, None)
+            self._cache_epoch += 1
 
     def delete(self, key):
         self.provider.execute("DELETE FROM config WHERE key = ?", (key,))
         with self._cache_lock:
+            self._cache_epoch += 1
             self._cache.pop(key, None)
 
     def invalidate_cache(self):
         with self._cache_lock:
             self._cache.clear()
+            self._cache_epoch += 1

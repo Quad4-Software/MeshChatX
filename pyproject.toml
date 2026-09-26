@@ -180,6 +180,8 @@ also_copy = [
     "meshchatx/android_codec2.py",
     "meshchatx/android_push_bridge.py",
     "meshchatx/meshchat.py",
+    "meshchatx/meshchat_shared.py",
+    "meshchatx/meshchat_parts/",
     "meshchatx/pycodec2_ctypes.py",
     "meshchatx/repository_http_standalone.py",
     "meshchatx/src/__init__.py",
