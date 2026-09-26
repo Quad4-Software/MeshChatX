@@ -570,7 +570,7 @@ async def reload_reticulum_instance(app: Any):
         # dead app.reticulum that would make setup_identity reuse a
         # torn-down stack, so clear it (and the RNS singleton) first.
         # The singleton clear must run even when app.reticulum is already
-        # gone: a failure after `del app.reticulum` but before __instance
+        # gone: a failure after del app.reticulum but before __instance
         # was reset still leaves the singleton bound to the dead stack.
         if getattr(app, "reticulum", None) is not None:
             with contextlib.suppress(Exception):

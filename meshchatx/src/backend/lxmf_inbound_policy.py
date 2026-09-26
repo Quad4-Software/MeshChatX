@@ -32,7 +32,7 @@ def source_hash_from_delivery_resource(resource) -> str | None:
 
     Only the remote-identified initiator counts. On an inbound link,
     link.destination is the local lxmf.delivery destination, so
-    destination.identity is our own identity — treating it as the peer makes
+    destination.identity is our own identity. Treating it as the peer makes
     every unidentified sender look like a known stranger and rejects all
     resource-carried messages.
     """
