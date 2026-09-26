@@ -300,6 +300,20 @@ class AnnounceManager:
                     self.db.announces.upsert_announce(data)
         except Exception as exc:
             print(f"Announce journal flush failed ({len(rows)} rows): {exc}")
+            # Requeue the popped rows so a failed transaction does not
+            # drop the whole journal. Newer pending entries win for
+            # duplicate destination hashes; the requeued rows keep their
+            # position at the front so the cap still evicts oldest first.
+            with self._pending_lock:
+                requeued = {row["destination_hash"]: row for row in rows}
+                requeued.update(self._pending)
+                overflow = len(requeued) - ANNOUNCE_JOURNAL_MAX_PENDING
+                if overflow > 0:
+                    for key in list(requeued)[:overflow]:
+                        del requeued[key]
+                self._pending = requeued
+                self._pending_aspects.update(aspects)
+            return
         for aspect in aspects:
             try:
                 max_stored = self._get_max_stored_for_aspect(aspect)

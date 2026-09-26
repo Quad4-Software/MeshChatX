@@ -5,7 +5,7 @@
 import os
 import tempfile
 import threading
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -275,6 +275,64 @@ class TestDeferredJournal:
         mgr.flush_pending()
         assert len(mgr._pending) == 0
         assert sqlite_db.announces.get_announce_count_by_aspect("lxmf.delivery") == 3
+
+    def test_flush_pending_requeues_rows_on_failure(self, sqlite_db):
+        mgr = AnnounceManager(sqlite_db)
+        for i in range(3):
+            mgr.upsert_announce(
+                None,
+                _ident(f"{i:032x}"),
+                i.to_bytes(16, "big"),
+                "lxmf.delivery",
+                b"payload",
+                None,
+                defer=True,
+            )
+        assert len(mgr._pending) == 3
+        with patch.object(
+            sqlite_db.announces,
+            "upsert_announce",
+            side_effect=RuntimeError("commit failed"),
+        ):
+            mgr.flush_pending()
+        # A failed transaction must not drop the journaled rows.
+        assert len(mgr._pending) == 3
+        assert sqlite_db.announces.get_announce_count_by_aspect("lxmf.delivery") == 0
+        mgr.flush_pending()
+        assert len(mgr._pending) == 0
+        assert sqlite_db.announces.get_announce_count_by_aspect("lxmf.delivery") == 3
+
+    def test_flush_pending_requeue_respects_cap(self, sqlite_db):
+        mgr = AnnounceManager(sqlite_db)
+        for i in range(ANNOUNCE_JOURNAL_MAX_PENDING):
+            mgr.upsert_announce(
+                None,
+                _ident("11" * 16),
+                i.to_bytes(16, "big"),
+                "lxmf.delivery",
+                b"d",
+                None,
+                defer=True,
+            )
+        first_dh = (0).to_bytes(16, "big").hex()
+        new_dh = (b"\xff" * 16).hex()
+
+        def _fail_and_enqueue(_data):
+            # Simulate an announce arriving while the failed flush runs.
+            with mgr._pending_lock:
+                mgr._pending[new_dh] = {"destination_hash": new_dh}
+            raise RuntimeError("commit failed")
+
+        with patch.object(
+            sqlite_db.announces,
+            "upsert_announce",
+            side_effect=_fail_and_enqueue,
+        ):
+            mgr.flush_pending()
+        assert len(mgr._pending) == ANNOUNCE_JOURNAL_MAX_PENDING
+        # The newest entry survives; the oldest requeued rows absorb the cap.
+        assert new_dh in mgr._pending
+        assert first_dh not in mgr._pending
 
     def test_flush_pending_empty_is_noop(self, sqlite_db):
         mgr = AnnounceManager(sqlite_db)

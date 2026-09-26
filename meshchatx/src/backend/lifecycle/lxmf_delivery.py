@@ -338,8 +338,13 @@ def handle_lxmf_delivery(app: Any, lxmf_message: LXMF.LXMessage, context=None):
                                 timestamp_override=int(entry_timestamp),
                                 context=ctx,
                             )
-        except Exception as e:
-            print(f"Failed to handle telemetry in LXMF message: {e}")
+        except Exception:
+            msg_hash = getattr(lxmf_message, "hash", None)
+            logger.exception(
+                "Failed to handle telemetry in LXMF message %s from %s",
+                msg_hash.hex() if isinstance(msg_hash, bytes) else msg_hash,
+                source_hash,
+            )
 
         # update lxmf user icon if icon appearance field is available
         try:
@@ -391,9 +396,11 @@ def handle_lxmf_delivery(app: Any, lxmf_message: LXMF.LXMessage, context=None):
                                 background_colour,
                                 context=ctx,
                             )
-        except Exception as e:
-            print("LXMF user icon update from message fields failed")
-            print(e)
+        except Exception:
+            logger.exception(
+                "failed to update lxmf user icon from lxmf message from %s",
+                source_hash,
+            )
 
         sender_name = ctx.database.announces.get_custom_display_name(source_hash)
         if not sender_name:
@@ -438,9 +445,12 @@ def handle_lxmf_delivery(app: Any, lxmf_message: LXMF.LXMessage, context=None):
             ),
         )
 
-    except Exception as e:
-        # do nothing on error
-        print(f"lxmf_delivery error: {e}")
+    except Exception:
+        msg_hash = getattr(lxmf_message, "hash", None)
+        logger.exception(
+            "lxmf_delivery error for message %s",
+            msg_hash.hex() if isinstance(msg_hash, bytes) else msg_hash,
+        )
 
 
 # handles lxmf message forwarding logic

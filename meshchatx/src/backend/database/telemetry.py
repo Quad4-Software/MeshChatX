@@ -5,6 +5,14 @@ from datetime import UTC, datetime
 
 from .provider import DatabaseProvider
 
+# Cap stored rows per peer so remote-controlled timestamps cannot grow
+# the table without bound.
+MAX_TELEMETRY_ROWS_PER_DESTINATION = 1000
+
+# Sane window for remote-supplied telemetry timestamps, relative to now.
+TELEMETRY_MAX_PAST_SEC = 30 * 24 * 60 * 60
+TELEMETRY_MAX_FUTURE_SEC = 24 * 60 * 60
+
 
 class TelemetryDAO:
     def __init__(self, provider: DatabaseProvider):
@@ -35,6 +43,35 @@ class TelemetryDAO:
                 updated_at = EXCLUDED.updated_at
         """,
             (destination_hash, timestamp, data, received_from, physical_link, now, now),
+        )
+        self.trim_telemetry_for_destination(destination_hash)
+
+    def trim_telemetry_for_destination(
+        self,
+        destination_hash,
+        max_rows=MAX_TELEMETRY_ROWS_PER_DESTINATION,
+    ):
+        """Delete oldest rows for this destination until at most max_rows remain."""
+        if max_rows < 1 or not destination_hash:
+            return
+        row = self.provider.fetchone(
+            "SELECT COUNT(*) AS c FROM lxmf_telemetry WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+        count = int(row["c"]) if row else 0
+        excess = count - max_rows
+        if excess <= 0:
+            return
+        self.provider.execute(
+            """
+            DELETE FROM lxmf_telemetry WHERE id IN (
+                SELECT id FROM lxmf_telemetry
+                WHERE destination_hash = ?
+                ORDER BY timestamp ASC, id ASC
+                LIMIT ?
+            )
+            """,
+            (destination_hash, excess),
         )
 
     def get_latest_telemetry(self, destination_hash):

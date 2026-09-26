@@ -376,10 +376,27 @@ class OnMixin:
         if self.current_context:
             self.current_context.session_id = value
 
+    def _current_auth_session_epoch(self) -> int:
+        try:
+            return int(self.config.auth_session_epoch.get() or 0)
+        except Exception:
+            return 0
+
+    def _bump_auth_session_epoch(self) -> None:
+        """Invalidate every outstanding authenticated session cookie."""
+        try:
+            self.config.auth_session_epoch.set(self._current_auth_session_epoch() + 1)
+        except Exception:
+            pass
+
+    def _auth_session_epoch_valid(self, session) -> bool:
+        return session.get("session_epoch") == self._current_auth_session_epoch()
+
     def reset_password(self):
         """Clear the stored password hash so a new password can be set via the web UI."""
         if self.config.auth_password_hash.get() is not None:
             self.config.auth_password_hash.set(None)
+            self._bump_auth_session_epoch()
             return True
         return False
 
@@ -832,6 +849,25 @@ class OnMixin:
 
     async def websocket_broadcast(self, data, *, _skip_coalesce: bool = False):
         from meshchatx.src.backend import websocket_runtime
+
+        # Per-identity background loops run asyncio.run on daemon threads
+        # (IdentityContext.start_background_threads), so a broadcast awaited
+        # from them lands on a foreign event loop. The broadcast lock, the
+        # coalesce flush task, and the aiohttp send transports are all bound
+        # to the main loop; sending from here would interleave send_str calls
+        # across loops and tear frames. Re-dispatch onto the main loop.
+        main_loop = AsyncUtils.main_loop
+        if (
+            isinstance(main_loop, asyncio.AbstractEventLoop)
+            and main_loop is not asyncio.get_running_loop()
+            and main_loop.is_running()
+        ):
+            future = asyncio.run_coroutine_threadsafe(
+                self.websocket_broadcast(data, _skip_coalesce=_skip_coalesce),
+                main_loop,
+            )
+            await asyncio.wrap_future(future)
+            return
 
         return await websocket_runtime.broadcast_to_websocket_clients(
             self,

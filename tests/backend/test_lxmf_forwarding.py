@@ -377,6 +377,76 @@ def test_get_or_create_mapping_reuses_row(tmp_path, db):
     fake_router.register_delivery_callback.assert_called()
 
 
+def test_get_or_create_mapping_holds_lock_during_create(tmp_path, db):
+    mgr = ForwardingManager(db, str(tmp_path), delivery_callback=lambda m: None)
+    fake_router = MagicMock()
+    fake_router.register_delivery_identity.return_value = MagicMock()
+    identity = MagicMock()
+    identity.hash.hex.return_value = PEER_ALIAS
+    identity.get_private_key.return_value = b"alias-key"
+
+    locked_during_insert = []
+    orig_create = db.messages.create_forwarding_mapping
+
+    def _spy(data):
+        locked_during_insert.append(mgr._lock.locked())
+        return orig_create(data)
+
+    with (
+        patch(
+            "meshchatx.src.backend.forwarding_manager.RNS.Identity",
+            return_value=identity,
+        ),
+        patch(
+            "meshchatx.src.backend.forwarding_manager.create_lxmf_router",
+            return_value=fake_router,
+        ),
+        patch.object(
+            db.messages,
+            "create_forwarding_mapping",
+            side_effect=_spy,
+        ),
+    ):
+        mgr.get_or_create_mapping(PEER_SPAMMER, PEER_FORWARD_TO, LOCAL_LXMF)
+
+    # The read-then-create path must run under the lock so two racing
+    # deliveries cannot create duplicate alias routers.
+    assert locked_during_insert == [True]
+
+
+def test_get_or_create_mapping_stops_router_when_insert_fails(tmp_path, db):
+    mgr = ForwardingManager(db, str(tmp_path), delivery_callback=lambda m: None)
+    fake_dest = MagicMock()
+    fake_router = MagicMock()
+    fake_router.register_delivery_identity.return_value = fake_dest
+    identity = MagicMock()
+    identity.hash.hex.return_value = PEER_ALIAS
+    identity.get_private_key.return_value = b"alias-key"
+
+    with (
+        patch(
+            "meshchatx.src.backend.forwarding_manager.RNS.Identity",
+            return_value=identity,
+        ),
+        patch(
+            "meshchatx.src.backend.forwarding_manager.create_lxmf_router",
+            return_value=fake_router,
+        ),
+        patch.object(
+            db.messages,
+            "create_forwarding_mapping",
+            side_effect=RuntimeError("db down"),
+        ),
+    ):
+        with pytest.raises(RuntimeError, match="db down"):
+            mgr.get_or_create_mapping(PEER_SPAMMER, PEER_FORWARD_TO, LOCAL_LXMF)
+
+    # The RNS-registered destination must be undone on insert failure.
+    assert PEER_ALIAS not in mgr.forwarding_destinations
+    assert PEER_ALIAS not in mgr.forwarding_routers
+    fake_router.exit_handler.assert_called_once()
+
+
 def test_teardown_clears_alias_tables(tmp_path, db):
     mgr = ForwardingManager(db, str(tmp_path), delivery_callback=lambda m: None)
     dest = MagicMock()
