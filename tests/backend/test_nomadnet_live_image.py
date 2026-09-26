@@ -107,6 +107,7 @@ _WEBP_BYTES = _minimal_webp()
 
 _PAGE_CONTENT = (
     b"`[Live image`:/file/test.webp`img=1;w=100;h=100;s=8]\n"
+    b"`(Live media`w=25%`a=c`:/media/test.webp)\n"
     b"This page was served over a real network\n"
 )
 
@@ -274,6 +275,45 @@ _CLIENT_SCRIPT = textwrap.dedent(
         state["result"]["file_bytes_b64"] = base64.b64encode(state["image_bytes"]).decode("utf-8")
         state["result"]["file_matches"] = state["image_bytes"] == {_WEBP_BYTES!r}
 
+    # Upstream NomadNet 1.4.x media protocol: request path /media with
+    # the image path and key carried in the request data.
+    state["file_done"] = False
+    state["image_bytes"] = None
+    state["image_file_name"] = None
+
+    async def download_media():
+        downloader = NomadnetFileDownloader(
+            dest_hash,
+            "/media",
+            file_success,
+            file_failure,
+            lambda p: None,
+            timeout=int(timeout_s),
+            data={{"path": "/media/test.webp", "key": None}},
+        )
+        await downloader.download(
+            path_lookup_timeout=timeout_s,
+            link_establishment_timeout=LINK_TIMEOUT_S,
+        )
+
+    try:
+        asyncio.run(download_media())
+    except Exception as e:
+        state["result"]["reason"] = f"media_exception: {{e}}"
+        state["file_done"] = True
+
+    wait_deadline = time.time() + timeout_s + 20
+    while not state["file_done"] and time.time() < wait_deadline:
+        time.sleep(0.2)
+
+    if state["image_bytes"] is not None:
+        state["result"]["media_ok"] = True
+        state["result"]["media_name"] = state["image_file_name"]
+        state["result"]["media_matches"] = state["image_bytes"] == {_WEBP_BYTES!r}
+    else:
+        state["result"]["ok"] = False
+        state["result"]["reason"] = f"media_failed: {{state['result']['reason']}}"
+
     with open(result_path, "w", encoding="utf-8") as handle:
         json.dump(state["result"], handle)
 
@@ -358,3 +398,5 @@ def test_live_mesh_server_webp_image_upload_and_download(tmp_path: Path):
     assert result.get("page_contains_image") is True, result
     assert result.get("file_name") == "test.webp", result
     assert result.get("file_matches") is True, result
+    assert result.get("media_ok") is True, result
+    assert result.get("media_matches") is True, result
