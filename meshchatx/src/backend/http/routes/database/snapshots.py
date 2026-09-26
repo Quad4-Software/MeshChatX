@@ -15,6 +15,7 @@ from meshchatx.src.backend.http.errors import (
 
 # ruff: noqa: F403, F405
 from meshchatx.src.backend.http.routes.database._names import *
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
@@ -109,7 +110,7 @@ def register_database_snapshots_routes(routes: Any, app: Any) -> None:
                     status="error",
                 )
 
-            return web.FileResponse(
+            return file_response(
                 path=full_path,
                 headers={
                     "Content-Disposition": f'attachment; filename="{os.path.basename(full_path)}"',

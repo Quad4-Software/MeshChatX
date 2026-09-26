@@ -16,6 +16,7 @@ from meshchatx.src.backend.http.errors import (
 
 # ruff: noqa: F403, F405
 from meshchatx.src.backend.http.routes.bots._names import *
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
@@ -349,7 +350,7 @@ def register_bots_bots_routes(routes: Any, app: Any) -> None:
             if not id_path or not os.path.exists(id_path):
                 return http_not_found("Identity file not found")
 
-            return web.FileResponse(
+            return file_response(
                 id_path,
                 headers={
                     "Content-Disposition": f'attachment; filename="bot_{bot_id}_identity"',

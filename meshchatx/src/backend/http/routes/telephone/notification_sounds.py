@@ -13,6 +13,7 @@ from meshchatx.src.backend.http.errors import (
 
 # ruff: noqa: F405
 from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
@@ -105,7 +106,7 @@ def register_telephone_notification_sounds_routes(routes, app):
             safe_name.replace('"', "").replace("\r", "").replace("\n", "")
             or "sound.opus"
         )
-        return web.FileResponse(
+        return file_response(
             filepath,
             headers={
                 "Content-Type": "audio/ogg",

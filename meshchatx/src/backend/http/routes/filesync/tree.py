@@ -15,6 +15,7 @@ from meshchatx.src.backend.http.errors import (
 # ruff: noqa: F403, F405
 from meshchatx.src.backend.http.routes.filesync._helpers import make_filesync_helpers
 from meshchatx.src.backend.http.routes.filesync._names import *
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_field_limited,
@@ -188,7 +189,7 @@ def register_filesync_tree_routes(routes: Any, app: Any) -> None:
             .replace("\n", "")
             .replace("\x00", "")
         ) or "download"
-        return web.FileResponse(
+        return file_response(
             abspath,
             headers={
                 "Content-Disposition": f'attachment; filename="{safe_name}"',

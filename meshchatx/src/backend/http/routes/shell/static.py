@@ -7,6 +7,7 @@ from typing import Any
 
 # ruff: noqa: F403, F405
 from meshchatx.src.backend.http.routes.shell._names import *
+from meshchatx.src.backend.http.safe_file_response import file_response
 
 
 def register_shell_static_routes(routes: Any, app: Any) -> None:
@@ -30,7 +31,7 @@ def register_shell_static_routes(routes: Any, app: Any) -> None:
                 content_type="text/html",
                 status=500,
             )
-        return web.FileResponse(
+        return file_response(
             path=index_path,
             headers={
                 # don't allow browser to store page in cache, otherwise new app versions may get stale ui
@@ -40,11 +41,11 @@ def register_shell_static_routes(routes: Any, app: Any) -> None:
 
     @routes.get("/manifest.json")
     async def manifest(request):
-        return web.FileResponse(app.get_public_path("manifest.json"))
+        return file_response(app.get_public_path("manifest.json"))
 
     @routes.get("/service-worker.js")
     async def service_worker(request):
-        return web.FileResponse(
+        return file_response(
             path=app.get_public_path("service-worker.js"),
             headers={
                 "Cache-Control": "no-cache, max-age=0, must-revalidate",

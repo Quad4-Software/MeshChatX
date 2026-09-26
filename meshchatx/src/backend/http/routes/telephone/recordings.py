@@ -11,6 +11,7 @@ from meshchatx.src.backend.http.errors import (
 
 # ruff: noqa: F405
 from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403
+from meshchatx.src.backend.http.safe_file_response import file_response
 
 
 def register_telephone_recordings_routes(routes, app):
@@ -71,7 +72,7 @@ def register_telephone_recordings_routes(routes, app):
                 filename,
             )
             if filepath and os.path.exists(filepath):
-                return web.FileResponse(
+                return file_response(
                     filepath,
                     headers={"Content-Type": "audio/opus"},
                 )

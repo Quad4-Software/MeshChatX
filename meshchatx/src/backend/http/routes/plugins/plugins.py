@@ -16,6 +16,7 @@ from meshchatx.src.backend.http.errors import (
 
 # ruff: noqa: F403, F405
 from meshchatx.src.backend.http.routes.plugins._names import *
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_body_limited,
@@ -269,7 +270,7 @@ def register_plugins_plugins_routes(routes: Any, app: Any) -> None:
             return http_bad_request(str(e))
         except ValueError as e:
             return http_bad_request(str(e))
-        return web.FileResponse(
+        return file_response(
             path,
             headers={
                 "Cache-Control": "no-cache, no-store, must-revalidate",
