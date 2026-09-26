@@ -19,6 +19,7 @@ from meshchatx.src.backend.http.errors import (
     http_payload_too_large,
     parse_int_param,
 )
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
@@ -255,7 +256,7 @@ def register_database_routes(routes, app):
                     status="error",
                 )
 
-            return web.FileResponse(
+            return file_response(
                 path=full_path,
                 headers={
                     "Content-Disposition": f'attachment; filename="{os.path.basename(full_path)}"',
@@ -284,7 +285,7 @@ def register_database_routes(routes, app):
                     status="error",
                 )
 
-            return web.FileResponse(
+            return file_response(
                 path=full_path,
                 headers={
                     "Content-Disposition": f'attachment; filename="{os.path.basename(full_path)}"',
@@ -391,7 +392,7 @@ def register_database_routes(routes, app):
         try:
             backup_info = app.database.backup_database(app.storage_path)
             file_path = backup_info["path"]
-            return web.FileResponse(
+            return file_response(
                 path=file_path,
                 headers={
                     "Content-Type": "application/zip",

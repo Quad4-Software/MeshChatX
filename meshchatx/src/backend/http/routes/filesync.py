@@ -16,6 +16,7 @@ from meshchatx.src.backend.http.errors import (
     http_not_found,
     http_payload_too_large,
 )
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_field_limited,
@@ -247,7 +248,7 @@ def register_filesync_routes(routes, app):
             .replace("\n", "")
             .replace("\x00", "")
         ) or "download"
-        return web.FileResponse(
+        return file_response(
             abspath,
             headers={
                 "Content-Disposition": f'attachment; filename="{safe_name}"',
