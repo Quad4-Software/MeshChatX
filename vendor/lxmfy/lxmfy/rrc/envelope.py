@@ -6,7 +6,7 @@ import os
 import time
 from typing import Any
 
-import cbor2
+import cborx
 
 from .constants import (
     K_BODY,
@@ -71,7 +71,7 @@ def make_envelope(
 
 def encode_envelope(env: dict[int, Any]) -> bytes:
     """Encode an RRC envelope to CBOR bytes."""
-    return cbor2.dumps(env)
+    return cborx.dumps(env)
 
 
 def decode_envelope(data: bytes | bytearray) -> dict[int, Any] | None:
@@ -81,7 +81,7 @@ def decode_envelope(data: bytes | bytearray) -> dict[int, Any] | None:
     callers can ignore them per forward-compatibility rules.
     """
     try:
-        env = cbor2.loads(bytes(data))
+        env = cborx.loads(bytes(data))
     except Exception:
         return None
     if not isinstance(env, dict):

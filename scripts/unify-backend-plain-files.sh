@@ -141,7 +141,7 @@ while IFS= read -r -d '' rel; do
             # direct_url.json/INSTALLER only appear when pip/uv installs from
             # a local wheel path (true for our manually-built pycodec2 wheel),
             # and uv_build.json/uv_cache.json only appear when uv has to build
-            # a package from sdist (true for cbor2/cryptography, which don't
+            # a package from sdist (true for cryptography, which doesn't
             # publish a macOS x86_64 wheel for this Python version). None of
             # these are ever read by the running app, only by pip/uv itself.
             _dist_info_noise='\.dist-info/(direct_url\.json|INSTALLER|uv_build\.json|uv_cache\.json)$'
