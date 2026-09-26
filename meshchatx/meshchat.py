@@ -40,10 +40,6 @@ from urllib.parse import urlparse
 import aiohttp
 import bcrypt
 import LXMF
-
-# meshchatx/__init__ already ensures pyogg ctypes aliases. Import LXST after
-# that package init so plain pip installs do not crash without the Docker patch.
-import LXST
 import psutil
 import RNS
 from aiohttp import WSCloseCode, WSMessage, WSMsgType, web
@@ -320,7 +316,7 @@ from meshchatx.src.backend.database.telemetry import (
     TELEMETRY_MAX_FUTURE_SEC,
     TELEMETRY_MAX_PAST_SEC,
 )
-from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
+from meshchatx.src.backend.web_audio_proxy import LazyWebAudioBridge
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
     websocket_type_requires_auth,
@@ -340,6 +336,17 @@ from meshchatx.src.path_utils import (
 )
 from meshchatx.src.ssl_self_signed import generate_ssl_certificate
 from meshchatx.src.version import __version__ as app_version
+
+
+def __getattr__(name: str):
+    # LXST pulls in numpy and audio backends, so it resolves lazily through
+    # module __getattr__ instead of a top-level import. Keeping the name
+    # module-scoped also keeps tests patching this attribute working.
+    if name == "LXST":
+        import LXST
+
+        return LXST
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _truncated_hash32_hex_ok(value: str | None) -> bool:
@@ -648,7 +655,8 @@ class ReticulumMeshChat(
         register_shutdown_app(self)
 
         AsyncUtils.ensure_background_loop()
-        self.web_audio_bridge = WebAudioBridge(
+        self.web_audio_bridge = LazyWebAudioBridge()
+        self.web_audio_bridge.configure(
             None,
             None,
             force_enabled=self.web_audio_required(),
