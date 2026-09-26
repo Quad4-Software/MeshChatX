@@ -145,6 +145,12 @@ ignore = [
 "cx_setup.py" = ["E402"]
 "scripts/**" = ["E402"]
 "meshchatx/src/backend/web_audio_bridge.py" = ["E731"]
+# meshchat.py is the runtime global namespace for the extracted mixins:
+# moved method bodies resolve names there, and lifecycle modules star-copy
+# its __dict__, so imports unused inside the file itself are still required.
+"meshchatx/meshchat.py" = ["F401"]
+"meshchatx/meshchat_shared.py" = ["F401"]
+"meshchatx/meshchat_parts/**" = ["F401"]
 
 [tool.coverage.run]
 parallel = true

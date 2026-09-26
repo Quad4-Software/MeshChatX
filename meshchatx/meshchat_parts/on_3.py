@@ -6,6 +6,7 @@ slices of the original file; do not edit ordering casually.
 
 import RNS
 
+
 class On3Mixin:
     def on_telephone_call_ended(self, caller_identity: RNS.Identity, context=None):
         from meshchatx.src.backend.lifecycle.telephone_call_events import (

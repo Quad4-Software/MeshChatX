@@ -6,6 +6,7 @@ slices of the original file; do not edit ordering casually.
 
 import RNS
 
+
 class ParseMixin:
     @staticmethod
     def _parse_rns_config_bool(value, default=False):

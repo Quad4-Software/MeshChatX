@@ -9,6 +9,7 @@ from meshchatx.android_push_bridge import (
     _is_chaquopy_android,
 )
 
+
 class DisableMixin:
     @staticmethod
     def _disable_rnode_interfaces_on_android(config_path: str) -> bool:

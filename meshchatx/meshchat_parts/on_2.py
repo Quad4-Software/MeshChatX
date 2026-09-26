@@ -6,6 +6,7 @@ slices of the original file; do not edit ordering casually.
 
 import RNS
 
+
 class On2Mixin:
     # handle receiving a new audio call
     def on_incoming_telephone_call(self, caller_identity: RNS.Identity, context=None):
