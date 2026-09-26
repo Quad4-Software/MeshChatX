@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+# ruff: noqa: F821
+
 
 def build_user_guidance_messages(app: Any):
     mc = __import__("meshchatx.meshchat", fromlist=["*"])
@@ -13,6 +15,31 @@ def build_user_guidance_messages(app: Any):
         if not _k.startswith("__"):
             globals()[_k] = _v
     guidance = []
+
+    recovered = consume_recovery_report(
+        app._normalize_reticulum_config_dir(app.reticulum_config_dir),
+    )
+    if recovered:
+        labels = {
+            "__i2p__": "I2P interfaces",
+            "__rnode__": "RNode interfaces",
+        }
+        recovered_label = ", ".join(labels.get(n, f"'{n}'") for n in recovered)
+        guidance.append(
+            {
+                "id": "startup_recovery_disabled",
+                "title": "Interfaces disabled during startup recovery",
+                "description": (
+                    f"Reticulum failed to start, so {recovered_label} "
+                    "was automatically disabled to let the app boot. "
+                    "Check the interface settings and re-enable it once "
+                    "the underlying problem is fixed."
+                ),
+                "action_route": "/interfaces",
+                "action_label": "Open Interfaces",
+                "severity": "warning",
+            },
+        )
 
     interfaces = app._get_interfaces_section()
     if len(interfaces) == 0:

@@ -108,3 +108,79 @@ def describe_port_conflict(
         f"use by another process{name_bit}. Stop the conflicting process "
         "or pick a different port."
     )
+
+
+# RNS AutoInterface defaults (RNS.Interfaces.AutoInterface). The data
+# port bind has no SO_REUSEPORT, so a second AutoInterface with the same
+# effective ports crashes Reticulum at startup. That previously bricked
+# Android installs, which cannot edit the config by hand.
+AUTO_DEFAULT_DISCOVERY_PORT = 29716
+AUTO_DEFAULT_DATA_PORT = 42671
+
+
+def _auto_effective_port(primary, fallback, default):
+    for value in (primary, fallback):
+        if value not in (None, ""):
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return default
+    return default
+
+
+def _interface_section_enabled(details) -> bool:
+    for key in ("interface_enabled", "enabled"):
+        if key in details:
+            value = details[key]
+            if isinstance(value, bool):
+                return value
+            return str(value).strip().lower() in {"true", "yes", "on", "1"}
+    return True
+
+
+def autointerface_port_conflict(
+    interfaces,
+    interface_name,
+    interface_details,
+    data,
+) -> str | None:
+    """Return a conflict message for a duplicate AutoInterface port bind.
+
+    A second enabled AutoInterface needs distinct discovery and data
+    ports because the RNS data-port bind uses no SO_REUSEPORT.
+    """
+    new_discovery_port = _auto_effective_port(
+        data.get("discovery_port"),
+        interface_details.get("discovery_port"),
+        AUTO_DEFAULT_DISCOVERY_PORT,
+    )
+    new_data_port = _auto_effective_port(
+        data.get("data_port"),
+        interface_details.get("data_port"),
+        AUTO_DEFAULT_DATA_PORT,
+    )
+    for existing_name, existing in interfaces.items():
+        if existing_name == interface_name or not isinstance(existing, dict):
+            continue
+        if str(existing.get("type")) != "AutoInterface":
+            continue
+        if not _interface_section_enabled(existing):
+            continue
+        existing_discovery = _auto_effective_port(
+            None,
+            existing.get("discovery_port"),
+            AUTO_DEFAULT_DISCOVERY_PORT,
+        )
+        existing_data = _auto_effective_port(
+            None,
+            existing.get("data_port"),
+            AUTO_DEFAULT_DATA_PORT,
+        )
+        if new_data_port == existing_data or new_discovery_port == existing_discovery:
+            return (
+                f"Another AutoInterface ({existing_name}) already uses "
+                f"discovery port {existing_discovery} or data port "
+                f"{existing_data}. Set distinct discovery and data "
+                "ports, or remove the existing interface first."
+            )
+    return None

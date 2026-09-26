@@ -185,6 +185,81 @@ async def test_auto_interface_rejects_busy_data_port(temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_auto_interface_rejects_duplicate_default_ports(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {},
+            "interfaces": {
+                "AutoInterface": {
+                    "type": "AutoInterface",
+                    "interface_enabled": "true",
+                },
+            },
+        },
+    )
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {"name": "AutoInterface2", "type": "AutoInterface"}
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body
+        assert "autointerface" in body["message"].lower()
+        assert "AutoInterface2" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_auto_interface_allows_second_with_distinct_ports(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {},
+            "interfaces": {
+                "AutoInterface": {
+                    "type": "AutoInterface",
+                    "interface_enabled": "true",
+                },
+            },
+        },
+    )
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "AutoInterface2",
+            "type": "AutoInterface",
+            "discovery_port": _free_port("udp"),
+            "data_port": _free_port("udp"),
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        assert config["interfaces"]["AutoInterface2"]["type"] == "AutoInterface"
+
+
+@pytest.mark.asyncio
+async def test_auto_interface_ignores_disabled_existing_entry(temp_dir):
+    # The seeded "Default Interface" in the on-disk config is an enabled
+    # AutoInterface. Marking it disabled in memory wins over disk sync,
+    # leaving no enabled AutoInterface for a new default-port entry to
+    # collide with.
+    config = ConfigDict(
+        {
+            "reticulum": {},
+            "interfaces": {
+                "Default Interface": {
+                    "type": "AutoInterface",
+                    "interface_enabled": "false",
+                },
+            },
+        },
+    )
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {"name": "AutoInterface2", "type": "AutoInterface"}
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+
+
+@pytest.mark.asyncio
 async def test_tcp_client_persists_advanced_options(temp_dir):
     config = ConfigDict({"reticulum": {}, "interfaces": {}})
 

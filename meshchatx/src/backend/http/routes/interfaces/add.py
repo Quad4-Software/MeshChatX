@@ -17,6 +17,7 @@ from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.interface_port_check import autointerface_port_conflict
 
 
 def register_interfaces_add_routes(routes, app):
@@ -219,6 +220,15 @@ def register_interfaces_add_routes(routes, app):
                         interface_name=interface_name,
                     )
                 )
+
+            auto_conflict = autointerface_port_conflict(
+                interfaces,
+                interface_name,
+                interface_details,
+                data,
+            )
+            if auto_conflict is not None:
+                return http_error(422, auto_conflict)
 
             # set optional AutoInterface options
             InterfaceEditor.update_value(interface_details, data, "group_id")
