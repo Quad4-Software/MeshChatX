@@ -79,7 +79,7 @@
     "engines": {
         "node": ">=24"
     },
-    "packageManager": "pnpm@11.1.2",
+    "packageManager": "pnpm@12.7.0",
     "devDependencies": {
         "@commitlint/cli": "^21.2.2",
         "@commitlint/config-conventional": "^21.2.2",

@@ -10,7 +10,7 @@ inputs:
     pnpm-version:
         description: pnpm version activated through corepack
         required: false
-        default: "11.1.2"
+        default: "12.7.0"
     cache-dependency-path:
         description: Lockfile path used for the pnpm cache key
         required: false
