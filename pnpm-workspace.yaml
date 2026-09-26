@@ -5,9 +5,12 @@ nodeLinker: hoisted
 verifyStoreIntegrity: true
 strictPeerDependencies: false
 
-minimumReleaseAge: 7d
+minimumReleaseAge: 10080
 minimumReleaseAgeStrict: false
 blockExoticSubdeps: true
+# pnpm 12: refuse lockfile entries that downgrade a resolved version
+# below what was previously installed (blocks malicious downgrade attacks).
+trustPolicy: no-downgrade
 
 allowBuilds:
     "@parcel/watcher": true

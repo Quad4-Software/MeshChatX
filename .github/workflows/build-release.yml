@@ -54,7 +54,7 @@ env:
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
     UV_VERSION: "0.11.15"
-    PNPM_VERSION: "11.1.2"
+    PNPM_VERSION: "12.7.0"
     COSIGN_VERSION: "3.0.6"
     # Official .deb from aquasecurity/trivy releases. Scripts/ci/setup-trivy.sh verifies
     # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
@@ -69,7 +69,7 @@ jobs:
         with:
             artifact_name: meshchatx-frontend-release-${{ github.run_id }}-${{ github.run_attempt }}
             retention_days: 7
-            pnpm_version: "11.1.2"
+            pnpm_version: "12.7.0"
 
     frontend-android:
         name: Build frontend (Android / Python 3.11)
@@ -81,7 +81,7 @@ jobs:
             artifact_name: meshchatx-frontend-android-rel-${{ github.run_id }}-${{ github.run_attempt }}
             retention_days: 7
             python_version: "3.11"
-            pnpm_version: "11.1.2"
+            pnpm_version: "12.7.0"
 
     android-release:
         name: Android APKs (tag)
