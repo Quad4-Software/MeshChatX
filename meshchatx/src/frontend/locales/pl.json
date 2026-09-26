@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Klasyczny (stary)",
         "appcontainer_unsupported": "Niedostępny na tym hoście",
         "landlock_status": "Landlock (Linux)",
-        "error_report_saved": "Zapisano do raportów błędów",
         "app_sidebar_layout": "Układ paska bocznego aplikacji",
         "telemetry_trust_failed": "Nie udało się zaktualizować zaufania telemetrii.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Koszt znaczników przychodzących",
         "messages_sidebar_position": "Pasek boczny wiadomości",
         "location_manual_lon": "Długość geograficzna",
-        "error_report_locally": "Zgłoś lokalnie",
         "community_interfaces_description": "Pokazuje gotowe profile utrzymywane przez społeczność podczas dodawania nowych interfejsów.",
         "notification_sound_set_primary": "Ustaw jako główny",
         "message_font_size": "Rozmiar czcionki wiadomości",
@@ -562,7 +560,6 @@
         "flood_protection": "Ochrona przed zalaniem",
         "tools": "Narzędzia",
         "reloading_rns": "Przeładowywanie RNS...",
-        "error_report_failed": "Nie udało się zapisać raportu lokalnie",
         "tutorial_welcome": "Witamy w MeshChatX",
         "last_synced": "Ostatnia synchronizacja {time} temu.",
         "view_incoming_calls": "Pokaż połączenia przychodzące",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Czytnik aktywny. Trzymaj urządzenia plecami do siebie.",
             "nfc_join_this": "Dołącz do tej sieci",
             "nfc_failed": "Operacja NFC nie powiodła się",
-            "satellite_hint": "To urządzenie może przełączyć się na łącze satelitarne. To wolna, taryfikowana ścieżka IP. Utrzymuj niskie bitrate interfejsu i limity announce na łączach, które mogą jej używać."
+            "satellite_hint": "To urządzenie może przełączyć się na łącze satelitarne. To wolna, taryfikowana ścieżka IP. Utrzymuj niskie bitrate interfejsu i limity announce na łączach, które mogą jej używać.",
+            "permission_failed": "Nie można zażądać uprawnienia do urządzeń w pobliżu na tym urządzeniu."
         },
         "rnpath_trace": {
             "title": "Śledzenie ścieżki RNS",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Interfejsy na tym hoście",
         "kernel_iface_loading": "Ładowanie…",
         "kernel_iface_picker_help": "Urządzenie jest opcjonalne: jedna nazwa interfejsu jądra albo zostaw puste, aby wiązać tylko za pomocą IP nasłuchiwania. Kliknij wiersz, aby wypełnić pole.",
-        "auto_iface_ifname_chips_hint": "Interfejsy tego hosta: kliknij, aby dodać lub usunąć nazwy w polu powyżej."
+        "auto_iface_ifname_chips_hint": "Interfejsy tego hosta: kliknij, aby dodać lub usunąć nazwy w polu powyżej.",
+        "aware_permission_failed": "Nie można zażądać uprawnienia do urządzeń w pobliżu na tym urządzeniu."
     },
     "about": {
         "title": "O programie",
@@ -3335,14 +3334,16 @@
         "view_mode_planet": "Planeta",
         "view_mode_flat_full": "Płaski (2D)",
         "view_mode_planet_full": "Planeta (dla każdego interfejsu)",
-        "view_mode_desc": "Każdy interfejs to glob. Peery znajdują się na interfejsie, którego używają. Przeciągnij, aby obracać, przewiń, aby przybliżyć. Tylko WebGL.",
+        "view_mode_desc": "Płaski to graf siłowy. Planeta owija każdy interfejs w glob. Promienisty układa peery w pierścienie skoków. Planeta tylko w WebGL.",
         "nodes": "Węzły",
         "links": "Połączenia",
         "interfaces": "Interfejsy",
         "online": "Online",
         "offline": "Offline",
         "search_nodes_placeholder": "Szukaj węzłów ({count})...",
-        "clear_search": "Wyczyść wyszukiwanie"
+        "clear_search": "Wyczyść wyszukiwanie",
+        "view_mode_radial": "Promienisty",
+        "view_mode_radial_full": "Promienisty (pierścienie skoków)"
     },
     "map": {
         "title": "Mapa",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Szukaj w ustawieniach...",
         "no_search_results": "Nie znaleziono ustawień pasujących do wyszukiwania",
         "try_different_search": "Spróbuj innego zapytania",
-        "clear_search": "Wyczyść wyszukiwanie"
+        "clear_search": "Wyczyść wyszukiwanie",
+        "archived_pages_flush_failed": "Nie udało się wyczyścić zarchiwizowanych stron"
     },
     "android_storage": {
         "setup_title": "Wybierz, gdzie MeshChatX przechowuje dane",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} wysłał {count} plików",
         "message_not_found_in_cache": "Nie znaleziono wiadomości w pamięci podręcznej",
         "scroll_to_bottom": "Przewiń do dołu",
-        "copied_to_clipboard": "Skopiowano do schowka"
+        "copied_to_clipboard": "Skopiowano do schowka",
+        "failed_generate_paper_uri": "Nie udało się wygenerować wiadomości papierowej"
     },
     "command_palette": {
         "open_hint": "Szukaj i polecenia (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Odczytywanie logów debugowania aplikacji"
                 },
-                "bugReport": {
-                    "status": "Odczytywanie statusu kolektora zgłoszeń błędów",
-                    "listCollectors": "Wyświetlanie listy usłyszanych kolektorów mcx-bugs-v1",
-                    "listReports": "Wyświetlanie listy odebranych zgłoszeń błędów",
-                    "deleteReport": "Usuwanie zapisanego zgłoszenia błędu",
-                    "clearReports": "Czyszczenie wszystkich zapisanych zgłoszeń błędów",
-                    "preview": "Podgląd zanonimizowanych logów debugowania dla zgłoszeń błędów",
-                    "send": "Wysyłanie zgłoszeń błędów w sieci mesh",
-                    "startCollector": "Uruchamianie kolektora mcx-bugs-v1",
-                    "stopCollector": "Zatrzymywanie kolektora zgłoszeń błędów",
-                    "announce": "Anonsowanie kolektora zgłoszeń błędów",
-                    "setCollectorName": "Ustawianie nazwy wyświetlanej kolektora zgłoszeń błędów",
-                    "listIssues": "Wyświetlanie listy lokalnych i odebranych problemów",
-                    "getIssue": "Odczytywanie zapisanego problemu",
-                    "recordLocal": "Zapisywanie lokalnego problemu",
-                    "setIssueStatus": "Aktualizowanie statusu problemu",
-                    "listPendingSends": "Wyświetlanie listy oczekujących wysyłek zgłoszeń błędów",
-                    "enqueueSend": "Dodawanie zgłoszenia błędu do kolejki wysyłki w sieci mesh",
-                    "cancelPendingSend": "Anulowanie oczekującej wysyłki zgłoszenia błędu"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "Otwieranie linków RNS do adresatów",
                     "identify": "Identyfikacja na linkach RNS",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Ukryj szczegóły błędu",
         "status_label": "Status",
         "reason_label": "Przyczyna",
-        "checks_completed": "Wszystkie sprawdzenia zakończono pomyślnie."
+        "checks_completed": "Wszystkie sprawdzenia zakończono pomyślnie.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Wyłącz",

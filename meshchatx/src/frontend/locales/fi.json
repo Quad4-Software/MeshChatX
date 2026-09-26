@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Perinteinen (vanha)",
         "appcontainer_unsupported": "AppContainer-API:t eivät ole käytettävissä tällä Windows-isännällä",
         "landlock_status": "Landlock-hiekkalaatikko (Linux)",
-        "error_report_saved": "Tallennettu virheraportteihin",
         "app_sidebar_layout": "Sovelluksen sivupalkin asettelu",
         "telemetry_trust_failed": "Käyttötietojen luottamuksen päivitys epäonnistui.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Saapuvien leiman hinta",
         "messages_sidebar_position": "Viestipalkki",
         "location_manual_lon": "Pituus",
-        "error_report_locally": "Ilmoita paikallisesti",
         "community_interfaces_description": "Näytä yhteisön ylläpitämät esiasetukset uusia sovittimia lisätessä.",
         "notification_sound_set_primary": "Aseta ensisijaiseksi",
         "message_font_size": "Viestin fonttikoko",
@@ -562,7 +560,6 @@
         "flood_protection": "Tulvasuoja",
         "tools": "Työkalut",
         "reloading_rns": "Ladataan RNS uudelleen...",
-        "error_report_failed": "Paikallista raporttia ei voitu tallentaa",
         "tutorial_welcome": "Tervetuloa MeshChatX:ään",
         "last_synced": "Viimeisin synkronointi {time} sitten.",
         "view_incoming_calls": "Näytä saapuvat puhelut",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Lukija aktiivinen. Pidä laitteet selästä vastakkain.",
             "nfc_join_this": "Liity tähän verkkoon",
             "nfc_failed": "NFC-toiminto epäonnistui",
-            "satellite_hint": "Tämä laite voi turvautua satelliittiyhteyteen. Se on hidas, mitattu IP-reitti. Pidä rajapinnan bittinopeus ja announce-rajat alhaisina linkeillä, jotka saattavat käyttää sitä."
+            "satellite_hint": "Tämä laite voi turvautua satelliittiyhteyteen. Se on hidas, mitattu IP-reitti. Pidä rajapinnan bittinopeus ja announce-rajat alhaisina linkeillä, jotka saattavat käyttää sitä.",
+            "permission_failed": "Lähilaitteiden lupaa ei voitu pyytää tällä laitteella."
         },
         "rnpath_trace": {
             "title": "RNS-polun jäljitys",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Sovittimet tällä isännällä",
         "kernel_iface_loading": "Ladataan…",
         "kernel_iface_picker_help": "Laite on valinnainen: yksi ytimen sovitinnimi, tai jätä tyhjäksi sitoaksesi ainoastaan kuuntelu-IP:n välityksellä. Klikkaa riviä täyttääksesi kentän.",
-        "auto_iface_ifname_chips_hint": "Tämän isännän sovittimet: klikkaa lisätäksesi tai poistaaksesi nimiä yllä olevista kentistä."
+        "auto_iface_ifname_chips_hint": "Tämän isännän sovittimet: klikkaa lisätäksesi tai poistaaksesi nimiä yllä olevista kentistä.",
+        "aware_permission_failed": "Lähilaitteiden lupaa ei voitu pyytää tällä laitteella."
     },
     "about": {
         "title": "Tietoja",
@@ -3324,7 +3323,7 @@
         "view_mode_planet": "Planeetta",
         "view_mode_flat_full": "Tasainen (2D)",
         "view_mode_planet_full": "Planeetta (per liitäntä)",
-        "view_mode_desc": "Jokainen liitäntä on pallo. Vertaiset ovat käyttämänsä liitännän pinnalla. Vedä kiertääksesi, rullaa zoomataksesi. Vain WebGL.",
+        "view_mode_desc": "Tasainen on voimagraafi. Planeetta kietoo jokaisen liitännän palloksi. Radiaalinen asettaa vertaiset hyppyrenkaisiin. Planeetta vain WebGL:ssä.",
         "nodes": "Solmut",
         "links": "Linkit",
         "interfaces": "Liitännät",
@@ -3342,7 +3341,9 @@
         "renderer_option_auto": "Auto (WebGL jos saatavilla)",
         "renderer_option_webgl": "WebGL + WASM",
         "renderer_option_vis": "vis-network (canvas)",
-        "renderer_webgl_unavailable": "WebGL-renderöijä ei ole saatavilla. Käytetään vis-network-varausta."
+        "renderer_webgl_unavailable": "WebGL-renderöijä ei ole saatavilla. Käytetään vis-network-varausta.",
+        "view_mode_radial": "Radial",
+        "view_mode_radial_full": "Radiaalinen (hyppyrenkaat)"
     },
     "map": {
         "title": "Kartta",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Hae asetuksista...",
         "no_search_results": "Hakua vastaavia asetuksia ei löytynyt",
         "try_different_search": "Kokeile toista hakuehtoa",
-        "clear_search": "Tyhjennä haku"
+        "clear_search": "Tyhjennä haku",
+        "archived_pages_flush_failed": "Arkiston tyhjennys epäonnistui"
     },
     "android_storage": {
         "setup_title": "Valitse, mihin MeshChatX tallentaa tiedot",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} lähetti {count} tiedostoa",
         "message_not_found_in_cache": "Viestiä ei löytynyt välimuistista",
         "scroll_to_bottom": "Vieritä alas",
-        "copied_to_clipboard": "Kopioitu leikepöydälle"
+        "copied_to_clipboard": "Kopioitu leikepöydälle",
+        "failed_generate_paper_uri": "Paperiviestin luonti epäonnistui"
     },
     "command_palette": {
         "open_hint": "Haku ja komennot (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Lue sovelluksen vianetsintälokit"
                 },
-                "bugReport": {
-                    "status": "Lue bugiraporttikeräimen tila",
-                    "listCollectors": "Listaa kuullut mcx-bugs-v1-keräimet",
-                    "listReports": "Listaa vastaanotetut bugiraportit",
-                    "deleteReport": "Poista tallennettu bugiraportti",
-                    "clearReports": "Tyhjennä kaikki tallennetut bugiraportit",
-                    "preview": "Esikatsele redaktoituja vianetsintälokeja",
-                    "send": "Lähetä bugiraportteja verkon yli",
-                    "startCollector": "Käynnistä mcx-bugs-v1-keräin",
-                    "stopCollector": "Pysäytä bugiraporttikeräin",
-                    "announce": "Ilmoita bugiraporttikeräin",
-                    "setCollectorName": "Aseta bugiraporttikeräimen näyttönimi",
-                    "listIssues": "Listaa paikalliset ja vastaanotetut bugi-issuet",
-                    "getIssue": "Lue tallennettu bugi-issue",
-                    "recordLocal": "Tallenna paikallinen bugi-issue",
-                    "setIssueStatus": "Päivitä bugi-issuen tila",
-                    "listPendingSends": "Listaa odottavat bugiraporttien lähetykset",
-                    "enqueueSend": "Jonota bugiraportti mesh-lähetykseen",
-                    "cancelPendingSend": "Peruuta odottava bugiraportin lähetys"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "Avaa RNS-linkkejä kohteisiin",
                     "identify": "Tunnistaudu RNS-linkeillä",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Piilota virheen tiedot",
         "status_label": "Tila",
         "reason_label": "Syy",
-        "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti."
+        "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Älä käytä",

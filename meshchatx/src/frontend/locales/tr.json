@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Klasik (eski)",
         "appcontainer_unsupported": "Bu ana makinede kullanılamıyor",
         "landlock_status": "Landlock (Linux)",
-        "error_report_saved": "Hata Raporları'na kaydedildi",
         "app_sidebar_layout": "Uygulama kenar çubuğu düzeni",
         "telemetry_trust_failed": "Telemetri güveni güncellenemedi.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Gelen Damga Maliyeti",
         "messages_sidebar_position": "İletiler kenar çubuğu",
         "location_manual_lon": "Boylam",
-        "error_report_locally": "Yerel olarak bildir",
         "community_interfaces_description": "Yeni arayüz eklerken topluluk tarafından hazırlanan hazır ayarları göster.",
         "notification_sound_set_primary": "Birincil olarak ayarla",
         "message_font_size": "İleti yazı tipi boyutu",
@@ -562,7 +560,6 @@
         "flood_protection": "Flood Koruması",
         "tools": "Araçlar",
         "reloading_rns": "RNS yeniden yükleniyor...",
-        "error_report_failed": "Yerel rapor kaydedilemedi",
         "tutorial_welcome": "MeshChatX'e Hoş Geldiniz",
         "last_synced": "Son eşitleme {time} önce.",
         "view_incoming_calls": "Gelen Aramaları Görüntüle",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Okuyucu etkin. Cihazları sırt sırta tutun.",
             "nfc_join_this": "Bu ağa katıl",
             "nfc_failed": "NFC işlemi başarısız oldu",
-            "satellite_hint": "Bu cihaz bir uydu bağlantısına geri dönebilir. Yavaş ve ölçülü bir IP yoludur. Bunu kullanabilecek bağlantılarda arayüz bit hızını ve announce sınırlarını düşük tutun."
+            "satellite_hint": "Bu cihaz bir uydu bağlantısına geri dönebilir. Yavaş ve ölçülü bir IP yoludur. Bunu kullanabilecek bağlantılarda arayüz bit hızını ve announce sınırlarını düşük tutun.",
+            "permission_failed": "Bu cihazda Yakındaki cihazlar izni istenemedi."
         },
         "rnpath_trace": {
             "title": "RNS Yol İzleme",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Bu ana makinedeki arayüzler",
         "kernel_iface_loading": "Yükleniyor…",
         "kernel_iface_picker_help": "Cihaz isteğe bağlıdır: bir çekirdek arayüz adı veya yalnızca Dinleme IP'siyle bağlanmak için boş bırakın. Alanı doldurmak için bir satıra tıklayın.",
-        "auto_iface_ifname_chips_hint": "Bu ana makinenin arayüzleri: yukarıdaki alana ad eklemek veya çıkarmak için tıklayın."
+        "auto_iface_ifname_chips_hint": "Bu ana makinenin arayüzleri: yukarıdaki alana ad eklemek veya çıkarmak için tıklayın.",
+        "aware_permission_failed": "Bu cihazda Yakındaki cihazlar izni istenemedi."
     },
     "about": {
         "title": "Hakkında",
@@ -3335,14 +3334,16 @@
         "view_mode_planet": "Gezegen",
         "view_mode_flat_full": "Düz (2D)",
         "view_mode_planet_full": "Gezegen (arayüz başına)",
-        "view_mode_desc": "Her arayüz bir küredir. Eşler, kullandıkları arayüzde oturur. Yörüngeleri sürükle, kaydırarak yakınlaştır. Yalnızca WebGL.",
+        "view_mode_desc": "Düz bir kuvvet grafiğidir. Gezegen her arayüzü bir küreye sarar. Radyal eşleri atlama halkalarına dizer. Gezegen yalnızca WebGL'dir.",
         "nodes": "Düğümler",
         "links": "Bağlantılar",
         "interfaces": "Arayüzler",
         "online": "Çevrimiçi",
         "offline": "Çevrimdışı",
         "search_nodes_placeholder": "Düğümleri ara ({count})...",
-        "clear_search": "Aramayı temizle"
+        "clear_search": "Aramayı temizle",
+        "view_mode_radial": "Radyal",
+        "view_mode_radial_full": "Radyal (atlama halkaları)"
     },
     "map": {
         "title": "Harita",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Ayarları ara...",
         "no_search_results": "Aramanla eşleşen ayar bulunamadı",
         "try_different_search": "Farklı bir arama sorgusu dene",
-        "clear_search": "Aramayı temizle"
+        "clear_search": "Aramayı temizle",
+        "archived_pages_flush_failed": "Arşivlenen sayfalar temizlenemedi"
     },
     "android_storage": {
         "setup_title": "MeshChatX'in verileri nerede saklayacağını seç",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} {count} dosya gönderdi",
         "message_not_found_in_cache": "İleti önbellekte bulunamadı",
         "scroll_to_bottom": "En alta kaydır",
-        "copied_to_clipboard": "Panoya kopyalandı"
+        "copied_to_clipboard": "Panoya kopyalandı",
+        "failed_generate_paper_uri": "Kağıt mesaj oluşturulamadı"
     },
     "command_palette": {
         "open_hint": "Ara ve komutlar (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Uygulama hata ayıklama günlüklerini oku"
                 },
-                "bugReport": {
-                    "status": "Hata raporu toplayıcı durumunu oku",
-                    "listCollectors": "Duyulan mcx-bugs-v1 toplayıcılarını listele",
-                    "listReports": "Alınan hata raporlarını listele",
-                    "deleteReport": "Saklanan bir hata raporunu sil",
-                    "clearReports": "Saklanan tüm hata raporlarını temizle",
-                    "preview": "Hata raporları için düzenlenmiş hata ayıklama günlüklerini önizle",
-                    "send": "Hata raporlarını ağ üzerinden gönder",
-                    "startCollector": "Bir mcx-bugs-v1 toplayıcısı başlat",
-                    "stopCollector": "Hata raporu toplayıcısını durdur",
-                    "announce": "Hata raporu toplayıcısını duyur",
-                    "setCollectorName": "Hata raporu toplayıcı görünen adını ayarla",
-                    "listIssues": "Yerel ve alınan hata sorunlarını listele",
-                    "getIssue": "Saklanan bir hata sorununu oku",
-                    "recordLocal": "Yerel bir hata sorunu kaydet",
-                    "setIssueStatus": "Hata sorunu durumunu güncelle",
-                    "listPendingSends": "Bekleyen hata raporu gönderimlerini listele",
-                    "enqueueSend": "Ağ gönderimi için bir hata raporu kuyruğa al",
-                    "cancelPendingSend": "Bekleyen bir hata raporu gönderimini iptal et"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "Hedeflere RNS bağlantıları aç",
                     "identify": "RNS bağlantılarında kimlik doğrula",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Başarısızlık ayrıntılarını gizle",
         "status_label": "Durum",
         "reason_label": "Neden",
-        "checks_completed": "Tüm kontroller başarıyla geçti."
+        "checks_completed": "Tüm kontroller başarıyla geçti.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Devre dışı bırak",

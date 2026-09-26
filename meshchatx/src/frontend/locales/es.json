@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Clásico (antiguo)",
         "appcontainer_unsupported": "APIs de AppContainer no disponibles en este host Windows",
         "landlock_status": "Sandbox Landlock (Linux)",
-        "error_report_saved": "Guardado en informes de errores",
         "app_sidebar_layout": "Diseño de la barra lateral",
         "telemetry_trust_failed": "Sin actualizar la confianza en la telemetría.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Costo del sello entrante",
         "messages_sidebar_position": "Mensajes laterales",
         "location_manual_lon": "Longitud",
-        "error_report_locally": "Reportar localmente",
         "community_interfaces_description": "Muestra los ajustes preestablecidos mantenidos por la comunidad al añadir nuevas interfaces.",
         "notification_sound_set_primary": "Establecer como principal",
         "message_font_size": "Tamaño de la fuente",
@@ -562,7 +560,6 @@
         "flood_protection": "Protección contra inundaciones",
         "tools": "Herramientas",
         "reloading_rns": "Recargar RNS...",
-        "error_report_failed": "No se pudo guardar el informe local",
         "tutorial_welcome": "Bienvenido a MeshChatX",
         "last_synced": "Última sincronización hace {time}.",
         "view_incoming_calls": "Ver llamadas entrantes",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Lector activo. Mantén los dispositivos espalda con espalda.",
             "nfc_join_this": "Unirse a esta red",
             "nfc_failed": "La operación NFC falló",
-            "satellite_hint": "Este dispositivo puede recurrir a un enlace por satélite. Es una ruta IP lenta y medida. Mantén bajos el bitrate de interfaz y los límites de anuncios en enlaces que puedan usarlo."
+            "satellite_hint": "Este dispositivo puede recurrir a un enlace por satélite. Es una ruta IP lenta y medida. Mantén bajos el bitrate de interfaz y los límites de anuncios en enlaces que puedan usarlo.",
+            "permission_failed": "No se pudo solicitar el permiso de dispositivos cercanos en este dispositivo."
         },
         "rnpath_trace": {
             "title": "Traza de ruta RNS",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Interfaces en este equipo",
         "kernel_iface_loading": "Cargando…",
         "kernel_iface_picker_help": "“Dispositivo” es opcional: un nombre de interfaz del kernel, o vacío para enlazar solo con la IP de escucha. Pulse una fila para rellenar.",
-        "auto_iface_ifname_chips_hint": "Interfaces de este equipo: pulse para añadir o quitar nombres en el campo de arriba."
+        "auto_iface_ifname_chips_hint": "Interfaces de este equipo: pulse para añadir o quitar nombres en el campo de arriba.",
+        "aware_permission_failed": "No se pudo solicitar el permiso de dispositivos cercanos en este dispositivo."
     },
     "about": {
         "title": "Acerca de",
@@ -3324,7 +3323,7 @@
         "view_mode_planet": "Planeta",
         "view_mode_flat_full": "Plano (2D)",
         "view_mode_planet_full": "Planeta (por interfaz)",
-        "view_mode_desc": "Cada interfaz es un globo. Los peers se sientan en la interfaz que usan. Arrastra para orbitar, rueda para zoom. Solo WebGL.",
+        "view_mode_desc": "Plano es un grafo de fuerzas. Planeta envuelve cada interfaz en un globo. Radial ordena los peers en anillos por saltos. Planeta solo con WebGL.",
         "nodes": "Nodos",
         "links": "Enlaces",
         "interfaces": "Interfaces",
@@ -3342,7 +3341,9 @@
         "renderer_option_auto": "Auto (WebGL si está disponible)",
         "renderer_option_webgl": "WebGL + WASM",
         "renderer_option_vis": "vis-network (canvas)",
-        "renderer_webgl_unavailable": "Renderizador WebGL no disponible. Se usa la reserva vis-network."
+        "renderer_webgl_unavailable": "Renderizador WebGL no disponible. Se usa la reserva vis-network.",
+        "view_mode_radial": "Radial",
+        "view_mode_radial_full": "Radial (anillos por saltos)"
     },
     "map": {
         "title": "Mapa",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Buscar ajustes...",
         "no_search_results": "No hay ajustes que coincidan con tu búsqueda",
         "try_different_search": "Prueba con otra búsqueda",
-        "clear_search": "Borrar búsqueda"
+        "clear_search": "Borrar búsqueda",
+        "archived_pages_flush_failed": "No se pudieron limpiar las páginas archivadas"
     },
     "android_storage": {
         "setup_title": "Elige dónde almacena datos MeshChatX",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} envió {count} archivos",
         "message_not_found_in_cache": "Mensaje no encontrado en caché",
         "scroll_to_bottom": "Desplazarse al final",
-        "copied_to_clipboard": "Copiado al portapapeles"
+        "copied_to_clipboard": "Copiado al portapapeles",
+        "failed_generate_paper_uri": "No se pudo generar el mensaje en papel"
     },
     "command_palette": {
         "open_hint": "Búsqueda y comandos (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Leer registros de depuración de la aplicación"
                 },
-                "bugReport": {
-                    "status": "Leer el estado del recolector de informes de errores",
-                    "listCollectors": "Listar recolectores mcx-bugs-v1 escuchados",
-                    "listReports": "Listar informes de errores recibidos",
-                    "deleteReport": "Eliminar un informe de errores almacenado",
-                    "clearReports": "Borrar todos los informes de errores almacenados",
-                    "preview": "Vista previa de registros depurados para informes",
-                    "send": "Enviar informes de errores por la malla",
-                    "startCollector": "Iniciar un recolector mcx-bugs-v1",
-                    "stopCollector": "Detener el recolector de informes de errores",
-                    "announce": "Anunciar el recolector de informes de errores",
-                    "setCollectorName": "Establecer el nombre visible del recolector de informes",
-                    "listIssues": "Listar issues de errores locales y recibidos",
-                    "getIssue": "Leer un issue de error almacenado",
-                    "recordLocal": "Registrar un issue de error local",
-                    "setIssueStatus": "Actualizar el estado de un issue de error",
-                    "listPendingSends": "Listar envíos pendientes de informes de error",
-                    "enqueueSend": "Encolar un informe de error para envío por la malla",
-                    "cancelPendingSend": "Cancelar un envío pendiente de informe de error"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "Abrir enlaces RNS a destinos",
                     "identify": "Identificarse en enlaces RNS",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Ocultar detalles del fallo",
         "status_label": "Estado",
         "reason_label": "Motivo",
-        "checks_completed": "Todas las comprobaciones se completaron con éxito."
+        "checks_completed": "Todas las comprobaciones se completaron con éxito.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Inhabilitación",

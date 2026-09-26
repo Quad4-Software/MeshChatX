@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Klassiek (oud)",
         "appcontainer_unsupported": "AppContainer-API's niet beschikbaar op deze Windows-host",
         "landlock_status": "Landlock-sandbox (Linux)",
-        "error_report_saved": "Opgeslagen bij bugrapporten",
         "app_sidebar_layout": "Indeling van de app-zijbalk",
         "telemetry_trust_failed": "Kon telemetrie vertrouwen niet bijwerken.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Inkomende postzegelkosten",
         "messages_sidebar_position": "Berichten zijbalk",
         "location_manual_lon": "Lengtegraad",
-        "error_report_locally": "Lokaal rapporteren",
         "community_interfaces_description": "Toon door de gemeenschap onderhouden presets bij het toevoegen van nieuwe interfaces.",
         "notification_sound_set_primary": "Instellen als primair",
         "message_font_size": "Grootte berichtlettertype",
@@ -562,7 +560,6 @@
         "flood_protection": "Overstromingsbeveiliging",
         "tools": "Hulpmiddelen",
         "reloading_rns": "RNS herladen...",
-        "error_report_failed": "Kon lokaal rapport niet opslaan",
         "tutorial_welcome": "Welkom bij MeshChatX",
         "last_synced": "Laatst gesynchroniseerd {time} geleden.",
         "view_incoming_calls": "Inkomende oproepen weergeven",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Lezer actief. Houd de apparaten rug tegen rug.",
             "nfc_join_this": "Met dit netwerk verbinden",
             "nfc_failed": "NFC-bewerking mislukt",
-            "satellite_hint": "Dit apparaat kan terugvallen op een satellietverbinding. Dat is een langzaam, gemeten IP-pad. Houd interface-bitrate en announce-limieten laag op verbindingen die het kunnen gebruiken."
+            "satellite_hint": "Dit apparaat kan terugvallen op een satellietverbinding. Dat is een langzaam, gemeten IP-pad. Houd interface-bitrate en announce-limieten laag op verbindingen die het kunnen gebruiken.",
+            "permission_failed": "Kan de machtiging voor apparaten in de buurt op dit apparaat niet aanvragen."
         },
         "rnpath_trace": {
             "title": "RNS-padspoor",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Interfaces op deze host",
         "kernel_iface_loading": "Laden…",
         "kernel_iface_picker_help": "Apparaat is optioneel: één kernelinterfacenaam, of leeg laten en alleen via listen-IP binden. Klik op een regel om in te vullen.",
-        "auto_iface_ifname_chips_hint": "Interfaces op deze host: klik om namen in het veld erboven toe te voegen of te verwijderen."
+        "auto_iface_ifname_chips_hint": "Interfaces op deze host: klik om namen in het veld erboven toe te voegen of te verwijderen.",
+        "aware_permission_failed": "Kan de machtiging voor apparaten in de buurt op dit apparaat niet aanvragen."
     },
     "about": {
         "title": "Info",
@@ -3324,7 +3323,7 @@
         "view_mode_planet": "Planeet",
         "view_mode_flat_full": "Plat (2D)",
         "view_mode_planet_full": "Planeet (per interface)",
-        "view_mode_desc": "Elke interface is een globe. Peers zitten op de interface die ze gebruiken. Sleep om te draaien, scroll om te zoomen. Alleen WebGL.",
+        "view_mode_desc": "Plat is een krachtengraaf. Planeet wikkelt elke interface als een globe. Radiaal rangschikt peers in hopringen. Planeet alleen met WebGL.",
         "nodes": "Knooppunten",
         "links": "Links",
         "interfaces": "Interfaces",
@@ -3342,7 +3341,9 @@
         "renderer_option_auto": "Auto (WebGL indien beschikbaar)",
         "renderer_option_webgl": "WebGL + WASM",
         "renderer_option_vis": "vis-network (canvas)",
-        "renderer_webgl_unavailable": "WebGL-renderer niet beschikbaar. Vis-network-fallback wordt gebruikt."
+        "renderer_webgl_unavailable": "WebGL-renderer niet beschikbaar. Vis-network-fallback wordt gebruikt.",
+        "view_mode_radial": "Radiaal",
+        "view_mode_radial_full": "Radiaal (hopringen)"
     },
     "map": {
         "title": "Kaart",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Instellingen zoeken...",
         "no_search_results": "Geen instellingen gevonden die overeenkomen met uw zoekopdracht",
         "try_different_search": "Probeer een andere zoekopdracht",
-        "clear_search": "Zoekopdracht wissen"
+        "clear_search": "Zoekopdracht wissen",
+        "archived_pages_flush_failed": "Gearchiveerde pagina's konden niet worden leeggemaakt"
     },
     "android_storage": {
         "setup_title": "Kies waar MeshChatX gegevens opslaat",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} heeft {count} bestanden gestuurd",
         "message_not_found_in_cache": "Bericht niet gevonden in cache",
         "scroll_to_bottom": "Scroll naar beneden",
-        "copied_to_clipboard": "Naar klembord gekopieerd"
+        "copied_to_clipboard": "Naar klembord gekopieerd",
+        "failed_generate_paper_uri": "Papieren bericht genereren mislukt"
     },
     "command_palette": {
         "open_hint": "Zoeken en opdrachten (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Applicatie-debuglogs lezen"
                 },
-                "bugReport": {
-                    "status": "Status van bugrapport-collector lezen",
-                    "listCollectors": "Gehoorde mcx-bugs-v1-collectors tonen",
-                    "listReports": "Ontvangen bugrapporten tonen",
-                    "deleteReport": "Een opgeslagen bugrapport verwijderen",
-                    "clearReports": "Alle opgeslagen bugrapporten wissen",
-                    "preview": "Voorbeeld van geredigeerde debuglogs voor bugrapporten",
-                    "send": "Bugrapporten via het mesh versturen",
-                    "startCollector": "Een mcx-bugs-v1-collector starten",
-                    "stopCollector": "De bugrapport-collector stoppen",
-                    "announce": "De bugrapport-collector announcen",
-                    "setCollectorName": "Weergavenaam van de bugrapport-collector instellen",
-                    "listIssues": "Lokale en ontvangen bug-issues weergeven",
-                    "getIssue": "Opgeslagen bug-issue lezen",
-                    "recordLocal": "Lokale bug-issue vastleggen",
-                    "setIssueStatus": "Status van een bug-issue bijwerken",
-                    "listPendingSends": "Wachtende bugrapportverzendingen weergeven",
-                    "enqueueSend": "Bugrapport in de wachtrij zetten voor mesh-verzending",
-                    "cancelPendingSend": "Wachtende bugrapportverzending annuleren"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "RNS-links openen naar bestemmingen",
                     "identify": "Identificeren op RNS-links",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Foutdetails verbergen",
         "status_label": "Status",
         "reason_label": "Reden",
-        "checks_completed": "Alle controles zijn succesvol geslaagd."
+        "checks_completed": "Alle controles zijn succesvol geslaagd.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Uitschakelen",

@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Classic (old)",
         "appcontainer_unsupported": "Unavailable on this host",
         "landlock_status": "Landlock (Linux)",
-        "error_report_saved": "Saved to Bug Reports",
         "app_sidebar_layout": "App sidebar layout",
         "telemetry_trust_failed": "Failed to update telemetry trust.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Inbound Stamp Cost",
         "messages_sidebar_position": "Messages sidebar",
         "location_manual_lon": "Longitude",
-        "error_report_locally": "Report locally",
         "community_interfaces_description": "Show community-maintained presets when adding new interfaces.",
         "notification_sound_set_primary": "Set primary",
         "message_font_size": "Message font size",
@@ -562,7 +560,6 @@
         "flood_protection": "Flood Protection",
         "tools": "Tools",
         "reloading_rns": "Reloading RNS...",
-        "error_report_failed": "Could not save local report",
         "tutorial_welcome": "Welcome to MeshChatX",
         "last_synced": "Last synced {time} ago.",
         "view_incoming_calls": "View Incoming Calls",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Reader active. Hold the devices back to back.",
             "nfc_join_this": "Join this network",
             "nfc_failed": "NFC operation failed",
-            "satellite_hint": "This device can fall back to a satellite link. It is a slow, metered IP path. Keep interface bitrate and announce caps low on links that might use it."
+            "satellite_hint": "This device can fall back to a satellite link. It is a slow, metered IP path. Keep interface bitrate and announce caps low on links that might use it.",
+            "permission_failed": "Could not request the Nearby devices permission on this device."
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Interfaces on this host",
         "kernel_iface_loading": "Loading…",
         "kernel_iface_picker_help": "Device is optional: one kernel interface name, or leave empty to bind using Listen IP only. Click a row to fill the field.",
-        "auto_iface_ifname_chips_hint": "This host's interfaces: click to add or remove names in the field above."
+        "auto_iface_ifname_chips_hint": "This host's interfaces: click to add or remove names in the field above.",
+        "aware_permission_failed": "Could not request the Nearby devices permission on this device."
     },
     "about": {
         "title": "About",
@@ -3335,14 +3334,16 @@
         "view_mode_planet": "Planet",
         "view_mode_flat_full": "Flat (2D)",
         "view_mode_planet_full": "Planet (per interface)",
-        "view_mode_desc": "Each interface is a globe. Peers sit on the interface they use. Drag orbits, scroll zooms. WebGL only.",
+        "view_mode_desc": "Flat is a force graph. Planet wraps each interface as a globe. Radial arranges peers in hop rings. Planet is WebGL only.",
         "nodes": "Nodes",
         "links": "Links",
         "interfaces": "Interfaces",
         "online": "Online",
         "offline": "Offline",
         "search_nodes_placeholder": "Search nodes ({count})...",
-        "clear_search": "Clear search"
+        "clear_search": "Clear search",
+        "view_mode_radial": "Radial",
+        "view_mode_radial_full": "Radial (hop rings)"
     },
     "map": {
         "title": "Map",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Search settings...",
         "no_search_results": "No settings found matching your search",
         "try_different_search": "Try a different search query",
-        "clear_search": "Clear search"
+        "clear_search": "Clear search",
+        "archived_pages_flush_failed": "Failed to flush archived pages"
     },
     "android_storage": {
         "setup_title": "Choose where MeshChatX stores data",
@@ -4145,10 +4147,10 @@
         "connect_desc": "Recommended: Internet + local (AutoInterface plus 3 community TCP nodes). You can change this later on Interfaces.",
         "connect_desc_page": "Recommended: Internet + local (AutoInterface plus 3 community TCP nodes). Or use discovery, LAN only, or configure interfaces later.",
         "identity_title": "Identity",
-        "identity_desc": "Choose a new identity or import an existing key before connecting. Your identity is a destination hash; display names are local labels only you see.",
-        "identity_desc_page": "Choose a new identity or import an existing key before connecting to the mesh. Your identity is a destination hash; display names are local labels only you see.",
+        "identity_desc": "Choose a new identity or import an existing key before connecting. Your identity is a destination hash. Display names are local labels only you see.",
+        "identity_desc_page": "Choose a new identity or import an existing key before connecting to the mesh. Your identity is a destination hash. Display names are local labels only you see.",
         "identity_new": "New Identity (default)",
-        "identity_new_desc": "Keep the default identity and optionally set your display name. Display names are local-only; your real mesh address is your identity hash.",
+        "identity_new_desc": "Keep the default identity and optionally set your display name. Display names are local-only. Your real mesh address is your identity hash.",
         "identity_import": "Import existing identity",
         "identity_import_desc": "Import from an identity file or paste a base32 key.",
         "identity_set_name": "Set name",
@@ -4250,7 +4252,7 @@
         "bootstrap_search_no_match": "No nodes match your search",
         "bootstrap_search_clear": "Clear search",
         "bootstrap_only_label": "Bootstrap-only for added interfaces",
-        "bootstrap_only_hint": "Off by default. Bootstrap interfaces are temporary starting points; Reticulum can drop them after it finds enough stable links. Turn this on to avoid holding many TCP connections open. Leave it off if you want a persistent link to a chosen node. The default is adjustable in Interfaces, Discovery settings.",
+        "bootstrap_only_hint": "Off by default. Bootstrap interfaces are temporary starting points. Reticulum can drop them after it finds enough stable links. Turn this on to avoid holding many TCP connections open. Leave it off if you want a persistent link to a chosen node. The default is adjustable in Interfaces, Discovery settings.",
         "bootstrap_desc_page": "Bootstrap nodes give Reticulum a starting point so it can discover the rest of the network. Select one or more from discovered or community nodes below.",
         "bootstrap_discovered": "Discovered Nodes",
         "bootstrap_community": "Community Nodes",
@@ -4292,7 +4294,7 @@
         "title": "Translator",
         "description": "Translate text offline with locally imported Bergamot language packs.",
         "pack_library": "Pack Library",
-        "pack_library_description": "Import and manage local translation packs. Packs are not downloaded or distributed by MeshChatX; add packs you have obtained separately.",
+        "pack_library_description": "Import and manage local translation packs. Packs are not downloaded or distributed by MeshChatX. Add packs you have obtained separately.",
         "import_pack": "Import pack",
         "importing": "Importing...",
         "remove": "Remove",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} sent {count} files",
         "message_not_found_in_cache": "Message not found in cache",
         "scroll_to_bottom": "Scroll to bottom",
-        "copied_to_clipboard": "Copied to clipboard"
+        "copied_to_clipboard": "Copied to clipboard",
+        "failed_generate_paper_uri": "Failed to generate paper message"
     },
     "command_palette": {
         "open_hint": "Search and commands (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Read application debug logs"
                 },
-                "bugReport": {
-                    "status": "Read bug report collector status",
-                    "listCollectors": "List heard mcx-bugs-v1 collectors",
-                    "listReports": "List received bug reports",
-                    "deleteReport": "Delete a stored bug report",
-                    "clearReports": "Clear all stored bug reports",
-                    "preview": "Preview redacted debug logs for bug reports",
-                    "send": "Send bug reports over the mesh",
-                    "startCollector": "Start an mcx-bugs-v1 collector",
-                    "stopCollector": "Stop the bug report collector",
-                    "announce": "Announce the bug report collector",
-                    "setCollectorName": "Set the bug report collector display name",
-                    "listIssues": "List local and received bug issues",
-                    "getIssue": "Read a stored bug issue",
-                    "recordLocal": "Record a local bug issue",
-                    "setIssueStatus": "Update bug issue status",
-                    "listPendingSends": "List pending bug report sends",
-                    "enqueueSend": "Enqueue a bug report for mesh send",
-                    "cancelPendingSend": "Cancel a pending bug report send"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "Open RNS links to destinations",
                     "identify": "Identify on RNS links",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Hide failure details",
         "status_label": "Status",
         "reason_label": "Reason",
-        "checks_completed": "All checks passed successfully."
+        "checks_completed": "All checks passed successfully.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Disable",

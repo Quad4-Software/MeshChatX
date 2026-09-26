@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Clássico (antigo)",
         "appcontainer_unsupported": "Indisponível neste host",
         "landlock_status": "Landlock (Linux)",
-        "error_report_saved": "Salvo em Relatórios de Bug",
         "app_sidebar_layout": "Layout da barra lateral do app",
         "telemetry_trust_failed": "Falha ao atualizar a confiança de telemetria.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Custo do Carimbo de Entrada",
         "messages_sidebar_position": "Barra lateral de mensagens",
         "location_manual_lon": "Longitude",
-        "error_report_locally": "Relatar localmente",
         "community_interfaces_description": "Mostre predefinições mantidas pela comunidade ao adicionar novas interfaces.",
         "notification_sound_set_primary": "Definir principal",
         "message_font_size": "Tamanho da fonte das mensagens",
@@ -562,7 +560,6 @@
         "flood_protection": "Proteção contra Inundação",
         "tools": "Ferramentas",
         "reloading_rns": "Recarregando RNS...",
-        "error_report_failed": "Não foi possível salvar o relatório local",
         "tutorial_welcome": "Bem-vindo ao MeshChatX",
         "last_synced": "Última sincronização há {time}.",
         "view_incoming_calls": "Ver Chamadas Recebidas",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Leitor ativo. Mantenha os dispositivos costas com costas.",
             "nfc_join_this": "Entrar nesta rede",
             "nfc_failed": "A operação NFC falhou",
-            "satellite_hint": "Este dispositivo pode recorrer a um link via satélite. É um caminho IP lento e medido. Mantenha o bitrate da interface e os limites de anúncios baixos em links que possam usá-lo."
+            "satellite_hint": "Este dispositivo pode recorrer a um link via satélite. É um caminho IP lento e medido. Mantenha o bitrate da interface e os limites de anúncios baixos em links que possam usá-lo.",
+            "permission_failed": "Não foi possível solicitar a permissão de dispositivos próximos neste dispositivo."
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Interfaces neste host",
         "kernel_iface_loading": "Carregando…",
         "kernel_iface_picker_help": "Dispositivo é opcional: um nome de interface do kernel, ou deixe vazio para vincular usando apenas o IP de escuta. Clique em uma linha para preencher o campo.",
-        "auto_iface_ifname_chips_hint": "Interfaces deste host: clique para adicionar ou remover nomes no campo acima."
+        "auto_iface_ifname_chips_hint": "Interfaces deste host: clique para adicionar ou remover nomes no campo acima.",
+        "aware_permission_failed": "Não foi possível solicitar a permissão de dispositivos próximos neste dispositivo."
     },
     "about": {
         "title": "Sobre",
@@ -3335,14 +3334,16 @@
         "view_mode_planet": "Planeta",
         "view_mode_flat_full": "Plano (2D)",
         "view_mode_planet_full": "Planeta (por interface)",
-        "view_mode_desc": "Cada interface é um globo. Os pares ficam na interface que usam. Arraste para orbitar; role para dar zoom. Somente WebGL.",
+        "view_mode_desc": "Plano é um grafo de forças. Planeta envolve cada interface em um globo. Radial organiza os pares em anéis por saltos. Planeta somente com WebGL.",
         "nodes": "Nós",
         "links": "Links",
         "interfaces": "Interfaces",
         "online": "On-line",
         "offline": "Off-line",
         "search_nodes_placeholder": "Buscar nós ({count})...",
-        "clear_search": "Limpar busca"
+        "clear_search": "Limpar busca",
+        "view_mode_radial": "Radial",
+        "view_mode_radial_full": "Radial (anéis por saltos)"
     },
     "map": {
         "title": "Mapa",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Buscar configurações...",
         "no_search_results": "Nenhuma configuração encontrada correspondente à sua busca",
         "try_different_search": "Tente uma consulta de busca diferente",
-        "clear_search": "Limpar busca"
+        "clear_search": "Limpar busca",
+        "archived_pages_flush_failed": "Falha ao limpar as páginas arquivadas"
     },
     "android_storage": {
         "setup_title": "Escolha onde o MeshChatX armazena os dados",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} enviou {count} arquivos",
         "message_not_found_in_cache": "Mensagem não encontrada no cache",
         "scroll_to_bottom": "Rolar até o fim",
-        "copied_to_clipboard": "Copiado para a área de transferência"
+        "copied_to_clipboard": "Copiado para a área de transferência",
+        "failed_generate_paper_uri": "Falha ao gerar a mensagem em papel"
     },
     "command_palette": {
         "open_hint": "Buscar e comandos (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Ler logs de depuração do aplicativo"
                 },
-                "bugReport": {
-                    "status": "Ler o status do coletor de relatórios de bug",
-                    "listCollectors": "Listar coletores mcx-bugs-v1 ouvidos",
-                    "listReports": "Listar relatórios de bug recebidos",
-                    "deleteReport": "Excluir um relatório de bug armazenado",
-                    "clearReports": "Limpar todos os relatórios de bug armazenados",
-                    "preview": "Pré-visualizar logs de depuração editados para relatórios de bug",
-                    "send": "Enviar relatórios de bug pela malha",
-                    "startCollector": "Iniciar um coletor mcx-bugs-v1",
-                    "stopCollector": "Parar o coletor de relatórios de bug",
-                    "announce": "Anunciar o coletor de relatórios de bug",
-                    "setCollectorName": "Definir o nome de exibição do coletor de relatórios de bug",
-                    "listIssues": "Listar problemas de bug locais e recebidos",
-                    "getIssue": "Ler um problema de bug armazenado",
-                    "recordLocal": "Registrar um problema de bug local",
-                    "setIssueStatus": "Atualizar o status do problema de bug",
-                    "listPendingSends": "Listar envios pendentes de relatórios de bug",
-                    "enqueueSend": "Colocar um relatório de bug na fila para envio pela malha",
-                    "cancelPendingSend": "Cancelar um envio pendente de relatório de bug"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "Abrir links RNS para destinos",
                     "identify": "Identificar-se em links RNS",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Ocultar detalhes da falha",
         "status_label": "Status",
         "reason_label": "Motivo",
-        "checks_completed": "Todas as verificações passaram com sucesso."
+        "checks_completed": "Todas as verificações passaram com sucesso.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Desativar",

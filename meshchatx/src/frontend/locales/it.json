@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Classico (vecchio)",
         "appcontainer_unsupported": "API AppContainer non disponibili su questo host Windows",
         "landlock_status": "Sandbox Landlock (Linux)",
-        "error_report_saved": "Salvato nei report bug",
         "app_sidebar_layout": "Layout della barra laterale",
         "telemetry_trust_failed": "Impossibile aggiornare la fiducia telemetrica.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Costo Francobollo in Entrata",
         "messages_sidebar_position": "Barra laterale messaggi",
         "location_manual_lon": "Longitudine",
-        "error_report_locally": "Segnala in locale",
         "community_interfaces_description": "Mostra i preset mantenuti dalla comunità quando si aggiungono nuove interfacce.",
         "notification_sound_set_primary": "Imposta come principale",
         "message_font_size": "Dimensione carattere messaggi",
@@ -562,7 +560,6 @@
         "flood_protection": "Protezione dall'inondazione",
         "tools": "Strumenti",
         "reloading_rns": "Ricaricando RNS...",
-        "error_report_failed": "Impossibile salvare il report locale",
         "tutorial_welcome": "Benvenuto in MeshChatX",
         "last_synced": "Ultima sincronizzazione {time} fa.",
         "view_incoming_calls": "Visualizza Chiamate in Entrata",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Lettore attivo. Tieni i dispositivi schiena contro schiena.",
             "nfc_join_this": "Unisciti a questa rete",
             "nfc_failed": "Operazione NFC non riuscita",
-            "satellite_hint": "Questo dispositivo può ripiegare su un collegamento satellitare. È un percorso IP lento e a consumo. Mantieni bassi bitrate dell'interfaccia e limiti degli annunci sui collegamenti che potrebbero usarlo."
+            "satellite_hint": "Questo dispositivo può ripiegare su un collegamento satellitare. È un percorso IP lento e a consumo. Mantieni bassi bitrate dell'interfaccia e limiti degli annunci sui collegamenti che potrebbero usarlo.",
+            "permission_failed": "Impossibile richiedere l'autorizzazione per i dispositivi nelle vicinanze su questo dispositivo."
         },
         "rnpath_trace": {
             "title": "Traccia percorso RNS",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Interfacce su questo host",
         "kernel_iface_loading": "Caricamento…",
         "kernel_iface_picker_help": "Il dispositivo è facoltativo: un solo nome di interfaccia del kernel, o lascia vuoto e lega solo con l'IP di ascolto. Clic su una riga per compilare.",
-        "auto_iface_ifname_chips_hint": "Interfacce su questo host: clic per aggiungere o rimuovere nomi nel campo sopra."
+        "auto_iface_ifname_chips_hint": "Interfacce su questo host: clic per aggiungere o rimuovere nomi nel campo sopra.",
+        "aware_permission_failed": "Impossibile richiedere l'autorizzazione per i dispositivi nelle vicinanze su questo dispositivo."
     },
     "about": {
         "title": "Informazioni",
@@ -3324,7 +3323,7 @@
         "view_mode_planet": "Pianeta",
         "view_mode_flat_full": "Piatto (2D)",
         "view_mode_planet_full": "Pianeta (per interfaccia)",
-        "view_mode_desc": "Ogni interfaccia è un globo. I peer stanno sull'interfaccia che usano. Trascina per orbitare, rotella per zoom. Solo WebGL.",
+        "view_mode_desc": "Piatto è un grafo di forze. Pianeta avvolge ogni interfaccia in un globo. Radiale dispone i peer in anelli per hop. Pianeta solo con WebGL.",
         "nodes": "Nodi",
         "links": "Collegamenti",
         "interfaces": "Interfacce",
@@ -3342,7 +3341,9 @@
         "renderer_option_auto": "Auto (WebGL se disponibile)",
         "renderer_option_webgl": "WebGL + WASM",
         "renderer_option_vis": "vis-network (canvas)",
-        "renderer_webgl_unavailable": "Renderer WebGL non disponibile. Viene usato il fallback vis-network."
+        "renderer_webgl_unavailable": "Renderer WebGL non disponibile. Viene usato il fallback vis-network.",
+        "view_mode_radial": "Radiale",
+        "view_mode_radial_full": "Radiale (anelli per hop)"
     },
     "map": {
         "title": "Mappa",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Cerca impostazioni...",
         "no_search_results": "Nessuna impostazione corrisponde alla ricerca",
         "try_different_search": "Prova con una ricerca diversa",
-        "clear_search": "Cancella ricerca"
+        "clear_search": "Cancella ricerca",
+        "archived_pages_flush_failed": "Impossibile svuotare le pagine archiviate"
     },
     "android_storage": {
         "setup_title": "Scegli dove MeshChatX archivia i dati",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} ha inviato {count} file",
         "message_not_found_in_cache": "Messaggio non trovato nella cache",
         "scroll_to_bottom": "Scorri in basso",
-        "copied_to_clipboard": "Copiato negli appunti"
+        "copied_to_clipboard": "Copiato negli appunti",
+        "failed_generate_paper_uri": "Generazione del messaggio cartaceo non riuscita"
     },
     "command_palette": {
         "open_hint": "Ricerca e comandi (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Leggi i log di debug dell'applicazione"
                 },
-                "bugReport": {
-                    "status": "Leggi lo stato del collector dei bug report",
-                    "listCollectors": "Elenca i collector mcx-bugs-v1 rilevati",
-                    "listReports": "Elenca i bug report ricevuti",
-                    "deleteReport": "Elimina un bug report memorizzato",
-                    "clearReports": "Cancella tutti i bug report memorizzati",
-                    "preview": "Anteprima dei log di debug redatti per i bug report",
-                    "send": "Invia bug report sulla mesh",
-                    "startCollector": "Avvia un collector mcx-bugs-v1",
-                    "stopCollector": "Ferma il collector dei bug report",
-                    "announce": "Annuncia il collector dei bug report",
-                    "setCollectorName": "Imposta il nome visualizzato del collector dei bug report",
-                    "listIssues": "Elenca issue di bug locali e ricevute",
-                    "getIssue": "Leggi un issue di bug memorizzato",
-                    "recordLocal": "Registra un issue di bug locale",
-                    "setIssueStatus": "Aggiorna lo stato di un issue di bug",
-                    "listPendingSends": "Elenca invii report bug in sospeso",
-                    "enqueueSend": "Accoda un report bug per l'invio sulla mesh",
-                    "cancelPendingSend": "Annulla un invio report bug in sospeso"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "Apri collegamenti RNS verso destinazioni",
                     "identify": "Identifica sui collegamenti RNS",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Nascondi dettagli dell’errore",
         "status_label": "Stato",
         "reason_label": "Motivo",
-        "checks_completed": "Tutti i controlli sono stati superati con successo."
+        "checks_completed": "Tutti i controlli sono stati superati con successo.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Disabilita",

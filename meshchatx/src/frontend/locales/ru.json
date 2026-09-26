@@ -360,7 +360,6 @@
         "app_sidebar_layout_classic": "Классический (старый)",
         "appcontainer_unsupported": "API AppContainer недоступны на этом узле Windows",
         "landlock_status": "Песочница Landlock (Linux)",
-        "error_report_saved": "Сохранено в отчётах об ошибках",
         "app_sidebar_layout": "Макет боковой панели",
         "telemetry_trust_failed": "Не удалось обновить доверие телеметрии.",
         "announce_limit_lxmf": "LXMF",
@@ -385,7 +384,6 @@
         "inbound_stamp_cost_label": "Стоимость входящих марок",
         "messages_sidebar_position": "Боковая панель сообщений",
         "location_manual_lon": "Долгота",
-        "error_report_locally": "Сообщить локально",
         "community_interfaces_description": "Показывать пресеты, поддерживаемые сообществом, при добавлении новых интерфейсов.",
         "notification_sound_set_primary": "Сделать основным",
         "message_font_size": "Размер шрифта сообщений",
@@ -562,7 +560,6 @@
         "flood_protection": "Защита от флуда",
         "tools": "Инструменты",
         "reloading_rns": "Перезагрузка RNS...",
-        "error_report_failed": "Не удалось сохранить локальный отчёт",
         "tutorial_welcome": "Добро пожаловать в MeshChatX",
         "last_synced": "Последняя синхронизация {time} назад.",
         "view_incoming_calls": "Просмотр входящих звонков",
@@ -1606,7 +1603,8 @@
             "nfc_reading": "Чтение активно. Держите устройства спина к спине.",
             "nfc_join_this": "Подключиться к этой сети",
             "nfc_failed": "Операция NFC не удалась",
-            "satellite_hint": "Это устройство может переключиться на спутниковый канал. Это медленный тарифицируемый IP-путь. Держите битрейт интерфейса и лимиты announce низкими на каналах, которые могут его использовать."
+            "satellite_hint": "Это устройство может переключиться на спутниковый канал. Это медленный тарифицируемый IP-путь. Держите битрейт интерфейса и лимиты announce низкими на каналах, которые могут его использовать.",
+            "permission_failed": "Не удалось запросить разрешение на доступ к устройствам поблизости на этом устройстве."
         },
         "rnpath_trace": {
             "title": "RNS Трассировка пути",
@@ -3031,7 +3029,8 @@
         "kernel_iface_picker_title": "Интерфейсы на этом узле",
         "kernel_iface_loading": "Загрузка…",
         "kernel_iface_picker_help": "Поле «устройство» необязательно: одно имя интерфейса ядра или пусто. Привязка только по Listen IP. Нажмите строку, чтобы подставить имя.",
-        "auto_iface_ifname_chips_hint": "Интерфейсы этого узла: нажмите, чтобы добавить или убрать имя в поле выше."
+        "auto_iface_ifname_chips_hint": "Интерфейсы этого узла: нажмите, чтобы добавить или убрать имя в поле выше.",
+        "aware_permission_failed": "Не удалось запросить разрешение на доступ к устройствам поблизости на этом устройстве."
     },
     "about": {
         "title": "О программе",
@@ -3324,7 +3323,7 @@
         "view_mode_planet": "Планета",
         "view_mode_flat_full": "Плоский (2D)",
         "view_mode_planet_full": "Планета (по интерфейсу)",
-        "view_mode_desc": "Каждый интерфейс это глобус. Пиры на том интерфейсе, через который они достижимы. Перетаскивание вращает, колесо зумит. Только WebGL.",
+        "view_mode_desc": "Плоский это граф сил. Планета оборачивает каждый интерфейс глобусом. Радиальный раскладывает пиров по кольцам переходов. Планета только в WebGL.",
         "nodes": "Узлы",
         "links": "Связи",
         "interfaces": "Интерфейсы",
@@ -3342,7 +3341,9 @@
         "renderer_option_auto": "Авто (WebGL если доступен)",
         "renderer_option_webgl": "WebGL + WASM",
         "renderer_option_vis": "vis-network (canvas)",
-        "renderer_webgl_unavailable": "WebGL-рендерер недоступен. Используется запасной вариант vis-network."
+        "renderer_webgl_unavailable": "WebGL-рендерер недоступен. Используется запасной вариант vis-network.",
+        "view_mode_radial": "Радиальный",
+        "view_mode_radial_full": "Радиальный (кольца переходов)"
     },
     "map": {
         "title": "Карта",
@@ -4087,7 +4088,8 @@
         "search_placeholder": "Поиск настроек...",
         "no_search_results": "Настройки по вашему запросу не найдены",
         "try_different_search": "Попробуйте изменить поисковый запрос",
-        "clear_search": "Очистить поиск"
+        "clear_search": "Очистить поиск",
+        "archived_pages_flush_failed": "Не удалось очистить архивные страницы"
     },
     "android_storage": {
         "setup_title": "Выберите, где MeshChatX хранит данные",
@@ -4854,7 +4856,8 @@
         "conversation_files_other": "{name} отправил(а) файлов: {count}",
         "message_not_found_in_cache": "Сообщение не найдено в кэше",
         "scroll_to_bottom": "Прокрутить вниз",
-        "copied_to_clipboard": "Скопировано в буфер обмена"
+        "copied_to_clipboard": "Скопировано в буфер обмена",
+        "failed_generate_paper_uri": "Не удалось создать бумажное сообщение"
     },
     "command_palette": {
         "open_hint": "Поиск и команды (Ctrl+K)",
@@ -4981,26 +4984,7 @@
                 "debugLog": {
                     "read": "Читать отладочные журналы приложения"
                 },
-                "bugReport": {
-                    "status": "Читать статус сборщика отчётов об ошибках",
-                    "listCollectors": "Список услышанных сборщиков mcx-bugs-v1",
-                    "listReports": "Список полученных отчётов об ошибках",
-                    "deleteReport": "Удалить сохранённый отчёт об ошибке",
-                    "clearReports": "Очистить все сохранённые отчёты об ошибках",
-                    "preview": "Предпросмотр обезличенных логов для отчётов",
-                    "send": "Отправлять отчёты об ошибках по сети",
-                    "startCollector": "Запустить сборщик mcx-bugs-v1",
-                    "stopCollector": "Остановить сборщик отчётов об ошибках",
-                    "announce": "Анонсировать сборщик отчётов об ошибках",
-                    "setCollectorName": "Задать отображаемое имя сборщика отчётов",
-                    "listIssues": "Список локальных и полученных bug-issues",
-                    "getIssue": "Читать сохранённый bug-issue",
-                    "recordLocal": "Записать локальный bug-issue",
-                    "setIssueStatus": "Обновить статус bug-issue",
-                    "listPendingSends": "Список отложенных отправок bug-отчётов",
-                    "enqueueSend": "Поставить bug-отчёт в очередь на отправку по mesh",
-                    "cancelPendingSend": "Отменить отложенную отправку bug-отчёта"
-                },
+                "bugReport": {},
                 "rnsLink": {
                     "open": "Открывать ссылки RNS к назначениям",
                     "identify": "Идентифицироваться на ссылках RNS",
@@ -5115,7 +5099,8 @@
         "collapse_reason": "Скрыть детали ошибки",
         "status_label": "Статус",
         "reason_label": "Причина",
-        "checks_completed": "Все проверки выполнены успешно."
+        "checks_completed": "Все проверки выполнены успешно.",
+        "cbor_roundtrip": "CBOR Roundtrip"
     },
     "interface": {
         "disable": "Выключить",
