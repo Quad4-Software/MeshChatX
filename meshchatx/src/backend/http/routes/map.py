@@ -24,6 +24,7 @@ from meshchatx.src.backend.http.errors import (
     http_unavailable,
     http_unexpected,
 )
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
@@ -535,7 +536,7 @@ def register_map_routes(routes, app):
         if status and status.get("status") == "completed":
             file_path = status.get("file_path")
             if os.path.exists(file_path):
-                return web.FileResponse(
+                return file_response(
                     path=file_path,
                     headers={
                         "Content-Disposition": f'attachment; filename="map_export_{export_id}.mbtiles"',

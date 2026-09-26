@@ -23,6 +23,7 @@ from meshchatx.src.backend.http.errors import (
     http_unavailable,
     parse_int_param,
 )
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
@@ -821,7 +822,7 @@ def register_telephone_routes(routes, app):
             "greeting.opus",
         )
         if os.path.exists(filepath):
-            return web.FileResponse(
+            return file_response(
                 filepath,
                 headers={"Content-Type": "audio/opus"},
             )
@@ -849,7 +850,7 @@ def register_telephone_routes(routes, app):
             )
             if filepath and os.path.exists(filepath):
                 # Browsers might need a proper content type for .opus files
-                return web.FileResponse(
+                return file_response(
                     filepath,
                     headers={"Content-Type": "audio/opus"},
                 )
@@ -917,7 +918,7 @@ def register_telephone_routes(routes, app):
                 filename,
             )
             if filepath and os.path.exists(filepath):
-                return web.FileResponse(
+                return file_response(
                     filepath,
                     headers={"Content-Type": "audio/opus"},
                 )
@@ -1120,13 +1121,13 @@ def register_telephone_routes(routes, app):
                     safe_name.replace('"', "").replace("\r", "").replace("\n", "")
                     or "ringtone.opus"
                 )
-                return web.FileResponse(
+                return file_response(
                     filepath,
                     headers={
                         "Content-Disposition": f'attachment; filename="{safe_name}"',
                     },
                 )
-            return web.FileResponse(filepath)
+            return file_response(filepath)
         return http_not_found("Ringtone audio file not found")
 
     @routes.post(API_V1_PREFIX + "/telephone/ringtones/upload")
@@ -1302,7 +1303,7 @@ def register_telephone_routes(routes, app):
             safe_name.replace('"', "").replace("\r", "").replace("\n", "")
             or "sound.opus"
         )
-        return web.FileResponse(
+        return file_response(
             filepath,
             headers={
                 "Content-Type": "audio/ogg",

@@ -16,6 +16,7 @@ from meshchatx.src.backend.http.errors import (
     http_payload_too_large,
     http_unavailable,
 )
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
@@ -88,4 +89,4 @@ def register_translation_routes(routes, app) -> None:
         file_path = app.translation_pack_manager.safe_file_path(path)
         if not file_path or not os.path.isfile(file_path):
             return http_not_found("Not found")
-        return web.FileResponse(file_path)
+        return file_response(file_path)
