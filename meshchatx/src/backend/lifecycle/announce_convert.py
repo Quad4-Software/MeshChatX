@@ -135,6 +135,7 @@ def batch_convert_announces_to_api_dicts(
                 ),
                 "lxmf_user_icon": user_icons.get(announce["destination_hash"]),
                 "contact_image": announce.get("contact_image"),
+                "announce_count": announce.get("announce_count") or 0,
             },
         )
     return all_announces
@@ -279,6 +280,7 @@ def convert_db_announce_to_dict(app: Any, announce):
             announce["destination_hash"],
         ),
         "lxmf_user_icon": lxmf_user_icon,
+        "announce_count": announce.get("announce_count") or 0,
         "created_at": created_at,
         "updated_at": updated_at,
     }

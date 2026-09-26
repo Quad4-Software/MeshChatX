@@ -169,7 +169,6 @@ also_copy = [
     "package.json",
     "cx_setup.py",
     "Taskfile.yml",
-    ".agents/",
     ".github/",
     "android/",
     "electron/",
