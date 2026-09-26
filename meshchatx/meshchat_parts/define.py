@@ -5,6 +5,7 @@ slices of the original file; do not edit ordering casually.
 """
 
 from aiohttp import WSCloseCode, WSMessage, WSMsgType, web
+
 from meshchatx.src.backend.appcontainer_sandbox import (
     appcontainer_auto_enabled,
     appcontainer_disabled_by_env,
@@ -29,6 +30,7 @@ from meshchatx.src.backend.seccomp_sandbox import (
     seccomp_kernel_supported,
     seccomp_requested,
 )
+
 
 class DefineMixin:
     def _landlock_status_dict(self) -> dict:

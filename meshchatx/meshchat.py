@@ -58,6 +58,47 @@ from meshchatx.android_push_bridge import (
     _get_android_external_files_dir,
     _is_chaquopy_android,
 )
+from meshchatx.meshchat_parts.apply import ApplyMixin
+from meshchatx.meshchat_parts.apply_2 import Apply2Mixin
+from meshchatx.meshchat_parts.build import BuildMixin
+from meshchatx.meshchat_parts.check import CheckMixin
+from meshchatx.meshchat_parts.coerce import CoerceMixin
+from meshchatx.meshchat_parts.convert import ConvertMixin
+from meshchatx.meshchat_parts.define import DefineMixin
+from meshchatx.meshchat_parts.disable import DisableMixin
+from meshchatx.meshchat_parts.exit import ExitMixin
+from meshchatx.meshchat_parts.flush import FlushMixin
+from meshchatx.meshchat_parts.force import ForceMixin
+from meshchatx.meshchat_parts.get import GetMixin
+from meshchatx.meshchat_parts.get_2 import Get2Mixin
+from meshchatx.meshchat_parts.get_3 import Get3Mixin
+from meshchatx.meshchat_parts.handle import HandleMixin
+from meshchatx.meshchat_parts.lxmf import LxmfMixin
+from meshchatx.meshchat_parts.lxmf_2 import Lxmf2Mixin
+from meshchatx.meshchat_parts.mark import MarkMixin
+from meshchatx.meshchat_parts.on import OnMixin
+from meshchatx.meshchat_parts.on_2 import On2Mixin
+from meshchatx.meshchat_parts.on_3 import On3Mixin
+from meshchatx.meshchat_parts.on_4 import On4Mixin
+from meshchatx.meshchat_parts.on_5 import On5Mixin
+from meshchatx.meshchat_parts.parse import ParseMixin
+from meshchatx.meshchat_parts.peer import PeerMixin
+from meshchatx.meshchat_parts.probe import ProbeMixin
+from meshchatx.meshchat_parts.process import ProcessMixin
+from meshchatx.meshchat_parts.schedule import ScheduleMixin
+from meshchatx.meshchat_parts.try_kw import TryKwMixin
+from meshchatx.meshchat_shared import (
+    _create_reticulum_instance,
+    _install_reticulum_signal_handlers,
+    _parse_rns_loglevel_value,
+    _resolve_rns_logdest,
+    _resolve_rns_loglevel,
+    _restore_rns_console_logging_after_reticulum_init,
+    _rns_bridge_logger,
+    _rns_log_to_python_logging,
+    log_dir,
+    logger,
+)
 from meshchatx.src.backend import (
     gif_utils,
     i2p_support,
@@ -296,37 +337,6 @@ from meshchatx.src.path_utils import (
 from meshchatx.src.ssl_self_signed import generate_ssl_certificate
 from meshchatx.src.version import __version__ as app_version
 
-from meshchatx.meshchat_shared import _create_reticulum_instance, _install_reticulum_signal_handlers, _parse_rns_loglevel_value, _resolve_rns_logdest, _resolve_rns_loglevel, _restore_rns_console_logging_after_reticulum_init, _rns_bridge_logger, _rns_log_to_python_logging, log_dir, logger
-from meshchatx.meshchat_parts.probe import ProbeMixin
-from meshchatx.meshchat_parts.on import OnMixin
-from meshchatx.meshchat_parts.get import GetMixin
-from meshchatx.meshchat_parts.mark import MarkMixin
-from meshchatx.meshchat_parts.check import CheckMixin
-from meshchatx.meshchat_parts.disable import DisableMixin
-from meshchatx.meshchat_parts.schedule import ScheduleMixin
-from meshchatx.meshchat_parts.force import ForceMixin
-from meshchatx.meshchat_parts.get_2 import Get2Mixin
-from meshchatx.meshchat_parts.apply import ApplyMixin
-from meshchatx.meshchat_parts.process import ProcessMixin
-from meshchatx.meshchat_parts.get_3 import Get3Mixin
-from meshchatx.meshchat_parts.parse import ParseMixin
-from meshchatx.meshchat_parts.build import BuildMixin
-from meshchatx.meshchat_parts.on_2 import On2Mixin
-from meshchatx.meshchat_parts.on_3 import On3Mixin
-from meshchatx.meshchat_parts.exit import ExitMixin
-from meshchatx.meshchat_parts.define import DefineMixin
-from meshchatx.meshchat_parts.coerce import CoerceMixin
-from meshchatx.meshchat_parts.flush import FlushMixin
-from meshchatx.meshchat_parts.handle import HandleMixin
-from meshchatx.meshchat_parts.on_4 import On4Mixin
-from meshchatx.meshchat_parts.on_5 import On5Mixin
-from meshchatx.meshchat_parts.convert import ConvertMixin
-from meshchatx.meshchat_parts.peer import PeerMixin
-from meshchatx.meshchat_parts.lxmf import LxmfMixin
-from meshchatx.meshchat_parts.lxmf_2 import Lxmf2Mixin
-from meshchatx.meshchat_parts.apply_2 import Apply2Mixin
-from meshchatx.meshchat_parts.try_kw import TryKwMixin
-
 
 def _truncated_hash32_hex_ok(value: str | None) -> bool:
     """32 lowercase hex chars (Reticulum truncated hash) without relying on live RNS constants."""
@@ -353,22 +363,6 @@ if sys.stdout is not None:
 
 logging.basicConfig(level=logging.INFO, handlers=handlers)
 logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def _csrf_exempt_path(path: str) -> bool:
@@ -460,7 +454,37 @@ _HTTP_LIVE_NAME_ANCHORS = (
 )
 
 
-class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, DisableMixin, ScheduleMixin, ForceMixin, Get2Mixin, ApplyMixin, ProcessMixin, Get3Mixin, ParseMixin, BuildMixin, On2Mixin, On3Mixin, ExitMixin, DefineMixin, CoerceMixin, FlushMixin, HandleMixin, On4Mixin, On5Mixin, ConvertMixin, PeerMixin, LxmfMixin, Lxmf2Mixin, Apply2Mixin, TryKwMixin):
+class ReticulumMeshChat(
+    ProbeMixin,
+    OnMixin,
+    GetMixin,
+    MarkMixin,
+    CheckMixin,
+    DisableMixin,
+    ScheduleMixin,
+    ForceMixin,
+    Get2Mixin,
+    ApplyMixin,
+    ProcessMixin,
+    Get3Mixin,
+    ParseMixin,
+    BuildMixin,
+    On2Mixin,
+    On3Mixin,
+    ExitMixin,
+    DefineMixin,
+    CoerceMixin,
+    FlushMixin,
+    HandleMixin,
+    On4Mixin,
+    On5Mixin,
+    ConvertMixin,
+    PeerMixin,
+    LxmfMixin,
+    Lxmf2Mixin,
+    Apply2Mixin,
+    TryKwMixin,
+):
     DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES = 3
 
     def __init__(
@@ -675,93 +699,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
         self._host_audio_unavailable_cached = unavailable
         return unavailable
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def _rebaseline_integrity_after_restore(self, db_path, restored_identity_hash):
         """Re-baseline file integrity over the restored identity dir.
 
@@ -801,10 +738,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
                 manager.save_manifest(reason="acknowledge")
         except Exception as exc:
             print(f"Failed to refresh integrity baseline after restore: {exc}")
-
-
-
-
 
     def _ensure_reticulum_config(self, materialize: bool = True):
         """Normalize reticulum_config_dir and optionally ensure a config file exists.
@@ -908,11 +841,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
         if previous != stage or error is not None:
             print(f"Startup stage: {stage}", flush=True)
 
-
-
-
-
-
     def _webtransport_status_dict(self) -> dict:
         state = getattr(self, "webtransport_state", None)
         if state is None:
@@ -923,8 +851,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
             state = WebTransportSidecarState()
             self.webtransport_state = state
         return state.status_dict()
-
-
 
     def _run_network_setup(self) -> None:
         identity = self._pending_identity
@@ -980,14 +906,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
                 except Exception:
                     pass
 
-
-
-
-
-
-
-
-
     def _drop_auto_resend_locks(self, identity_hash: str | None) -> None:
         """Drop idle auto-resend locks for a torn-down identity."""
         if not identity_hash:
@@ -1002,16 +920,10 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
             with contextlib.suppress(Exception):
                 coord.drop_identity(canonical)
 
-
-
-
-
-
     _reload_instance_suffix_re = re.compile(r"-reload-(\d+)-(\d+)$")
     _meshchat_reload_pid_max = 4_194_304
     _meshchat_reload_epoch_min = 1_577_836_800
     _meshchat_reload_epoch_max = 4_102_444_800
-
 
     @staticmethod
     def _looks_like_meshchat_hot_reload_tail(pid: int, epoch: int) -> bool:
@@ -1095,8 +1007,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
         cp.set("reticulum", "instance_name", instance_name)
         with open(config_path, "w", encoding="utf-8") as f:
             cp.write(f)
-
-
 
     async def _hotswap_identity_locked(self, identity_hash, keep_alive=False):
         old_identity = self.identity
@@ -1233,18 +1143,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
 
             return False
 
-
-
-
-
-
-
-
-
-
-
-
-
     def _api_reticulum_config_path(self) -> str | None:
         r = getattr(self, "reticulum", None)
         if r is not None:
@@ -1257,8 +1155,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
         if rd:
             return os.path.join(rd, "config")
         return None
-
-
 
     @staticmethod
     def sanitize_discovery_patterns(
@@ -1287,8 +1183,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
             if len(sanitized) >= max_patterns:
                 break
         return sanitized
-
-
 
     @staticmethod
     def apply_bootstrap_only_to_interface(
@@ -1344,7 +1238,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
                 interface["interface_name"] = interface["short_name"]
         return payload
 
-
     @staticmethod
     def matches_discovery_pattern(patterns, interface):
         if not patterns:
@@ -1359,7 +1252,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
                 if fnmatch.fnmatchcase(candidate, normalized_pattern):
                     return True
         return False
-
 
     @staticmethod
     def filter_discovered_interfaces(
@@ -1385,28 +1277,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
                 )
             )
         ]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     def _get_reticulum_rpc_key_hex(self):
         """Return the live or configured RPC key as lowercase hex, or None."""
@@ -1507,13 +1377,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
             ),
         }
 
-
-
-
-
-
-
-
     def _verify_reticulum_config_reloadable(self) -> None:
         """Ensure the on-disk config still parses after write (ConfigObj quirk)."""
         from RNS.vendor.configobj import ConfigObj
@@ -1528,43 +1391,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
         if not path or not os.path.isfile(path):
             return
         ConfigObj(path)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     # handle syncing propagation nodes
     async def sync_propagation_nodes(self, context=None, force=False):
@@ -1637,31 +1463,6 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
         await self.send_config_to_websocket_clients(context=ctx)
         return True
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def get_active_sessions_payload(self) -> dict:
         snap = self.active_sessions.snapshot()
         warning_enabled = True
@@ -1680,19 +1481,7 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
             "warning_enabled": warning_enabled,
         }
 
-
-
-
-
-
-
-
-
-
-
     # convert an lxmf message to a dictionary, for sending over websocket
-
-
 
     def build_pending_announce_dict(
         self,
@@ -1783,76 +1572,7 @@ class ReticulumMeshChat(ProbeMixin, OnMixin, GetMixin, MarkMixin, CheckMixin, Di
             "updated_at": now,
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     # reads the lxmf display name from the provided base64 app data
-
-
-
 
 
 def _maybe_run_embedded_module():
@@ -2443,16 +2163,17 @@ def _rebind_moved_globals_to_this_module():
                         member.__doc__,
                     ),
                 )
-            elif hasattr(member, "__code__") and getattr(
-                member, "__module__", None
-            ) == mixin.__module__:
+            elif (
+                hasattr(member, "__code__")
+                and getattr(member, "__module__", None) == mixin.__module__
+            ):
                 setattr(mixin, name, rebuild(member))
     shared_mod = _sys.modules.get("meshchatx.meshchat_shared")
     if shared_mod is not None:
         for name, fn in list(vars(shared_mod).items()):
-            if getattr(fn, "__module__", None) == "meshchatx.meshchat_shared" and hasattr(
-                fn, "__code__"
-            ):
+            if getattr(
+                fn, "__module__", None
+            ) == "meshchatx.meshchat_shared" and hasattr(fn, "__code__"):
                 new_fn = rebuild(fn)
                 setattr(shared_mod, name, new_fn)
                 # The from-import above bound the pre-rebind object into this

@@ -1,1 +1,1 @@
-"""Mixin modules extracted from meshchat.py"""
+"""Mixin modules extracted from meshchat.py."""

@@ -22,6 +22,7 @@ from meshchatx.src.backend.meshchat_utils import (
     propagation_sync_is_terminal,
 )
 
+
 class PeerMixin:
     def _peer_hashes_for_banishment(self, destination_hash: str, context=None) -> list:
         """Identity and destination hashes that must be blocked or unblocked together."""
