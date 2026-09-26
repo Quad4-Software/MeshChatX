@@ -66,6 +66,7 @@ from ..meshchat_shared import (
     _create_reticulum_instance,
     _resolve_rns_loglevel,
     _restore_rns_console_logging_after_reticulum_init,
+    logger,
 )
 
 
@@ -109,6 +110,27 @@ class MarkMixin:
                 os._exit(0)
 
         threading.Thread(target=restart, daemon=True).start()
+
+    def _database_unrecoverable(self) -> None:
+        """Provider reports a wedge that survived a full connection reset.
+
+        Restarting execs over the same environment, so the attempt counter
+        in MESHCHAT_DB_WEDGE_RESTARTS bounds the restart loop if the
+        underlying storage is broken beyond in-process repair.
+        """
+        attempts = int(os.environ.get("MESHCHAT_DB_WEDGE_RESTARTS", "0") or 0)
+        if attempts >= 2:
+            logger.error(
+                "SQLite wedge persists across %d restarts. Serving 503s instead "
+                "of restart-looping",
+                attempts,
+            )
+            return
+        os.environ["MESHCHAT_DB_WEDGE_RESTARTS"] = str(attempts + 1)
+        logger.error(
+            "SQLite wedge unrecoverable after connection reset. Restarting process",
+        )
+        self._schedule_process_restart()
 
     def restore_database(self, backup_path, *, relaunch: bool = False):
         # Two concurrent restores would interleave aside/staging moves and
