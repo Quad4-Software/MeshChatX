@@ -115,6 +115,14 @@ describe("ContactsPage edit contact name", () => {
         expect(api.post).not.toHaveBeenCalled();
     });
 
+    it("rejects empty and whitespace-only names without patching", async () => {
+        DialogUtils.prompt.mockResolvedValueOnce("").mockResolvedValueOnce("   ");
+        await editContactNameWithDuplicates({ id: 7, name: "Alice" }, [], async () => {});
+        await editContactNameWithDuplicates({ id: 7, name: "Alice" }, [], async () => {});
+        expect(api.patch).not.toHaveBeenCalled();
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
     it("uses the LXMF destination when no remote destination hash exists", async () => {
         DialogUtils.prompt.mockResolvedValue("Updated");
         const contact = {

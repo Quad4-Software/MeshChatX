@@ -9,6 +9,8 @@
     import Skeleton from "../../ui/svelte/Skeleton.svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToastUtils from "../../js/ToastUtils.js";
+    import GlobalEmitter from "../../js/GlobalEmitter.js";
+    import { EMITTER_EVENTS } from "../../js/constants.js";
     import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
     import { isCameraSupported } from "../../js/qrScannerUtils.js";
     import { t } from "../../js/i18n.js";
@@ -197,14 +199,31 @@
         reader.readAsText(file);
     }
 
+    async function onIdentitySwitched() {
+        // Contacts, the share URI, and its QR all belong to the old
+        // identity; drop them before the new identity's data lands.
+        contacts = [];
+        totalContactsCount = 0;
+        myQrDataUrl = null;
+        myIdentityUri = null;
+        closeContextMenu();
+        await getConfig();
+        await getContacts();
+    }
+
     useEventListener(document, "click", closeContextMenu);
+    // Capture so a right-click on another row closes the open menu before
+    // that row's own contextmenu handler reopens it at the new anchor.
+    useEventListener(document, "contextmenu", closeContextMenu, { capture: true });
 
     onMount(() => {
         onWsEvent("lxm.ingest_uri.result", onLxmIngestUriResult);
+        GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, onIdentitySwitched);
         getConfig();
         getContacts();
         return () => {
             offWsEvent("lxm.ingest_uri.result", onLxmIngestUriResult);
+            GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, onIdentitySwitched);
         };
     });
 </script>

@@ -64,6 +64,7 @@
     let membersSearch = $state("");
     let selectedMember = $state<HostMember | null>(null);
     let memberMessages = $state<HostMessage[]>([]);
+    let memberMessagesGen = 0;
     let messagesLoading = $state(false);
     let stats = $state<Record<string, unknown> | null>(null);
     let statsLoading = $state(false);
@@ -205,6 +206,15 @@
     }
 
     async function reload() {
+        // Invalidate in-flight member-message loads before clearing the
+        // selection so a stale response cannot repopulate the pane.
+        memberMessagesGen += 1;
+        selectedRoom = null;
+        selectedMember = null;
+        memberMessages = [];
+        newRoom = { name: "", topic: "", key: "" };
+        showAddRoomForm = false;
+        roomsSearch = "";
         if (!hubId) {
             members = [];
             roomsActivity = [];
@@ -262,10 +272,14 @@
 
     async function setRoomKey() {
         if (!hubId || !selectedRoom) return;
-        const key = await DialogUtils.prompt(t("relay_chat.host_room_key_prompt", { room: selectedRoom }));
+        // Capture the room before the dialog awaits; re-reading
+        // selectedRoom after would apply the key to whatever room the
+        // user clicked while the prompt was open.
+        const room = selectedRoom;
+        const key = await DialogUtils.prompt(t("relay_chat.host_room_key_prompt", { room }));
         if (!key || !key.trim()) return;
         try {
-            await api()?.put(`/api/v1/rrc/servers/${hubId}/rooms/${encodeURIComponent(selectedRoom)}/key`, {
+            await api()?.put(`/api/v1/rrc/servers/${hubId}/rooms/${encodeURIComponent(room)}/key`, {
                 key: key.trim(),
             });
             ToastUtils.success(t("relay_chat.host_room_key_saved"));
@@ -277,9 +291,10 @@
 
     async function clearRoomKey() {
         if (!hubId || !selectedRoom) return;
+        const room = selectedRoom;
         if (!(await DialogUtils.confirm(t("relay_chat.host_clear_room_key_confirm")))) return;
         try {
-            await api()?.delete(`/api/v1/rrc/servers/${hubId}/rooms/${encodeURIComponent(selectedRoom)}/key`);
+            await api()?.delete(`/api/v1/rrc/servers/${hubId}/rooms/${encodeURIComponent(room)}/key`);
             ToastUtils.success(t("relay_chat.host_room_key_cleared"));
             fetchActivity();
         } catch (e: any) {
@@ -303,16 +318,26 @@
     async function loadMemberMessages(member: HostMember) {
         selectedMember = member;
         if (!hubId || !member?.hash) return;
+        // Fast member switching fires overlapping loads; only the last
+        // request for the still-selected member may write the pane.
+        const gen = ++memberMessagesGen;
         messagesLoading = true;
         try {
             const params: Record<string, unknown> = { peer: member.hash, limit: 200 };
             if (roomFilter && roomFilter !== "0") params.room = roomFilter;
             const res = await api()?.get(`/api/v1/rrc/servers/${hubId}/messages`, { params });
+            if (gen !== memberMessagesGen || selectedMember?.hash !== member.hash) {
+                return;
+            }
             memberMessages = res?.data?.messages || [];
         } catch {
-            memberMessages = [];
+            if (gen === memberMessagesGen) {
+                memberMessages = [];
+            }
         } finally {
-            messagesLoading = false;
+            if (gen === memberMessagesGen) {
+                messagesLoading = false;
+            }
         }
     }
 

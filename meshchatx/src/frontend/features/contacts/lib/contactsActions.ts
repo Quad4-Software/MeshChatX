@@ -130,14 +130,16 @@ export async function editContactNameWithDuplicates(
     onDone: () => Promise<void>
 ): Promise<void> {
     if (!contact?.id) return;
-    const name = await DialogUtils.prompt(t("contacts.enter_contact_name"), String(contact.name || ""));
-    if (name == null || name === contact.name) return;
+    const entered = await DialogUtils.prompt(t("contacts.enter_contact_name"), String(contact.name || ""));
+    if (entered == null) return;
+    const name = String(entered).trim();
+    if (!name || name === contact.name) return;
     try {
         const duplicates = contacts.filter((c) => c.name === contact.name && c.id !== contact.id);
         for (const c of [contact, ...duplicates]) {
             await api().patch(`/api/v1/telephone/contacts/${c.id}`, { name });
             const destHash = c.remote_destination_hash || c.lxmf_address || c.remote_identity_hash;
-            if (destHash && name.length > 0) {
+            if (destHash) {
                 await api().post(`/api/v1/destination/${destHash}/custom-display-name/update`, {
                     display_name: name,
                 });

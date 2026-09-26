@@ -193,6 +193,7 @@ export class CallPageController {
     private listenersBound = false;
     private onHistoryUpdatedBound: () => void;
     private onWsReconnectedBound: () => void;
+    private onIdentitySwitchedBound: () => void;
     private pttKeyDownBound: (e: KeyboardEvent) => void;
     private pttKeyUpBound: (e: KeyboardEvent) => void;
     private pttWindowBlurBound: () => void;
@@ -205,6 +206,7 @@ export class CallPageController {
         onPttSpaceUp: () => void;
         onPttBlur: () => void;
         onConfigDisableWebAudio?: () => Promise<void>;
+        onIdentitySwitched?: () => void;
         isPopout?: boolean | (() => boolean);
     }) {
         this.isPopout = typeof options.isPopout === "function" ? options.isPopout : () => Boolean(options.isPopout);
@@ -229,6 +231,9 @@ export class CallPageController {
             options.onPollStatus();
             options.onPollHistory();
         };
+        this.onIdentitySwitchedBound = () => {
+            options.onIdentitySwitched?.();
+        };
         this.pttKeyDownBound = (e: KeyboardEvent) => {
             if (e.code !== "Space" && e.key !== " ") return;
             if (e.repeat || isEditableEventTarget(e.target)) return;
@@ -248,6 +253,7 @@ export class CallPageController {
         this.listenersBound = true;
         GlobalEmitter.on("telephone-history-updated", this.onHistoryUpdatedBound);
         GlobalEmitter.on("websocket-reconnected", this.onWsReconnectedBound);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitchedBound);
         if (typeof window !== "undefined") {
             window.addEventListener("keydown", this.pttKeyDownBound);
             window.addEventListener("keyup", this.pttKeyUpBound);
@@ -261,6 +267,7 @@ export class CallPageController {
         this.listenersBound = false;
         GlobalEmitter.off("telephone-history-updated", this.onHistoryUpdatedBound);
         GlobalEmitter.off("websocket-reconnected", this.onWsReconnectedBound);
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitchedBound);
         if (typeof window !== "undefined") {
             window.removeEventListener("keydown", this.pttKeyDownBound);
             window.removeEventListener("keyup", this.pttKeyUpBound);

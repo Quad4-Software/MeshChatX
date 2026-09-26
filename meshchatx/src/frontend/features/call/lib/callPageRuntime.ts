@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: 0BSD
 
 import GlobalState from "../../../js/GlobalState.js";
-import { fetchRingtones, fetchRingtoneStatus, fetchTelephoneStatus, fetchVoicemailStatus } from "./callApi.js";
+import {
+    fetchConfig,
+    fetchRingtones,
+    fetchRingtoneStatus,
+    fetchTelephoneStatus,
+    fetchVoicemailStatus,
+} from "./callApi.js";
 import { executePatchConfig } from "./callPageActions.js";
 import {
     CallPageController,
@@ -214,8 +220,25 @@ export class CallPageRuntime {
                 if (this.pageState.config) this.pageState.config.telephone_web_audio_enabled = false;
                 await executePatchConfig({ telephone_web_audio_enabled: false });
             },
+            onIdentitySwitched: () => {
+                // Config, contacts, and call history are per-identity; the
+                // mount-time copies belong to the previous identity.
+                this.getConfig();
+                this.getContacts();
+                this.getHistory();
+                this.getVoicemails();
+            },
             isPopout: () => this.getIsPopout(),
         });
+    }
+
+    public async getConfig(): Promise<void> {
+        try {
+            const res = await fetchConfig();
+            if (res?.config) this.pageState.config = res.config;
+        } catch {
+            // identity-scoped config refresh is best-effort
+        }
     }
 
     public hydrateVisuals(): void {

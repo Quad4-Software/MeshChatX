@@ -28,9 +28,16 @@
     let isUploading = $state(false);
     let playingSoundId = $state<number | null>(null);
     let fileInputEl: HTMLInputElement | undefined = $state();
+    let volumeSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
     onMount(() => {
         void loadSounds();
+        return () => {
+            if (volumeSaveTimer) {
+                clearTimeout(volumeSaveTimer);
+                volumeSaveTimer = null;
+            }
+        };
     });
 
     async function loadSounds() {
@@ -51,7 +58,15 @@
     function onVolumeChange(event: Event) {
         const target = event.target as HTMLInputElement;
         const value = Number(target.value);
-        updateConfig?.({ notification_sound_volume: value }, "notification_sound_volume");
+        // The slider fires per input event; debounce so a drag does
+        // not PATCH /config for every step.
+        if (volumeSaveTimer) {
+            clearTimeout(volumeSaveTimer);
+        }
+        volumeSaveTimer = setTimeout(() => {
+            volumeSaveTimer = null;
+            updateConfig?.({ notification_sound_volume: value }, "notification_sound_volume");
+        }, 400);
     }
 
     function onPreferredChange(event: Event) {
