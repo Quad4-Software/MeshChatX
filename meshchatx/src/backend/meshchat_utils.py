@@ -559,6 +559,10 @@ def lxmf_message_try_paper_uri_string(lxm) -> tuple[str | None, str | None]:
             fields=fields,
             desired_method=LXMF.LXMessage.PAPER,
         )
+        # Preserve the original timestamp so the URI carries the same
+        # message hash and ingests dedupe instead of duplicating.
+        if isinstance(lxm.timestamp, (int, float)) and lxm.timestamp > 0:
+            paper.timestamp = lxm.timestamp
         uri = paper.as_uri(finalise=False)
         return uri, None
     except TypeError as exc:
