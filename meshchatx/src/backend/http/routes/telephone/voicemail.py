@@ -14,6 +14,7 @@ from meshchatx.src.backend.http.errors import (
 
 # ruff: noqa: F405
 from meshchatx.src.backend.http.routes.telephone._names import *  # noqa: F403
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
@@ -137,7 +138,7 @@ def register_telephone_voicemail_routes(routes, app):
             "greeting.opus",
         )
         if os.path.exists(filepath):
-            return web.FileResponse(
+            return file_response(
                 filepath,
                 headers={"Content-Type": "audio/opus"},
             )
@@ -165,7 +166,7 @@ def register_telephone_voicemail_routes(routes, app):
             )
             if filepath and os.path.exists(filepath):
                 # Browsers might need a proper content type for .opus files
-                return web.FileResponse(
+                return file_response(
                     filepath,
                     headers={"Content-Type": "audio/opus"},
                 )

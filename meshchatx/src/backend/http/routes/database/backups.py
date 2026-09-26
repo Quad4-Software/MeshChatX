@@ -14,6 +14,7 @@ from meshchatx.src.backend.http.errors import (
 
 # ruff: noqa: F403, F405
 from meshchatx.src.backend.http.routes.database._names import *
+from meshchatx.src.backend.http.safe_file_response import file_response
 
 
 def register_database_backups_routes(routes: Any, app: Any) -> None:
@@ -90,7 +91,7 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
                     status="error",
                 )
 
-            return web.FileResponse(
+            return file_response(
                 path=full_path,
                 headers={
                     "Content-Disposition": f'attachment; filename="{os.path.basename(full_path)}"',
@@ -123,7 +124,7 @@ def register_database_backups_routes(routes: Any, app: Any) -> None:
         try:
             backup_info = app.database.backup_database(app.storage_path)
             file_path = backup_info["path"]
-            return web.FileResponse(
+            return file_response(
                 path=file_path,
                 headers={
                     "Content-Type": "application/zip",
