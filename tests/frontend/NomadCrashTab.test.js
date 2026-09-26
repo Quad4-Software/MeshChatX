@@ -525,7 +525,8 @@ describe("NomadCrashTab.vue", () => {
             wrapper = mountCrashTab();
             expect(wrapper.vm.frameReady).toBe(false);
             await Promise.resolve();
-            vi.advanceTimersByTime(20000);
+            // Boot retries fire at 8s and 16s; exhaustion surfaces 'hung' ~24s.
+            vi.advanceTimersByTime(25000);
             expect(wrapper.vm.status).toBe("hung");
             expect(wrapper.emitted("hung")?.length).toBe(1);
         } finally {
@@ -655,7 +656,9 @@ describe("NomadCrashTab.vue", () => {
 
             setDocumentVisibility("visible");
             wrapper.vm.onVisibilityChange();
-            vi.advanceTimersByTime(20000);
+            // Boot retries resume on visibility and exhaust around t+23s,
+            // which surfaces 'hung' for the never-ready frame.
+            vi.advanceTimersByTime(30000);
             expect(wrapper.vm.status).toBe("hung");
             expect(wrapper.emitted("hung")?.length).toBe(1);
         } finally {
@@ -796,5 +799,72 @@ describe("NomadCrashTab.vue", () => {
         expect(src).toContain('d.type === "paste-text"');
         expect(src).toContain('root.addEventListener("contextmenu", onFieldContextMenu, true)');
         expect(src).toContain('el.setRangeText(value, start, end, "end")');
+    });
+
+    it("auto-reloads the frame when boot never posts ready", async () => {
+        vi.useFakeTimers();
+        try {
+            const wrapper = mountCrashTab();
+            attachFrame(wrapper);
+            const initialSrc = wrapper.vm.frameSrc;
+            expect(wrapper.vm.frameReady).toBe(false);
+
+            await vi.advanceTimersByTimeAsync(8500);
+            expect(wrapper.vm.frameBootRetries).toBe(1);
+            expect(wrapper.vm.frameSrc).not.toBe(initialSrc);
+
+            const secondSrc = wrapper.vm.frameSrc;
+            await vi.advanceTimersByTimeAsync(8500);
+            expect(wrapper.vm.frameBootRetries).toBe(2);
+            expect(wrapper.vm.frameSrc).not.toBe(secondSrc);
+
+            // Retries are capped; no further reloads once exhausted.
+            const lastSrc = wrapper.vm.frameSrc;
+            await vi.advanceTimersByTimeAsync(17000);
+            expect(wrapper.vm.frameBootRetries).toBe(2);
+            expect(wrapper.vm.frameSrc).toBe(lastSrc);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("stops boot retries and resets the counter when ready arrives", async () => {
+        vi.useFakeTimers();
+        try {
+            const wrapper = mountCrashTab();
+            attachFrame(wrapper);
+
+            await vi.advanceTimersByTimeAsync(8500);
+            expect(wrapper.vm.frameBootRetries).toBe(1);
+
+            wrapper.vm.onWindowMessage({
+                source: wrapper.vm.$refs.frame.contentWindow,
+                origin: "null",
+                data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "ready" },
+            });
+            expect(wrapper.vm.frameBootRetries).toBe(0);
+            expect(wrapper.vm.frameReady).toBe(true);
+
+            const src = wrapper.vm.frameSrc;
+            await vi.advanceTimersByTimeAsync(20000);
+            expect(wrapper.vm.frameSrc).toBe(src);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("defers boot retry while the document is hidden", async () => {
+        setDocumentVisibility("hidden");
+        vi.useFakeTimers();
+        try {
+            const wrapper = mountCrashTab();
+            attachFrame(wrapper);
+            const src = wrapper.vm.frameSrc;
+            await vi.advanceTimersByTimeAsync(8500);
+            expect(wrapper.vm.frameSrc).toBe(src);
+            expect(wrapper.vm.frameBootRetries).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });
