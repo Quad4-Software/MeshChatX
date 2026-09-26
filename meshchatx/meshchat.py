@@ -3466,7 +3466,6 @@ class ReticulumMeshChat:
             "psutil": ("psutil", "__version__"),
             "websockets": ("websockets", "__version__"),
             "bcrypt": ("bcrypt", "__version__"),
-            "ply": ("ply", "__version__"),
             "lxmfy": ("lxmfy", "__version__"),
             "rns-filesync": ("rns_filesync", "__version__"),
             "rns_filesync": ("rns_filesync", "__version__"),
@@ -3480,14 +3479,6 @@ class ReticulumMeshChat:
                     return str(ver)
             except Exception:
                 pass
-            if package_name == "ply":
-                try:
-                    lex = importlib.import_module("ply.lex")
-                    ver = getattr(lex, "VERSION", None)
-                    if ver:
-                        return str(ver)
-                except Exception:
-                    pass
 
         return default
 

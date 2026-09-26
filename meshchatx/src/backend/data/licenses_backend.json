@@ -162,12 +162,6 @@
     "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
   },
   {
-    "name": "ply",
-    "version": "3.11",
-    "author": "David Beazley",
-    "license": "BSD"
-  },
-  {
     "name": "propcache",
     "version": "0.5.2",
     "author": "Andrew Svetlov",
