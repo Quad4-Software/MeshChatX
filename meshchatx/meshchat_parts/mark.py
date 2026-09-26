@@ -1026,7 +1026,7 @@ class MarkMixin:
             self._mem_diag = MemoryDiagnostics()
             self._mem_diag.start()
             print(
-                "[mem_diag] Memory diagnostics enabled — "
+                "[mem_diag] Memory diagnostics enabled. "
                 "see /api/v1/diagnostics/memory for reports",
             )
 
