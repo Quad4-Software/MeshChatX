@@ -438,11 +438,5 @@ export async function renderNomadPageByPathAsync(
         }
         return escapeNomadPlainText(content);
     }
-    return renderNomadPageByPath(
-        pagePathWithoutData,
-        content,
-        pagePartials,
-        MicronParserClass,
-        renderOptions,
-    );
+    return renderNomadPageByPath(pagePathWithoutData, content, pagePartials, MicronParserClass, renderOptions);
 }

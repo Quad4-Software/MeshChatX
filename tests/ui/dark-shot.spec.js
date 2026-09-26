@@ -20,7 +20,9 @@ test.describe("dark shots", () => {
     for (const entry of entries) {
         test(`${entry.id} dark`, async ({ page, baseURL }) => {
             await page.addInitScript(() => {
-                try { window.localStorage.setItem("meshchatx_ui_theme", "dark"); } catch (e) {}
+                try {
+                    window.localStorage.setItem("meshchatx_ui_theme", "dark");
+                } catch (e) {}
             });
             await page.setViewportSize(VIEWPORTS.desktop);
             await gotoUiPage(page, entry, baseURL);

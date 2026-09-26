@@ -22,7 +22,9 @@ test.describe("hidpi shots", () => {
                     data: { theme },
                 });
                 await page.addInitScript((t) => {
-                    try { window.localStorage.setItem("meshchatx_ui_theme", t); } catch (e) {}
+                    try {
+                        window.localStorage.setItem("meshchatx_ui_theme", t);
+                    } catch (e) {}
                 }, theme);
                 await page.setViewportSize(VIEWPORTS.desktop);
                 await gotoUiPage(page, entry, baseURL);

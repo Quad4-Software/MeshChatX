@@ -27,9 +27,7 @@ marked.setOptions({
     breaks: true,
 });
 
-type WorkerSegment =
-    | { type: "html"; html: string }
-    | { type: "partial"; line: string };
+type WorkerSegment = { type: "html"; html: string } | { type: "partial"; line: string };
 
 let wasmReadyPromise: Promise<void> | null = null;
 
@@ -102,7 +100,7 @@ async function initWasm(): Promise<void> {
     try {
         result = await WebAssembly.instantiateStreaming(
             new Response(wasmBuf, { headers: { "content-type": "application/wasm" } }),
-            go.importObject,
+            go.importObject
         );
     } catch {
         result = await WebAssembly.instantiate(wasmBuf, go.importObject);
@@ -120,9 +118,7 @@ function handleMicronWasm(msg: any): WorkerSegment[] {
         if (seg.type === "mu") {
             out.push({
                 type: "html",
-                html: String(
-                    g.micronConvert(seg.text, msg.darkTheme === true, msg.forceMonospace === true),
-                ),
+                html: String(g.micronConvert(seg.text, msg.darkTheme === true, msg.forceMonospace === true)),
             });
         } else {
             out.push({ type: "partial", line: seg.line });

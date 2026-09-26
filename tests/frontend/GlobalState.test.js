@@ -105,9 +105,7 @@ describe("GlobalState notifications", () => {
 
 describe("GlobalState key-scoped subscriptions", () => {
     it("fires only for the subscribed domain", async () => {
-        const { subscribeGlobalStateKey } = await import(
-            "../../meshchatx/src/frontend/js/GlobalState"
-        );
+        const { subscribeGlobalStateKey } = await import("../../meshchatx/src/frontend/js/GlobalState");
         const configListener = vi.fn();
         const unsubscribe = subscribeGlobalStateKey("config", configListener);
         try {
@@ -122,9 +120,7 @@ describe("GlobalState key-scoped subscriptions", () => {
     });
 
     it("fires on whole-config replacement", async () => {
-        const { subscribeGlobalStateKey } = await import(
-            "../../meshchatx/src/frontend/js/GlobalState"
-        );
+        const { subscribeGlobalStateKey } = await import("../../meshchatx/src/frontend/js/GlobalState");
         const listener = vi.fn();
         const unsubscribe = subscribeGlobalStateKey("config", listener);
         try {
@@ -137,9 +133,7 @@ describe("GlobalState key-scoped subscriptions", () => {
     });
 
     it("delivers batched key notifications on flush", async () => {
-        const { subscribeGlobalStateKey } = await import(
-            "../../meshchatx/src/frontend/js/GlobalState"
-        );
+        const { subscribeGlobalStateKey } = await import("../../meshchatx/src/frontend/js/GlobalState");
         const listener = vi.fn();
         const unsubscribe = subscribeGlobalStateKey("config", listener);
         try {

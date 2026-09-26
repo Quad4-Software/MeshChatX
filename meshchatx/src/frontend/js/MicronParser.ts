@@ -534,13 +534,10 @@ export default class MicronParser extends BaseMicronParser {
     _micronParseFallback(markup) {
         const escaped = escapeHtmlForFallback(markup);
         try {
-            return DOMPurify.sanitize(
-                `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`,
-                {
-                    USE_PROFILES: { html: true },
-                    ALLOWED_URI_REGEXP,
-                }
-            );
+            return DOMPurify.sanitize(`<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`, {
+                USE_PROFILES: { html: true },
+                ALLOWED_URI_REGEXP,
+            });
         } catch {
             return `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`;
         }
@@ -712,11 +709,7 @@ export default class MicronParser extends BaseMicronParser {
      * sanitization stay here where a real DOM exists.
      */
     async _convertMicronToHtmlWasmWorker(markup, partialContents: any = {}, options: any = {}) {
-        const segments = await convertMicronWasmSegmentsInWorker(
-            markup,
-            this.darkTheme,
-            this.enableForceMonospace,
-        );
+        const segments = await convertMicronWasmSegmentsInWorker(markup, this.darkTheme, this.enableForceMonospace);
         let html = "";
         for (const seg of segments) {
             if (seg.type === "html") {

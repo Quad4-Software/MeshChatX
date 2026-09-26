@@ -78,7 +78,7 @@
                 const html = await parser.convertMicronToHtmlAsync(
                     tabs[activeTabIndex].content,
                     {},
-                    { useWasm: useWasm },
+                    { useWasm: useWasm }
                 );
                 if (token === renderToken) renderedContent = html;
             } catch (error: any) {
@@ -88,8 +88,7 @@
                     .replace(/</g, "&lt;")
                     .replace(/>/g, "&gt;")
                     .replace(/"/g, "&quot;");
-                if (token === renderToken)
-                    renderedContent = `<p style="color: red;">Error rendering: ${msg}</p>`;
+                if (token === renderToken) renderedContent = `<p style="color: red;">Error rendering: ${msg}</p>`;
             }
         };
         if (delayMs > 0) {
