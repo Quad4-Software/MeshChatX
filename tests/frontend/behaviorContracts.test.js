@@ -404,9 +404,10 @@ describe("behavior contracts: phased startup and early UI mount", () => {
 
     it("backend publishes ui_ready early and defers secondary identity services", () => {
         const mesh = readSource("meshchatx/meshchat.py");
+        const mark = readSource("meshchatx/meshchat_parts/mark.py");
         expect(mesh).toContain("self._ui_ready = True");
         expect(mesh).toContain("_finish_deferred_startup_services");
-        expect(mesh).toContain("_start_deferred_reticulum_services");
+        expect(mark).toContain("_start_deferred_reticulum_services");
         const identity = readSource("meshchatx/src/backend/identity_context.py");
         expect(identity).toContain("def setup_deferred_services");
         expect(identity).toContain("_deferred_setup_in_progress");
