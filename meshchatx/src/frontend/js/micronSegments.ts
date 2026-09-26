@@ -3,13 +3,9 @@
  * (MicronParser) and the render worker. No DOM access allowed in here.
  */
 
-// eslint-disable-next-line security/detect-unsafe-regex -- fixed pattern, bounded input (single line)
-export const MICRON_PARTIAL_LINE_REGEX =
-    /^`\{([a-f0-9]{32}):([^`}]*)(?:`(\d+)(?:`([^}]*))?)?\}$/;
+export const MICRON_PARTIAL_LINE_REGEX = /^`\{([a-f0-9]{32}):([^`}]*)(?:`(\d+)(?:`([^}]*))?)?\}$/;
 
-export type MicronSegment =
-    | { type: "mu"; text: string }
-    | { type: "partial"; line: string };
+export type MicronSegment = { type: "mu"; text: string } | { type: "partial"; line: string };
 
 /**
  * Split markup into contiguous micron segments and standalone partial-include

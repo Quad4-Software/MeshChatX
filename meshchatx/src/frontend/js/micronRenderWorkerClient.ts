@@ -89,7 +89,7 @@ function post(payload: Record<string, unknown>): Promise<any> {
 export async function convertMicronWasmSegmentsInWorker(
     markup: string,
     darkTheme: boolean,
-    forceMonospace: boolean,
+    forceMonospace: boolean
 ): Promise<RenderWorkerSegment[]> {
     const res = await post({
         kind: "micron-wasm",

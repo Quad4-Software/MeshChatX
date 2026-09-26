@@ -313,7 +313,11 @@
                 cardPreviewCache = {};
                 const currentArchive = viewingArchive;
                 if (currentArchive && ok) {
-                    renderedContent = await renderFullContentAsync(currentArchive, nomadRenderOptions, nomadMicronWasmActive);
+                    renderedContent = await renderFullContentAsync(
+                        currentArchive,
+                        nomadRenderOptions,
+                        nomadMicronWasmActive
+                    );
                 }
             });
         }

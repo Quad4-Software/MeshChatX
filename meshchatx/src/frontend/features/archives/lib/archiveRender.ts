@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: 0BSD
 
 import MicronParser from "../../../js/MicronParser.js";
-import { isolateNomadLinksInHtml, renderNomadPageByPath, renderNomadPageByPathAsync } from "../../../js/NomadPageRenderer.js";
+import {
+    isolateNomadLinksInHtml,
+    renderNomadPageByPath,
+    renderNomadPageByPathAsync,
+} from "../../../js/NomadPageRenderer.js";
 import Utils from "../../../js/Utils.js";
 import type { ArchiveItem, NomadRenderOptions } from "./types.js";
 
@@ -167,11 +171,7 @@ export async function renderFullContentAsync(
         const pathPart = (archive.page_path || "").split("`")[0];
         const pl = pathPart.toLowerCase();
         if (!/\.(mu|md|txt|html)$/.test(pl)) {
-            let out = await new MicronParser().convertMicronToHtmlAsync(
-                archive.content,
-                {},
-                { useWasm: wasmActive }
-            );
+            let out = await new MicronParser().convertMicronToHtmlAsync(archive.content, {}, { useWasm: wasmActive });
             if (dest) {
                 out = isolateNomadLinksInHtml(out, dest);
             }
