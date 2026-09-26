@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DAST baseline: boot the backend headless and run OWASP ZAP baseline scan.
+# DAST baseline: boot the backend headless and run a nuclei template scan.
 # Warn-only by design: findings land in the JSON report artifact and the
 # step summary. Graduate confirmed issues into tests, not silent gates.
 set -euo pipefail
@@ -8,7 +8,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 PORT="${DAST_PORT:-18099}"
-ZAP_IMAGE="${ZAP_IMAGE:-ghcr.io/zaproxy/zaproxy:stable}"
 REPORT_DIR="${DAST_REPORT_DIR:-$ROOT/reports/dast}"
 mkdir -p "$REPORT_DIR"
 
@@ -60,15 +59,17 @@ if [[ "$ready" != "1" ]]; then
     exit 1
 fi
 
-docker run --rm \
-    --network host \
-    -v "$REPORT_DIR:/zap/wrk/:rw" \
-    -t "$ZAP_IMAGE" \
-    zap-baseline.py \
-    -t "http://127.0.0.1:${PORT}" \
-    -J dast-report.json \
-    -r dast-report.html \
-    -w dast-report.md \
-    -a -j || true
+# Fresh template set on every CI run; -ni disables update checks mid-scan.
+nuclei -update-templates
+
+# Interactsh is disabled: out-of-band callback checks cannot reach a
+# loopback-only target anyway.
+nuclei \
+    -target "http://127.0.0.1:${PORT}" \
+    -no-interactsh \
+    -stats \
+    -jsonl-export "${REPORT_DIR}/nuclei-report.jsonl" \
+    -markdown-export "${REPORT_DIR}" \
+    || true
 
 echo "DAST: reports written to ${REPORT_DIR}"
