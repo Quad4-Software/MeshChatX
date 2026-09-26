@@ -861,26 +861,38 @@ class OnMixin:
     async def websocket_broadcast(self, data, *, _skip_coalesce: bool = False):
         from meshchatx.src.backend import websocket_runtime
 
-        # Per-identity background loops run asyncio.run on daemon threads
+        # Per-identity background loops share the meshchatx-async daemon loop
         # (IdentityContext.start_background_threads), so a broadcast awaited
         # from them lands on a foreign event loop. The broadcast lock, the
         # coalesce flush task, and the aiohttp send transports are all bound
-        # to the main loop; sending from here would interleave send_str calls
+        # to the main loop. Sending from here would interleave send_str calls
         # across loops and tear frames. Re-dispatch onto the main loop.
         main_loop = AsyncUtils.main_loop
+        running_loop = asyncio.get_running_loop()
         if (
             isinstance(main_loop, asyncio.AbstractEventLoop)
-            and main_loop is not asyncio.get_running_loop()
-            and main_loop.is_running()
+            and main_loop is not running_loop
         ):
+            if not main_loop.is_running():
+                # Owning loop is gone (shutdown) or never came up. Falling
+                # through would touch shared asyncio primitives bound to the
+                # other loop and raise "bound to a different event loop".
+                # No client can receive the broadcast at this point anyway.
+                return
             future = asyncio.run_coroutine_threadsafe(
                 self.websocket_broadcast(data, _skip_coalesce=_skip_coalesce),
                 main_loop,
             )
-            await asyncio.wrap_future(future)
+            # Bound the wait so a loop that stops between the is_running()
+            # check and scheduling cannot wedge this caller forever.
+            try:
+                await asyncio.wait_for(asyncio.wrap_future(future), timeout=30.0)
+            except TimeoutError:
+                future.cancel()
+                print("websocket_broadcast: dispatch to main loop timed out")
             return
 
-        return await websocket_runtime.broadcast_to_websocket_clients(
+        await websocket_runtime.broadcast_to_websocket_clients(
             self,
             data,
             _skip_coalesce=_skip_coalesce,

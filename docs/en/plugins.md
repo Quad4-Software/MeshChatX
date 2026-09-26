@@ -55,9 +55,9 @@ Invalid signatures hard-block install. Unsigned packages are allowed. Present-bu
 
 After install, MeshChatX hashes the on-disk tree. If files change outside the app, the plugin is auto-disabled as tampered.
 
-## Bundled example: Bug Reports
+## Bundled example: Hello Example
 
-com.meshchatx.mcx-bugs ships with MeshChatX. It is a local issue tracker with opt-in redacted mesh send on aspect mcx-bugs-v1. Local Issues groups exceptions by fingerprint. Send never runs automatically. Collect runs a mesh collector with inbound redaction and durable storage under the active identity.
+com.meshchatx.mcx-hello ships with MeshChatX. It is a minimal reference plugin: it activates a Python backend, keeps a counter in isolated plugin storage, and renders a small page through api.setUi. It requests no manager permissions and no network access.
 
 ## Plugin UI (uiDescriptor v1)
 
@@ -70,7 +70,7 @@ Worker helpers: api.callManager(capability, args), api.clipboardWrite(text), api
 Layout:
 
 ```
-mcx-bugs/
+mcx-hello/
     plugin.json
     frontend/main.js
     backend/main.py
@@ -156,7 +156,6 @@ Hook events reach the UI as WebSocket plugin.event frames, then into the plugin 
 | -------------------- | ----------------------------- |
 | destinationPath.read | Read the Reticulum path table |
 | debugLog.read        | Read redacted debug logs      |
-| bugReport.*          | Bug report / collector APIs   |
 | rnsLink.open         | Open or reuse an RNS link     |
 | rnsLink.identify     | Identify on a cached link     |
 | rnsLink.request      | Request/response on a link    |

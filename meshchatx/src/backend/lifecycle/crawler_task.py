@@ -92,11 +92,11 @@ async def process_crawler_task(app: Any, task, context=None):
         content_received[0] = content
         # RNS request callbacks fire on the transport thread, so the
         # asyncio.Event must be set through the owning loop.
-        loop.call_soon_threadsafe(done_event.set)
+        call_soon_threadsafe_or_none(loop, done_event.set)
 
     def on_failure(reason):
         failure_reason[0] = reason
-        loop.call_soon_threadsafe(done_event.set)
+        call_soon_threadsafe_or_none(loop, done_event.set)
 
     def on_progress(progress):
         pass
