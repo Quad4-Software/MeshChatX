@@ -3,14 +3,13 @@
 
 from __future__ import annotations
 
+# ruff: noqa: F405
+from pathlib import Path
+
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_error_from_exception,
 )
-
-# ruff: noqa: F405
-from pathlib import Path
-
 from meshchatx.src.backend.http.routes.app_info._names import *  # noqa: F403
 
 
@@ -318,7 +317,6 @@ def register_app_info_info_routes(routes, app):
                             if sys.version_info >= (3, 13)
                             else "n/a"
                         ),
-                        "ply": app.get_package_version("ply"),
                         "bcrypt": app.get_package_version("bcrypt"),
                         "lxmfy": app.get_package_version("lxmfy"),
                         "rns_filesync": app.get_package_version("rns-filesync"),
